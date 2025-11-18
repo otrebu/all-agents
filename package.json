@@ -1,0 +1,29 @@
+{
+  "name": "all-agents",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Briding between Cursor and Claude code AI configuration, making it work as much as possible for web / cloud agents too that don't have the full capabilities of their local counterparts.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/otrebu/all-agents.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/otrebu/all-agents/issues"
+  },
+  "homepage": "https://github.com/otrebu/all-agents#readme",
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
