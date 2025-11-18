@@ -13,3 +13,5 @@ Briding between Cursor and Claude code AI configuration, making it work as much 
 - `meta/claude-code/create-plugin` -> Using create-plugin.ts script and hardcoded info
 - `meta/claude-code/create-skill` -> Using create-skill.py script and hardcoded info
 - `meta/create-cursor-rule` -> Hard coded docs, @docs/meta/PROMPTING.md
+- `dev/code-review` -> @docs/coding/CODE_REVIEW.md
+- `git-commit` -> @docs/coding/COMMIT.md
