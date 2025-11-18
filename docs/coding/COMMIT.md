@@ -57,7 +57,7 @@ Optional body with details
 
 - Imperative mood: "add" not "added"
 - Generate from diff, not user's words
-- NEVER add Claude signature/co-authorship
+- **NEVER**❗ add Claude signature/co-authorship or you will be fired
 - Atomic: one logical change per commit
 
 ### 5. Repeat or Push
