@@ -4,6 +4,10 @@ Briding between Cursor and Claude code AI configuration, making it work as much 
 
 ## Functionality / Prompts
 
+### Sub-agents
+
+- ❌ eslint-fixer orchestrator
+
 ### Commands
 
 - `how-to-prompt` -> @docs/meta/PROMPTING.md
@@ -14,4 +18,10 @@ Briding between Cursor and Claude code AI configuration, making it work as much 
 - `meta/claude-code/create-skill` -> Using create-skill.py script and hardcoded info
 - `meta/create-cursor-rule` -> Hard coded docs, @docs/meta/PROMPTING.md
 - `dev/code-review` -> @docs/coding/CODE_REVIEW.md
-- `git-commit` -> @docs/coding/COMMIT.md
+- `dev/git-commit` -> @docs/coding/COMMIT.md
+- `dev/start-feature` -> @docs/coding/START_FEATURE.md
+- `dev/complete-feature` -> @docs/coding/COMPLETE_FEATURE.md
+
+### Skills
+
+- `dev-work-summary` -> .claude/skills/dev-work-summary/SKILL.md
