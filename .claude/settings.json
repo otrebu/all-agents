@@ -104,26 +104,14 @@
       "Bash(./*.js)",
       "Bash(pnpm lint 2>&1 | grep -E \"^\\s*/\" | sed 's/\\s*[0-9]*:[0-9]*.*//' | sort -u | xargs -n1 dirname | sort | uniq -c)",
       "SlashCommand(*)",
-      "Skill(analyze-size)",
-      "Skill(brainwriting)",
-      "Skill(scratchpad-fetch)",
-      "Skill(web-to-markdown)",
-      "Skill(timestamp)",
-      "Skill(typescript-coding)",
-      "Skill(meta-work:*)",
-      "Skill(development-lifecycle:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:registry.npmjs.org)",
-      "Skill(knowledge-work:gh-code-search)",
       "Bash(pnpm search:*)",
       "Bash(npx tsx:*)",
       "Bash(node --version)",
       "Bash(./node_modules/.bin/tsx:*)",
       "Bash(bash:*)",
-      "Skill(knowledge-work:parallel-search)",
-      "Bash(pnpm tsx:*)",
-      "Skill(basic-skills:timestamp)",
-      "Skill(knowledge-work:gemini-research)"
+      "Bash(pnpm tsx:*)"
     ],
     "deny": [
       "Read(.env*)",
@@ -210,21 +198,10 @@
           }
         ]
       }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "hooks/skill-reminder/prompt-hook.ts"
-          }
-        ]
-      }
     ]
   },
   "statusLine": {
     "type": "command",
     "command": "/Users/Uberto.Rapizzi/.claude/statusline-command.sh"
-  },
-  "alwaysThinkingEnabled": false
+  }
 }
