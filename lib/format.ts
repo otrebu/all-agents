@@ -6,10 +6,10 @@
 export function sanitizeForFilename(query: string): string {
   return query
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
+    .replaceAll(/[^a-z0-9\s-]/g, '')
     .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .substring(0, 50)
+    .replaceAll(/\s+/g, '-')
+    .replaceAll(/-+/g, '-')
+    .slice(0, 50)
 }
 

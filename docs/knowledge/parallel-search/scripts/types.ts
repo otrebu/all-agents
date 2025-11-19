@@ -1,32 +1,32 @@
 /**
+ * Metadata about the search execution
+ */
+export interface SearchMetadata {
+  executionTimeMs: number
+  objective: string
+  resultCount: number
+}
+
+/**
  * Search configuration options
  */
 export interface SearchOptions {
-  objective?: string
-  searchQueries?: string[]
-  processor?: 'lite' | 'base' | 'pro' | 'ultra'
-  maxResults?: number
   maxCharsPerResult?: number
+  maxResults?: number
+  objective?: string
+  processor?: 'base' | 'lite' | 'pro' | 'ultra'
+  searchQueries?: Array<string>
 }
 
 /**
  * Individual search result from Parallel API
  */
 export interface SearchResult {
-  url: string
-  title: string
-  excerpts: string[]
   domain: string
+  excerpts: Array<string>
   rank: number
-}
-
-/**
- * Metadata about the search execution
- */
-export interface SearchMetadata {
-  objective: string
-  executionTimeMs: number
-  resultCount: number
+  title: string
+  url: string
 }
 
 /**
@@ -54,6 +54,16 @@ export class AuthError extends ParallelSearchError {
 }
 
 /**
+ * Network error - connection issues
+ */
+export class NetworkError extends ParallelSearchError {
+  constructor(message: string, cause?: Error) {
+    super(message, cause)
+    this.name = 'NetworkError'
+  }
+}
+
+/**
  * Rate limit error - too many requests
  */
 export class RateLimitError extends ParallelSearchError {
@@ -64,16 +74,6 @@ export class RateLimitError extends ParallelSearchError {
   ) {
     super(message)
     this.name = 'RateLimitError'
-  }
-}
-
-/**
- * Network error - connection issues
- */
-export class NetworkError extends ParallelSearchError {
-  constructor(message: string, cause?: Error) {
-    super(message, cause)
-    this.name = 'NetworkError'
   }
 }
 

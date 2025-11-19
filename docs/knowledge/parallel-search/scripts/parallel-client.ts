@@ -1,25 +1,27 @@
 import Parallel from 'parallel-web'
+
+import type { SearchOptions, SearchResult } from './types.js'
+
 import {
   AuthError,
-  RateLimitError,
   NetworkError,
   ParallelSearchError,
+  RateLimitError,
   ValidationError,
 } from './types.js'
-import type { SearchOptions, SearchResult } from './types.js'
 
 /**
  * Execute a search using the Parallel Search API
  * @param options Search configuration
  * @returns Array of search results with metadata
  */
-export async function executeSearch(
+async function executeSearch(
   options: SearchOptions
-): Promise<SearchResult[]> {
+): Promise<Array<SearchResult>> {
   validateSearchOptions(options)
 
   const apiKey = process.env.PARALLEL_API_KEY
-  if (!apiKey) {
+  if (apiKey === undefined || apiKey === "") {
     throw new AuthError(
       'PARALLEL_API_KEY environment variable not set. Get your API key at https://platform.parallel.ai/'
     )
@@ -29,27 +31,35 @@ export async function executeSearch(
 
   try {
     const response = await client.beta.search({
-      objective: options.objective,
-      search_queries: options.searchQueries,
-      processor: (options.processor || 'pro') as any,
-      max_results: options.maxResults || 15,
       max_chars_per_result: options.maxCharsPerResult || 5000,
+      max_results: options.maxResults || 15,
+      objective: options.objective,
+      processor: (options.processor ?? 'pro'),
+      search_queries: options.searchQueries,
     })
 
     return transformResults(response)
-  } catch (error: any) {
-    if (error.status === 401 || error.status === 403) {
+  } catch (error: unknown) {
+    const errorObject = error as {
+      code?: string;
+      headers?: Record<string, number | string>;
+      message?: string;
+      status?: number;
+    };
+    if (errorObject.status === 401 || errorObject.status === 403) {
       throw new AuthError(
         'Invalid API key or unauthorized access. Check your PARALLEL_API_KEY.'
       )
     }
 
-    if (error.status === 429) {
-      const resetAt = error.headers?.['x-ratelimit-reset']
-        ? new Date(error.headers['x-ratelimit-reset'] * 1000)
+    if (errorObject.status === 429) {
+      const resetHeader = errorObject.headers?.['x-ratelimit-reset'];
+      const resetAt = resetHeader !== undefined && typeof resetHeader === "number"
+        ? new Date(resetHeader * 1000)
         : undefined
-      const remaining = error.headers?.['x-ratelimit-remaining']
-        ? parseInt(error.headers['x-ratelimit-remaining'])
+      const remainingHeader = errorObject.headers?.['x-ratelimit-remaining'];
+      const remaining = remainingHeader !== undefined && typeof remainingHeader === "string"
+        ? Number.parseInt(remainingHeader, 10)
         : undefined
 
       throw new RateLimitError(
@@ -59,18 +69,57 @@ export async function executeSearch(
       )
     }
 
-    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+    if (errorObject.code === 'ENOTFOUND' || errorObject.code === 'ECONNREFUSED') {
       throw new NetworkError(
         'Network connection failed. Please check your internet connection.',
-        error
+        error as Error
       )
     }
 
+    const message = typeof errorObject.message === "string" ? errorObject.message : 'Unknown error';
     throw new ParallelSearchError(
-      `Search failed: ${error.message || 'Unknown error'}`,
-      error
+      `Search failed: ${message}`,
+      error as Error
     )
   }
+}
+
+/**
+ * Extract domain from URL
+ * @param url Full URL
+ * @returns Domain name or 'unknown' if invalid
+ */
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return 'unknown'
+  }
+}
+
+/**
+ * Transform Parallel API response to our SearchResult format
+ * @param response Raw API response
+ * @returns Array of formatted search results
+ */
+function transformResults(response: {
+  results?: Array<{
+    excerpts?: Array<string>;
+    title?: string;
+    url?: string;
+  }>;
+}): Array<SearchResult> {
+  if (!response?.results || !Array.isArray(response.results)) {
+    return []
+  }
+
+  return response.results.map((rawResult, index) => ({
+    domain: extractDomain(rawResult.url || ''),
+    excerpts: rawResult.excerpts || [],
+    rank: index + 1,
+    title: rawResult.title || 'Untitled',
+    url: rawResult.url || '',
+  }))
 }
 
 /**
@@ -120,34 +169,4 @@ function validateSearchOptions(options: SearchOptions): void {
   }
 }
 
-/**
- * Transform Parallel API response to our SearchResult format
- * @param response Raw API response
- * @returns Array of formatted search results
- */
-function transformResults(response: any): SearchResult[] {
-  if (!response || !response.results || !Array.isArray(response.results)) {
-    return []
-  }
-
-  return response.results.map((rawResult: any, index: number) => ({
-    url: rawResult.url || '',
-    title: rawResult.title || 'Untitled',
-    excerpts: rawResult.excerpts || [],
-    domain: extractDomain(rawResult.url || ''),
-    rank: index + 1,
-  }))
-}
-
-/**
- * Extract domain from URL
- * @param url Full URL
- * @returns Domain name or 'unknown' if invalid
- */
-function extractDomain(url: string): string {
-  try {
-    return new URL(url).hostname
-  } catch {
-    return 'unknown'
-  }
-}
+export { executeSearch };

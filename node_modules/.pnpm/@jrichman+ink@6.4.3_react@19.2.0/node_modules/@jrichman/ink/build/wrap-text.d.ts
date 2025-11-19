@@ -1,0 +1,6 @@
+import { type StyledChar } from '@alcalzone/ansi-tokenize';
+export declare const sliceStyledChars: (styledChars: StyledChar[], begin: number, end?: number) => StyledChar[];
+export declare const truncateStyledChars: (styledChars: StyledChar[], columns: number, options?: {
+    position?: "start" | "middle" | "end";
+}) => StyledChar[];
+export declare const wrapStyledChars: (styledChars: StyledChar[], columns: number) => StyledChar[][];

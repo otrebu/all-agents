@@ -1,63 +1,70 @@
 // ===== DATA INTERFACES =====
 
-export interface SearchOptions {
-  language?: string
-  extension?: string
-  filename?: string
-  repo?: string
-  owner?: string
-  path?: string
-  limit?: number
-}
-
-export interface TextMatch {
-  property: string
-  fragment: string
-  matches?: Array<{ text: string; indices: number[] }>
-}
-
-export interface RawSearchResult {
+export interface CodeFile {
+  content: string
+  language: string
+  lines: number
   path: string
-  repository: {
-    full_name: string
-    html_url: string
-    stargazers_count: number
-    pushed_at: string
-    description?: string
-  }
-  html_url: string
-  score: number
-  sha: string
-  text_matches?: TextMatch[]
-}
-
-export interface SearchResult {
+  rank: number
   repository: string
-  path: string
-  url: string
-  score: number
   stars: number
-  lastPushed: string
-  textMatches: TextMatch[]
+  url: string
 }
 
 export interface RankedResult extends SearchResult {
-  rank: number
   qualityScore: number
+  rank: number
 }
 
-export interface CodeFile {
-  repository: string
+export interface RawSearchResult {
+  html_url: string
   path: string
-  url: string
-  content: string
-  lines: number
-  language: string
+  repository: {
+    description?: string
+    full_name: string
+    html_url: string
+    pushed_at: string
+    stargazers_count: number
+  }
+  score: number
+  sha: string
+  text_matches?: Array<TextMatch>
+}
+
+export interface SearchOptions {
+  extension?: string
+  filename?: string
+  language?: string
+  limit?: number
+  owner?: string
+  path?: string
+  repo?: string
+}
+
+export interface SearchResult {
+  lastPushed: string
+  path: string
+  repository: string
+  score: number
   stars: number
-  rank: number
+  textMatches: Array<TextMatch>
+  url: string
+}
+
+export interface TextMatch {
+  fragment: string
+  matches?: Array<{ indices: Array<number>; text: string; }>
+  property: string
 }
 
 // ===== ERROR CLASSES =====
+
+interface FetchErrorParameters {
+  cause?: Error;
+  message: string;
+  path: string;
+  repository: string;
+}
 
 export class AuthError extends Error {
   constructor(message: string, public cause?: Error) {
@@ -66,22 +73,17 @@ export class AuthError extends Error {
   }
 }
 
-export class SearchError extends Error {
-  constructor(message: string, public cause?: Error) {
-    super(message)
-    this.name = 'SearchError'
-  }
-}
-
 export class FetchError extends Error {
-  constructor(
-    message: string,
-    public repository: string,
-    public path: string,
-    public cause?: Error
-  ) {
-    super(message)
+  public cause?: Error;
+  public path: string;
+  public repository: string;
+
+  constructor(params: FetchErrorParameters) {
+    super(params.message)
     this.name = 'FetchError'
+    this.cause = params.cause
+    this.path = params.path
+    this.repository = params.repository
   }
 }
 
@@ -93,5 +95,12 @@ export class RateLimitError extends Error {
   ) {
     super(message)
     this.name = 'RateLimitError'
+  }
+}
+
+export class SearchError extends Error {
+  constructor(message: string, public cause?: Error) {
+    super(message)
+    this.name = 'SearchError'
   }
 }

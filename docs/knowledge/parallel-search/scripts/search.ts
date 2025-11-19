@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 
+import { log } from "@lib/log.js";
 import { Command } from "commander";
 import ora from "ora";
-import { executeSearch } from "./parallel-client.js";
+
 import { formatResults } from "./formatter.js";
-import { log } from "@lib/log.js";
+import { executeSearch } from "./parallel-client.js";
 import {
   AuthError,
-  RateLimitError,
   NetworkError,
+  RateLimitError,
   ValidationError,
 } from "./types.js";
 
@@ -30,13 +31,13 @@ program
   .option(
     "--max-results <number>",
     "Maximum results to return",
-    (val) => parseInt(val, 10),
+    (value) => Number.parseInt(value, 10),
     15
   )
   .option(
     "--max-chars <number>",
     "Max characters per excerpt",
-    (val) => parseInt(val, 10),
+    (value) => Number.parseInt(value, 10),
     5000
   )
   .argument("[extraQueries...]", "Additional search queries (positional)")
@@ -53,7 +54,7 @@ program
       if (queries.length > 0) {
         log.dim(`  Queries: ${queries.length}`);
         queries.forEach((query: string, index: number) =>
-          log.dim(`    ${index + 1}. "${query}"`)
+          { log.dim(`    ${index + 1}. "${query}"`); }
         );
       }
       log.dim(`  Processor: ${options.processor}`);
@@ -63,16 +64,16 @@ program
       const spinner = ora("Searching...").start();
 
       const results = await executeSearch({
+        maxCharsPerResult: options.maxChars,
+        maxResults: options.maxResults,
         objective: options.objective,
-        searchQueries: queries,
         processor: options.processor as
-          | "lite"
           | "base"
+          | "lite"
           | "pro"
           | "ultra"
           | undefined,
-        maxResults: options.maxResults,
-        maxCharsPerResult: options.maxChars,
+        searchQueries: queries,
       });
 
       const executionTimeMs = Date.now() - startTime;
@@ -87,12 +88,12 @@ program
 
       // Format and output results
       const report = formatResults(results, {
-        objective: options.objective,
         executionTimeMs,
+        objective: options.objective,
         resultCount: results.length,
       });
 
-      log.plain("\n" + report);
+      log.plain(`\n${  report}`);
 
       log.success(
         `\nSearch completed in ${(executionTimeMs / 1000).toFixed(1)}s`
@@ -126,7 +127,7 @@ program
         log.error("\nUnexpected error");
         log.dim(error.message || String(error));
         if (error.stack) {
-          log.dim("\n" + error.stack);
+          log.dim(`\n${  error.stack}`);
         }
         log.dim("");
       }
