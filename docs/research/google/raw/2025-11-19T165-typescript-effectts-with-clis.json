@@ -1,0 +1,74 @@
+{
+  "queries_used": [
+    "effect-ts cli",
+    "effect-ts command line applications",
+    "effect-ts console logging"
+  ],
+  "sources": [
+    {
+      "title": "GitHub - effect-ts/cli",
+      "url": "https://github.com/Effect-TS/cli"
+    },
+    {
+      "title": "npmjs - @effect/cli",
+      "url": "https://www.npmjs.com/package/@effect/cli"
+    },
+    {
+      "title": "YouTube - Building a Type-Safe CLI with Effect-TS",
+      "url": "https://www.youtube.com/watch?v=0sNoY-c8d-w"
+    },
+    {
+      "title": "GitHub - create-effect-app",
+      "url": "https://github.com/Effect-TS/create-effect-app"
+    },
+    {
+      "title": "Effect Website - Getting Started with Effect",
+      "url": "https://effect.website/docs/getting-started"
+    },
+    {
+      "title": "Effect Website - Logging",
+      "url": "https://effect.website/docs/essentials/logging"
+    },
+    {
+      "title": "mavnn.co.uk - Effect-TS for the confused",
+      "url": "https://mavnn.co.uk/blog/2023/07/23/effect-ts-for-the-confused-part-1-the-log-that-wasnt-there/"
+    }
+  ],
+  "key_points": [
+    "The Effect-TS ecosystem provides a dedicated library, `@effect/cli`, for building command-line interfaces.",
+    "`@effect/cli` is designed to be highly type-safe and composable, allowing developers to build robust and maintainable CLI applications.",
+    "Key features of `@effect/cli` include automatic generation of help documentation, shell completion scripts, and a unique 'Wizard Mode' for interactive prompts.",
+    "CLIs built with `@effect/cli` are structured around `Command` objects, which can be nested to create subcommands. Commands can have options and arguments.",
+    "Integration with the Node.js environment is handled by `@effect/platform-node`, which provides access to Node-specific APIs.",
+    "The `create-effect-app` tool can be used to bootstrap a new Effect project, including a pre-configured CLI template.",
+    "For logging, `effect-ts` provides the `Effect.log` function and a `Console` module that integrates with the Effect system. Loggers are customizable with different formatters (e.g., `stringLogger`, `prettyLogger`, `jsonLogger`) and log levels.",
+    "TypeScript CLI files can be executed directly using `npx tsx`, which compiles them on-the-fly."
+  ],
+  "quotes": [
+    {
+      "text": "`@effect/cli` is a powerful and type-safe library within the Effect-TS ecosystem designed for building command-line interfaces (CLIs) in TypeScript.",
+      "source_url": "https://www.npmjs.com/package/@effect/cli"
+    },
+    {
+      "text": "The library offers a highly composable and type-safe approach to defining CLI commands, options, and arguments.",
+      "source_url": "https://www.youtube.com/watch?v=0sNoY-c8d-w"
+    },
+    {
+      "text": "It can automatically generate comprehensive help documentation and shell completion scripts for various major shells, reducing manual effort.",
+      "source_url": "https://www.youtube.com/watch?v=0sNoY-c8d-w"
+    },
+    {
+      "text": "A unique 'Wizard Mode' guides users through CLI applications with interactive prompts, enhancing user experience.",
+      "source_url": "https://www.youtube.com/watch?v=0sNoY-c8d-w"
+    },
+    {
+      "text": "For `Effect.log` to actually output to the console, you need to run the effect. For synchronous effects, you can use `Effect.runSync()`.",
+      "source_url": "https://effect.website/docs/essentials/logging"
+    },
+    {
+      "text": "An `Effect` represents a description of a computation that will only run when explicitly executed (e.g., with `Effect.runSync`, `Effect.runPromise`, `Effect.runFork`). If an `Effect` containing a log is not run, the log will not appear.",
+      "source_url": "https://mavnn.co.uk/blog/2023/07/23/effect-ts-for-the-confused-part-1-the-log-that-wasnt-there/"
+    }
+  ],
+  "summary": "The Effect-TS ecosystem offers a comprehensive solution for building command-line applications in TypeScript through its `@effect/cli` library. This library emphasizes type safety and composability, allowing developers to create robust and maintainable CLIs with features like automatic documentation, shell completion, and an interactive 'Wizard Mode'. It integrates with the Node.js runtime via `@effect/platform-node` and provides a flexible logging system. The ecosystem is well-documented, with tools like `create-effect-app` to help developers get started quickly."
+}

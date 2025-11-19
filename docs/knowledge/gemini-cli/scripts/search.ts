@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
-import { parseArgs } from 'node:util'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import { execa } from 'execa'
-import ora from 'ora'
-import { log } from '@lib/log.js'
-import { sanitizeForFilename } from '@lib/format.js'
-import type { GeminiResponse } from './types.js'
+import { Command } from "commander";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { execa } from "execa";
+import ora from "ora";
+import { log } from "@lib/log.js";
+import { sanitizeForFilename } from "@lib/format.js";
+import type { GeminiResponse } from "./types.js";
 
-const RESEARCH_DIR = 'docs/research/google'
-const RAW_DIR = join(RESEARCH_DIR, 'raw')
+const RESEARCH_DIR = "docs/research/google";
+const RAW_DIR = join(RESEARCH_DIR, "raw");
 
 // Prompt templates (as strings to avoid external file dependencies)
-const TEMPLATES = {
+const TEMPLATES: Record<string, string> = {
   quick: `Use GoogleSearch to research: %QUERY%
 
 Execute 2-3 diverse queries. Fetch 5-8 high-quality sources with direct quotes. Include URLs for every source and quote.
@@ -95,91 +95,83 @@ Return JSON:
     }
   ],
   "summary": "3-5 sentence overview of implementation approach"
-}`
-}
+}`,
+};
 
-async function main() {
-  log.header('\n🔍 Gemini Research CLI\n')
+const program = new Command();
 
-  try {
-    const { values, positionals } = parseArgs({
-      options: {
-        mode: { type: 'string', default: 'quick' },
-        help: { type: 'boolean', short: 'h' }
-      },
-      allowPositionals: true
-    })
-
-    if (values.help) {
-      showHelp()
-      process.exit(0)
-    }
-
-    const query = positionals.join(' ')
-    if (!query) {
-      log.error('No query provided')
-      log.dim('\nUsage: pnpm gemini-research "your query" [--mode quick|deep|code]\n')
-      process.exit(1)
-    }
-
-    const mode = (values.mode as 'quick' | 'deep' | 'code') || 'quick'
-    if (!TEMPLATES[mode]) {
-      log.error(`Invalid mode: ${mode}`)
-      log.dim('Valid modes: quick, deep, code\n')
-      process.exit(1)
-    }
-
-    // Prepare directories
-    await mkdir(RAW_DIR, { recursive: true })
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 14) // YYYYMMDDHHMMSS
-    const sanitizedTopic = sanitizeForFilename(query)
-    const rawFile = join(RAW_DIR, `${timestamp}-${sanitizedTopic}.json`)
-    const finalFile = join(RESEARCH_DIR, `${timestamp}-${sanitizedTopic}.md`)
-
-    // Construct prompt
-    const prompt = TEMPLATES[mode].replace('%QUERY%', query)
-
-    const spinner = ora(`Searching (${mode} mode): ${query}`).start()
+program
+  .name("gemini-research")
+  .description("Gemini Research CLI")
+  .argument("<query>", "Search query")
+  .option("--mode <string>", "Research mode: quick, deep, code", "quick")
+  .action(async (query, options) => {
+    log.header("\n🔍 Gemini Research CLI\n");
 
     try {
-      // Execute Gemini CLI
-      const { stdout } = await execa({
-        preferLocal: true,
-        env: {
-          // Ensure PATH includes npm bin
-          PATH: process.env.PATH
-        }
-      })`gemini -p "${prompt}" --output-format json`
+      const mode = options.mode as "quick" | "deep" | "code";
 
-      // Parse response to validate JSON and extract content
-      let responseData: GeminiResponse
-      try {
-        const parsed = JSON.parse(stdout)
-        // Gemini CLI returns { response: "...", ... }
-        const content = parsed.response || parsed
-        
-        // Clean potential markdown blocks if Gemini wrapped it
-        const cleanContent = typeof content === 'string' 
-          ? content.replace(/```json\n?|\n?```/g, '') 
-          : JSON.stringify(content)
-
-        responseData = JSON.parse(cleanContent)
-      } catch (e) {
-        spinner.fail('Failed to parse Gemini response')
-        log.error('Raw output was not valid JSON')
-        // Save raw output anyway for debugging
-        await writeFile(rawFile, stdout)
-        log.dim(`Raw output saved to: ${rawFile}`)
-        process.exit(1)
+      if (!TEMPLATES[mode]) {
+        log.error(`Invalid mode: ${mode}`);
+        log.dim("Valid modes: quick, deep, code\n");
+        process.exit(1);
       }
 
-      // Save formatted raw JSON
-      await writeFile(rawFile, JSON.stringify(responseData, null, 2))
-      spinner.succeed('Research complete!')
+      // Prepare directories
+      await mkdir(RAW_DIR, { recursive: true });
 
-      // Create Placeholder Markdown
-      const placeholderContent = `# Research: ${query}
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "")
+        .slice(0, 14); // YYYYMMDDHHMMSS
+      const sanitizedTopic = sanitizeForFilename(query);
+      const rawFile = join(RAW_DIR, `${timestamp}-${sanitizedTopic}.json`);
+      const finalFile = join(RESEARCH_DIR, `${timestamp}-${sanitizedTopic}.md`);
+
+      // Construct prompt
+      const prompt = TEMPLATES[mode].replace("%QUERY%", query);
+
+      const spinner = ora(`Searching (${mode} mode): ${query}`).start();
+
+      try {
+        // Execute Gemini CLI
+        const { stdout } = await execa({
+          preferLocal: true,
+          env: {
+            // Ensure PATH includes npm bin
+            PATH: process.env.PATH,
+          },
+        })`gemini -p "${prompt}" --output-format json`;
+
+        // Parse response to validate JSON and extract content
+        let responseData: GeminiResponse;
+        try {
+          const parsed = JSON.parse(stdout);
+          // Gemini CLI returns { response: "...", ... }
+          const content = parsed.response || parsed;
+
+          // Clean potential markdown blocks if Gemini wrapped it
+          const cleanContent =
+            typeof content === "string"
+              ? content.replace(/```json\n?|\n?```/g, "")
+              : JSON.stringify(content);
+
+          responseData = JSON.parse(cleanContent);
+        } catch (e) {
+          spinner.fail("Failed to parse Gemini response");
+          log.error("Raw output was not valid JSON");
+          // Save raw output anyway for debugging
+          await writeFile(rawFile, stdout);
+          log.dim(`Raw output saved to: ${rawFile}`);
+          process.exit(1);
+        }
+
+        // Save formatted raw JSON
+        await writeFile(rawFile, JSON.stringify(responseData, null, 2));
+        spinner.succeed("Research complete!");
+
+        // Create Placeholder Markdown
+        const placeholderContent = `# Research: ${query}
 
 **Date**: ${new Date().toLocaleString()}
 **Mode**: ${mode}
@@ -195,47 +187,33 @@ async function main() {
 3. Replace this entire section with your analysis.
 
 ---
-`
-      await writeFile(finalFile, placeholderContent)
+`;
+        await writeFile(finalFile, placeholderContent);
 
-      log.plain('')
-      log.info(`📄 Raw Data: ${rawFile}`)
-      log.info(`📝 Report Placeholder: ${finalFile}`)
-      log.plain('')
-      log.warn('👉 NEXT STEP: Open the Markdown file and let Claude generate the full report using the GEMINI_CLI template.')
-      log.plain('')
+        log.plain("");
+        log.info(`📄 Raw Data: ${rawFile}`);
+        log.info(`📝 Report Placeholder: ${finalFile}`);
+        log.plain("");
+        log.warn(
+          "👉 NEXT STEP: Open the Markdown file and let Claude generate the full report using the GEMINI_CLI template."
+        );
+        log.plain("");
+      } catch (error: any) {
+        spinner.fail("Research failed");
 
-    } catch (error: any) {
-      spinner.fail('Research failed')
-      
-      if (error.stderr?.includes('not authenticated')) {
-        log.error('Authentication required')
-        log.dim('Run: gemini -p "test" to authenticate with Google')
-      } else {
-        log.error(error.message || String(error))
+        if (error.stderr?.includes("not authenticated")) {
+          log.error("Authentication required");
+          log.dim('Run: gemini -p "test" to authenticate with Google');
+        } else {
+          log.error(error.message || String(error));
+        }
+        process.exit(1);
       }
-      process.exit(1)
+    } catch (error: any) {
+      log.error("Unexpected error");
+      console.error(error);
+      process.exit(1);
     }
+  });
 
-  } catch (error: any) {
-    log.error('Unexpected error')
-    console.error(error)
-    process.exit(1)
-  }
-}
-
-function showHelp() {
-  console.log(`
-Gemini Research CLI
-
-USAGE:
-  pnpm gemini-research "your query" [OPTIONS]
-
-OPTIONS:
-  --mode <string>    Research mode: quick, deep, code (default: quick)
-  -h, --help        Show this help message
-`)
-}
-
-main()
-
+program.parse();
