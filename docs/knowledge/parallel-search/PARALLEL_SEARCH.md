@@ -1,96 +1,100 @@
 # Parallel Search
 
-Web research using Parallel's Search API with extended excerpts (up to 30K chars per result).
+Multi-angle web research using Parallel Search API (up to 30K chars/result).
 
-## Checklist: When to Use
+## Use Cases
 
-- [ ] Topic requires multiple perspectives or comparative analysis
-- [ ] Investigating new frameworks, libraries, or current events
-- [ ] Need documentation synthesis from multiple sources
-- [ ] Need deep content analysis (extended excerpts)
+- Multi-perspective or comparative analysis
+- New frameworks, libraries, current events
+- Deep content analysis across sources
 
-## Prerequisites
+## Invocation
 
-1. **Environment**: `PARALLEL_API_KEY` set (Get key: https://platform.parallel.ai/)
-2. **Dependencies**: Auto-installed via pnpm
-
-## Workflow
-
-1. **Analyze**: Identify main objective and 3-5 distinct query angles.
-2. **Execute**: Run search command (see Usage).
-3. **Synthesize**: Analyze results to extract key findings.
-4. **Persist**: Save report to `docs/research/parallel/TIMESTAMP-topic.md` using the **Strict Output Template**.
-
-## Usage
-
-### Comprehensive Research (Recommended)
+**Use Bash tool ONLY:** `pnpm parallel-search`
 
 ```bash
 pnpm parallel-search \
-  --objective "Production RAG system architecture" \
+  --objective "Your research objective" \
+  --queries "query1" "query2" "query3"
+```
+
+**Options:**
+
+- `--processor`: lite|base|pro|ultra (default: pro)
+- `--max-results`: Default 15
+- `--max-chars`: Default 5000 (max 30000)
+
+**Example:**
+
+```bash
+pnpm parallel-search \
+  --objective "Production RAG architecture" \
   --queries \
     "RAG chunking strategies" \
     "RAG evaluation metrics" \
-    "RAG deployment challenges" \
-    "RAG vector database selection"
+    "RAG deployment challenges"
 ```
 
-### Options
+## Workflow
 
-- `--processor`: `lite`, `base`, `pro` (default), `ultra`
-- `--max-results`: Default 15
-- `--max-chars`: Default 5000 (up to 30000)
+1. Identify objective + 3-5 distinct query angles
+2. Execute `pnpm parallel-search` via Bash tool
+3. Synthesize results → key findings
+4. Generate timestamp: `date "+%Y%m%d-%H%M%S"`
+5. Save to `docs/research/parallel/[timestamp]-topic.md`
 
-## Research Persistence: Strict Output Template
+## Report Format
 
-**CRITICAL**: You MUST use this exact markdown structure for all research reports.
+Structure reports as:
 
 ```markdown
-# [Title based on Objective]
+# [Title]
 
 **Date:** YYYY-MM-DD
-**Objective:** [Original search objective]
+**Objective:** [Original objective]
 
-## Executive Summary
+## Summary
 
-[Brief 2-3 sentence overview of high-level findings]
+[2-3 sentence overview]
 
-## Key Findings
+## Findings
 
 ### [Category 1]
 
-- **Finding**: Description with context.
-- **Finding**: Description with context.
+- **Key point**: Context
 
 ### [Category 2]
 
-- **Finding**: Description with context.
+- **Key point**: Context
 
-## Detailed Analysis
+## Analysis
 
-[In-depth synthesis of the gathered information, resolving the query angles]
+[Synthesis addressing query angles]
 
 ## Sources
 
-[List ALL relevant sources found]
-
-- **[Domain] Title**: URL
 - **[Domain] Title**: URL
 ```
 
-### Formatting Rules
+**Requirements:**
 
-- **Do** include specific URLs for every source.
-- **Do** group findings by category, not by source.
-- **Do** use bolding for key terms.
-- **Don't** dump raw API output; synthesize it.
-- **Don't** omit the "Sources" section.
+- Include all source URLs
+- Group by category, not source
+- Bold key terms
+- Synthesize, don't dump raw output
 
-## Error Handling
+## Setup
 
-- **Auth/Rate Limits**: Check API key and wait for reset if needed.
-- **Network**: Retry with `--processor lite` if connection is unstable.
+**Required:** `PARALLEL_API_KEY` environment variable
+Get key: https://platform.parallel.ai/
 
-## Implementation Details
+Dependencies auto-install via pnpm.
 
-Files in `docs/knowledge/parallel-search/scripts/`: `search.ts`, `parallel-client.ts`, `formatter.ts`, `log.ts`, `types.ts`.
+## Troubleshooting
+
+- Auth/rate limit errors → check API key
+- Network issues → retry with `--processor lite`
+
+## Implementation
+
+Scripts: `docs/knowledge/parallel-search/scripts/`
