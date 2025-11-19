@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "gh-search": "tsx docs/knowledge/github/scripts/main.ts",
     "parallel-search": "tsx docs/knowledge/parallel-search/scripts/search.ts",
     "gemini-research": "tsx docs/knowledge/gemini-cli/scripts/search.ts"
   },
@@ -25,7 +26,9 @@
   "homepage": "https://github.com/otrebu/all-agents#readme",
   "dependencies": {
     "@google/gemini-cli": "^0.16.0",
+    "@octokit/rest": "^22.0.1",
     "chalk": "^5.3.0",
+    "commander": "^12.1.0",
     "execa": "^9.6.0",
     "ora": "^8.0.1",
     "parallel-web": "latest"
