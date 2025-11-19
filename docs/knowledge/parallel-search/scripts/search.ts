@@ -4,7 +4,7 @@ import ora from "ora";
 import { parseArgs } from "node:util";
 import { executeSearch } from "./parallel-client.js";
 import { formatResults } from "./formatter.js";
-import { log } from "./log.js";
+import { log } from "@lib/log.js";
 import {
   AuthError,
   RateLimitError,

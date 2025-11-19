@@ -7,6 +7,8 @@ Briding between Cursor and Claude code AI configuration, making it work as much 
 ### Sub-agents
 
 - ❌ eslint-fixer orchestrator
+- gemini-research -> @docs/knowledge/gemini-cli/GEMINI_CLI.md
+- parallel-search -> @docs/knowledge/parallel-search/PARALLEL_SEARCH.md
 
 ### Commands
 
@@ -21,7 +23,8 @@ Briding between Cursor and Claude code AI configuration, making it work as much 
 - `dev/git-commit` -> @docs/coding/COMMIT.md
 - `dev/start-feature` -> @docs/coding/START_FEATURE.md
 - `dev/complete-feature` -> @docs/coding/COMPLETE_FEATURE.md
-- `parallel-search` -> @docs/knowledge/parallel-search/PARALLEL_SEARCH.md
+- `parallel-search` -> @docs/knowledge/parallel-search/PARALLEL_SEARCH.md, @docs/knowledge/parallel-search/scripts/search.ts
+- `gemini-research` -> @docs/knowledge/gemini-cli/GEMINI_CLI.md, @docs/knowledge/gemini-cli/scripts/search.ts
 
 ### Skills
 
