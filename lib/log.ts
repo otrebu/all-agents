@@ -12,3 +12,4 @@ export const log = {
   dim: (message: string) => console.log(chalk.dim(message)),
   plain: (message: string) => console.log(message),
 }
+

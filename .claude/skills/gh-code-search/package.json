@@ -1,0 +1,28 @@
+{
+  "name": "gh-code-search",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Fetch real-world code examples from GitHub for Claude to analyze",
+  "scripts": {
+    "search": "tsx scripts/main.ts",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint scripts/**/*.ts",
+    "lint:fix": "eslint scripts/**/*.ts --fix",
+    "format": "prettier --write scripts/**/*.ts",
+    "format:check": "prettier --check scripts/**/*.ts"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0",
+    "vitest": "^1.2.0",
+    "uba-eslint-config": "latest"
+  }
+}

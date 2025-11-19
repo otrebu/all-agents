@@ -1,4 +1,4 @@
-import type { SearchResult, SearchMetadata } from './types.js'
+import type { SearchResult, SearchMetadata } from "./types.js";
 
 /**
  * Format search results as clean markdown for Claude to read
@@ -11,27 +11,24 @@ export function formatResults(
   metadata: SearchMetadata
 ): string {
   const header = [
-    '# Parallel Search Results\n',
+    "# Parallel Search Results\n",
     `**Query:** ${metadata.objective}`,
     `**Results:** ${metadata.resultCount}`,
     `**Execution:** ${(metadata.executionTimeMs / 1000).toFixed(1)}s\n`,
-  ]
+  ];
 
-  const domainSummary =
-    results.length > 0
-      ? formatDomainSummary(results)
-      : []
+  const domainSummary = results.length > 0 ? formatDomainSummary(results) : [];
 
   const resultSections = results.flatMap((result) => [
     `## ${result.rank}. [${result.title}](${result.url})\n`,
     `**URL:** ${result.url}`,
     `**Domain:** ${result.domain}\n`,
     `**Excerpt:**\n`,
-    result.excerpts.join('\n\n'),
-    '\n---\n',
-  ])
+    result.excerpts.join("\n\n"),
+    "\n---\n",
+  ]);
 
-  return [...header, ...domainSummary, '---\n', ...resultSections].join('\n')
+  return [...header, ...domainSummary, "---\n", ...resultSections].join("\n");
 }
 
 /**
@@ -40,17 +37,17 @@ export function formatResults(
  * @returns Array of formatted domain summary lines
  */
 function formatDomainSummary(results: SearchResult[]): string[] {
-  const domainCounts = getDomainCounts(results)
+  const domainCounts = getDomainCounts(results);
   const topDomains = Array.from(domainCounts.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 5);
 
   const domainLines = topDomains.map(([domain, count]) => {
-    const percentage = ((count / results.length) * 100).toFixed(0)
-    return `- ${domain}: ${count} results (${percentage}%)`
-  })
+    const percentage = ((count / results.length) * 100).toFixed(0);
+    return `- ${domain}: ${count} results (${percentage}%)`;
+  });
 
-  return ['**Top Domains:**', ...domainLines, '']
+  return ["**Top Domains:**", ...domainLines, ""];
 }
 
 /**
@@ -59,27 +56,14 @@ function formatDomainSummary(results: SearchResult[]): string[] {
  * @returns Map of domain to count
  */
 function getDomainCounts(results: SearchResult[]): Map<string, number> {
-  const counts = new Map<string, number>()
+  const counts = new Map<string, number>();
 
   for (const result of results) {
-    const count = counts.get(result.domain) || 0
-    counts.set(result.domain, count + 1)
+    const count = counts.get(result.domain) || 0;
+    counts.set(result.domain, count + 1);
   }
 
-  return counts
+  return counts;
 }
 
-/**
- * Sanitize a query string for use in filenames
- * @param query Original query string
- * @returns Kebab-cased slug (max 50 chars)
- */
-export function sanitizeForFilename(query: string): string {
-  return query
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .substring(0, 50)
-}
+export { sanitizeForFilename } from "@lib/format.js";
