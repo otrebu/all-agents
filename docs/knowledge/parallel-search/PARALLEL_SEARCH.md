@@ -39,9 +39,10 @@ pnpm parallel-search \
 
 1. Identify objective + 3-5 distinct query angles
 2. Execute `pnpm parallel-search` via Bash tool
-3. Synthesize results → key findings
-4. Generate timestamp: `date "+%Y%m%d-%H%M%S"`
-5. Save to `docs/research/parallel/[timestamp]-topic.md`
+3. Tool automatically saves results:
+   - Raw JSON: `docs/research/parallel/raw/<timestamp:YYYYMMDD-HHMMSS>-<topic>.json`
+   - Report: `docs/research/parallel/<timestamp:YYYYMMDD-HHMMSS>-<topic>.md`
+4. Synthesize results → key findings in the generated report
 
 ## Report Format
 

@@ -34,7 +34,7 @@ export async function saveResearchOutput(
   // Generate timestamp: YYYYMMDD-HHMMSS format
   const isoTimestamp = new Date()
     .toISOString()
-    .replaceAll(/[:.]/g, "")
+    .replaceAll(/[-:T.]/g, "")
     .slice(0, 14);
   const timestamp = `${isoTimestamp.slice(0, 8)}-${isoTimestamp.slice(8)}`;
 
