@@ -8,6 +8,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { log } from "@lib/log.js";
+
 interface ConflictCheck {
   exists: boolean;
   message?: string;
@@ -89,10 +91,10 @@ function createPlugin(
   const keywords = extractKeywords(description);
   const metadata: PluginMetadata = { description, keywords, name: pluginName };
 
-  console.log("Creating plugin:", pluginName);
-  console.log("Description:", description);
-  console.log("Keywords:", keywords.join(", "));
-  console.log();
+  log.info(`Creating plugin: ${pluginName}`);
+  log.info(`Description: ${description}`);
+  log.info(`Keywords: ${keywords.join(", ")}`);
+  log.plain("");
 
   // Check for conflicts
   const marketplacePath = join(
@@ -108,13 +110,13 @@ function createPlugin(
   }
 
   if (conflict.message !== undefined && conflict.message !== "") {
-    console.log("⚠️ ", conflict.message);
+    log.warn(conflict.message);
   }
 
   // Create plugin structure
   const pluginPath = join(workingDirectory, ".claude", "plugins", pluginName);
 
-  console.log("Creating directories...");
+  log.info("Creating directories...");
   createPluginDirectories(pluginPath);
 
   writePluginFiles(pluginPath, metadata, marketplacePath);
@@ -241,24 +243,24 @@ function parseArguments(args: Array<string>): { description: string; name: strin
 
 // Print success message
 function printSuccessMessage(pluginName: string): void {
-  console.log();
-  console.log("✅ Plugin created successfully!");
-  console.log();
-  console.log("Structure:");
-  console.log(`  ✓ .claude/plugins/${pluginName}/.claude-plugin/plugin.json`);
-  console.log(`  ✓ .claude/plugins/${pluginName}/commands/ (empty)`);
-  console.log(`  ✓ .claude/plugins/${pluginName}/README.md`);
-  console.log("  ✓ Updated .claude-plugin/marketplace.json");
-  console.log();
-  console.log("Next steps:");
-  console.log(
+  log.plain("");
+  log.success("Plugin created successfully!");
+  log.plain("");
+  log.info("Structure:");
+  log.plain(`  ✓ .claude/plugins/${pluginName}/.claude-plugin/plugin.json`);
+  log.plain(`  ✓ .claude/plugins/${pluginName}/commands/ (empty)`);
+  log.plain(`  ✓ .claude/plugins/${pluginName}/README.md`);
+  log.plain("  ✓ Updated .claude-plugin/marketplace.json");
+  log.plain("");
+  log.info("Next steps:");
+  log.plain(
     `  1. Add commands: Create .md files in .claude/plugins/${pluginName}/commands/`
   );
-  console.log(`  2. Add agents: Create agents/ directory and .md files`);
-  console.log("  3. Add hooks: Create hooks/hooks.json");
-  console.log("  4. Add MCP servers: Create .mcp.json");
-  console.log();
-  console.log(
+  log.plain(`  2. Add agents: Create agents/ directory and .md files`);
+  log.plain("  3. Add hooks: Create hooks/hooks.json");
+  log.plain("  4. Add MCP servers: Create .mcp.json");
+  log.plain("");
+  log.info(
     "The plugin is now registered in the marketplace and ready for development!"
   );
 }
@@ -330,19 +332,19 @@ function writePluginFiles(
   metadata: PluginMetadata,
   marketplacePath: string
 ): void {
-  console.log("Writing plugin.json...");
+  log.info("Writing plugin.json...");
   writeFileSync(
     join(pluginPath, ".claude-plugin", "plugin.json"),
     generatePluginJson(metadata)
   );
 
-  console.log("Writing README.md...");
+  log.info("Writing README.md...");
   writeFileSync(
     join(pluginPath, "README.md"),
     generateReadme(metadata.name, metadata.description)
   );
 
-  console.log("Updating marketplace.json...");
+  log.info("Updating marketplace.json...");
   updateMarketplaceFile(metadata.name, metadata.description, marketplacePath);
 }
 
