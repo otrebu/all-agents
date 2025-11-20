@@ -1,0 +1,1394 @@
+{
+  "files": [
+    {
+      "content": "import { defineConfig } from \"tsup\";\n\nexport default defineConfig({\n  entry: [\"src/index.ts\"],\n  format: [\"esm\"],\n  dts: true,\n  sourcemap: true,\n  clean: true,\n  treeshake: true,\n  tsconfig: \"tsconfig.build.json\",\n  external: [\n    '@lucid-agents/core',\n    '@lucid-agents/payments',\n    '@lucid-agents/types',\n    '@lucid-agents/x402-tanstack-start',\n    '@tanstack/start',\n    '@tanstack/react-router',\n    'viem',\n    'x402',\n  ],\n});",
+      "language": "typescript",
+      "lines": 21,
+      "path": "packages/tanstack/tsup.config.ts",
+      "rank": 1,
+      "repository": "daydreamsai/lucid-agents",
+      "stars": 106,
+      "url": "https://github.com/daydreamsai/lucid-agents/blob/35ebd40970616f843dada6eaca029b524a5edc06/packages/tanstack/tsup.config.ts"
+    },
+    {
+      "content": "## Full Application Example\n\n### Project Structure\n\n```\napp/\n├── components/\n│   └── UploadDemo.tsx\n├── lib/\n│   └── upload.ts\n├── routes/\n│   ├── api.upload.$.ts\n│   ├── upload.tsx\n│   └── __root.tsx\n├── router.ts\n└── main.tsx\n```\n\n### Root Layout\n\n```typescript title=\"app/routes/__root.tsx\"\nimport { createRootRoute, Outlet } from '@tanstack/start';\n\nexport const Route = createRootRoute({\n  component: RootComponent,\n});\n\nfunction RootComponent() {\n  return (\n    <html>\n      <head>\n        <meta charSet=\"utf-8\" />\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n        <title>TanStack Start + Pushduck</title>\n      </head>\n      <body>\n        <div className=\"min-h-screen bg-gray-50\">\n          <nav className=\"bg-white shadow\">\n            <div className=\"container mx-auto px-4 py-4\">\n              <h1 className=\"text-xl font-semibold\">Upload Demo</h1>\n            </div>\n          </nav>\n          <main>\n\n---\n\nNo adapter layer means zero performance overhead - pushduck handlers run directly in TanStack Start.\n  </Card>\n  \n  <Card title=\"⚡ React Server Components\" description=\"Modern React architecture\">\n    Built on the latest React features with streaming and concurrent rendering.\n  </Card>\n  \n  <Card title=\"📦 Full-Stack TypeScript\" description=\"End-to-end type safety\">\n    Complete type safety from server to client with shared types.\n  </Card>\n  \n  <Card title=\"🔧 File-Based Routing\" description=\"Intuitive API structure\">\n    Organized API routes with TanStack Start's file-based routing system.\n  </Card>\n</Cards>\n\n## Deployment\n\n### Vercel Deployment\n\n```typescript title=\"app.config.ts\"\nimport { defineConfig } from '@tanstack/start/config';\n\nexport default defineConfig({\n  server: {\n    preset: 'vercel'\n  }\n});\n```\n\n### Netlify Deployment\n\n```typescript title=\"app.config.ts\"\nimport { defineConfig } from '@tanstack/start/config';\n\nexport default defineConfig({\n  server: {\n    preset: 'netlify'\n  }\n});\n```\n\n### Docker Deployment",
+      "language": "mdx",
+      "lines": 89,
+      "path": "docs/content/docs/integrations/tanstack-start.mdx",
+      "rank": 2,
+      "repository": "abhay-ramesh/pushduck",
+      "stars": 90,
+      "url": "https://github.com/abhay-ramesh/pushduck/blob/7b42bfd9127895736689b66899c57e58b6bbc824/docs/content/docs/integrations/tanstack-start.mdx"
+    },
+    {
+      "content": "import { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\nimport { TanStackRouterVite } from '@tanstack/router-plugin/vite'\n\nexport default defineConfig({\n  plugins: [TanStackRouterVite({}), react()],\n  build: {\n    target: 'esnext',\n    ssr: true,\n    rollupOptions: {\n      input: 'src/server-edge.ts',\n      output: {\n        format: 'es'\n      },\n      external: [\n        'formidable',\n        'express',\n        'node:stream',\n        'node:stream/promises',\n        'fs',\n        'path',\n        'spotify-web-api-node',\n        /\\.css$/\n      ]\n    }\n  },\n\n---\n\nbuild: {\n    target: 'esnext',\n    ssr: true,\n    rollupOptions: {\n      input: 'src/server-edge.ts',\n      output: {\n        format: 'es'\n      },\n      external: [\n        'formidable',\n        'express',\n        'node:stream',\n        'node:stream/promises',\n        'fs',\n        'path',\n        'spotify-web-api-node',\n        /\\.css$/\n      ]\n    }\n  },\n  ssr: {\n    noExternal: ['@tanstack/react-router', '@tanstack/start'],\n    external: [/\\.css$/, /\\.scss$/, /\\.sass$/, /\\.less$/, /\\.styl$/]\n  },\n  optimizeDeps: {\n    exclude: ['*.css']\n  }\n})",
+      "language": "typescript",
+      "lines": 57,
+      "path": "v3/faster-digital-garden/vite.edge.config.ts",
+      "rank": 3,
+      "repository": "TarunTomar122/digital-garden",
+      "stars": 5,
+      "url": "https://github.com/TarunTomar122/digital-garden/blob/ff8efe5e4de9318b4d8785f132b538a200a6e605/v3/faster-digital-garden/vite.edge.config.ts"
+    },
+    {
+      "content": "const allDeps = getAllDependencies(\n    enabledFeatures,\n    config.database.provider,\n    config.orm,\n    config.styling,\n    config.ui.shadcn\n  )\n\n  // Base dependencies for all projects\n  const baseDependencies = {\n    '@volt.js/core': 'latest',\n    'zod': '^3.25.0'\n  }\n\n  // Framework-specific dependencies\n  const frameworkDeps = getFrameworkDependencies(config.framework)\n\n  // Combine all dependencies\n  const dependencies = {\n    ...baseDependencies,\n    ...frameworkDeps.dependencies,\n    ...allDeps.dependencies.reduce((acc, dep) => ({ ...acc, [dep.name]: dep.version }), {})\n  }\n\n  const devDependencies = {\n    'typescript': '^5.6.0',\n    '@types/node': '^22.0.0',\n    'tsx': '^4.7.0',\n    ...frameworkDeps.devDependencies,\n    ...allDeps.devDependencies.reduce((acc, dep) => ({ ...acc, [dep.name]: dep.version }), {})\n  }\n\n  // Generate scripts dynamically\n  const scripts = generateScripts(config)\n\n  const packageJson = {\n    name: config.projectName,\n    version: \"0.1.0\",\n    private: true,\n    scripts,\n    dependencies,\n    devDependencies\n  }\n\n---\n\n}\n\n  return files\n}\n\nfunction generateNextJSFiles(config: ProjectSetupConfig): TemplateFile[] {\n  const files: TemplateFile[] = []\n\n  // next.config.ts - minimal\n  files.push({\n    path: 'next.config.ts',\n    content: `import type { NextConfig } from 'next'\n\nconst nextConfig: NextConfig = {}\n\nexport default nextConfig`\n  })\n\n  // app/layout.tsx - minimal\n  files.push({\n    path: 'src/app/layout.tsx',\n    content: `import type { Metadata } from 'next'\nimport { Providers } from '@/components/providers'\n${config.styling === 'tailwind' || config.ui.shadcn ? `import './globals.css'` : ''}\n\nexport const metadata: Metadata = {\n  title: '${config.projectName}',\n  description: 'Built with Volt.js'\n}\n\nexport default function RootLayout({\n  children,\n}: {\n  children: React.ReactNode\n}) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <Providers>\n          {children}\n        </Providers>\n      </body>\n    </html>",
+      "language": "typescript",
+      "lines": 89,
+      "path": "packages/cli/src/adapters/setup/templates.ts",
+      "rank": 4,
+      "repository": "Volt-js/volt.js",
+      "stars": 1,
+      "url": "https://github.com/Volt-js/volt.js/blob/9d03f6bd94634bcfcd2b87f2e5ce9ed4e6cb9a50/packages/cli/src/adapters/setup/templates.ts"
+    },
+    {
+      "content": "// app.config.ts\n\nimport viteReact from '@vitejs/plugin-react';\n// import  from '@vitejs/plugin-react'\nimport { TanStackRouterVite } from '@tanstack/router-plugin/vite';\n\nimport { defineConfig } from '@tanstack/start/config';\n// import ssr from \"npm:vite-plugin-ssr@^0.4.69/plugin\";\nimport path from 'node:path';\n\nexport default defineConfig({\n  tsr: {\n    addExtensions: true,\n    routesDirectory: 'src/routes',\n  },\n  vite: {\n    plugins: [\n      // deno(),\n      // viteDeno({}),\n      // pluginDeno({\n\n      // }),\n      // pluginDeno( // env: \"deno\",\n      //     // see configuration docs\n      // ),\n\n      TanStackRouterVite({\n        enableRouteGeneration: false,\n        routesDirectory: 'app/routes',\n        semicolons: true,\n        addExtensions: true,\n      }),\n\n---\n\n// deno(),\n      // viteDeno({}),\n      // pluginDeno({\n\n      // }),\n      // pluginDeno( // env: \"deno\",\n      //     // see configuration docs\n      // ),\n\n      TanStackRouterVite({\n        enableRouteGeneration: false,\n        routesDirectory: 'app/routes',\n        semicolons: true,\n        addExtensions: true,\n      }),\n      viteReact(),\n      // ssr(),\n    ],\n    // ssr: {},\n    // resolve: {\n    //   // alias: [\n    //   //   // {},\n    //   //   {\n    //   //     find: 'npm:@tanstack/start/server',\n    //   //     replacement: path.resolve(\n    //   //       import.meta.dirname,\n    //   //       './node_modules/@tanstack/start/dist/esm/server',\n    //   //     ),\n    //   //   },\n    //   //   // {\n    //   //   //   find: '@tanstack/start/server',\n    //   //   //   replacement: path.resolve(\n    //   //   //     import.meta.dirname,\n    //   //   //     './node_modules/@tanstack/start/dist/esm/server',\n    //   //   //   ),\n    //   //   // },\n    //   //   {\n    //   //     find: 'npm:@tanstack/start/router-manifest',\n    //   //     replacement: path.resolve(\n    //   //       import.meta.dirname,\n    //   //       './node_modules/@tanstack/start/dist/esm/router-manifest',\n    //   //     ),\n    //   //   },",
+      "language": "typescript",
+      "lines": 78,
+      "path": "app.config.ts",
+      "rank": 5,
+      "repository": "adgang/deno-tanstack-start",
+      "stars": 1,
+      "url": "https://github.com/adgang/deno-tanstack-start/blob/0bd3f9a74c679290924b5e8df1d72ce942f5a07a/app.config.ts"
+    },
+    {
+      "content": "먼저 `package.json` 파일을 수정하여 새로운 Vinxi 진입점을 참조하고 `\"type\": \"module\"`을 설정합니다.\n\n```json\n{\n  // ...\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vinxi dev\",\n    \"build\": \"vinxi build\",\n    \"start\": \"vinxi start\"\n  }\n}\n```\n\nVinxi가 TanStack Start의 최소 동작을 시작하도록 하려면 `app.config.ts` 파일을 설정해야 합니다.\n\n```typescript\n// app.config.ts\nimport { defineConfig } from '@tanstack/start/config'\n\nexport default defineConfig({})\n```\n\n\n## 기본 템플릿 추가하기\n\nTanStack Start를 사용하려면 다음 네 가지 파일이 필요합니다:\n\n1. 라우터 설정 파일\n2. 서버 진입점 파일\n3. 클라이언트 진입점 파일\n4. 애플리케이션의 루트 파일\n\n설정이 완료되면 다음과 같은 파일 트리가 생성됩니다:\n\n```\n.\n├── app/\n│   ├── routes/\n│   │   └── `__root.tsx`\n│   ├── `client.tsx`\n│   ├── `router.tsx`\n\n---\n\nreturn router\n}\n\ndeclare module '@tanstack/react-router' {\n  interface Register {\n    router: ReturnType\n  }\n}\n```\n\n> `routeTree.gen.ts` 파일은 아직 존재하지 않습니다.  \n> 이 파일은 TanStack Start를 처음 실행할 때(`npm run dev` 또는 `npm run start`) 자동으로 생성됩니다.\n\n\n## 서버 진입점\n\nTanStack Start는 [SSR(서버 사이드 렌더링)](https://unicorn-utterances.com/posts/what-is-ssr-and-ssg) 프레임워크이기 때문에, 라우터 정보를 서버 진입점으로 전달해야 합니다:\n\n```tsx\n// app/ssr.tsx\nimport {\n  createStartHandler,\n  defaultStreamHandler,\n} from '@tanstack/start/server'\nimport { getRouterManifest } from '@tanstack/start/router-manifest'\nimport { createRouter } from './router'\n\nexport default createStartHandler({\n  createRouter,\n  getRouterManifest,\n})(defaultStreamHandler)\n```\n\n이 코드를 통해 사용자가 특정 라우트에 접근할 때 실행해야 할 라우트와 로더를 알 수 있습니다.\n\n\n## 클라이언트 진입점\n\n이제 라우트가 클라이언트로 해결될 때 클라이언트 측 자바스크립트를 하이드레이트할 방법이 필요합니다. 이를 위해 동일한 라우터 정보를 클라이언트 진입점으로 전달합니다:\n\n```tsx\n// app/client.tsx",
+      "language": "markdown",
+      "lines": 87,
+      "path": "docs/framework/react/start/build-from-scratch.md",
+      "rank": 6,
+      "repository": "skyfe79/tanstack-router-ko-docs",
+      "stars": 0,
+      "url": "https://github.com/skyfe79/tanstack-router-ko-docs/blob/77400fa87266a595bc62167e649e6d40dda0a6b6/docs/framework/react/start/build-from-scratch.md"
+    },
+    {
+      "content": "이제 `package.json` 파일을 업데이트하여 새로운 Vinxi 진입점을 참조하고 `\"type\": \"module\"`을 설정하겠습니다.\n\n```jsonc\n{\n  // ...\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vinxi dev\",\n    \"build\": \"vinxi build\",\n    \"start\": \"vinxi start\",\n  },\n}\n```\n\nVinxi가 TanStack Start의 최소 동작을 시작하도록 하려면 `app.config.ts` 파일을 구성해야 합니다.\n\n```typescript\n// app.config.ts\nimport { defineConfig } from '@tanstack/start/config'\n\nexport default defineConfig({})\n```\n\n\n# 기본 템플릿 추가하기\n\nTanStack Start를 사용하려면 다음 네 가지 파일이 필요합니다:\n\n1. 라우터 설정 파일\n2. 서버 진입점 파일\n3. 클라이언트 진입점 파일\n4. 애플리케이션의 루트 파일\n\n설정이 완료되면 다음과 같은 파일 트리가 생성됩니다:\n\n```\n.\n├── app/\n│   ├── routes/\n│   │   └── `__root.tsx`\n│   ├── `client.tsx`\n│   ├── `router.tsx`\n\n---\n\nreturn router\n}\n\ndeclare module '@tanstack/react-router' {\n  interface Register {\n    router: ReturnType\n  }\n}\n```\n\n> `routeTree.gen.ts` 파일은 아직 존재하지 않습니다.\n> 이 파일은 TanStack Start를 처음 실행할 때(`npm run dev` 또는 `npm run start`) 생성됩니다.\n\n\n## 서버 진입점\n\nTanStack Start는 [SSR(서버 사이드 렌더링)](https://unicorn-utterances.com/posts/what-is-ssr-and-ssg) 프레임워크이기 때문에, 라우터 정보를 서버 진입점으로 전달해야 합니다:\n\n```tsx\n// app/ssr.tsx\nimport {\n  createStartHandler,\n  defaultStreamHandler,\n} from '@tanstack/start/server'\nimport { getRouterManifest } from '@tanstack/start/router-manifest'\n\nimport { createRouter } from './router'\n\nexport default createStartHandler({\n  createRouter,\n  getRouterManifest,\n})(defaultStreamHandler)\n```\n\n이 코드를 통해 사용자가 특정 라우트에 접근할 때 실행해야 할 라우트와 로더를 알 수 있습니다.\n\n\n## 클라이언트 진입점\n\n이제 라우트가 클라이언트로 해결될 때 클라이언트 측 자바스크립트를 하이드레이트할 방법이 필요합니다. 이를 위해 동일한 라우터 정보를 클라이언트 진입점으로 전달합니다:\n\n```tsx",
+      "language": "markdown",
+      "lines": 87,
+      "path": "docs/framework/react/guide/tanstack-start.md",
+      "rank": 7,
+      "repository": "skyfe79/tanstack-router-ko-docs",
+      "stars": 0,
+      "url": "https://github.com/skyfe79/tanstack-router-ko-docs/blob/77400fa87266a595bc62167e649e6d40dda0a6b6/docs/framework/react/guide/tanstack-start.md"
+    }
+  ],
+  "ranked": [
+    {
+      "path": "packages/tanstack/tsup.config.ts",
+      "repository": "daydreamsai/lucid-agents",
+      "score": 1,
+      "stars": 106,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1089851346/contents/packages/tanstack/tsup.config.ts?ref=35ebd40970616f843dada6eaca029b524a5edc06",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { defineConfig } from \"tsup\";\n\nexport default defineConfig({\n  entry: [\"src/index.ts\"],\n  format: [\"esm\"],\n  dts: true,\n  sourcemap: true,",
+          "matches": [
+            {
+              "indices": [
+                0,
+                6
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                7,
+                8
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                9,
+                21
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                22,
+                23
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                24,
+                28
+              ],
+              "text": "from"
+            },
+            {
+              "indices": [
+                53,
+                65
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                66,
+                67
+              ],
+              "text": "{"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/daydreamsai/lucid-agents/blob/35ebd40970616f843dada6eaca029b524a5edc06/packages/tanstack/tsup.config.ts",
+      "qualityScore": 0.275438377768521,
+      "rank": 1
+    },
+    {
+      "path": "docs/content/docs/integrations/tanstack-start.mdx",
+      "repository": "abhay-ramesh/pushduck",
+      "score": 1,
+      "stars": 90,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1006955482/contents/docs/content/docs/integrations/tanstack-start.mdx?ref=7b42bfd9127895736689b66899c57e58b6bbc824",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "```typescript title=\"app/routes/__root.tsx\"\nimport { createRootRoute, Outlet } from '@tanstack/start';\n",
+          "matches": [
+            {
+              "indices": [
+                44,
+                50
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                51,
+                52
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                77,
+                78
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                79,
+                83
+              ],
+              "text": "from"
+            },
+            {
+              "indices": [
+                84,
+                101
+              ],
+              "text": "'@tanstack/start'"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1006955482/contents/docs/content/docs/integrations/tanstack-start.mdx?ref=7b42bfd9127895736689b66899c57e58b6bbc824",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "```typescript title=\"app.config.ts\"\nimport { defineConfig } from '@tanstack/start/config';\n",
+          "matches": [
+            {
+              "indices": [
+                36,
+                42
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                43,
+                44
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                45,
+                57
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                58,
+                59
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                60,
+                64
+              ],
+              "text": "from"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/abhay-ramesh/pushduck/blob/7b42bfd9127895736689b66899c57e58b6bbc824/docs/content/docs/integrations/tanstack-start.mdx",
+      "qualityScore": 0.26340413923210937,
+      "rank": 2
+    },
+    {
+      "path": "v3/faster-digital-garden/vite.edge.config.ts",
+      "repository": "TarunTomar122/digital-garden",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/734703451/contents/v3/faster-digital-garden/vite.edge.config.ts?ref=ff8efe5e4de9318b4d8785f132b538a200a6e605",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({\n  plugins: [TanStackRouterVite({}), react()],",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                62,
+                63
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                63,
+                64
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/734703451/contents/v3/faster-digital-garden/vite.edge.config.ts?ref=ff8efe5e4de9318b4d8785f132b538a200a6e605",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  ssr: {\n    noExternal: ['@tanstack/react-router', '@tanstack/start'],\n    external: [/\\.css$/, /\\.scss$/, /\\.sass$/, /\\.less$/, /\\.styl$/]",
+          "matches": [
+            {
+              "indices": [
+                7,
+                8
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                52,
+                69
+              ],
+              "text": "'@tanstack/start'"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/TarunTomar122/digital-garden/blob/ff8efe5e4de9318b4d8785f132b538a200a6e605/v3/faster-digital-garden/vite.edge.config.ts",
+      "qualityScore": 0.15031512503836436,
+      "rank": 3
+    },
+    {
+      "path": "packages/cli/src/adapters/setup/templates.ts",
+      "repository": "Volt-js/volt.js",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1041771662/contents/packages/cli/src/adapters/setup/templates.ts?ref=9d03f6bd94634bcfcd2b87f2e5ce9ed4e6cb9a50",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    ...frameworkDeps.dependencies,\n    ...allDeps.dependencies.reduce((acc, dep) => ({ ...acc, [dep.name]: dep.version }), {})\n  }",
+          "matches": [
+            {
+              "indices": [
+                119,
+                120
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                124,
+                125
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1041771662/contents/packages/cli/src/adapters/setup/templates.ts?ref=9d03f6bd94634bcfcd2b87f2e5ce9ed4e6cb9a50",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    path: 'src/app/layout.tsx',\n    content: `import type { Metadata } from 'next'\nimport { Providers } from '@/components/providers'",
+          "matches": [
+            {
+              "indices": [
+                46,
+                52
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                71,
+                75
+              ],
+              "text": "from"
+            },
+            {
+              "indices": [
+                83,
+                89
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                104,
+                108
+              ],
+              "text": "from"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Volt-js/volt.js/blob/9d03f6bd94634bcfcd2b87f2e5ce9ed4e6cb9a50/packages/cli/src/adapters/setup/templates.ts",
+      "qualityScore": 0.11260299956639813,
+      "rank": 4
+    },
+    {
+      "path": "app.config.ts",
+      "repository": "adgang/deno-tanstack-start",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/889209713/contents/app.config.ts?ref=0bd3f9a74c679290924b5e8df1d72ce942f5a07a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({\n  tsr: {",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                38,
+                39
+              ],
+              "text": "{"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/889209713/contents/app.config.ts?ref=0bd3f9a74c679290924b5e8df1d72ce942f5a07a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    //   // alias: [\n    //   //   // {},\n    //   //   {",
+          "matches": [
+            {
+              "indices": [
+                38,
+                39
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                39,
+                40
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                56,
+                57
+              ],
+              "text": "{"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/adgang/deno-tanstack-start/blob/0bd3f9a74c679290924b5e8df1d72ce942f5a07a/app.config.ts",
+      "qualityScore": 0.09260299956639813,
+      "rank": 5
+    },
+    {
+      "path": "docs/framework/react/start/build-from-scratch.md",
+      "repository": "skyfe79/tanstack-router-ko-docs",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/911856348/contents/docs/framework/react/start/build-from-scratch.md?ref=77400fa87266a595bc62167e649e6d40dda0a6b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({})\n```",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                30,
+                31
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/911856348/contents/docs/framework/react/start/build-from-scratch.md?ref=77400fa87266a595bc62167e649e6d40dda0a6b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// app/ssr.tsx\nimport {\n  createStartHandler,",
+          "matches": [
+            {
+              "indices": [
+                15,
+                21
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                22,
+                23
+              ],
+              "text": "{"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/skyfe79/tanstack-router-ko-docs/blob/77400fa87266a595bc62167e649e6d40dda0a6b6/docs/framework/react/start/build-from-scratch.md",
+      "qualityScore": 0.0675,
+      "rank": 6
+    },
+    {
+      "path": "docs/framework/react/guide/tanstack-start.md",
+      "repository": "skyfe79/tanstack-router-ko-docs",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/911856348/contents/docs/framework/react/guide/tanstack-start.md?ref=77400fa87266a595bc62167e649e6d40dda0a6b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({})\n```",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                30,
+                31
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/911856348/contents/docs/framework/react/guide/tanstack-start.md?ref=77400fa87266a595bc62167e649e6d40dda0a6b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// app/ssr.tsx\nimport {\n  createStartHandler,",
+          "matches": [
+            {
+              "indices": [
+                15,
+                21
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                22,
+                23
+              ],
+              "text": "{"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/skyfe79/tanstack-router-ko-docs/blob/77400fa87266a595bc62167e649e6d40dda0a6b6/docs/framework/react/guide/tanstack-start.md",
+      "qualityScore": 0.0675,
+      "rank": 7
+    },
+    {
+      "path": "docs/start-react-llm.txt",
+      "repository": "joelhooks/tanstack-test",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/924800881/contents/docs/start-react-llm.txt?ref=113788eb1c74ddd37db24aacd7bd34bfb9aee505",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({\n  vite: {",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                39,
+                40
+              ],
+              "text": "{"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/924800881/contents/docs/start-react-llm.txt?ref=113788eb1c74ddd37db24aacd7bd34bfb9aee505",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  return router\n}\n",
+          "matches": [
+            {
+              "indices": [
+                16,
+                17
+              ],
+              "text": "}"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/joelhooks/tanstack-test/blob/113788eb1c74ddd37db24aacd7bd34bfb9aee505/docs/start-react-llm.txt",
+      "qualityScore": 0.05750000000000001,
+      "rank": 8
+    },
+    {
+      "path": "TanStack-Router-Docs.md",
+      "repository": "periakteon/tanstack-docs",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/900314892/contents/TanStack-Router-Docs.md?ref=ddc7b550dd04b5961439b06029a63a44fa07f1d1",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  component: MyComponent,\n  loader: (...args) => import('./loader').then((d) => d.loader(...args)),\n})",
+          "matches": [
+            {
+              "indices": [
+                49,
+                55
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                100,
+                101
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/900314892/contents/TanStack-Router-Docs.md?ref=ddc7b550dd04b5961439b06029a63a44fa07f1d1",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from '@tanstack/react-router'\nimport { parse, stringify } from 'jsurl2'\n",
+          "matches": [
+            {
+              "indices": [
+                2,
+                6
+              ],
+              "text": "from"
+            },
+            {
+              "indices": [
+                32,
+                38
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                60,
+                64
+              ],
+              "text": "from"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/periakteon/tanstack-docs/blob/ddc7b550dd04b5961439b06029a63a44fa07f1d1/TanStack-Router-Docs.md",
+      "qualityScore": 0.05750000000000001,
+      "rank": 9
+    },
+    {
+      "path": "public/start-react-llm.txt",
+      "repository": "joelhooks/tanstack-test",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/924800881/contents/public/start-react-llm.txt?ref=113788eb1c74ddd37db24aacd7bd34bfb9aee505",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({\n  vite: {",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                39,
+                40
+              ],
+              "text": "{"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/924800881/contents/public/start-react-llm.txt?ref=113788eb1c74ddd37db24aacd7bd34bfb9aee505",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  return router\n}\n",
+          "matches": [
+            {
+              "indices": [
+                16,
+                17
+              ],
+              "text": "}"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/joelhooks/tanstack-test/blob/113788eb1c74ddd37db24aacd7bd34bfb9aee505/public/start-react-llm.txt",
+      "qualityScore": 0.05750000000000001,
+      "rank": 10
+    }
+  ],
+  "results": [
+    {
+      "path": "docs/framework/react/start/build-from-scratch.md",
+      "repository": "skyfe79/tanstack-router-ko-docs",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/911856348/contents/docs/framework/react/start/build-from-scratch.md?ref=77400fa87266a595bc62167e649e6d40dda0a6b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({})\n```",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                30,
+                31
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/911856348/contents/docs/framework/react/start/build-from-scratch.md?ref=77400fa87266a595bc62167e649e6d40dda0a6b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// app/ssr.tsx\nimport {\n  createStartHandler,",
+          "matches": [
+            {
+              "indices": [
+                15,
+                21
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                22,
+                23
+              ],
+              "text": "{"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/skyfe79/tanstack-router-ko-docs/blob/77400fa87266a595bc62167e649e6d40dda0a6b6/docs/framework/react/start/build-from-scratch.md"
+    },
+    {
+      "path": "packages/tanstack/tsup.config.ts",
+      "repository": "daydreamsai/lucid-agents",
+      "score": 1,
+      "stars": 106,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1089851346/contents/packages/tanstack/tsup.config.ts?ref=35ebd40970616f843dada6eaca029b524a5edc06",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { defineConfig } from \"tsup\";\n\nexport default defineConfig({\n  entry: [\"src/index.ts\"],\n  format: [\"esm\"],\n  dts: true,\n  sourcemap: true,",
+          "matches": [
+            {
+              "indices": [
+                0,
+                6
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                7,
+                8
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                9,
+                21
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                22,
+                23
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                24,
+                28
+              ],
+              "text": "from"
+            },
+            {
+              "indices": [
+                53,
+                65
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                66,
+                67
+              ],
+              "text": "{"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/daydreamsai/lucid-agents/blob/35ebd40970616f843dada6eaca029b524a5edc06/packages/tanstack/tsup.config.ts"
+    },
+    {
+      "path": "docs/content/docs/integrations/tanstack-start.mdx",
+      "repository": "abhay-ramesh/pushduck",
+      "score": 1,
+      "stars": 90,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1006955482/contents/docs/content/docs/integrations/tanstack-start.mdx?ref=7b42bfd9127895736689b66899c57e58b6bbc824",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "```typescript title=\"app/routes/__root.tsx\"\nimport { createRootRoute, Outlet } from '@tanstack/start';\n",
+          "matches": [
+            {
+              "indices": [
+                44,
+                50
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                51,
+                52
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                77,
+                78
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                79,
+                83
+              ],
+              "text": "from"
+            },
+            {
+              "indices": [
+                84,
+                101
+              ],
+              "text": "'@tanstack/start'"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1006955482/contents/docs/content/docs/integrations/tanstack-start.mdx?ref=7b42bfd9127895736689b66899c57e58b6bbc824",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "```typescript title=\"app.config.ts\"\nimport { defineConfig } from '@tanstack/start/config';\n",
+          "matches": [
+            {
+              "indices": [
+                36,
+                42
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                43,
+                44
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                45,
+                57
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                58,
+                59
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                60,
+                64
+              ],
+              "text": "from"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/abhay-ramesh/pushduck/blob/7b42bfd9127895736689b66899c57e58b6bbc824/docs/content/docs/integrations/tanstack-start.mdx"
+    },
+    {
+      "path": "v3/faster-digital-garden/vite.edge.config.ts",
+      "repository": "TarunTomar122/digital-garden",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/734703451/contents/v3/faster-digital-garden/vite.edge.config.ts?ref=ff8efe5e4de9318b4d8785f132b538a200a6e605",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({\n  plugins: [TanStackRouterVite({}), react()],",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                62,
+                63
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                63,
+                64
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/734703451/contents/v3/faster-digital-garden/vite.edge.config.ts?ref=ff8efe5e4de9318b4d8785f132b538a200a6e605",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  ssr: {\n    noExternal: ['@tanstack/react-router', '@tanstack/start'],\n    external: [/\\.css$/, /\\.scss$/, /\\.sass$/, /\\.less$/, /\\.styl$/]",
+          "matches": [
+            {
+              "indices": [
+                7,
+                8
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                52,
+                69
+              ],
+              "text": "'@tanstack/start'"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/TarunTomar122/digital-garden/blob/ff8efe5e4de9318b4d8785f132b538a200a6e605/v3/faster-digital-garden/vite.edge.config.ts"
+    },
+    {
+      "path": "docs/start-react-llm.txt",
+      "repository": "joelhooks/tanstack-test",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/924800881/contents/docs/start-react-llm.txt?ref=113788eb1c74ddd37db24aacd7bd34bfb9aee505",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({\n  vite: {",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                39,
+                40
+              ],
+              "text": "{"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/924800881/contents/docs/start-react-llm.txt?ref=113788eb1c74ddd37db24aacd7bd34bfb9aee505",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  return router\n}\n",
+          "matches": [
+            {
+              "indices": [
+                16,
+                17
+              ],
+              "text": "}"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/joelhooks/tanstack-test/blob/113788eb1c74ddd37db24aacd7bd34bfb9aee505/docs/start-react-llm.txt"
+    },
+    {
+      "path": "packages/cli/src/adapters/setup/templates.ts",
+      "repository": "Volt-js/volt.js",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1041771662/contents/packages/cli/src/adapters/setup/templates.ts?ref=9d03f6bd94634bcfcd2b87f2e5ce9ed4e6cb9a50",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    ...frameworkDeps.dependencies,\n    ...allDeps.dependencies.reduce((acc, dep) => ({ ...acc, [dep.name]: dep.version }), {})\n  }",
+          "matches": [
+            {
+              "indices": [
+                119,
+                120
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                124,
+                125
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1041771662/contents/packages/cli/src/adapters/setup/templates.ts?ref=9d03f6bd94634bcfcd2b87f2e5ce9ed4e6cb9a50",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    path: 'src/app/layout.tsx',\n    content: `import type { Metadata } from 'next'\nimport { Providers } from '@/components/providers'",
+          "matches": [
+            {
+              "indices": [
+                46,
+                52
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                71,
+                75
+              ],
+              "text": "from"
+            },
+            {
+              "indices": [
+                83,
+                89
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                104,
+                108
+              ],
+              "text": "from"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Volt-js/volt.js/blob/9d03f6bd94634bcfcd2b87f2e5ce9ed4e6cb9a50/packages/cli/src/adapters/setup/templates.ts"
+    },
+    {
+      "path": "app.config.ts",
+      "repository": "adgang/deno-tanstack-start",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/889209713/contents/app.config.ts?ref=0bd3f9a74c679290924b5e8df1d72ce942f5a07a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({\n  tsr: {",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                38,
+                39
+              ],
+              "text": "{"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/889209713/contents/app.config.ts?ref=0bd3f9a74c679290924b5e8df1d72ce942f5a07a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    //   // alias: [\n    //   //   // {},\n    //   //   {",
+          "matches": [
+            {
+              "indices": [
+                38,
+                39
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                39,
+                40
+              ],
+              "text": "}"
+            },
+            {
+              "indices": [
+                56,
+                57
+              ],
+              "text": "{"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/adgang/deno-tanstack-start/blob/0bd3f9a74c679290924b5e8df1d72ce942f5a07a/app.config.ts"
+    },
+    {
+      "path": "TanStack-Router-Docs.md",
+      "repository": "periakteon/tanstack-docs",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/900314892/contents/TanStack-Router-Docs.md?ref=ddc7b550dd04b5961439b06029a63a44fa07f1d1",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  component: MyComponent,\n  loader: (...args) => import('./loader').then((d) => d.loader(...args)),\n})",
+          "matches": [
+            {
+              "indices": [
+                49,
+                55
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                100,
+                101
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/900314892/contents/TanStack-Router-Docs.md?ref=ddc7b550dd04b5961439b06029a63a44fa07f1d1",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from '@tanstack/react-router'\nimport { parse, stringify } from 'jsurl2'\n",
+          "matches": [
+            {
+              "indices": [
+                2,
+                6
+              ],
+              "text": "from"
+            },
+            {
+              "indices": [
+                32,
+                38
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                60,
+                64
+              ],
+              "text": "from"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/periakteon/tanstack-docs/blob/ddc7b550dd04b5961439b06029a63a44fa07f1d1/TanStack-Router-Docs.md"
+    },
+    {
+      "path": "docs/framework/react/guide/tanstack-start.md",
+      "repository": "skyfe79/tanstack-router-ko-docs",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/911856348/contents/docs/framework/react/guide/tanstack-start.md?ref=77400fa87266a595bc62167e649e6d40dda0a6b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({})\n```",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                30,
+                31
+              ],
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/911856348/contents/docs/framework/react/guide/tanstack-start.md?ref=77400fa87266a595bc62167e649e6d40dda0a6b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// app/ssr.tsx\nimport {\n  createStartHandler,",
+          "matches": [
+            {
+              "indices": [
+                15,
+                21
+              ],
+              "text": "import"
+            },
+            {
+              "indices": [
+                22,
+                23
+              ],
+              "text": "{"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/skyfe79/tanstack-router-ko-docs/blob/77400fa87266a595bc62167e649e6d40dda0a6b6/docs/framework/react/guide/tanstack-start.md"
+    },
+    {
+      "path": "public/start-react-llm.txt",
+      "repository": "joelhooks/tanstack-test",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/924800881/contents/public/start-react-llm.txt?ref=113788eb1c74ddd37db24aacd7bd34bfb9aee505",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport default defineConfig({\n  vite: {",
+          "matches": [
+            {
+              "indices": [
+                16,
+                28
+              ],
+              "text": "defineConfig"
+            },
+            {
+              "indices": [
+                29,
+                30
+              ],
+              "text": "{"
+            },
+            {
+              "indices": [
+                39,
+                40
+              ],
+              "text": "{"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/924800881/contents/public/start-react-llm.txt?ref=113788eb1c74ddd37db24aacd7bd34bfb9aee505",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  return router\n}\n",
+          "matches": [
+            {
+              "indices": [
+                16,
+                17
+              ],
+              "text": "}"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/joelhooks/tanstack-test/blob/113788eb1c74ddd37db24aacd7bd34bfb9aee505/public/start-react-llm.txt"
+    }
+  ]
+}
