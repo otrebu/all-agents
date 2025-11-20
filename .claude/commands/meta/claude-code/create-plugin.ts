@@ -5,96 +5,139 @@
  * Uses only Node.js built-ins - no external dependencies
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-// Types
-type PluginMetadata = {
-  name: string;
-  description: string;
-  keywords: string[];
-};
-
-type ConflictCheck = {
+interface ConflictCheck {
   exists: boolean;
   message?: string;
-};
+}
 
-type Marketplace = {
+interface Marketplace {
   name: string;
   owner: { name: string };
   plugins: Array<{
+    description: string;
     name: string;
     source: string;
-    description: string;
     version: string;
   }>;
-};
-
-type PluginJson = {
-  name: string;
-  version: string;
-  description: string;
-  author: {
-    name: string;
-    email: string;
-  };
-  license: string;
-  keywords: string[];
-};
-
-// Parse CLI arguments
-function parseArgs(args: string[]): { name: string; description: string } {
-  if (args.length === 0) {
-    console.error(
-      "Usage: node create-plugin.ts <plugin-name> <plugin-description>"
-    );
-    console.error(
-      'Example: node create-plugin.ts deployment-manager "manages deployment workflows"'
-    );
-    process.exit(1);
-  }
-
-  const name = args[0]!;
-  const description = args.slice(1).join(" ");
-
-  if (!description) {
-    console.error("Error: Description is required");
-    console.error(
-      "Usage: node create-plugin.ts <plugin-name> <plugin-description>"
-    );
-    process.exit(1);
-  }
-
-  return { name, description: description as string };
 }
 
-// Convert description to kebab-case plugin name
-function toKebabCase(text: string): string {
-  const fillerWords = [
-    "that",
-    "to",
-    "for",
-    "with",
-    "a",
-    "an",
-    "the",
-    "is",
-    "are",
-    "was",
-    "were",
+interface PluginJson {
+  author: {
+    email: string;
+    name: string;
+  };
+  description: string;
+  keywords: Array<string>;
+  license: string;
+  name: string;
+  version: string;
+}
+
+// Types
+interface PluginMetadata {
+  description: string;
+  keywords: Array<string>;
+  name: string;
+}
+
+// Check if plugin exists in marketplace
+function checkPluginConflicts(
+  pluginName: string,
+  marketplacePath: string
+): ConflictCheck {
+  if (!existsSync(marketplacePath)) {
+    return {
+      exists: false,
+      message: "Marketplace file not found, will create new entry",
+    };
+  }
+
+  try {
+    const marketplaceContent = readFileSync(marketplacePath, "utf8");
+    const marketplace = JSON.parse(marketplaceContent) as Marketplace;
+    const existingPlugin = marketplace.plugins.find(
+      (p) => p.name === pluginName
+    );
+
+    if (existingPlugin) {
+      return {
+        exists: true,
+        message: `Plugin "${pluginName}" already exists in marketplace`,
+      };
+    }
+
+    return { exists: false };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return {
+      exists: false,
+      message: `Error reading marketplace: ${errorMessage}`,
+    };
+  }
+}
+
+// Main execution
+function createPlugin(
+  name: string,
+  description: string,
+  workingDirectory: string
+): void {
+  const pluginName = toKebabCase(name);
+  const keywords = extractKeywords(description);
+  const metadata: PluginMetadata = { description, keywords, name: pluginName };
+
+  console.log("Creating plugin:", pluginName);
+  console.log("Description:", description);
+  console.log("Keywords:", keywords.join(", "));
+  console.log();
+
+  // Check for conflicts
+  const marketplacePath = join(
+    workingDirectory,
+    ".claude-plugin",
+    "marketplace.json"
+  );
+  const conflict = checkPluginConflicts(pluginName, marketplacePath);
+
+  if (conflict.exists) {
+    console.error("❌", conflict.message);
+    process.exit(1);
+  }
+
+  if (conflict.message !== undefined && conflict.message !== "") {
+    console.log("⚠️ ", conflict.message);
+  }
+
+  // Create plugin structure
+  const pluginPath = join(workingDirectory, ".claude", "plugins", pluginName);
+
+  console.log("Creating directories...");
+  createPluginDirectories(pluginPath);
+
+  writePluginFiles(pluginPath, metadata, marketplacePath);
+  printSuccessMessage(pluginName);
+}
+
+// Create directory structure
+function createPluginDirectories(pluginPath: string): void {
+  const directories = [
+    pluginPath,
+    join(pluginPath, ".claude-plugin"),
+    join(pluginPath, "commands"),
   ];
 
-  return text
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((word) => !fillerWords.includes(word))
-    .join("-")
-    .replace(/[^a-z0-9-]/g, "");
+  directories.forEach((directory) => {
+    if (!existsSync(directory)) {
+      mkdirSync(directory, { recursive: true });
+    }
+  });
 }
 
 // Extract keywords from description
-function extractKeywords(description: string): string[] {
+function extractKeywords(description: string): Array<string> {
   const commonWords = [
     "the",
     "a",
@@ -117,69 +160,18 @@ function extractKeywords(description: string): string[] {
   return [...new Set(words)];
 }
 
-// Check if plugin exists in marketplace
-function checkPluginConflicts(
-  pluginName: string,
-  marketplacePath: string
-): ConflictCheck {
-  if (!existsSync(marketplacePath)) {
-    return {
-      exists: false,
-      message: "Marketplace file not found, will create new entry",
-    };
-  }
-
-  try {
-    const marketplaceContent = readFileSync(marketplacePath, "utf8");
-    const marketplace = JSON.parse(marketplaceContent) as Marketplace;
-    const existingPlugin = marketplace.plugins?.find(
-      (p) => p.name === pluginName
-    );
-
-    if (existingPlugin) {
-      return {
-        exists: true,
-        message: `Plugin "${pluginName}" already exists in marketplace`,
-      };
-    }
-
-    return { exists: false };
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    return {
-      exists: false,
-      message: `Error reading marketplace: ${errorMessage}`,
-    };
-  }
-}
-
-// Create directory structure
-function createPluginDirectories(pluginPath: string): void {
-  const directories = [
-    pluginPath,
-    join(pluginPath, ".claude-plugin"),
-    join(pluginPath, "commands"),
-  ];
-
-  directories.forEach((dir) => {
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
-    }
-  });
-}
-
 // Generate plugin.json content
 function generatePluginJson(metadata: PluginMetadata): string {
   const pluginJson: PluginJson = {
+    author: {
+      email: "dev@uberto.me",
+      name: "otrebu",
+    },
+    description: metadata.description,
+    keywords: metadata.keywords,
+    license: "MIT",
     name: metadata.name,
     version: "1.0.0",
-    description: metadata.description,
-    author: {
-      name: "otrebu",
-      email: "dev@uberto.me",
-    },
-    license: "MIT",
-    keywords: metadata.keywords,
   };
 
   return JSON.stringify(pluginJson, null, 2);
@@ -217,65 +209,30 @@ Update this README as features are added.
 `;
 }
 
-// Update marketplace.json with new plugin
-function updateMarketplaceFile(
-  pluginName: string,
-  description: string,
-  marketplacePath: string
-): void {
-  let marketplace: Marketplace;
-
-  if (existsSync(marketplacePath)) {
-    const content = readFileSync(marketplacePath, "utf8");
-    marketplace = JSON.parse(content) as Marketplace;
-  } else {
-    marketplace = {
-      name: "local-marketplace",
-      owner: { name: "otrebu" },
-      plugins: [],
-    };
+// Parse CLI arguments
+function parseArguments(args: Array<string>): { description: string; name: string; } {
+  if (args.length === 0) {
+    console.error(
+      "Usage: node create-plugin.ts <plugin-name> <plugin-description>"
+    );
+    console.error(
+      'Example: node create-plugin.ts deployment-manager "manages deployment workflows"'
+    );
+    process.exit(1);
   }
 
-  if (!marketplace.plugins) {
-    marketplace.plugins = [];
+  const name = args[0] ?? "";
+  const description = args.slice(1).join(" ");
+
+  if (!description) {
+    console.error("Error: Description is required");
+    console.error(
+      "Usage: node create-plugin.ts <plugin-name> <plugin-description>"
+    );
+    process.exit(1);
   }
 
-  marketplace.plugins.push({
-    name: pluginName,
-    source: `./.claude/plugins/${pluginName}`,
-    description: description,
-    version: "1.0.0",
-  });
-
-  // Ensure directory exists
-  const marketplaceDir = join(marketplacePath, "..");
-  if (!existsSync(marketplaceDir)) {
-    mkdirSync(marketplaceDir, { recursive: true });
-  }
-
-  writeFileSync(marketplacePath, JSON.stringify(marketplace, null, 2) + "\n");
-}
-
-// Write all plugin files
-function writePluginFiles(
-  pluginPath: string,
-  metadata: PluginMetadata,
-  marketplacePath: string
-): void {
-  console.log("Writing plugin.json...");
-  writeFileSync(
-    join(pluginPath, ".claude-plugin", "plugin.json"),
-    generatePluginJson(metadata)
-  );
-
-  console.log("Writing README.md...");
-  writeFileSync(
-    join(pluginPath, "README.md"),
-    generateReadme(metadata.name, metadata.description)
-  );
-
-  console.log("Updating marketplace.json...");
-  updateMarketplaceFile(metadata.name, metadata.description, marketplacePath);
+  return { description, name };
 }
 
 // Print success message
@@ -302,57 +259,94 @@ function printSuccessMessage(pluginName: string): void {
   );
 }
 
-// Main execution
-function createPlugin(
-  name: string,
+// Convert description to kebab-case plugin name
+function toKebabCase(text: string): string {
+  const fillerWords = [
+    "that",
+    "to",
+    "for",
+    "with",
+    "a",
+    "an",
+    "the",
+    "is",
+    "are",
+    "was",
+    "were",
+  ];
+
+  return text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => !fillerWords.includes(word))
+    .join("-")
+    .replaceAll(/[^a-z0-9-]/g, "");
+}
+
+// Update marketplace.json with new plugin
+function updateMarketplaceFile(
+  pluginName: string,
   description: string,
-  workingDirectory: string
+  marketplacePath: string
 ): void {
-  const pluginName = toKebabCase(name);
-  const keywords = extractKeywords(description);
-  const metadata: PluginMetadata = { name: pluginName, description, keywords };
+  let marketplace: Marketplace = {
+    name: "local-marketplace",
+    owner: { name: "otrebu" },
+    plugins: [],
+  };
 
-  console.log("Creating plugin:", pluginName);
-  console.log("Description:", description);
-  console.log("Keywords:", keywords.join(", "));
-  console.log();
+  if (existsSync(marketplacePath)) {
+    const content = readFileSync(marketplacePath, "utf8");
+    marketplace = JSON.parse(content) as Marketplace;
+  }
 
-  // Check for conflicts
-  const marketplacePath = join(
-    workingDirectory,
-    ".claude-plugin",
-    "marketplace.json"
+  marketplace.plugins.push({
+    description,
+    name: pluginName,
+    source: `./.claude/plugins/${pluginName}`,
+    version: "1.0.0",
+  });
+
+  // Ensure directory exists
+  const marketplaceDirectory = join(marketplacePath, "..");
+  if (!existsSync(marketplaceDirectory)) {
+    mkdirSync(marketplaceDirectory, { recursive: true });
+  }
+
+  writeFileSync(marketplacePath, `${JSON.stringify(marketplace, null, 2)  }\n`);
+}
+
+// Write all plugin files
+function writePluginFiles(
+  pluginPath: string,
+  metadata: PluginMetadata,
+  marketplacePath: string
+): void {
+  console.log("Writing plugin.json...");
+  writeFileSync(
+    join(pluginPath, ".claude-plugin", "plugin.json"),
+    generatePluginJson(metadata)
   );
-  const conflict = checkPluginConflicts(pluginName, marketplacePath);
 
-  if (conflict.exists) {
-    console.error("❌", conflict.message);
-    process.exit(1);
-  }
+  console.log("Writing README.md...");
+  writeFileSync(
+    join(pluginPath, "README.md"),
+    generateReadme(metadata.name, metadata.description)
+  );
 
-  if (conflict.message) {
-    console.log("⚠️ ", conflict.message);
-  }
-
-  // Create plugin structure
-  const pluginPath = join(workingDirectory, ".claude", "plugins", pluginName);
-
-  console.log("Creating directories...");
-  createPluginDirectories(pluginPath);
-
-  writePluginFiles(pluginPath, metadata, marketplacePath);
-  printSuccessMessage(pluginName);
+  console.log("Updating marketplace.json...");
+  updateMarketplaceFile(metadata.name, metadata.description, marketplacePath);
 }
 
 // Entry point
 try {
   const args = process.argv.slice(2);
-  const { name, description } = parseArgs(args);
+  const { description, name } = parseArguments(args);
   const workingDirectory = process.cwd();
 
   createPlugin(name, description, workingDirectory);
-} catch (err) {
-  const errorMessage = err instanceof Error ? err.message : "Unknown error";
+} catch (error) {
+  const errorMessage = error instanceof Error ? error.message : "Unknown error";
   console.error("Error:", errorMessage);
   process.exit(1);
 }
