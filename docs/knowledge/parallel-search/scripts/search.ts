@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 
+import log from "@lib/log.js";
+import { saveResearchOutput } from "@lib/research.js";
 import { Command } from "commander";
 import ora from "ora";
-import { executeSearch } from "./parallel-client.js";
+
 import { formatResults } from "./formatter.js";
-import { log } from "@lib/log.js";
+import executeSearch from "./parallel-client.js";
 import {
   AuthError,
-  RateLimitError,
   NetworkError,
+  RateLimitError,
   ValidationError,
 } from "./types.js";
+
+const RESEARCH_DIR = "docs/research/parallel";
 
 const program = new Command();
 
@@ -30,30 +34,36 @@ program
   .option(
     "--max-results <number>",
     "Maximum results to return",
-    (val) => parseInt(val, 10),
+    (value) => Number.parseInt(value, 10),
     15
   )
   .option(
     "--max-chars <number>",
     "Max characters per excerpt",
-    (val) => parseInt(val, 10),
+    (value) => Number.parseInt(value, 10),
     5000
   )
   .argument("[extraQueries...]", "Additional search queries (positional)")
-  .action(async (extraQueries, options) => {
+  .action(async (extraQueries: Array<string>, options: {
+    maxChars: number
+    maxResults: number
+    objective: string
+    processor: string
+    queries?: Array<string>
+  }) => {
     const startTime = Date.now();
 
     log.header("\n🔍 Parallel Search\n");
 
     try {
-      const queries = [...(options.queries || []), ...(extraQueries || [])];
+      const queries = [...(options.queries ?? []), ...extraQueries];
 
       log.dim("Search Configuration:");
       log.dim(`  Objective: "${options.objective}"`);
       if (queries.length > 0) {
         log.dim(`  Queries: ${queries.length}`);
         queries.forEach((query: string, index: number) =>
-          log.dim(`    ${index + 1}. "${query}"`)
+          { log.dim(`    ${index + 1}. "${query}"`); }
         );
       }
       log.dim(`  Processor: ${options.processor}`);
@@ -63,16 +73,16 @@ program
       const spinner = ora("Searching...").start();
 
       const results = await executeSearch({
+        maxCharsPerResult: options.maxChars,
+        maxResults: options.maxResults,
         objective: options.objective,
-        searchQueries: queries,
         processor: options.processor as
-          | "lite"
           | "base"
+          | "lite"
           | "pro"
           | "ultra"
           | undefined,
-        maxResults: options.maxResults,
-        maxCharsPerResult: options.maxChars,
+        searchQueries: queries,
       });
 
       const executionTimeMs = Date.now() - startTime;
@@ -87,17 +97,28 @@ program
 
       // Format and output results
       const report = formatResults(results, {
-        objective: options.objective,
         executionTimeMs,
+        objective: options.objective,
         resultCount: results.length,
       });
 
-      log.plain("\n" + report);
+      // Save research output
+      const { jsonPath, mdPath } = await saveResearchOutput({
+        markdownContent: report,
+        outputDir: RESEARCH_DIR,
+        rawData: results,
+        topic: options.objective,
+      });
+
+      log.plain(`\n${  report}`);
 
       log.success(
         `\nSearch completed in ${(executionTimeMs / 1000).toFixed(1)}s`
       );
-    } catch (error: any) {
+      log.plain("");
+      log.info(`📄 Raw Data: ${jsonPath}`);
+      log.info(`📝 Report: ${mdPath}`);
+    } catch (error: unknown) {
       // Handle specific error types with helpful messages
       if (error instanceof AuthError) {
         log.error("\nAuthentication failed");
@@ -107,7 +128,7 @@ program
       } else if (error instanceof RateLimitError) {
         log.error("\nRate limit exceeded");
         log.dim(error.message);
-        if (error.resetAt) {
+        if (error.resetAt !== undefined) {
           log.dim(`\nResets at: ${error.resetAt.toLocaleString()}`);
         }
         if (error.remaining !== undefined) {
@@ -123,10 +144,11 @@ program
         log.dim(error.message);
         log.dim("\nRun with --help to see valid options.\n");
       } else {
+        const errorObject = error as Error
         log.error("\nUnexpected error");
-        log.dim(error.message || String(error));
-        if (error.stack) {
-          log.dim("\n" + error.stack);
+        log.dim(errorObject.message);
+        if (errorObject.stack !== undefined) {
+          log.dim(`\n${  errorObject.stack}`);
         }
         log.dim("");
       }

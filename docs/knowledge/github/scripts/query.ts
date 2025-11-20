@@ -1,41 +1,44 @@
 import type { SearchOptions } from './types.js'
 
 interface QueryIntent {
-  query: string
   options: SearchOptions
+  query: string
 }
 
 // Common patterns for query enhancement
 const PATTERNS: Record<string, Partial<SearchOptions>> = {
-  'react hook': { language: 'typescript', extension: 'tsx' },
-  'react component': { language: 'typescript', extension: 'tsx' },
-  'express middleware': { language: 'javascript' },
-  'eslint config': { filename: '.eslintrc' },
-  'typescript config': { filename: 'tsconfig.json' },
-  'dockerfile': { filename: 'Dockerfile' },
-  'github actions': { path: '.github/workflows', extension: 'yml' },
   'claude code skill': { filename: 'SKILL.md' },
+  'dockerfile': { filename: 'Dockerfile' },
+  'eslint config': { filename: '.eslintrc' },
+  'express middleware': { language: 'javascript' },
+  'github actions': { extension: 'yml', path: '.github/workflows' },
+  'react component': { extension: 'tsx', language: 'typescript' },
+  'react hook': { extension: 'tsx', language: 'typescript' },
+  'typescript config': { filename: 'tsconfig.json' },
 }
 
-export function buildQueryIntent(userQuery: string): QueryIntent {
+function buildQueryIntent(userQuery: string): QueryIntent {
   const lowerQuery = userQuery.toLowerCase()
   let options: SearchOptions = { limit: 100 }
   let query = userQuery
 
   // Check for pattern matches
-  for (const [pattern, opts] of Object.entries(PATTERNS)) {
+  for (const [pattern, patternOptions] of Object.entries(PATTERNS)) {
     if (lowerQuery.includes(pattern)) {
-      options = { ...options, ...opts }
+      options = { ...options, ...patternOptions }
       break
     }
   }
 
   // Extract repo constraint (e.g., "in repo:user/repo")
-  const repoMatch = userQuery.match(/(?:in|from|repo:?)\s+([a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+)/i)
-  if (repoMatch) {
-    options.repo = repoMatch[1]
+  const repoMatch = /(?:in|from|repo:?)\s+(?<repoName>[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+)/i.exec(userQuery)
+  const { repoName } = repoMatch?.groups ?? {};
+  if (repoName !== undefined) {
+    options.repo = repoName
     query = query.replace(repoMatch[0], '').trim()
   }
 
-  return { query, options }
+  return { options, query }
 }
+
+export default buildQueryIntent;

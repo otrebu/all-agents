@@ -1,42 +1,42 @@
 /**
- * Configuration for Gemini Research
- */
-export interface ResearchOptions {
-  query: string
-  mode?: 'quick' | 'deep' | 'code'
-}
-
-/**
  * Raw JSON response structure from Gemini CLI
  */
 export interface GeminiResponse {
-  queries_used: string[]
-  sources: {
-    title: string
-    url: string
-  }[]
-  key_points: string[]
-  quotes: {
-    text: string
-    source_url: string
-  }[]
-  summary: string
-  // Deep mode fields
-  contradictions?: string[]
-  consensus?: string[]
-  gaps?: string[]
   // Code mode fields
-  code_snippets?: {
-    language: string
+  code_snippets?: Array<{
     code: string
-    source_url: string
     description: string
-  }[]
-  patterns?: string[]
-  libraries?: string[]
-  gotchas?: {
+    language: string
+    source_url: string
+  }>
+  consensus?: Array<string>
+  // Deep mode fields
+  contradictions?: Array<string>
+  gaps?: Array<string>
+  gotchas?: Array<{
     issue: string
     solution: string
-  }[]
+  }>
+  key_points: Array<string>
+  libraries?: Array<string>
+  patterns?: Array<string>
+  queries_used: Array<string>
+  quotes: Array<{
+    source_url: string
+    text: string
+  }>
+  sources: Array<{
+    title: string
+    url: string
+  }>
+  summary: string
+}
+
+/**
+ * Configuration for Gemini Research
+ */
+export interface ResearchOptions {
+  mode?: 'code' | 'deep' | 'quick'
+  query: string
 }
 

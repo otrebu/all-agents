@@ -1,4 +1,23 @@
-import type { SearchResult, SearchMetadata } from "./types.js";
+import type { SearchMetadata, SearchResult } from "./types.js";
+
+/**
+ * Format domain distribution summary
+ * @param results Array of search results
+ * @returns Array of formatted domain summary lines
+ */
+function formatDomainSummary(results: Array<SearchResult>): Array<string> {
+  const domainCounts = getDomainCounts(results);
+  const topDomains = [...domainCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  const domainLines = topDomains.map(([domain, count]) => {
+    const percentage = ((count / results.length) * 100).toFixed(0);
+    return `- ${domain}: ${count} results (${percentage}%)`;
+  });
+
+  return ["**Top Domains:**", ...domainLines, ""];
+}
 
 /**
  * Format search results as clean markdown for Claude to read
@@ -6,8 +25,8 @@ import type { SearchResult, SearchMetadata } from "./types.js";
  * @param metadata Search execution metadata
  * @returns Formatted markdown string
  */
-export function formatResults(
-  results: SearchResult[],
+function formatResults(
+  results: Array<SearchResult>,
   metadata: SearchMetadata
 ): string {
   const header = [
@@ -32,38 +51,20 @@ export function formatResults(
 }
 
 /**
- * Format domain distribution summary
- * @param results Array of search results
- * @returns Array of formatted domain summary lines
- */
-function formatDomainSummary(results: SearchResult[]): string[] {
-  const domainCounts = getDomainCounts(results);
-  const topDomains = Array.from(domainCounts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
-
-  const domainLines = topDomains.map(([domain, count]) => {
-    const percentage = ((count / results.length) * 100).toFixed(0);
-    return `- ${domain}: ${count} results (${percentage}%)`;
-  });
-
-  return ["**Top Domains:**", ...domainLines, ""];
-}
-
-/**
  * Count results per domain
  * @param results Array of search results
  * @returns Map of domain to count
  */
-function getDomainCounts(results: SearchResult[]): Map<string, number> {
+function getDomainCounts(results: Array<SearchResult>): Map<string, number> {
   const counts = new Map<string, number>();
 
   for (const result of results) {
-    const count = counts.get(result.domain) || 0;
+    const count = counts.get(result.domain) ?? 0;
     counts.set(result.domain, count + 1);
   }
 
   return counts;
 }
 
-export { sanitizeForFilename } from "@lib/format.js";
+export { formatResults };
+export { default as sanitizeForFilename } from "@lib/format.js";

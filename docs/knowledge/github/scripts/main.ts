@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 
+import log from '@lib/log.js'
+import { saveResearchOutput } from '@lib/research.js'
 import { Command } from 'commander'
 import ora from 'ora'
-import { log } from '@lib/log.js'
-import { getGitHubToken } from './github.js'
-import { searchGitHubCode, fetchCodeFiles } from './github.js'
-import { buildQueryIntent } from './query.js'
-import { rankResults } from './ranker.js'
+
 import type { CodeFile } from './types.js'
+
+import { fetchCodeFiles , getGitHubToken, searchGitHubCode } from './github.js'
+import buildQueryIntent from './query.js'
+import getRankedResults from './ranker.js'
 import {
   AuthError,
-  SearchError,
-  RateLimitError
+  RateLimitError,
+  SearchError
 } from './types.js'
+
+const RESEARCH_DIR = 'docs/research/github'
 
 const program = new Command()
 
@@ -26,26 +30,28 @@ program
     log.header('\n🔍 GitHub Code Search\n')
 
     try {
-      if (!userQuery || userQuery.trim().length === 0) {
+      const trimmedQuery = String(userQuery).trim();
+      if (trimmedQuery.length === 0) {
         log.error('No query provided')
         process.exit(1)
       }
 
       // Auth
       const authSpinner = ora('Authenticating with GitHub...').start()
-      const token = await getGitHubToken()
+      const token = getGitHubToken()
       authSpinner.succeed('Authenticated')
 
       // Build query
-      const { query, options } = buildQueryIntent(userQuery)
+      const { options, query } = buildQueryIntent(trimmedQuery)
       log.dim('\nSearch Parameters:')
       log.dim(`  Query: "${query}"`)
       log.dim(`  Filters: ${JSON.stringify(options)}\n`)
 
       // Search
       const searchSpinner = ora('Searching GitHub...').start()
-      const results = await searchGitHubCode(token, query, options)
-      searchSpinner.succeed(`Found ${results.length} results`)
+      const searchResults = await searchGitHubCode(token, query, options)
+      searchSpinner.succeed(`Found ${searchResults.length} results`)
+      const results = searchResults;
 
       if (results.length === 0) {
         log.warn('No results found')
@@ -55,30 +61,42 @@ program
 
       // Rank
       const rankSpinner = ora('Ranking by quality...').start()
-      const ranked = rankResults(results, 10)
+      const ranked = getRankedResults(results, 10)
       rankSpinner.succeed(`Top ${ranked.length} selected`)
 
       // Fetch
       const fetchSpinner = ora(`Fetching code from ${ranked.length} files...`).start()
       const files = await fetchCodeFiles({
-        token,
-        rankedResults: ranked,
+        contextLinesCount: 20,
         maxFiles: 10,
-        contextLinesCount: 20
+        rankedResults: ranked,
+        token
       })
       fetchSpinner.succeed(`Fetched ${files.length} files`)
 
       // Output clean markdown for Claude
       const report = formatMarkdownReport(files, {
-        query: userQuery,
-        totalResults: results.length,
-        executionTimeMs: Date.now() - startTime
+        executionTimeMs: Date.now() - startTime,
+        query: trimmedQuery,
+        totalResults: results.length
+      })
+
+      // Save research output
+      const { jsonPath, mdPath } = await saveResearchOutput({
+        markdownContent: report,
+        outputDir: RESEARCH_DIR,
+        rawData: { files, ranked, results },
+        topic: trimmedQuery
       })
 
       log.success('\nSearch complete!')
-      log.plain('\n' + report)
+      log.plain(`\n${  report}`)
+      log.plain('')
+      log.info(`📄 Raw Data: ${jsonPath}`)
+      log.info(`📝 Report: ${mdPath}`)
 
-    } catch (error: any) {
+    } catch (error) {
+      const unknownError = error as Error;
       if (error instanceof AuthError) {
         log.error('\nAuthentication failed')
         log.dim(error.message)
@@ -91,12 +109,14 @@ program
         log.dim(`Remaining requests: ${error.remaining}\n`)
       } else if (error instanceof SearchError) {
         log.error('\nSearch failed')
-        log.dim(error.message + '\n')
+        log.dim(`${error.message  }\n`)
       } else {
         log.error('\nUnexpected error')
-        log.dim(error.message || String(error))
-        if (error.stack) {
-          log.dim('\n' + error.stack)
+        const errorMessage = unknownError.message;
+        log.dim(errorMessage)
+        const errorStack = unknownError.stack;
+        if (errorStack !== undefined && errorStack.length > 0) {
+          log.dim(`\n${  errorStack}`)
         }
       }
       process.exit(1)
@@ -106,10 +126,10 @@ program
 program.parse()
 
 function formatMarkdownReport(
-  files: CodeFile[],
-  stats: { query: string; totalResults: number; executionTimeMs: number }
+  files: Array<CodeFile>,
+  stats: { executionTimeMs: number; query: string; totalResults: number; }
 ): string {
-  const sections: string[] = []
+  const sections: Array<string> = []
 
   // Header
   sections.push(`# GitHub Code Search Results\n`)
@@ -120,7 +140,7 @@ function formatMarkdownReport(
 
   // Code files with lightweight structured format
   for (const file of files) {
-    const repoUrl = file.url.split('/blob/')[0] || file.url
+    const repoUrl = file.url.split('/blob/')[0] ?? file.url
 
     sections.push(`### ${file.rank}. [${file.repository}](${repoUrl}) ⭐ ${formatStars(file.stars)}\n`)
     sections.push(`**Path:** \`${file.path}\``)
@@ -129,7 +149,7 @@ function formatMarkdownReport(
 
     // Show code snippet (first 40 lines)
     const snippet = file.content.split('\n').slice(0, 40).join('\n')
-    sections.push('```' + file.language)
+    sections.push(`\`\`\`${  file.language}`)
     sections.push(snippet)
     if (file.lines > 40) sections.push('// ... truncated ...')
     sections.push('```\n')
@@ -140,7 +160,7 @@ function formatMarkdownReport(
 }
 
 function formatStars(stars: number | undefined): string {
-  if (!stars && stars !== 0) return '0'
+  if (stars === undefined || stars === 0) return '0'
   if (stars >= 1000) {
     return `${(stars / 1000).toFixed(1)}k`
   }
