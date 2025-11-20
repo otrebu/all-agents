@@ -1,10 +1,35 @@
 # Git Commit
 
-Stage changes and create conventional commits from diff analysis.
+Stage changes and create atomic conventional commits from diff analysis.
+
+## Default Behavior
+
+**Goal:** Commit ALL changes in multiple atomic conventional commits
+
+**How we code:** Commit frequently while coding, not just at the end
+- After each logical unit of work (feature step, fix, refactor)
+- Partial/incomplete features are fine - commit progress with clear scope
+- Claude: proactively commit when it makes sense during development
+
+**Atomic commit:** One logical change that can be reverted independently
+- Can include deps + code + tests + docs together
+- Group by scope (auth, payment), NOT by type (deps, code, tests)
+
+## ❗ CRITICAL: AI Authorship
+
+**AI SHALL NEVER SIGN COMMITS AS AUTHOR OR CO-AUTHOR**
+
+- No "Generated with Claude Code" signatures
+- No "Co-Authored-By: Claude" footers
+- No AI attribution in commit messages
+
+Violation = immediate termination.
 
 ## Workflow
 
-### 1. Gather Context
+### 1. Inventory All Changes
+
+Run in parallel:
 
 ```bash
 git status
@@ -12,85 +37,158 @@ git diff HEAD
 git log --oneline -10
 ```
 
-### 2. Determine Commit Strategy
+Parse output: staged vs unstaged vs untracked files
 
-**Single commit:** All changes relate to one logical change
-**Multiple commits:** Changes span distinct features/fixes/areas
+### 2. Safety Filter
 
-If multiple commits needed:
+**Auto-exclude (never commit):**
+- `.env*`, `node_modules/`, `dist/`, `build/`, `.next/`
+- Credentials: `credentials.json`, `secrets.yaml`, `.npmrc` with tokens
 
-1. Group related changes by type and scope
-2. Create separate commits for each group
-3. Follow dependency order (e.g., deps before features)
+**Ask about suspicious:**
+- Patterns: `*.tmp`, `temp/`, `.cache/`, `*.log`, large files (>1MB)
+- Prompt: "Found suspicious: [list]. (c)ommit / (g)itignore / (s)kip?"
+- If gitignore → append to `.gitignore`, exclude from commit
 
-### 3. Per Commit: Analyze & Stage
+### 3. Analyze & Group Changes
 
-Review diff to extract:
+Group by logical change scope:
+- ✅ All auth changes together (deps + code + tests + docs)
+- ✅ Partial feature progress (just token signing, verification later)
+- ❌ NOT separate: deps commit, then code, then tests
 
+**Atomic test:** "Can this be reverted independently?"
+
+**Partial features OK:**
+- `feat(auth): add JWT token signing` (verification comes later)
+- `feat(auth): add token verification` (separate commit)
+
+### 4. Per Commit: Smart Staging
+
+1. `git reset HEAD` - Clear staging
+2. `git add <files-for-this-commit>` - Stage atomic group
+3. `git diff --cached --name-only` - Verify
+
+Note: Step 1 unstages everything. No data loss, just reorganization.
+
+### 5. Create Commit
+
+Generate from diff:
 - **Type**: feat, fix, refactor, docs, test, chore
-- **Scope**: module/component affected
-- **Description**: imperative mood summary (50-72 chars)
+- **Scope**: module (singular, lowercase)
+- **Description**: imperative, 50-72 chars
 
-Stage related files:
+**Format (simple):**
 
 ```bash
-git add <files-for-this-commit>
+git commit -m "feat(auth): add JWT token signing"
 ```
 
-**Never stage:**
+**With body (multiple -m flags):**
 
-- `.env` files
-- Credentials
-- Secrets/tokens
-
-### 4. Create Commit
-
-Format:
-
-```
-<type>(scope): description
-
-Optional body with details
+```bash
+git commit -m "feat(auth): add JWT token signing" -m "Implements RS256 algorithm with expiry handling."
 ```
 
 **Rules:**
-
-- Imperative mood: "add" not "added"
+- Imperative: "add" not "added"
 - Generate from diff, not user's words
-- **NEVER**❗ add Claude signature/co-authorship or you will be fired
+- ❗ NEVER add AI signatures
 - Atomic: one logical change per commit
 
-### 5. Repeat or Push
+### 6. Repeat
 
-**Multiple commits:** Return to step 3 for next commit
-**Push requested:** Run `git push` after all commits
-**No push requested:** Stop after committing
+Loop steps 4-5 until all safe files committed.
+
+### 7. Push (Optional)
+
+**If user requested push:** Run `git push`
+**Otherwise:** Ask "All committed. Push? (y/n)"
+
+If upstream needed: `git push -u origin $(git branch --show-current)`
 
 ## Conventional Commit Types
 
-- `feat` - New features
-- `fix` - Bug fixes
+- `feat` - New features (can include deps, tests, docs for that feature)
+- `fix` - Bug fixes (can include test updates)
 - `refactor` - Code restructuring without behavior change
 - `docs` - Documentation only
-- `test` - Tests
-- `chore` - Tooling, deps, config
+- `test` - Tests only
+- `chore` - Tooling, deps (standalone updates), config
+
+## When to Commit
+
+Commit frequently during development:
+- After each logical unit completes
+- Before switching contexts (auth → payment)
+- Before risky refactors (save working state)
+
+Don't wait for "done" - commit incremental progress.
 
 ## Examples
 
-**Single commit:**
+### Example 1: Partial Feature (WIP)
+
+**Scenario:** Working on auth, only token signing done
 
 ```
-feat(api): add user authentication endpoint
+Changes: src/auth.ts (signing only)
+Commit: feat(auth): add JWT token signing
 
-Implements JWT token generation, login/logout routes,
-and bcrypt password hashing.
+Later: src/auth.ts (verification)
+Commit: feat(auth): add token verification
 ```
 
-**Multiple commits scenario:**
+### Example 2: Complete Feature
+
+**Scenario:** Full authentication feature with everything
 
 ```
-1. chore(deps): install jsonwebtoken and bcrypt
-2. feat(auth): add JWT token signing function
-3. feat(auth): add token verification middleware
-4. docs(api): document authentication endpoints
+Changes: package.json, src/auth.ts, src/auth.test.ts, docs/AUTH.md
+Commit: feat(auth): add JWT authentication
+
+(ONE commit with deps + code + tests + docs)
 ```
+
+### Example 3: Multiple Independent Features
+
+**Scenario:** Auth and payment work done in same session
+
+```
+Changes: auth files + payment files
+
+Commits:
+1. feat(auth): add JWT authentication
+2. feat(payment): add Stripe integration
+```
+
+### Example 4: Safety Filter
+
+**Scenario:** Mix of safe, dangerous, and suspicious files
+
+```
+Files: .env.local, src/config.ts, temp/debug.log
+
+Action:
+- .env.local → auto-excluded (never commit)
+- temp/debug.log → ask user → picks (g)itignore
+- src/config.ts → commit in feat(config): add config loader
+```
+
+## Troubleshooting
+
+**Nothing to commit:**
+- All changes already committed or no changes exist
+- Response: "No changes to commit. Working tree clean."
+
+**Pre-commit hook modified files:**
+- Hook changed files after staging
+- Re-run step 4 (reset, stage, verify) and retry commit
+
+**Merge conflicts or detached HEAD:**
+- Don't auto-commit, requires manual intervention
+- Response: "Repository needs manual intervention (conflict/detached HEAD)"
+
+**Large refactors (50+ files):**
+- Group by module/directory
+- Ask: "Large refactor (X files). Single commit or split by module?"
