@@ -16,31 +16,50 @@ A feature/change is complete when ALL of these are true:
 - Read `README` and package/project config first
 - Ask concise questions if missing info (test command, branch naming, CI)
 
-## 1) Tests 🧪
+## 1) Planning 📋
+
+**Before starting:**
+
+- Use plan mode → write to `@docs/planning/stories/*` or `@docs/planning/tasks/*`
+- Include: implementation steps, reasoning, broken-down tasks
+- Research external knowledge if needed (Task tool)
+- Think MVP - don't over-plan
+- **Ask for review before proceeding**
+
+**While implementing:**
+
+- Update plan as you work
+- Append detailed change descriptions (for handover)
+
+See: `@docs/planning/story-template.md`
+
+## 2) Tests 🧪
 
 - Add or update tests for every new feature
 - Update tests to reflect new behavior (don't force green)
 - Keep tests fast; mark slow tests as integration/e2e and isolate from unit runs
 - Use TDD when appropriate
 
-## 2) Commit discipline ✍️
+## 3) Commit discipline ✍️
 
-- Use **Conventional Commits**: `feat(scope): short imperative summary`
-  - Include body + breaking change footer when needed
-  - Never sign commits from AI
-- Run tests before each commit. Don't commit if tests fail
-- Include documentation updates with feature or in immediate follow-up
+**ATOMIC COMMITS:** One logical change that can be reverted independently
 
-## 3) Branching 🔀
+- Commit frequently (after each logical unit)
+- Group by scope (auth, payment), NOT type (deps, code, tests)
+- ❗ AI SHALL NEVER sign commits
+- Run tests before commit
 
-- **Check branch strategy.** If on `main`/`master`:
-  1. Ask: "Stay on main or create feature branch? (use `/start-feature <description>`)"
-  2. Wait for user decision
-  3. Use repo convention (e.g., `feat/<ticket>-<slug>`)
-- Push feature branches and open PRs; never push directly to protected branches
-- Some repos allow direct work on main. Ask if uncertain
+**Read & follow:** `@docs/coding/workflow/COMMIT.md`
 
-## 4) Documentation 📝
+## 4) Branching 🔀
+
+**Start new feature:**
+Read & follow: `@docs/coding/workflow/START_FEATURE.md`
+
+**Complete feature:**
+Read & follow: `@docs/coding/workflow/COMPLETE_FEATURE.md`
+
+## 5) Documentation 📝
 
 Update docs immediately after implementing features:
 
@@ -49,7 +68,7 @@ Update docs immediately after implementing features:
 - **Commit with feature** or in immediate follow-up
 - **For AI**: Don't wait to be asked. Ask "What docs need updating?" and do it
 
-## 5) Pre-merge checklist ✅
+## 6) Pre-merge checklist ✅
 
 - Tests pass locally and in CI
 - Lint/type checks pass
