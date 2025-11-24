@@ -1,5 +1,0 @@
-onlyBuiltDependencies:
-  - esbuild
-  - node-pty
-  - protobufjs
-  - tree-sitter-bash

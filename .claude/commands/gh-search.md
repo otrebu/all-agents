@@ -80,4 +80,4 @@ Find production code showing:
 ## Constraints
 
 - Requires `gh` CLI authenticated
-- Scripts in `docs/knowledge/github/scripts/`
+- Scripts in `context/knowledge/github/scripts/`
