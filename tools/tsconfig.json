@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@context/*": ["../context/*"],
+      "@tools/*": ["./src/*"],
+      "@lib/*": ["./lib/*"]
+    },
+    "types": ["bun-types"]
+  }
+}

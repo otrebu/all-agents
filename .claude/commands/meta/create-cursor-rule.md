@@ -7,7 +7,7 @@ argument-hint: [rule-name] [description]
 
 Create a Cursor rules file in `.cursor/rules/` directory following MDC format.
 
-**MANDATORY** Write the rule based on @docs/meta/PROMPTING.md
+**MANDATORY** Write the rule based on @context/meta/PROMPTING.md
 
 ## Instructions
 
@@ -15,7 +15,7 @@ Create a Cursor rules file in `.cursor/rules/` directory following MDC format.
 2. **Create Directory**: Ensure `.cursor/rules/` exists in the appropriate scope (root or subdirectory).
 3. **Create File**: Generate `[name].mdc` using the **Template Structure** below.
 4. **Write Content**:
-   - 🛑 MUST follow `@docs/meta/PROMPTING.md` standards.
+   - 🛑 MUST follow `@context/meta/PROMPTING.md` standards.
    - Keep context minimal and high-signal.
    - Use direct, imperative instructions.
 5. **Review**: Verify metadata (`globs`, `description`) and content structure.

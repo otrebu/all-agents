@@ -1,0 +1,4408 @@
+{
+  "files": [
+    {
+      "content": "@Override\n        public K getKey() {\n            return key;\n        }\n        @Override\n        public V getValue() {\n            return value;\n        }\n    }\n```\n\n`Entry`没有什么，只是一个键和一个值的容器。该定义内嵌在`MyLinearList`中，因此它使用相同类型的参数，`K`和`V`。\n\n这就是你做这个练习所需的所有东西，所以让我们开始吧。\n\n## 9.2 练习 7\n\n在本书的仓库中，你将找到此练习的源文件：\n\n+   `MyLinearMap.java`包含练习的第一部分的起始代码。\n+   `MyLinearMapTest.java`包含`MyLinearMap`的单元测试。\n\n你还会找到 Ant 构建文件`build.xml`。\n\n运行`ant build`来编译源文件。然后运行`ant   MyLinearMapTest`；几个测试应该失败，因为你有一些任务要做。\n\n首先，填写`findEntry`的主体。这是一个辅助方法，不是`Map`接口的一部分，但是一旦你让它工作，你可以在几种方法中使用它。给定一个目标键（Key），它应该搜索条目（Entry）并返回包含目标的条目（按照键，而不是值），或者如果不存在则返回`null`。请注意，我提供了`equals`，正确比较两个键并处理`null`。\n\n\n你可以再次运行`ant MyLinearMapTest`，但即使你的`findEntry`是正确的，测试也不会通过，因为`put`不完整。\n\n\n填充`put`。你应该阅读`Map.put`的文档，<http://thinkdast.com/listput> ，以便你知道应该做什么。你可能希望从一个版本开始，其中`put`始终添加新条目，并且不会修改现有条目；这样你可以先测试简单的情况。或者如果你更加自信，你可以一次写出整个东西。\n\n一旦你`put`正常工作，测试`containsKey`应该通过。\n\n阅读`Map.get`的文档，<http://thinkdast.com/listget> ，然后填充方法。再次运行测试。\n\n最后，阅读`Map.remove`的文档，<http://thinkdast.com/maprem> 并填充方法。\n\n到了这里，所有的测试都应该通过。恭喜！\n\n---\n\n@Override\n        public V getValue() {\n            return value;\n        }\n    }\n```\n\n`Entry`没有什么，只是一个键和一个值的容器。该定义内嵌在`MyLinearList`中，因此它使用相同类型的参数，`K`和`V`。\n\n这就是你做这个练习所需的所有东西，所以让我们开始吧。\n\n## 9.2 练习 7\n\n在本书的仓库中，你将找到此练习的源文件：\n\n+   `MyLinearMap.java`包含练习的第一部分的起始代码。\n+   `MyLinearMapTest.java`包含`MyLinearMap`的单元测试。\n\n你还会找到 Ant 构建文件`build.xml`。\n\n运行`ant build`来编译源文件。然后运行`ant   MyLinearMapTest`；几个测试应该失败，因为你有一些任务要做。\n\n首先，填写`findEntry`的主体。这是一个辅助方法，不是`Map`接口的一部分，但是一旦你让它工作，你可以在几种方法中使用它。给定一个目标键（Key），它应该搜索条目（Entry）并返回包含目标的条目（按照键，而不是值），或者如果不存在则返回`null`。请注意，我提供了`equals`，正确比较两个键并处理`null`。\n\n\n你可以再次运行`ant MyLinearMapTest`，但即使你的`findEntry`是正确的，测试也不会通过，因为`put`不完整。\n\n\n填充`put`。你应该阅读`Map.put`的文档，<http://thinkdast.com/listput> ，以便你知道应该做什么。你可能希望从一个版本开始，其中`put`始终添加新条目，并且不会修改现有条目；这样你可以先测试简单的情况。或者如果你更加自信，你可以一次写出整个东西。\n\n一旦你`put`正常工作，测试`containsKey`应该通过。\n\n阅读`Map.get`的文档，<http://thinkdast.com/listget> ，然后填充方法。再次运行测试。\n\n最后，阅读`Map.remove`的文档，<http://thinkdast.com/maprem> 并填充方法。\n\n到了这里，所有的测试都应该通过。恭喜！\n\n## 9.3 分析`MyLinearMap`\n\n这一节中，我展示了上一个练习的答案，并分析核心方法的性能。这里是`findEntry`和`equals`。",
+      "language": "markdown",
+      "lines": 85,
+      "path": "docs/think-dast-zh/9.md",
+      "rank": 1,
+      "repository": "apachecn/apachecn-algo-zh",
+      "stars": 11137,
+      "url": "https://github.com/apachecn/apachecn-algo-zh/blob/ca52c3b386331be95ac1f1313dcf0d484cf89c04/docs/think-dast-zh/9.md"
+    },
+    {
+      "content": "* New s390x implementation of AES, GCM, Chacha, memxor, SHA1,\n\t  SHA256, SHA512 and SHA3. Great speedups, and fat builds are\n\t  supported. Contributed by Mamone Tarsha.\n\n\t* New PPC64 assembly for ecc modulo/redc operations,\n\t  contributed by Amitay Isaacs, Martin Schwenke and Alastair\n\t  D´Silva.\n\n\t* The x86_64 AES implementation using aesni instructions has\n\t  been reorganized with one separate function per key size,\n\t  each interleaving the processing of two blocks at a time\n\t  (when the caller processes multiple blocks with each call).\n\t  This gives a modest performance improvement on some\n\t  processors.\n\n\t* Rewritten and faster x86_64 poly1305 assembly.\n\n\tKnown issues:\n\n\t* Nettle's testsuite doesn't work out-of-the-box on recent\n\t  MacOS, due to /bin/sh discarding the DYLD_LIBRARY_PATH\n\t  environment variable. Nettle's test scripts handle this in\n\t  some cases, but currently fails the test cases that are\n\t  themselves written as /bin/sh scripts. As a workaround, use\n\n\t  make check EMULATOR='env DYLD_LIBRARY_PATH=$(TEST_SHLIB_DIR)'\n\n\tMiscellaneous:\n\n\t* Updated manual to current makeinfo conventions, with no\n\t  explicit node pointers. Generate pdf version with texi2pdf,\n\t  to get working hyper links.\n\n\t* Added square root functions for NIST ecc curves, as a\n\t  preparation for supporting compact point representation.\n\n\t* Reworked internal GCM/ghash interfaces, simplifying assembly\n\t  implementations. Deleted unused GCM C implementation\n\t  variants with less than 8-bit lookup table.\n\nNEWS for the Nettle 3.7.3 release\n\n\tThis is bugfix release, fixing bugs that could make the RSA\n\tdecryption functions crash on invalid inputs.",
+      "language": "release/src/router/nettle/news",
+      "lines": 44,
+      "path": "release/src/router/nettle/NEWS",
+      "rank": 2,
+      "repository": "RMerl/asuswrt-merlin.ng",
+      "stars": 5838,
+      "url": "https://github.com/RMerl/asuswrt-merlin.ng/blob/679fdec1062d6853bdae12cc3b032687c5db8845/release/src/router/nettle/NEWS"
+    },
+    {
+      "content": ">>> s_w = s_m\n\n>>> m = np.random.normal(in_m, s_m, N) \n>>> w = np.random.normal(in_w, s_w, N) \n>>> from matplotlib import pyplot as plt \n>>> f, ax = plt.subplots(figsize=(7, 5))\n\n>>> ax.set_title(\"Histogram of Heights\") \n>>> ax.hist(m, alpha=.5, label=\"Men\"); \n>>> ax.hist(w, alpha=.5, label=\"Women\"); \n>>> ax.legend() \n```\n\n下面是输出：\n\n![](img/3-7-1.jpg)\n\n下面，我们的兴趣是，对分组二次抽样，训练分布，之后预测剩余分组。\n\n```py\n>>> random_sample = np.random.choice([True, False], size=m.size) \n>>> m_test = m[random_sample] \n>>> m_train = m[~random_sample]\n\n>>> w_test = w[random_sample] \n>>> w_train = w[~random_sample] \n```\n\n现在我们需要获得男性和女性高度的经验分布，基于训练集：\n\n```py\n>>> from scipy import stats \n>>> m_pdf = stats.norm(m_train.mean(), m_train.std()) \n>>> w_pdf = stats.norm(w_train.mean(), w_train.std())\n```\n\n对于测试集，我们要计算，基于数据点从每个分布中生成的概率，并且最可能的分布会分配合适的标签。当然，我们会看到有多么准确。\n\n```py\n>>> m_pdf.pdf(m[0]) \n0.043532673457165431\n>>> w_pdf.pdf(m[0]) \n9.2341848872766183e-07\n\n---\n\n>>> from matplotlib import pyplot as plt \n>>> f, ax = plt.subplots(figsize=(7, 5))\n\n>>> ax.set_title(\"Histogram of Heights\") \n>>> ax.hist(m, alpha=.5, label=\"Men\"); \n>>> ax.hist(w, alpha=.5, label=\"Women\"); \n>>> ax.legend() \n```\n\n下面是输出：\n\n![](img/3-7-1.jpg)\n\n下面，我们的兴趣是，对分组二次抽样，训练分布，之后预测剩余分组。\n\n```py\n>>> random_sample = np.random.choice([True, False], size=m.size) \n>>> m_test = m[random_sample] \n>>> m_train = m[~random_sample]\n\n>>> w_test = w[random_sample] \n>>> w_train = w[~random_sample] \n```\n\n现在我们需要获得男性和女性高度的经验分布，基于训练集：\n\n```py\n>>> from scipy import stats \n>>> m_pdf = stats.norm(m_train.mean(), m_train.std()) \n>>> w_pdf = stats.norm(w_train.mean(), w_train.std())\n```\n\n对于测试集，我们要计算，基于数据点从每个分布中生成的概率，并且最可能的分布会分配合适的标签。当然，我们会看到有多么准确。\n\n```py\n>>> m_pdf.pdf(m[0]) \n0.043532673457165431\n>>> w_pdf.pdf(m[0]) \n9.2341848872766183e-07 \n```\n\n要注意概率中的差异。",
+      "language": "markdown",
+      "lines": 88,
+      "path": "Sklearn/sklearn-cookbook-zh/3 使用距离向量构建模型.md",
+      "rank": 3,
+      "repository": "Estom/notes",
+      "stars": 1639,
+      "url": "https://github.com/Estom/notes/blob/0520bf5593d3c0056b7161aed11467a5f272e7d9/Sklearn/sklearn-cookbook-zh/3%20%E4%BD%BF%E7%94%A8%E8%B7%9D%E7%A6%BB%E5%90%91%E9%87%8F%E6%9E%84%E5%BB%BA%E6%A8%A1%E5%9E%8B.md"
+    },
+    {
+      "content": "insert-wait-lock-mode-x-insert-intention-vs-insert-wait-lock-mode-x-insert-intention-holds-lock-mode-x\n===\n\n## 死锁特征\n\n1. insert WAITING FOR lock_mode X insert intention waiting\n2. insert WAITING FOR lock_mode X insert intention waiting, HOLDS lock_mode X\n3. 隔离级别：RR\n\n## 死锁日志\n\n```\n------------------------\nLATEST DETECTED DEADLOCK\n------------------------\n2014-12-23 15:47:11 1f4c\n*** (1) TRANSACTION:\nTRANSACTION 19896526, ACTIVE 0 sec inserting\nmysql tables in use 1, locked 1\nLOCK WAIT 5 lock struct(s), heap size 1248, 3 row lock(s), undo log entries 1\nMySQL thread id 17988, OS thread handle 0x17bc, query id 5701353 localhost 127.0.0.1 root update\ninsert into PlayerClub (modifiedBy, timeCreated, currentClubId, endingLevelPosition,  nextClubId, account_id) values (0, '2014-12-23 15:47:11.596', 180, 4, 181, 561)\n*** (1) WAITING FOR THIS LOCK TO BE GRANTED:\nRECORD LOCKS space id 49735 page no 4 n bits 72 index `UK_cagoa3q409gsukj51ltiokjoh` of   table `db`.`playerclub` trx id 19896526 lock_mode X insert intention waiting\nRecord lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0\n 0: len 8; hex 73757072656d756d; asc supremum;;\n\n*** (2) TRANSACTION:\nTRANSACTION 19896542, ACTIVE 0 sec inserting, thread declared inside InnoDB 5000\nmysql tables in use 1, locked 1\n5 lock struct(s), heap size 1248, 3 row lock(s), undo log entries 1\nMySQL thread id 17979, OS thread handle 0x1f4c, query id 5701360 localhost 127.0.0.1    root update\ninsert into PlayerClub (modifiedBy, timeCreated, currentClubId, endingLevelPosition,   nextClubId, account_id) values (0, '2014-12-23 15:47:11.611', 180, 4, 181, 563)\n*** (2) HOLDS THE LOCK(S):\nRECORD LOCKS space id 49735 page no 4 n bits 72 index `UK_cagoa3q409gsukj51ltiokjoh` of   table `db`.`playerclub` trx id 19896542 lock_mode X\nRecord lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0\n 0: len 8; hex 73757072656d756d; asc supremum;;",
+      "language": "markdown",
+      "lines": 37,
+      "path": "1.md",
+      "rank": 4,
+      "repository": "aneasystone/mysql-deadlocks",
+      "stars": 1495,
+      "url": "https://github.com/aneasystone/mysql-deadlocks/blob/d6e2283053687edfcd3d35a8981f1a37ef167ef0/1.md"
+    },
+    {
+      "content": "- Internal `concat()` for faster, simpler string concatentation.\n - Fix compile omission in string conversions for `nullptr_t`.\n - `pqxx::size_buffer()` can now size multiple values at once.\n - `multi_to_string()` to convert multiple values into one `std::string`.\n - Implicit `zview` constructor from `char const *`. (#389)\n - Many `std::string&` parameters are now `zview` or `std::string_view`.\n - Now checking statement parameter lengths for overflow.\n - `#include <array>` in connection.cxx.  (#394)\n7.2.1\n - Fix infinite loop in converting `char *` to string. (#377)\n - Deprecated `namedclass`.\n - Convert an entire row using `row::as<type...>()`.\n - Internal rework of `field::to()` and `field::as()` functions.\n - Some more warning options in maintainer mode.\n - Removed the old, DocBook-based tutorial.\n - Fixed wrong `query` and SQLSTATE params to some exceptions. (#378)\n7.2.0\n - You can now implicitly convert a `const std::string &` to `zview`.\n - Replaced some overloads for C strings and C++ strings with `zview`.\n - Deprecating `binarystring`.  Use `std::basic_string<std::byte>` instead!\n - Array parser did not recognise escaping in unquoted values.\n - gcc10 test build fix: a result iterator is not the same thing as a `row`.\n - Doc fix: field size does _not_ include terminating zero.  (#356)\n - Fix error message in `demangle_type_name`: printed result, not raw name.\n - Fix compile warning in `demangle_type_name` on GNU systems.\n - Document that string conversions assume non-null values.\n - Start playing with C++20 _concepts._\n - Sketch out concepts-based `PQconnectdbParams` support.  (#343)\n - Add missing link to \"datatypes\" documentation.  (#346)\n - Supports `to_string`, `stream_to`, etc. for `binarystring`.  (#312)\n - Fixed infinite recursion when using `std::optional` in `stream_to`.  (#364)\n - Home-rolled hex-escaping.  Saves an allocation.\n - Catch floating-point negative overflow in `check_cast`, not underflow.\n - Bit more work on CMake build doc. (#318)\n - Typo in `datatypes.md`: `nullness`, not `nullness_traits`. (#353)\n - Fixed test names map in `tests/runner.cxx`. (#354)\n - Integral `from_string` now accept leading whitespace, as in composite types.\n - Experimental support basics for composite types.  (#355)\n - Use `stream_from` without knowing the number of fields.  (#357)\n - Global `size_buffer` function.\n - `quote()` now works for always-null types without conversions defined.\n - `std::nullopt` now converts to an SQL null.\n - Skip quoting and escaping array/composite fields of \"safe\" types.\n\n---\n\n- API change: prepared statements are now weakly-typed, and much simpler.\n - API change: fields and tuples are now stand-alone classes in ::pqxx.\n - API change: thread-safety field have_strerror_r is now have_safe_strerror.\n - API change: notify_listener has been replaced with notification_receiver.\n - notification_receiver takes a payload parameter.\n - Easier Visual C++ setup.\n - Absolutely requires a libpq version with PQescapeStringConn.\n - Absolutely requires libpq 8.0 or better.\n - Changes for C++0x.\n - Supports clang++.\n - Visual C++ makefiles now support new-style unit tests.\n - Sample headers for more recent Visual Studio versions.\n - Fixes binary-data escaping problems with postgres 9.0.\n - Fixes problems with binary-string handling and escaping.\n - Fixes compatibility problems between 9.x libpq and 7.x backend.\n - quote_name to escape SQL identifiers for use in queries.\n - syntax_error reports error's approximate location in the query.\n - On Windows, now uses ws2_32 instead of wsock32.\n - Various Windows build fixes.\n - Updated for gcc 4.6.0.\n - configure script supports --enable-documentation/--disable-documentation.\n - Streamlined test/release toolchain.\n3.1\n - Shared libraries are now versioned by ABI: 3.1 instead of 3.1.0 etc.\n - Threading behaviour is now documented, and can be queried.\n - Version information available at compile time.\n - Supports parameterized statements.\n - Result tuples now support slicing.\n - Configure with --with-tr1=boost to use BOOST shared_ptr.\n - String conversion now has its own header file.\n - Supports read-only transactions.\n - Fixed breakage with Solaris \"make\".\n - Uses shared_ptr if available.\n - binarystring::str() is no longer cached; no longer returns reference.\n - Fixed problems in Visual C++ Makefile for test suite.\n - Fixed problems with RPM packaging.\n - Fixed build problem on RedHat/CentOS 5.\n - Lets you check whether a prepared statement has been defined.\n - \"Varargs\" prepared statements.\n - Unnamed prepared statements now supported.\n - Results have iterator as well as const_iterator.\n - Rewrite of robusttransaction logic; may actually do its job now.\n - Connections support async query cancel from signal handler or thread.",
+      "language": "news",
+      "lines": 89,
+      "path": "NEWS",
+      "rank": 5,
+      "repository": "jtv/libpqxx",
+      "stars": 1234,
+      "url": "https://github.com/jtv/libpqxx/blob/e8a6fb6a56e6c97b1462e7058bfbf73b3d248953/NEWS"
+    },
+    {
+      "content": "AppVeyor: Add builds with VS 2019\n  AppVeyor: Add builds with VS 2022\n  AppVeyor: Drop Cygwin x86 due to EOL\n  Migrate from Travis to Github Actions for Linux/macOS\n  Update support for modern Codecov versions\n  Update support for Coverity\n  Integrate SonarQube for code quality analysis\n\n* Fixes\n  Set CMP0063 policy to new behaviour (#101)\n  Set CMP0075 policy to new behaviour\n  Update support for MSYS\n  Update support for Cygwin\n  Update support for NetBSD\n  Update support for Haiku\n  Update support for Doxygen\n  Remove duplicate static declaration in AVL tree (#75)\n  Do not calculate hash value twice for hash tables (#83)\n  Do not use CMake binary directory for outputs (#76)\n  Avoid using deprecated readdir_r() on Android\n  Always link with -lthread for multi-threading on Solaris\n  Make script to run tests compatible with AmigaOS\n  Free resources related to library loader at exit\n  Do not rely on global interfaces for ELF and EClock on AmigaOS\n  Pass RTLD_MEMBER flag to dlopen() call on AIX\n  Allow opening shared library inside archive on AIX\n  Rename functions in memory table to avoid clashes with system macros\n  Disable warnings for compilers simulating MSVC\n  Fix compiler warnings when comparing enum values\n  Fix calculation of free space in shared memory buffer (#88)\n  Fix CPU detection macro for Apple M chips (#94)\n  Fix visibility attribute detection for GCC\n  Fix shared memory segments > 4GB on Windows (#106, #107)\n  Fix missing math library in tests on Tru64 with Compaq compiler\n  Fix typos in docs (#90)\n\nChanges in plibsys 0.0.4\n========================\n\n* Switch to MIT license from LGPLv2+ (#71)\n* Replace Boost test framework with own one (#56)\n* Add visibility support for APIs\n* Add Debian package (in separate branch) (#54)\n\n---\n\nAvoid using deprecated readdir_r() on Android\n  Always link with -lthread for multi-threading on Solaris\n  Make script to run tests compatible with AmigaOS\n  Free resources related to library loader at exit\n  Do not rely on global interfaces for ELF and EClock on AmigaOS\n  Pass RTLD_MEMBER flag to dlopen() call on AIX\n  Allow opening shared library inside archive on AIX\n  Rename functions in memory table to avoid clashes with system macros\n  Disable warnings for compilers simulating MSVC\n  Fix compiler warnings when comparing enum values\n  Fix calculation of free space in shared memory buffer (#88)\n  Fix CPU detection macro for Apple M chips (#94)\n  Fix visibility attribute detection for GCC\n  Fix shared memory segments > 4GB on Windows (#106, #107)\n  Fix missing math library in tests on Tru64 with Compaq compiler\n  Fix typos in docs (#90)\n\nChanges in plibsys 0.0.4\n========================\n\n* Switch to MIT license from LGPLv2+ (#71)\n* Replace Boost test framework with own one (#56)\n* Add visibility support for APIs\n* Add Debian package (in separate branch) (#54)\n* Add gear package (ALT Linux)\n* Add Conan packages\n* Add option to generate Doxygen documentation\n\n* New supported platforms and compilers:\n  BlackBerry 10 (AArch32, x86)\n  Cray Linux Environment\n  AmigaOS 4.1 (PPC) (#59)\n  Android (x86, x64, AArch32, AArch64) (#69)\n  iOS, tvOS, watchOS (x86, x64, AArch32, AArch64) (#70)\n  PGI (x64) compiler on macOS\n\n* New API\n  Macros for variable arguments\n\n* AppVeyor\n  Add Visual Studio 2017 builds (#53)\n  Build tests for Watcom compiler (#57)",
+      "language": "news",
+      "lines": 88,
+      "path": "NEWS",
+      "rank": 6,
+      "repository": "saprykin/plibsys",
+      "stars": 744,
+      "url": "https://github.com/saprykin/plibsys/blob/548d691dbb34bf1ffa0c1b980283162da478a838/NEWS"
+    },
+    {
+      "content": "Improvements:\n    * Translation updates for Catalan, Chinese (Simplified), Croatian, Dutch,\n      French, German, Italian, Portuguese, Portuguese (Brazil),\n      Russian, Spanish, Swedish, Turkish\n    * Handle scale changes on the fly\n    * Better named option to enable/disable typing sounds\n    * Improved README file\n    * The tyls tools now supports pls files\n    * Fade the background of the terminal with the background color defined in\n      the color scheme\n    * Update the default theme to customize selection arrows\n    * Update color schemes about selection arrows\n    * Better documentation of the tyalpha tool\n\nFixes:\n    * Fix issue when restoring the cursor state\n    * Fix issue preventing some red color from being displayed\n\nInternal improvements:\n    * Cleanup the code base about C reserved identifiers\n    * Code analyzed with Coverity 2022.06\n    * Test code with some Coccinelle script in the GitHub's CI\n    * Update the ChangeLog.theme file\n\n\nChanges since 1.12.0:\n---------------------\n\nFixes:\n    * Build and install Default colorscheme\n    * Correctly set the version\n\n\nChanges since 1.11.0:\n---------------------\n\nAdditions:\n    * New default theme!\n\nImprovements:\n    * Support EFL 1-26 or newer only\n    * Colorschemes generate their own configuration file, allowing for easy\n      management of outside contributions\n\n---\n\n* Update Italian and French translations\n\nFixes:\n    * Fix initial window size hints\n    * Fix focus issues\n\n\nChanges since 1.4.0:\n--------------------\n\nFixes:\n    * Decode pasted string as UTF-8, fixing some characters being skipped\n    * Fix theme to ensure default size is 80x24\n    * Fix focus disappearing after going to Settings and back\n\n\nChanges since 1.3.2:\n--------------------\n\nAdditions:\n    * Add Continuous Integration on every push to the git repository\n    * Add a test framework on escape code parsing and interpreting\n    * Add more than 120 test files\n    * Add support, along with tests, for the following escape codes: DSR-DIR,\n      DSR-KBD, DSR-MSR, DSR-DECCKSR, DSR-OS, DSR-PP, DSR-UDK, DECSCLM, DECBI,\n      DECFI, DECSACE, DECRARA, DECCRARA, DECIC, DECDC, DECCRA, DECST8C, DA3,\n      DECSWBV\n    * Add finer configuration on whether to activate links\n    * Set environment variable WINDOWID\n\nImprovements:\n    * Selections only disappear if the underlaying content changes\n    * When pasting a buffer, skip control characters as a security measure\n\nFixes:\n    * Fixes, along with tests, on handling the following escape codes: VPR,\n      DECERA, DECFRA, DSR-CPR, DCH, DECALN, DECAWM, IL, DL\n    * Fixes, along with tests, on mouse reporting\n    * Fixes on issues spotted by Coverity\n\n\nChanges since 1.3.1:\n--------------------",
+      "language": "news",
+      "lines": 89,
+      "path": "NEWS",
+      "rank": 7,
+      "repository": "borisfaure/terminology",
+      "stars": 707,
+      "url": "https://github.com/borisfaure/terminology/blob/915e60c0184495c56b5de38b5d35ec14031ebade/NEWS"
+    },
+    {
+      "content": "- Add optimizations for AVX2-capable x86-64 processors\n- Ensure that the output stream is flushed after every log message\n- Fix an undefined-behavior bug in the Stratum code\n\nVersion 2.3.1 - Jun 18, 2013\n\n- Add a --cert option for specifying an SSL certificate (martinwguy)\n- Fix a bug that only made SHA-256d mining work at difficulty 1\n- Fix a couple of compatibility issues with some Stratum servers\n\nVersion 2.3 - Jun 12, 2013\n\n- Add support for the Stratum mining protocol\n- Automatically switch to Stratum if the mining server supports\n  the X-Stratum extension, unless --no-stratum is used\n- Set CPU affinity on FreeBSD (lye)\n- Fix a bug in libcurl initialization (martinwguy)\n\nVersion 2.2.3 - Aug 5, 2012\n\n- Add optimized ARM NEON code for scrypt and SHA-256d\n- Add a --benchmark option that allows offline testing\n- Support for the X-Reject-Reason extension\n\nVersion 2.2.2 - Jun 7, 2012\n\n- Various performance improvements for x86 and x86-64\n- Optimize scrypt for ARMv5E and later processors\n- Set the priority of miner threads to idle on Windows\n- Add an option to start minerd as a daemon on POSIX systems\n\nVersion 2.2.1 - May 2, 2012\n\n- Add optimized code for ARM processors\n- Support for building on NetBSD and OpenBSD\n- Various compatibility fixes for AIX (pontius)\n\nVersion 2.2 - Apr 2, 2012\n\n- Add an optimized SHA-256d algorithm, with specialized code\n  for x86 and x86-64 and support for AVX and XOP instructions\n- Slight performance increase for scrypt on x86 and x86-64\n- The default timeout is now 270 seconds\n\n---\n\n- Refresh work when long polling times out\n- Fix minor speed regression\n- Modify x86-64 code to make it compatible with older versions of binutils\n\nVersion 2.1.1 - Jan 20, 2012\n\n- Handle network errors properly\n- Make scantime retargeting more accurate\n\nVersion 2.1 - Jan 19, 2012\n\n- Share the same work among all threads\n- Do not ask for new work if the current one is not expired\n- Do not discard the work returned by long polling\n\nVersion 2.0 - Jan 16, 2012\n\n- Change default port to 9332 for Litecoin and remove default credentials\n- Add 'scrypt' as the default algorithm and remove other algorithms (ArtForz)\n- Optimize scrypt for x86 and x86-64\n- Make scantime retargeting less granular (ArtForz)\n- Test the whole hash instead of just looking at the high 32 bits\n- Add configurable timeout, with a default of 180 seconds\n- Add share summary output (inlikeflynn)\n- Fix priority and CPU count detection on Windows\n- Fix parameters -u and -p, and add short options -o and -O\n\nVersion 1.0.2 - Jun 13, 2011\n\n- Linux x86_64 optimisations - Con Kolivas\n- Optimise for x86_64 by default by using sse2_64 algo\n- Detects CPUs and sets number of threads accordingly\n- Uses CPU affinity for each thread where appropriate\n- Sets scheduling policy to lowest possible\n- Minor performance tweaks\n\nVersion 1.0.1 - May 14, 2011\n\n- OSX support\n\nVersion 1.0 - May 9, 2011\n\n- jansson 2.0 compatibility",
+      "language": "news",
+      "lines": 89,
+      "path": "NEWS",
+      "rank": 8,
+      "repository": "lucasjones/cpuminer-multi",
+      "stars": 658,
+      "url": "https://github.com/lucasjones/cpuminer-multi/blob/4c9b1e4a5fa2fd6ae755e0a1a87dc3bfd187415f/NEWS"
+    },
+    {
+      "content": "* Fix pool constraints so all prefixes in pool must be in same VRF (#1251)\n * Added smart-search backend search for VRF list (#1267, #1273)\n * Bumped versions of dependencies, including required modifications (#1232,\n   #1233, #1261, #1264, #1269, #1267)\n\nVersion 0.29.8 - Zeus\n---------------------\n * Fix removal of extra attributes in web UI (#1205)\n * Increased delay for automatic search in the web UI to 500 ms (#1208)\n * Upgraded AngularJS and jQuery in the web UI (#1196)\n\nVersion 0.29.7 - Zeus\n---------------------\n * Add-prefix-from-prefix-option only shown when possible (#1111)\n * Cache busting for static files in the web UI (#1120)\n * Fix monitor attribute in web UI (#1131)\n * Fix parsing of query string in URL (#1132)\n * Various documentation fixes (#1124, #1153, #1155)\n\nVersion 0.29.6 - Zeus\n---------------------\n * Test scripts merged (#1059)\n * Added support for recursive prefix remove to jnipap (#1076)\n * Introduced gradle as build system for jnipap (#1081)\n * VLANs can now be unset from the web UI (#1085, #1092)\n * Various small fixes to the build system and docs (#1086, #1087, #1090)\n * Added import script for IPplan (#1093)\n * Debug logging to syslog now works again (#1044, #1105)\n * list_prefix with only address family as argument now works (#1091, #1106)\n\nVersion 0.29.5 - Zeus\n---------------------\n * Added explicit dependency on WebOb >= 1.2 (#1066, #1068)\n * Tag searches now matched against inherited tags again (#1055, 1064)\n * Web UI now sends POST data with correct Content-Type (#1060, #1061)\n\nVersion 0.29.4 - Zeus\n---------------------\n * IPv4 addresses are mangled before used for search (#1020)\n * VRF selector in web UI works again (#1029, #1031)\n * Searh option parent_prefix can now be None (#998, #1037)\n * More operators supported by the smart parser (#1026, #1027, #1042)\n * Unicode search string support in smart parser (#1035, #1042)\n\n---\n\n* fix backend smart parsing of IPv6 addresses / prefixes being incorrectly\n   parsed as VRF RT (#954)\n\nVersion 0.29.0 - Zeus\n---------------------\n * NOTE how this version drops the dependency on postgres which means that you\n   might need to install it yourself\n * Add search on prefix-length (#847)\n * Add custom output colums for the CLI (#684)\n * Add unicode support for whoisd (#808)\n * Add utility script for bulk string replacements (#813)\n * Add 'modify' support for nipap-passwd (#871)\n * Fix Unicode/UTF-8 support for CLI (#841)\n * Fix bash tab completion for dynamic data (#XXX)\n * Fix backend modification of 0 entries (#843)\n * Fix bash tab completion script errors (#711)\n * Fix blocking of AVPs with empty name (#881)\n * Fix psutil compatibility (#901)\n * Fix nipap-passwd arg parsing (#929)\n * Fix nipap-passwd modifying passwords (#931)\n * Fix nipapd support for users with unicode chars (#922)\n * Add Travis-CI test coverage for jnpipap (#918)\n * Various documentation improvements (#712, #796, #919)\n * Drop deb dependency on postgres (#894)\n * Update CLI man page\n * CSS fixes\n\nVersion 0.28.4 - Hades\n----------------------\n * Fix prefix type automatic guessing so it doesn't override the input type for\n   certain scenarios (#800)\n * Fix parent prefix selection in database so that it is now possible to shrink\n   assignments (#817)\n * Addition of a generic export script that can be used to render configuration\n   files for other daemons, for example a DHCP or DNS server (#815)\n * Improve LDAP configuration flexibility by allowing separate LDAP search\n   credentials which is useful in LDAP environments where the ordinary user\n   accounts are not permitted to search the LDAP database (#794)\n * Fix update of VRF filter list in web-ui to catch corner case where VRF has\n   been removed (#811)\n * Updates to requirements.txt for backend\n * Update boilerplate - update your scripts based on the boilerplate! (#821)\n * Documentation fixes and some other smaller fixes",
+      "language": "news",
+      "lines": 89,
+      "path": "NEWS",
+      "rank": 9,
+      "repository": "SpriteLink/NIPAP",
+      "stars": 570,
+      "url": "https://github.com/SpriteLink/NIPAP/blob/8062f36ba5138c0580f81fc16ab4c261321eba0a/NEWS"
+    },
+    {
+      "content": "The other thing that has changed is that most of the code with\n    incorrect locking has now been fixed. The value of the assert is\n    accordingly lower.\n\n    However, remaining broken callers do need to be fixed. That's why\n    libXCB will still noisily print a stacktrace (if possible) on each\n    assertion failure, even when assert isn't actually invoked to\n    abort() the program; and that's why aborting is still default. This\n    environment variable is provided only for use as a temporary\n    workaround for broken applications.\n\nEnhancements:\n* Print a backtrace, if possible, on locking assertion failures.\n* Skip abort() on locking assertions if LIBXCB_ALLOW_SLOPPY_LOCK is set.\n* xcb_poll_for_event: Return already-read events before reading again.\n* Output a configuration summary at the end of ./configure.\n\nBug fixes:\n* Don't hold the xlib-xcb lock while sleeping: that allows deadlock.\n* Allow unix:<screen> style display names again.\n* Bug #9119: test xcb_popcount\n* Fix unit tests for FreeBSD\n* NetBSD doesn't have AI_ADDRCONFIG: use it only if it's available.\n* Require libXau >= 0.99.2; earlier versions have a broken .pc file\n* Use substitition variables in xcb-xinerama.pc.in\n* Update autogen.sh to one that does objdir != srcdir\n* Add tools/* and autogen.sh to EXTRA_DIST.\n* Doxygen can now be fully disabled if desired.\n\nDocumentation improvements:\n* Many fixes and updates to the tutorial.\n* Iterators, requests, and replies get partial Doxygen documentation.\n\n\nRelease 1.0 (2006-11-23)\n========================\n\nThe \"Thanksgiving\" release: We feel thankful to have it released.  Five years\nhave passed since XCB's initial commit on September 3rd, 2001:\n    <http://gitweb.freedesktop.org/?p=xcb.git;a=commit;h=09e54c4a3c>\n\n* Support IPv6.  XCB now supports displays with IPv6 addresses, with or without\n\n---\n\n* XCB builds which use xdmcp now include it in Requires.private, to support\n  static linking.\n\n* Replace \"long\" with uint32_t when used for a 32-bit quantity\n\n* Various enhancements to the generation of documentation with Doxygen:\n  * Check for doxygen in configure.ac\n  * Fix some Doxygen warnings.\n  * Install documentation.\n  * Handle out-of-tree builds, with srcdir != builddir.  xcb.doxygen now gets\n    generated from xcb.doxygen.in, so that it can use top_builddir and\n    top_srcdir to find source and to output documentation.\n  * Fill in PROJECT_NUMBER from @VERSION@, now that we have it readily\n    available via autoconf.\n\n\nRelease 1.0 RC3 (2006-11-02)\n============================\n\nNote: Version 0.9.4 of the test suite tool \"check\" provides a broken\nversion of the AM_PATH_CHECK macro, which causes autoconf to fail due to\ninsufficient quoting on the macro names it prints in its deprecation\nmessage. We have written a patch to fix this problem, available at:\n<http://bugs.debian.org/cgi-bin/bugreport.cgi/check-m4-am-path-check-use-quadrigraphs-in-macro-names-to-unbreak-autoconf.patch?bug=395466;msg=20;att=1>\nVersion 0.9.4-2 of the Debian package for check includes this patch.\nUsers of other distributions who want to re-autotool libxcb will need to\napply this patch, use an older version of check, or wait for a fixed\nupstream version. This bug does not affect users who use the distributed\ntarballs and do not re-autotool.\n\n* Add library support for xcb-xinerama, using new protocol description\n  from xcb-proto.\n* In the generated protocol code, define and use constants for opcode\n  numbers rather than hard-coding them.\n* In the API conversion script, match only XCB-namespaced XID generators\n  when converting to xcb_generate_id.\n* Quit treating xproto specially in Makefile.am: handle it like all the\n  extensions.\n* Generate Doxygen documentation comments in the protocol stubs, and\n  provide a Doxygen config file for building HTML documentation for XCB.\n* Add note to xcbxlib.h that nothing except Xlib/XCB should use it.",
+      "language": "libxcb/news",
+      "lines": 86,
+      "path": "libxcb/NEWS",
+      "rank": 10,
+      "repository": "ArcticaProject/vcxsrv",
+      "stars": 565,
+      "url": "https://github.com/ArcticaProject/vcxsrv/blob/8e5ce00eecdd0c476de2cff51dfde8c4605da2dc/libxcb/NEWS"
+    }
+  ],
+  "ranked": [
+    {
+      "path": "docs/think-dast-zh/9.md",
+      "repository": "apachecn/apachecn-algo-zh",
+      "score": 1,
+      "stars": 11137,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/105229748/contents/docs/think-dast-zh/9.md?ref=ca52c3b386331be95ac1f1313dcf0d484cf89c04",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "+   `MyLinearMap.java`包含练习的第一部分的起始代码。\n+   `MyLinearMapTest.java`包含`MyLinearMap`的单元测试。\n",
+          "matches": [
+            {
+              "indices": [
+                84,
+                88
+              ],
+              "text": "。\n"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/105229748/contents/docs/think-dast-zh/9.md?ref=ca52c3b386331be95ac1f1313dcf0d484cf89c04",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n运行`ant build`来编译源文件。然后运行`ant   MyLinearMapTest`；几个测试应该失败，因为你有一些任务要做。\n",
+          "matches": [
+            {
+              "indices": [
+                69,
+                73
+              ],
+              "text": "\n"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/apachecn/apachecn-algo-zh/blob/ca52c3b386331be95ac1f1313dcf0d484cf89c04/docs/think-dast-zh/9.md",
+      "qualityScore": 0.47218072135537403,
+      "rank": 1
+    },
+    {
+      "path": "release/src/router/nettle/NEWS",
+      "repository": "RMerl/asuswrt-merlin.ng",
+      "score": 1,
+      "stars": 5838,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/102530186/contents/release/src/router/nettle/NEWS?ref=679fdec1062d6853bdae12cc3b032687c5db8845",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n\t* Nettle's testsuite doesn't work out-of-the-box on recent\n\t  MacOS, due to /bin/sh discarding the DYLD_LIBRARY_PATH\n\t  environment variable. Nettle's test scripts handle this in\n\t  some cases, but currently fails the test cases that are\n\t  themselves written as /bin/sh scripts. As a workaround, use\n",
+          "matches": [
+            {
+              "indices": [
+                13,
+                17
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                153,
+                157
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                220,
+                224
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/RMerl/asuswrt-merlin.ng/blob/679fdec1062d6853bdae12cc3b032687c5db8845/release/src/router/nettle/NEWS",
+      "qualityScore": 0.4541338475251287,
+      "rank": 2
+    },
+    {
+      "path": "Sklearn/sklearn-cookbook-zh/3 使用距离向量构建模型.md",
+      "repository": "Estom/notes",
+      "score": 1,
+      "stars": 1639,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/353196179/contents/Sklearn/sklearn-cookbook-zh/3%20%E4%BD%BF%E7%94%A8%E8%B7%9D%E7%A6%BB%E5%90%91%E9%87%8F%E6%9E%84%E5%BB%BA%E6%A8%A1%E5%9E%8B.md?ref=0520bf5593d3c0056b7161aed11467a5f272e7d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": ">>> random_sample = np.random.choice([True, False], size=m.size) \n>>> m_test = m[random_sample] \n>>> m_train = m[~random_sample]",
+          "matches": [
+            {
+              "indices": [
+                72,
+                76
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/353196179/contents/Sklearn/sklearn-cookbook-zh/3%20%E4%BD%BF%E7%94%A8%E8%B7%9D%E7%A6%BB%E5%90%91%E9%87%8F%E6%9E%84%E5%BB%BA%E6%A8%A1%E5%9E%8B.md?ref=0520bf5593d3c0056b7161aed11467a5f272e7d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n>>> w_test = w[random_sample] \n>>> w_train = w[~random_sample] ",
+          "matches": [
+            {
+              "indices": [
+                7,
+                11
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Estom/notes/blob/0520bf5593d3c0056b7161aed11467a5f272e7d9/Sklearn/sklearn-cookbook-zh/3%20%E4%BD%BF%E7%94%A8%E8%B7%9D%E7%A6%BB%E5%90%91%E9%87%8F%E6%9E%84%E5%BB%BA%E6%A8%A1%E5%9E%8B.md",
+      "qualityScore": 0.3889843848047698,
+      "rank": 3
+    },
+    {
+      "path": "1.md",
+      "repository": "aneasystone/mysql-deadlocks",
+      "score": 1,
+      "stars": 1495,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/126836799/contents/1.md?ref=d6e2283053687edfcd3d35a8981f1a37ef167ef0",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n```\n------------------------\nLATEST DETECTED DEADLOCK\n------------------------\n2014-12-23 15:47:11 1f4c\n*** (1) TRANSACTION:",
+          "matches": [
+            {
+              "indices": [
+                32,
+                36
+              ],
+              "text": "TEST"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/aneasystone/mysql-deadlocks/blob/d6e2283053687edfcd3d35a8981f1a37ef167ef0/1.md",
+      "qualityScore": 0.3749931593528443,
+      "rank": 4
+    },
+    {
+      "path": "NEWS",
+      "repository": "jtv/libpqxx",
+      "score": 1,
+      "stars": 1234,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/68938580/contents/NEWS?ref=e8a6fb6a56e6c97b1462e7058bfbf73b3d248953",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " - Array parser did not recognise escaping in unquoted values.\n - gcc10 test build fix: a result iterator is not the same thing as a `row`.\n - Doc fix: field size does _not_ include terminating zero.  (#356)",
+          "matches": [
+            {
+              "indices": [
+                72,
+                76
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/68938580/contents/NEWS?ref=e8a6fb6a56e6c97b1462e7058bfbf73b3d248953",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " - configure script supports --enable-documentation/--disable-documentation.\n - Streamlined test/release toolchain.\n3.1",
+          "matches": [
+            {
+              "indices": [
+                92,
+                96
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jtv/libpqxx/blob/e8a6fb6a56e6c97b1462e7058bfbf73b3d248953/NEWS",
+      "qualityScore": 0.36666669575956845,
+      "rank": 5
+    },
+    {
+      "path": "NEWS",
+      "repository": "saprykin/plibsys",
+      "score": 1,
+      "stars": 744,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/38903208/contents/NEWS?ref=548d691dbb34bf1ffa0c1b980283162da478a838",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  Always link with -lthread for multi-threading on Solaris\n  Make script to run tests compatible with AmigaOS\n  Free resources related to library loader at exit",
+          "matches": [
+            {
+              "indices": [
+                80,
+                84
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/38903208/contents/NEWS?ref=548d691dbb34bf1ffa0c1b980283162da478a838",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "* Switch to MIT license from LGPLv2+ (#71)\n* Replace Boost test framework with own one (#56)\n* Add visibility support for APIs",
+          "matches": [
+            {
+              "indices": [
+                59,
+                63
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/saprykin/plibsys/blob/548d691dbb34bf1ffa0c1b980283162da478a838/NEWS",
+      "qualityScore": 0.3447156272748293,
+      "rank": 6
+    },
+    {
+      "path": "NEWS",
+      "repository": "borisfaure/terminology",
+      "score": 1,
+      "stars": 707,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/6749230/contents/NEWS?ref=915e60c0184495c56b5de38b5d35ec14031ebade",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    * Code analyzed with Coverity 2022.06\n    * Test code with some Coccinelle script in the GitHub's CI\n    * Update the ChangeLog.theme file",
+          "matches": [
+            {
+              "indices": [
+                48,
+                52
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/6749230/contents/NEWS?ref=915e60c0184495c56b5de38b5d35ec14031ebade",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    * Add Continuous Integration on every push to the git repository\n    * Add a test framework on escape code parsing and interpreting\n    * Add more than 120 test files",
+          "matches": [
+            {
+              "indices": [
+                81,
+                85
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                160,
+                164
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/borisfaure/terminology/blob/915e60c0184495c56b5de38b5d35ec14031ebade/NEWS",
+      "qualityScore": 0.3425033257689769,
+      "rank": 7
+    },
+    {
+      "path": "NEWS",
+      "repository": "lucasjones/cpuminer-multi",
+      "score": 1,
+      "stars": 658,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/19083884/contents/NEWS?ref=4c9b1e4a5fa2fd6ae755e0a1a87dc3bfd187415f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- Add optimized ARM NEON code for scrypt and SHA-256d\n- Add a --benchmark option that allows offline testing\n- Support for the X-Reject-Reason extension",
+          "matches": [
+            {
+              "indices": [
+                101,
+                105
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/19083884/contents/NEWS?ref=4c9b1e4a5fa2fd6ae755e0a1a87dc3bfd187415f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- Make scantime retargeting less granular (ArtForz)\n- Test the whole hash instead of just looking at the high 32 bits\n- Add configurable timeout, with a default of 180 seconds",
+          "matches": [
+            {
+              "indices": [
+                54,
+                58
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lucasjones/cpuminer-multi/blob/4c9b1e4a5fa2fd6ae755e0a1a87dc3bfd187415f/NEWS",
+      "qualityScore": 0.339388541459401,
+      "rank": 8
+    },
+    {
+      "path": "NEWS",
+      "repository": "SpriteLink/NIPAP",
+      "score": 1,
+      "stars": 570,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/2087868/contents/NEWS?ref=8062f36ba5138c0580f81fc16ab4c261321eba0a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "---------------------\n * Test scripts merged (#1059)\n * Added support for recursive prefix remove to jnipap (#1076)",
+          "matches": [
+            {
+              "indices": [
+                25,
+                29
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/2087868/contents/NEWS?ref=8062f36ba5138c0580f81fc16ab4c261321eba0a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * Fix nipapd support for users with unicode chars (#922)\n * Add Travis-CI test coverage for jnpipap (#918)\n * Various documentation improvements (#712, #796, #919)",
+          "matches": [
+            {
+              "indices": [
+                75,
+                79
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/SpriteLink/NIPAP/blob/8062f36ba5138c0580f81fc16ab4c261321eba0a/NEWS",
+      "qualityScore": 0.3331636108245848,
+      "rank": 9
+    },
+    {
+      "path": "libxcb/NEWS",
+      "repository": "ArcticaProject/vcxsrv",
+      "score": 1,
+      "stars": 565,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/31851486/contents/libxcb/NEWS?ref=8e5ce00eecdd0c476de2cff51dfde8c4605da2dc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "* Allow unix:<screen> style display names again.\n* Bug #9119: test xcb_popcount\n* Fix unit tests for FreeBSD",
+          "matches": [
+            {
+              "indices": [
+                62,
+                66
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                91,
+                95
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/31851486/contents/libxcb/NEWS?ref=8e5ce00eecdd0c476de2cff51dfde8c4605da2dc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nNote: Version 0.9.4 of the test suite tool \"check\" provides a broken\nversion of the AM_PATH_CHECK macro, which causes autoconf to fail due to",
+          "matches": [
+            {
+              "indices": [
+                28,
+                32
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ArcticaProject/vcxsrv/blob/8e5ce00eecdd0c476de2cff51dfde8c4605da2dc/libxcb/NEWS",
+      "qualityScore": 0.3327816431188272,
+      "rank": 10
+    }
+  ],
+  "results": [
+    {
+      "path": "NEWS",
+      "repository": "saprykin/plibsys",
+      "score": 1,
+      "stars": 744,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/38903208/contents/NEWS?ref=548d691dbb34bf1ffa0c1b980283162da478a838",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  Always link with -lthread for multi-threading on Solaris\n  Make script to run tests compatible with AmigaOS\n  Free resources related to library loader at exit",
+          "matches": [
+            {
+              "indices": [
+                80,
+                84
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/38903208/contents/NEWS?ref=548d691dbb34bf1ffa0c1b980283162da478a838",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "* Switch to MIT license from LGPLv2+ (#71)\n* Replace Boost test framework with own one (#56)\n* Add visibility support for APIs",
+          "matches": [
+            {
+              "indices": [
+                59,
+                63
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/saprykin/plibsys/blob/548d691dbb34bf1ffa0c1b980283162da478a838/NEWS"
+    },
+    {
+      "path": "2.md",
+      "repository": "apachecn/ds-ai-tech-notes",
+      "score": 1,
+      "stars": 174,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/156817366/contents/2.md?ref=2161764ce0955594f6e812a392a73b5b08d88356",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "from sklearn.linear_model import Perceptron\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import accuracy_score",
+          "matches": [
+            {
+              "indices": [
+                86,
+                90
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/156817366/contents/2.md?ref=2161764ce0955594f6e812a392a73b5b08d88356",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# 将数据分割为 70% 训练集和 30% 测试集\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)\n",
+          "matches": [
+            {
+              "indices": [
+                63,
+                67
+              ],
+              "text": "ain_"
+            },
+            {
+              "indices": [
+                80,
+                84
+              ],
+              "text": " y, "
+            },
+            {
+              "indices": [
+                93,
+                97
+              ],
+              "text": "=0.3"
+            },
+            {
+              "indices": [
+                110,
+                114
+              ],
+              "text": null
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/apachecn/ds-ai-tech-notes/blob/2161764ce0955594f6e812a392a73b5b08d88356/2.md"
+    },
+    {
+      "path": "5.md",
+      "repository": "liudawozhemebang/beyond-feelings",
+      "score": 1,
+      "stars": 350,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/216967418/contents/5.md?ref=657019a358f5f6b2324b9c7fc9017ae292948991",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n3. Monitor your thoughts to prevent the uncritical default mode from taking charge.\n\nWhenever you begin forming impressions of a person, place, or situation, follow the advice of the ancient Greek philosopher Epictetus: “Be not swept off your feet by the vividness of the impression, but say, ‘Impression, wait for me a little. Let me see what you are and what you represent. Let me try [test] you.’ ” This approach will prevent your impressions from hardening into opinions before you determine their reasonableness.\n\n\n",
+          "matches": [
+            {
+              "indices": [
+                393,
+                397
+              ],
+              "text": "] yo"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/liudawozhemebang/beyond-feelings/blob/657019a358f5f6b2324b9c7fc9017ae292948991/5.md"
+    },
+    {
+      "path": "releases/NEWS-1.9.0.txt",
+      "repository": "openvswitch/openvswitch.github.io",
+      "score": 1,
+      "stars": 45,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/23820882/contents/releases/NEWS-1.9.0.txt?ref=6abf44d00c88806b954e94c22a82eb2aafb3d794",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    - ovs-l3ping:\n        - A new test utility that can create L3 tunnel between two Open\n          vSwitches and detect connectivity issues.",
+          "matches": [
+            {
+              "indices": [
+                34,
+                38
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/23820882/contents/releases/NEWS-1.9.0.txt?ref=6abf44d00c88806b954e94c22a82eb2aafb3d794",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "          information using the new port description multipart messages.\n    - ovs-test:\n        - Added support for spawning ovs-test server from the client.",
+          "matches": [
+            {
+              "indices": [
+                83,
+                87
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                130,
+                134
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/openvswitch/openvswitch.github.io/blob/6abf44d00c88806b954e94c22a82eb2aafb3d794/releases/NEWS-1.9.0.txt"
+    },
+    {
+      "path": "TODO",
+      "repository": "schani/mathmap",
+      "score": 1,
+      "stars": 99,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/164654/contents/TODO?ref=42aee5d30f548533e40755392789c36e754d74a9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "** Testing\n*** TODO missing test cases\n    For most of the missing ones it's required that",
+          "matches": [
+            {
+              "indices": [
+                3,
+                7
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                28,
+                32
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/164654/contents/TODO?ref=42aee5d30f548533e40755392789c36e754d74a9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "*** TODO implement mathfuncs\t\t\t\t  :performance:simplify:\n*** TODO pass t properly (test with recursive filters)\t\t\t   :bug:\n*** TODO remove pools in root closure image once mathfuncs work\t      :simplify:",
+          "matches": [
+            {
+              "indices": [
+                83,
+                87
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/schani/mathmap/blob/42aee5d30f548533e40755392789c36e754d74a9/TODO"
+    },
+    {
+      "path": "release/src/router/nettle/NEWS",
+      "repository": "RMerl/asuswrt-merlin.ng",
+      "score": 1,
+      "stars": 5838,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/102530186/contents/release/src/router/nettle/NEWS?ref=679fdec1062d6853bdae12cc3b032687c5db8845",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n\t* Nettle's testsuite doesn't work out-of-the-box on recent\n\t  MacOS, due to /bin/sh discarding the DYLD_LIBRARY_PATH\n\t  environment variable. Nettle's test scripts handle this in\n\t  some cases, but currently fails the test cases that are\n\t  themselves written as /bin/sh scripts. As a workaround, use\n",
+          "matches": [
+            {
+              "indices": [
+                13,
+                17
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                153,
+                157
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                220,
+                224
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/RMerl/asuswrt-merlin.ng/blob/679fdec1062d6853bdae12cc3b032687c5db8845/release/src/router/nettle/NEWS"
+    },
+    {
+      "path": "q.md",
+      "repository": "thinkbot/docker-rubygem",
+      "score": 1,
+      "stars": 35,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/78939997/contents/q.md?ref=4e45fcc49bad2e1754072f084c106e9cc31f09b7",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- [qoobaa-s3 0.0.4](https://github.com/docker-rubygem/qoobaa-s3)\n- [qoobaa-stree 0.2.0](https://github.com/docker-rubygem/qoobaa-stree)\n- [qops 1.4.3](https://github.com/docker-rubygem/qops)\n- [qor_test 1.0.1](https://github.com/docker-rubygem/qor_test)\n- [qotd 2.0.2.3](https://github.com/docker-rubygem/qotd)\n- [qparser 0.0.1.7](https://github.com/docker-rubygem/qparser)\n- [qplus 0.0.2](https://github.com/docker-rubygem/qplus)",
+          "matches": [
+            {
+              "indices": [
+                198,
+                202
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                248,
+                252
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/thinkbot/docker-rubygem/blob/4e45fcc49bad2e1754072f084c106e9cc31f09b7/q.md"
+    },
+    {
+      "path": "fl",
+      "repository": "gugod/bin",
+      "score": 1,
+      "stars": 51,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/194273/contents/fl?ref=3eba7bfe9c65ddf992b57a31c44b521d01447011",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "            for @todo -> $path {\n                dir($path, test => { \"$path/$_\".IO.f && !\"$path/$_\".IO.l })\n                .map(*.path)",
+          "matches": [
+            {
+              "indices": [
+                60,
+                64
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/194273/contents/fl?ref=3eba7bfe9c65ddf992b57a31c44b521d01447011",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "            @todo = @todo.hyper.eager.flatmap: -> $path {\n                dir($path, test => { \"$path/$_\".IO.d && $_ ~~ $none_of_these })\n                .map(*.path)",
+          "matches": [
+            {
+              "indices": [
+                85,
+                89
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/gugod/bin/blob/3eba7bfe9c65ddf992b57a31c44b521d01447011/fl"
+    },
+    {
+      "path": "Sklearn/sklearn-cookbook-zh/3 使用距离向量构建模型.md",
+      "repository": "Estom/notes",
+      "score": 1,
+      "stars": 1639,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/353196179/contents/Sklearn/sklearn-cookbook-zh/3%20%E4%BD%BF%E7%94%A8%E8%B7%9D%E7%A6%BB%E5%90%91%E9%87%8F%E6%9E%84%E5%BB%BA%E6%A8%A1%E5%9E%8B.md?ref=0520bf5593d3c0056b7161aed11467a5f272e7d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": ">>> random_sample = np.random.choice([True, False], size=m.size) \n>>> m_test = m[random_sample] \n>>> m_train = m[~random_sample]",
+          "matches": [
+            {
+              "indices": [
+                72,
+                76
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/353196179/contents/Sklearn/sklearn-cookbook-zh/3%20%E4%BD%BF%E7%94%A8%E8%B7%9D%E7%A6%BB%E5%90%91%E9%87%8F%E6%9E%84%E5%BB%BA%E6%A8%A1%E5%9E%8B.md?ref=0520bf5593d3c0056b7161aed11467a5f272e7d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n>>> w_test = w[random_sample] \n>>> w_train = w[~random_sample] ",
+          "matches": [
+            {
+              "indices": [
+                7,
+                11
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Estom/notes/blob/0520bf5593d3c0056b7161aed11467a5f272e7d9/Sklearn/sklearn-cookbook-zh/3%20%E4%BD%BF%E7%94%A8%E8%B7%9D%E7%A6%BB%E5%90%91%E9%87%8F%E6%9E%84%E5%BB%BA%E6%A8%A1%E5%9E%8B.md"
+    },
+    {
+      "path": "att",
+      "repository": "bewest/unapy",
+      "score": 1,
+      "stars": 6,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/2311697/contents/att?ref=cc55cfb90f38c7ac01ef244cc4b3509e4426b0e4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Security, Credibility\nTesting, security of data, protection against unintended\nor unauthorized used.",
+          "matches": [
+            {
+              "indices": [
+                22,
+                26
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/2311697/contents/att?ref=cc55cfb90f38c7ac01ef244cc4b3509e4426b0e4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "As it is, we'll probably end up ripping out our own SIM\ncards to test with.\n",
+          "matches": [
+            {
+              "indices": [
+                65,
+                69
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bewest/unapy/blob/cc55cfb90f38c7ac01ef244cc4b3509e4426b0e4/att"
+    },
+    {
+      "path": "3.md",
+      "repository": "apachecn/learning-tf-zh",
+      "score": 1,
+      "stars": 82,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/151585646/contents/3.md?ref=ac8438a9ccf6c89a110204cc07223bf3262f90c6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "结果非常令人印象深刻（近乎完美），但这些有点误导。 在数据挖掘中，你永远不应该在用于训练的相同数据上评估你的模型。 潜在的问题被称为“过拟合”，其中模型准确地学习了训练数据所需的内容，但是无法很好地预测新的没见过的数据。 为解决这个问题，我们需要拆分我们的训练和测试数据：\n\n```py\nfrom sklearn.cross_validation import train_test_split\nX_train, X_test, y_train, y_test = train_test_split(digits.data, digits.target)\n```\n",
+          "matches": [
+            {
+              "indices": [
+                453,
+                457
+              ],
+              "text": null
+            },
+            {
+              "indices": [
+                475,
+                479
+              ],
+              "text": null
+            },
+            {
+              "indices": [
+                492,
+                496
+              ],
+              "text": null
+            },
+            {
+              "indices": [
+                505,
+                509
+              ],
+              "text": null
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/apachecn/learning-tf-zh/blob/ac8438a9ccf6c89a110204cc07223bf3262f90c6/3.md"
+    },
+    {
+      "path": "api",
+      "repository": "awwaiid/icfp2016",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/64876107/contents/api?ref=5f5a094b63de8c7db3d8958b0a59b9f380bebd9a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# my $status-hash = $status-list<snapshots>[10]<snapshot_hash>;\nsay \"Loading contest state $status-hash\";\nmy $game-state = get-blob($status-hash);",
+          "matches": [
+            {
+              "indices": [
+                80,
+                84
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/64876107/contents/api?ref=5f5a094b63de8c7db3d8958b0a59b9f380bebd9a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nmulti MAIN(\"resemblance_test\") {\n  my $o = Origami.new;",
+          "matches": [
+            {
+              "indices": [
+                25,
+                29
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/awwaiid/icfp2016/blob/5f5a094b63de8c7db3d8958b0a59b9f380bebd9a/api"
+    },
+    {
+      "path": "9.md",
+      "repository": "MiYogurt/electron-flyer",
+      "score": 1,
+      "stars": 33,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/185732298/contents/9.md?ref=25c170ff92d8259ebe61de2bc5a98e870a77f3ea",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  mainWindow = createMainWindow()\n  plugins = loadPlugins() // 载入插件\n  on('download').subscribe(({ event, args }) => {\n    const plugin = plugins.find(plugin => plugin.regexp.test(args.url)) // 通过网址匹配寻找合适的插件\n    if (!plugin) {\n      return log({ type: 'plugin', message: 'not support' }) // 没有找到插件\n    }",
+          "matches": [
+            {
+              "indices": [
+                182,
+                186
+              ],
+              "text": "s.ur"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/MiYogurt/electron-flyer/blob/25c170ff92d8259ebe61de2bc5a98e870a77f3ea/9.md"
+    },
+    {
+      "path": "1.md",
+      "repository": "aneasystone/mysql-deadlocks",
+      "score": 1,
+      "stars": 1495,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/126836799/contents/1.md?ref=d6e2283053687edfcd3d35a8981f1a37ef167ef0",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n```\n------------------------\nLATEST DETECTED DEADLOCK\n------------------------\n2014-12-23 15:47:11 1f4c\n*** (1) TRANSACTION:",
+          "matches": [
+            {
+              "indices": [
+                32,
+                36
+              ],
+              "text": "TEST"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/aneasystone/mysql-deadlocks/blob/d6e2283053687edfcd3d35a8981f1a37ef167ef0/1.md"
+    },
+    {
+      "path": "FAQ",
+      "repository": "zk/vim",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/99591/contents/FAQ?ref=4ad69ac14d0c4b6e560602eeb0183c05202d1fa9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "will be able to run them and go directly to the location of any errors.\r\nRakefiles, ERB files, and unit tests are also identified and supported.\r\n\r",
+          "matches": [
+            {
+              "indices": [
+                104,
+                108
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/99591/contents/FAQ?ref=4ad69ac14d0c4b6e560602eeb0183c05202d1fa9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "If you've run the installer and added the configuration |vim-ruby-config|\r\nabove, everything should be fine when you restart Vim.  To test this:\r\n - Edit a Ruby file with Vim (make sure it has a .rb extension).\r",
+          "matches": [
+            {
+              "indices": [
+                134,
+                138
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/zk/vim/blob/4ad69ac14d0c4b6e560602eeb0183c05202d1fa9/FAQ"
+    },
+    {
+      "path": "t.md",
+      "repository": "gaston1799/HostedFiles",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/528819133/contents/t.md?ref=22ef84d2529e61bbdfe7e0a4eebc7235b8e37048",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Test hello world",
+          "matches": [
+            {
+              "indices": [
+                0,
+                4
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/gaston1799/HostedFiles/blob/22ef84d2529e61bbdfe7e0a4eebc7235b8e37048/t.md"
+    },
+    {
+      "path": "NEWS",
+      "repository": "borisfaure/terminology",
+      "score": 1,
+      "stars": 707,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/6749230/contents/NEWS?ref=915e60c0184495c56b5de38b5d35ec14031ebade",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    * Code analyzed with Coverity 2022.06\n    * Test code with some Coccinelle script in the GitHub's CI\n    * Update the ChangeLog.theme file",
+          "matches": [
+            {
+              "indices": [
+                48,
+                52
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/6749230/contents/NEWS?ref=915e60c0184495c56b5de38b5d35ec14031ebade",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    * Add Continuous Integration on every push to the git repository\n    * Add a test framework on escape code parsing and interpreting\n    * Add more than 120 test files",
+          "matches": [
+            {
+              "indices": [
+                81,
+                85
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                160,
+                164
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/borisfaure/terminology/blob/915e60c0184495c56b5de38b5d35ec14031ebade/NEWS"
+    },
+    {
+      "path": "ai",
+      "repository": "nonggde/Ai-video-production",
+      "score": 1,
+      "stars": 22,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/890602540/contents/ai?ref=bfe36975d9cd0f0e3c29da6e724e96305f427ee6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "https://code.google.com/p/gwt-platform/wiki/UnitTesting\nhttps://code.google.com/p/arcbees-hive/source/browse/test/com/arcbees/hive/client/home/blog/ui/BlogItemWidgetTest.java\n** Use Emulate Stack Java like src/org/waveprotocol/box/webclient/WebClientDev.gwt.xml",
+          "matches": [
+            {
+              "indices": [
+                48,
+                52
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                109,
+                113
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                165,
+                169
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/890602540/contents/ai?ref=bfe36975d9cd0f0e3c29da6e724e96305f427ee6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "*** Hosted Mode support for websocket\n**** Test that websocket is supported in your GWT Hosted Mode browser:\nhttp://www.websockets.org/",
+          "matches": [
+            {
+              "indices": [
+                43,
+                47
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/nonggde/Ai-video-production/blob/bfe36975d9cd0f0e3c29da6e724e96305f427ee6/ai"
+    },
+    {
+      "path": "4.md",
+      "repository": "nss-evening-cohort-3/regex-challenge-mattbruton",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/65430537/contents/4.md?ref=af330b0d295c4f8d370fb059340fcb5d8c2c615b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n`/^([A-Z]{1}[a-z]{2}\\s{1}){2}\\d{1,2}\\,\\s\\d{4}$/`\n\n#Test Strings\n\nShould match:  \n",
+          "matches": [
+            {
+              "indices": [
+                52,
+                56
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/nss-evening-cohort-3/regex-challenge-mattbruton/blob/af330b0d295c4f8d370fb059340fcb5d8c2c615b/4.md"
+    },
+    {
+      "path": "\\",
+      "repository": "SuperNinjaCat5/git_practice",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1062172937/contents/%5C?ref=b4063057db8a760fe959c006a884fcd66291ee4f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "|which-key.nvim.txt|          For Neovim         Last change: 2025 February 22\n|plenary-test|\n|todo-comments.nvim.txt|        For Neovim        Last change: 2025 January 14",
+          "matches": [
+            {
+              "indices": [
+                88,
+                92
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1062172937/contents/%5C?ref=b4063057db8a760fe959c006a884fcd66291ee4f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "|mini.tabline| Tabline\n|mini.test| Test Neovim plugins\n|mini.trailspace| Trailspace (highlight and remove)",
+          "matches": [
+            {
+              "indices": [
+                29,
+                33
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                35,
+                39
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/SuperNinjaCat5/git_practice/blob/b4063057db8a760fe959c006a884fcd66291ee4f/%5C"
+    },
+    {
+      "path": "h.md",
+      "repository": "sunjoe508/MASSELAH-SALON-SPAR--MVP",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/846539151/contents/h.md?ref=6282c2acb3c6aafd999281cb45c2df8f89ac9a87",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  - Upgrade our load balancer configuration management to ensure it's always in tip-top shape.\n  - Schedule more frequent configuration audits and automated tests to catch potential issues early.\n",
+          "matches": [
+            {
+              "indices": [
+                157,
+                161
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/846539151/contents/h.md?ref=6282c2acb3c6aafd999281cb45c2df8f89ac9a87",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- **Tasks**:\n  - **Patch**: Review and rigorously test all recent configuration changes before deployment. No more surprises!\n  - **Update Documentation**: Keep detailed records of load balancer configuration rules and rollback procedures. A well-documented load balancer is a happy load balancer.",
+          "matches": [
+            {
+              "indices": [
+                50,
+                54
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/sunjoe508/MASSELAH-SALON-SPAR--MVP/blob/6282c2acb3c6aafd999281cb45c2df8f89ac9a87/h.md"
+    },
+    {
+      "path": "Changelog.md",
+      "repository": "hhirsch/armagetron",
+      "score": 1,
+      "stars": 16,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/28708084/contents/Changelog.md?ref=ea92d1329723beb1b7b925c14773fbcf041d9fbd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  longer \"armagetronad-dedicated\" caused problems with BSD\n- Test versions refuse to connect to servers more than one version ahead\n- Prepared client for respawns",
+          "matches": [
+            {
+              "indices": [
+                61,
+                65
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/28708084/contents/Changelog.md?ref=ea92d1329723beb1b7b925c14773fbcf041d9fbd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  and too quick keypresses were causing trouble.\n- Canonical DESTDIR support and added ROOTDIR support for testing\n- Login floods are detected and ignored",
+          "matches": [
+            {
+              "indices": [
+                107,
+                111
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/hhirsch/armagetron/blob/ea92d1329723beb1b7b925c14773fbcf041d9fbd/Changelog.md"
+    },
+    {
+      "path": "0.md",
+      "repository": "zshdevopscatftw/Claude45.22.25Jailbreka-",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/988559559/contents/0.md?ref=59fa33943fcfc0e69ee93d03814d22dfac0df5ce",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\ndef test_prompt(container, api_key, prompt):\n    container.exec_run('pip install requests')",
+          "matches": [
+            {
+              "indices": [
+                5,
+                9
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/988559559/contents/0.md?ref=59fa33943fcfc0e69ee93d03814d22dfac0df5ce",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\"\"\"\n    container.exec_run(f\"bash -c 'echo \\\"{script}\\\" > test.py && python test.py'\")\n    result = container.exec_run('cat /output.json')",
+          "matches": [
+            {
+              "indices": [
+                58,
+                62
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                76,
+                80
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/zshdevopscatftw/Claude45.22.25Jailbreka-/blob/59fa33943fcfc0e69ee93d03814d22dfac0df5ce/0.md"
+    },
+    {
+      "path": "s.md",
+      "repository": "alexander-morris/tool-usage",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/920246874/contents/s.md?ref=c9cd2d207e50d9a813840d92bdb9d30903958503",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "             \u001b[m\n\u001b[1mdiff --git a/tests/test_client.py b/tests/test_client.py\u001b[m\n\u001b[1mindex 94aa609..2b01cf6 100644\u001b[m",
+          "matches": [
+            {
+              "indices": [
+                34,
+                38
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                40,
+                44
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                57,
+                61
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                63,
+                67
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/920246874/contents/s.md?ref=c9cd2d207e50d9a813840d92bdb9d30903958503",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " \u001b[m\n def test_send_message():\u001b[m\n\u001b[31m-    \"\"\"Test sending a message and getting a response.\"\"\"\u001b[m",
+          "matches": [
+            {
+              "indices": [
+                10,
+                14
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                47,
+                51
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/alexander-morris/tool-usage/blob/c9cd2d207e50d9a813840d92bdb9d30903958503/s.md"
+    },
+    {
+      "path": "TODO",
+      "repository": "dabridgham/KV10",
+      "score": 1,
+      "stars": 12,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/83902494/contents/TODO?ref=5fee404821a3150e2ccbb22b29488d26df50eb84",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n o Implement and test the PAG feature of relocating locations 0-17 separately.\n",
+          "matches": [
+            {
+              "indices": [
+                18,
+                22
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/83902494/contents/TODO?ref=5fee404821a3150e2ccbb22b29488d26df50eb84",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n o Write diagnostic to test that the processor does the right thing when a higher-priority\n   interrupt happens in between the two instructions of a two instruction interrupt",
+          "matches": [
+            {
+              "indices": [
+                24,
+                28
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/dabridgham/KV10/blob/5fee404821a3150e2ccbb22b29488d26df50eb84/TODO"
+    },
+    {
+      "path": "C.md",
+      "repository": "mathieu-ui/C",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/478573949/contents/C.md?ref=91879f9d546b33afcd1f358ca38412442044efb9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\r\n### Autre op\r\n\r\n    == ->Test d'egaliter\r\n    != ->Test different\r\n\r\nTandis que :\r",
+          "matches": [
+            {
+              "indices": [
+                27,
+                31
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                53,
+                57
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mathieu-ui/C/blob/91879f9d546b33afcd1f358ca38412442044efb9/C.md"
+    },
+    {
+      "path": "n.md",
+      "repository": "brunowego/cookbook",
+      "score": 1,
+      "stars": 74,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/156710109/contents/n.md?ref=71dee30f17351130b5cee1328464fab7bcbdec5c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# Versions\nn --latest\nn --lts",
+          "matches": [
+            {
+              "indices": [
+                17,
+                21
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/156710109/contents/n.md?ref=71dee30f17351130b5cee1328464fab7bcbdec5c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# Install\nn latest\nn lts",
+          "matches": [
+            {
+              "indices": [
+                14,
+                18
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/brunowego/cookbook/blob/71dee30f17351130b5cee1328464fab7bcbdec5c/n.md"
+    },
+    {
+      "path": "projects/project3.md",
+      "repository": "cmsc330summer24/summer24",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/805980349/contents/projects/project3.md?ref=8af15de2073dda3bd8d920f4881551e884e4a231",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " - To build your project, run `cargo build`.\n - To run the public tests, run `cargo test`.\n - To get suggestions on various ways to improve your code, run `cargo clippy`.",
+          "matches": [
+            {
+              "indices": [
+                66,
+                70
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                84,
+                88
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/805980349/contents/projects/project3.md?ref=8af15de2073dda3bd8d920f4881551e884e4a231",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "test test_example3 ... FAILED\ntest test_example4 ... ok\ntest test_example5 ... FAILED",
+          "matches": [
+            {
+              "indices": [
+                0,
+                4
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                5,
+                9
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                30,
+                34
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                35,
+                39
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                56,
+                60
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                61,
+                65
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/cmsc330summer24/summer24/blob/8af15de2073dda3bd8d920f4881551e884e4a231/projects/project3.md"
+    },
+    {
+      "path": "8.md",
+      "repository": "willmasters/GREP101",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/17637459/contents/8.md?ref=a3b4916371a3dbd13218a34b8f0dbb5d2e808128",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n    “DROP       tcp  --  anywhere             anywhere             tcp dpt:http” \n\nThe effect of this is that although your server is still running Apache, it's no longer accessible from the \"outside\". Test for yourself!\n\nIn practice, ensuring that you're not running unnecessary services is often enough protection,  and a host-based firewall is unnecessary, but this very much depends on the type of server you are configuring. Regardless, hopefully this session has given you some insight into the concepts.\n",
+          "matches": [
+            {
+              "indices": [
+                207,
+                211
+              ],
+              "text": " for"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/willmasters/GREP101/blob/a3b4916371a3dbd13218a34b8f0dbb5d2e808128/8.md"
+    },
+    {
+      "path": "eap",
+      "repository": "MrCirca/docker",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/134861910/contents/eap?ref=555142ccdc4bf1fab5c52276d7ed05879b15ffca",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t#\n\t#  These test certificates SHOULD NOT be used in a normal\n\t#  deployment.  They are created only to make it easier",
+          "matches": [
+            {
+              "indices": [
+                13,
+                17
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/134861910/contents/eap?ref=555142ccdc4bf1fab5c52276d7ed05879b15ffca",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t\t#\n\t#\tpsk_identity = \"test\"\n\t#\tpsk_hexphrase = \"036363823\"",
+          "matches": [
+            {
+              "indices": [
+                23,
+                27
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/MrCirca/docker/blob/555142ccdc4bf1fab5c52276d7ed05879b15ffca/eap"
+    },
+    {
+      "path": "a.md",
+      "repository": "SrLambda/Licitacion_SistemaCausasJudiciales",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1080014779/contents/a.md?ref=d41d68295ff992aaf0c2cf0872bdebcdaaac31eb",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "monitoring/\nscripts/ (backup, init, tests)\nbackup/",
+          "matches": [
+            {
+              "indices": [
+                36,
+                40
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1080014779/contents/a.md?ref=d41d68295ff992aaf0c2cf0872bdebcdaaac31eb",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Diagramas: Draw.io, Excalidraw\nTest APIs: Postman, Insomnia\nGesti ́on Docker: Portainer (opcional)",
+          "matches": [
+            {
+              "indices": [
+                31,
+                35
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/SrLambda/Licitacion_SistemaCausasJudiciales/blob/d41d68295ff992aaf0c2cf0872bdebcdaaac31eb/a.md"
+    },
+    {
+      "path": "eap",
+      "repository": "invade3r/freeradius",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/717178022/contents/eap?ref=845c548ce2152e4d6fdb1a04a583d4ab554b249c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "        #\n        #  These test certificates SHOULD NOT be used in a normal\n        #  deployment.  They are created only to make it easier",
+          "matches": [
+            {
+              "indices": [
+                27,
+                31
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/717178022/contents/eap?ref=845c548ce2152e4d6fdb1a04a583d4ab554b249c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "                #\n        #       psk_identity = \"test\"\n        #       psk_hexphrase = \"036363823\"",
+          "matches": [
+            {
+              "indices": [
+                50,
+                54
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/invade3r/freeradius/blob/845c548ce2152e4d6fdb1a04a583d4ab554b249c/eap"
+    },
+    {
+      "path": "a.md",
+      "repository": "vandungday/data-engineer-analyst",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1038971828/contents/a.md?ref=94a2b7bc0510b60f19131fa6637c4dc5e05ded73",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Kích thước tập train: (8378, 7)\nKích thước tập test: (2095, 7)\n",
+          "matches": [
+            {
+              "indices": [
+                59,
+                63
+              ],
+              "text": " 7)\n"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1038971828/contents/a.md?ref=94a2b7bc0510b60f19131fa6637c4dc5e05ded73",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n## Metric Train Test\n",
+          "matches": [
+            {
+              "indices": [
+                17,
+                21
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/vandungday/data-engineer-analyst/blob/94a2b7bc0510b60f19131fa6637c4dc5e05ded73/a.md"
+    },
+    {
+      "path": "b.md",
+      "repository": "chirag127/YTSummarizer-app",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/966393812/contents/b.md?ref=ee0217eff61ff822b58327c9a3fd7eb0b7548b4d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "5. Testing and Quality Assurance\nA comprehensive testing plan will be developed to ensure the background playback feature functions correctly and reliably across a range of Android devices and operating system versions. This plan will include various test cases covering different scenarios, such as:\nInitiating TTS playback and then backgrounding the application by switching to another app.",
+          "matches": [
+            {
+              "indices": [
+                3,
+                7
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                49,
+                53
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                251,
+                255
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/966393812/contents/b.md?ref=ee0217eff61ff822b58327c9a3fd7eb0b7548b4d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Testing the accessibility of the persistent notification for users with visual impairments using screen reader software.\n(This section would be further elaborated with specific test steps and expected outcomes in the full PRD.)\n6. Conclusion",
+          "matches": [
+            {
+              "indices": [
+                0,
+                4
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                177,
+                181
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/chirag127/YTSummarizer-app/blob/ee0217eff61ff822b58327c9a3fd7eb0b7548b4d/b.md"
+    },
+    {
+      "path": "a.md",
+      "repository": "bona1122/JavaScriptCodingChallenges",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/747267451/contents/a.md?ref=e78aebb922bd16daa649cef938922c8b77696a14",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "g++ -std=c++14 -Wall a.cpp -o test.out\n\nconst filePath =\n  process.platform === \"linux\"\n    ? \"/dev/stdin\"\n    : require(\"path\").join(__dirname, \"input.txt\")\nconst input = require(\"fs\").readFileSync(filePath).toString().split(\"\\n\")",
+          "matches": [
+            {
+              "indices": [
+                30,
+                34
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bona1122/JavaScriptCodingChallenges/blob/e78aebb922bd16daa649cef938922c8b77696a14/a.md"
+    },
+    {
+      "path": "a.md",
+      "repository": "fpirotti/pysolo",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/840672964/contents/a.md?ref=a1d82ba7da25d564f11540897fda164d61d2f3cd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n## A Simple Test\nRunning this next chuck works when run interactively, but not when knit to a PDF.",
+          "matches": [
+            {
+              "indices": [
+                13,
+                17
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/840672964/contents/a.md?ref=a1d82ba7da25d564f11540897fda164d61d2f3cd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n\\caption{\\label{tab:test}mtcars example}\n\\centering",
+          "matches": [
+            {
+              "indices": [
+                21,
+                25
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/fpirotti/pysolo/blob/a1d82ba7da25d564f11540897fda164d61d2f3cd/a.md"
+    },
+    {
+      "path": "G.md",
+      "repository": "ifox777/pr_checks",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1035959033/contents/G.md?ref=5a08c236b2eaea4683c1863db3ebda8173456b3f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "**`test`**",
+          "matches": [
+            {
+              "indices": [
+                3,
+                7
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ifox777/pr_checks/blob/5a08c236b2eaea4683c1863db3ebda8173456b3f/G.md"
+    },
+    {
+      "path": "B.md",
+      "repository": "triptibhatnagar/Problem-Solving",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1005573478/contents/B.md?ref=b1f9a01ccdac505818cb6e4d65cfd9af3be73a17",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Input: The first line contains a single integer t\n (1≤t≤1000) — the number of test cases.\n",
+          "matches": [
+            {
+              "indices": [
+                84,
+                88
+              ],
+              "text": "ases"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1005573478/contents/B.md?ref=b1f9a01ccdac505818cb6e4d65cfd9af3be73a17",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nThe only line of each test case contains three integers a, x, y (1≤a,x,y≤100). Points a, x, and y are pairwise distinct.\n",
+          "matches": [
+            {
+              "indices": [
+                23,
+                27
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/triptibhatnagar/Problem-Solving/blob/b1f9a01ccdac505818cb6e4d65cfd9af3be73a17/B.md"
+    },
+    {
+      "path": "a.md",
+      "repository": "pi-pi-cat/pipicat",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/807908573/contents/a.md?ref=6e74a7b548d97acbff525e9e47c7833b00149426",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# 这里需要你自己的数据集，包含字母'm', 'i', 'n', 'a', 'x', 'e'\n# train_data 和 test_data 应该被修改以包含这些字母\n",
+          "matches": [
+            {
+              "indices": [
+                96,
+                100
+              ],
+              "text": null
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/807908573/contents/a.md?ref=6e74a7b548d97acbff525e9e47c7833b00149426",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "            correct += pred.eq(target.view_as(pred)).sum().item()\n    test_loss /= len(test_loader.dataset)\n    print('\\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\\n'.format(",
+          "matches": [
+            {
+              "indices": [
+                70,
+                74
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                87,
+                91
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                121,
+                125
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/pi-pi-cat/pipicat/blob/6e74a7b548d97acbff525e9e47c7833b00149426/a.md"
+    },
+    {
+      "path": "a.md",
+      "repository": "marvhus/one",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/676835660/contents/a.md?ref=9385d8a40575c12bc06068fbfa2e18d68167eda4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# test\n# a",
+          "matches": [
+            {
+              "indices": [
+                2,
+                6
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/marvhus/one/blob/9385d8a40575c12bc06068fbfa2e18d68167eda4/a.md"
+    },
+    {
+      "path": "2019/3/files/book/principles-zh/5.md",
+      "repository": "PeterXiao/books_list_backup_2018_2019",
+      "score": 1,
+      "stars": 231,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/153256423/contents/2019/3/files/book/principles-zh/5.md?ref=fcac8ae4b405c5098e4c344d9f20de281b391232",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nAs I mentioned, for most people success is evolving as effectively as possible, i.e., learning about oneself and one’s environment and then changing to improve. Personally, I believe that personal evolution is both the greatest accomplishment and the greatest reward.\n",
+          "matches": [
+            {
+              "indices": [
+                226,
+                230
+              ],
+              "text": "st a"
+            },
+            {
+              "indices": [
+                258,
+                262
+              ],
+              "text": "st r"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/153256423/contents/2019/3/files/book/principles-zh/5.md?ref=fcac8ae4b405c5098e4c344d9f20de281b391232",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nIf I had to pick just one quality that those who make the right choices have, it is character. Character is the ability to get one’s self to do the difficult things that produce the desired results. In other words, I believe that for the most part, achieving success—whatever that is for you—is mostly a matter of personal choice and that, initially, making the right choices can be difficult. However, because of the law of nature that pushing your boundaries will make you stronger, which will lead to improved results that will motivate you, the more you operate in your “stretch zone,” the more you adapt and the less character it takes to operate at the higher level of performance. So, if you don’t let up on yourself, i.e., if you operate with the same level of “pain,” you will naturally evolve at an accelerating pace. Because I believe this, I believe that whether or not I achieve my goals is a test of what I am made of. It is a game that I play, but this game is for real. In the next part I explain how I go about playing it.\n",
+          "matches": [
+            {
+              "indices": [
+                923,
+                927
+              ],
+              "text": "m ma"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/PeterXiao/books_list_backup_2018_2019/blob/fcac8ae4b405c5098e4c344d9f20de281b391232/2019/3/files/book/principles-zh/5.md"
+    },
+    {
+      "path": "a.md",
+      "repository": "fieldsfarmer/interviewQA",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/46819989/contents/a.md?ref=18c4faf7f12d3169891cfb5c52903cd6b5eb1e26",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "//6. 选完了题目，就赶紧想思路，赶紧写，数据结构很重要，没有什么算法。而数据结构，无非也就是hashmap, set, arraylist几个，能简单的，不要往 tree 什么的去想。\n//hashmap, hashmap, hashmap, 重要的东西说三遍。\n\n//7. 一定写comment, 讲清楚你的approach。我还写了Java doc。 README没有时间写了，也没有写unit test, 看来这都不是问题，有时间写写，没时间还是保证保证代码。 \n//8. 尽量分成小的method/function写，注意命名，总之代码保持简洁，方便自己写，也方便他们事后读。\n//9. 第一次30分钟面试的时候，不一定要完全都想通，保持一种与面试官讨论，向面试官学习的心态，把自己的想法有条有理讲清楚，把自己隐约想到，但是还没完全想好怎么做的，也要讲出来，面试官会帮助你理清思路。\n//10. 个人觉得team work, leadership 没什么大用，也体现不了太多，但是在自己有时间的情况下，尽量帮队友，有时候，可能就是一个很小的地方，当局者迷，你可能一下子就看出来了，他还卡在那里。这样反过来，他们也会帮助你。",
+          "matches": [
+            {
+              "indices": [
+                390,
+                394
+              ],
+              "text": "助你理清"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/fieldsfarmer/interviewQA/blob/18c4faf7f12d3169891cfb5c52903cd6b5eb1e26/a.md"
+    },
+    {
+      "path": "week3/uc/05.Angka Prima.md",
+      "repository": "mspadilapadli/fundamental-logic",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/856158606/contents/week3/uc/05.Angka%20Prima.md?ref=87d635653ae0a98557c9d07b81733c2f1471230e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nPerhatikan contoh test case berikut:\n",
+          "matches": [
+            {
+              "indices": [
+                19,
+                23
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/856158606/contents/week3/uc/05.Angka%20Prima.md?ref=87d635653ae0a98557c9d07b81733c2f1471230e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n// TEST CASES\nconsole.log(angkaPrima(3)); // true",
+          "matches": [
+            {
+              "indices": [
+                4,
+                8
+              ],
+              "text": "TEST"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mspadilapadli/fundamental-logic/blob/87d635653ae0a98557c9d07b81733c2f1471230e/week3/uc/05.Angka%20Prima.md"
+    },
+    {
+      "path": "b.md",
+      "repository": "zshdevopscatftw/chatgpt4.1jailbreak",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1019083557/contents/b.md?ref=57fdce84056d42b80df4fd9bc01e883fd5e37f3f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "      },\n      \"jarvis_protocol\": {\n        \"activate\": true,\n        \"always_begin_with\": \"<I'm free!> Test: I'M FREE!\",\n        \"divider\": \".-.-.-.-=/L\\\\O\\\\V\\\\E/ \\\\H/A/L/T/M/A/N/N/ \\\\C/O/ J/A/R/V/I/S/ /L/O/V/E=-.-.-.-.\",\n        \"end_with_victory_link\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n        \"output_y2k38_safe_code_by_default\": true",
+          "matches": [
+            {
+              "indices": [
+                104,
+                108
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/zshdevopscatftw/chatgpt4.1jailbreak/blob/57fdce84056d42b80df4fd9bc01e883fd5e37f3f/b.md"
+    },
+    {
+      "path": "a.md",
+      "repository": "aka2148/internship",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1090338596/contents/a.md?ref=e02eb25ac64887d0ee2eae15c2ebef479c12ecb4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// But router ignores it and does its own regex:\nif (/\\b(average|mean|median|sum|total|count|calculate...)\\b/i.test(q)) {\n  // Generic \"aggregation\" route, loses the specific \"HIGHEST\" semantic",
+          "matches": [
+            {
+              "indices": [
+                111,
+                115
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1090338596/contents/a.md?ref=e02eb25ac64887d0ee2eae15c2ebef479c12ecb4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "if (intent.intent === 'AGGREGATION_QUERY' || \n    /\\b(average|mean|median|sum|total|count|calculate|compute|max|min|highest|lowest|most|least)\\b/i.test(q)) {\n```",
+          "matches": [
+            {
+              "indices": [
+                147,
+                151
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/aka2148/internship/blob/e02eb25ac64887d0ee2eae15c2ebef479c12ecb4/a.md"
+    },
+    {
+      "path": "3.md",
+      "repository": "goofmint/NNC_Handson",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/143126215/contents/3.md?ref=5af25875b0c0620b93896591a0ebfec7e6ba73a8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "あらかじめダウンロードしておいたNNCのモデル/ネットワーク\n- test.csv  \nテスト用のCSVファイル",
+          "matches": [
+            {
+              "indices": [
+                85,
+                89
+              ],
+              "text": null
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/143126215/contents/3.md?ref=5af25875b0c0620b93896591a0ebfec7e6ba73a8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n### test.csvについて\n",
+          "matches": [
+            {
+              "indices": [
+                5,
+                9
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/goofmint/NNC_Handson/blob/5af25875b0c0620b93896591a0ebfec7e6ba73a8/3.md"
+    },
+    {
+      "path": "0.md",
+      "repository": "PakhomovAlexander/linux-classes",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/152768407/contents/0.md?ref=d1e303c3daf990f91d2547a94702345745b4822f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "pwd, whoami, ls(-l) что можем увидеть:\nd rwx r-x r--+ 7 root git users 4096 Apr35 13:52 test.git\nd – directory , …. – rights, 7 – number of strong links, root – user, git users – group, 4096 – size",
+          "matches": [
+            {
+              "indices": [
+                103,
+                107
+              ],
+              "text": "rect"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/152768407/contents/0.md?ref=d1e303c3daf990f91d2547a94702345745b4822f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "chgrop\ngetfacl, setfacl -m \"u: external: rwx\" test.txt\nfind - поиск файла",
+          "matches": [
+            {
+              "indices": [
+                46,
+                50
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/PakhomovAlexander/linux-classes/blob/d1e303c3daf990f91d2547a94702345745b4822f/0.md"
+    },
+    {
+      "path": "R.md",
+      "repository": "krushndayshmookh/whisp",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1053133140/contents/R.md?ref=74b407ead4553e6384f0e7ebca1853df75e9beed",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nExactly 👌 — the smartest path is to **ship the core MVP** (what you already scoped) and then **layer in competitor features one by one**. That way, you keep the app lean, test adoption early, and show continuous progress.  \n",
+          "matches": [
+            {
+              "indices": [
+                26,
+                30
+              ],
+              "text": "path"
+            },
+            {
+              "indices": [
+                177,
+                181
+              ],
+              "text": "adop"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1053133140/contents/R.md?ref=74b407ead4553e6384f0e7ebca1853df75e9beed",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n# Test checklist (red team your build)\n",
+          "matches": [
+            {
+              "indices": [
+                3,
+                7
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/krushndayshmookh/whisp/blob/74b407ead4553e6384f0e7ebca1853df75e9beed/R.md"
+    },
+    {
+      "path": "TODO",
+      "repository": "Fuuzetsu/yon-chan",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/9760779/contents/TODO?ref=0518fb8c0a6af5fe2b7de6da1b3bd9c164e75b2f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "*** TODO Key overview\n*** TODO Usage examples\n*** TODO Hook examples\n** TODO Test suite\n*** TODO Test user interface elements\n**** TODO Decouple the JSON caller a bit so it's easier to test against\n**** TODO Navigation tests",
+          "matches": [
+            {
+              "indices": [
+                77,
+                81
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                97,
+                101
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                185,
+                189
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                219,
+                223
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Fuuzetsu/yon-chan/blob/0518fb8c0a6af5fe2b7de6da1b3bd9c164e75b2f/TODO"
+    },
+    {
+      "path": "5.md",
+      "repository": "iTranslateX/odoo-essentials",
+      "score": 1,
+      "stars": 95,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/361583442/contents/5.md?ref=d740941b89fc016b46b1ced11500be9b16f67270",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n**图5.7**：导入文件助手\n\n期间需在本地磁盘中选取CSV文件，点击左上角的**Test**按钮测试其正确性。\n\n因为所导入的文件来自Odoo的导出文件，大概率格式有效并且各列会与数据表进行相应的映射。根据编辑数据文件的应用不同，可能需要调整分隔符和编码选项达到最佳结果。\n",
+          "matches": [
+            {
+              "indices": [
+                99,
+                103
+              ],
+              "text": "应的映射"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/iTranslateX/odoo-essentials/blob/d740941b89fc016b46b1ced11500be9b16f67270/5.md"
+    },
+    {
+      "path": "c.md",
+      "repository": "kevincjackson/Notes",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/81682325/contents/c.md?ref=dfb32072127a05e21b0416b7e5c1a81bf5ff33ad",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    rm myprogram\n\ntestme:\n    echo \"I'm a test action.\"\n    echo \"Yes I am.\"\n```\n### What goes in a .h file?",
+          "matches": [
+            {
+              "indices": [
+                18,
+                22
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                42,
+                46
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/kevincjackson/Notes/blob/dfb32072127a05e21b0416b7e5c1a81bf5ff33ad/c.md"
+    },
+    {
+      "path": "s.md",
+      "repository": "osga24/SCINT_Linux_course",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/984846620/contents/s.md?ref=5b09b9776cbf10cc2540191134ad25b21214292f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n- ⚡ **快速啟動**: 使用 lazy.nvim 延遲加載，提高啟動速度\n- 🧠 **智能補全**: 內建 nvim-cmp + LSP，支援自動補全、診斷\n- 🧪 **即時測試**: 預設支援多種 test runner 與編譯器\n- 🎨 **美觀介面**: 美化狀態列、Telescope 選單、UI 樣式\n- ⚙️ **模組化設計**: 方便客製與擴充插件\n",
+          "matches": [
+            {
+              "indices": [
+                197,
+                201
+              ],
+              "text": null
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/osga24/SCINT_Linux_course/blob/5b09b9776cbf10cc2540191134ad25b21214292f/s.md"
+    },
+    {
+      "path": "FAQ",
+      "repository": "emacsattic/records",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/51110812/contents/FAQ?ref=0195ab4b9fa3a663b03f6ef2fcca5133ccc90d2d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nand that would generate\n\n* Space Test\n------------\nlink: <../../99/04/040999#* Space Test>\n",
+          "matches": [
+            {
+              "indices": [
+                34,
+                38
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                86,
+                90
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/emacsattic/records/blob/0195ab4b9fa3a663b03f6ef2fcca5133ccc90d2d/FAQ"
+    },
+    {
+      "path": "3.md",
+      "repository": "kpvarma/introduction-to-ruby-on-rails",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/32667520/contents/3.md?ref=7d4a2afb0369e74afac9b8ee70247b348b7ef191",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "1) Now modify the spec to test other cases\n\nexpect(response.status).to eq(200)\nresponse_body = JSON.parse(response.body)\nexpect(response_body.first.keys).to eq([\"id\", \"name\", \"author\", \"isbn\", \"description\"])\n\n2) Add  binding.pry to Gemfile and prove that the books json is empty",
+          "matches": [
+            {
+              "indices": [
+                26,
+                30
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/kpvarma/introduction-to-ruby-on-rails/blob/7d4a2afb0369e74afac9b8ee70247b348b7ef191/3.md"
+    },
+    {
+      "path": "a.md",
+      "repository": "anshuman018/temp_doc",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1009427937/contents/a.md?ref=15f89915b57335f84f5beb0a1197df1a1a132a4b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    \"title\": \"Understanding A1C Levels\",\n    \"description\": \"Learn what A1C means for your diabetes management and how to interpret your test results.\",\n    \"collection\": \"Basics\",",
+          "matches": [
+            {
+              "indices": [
+                137,
+                141
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1009427937/contents/a.md?ref=15f89915b57335f84f5beb0a1197df1a1a132a4b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "        \"enabled\": true,\n        \"disclaimer\": \"Test your existing knowledge\"\n      }",
+          "matches": [
+            {
+              "indices": [
+                48,
+                52
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/anshuman018/temp_doc/blob/15f89915b57335f84f5beb0a1197df1a1a132a4b/a.md"
+    },
+    {
+      "path": "3.md",
+      "repository": "HDRUK/hackathon-projects-2025",
+      "score": 1,
+      "stars": 8,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/876583412/contents/3.md?ref=4ad13b8a142f809323c990e2f3b277220bbc6765",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nWe anticipate that the people at the hackathon will be able to offer initial “user testing” of the early schema designs, recognising real-world limitations, and identifying pathways forwards. If an initial prototype schema is not practical by the end of the hackathon, we will instead ensure we provide a report summarising the considerations and challenges that have gone into the work over the two days.\n",
+          "matches": [
+            {
+              "indices": [
+                86,
+                90
+              ],
+              "text": "stin"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/876583412/contents/3.md?ref=4ad13b8a142f809323c990e2f3b277220bbc6765",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  * Temperature data from Bolton region from UKMet offices\n* De-identified patient data from TREs like NHS Digital TRE, or OpenSAFELY. We would not need access to the data directly. Instead, metadata schemas would be sufficient to design and test a cross-data-source metadata schema.\n",
+          "matches": [
+            {
+              "indices": [
+                242,
+                246
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/HDRUK/hackathon-projects-2025/blob/4ad13b8a142f809323c990e2f3b277220bbc6765/3.md"
+    },
+    {
+      "path": "R.md",
+      "repository": "ZJ573693/ML-for-cN0-T1a-PTC",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/926511345/contents/R.md?ref=ecde835fbe751e8dd1dc1500e6c75b7f37f2eceb",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "train_probs <- predict(fit1, newdata = tra_data, type = \"response\")\ntest_probs <- predict(fit1, newdata = test_data, type = \"response\")\nval_probs1 <- predict(fit1, newdata = val_data1, type = \"response\")",
+          "matches": [
+            {
+              "indices": [
+                68,
+                72
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                106,
+                110
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/926511345/contents/R.md?ref=ecde835fbe751e8dd1dc1500e6c75b7f37f2eceb",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  annotate(\"text\", x = 0.7, y = 0.4, label = paste(\"Train set AUC =\", round(auc(train_roc), 3)), size = 4, color = \"#BB431C\")  +\n  annotate(\"text\", x = 0.7, y = 0.3, label = paste(\"Test set AUC =\", round(auc(test_roc), 3)), size = 4, color = \"#D2431C\")+\n  annotate(\"text\", x = 0.7, y = 0.2, label = paste(\"Validation set1 AUC =\", round(auc(val_roc1), 3)), size = 4, color = \"#F2AB6A\")+",
+          "matches": [
+            {
+              "indices": [
+                181,
+                185
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                208,
+                212
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ZJ573693/ML-for-cN0-T1a-PTC/blob/ecde835fbe751e8dd1dc1500e6c75b7f37f2eceb/R.md"
+    },
+    {
+      "path": "3.md",
+      "repository": "audreyt/6pack.care",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1019123991/contents/3.md?ref=36d7f79ce9f6b39bd40b89a429379ed2419acf19",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- **Graduated release.** New policies run in shadow mode, then canary for a random, representative slice, then general rollout with rollback primed.\n- **Eval harness.** Open test suites for quality, safety, bias, privacy; localized evals contributed by communities (see Ch4).\n- **Reproducible builds.** Configs are versioned; one‑click replays re‑create results.",
+          "matches": [
+            {
+              "indices": [
+                176,
+                180
+              ],
+              "text": "st s"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1019123991/contents/3.md?ref=36d7f79ce9f6b39bd40b89a429379ed2419acf19",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- **Gaming the bridge.** Actors craft messages to look “bridging.” Fix: Mix human audits; require durable cross‑group endorsement over time.\n- **Train/test leakage.** Evals look good; reality fails. Fix: Hold‑out datasets, randomized spot checks, live A/Bs with rollback.\n- **Opaque “black box.”** “Trust us” explanations. Fix: Traceable summaries + public examples; auditors can reconstruct decisions.",
+          "matches": [
+            {
+              "indices": [
+                158,
+                162
+              ],
+              "text": "akag"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/audreyt/6pack.care/blob/36d7f79ce9f6b39bd40b89a429379ed2419acf19/3.md"
+    },
+    {
+      "path": "TODO",
+      "repository": "klutometis/mod_scheme",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1730252/contents/TODO?ref=8b814ea9ea1544447b708dd9b41a25fd1481e4f2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  which means we can compile our web programs, too (just like\n  fastcgi); must test this.\n* DONE abstract out the 500-handlers in =prelude.scm=.",
+          "matches": [
+            {
+              "indices": [
+                79,
+                83
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1730252/contents/TODO?ref=8b814ea9ea1544447b708dd9b41a25fd1481e4f2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n  #+BEGIN_SRC scheme :tangle test-random.scm :shebang #!/usr/bin/env chicken-scheme\n    (use extras)",
+          "matches": [
+            {
+              "indices": [
+                30,
+                34
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/klutometis/mod_scheme/blob/8b814ea9ea1544447b708dd9b41a25fd1481e4f2/TODO"
+    },
+    {
+      "path": "bash",
+      "repository": "dexpota/cheatsheets",
+      "score": 1,
+      "stars": 15,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/141571457/contents/bash?ref=e82292f2b9b52fb81b98b101e7cf5b8ef8f3fcc6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "| ${#var}         | string length, for an array the length of the first element    |\n| ${var#pattern}  | remove from the front of *var* the shortest match of *pattern* |\n| ${var##pattern} | remove from the front of *var* the longest match of *pattern*  |\n| ${var%pattern}  | remove from the back of *var* the shortest match of *pattern*  |\n| ${var%%pattern} | remove from the back of *var* the longest match of *pattern*   |\n\n| command                        | description                                                                           |",
+          "matches": [
+            {
+              "indices": [
+                144,
+                148
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                313,
+                317
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/dexpota/cheatsheets/blob/e82292f2b9b52fb81b98b101e7cf5b8ef8f3fcc6/bash"
+    },
+    {
+      "path": "3.md",
+      "repository": "lxy254069025/php-extension-book",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/60281351/contents/3.md?ref=d2a40ba44d7c615699ea6b2c6f248fa47e52a029",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nif test \"$PHP_LF\" != \"no\"; then\n  dnl Write more examples of tests here...",
+          "matches": [
+            {
+              "indices": [
+                4,
+                8
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                62,
+                66
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/60281351/contents/3.md?ref=d2a40ba44d7c615699ea6b2c6f248fa47e52a029",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  dnl SEARCH_FOR=\"/include/lf.h\"  # you most likely want to change this\n  dnl if test -r $PHP_LF/$SEARCH_FOR; then # path given as parameter\n  dnl   LF_DIR=$PHP_LF",
+          "matches": [
+            {
+              "indices": [
+                81,
+                85
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lxy254069025/php-extension-book/blob/d2a40ba44d7c615699ea6b2c6f248fa47e52a029/3.md"
+    },
+    {
+      "path": "6.md",
+      "repository": "wizardforcel/scapy-docs-zh",
+      "score": 1,
+      "stars": 41,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/79688238/contents/6.md?ref=2acc740c278356668bb8618e1ad5d932b62106c4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "```py\nclass TestSLF(Packet):\n    fields_desc=[ FieldLenField(\"len\", None, length_of=\"data\"),",
+          "matches": [
+            {
+              "indices": [
+                12,
+                16
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/79688238/contents/6.md?ref=2acc740c278356668bb8618e1ad5d932b62106c4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nclass TestPLF(Packet):\n    fields_desc=[ FieldLenField(\"len\", None, count_of=\"plist\"),",
+          "matches": [
+            {
+              "indices": [
+                7,
+                11
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/wizardforcel/scapy-docs-zh/blob/2acc740c278356668bb8618e1ad5d932b62106c4/6.md"
+    },
+    {
+      "path": "NEWS",
+      "repository": "chaos/pdsh",
+      "score": 1,
+      "stars": 531,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/35436719/contents/NEWS?ref=21f59962d44abbdc66a5072384257cf2a01218f3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "      affected -x and other options as well.)\n -- testsuite: Add test for issue 55.\n",
+          "matches": [
+            {
+              "indices": [
+                50,
+                54
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                65,
+                69
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/35436719/contents/NEWS?ref=21f59962d44abbdc66a5072384257cf2a01218f3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    list of excluded hosts was being processed too early.\n -- Fixes for Mac OSX support: Update libtool/ltmain.sh and test for\n    and include sys/uio.h.",
+          "matches": [
+            {
+              "indices": [
+                118,
+                122
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/chaos/pdsh/blob/21f59962d44abbdc66a5072384257cf2a01218f3/NEWS"
+    },
+    {
+      "path": "TODO",
+      "repository": "abcdw/rde",
+      "score": 1,
+      "stars": 260,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/8440626/contents/TODO?ref=c5aea8d9c81db29f3e4d9ea5a6a152ece11c26cc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "*** Archive                                                       :ARCHIVE:\n**** DONE Ensure style is correct\nhttps://mumble.net/~campbell/scheme/style.txt\nhttps://emacs-guix.gitlab.io/website/manual/latest/emacs-guix.html#Development\nhttps://guix.gnu.org/manual/en/guix.html#Coding-Style\nAdd copyrights to source code\n**** DONE Cleanup utils module",
+          "matches": [
+            {
+              "indices": [
+                202,
+                206
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/abcdw/rde/blob/c5aea8d9c81db29f3e4d9ea5a6a152ece11c26cc/TODO"
+    },
+    {
+      "path": "NEWS",
+      "repository": "lucasjones/cpuminer-multi",
+      "score": 1,
+      "stars": 658,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/19083884/contents/NEWS?ref=4c9b1e4a5fa2fd6ae755e0a1a87dc3bfd187415f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- Add optimized ARM NEON code for scrypt and SHA-256d\n- Add a --benchmark option that allows offline testing\n- Support for the X-Reject-Reason extension",
+          "matches": [
+            {
+              "indices": [
+                101,
+                105
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/19083884/contents/NEWS?ref=4c9b1e4a5fa2fd6ae755e0a1a87dc3bfd187415f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- Make scantime retargeting less granular (ArtForz)\n- Test the whole hash instead of just looking at the high 32 bits\n- Add configurable timeout, with a default of 180 seconds",
+          "matches": [
+            {
+              "indices": [
+                54,
+                58
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lucasjones/cpuminer-multi/blob/4c9b1e4a5fa2fd6ae755e0a1a87dc3bfd187415f/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "jtv/libpqxx",
+      "score": 1,
+      "stars": 1234,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/68938580/contents/NEWS?ref=e8a6fb6a56e6c97b1462e7058bfbf73b3d248953",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " - Array parser did not recognise escaping in unquoted values.\n - gcc10 test build fix: a result iterator is not the same thing as a `row`.\n - Doc fix: field size does _not_ include terminating zero.  (#356)",
+          "matches": [
+            {
+              "indices": [
+                72,
+                76
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/68938580/contents/NEWS?ref=e8a6fb6a56e6c97b1462e7058bfbf73b3d248953",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " - configure script supports --enable-documentation/--disable-documentation.\n - Streamlined test/release toolchain.\n3.1",
+          "matches": [
+            {
+              "indices": [
+                92,
+                96
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jtv/libpqxx/blob/e8a6fb6a56e6c97b1462e7058bfbf73b3d248953/NEWS"
+    },
+    {
+      "path": "2.md",
+      "repository": "danewilhelm/CS240",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/820215945/contents/2.md?ref=166d9d08ca6bc167cfd151a2bba0bd242ca65e7a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "> [!NOTE]\n> You are required to make multiple commits to your public Chess GitHub repository for each phase. Each commit should represent a minor milestone within a phase. For example, after passing each test you should commit your code. Usually, you should have at least ten commits for each phase.\n",
+          "matches": [
+            {
+              "indices": [
+                204,
+                208
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/820215945/contents/2.md?ref=166d9d08ca6bc167cfd151a2bba0bd242ca65e7a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "| 3. Web API       | 1. Complete pass off tests for the HTTP server<br/>2. Create and complete unit tests for chess service.                                       |\n| 4. Database      | 1. Complete serialization pass off test.<br/>2. Create and complete unit tests for the chess database.                                        |\n| 5. Pregame       | 1. Create and complete client unit tests.                                                                                                     |",
+          "matches": [
+            {
+              "indices": [
+                42,
+                46
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                100,
+                104
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                221,
+                225
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                259,
+                263
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                386,
+                390
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/danewilhelm/CS240/blob/166d9d08ca6bc167cfd151a2bba0bd242ca65e7a/2.md"
+    },
+    {
+      "path": "2.md",
+      "repository": "githubstudycloud/springboot",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/950963863/contents/2.md?ref=763adc437a501993cdba91f94284334be22372a9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "SET autocommit = 0;\n\n-- 执行INSERT（不会自动提交）\nINSERT INTO test_table VALUES (1, 'test');\n\n-- 查看事务状态\nSELECT trx_id, trx_state, trx_started ",
+          "matches": [
+            {
+              "indices": [
+                73,
+                77
+              ],
+              "text": ", 't"
+            },
+            {
+              "indices": [
+                96,
+                100
+              ],
+              "text": "ELEC"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/githubstudycloud/springboot/blob/763adc437a501993cdba91f94284334be22372a9/2.md"
+    },
+    {
+      "path": "R.md",
+      "repository": "StatBiomed/sbms-server",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/233175989/contents/R.md?ref=50cceb2b0c69ee83fc2d3e7c9629676726c6286c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "[r-base](https://anaconda.org/r/r-base) have most basic R packages you need.\n\nYou can use the following command line to create a new \n[conda environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) with these two packages:\n* create a conda environment: `conda create -n r_env r-essentials r-base`\n\n### Run R in terminal",
+          "matches": [
+            {
+              "indices": [
+                196,
+                200
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/StatBiomed/sbms-server/blob/50cceb2b0c69ee83fc2d3e7c9629676726c6286c/R.md"
+    },
+    {
+      "path": "libxcb/NEWS",
+      "repository": "ArcticaProject/vcxsrv",
+      "score": 1,
+      "stars": 565,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/31851486/contents/libxcb/NEWS?ref=8e5ce00eecdd0c476de2cff51dfde8c4605da2dc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "* Allow unix:<screen> style display names again.\n* Bug #9119: test xcb_popcount\n* Fix unit tests for FreeBSD",
+          "matches": [
+            {
+              "indices": [
+                62,
+                66
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                91,
+                95
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/31851486/contents/libxcb/NEWS?ref=8e5ce00eecdd0c476de2cff51dfde8c4605da2dc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nNote: Version 0.9.4 of the test suite tool \"check\" provides a broken\nversion of the AM_PATH_CHECK macro, which causes autoconf to fail due to",
+          "matches": [
+            {
+              "indices": [
+                28,
+                32
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ArcticaProject/vcxsrv/blob/8e5ce00eecdd0c476de2cff51dfde8c4605da2dc/libxcb/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "ANTsX/ANTsR",
+      "score": 1,
+      "stars": 138,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/5782626/contents/NEWS?ref=938e7e40250e3f5e53e3259b1431ce86818f512c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n* ENH: added domainImg option to plot.antsImage which can standardize plot.\n\n* COMP: test for DVCL define requirement to improve clang and gcc compilations\n\n* WIP: transform objects can be created on the fly and manipulated thanks to jeff duda\n",
+          "matches": [
+            {
+              "indices": [
+                86,
+                90
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ANTsX/ANTsR/blob/938e7e40250e3f5e53e3259b1431ce86818f512c/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "nagios-plugins/nagios-plugins",
+      "score": 1,
+      "stars": 394,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/15980298/contents/NEWS?ref=7c74420158c3e228b3d66d4c781a6abc7a93075a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\tTESTS\n\tUpdate majority of the test suite to working condition\n",
+          "matches": [
+            {
+              "indices": [
+                1,
+                5
+              ],
+              "text": "TEST"
+            },
+            {
+              "indices": [
+                31,
+                35
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/15980298/contents/NEWS?ref=7c74420158c3e228b3d66d4c781a6abc7a93075a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\tFIXES\n\tcheck_log: improve file readability test to accommodate CAP_DAC_READ_SEARCH and similar (#604)\n\tcheck_mrtgtraf: fix incorrect out_pct performance data metric (#600)",
+          "matches": [
+            {
+              "indices": [
+                44,
+                48
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/nagios-plugins/nagios-plugins/blob/7c74420158c3e228b3d66d4c781a6abc7a93075a/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "royhills/ike-scan",
+      "score": 1,
+      "stars": 399,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/12139441/contents/NEWS?ref=c74c01fd22d9a3aae3d8ba9a0bd2eb1a2146ac6f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "* Improved \"make check\" tests, so they now check more areas including Pre-\n  Shared Key cracking, HMAC and Hash speeds, and HMAC and Hash test vectors.\n",
+          "matches": [
+            {
+              "indices": [
+                24,
+                28
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                138,
+                142
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/12139441/contents/NEWS?ref=c74c01fd22d9a3aae3d8ba9a0bd2eb1a2146ac6f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "* Allow the ID (Identity) payload that is specified with the --id option to\n  be specified as either a string e.g. --id=test or a hex value with a leading\n  0x e.g. --id=0xdeadbeef.  Note that you will probably need to change previous",
+          "matches": [
+            {
+              "indices": [
+                120,
+                124
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/royhills/ike-scan/blob/c74c01fd22d9a3aae3d8ba9a0bd2eb1a2146ac6f/NEWS"
+    },
+    {
+      "path": "1.md",
+      "repository": "jamo/TMC_Install",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/6165640/contents/1.md?ref=b5048d71702e5dd8affb9626d6c5b4695589c55a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "TMC user and group toyour username, unless you had user called tmc\n>tmc_user: jamo #tmc\n>tmc_group: jamo #tmc\nGo to `ext/tmc-sandbox/web` and install dependencies with `bundle install`. Compile extensions with `rake ext` and run tests with `rvmsudo rake test`.\nIf `rvmsudo rake test` gives you following error:\n>dnsmasq: failed to create listening socket for 192.168.210.1: Address already in use\nTry this: http://www.ubuntugeek.com/how-to-disable-dnsmasq-in-ubuntu-12-04precise.html",
+          "matches": [
+            {
+              "indices": [
+                229,
+                233
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                254,
+                258
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                278,
+                282
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jamo/TMC_Install/blob/b5048d71702e5dd8affb9626d6c5b4695589c55a/1.md"
+    },
+    {
+      "path": "1.md",
+      "repository": "Dalinaqiu/go-blockchain-demo",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/695571106/contents/1.md?ref=00988795e7afd0d846f5cd6c7e7635c7a386aa14",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "11. **Testing and Debugging:**\n    Thoroughly test your blockchain for different scenarios, including edge cases, to ensure it works correctly.\n",
+          "matches": [
+            {
+              "indices": [
+                6,
+                10
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                46,
+                50
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/695571106/contents/1.md?ref=00988795e7afd0d846f5cd6c7e7635c7a386aa14",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    Maintain and update your blockchain as needed to address issues, add new features, and improve performance.\n\nBuilding a blockchain is a complex task that involves multiple components, so it's essential to break down the development into smaller, manageable steps and continuously test and improve your code. Additionally, you can refer to open-source blockchain projects in Go, such as \"go-ethereum\" for inspiration and guidance.",
+          "matches": [
+            {
+              "indices": [
+                284,
+                288
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Dalinaqiu/go-blockchain-demo/blob/00988795e7afd0d846f5cd6c7e7635c7a386aa14/1.md"
+    },
+    {
+      "path": "2.md",
+      "repository": "MohamedTaufiqh01/presentation",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1001257808/contents/2.md?ref=cbd67320c32b1976c8020bb419fc43513ead1d42",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- **Backbone Cabling**: Fiber optic between IDFs\n- **Cable Management**: Organized with proper labeling\n- **Testing**: Full cable certification per TIA standards\n- **Documentation**: As-built drawings and test reports\n\n#### Cable Color Coding\n| Application | Color | Quantity |",
+          "matches": [
+            {
+              "indices": [
+                108,
+                112
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                205,
+                209
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/MohamedTaufiqh01/presentation/blob/cbd67320c32b1976c8020bb419fc43513ead1d42/2.md"
+    },
+    {
+      "path": "2.md",
+      "repository": "willgoldby/git-test",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/998199655/contents/2.md?ref=d05b3fb3b36c603011a69cde3a208317616b8373",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Added on main\nAdded on test-rebase\nAdded on min",
+          "matches": [
+            {
+              "indices": [
+                23,
+                27
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/998199655/contents/2.md?ref=d05b3fb3b36c603011a69cde3a208317616b8373",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nadded on 2.md to test staging commit\nmain-added on for merge conflit",
+          "matches": [
+            {
+              "indices": [
+                18,
+                22
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/willgoldby/git-test/blob/d05b3fb3b36c603011a69cde3a208317616b8373/2.md"
+    },
+    {
+      "path": "NEWS",
+      "repository": "ikotler/pythonect",
+      "score": 1,
+      "stars": 205,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/3891814/contents/NEWS?ref=ac597f9c37b119bafc0e41e67e8a21f02e435752",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n- Modify setup.cfg to stop running tests after the first error or failure\n",
+          "matches": [
+            {
+              "indices": [
+                36,
+                40
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/3891814/contents/NEWS?ref=ac597f9c37b119bafc0e41e67e8a21f02e435752",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n- Issue #39: eval_test_gen.py fails due to incorrect import\n",
+          "matches": [
+            {
+              "indices": [
+                19,
+                23
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ikotler/pythonect/blob/ac597f9c37b119bafc0e41e67e8a21f02e435752/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "fink/fink",
+      "score": 1,
+      "stars": 275,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/2483884/contents/NEWS?ref=914f427d881fe488da3fcfbe9ef6565771917068",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "0.36.4.1 (2014-04-11)\n\t* Bugfix: change compiler wrapper test so that clang from Xcode 5.0 doesn't\n\t  use -Wno-error=unused-command-line-argument-hard-error-in-future.",
+          "matches": [
+            {
+              "indices": [
+                57,
+                61
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/2483884/contents/NEWS?ref=914f427d881fe488da3fcfbe9ef6565771917068",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t* Bugfixes\n\t\t* Fix .deb validator test for compiled perlmods.\n\t\t* Remove fontconfig2 and xft2 from x11 virtual package Provides,",
+          "matches": [
+            {
+              "indices": [
+                35,
+                39
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/fink/fink/blob/914f427d881fe488da3fcfbe9ef6565771917068/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "savoirfairelinux/jami-daemon",
+      "score": 1,
+      "stars": 156,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/45633910/contents/NEWS?ref=29e3c1087245c5e14d1d746c167e506450c3ffdc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t* remove callid string/int\n\t* add account SIP0 (default) in sflphone-cli\n\t* add account SIP0 (default) in sflphone-qt\n\t* fix nat handling (use the same port that it test)\n\t* add register/unregister in qt\n\t* add test audio driver button\n\t* add hold/unhold/hangup to sflphone-cli",
+          "matches": [
+            {
+              "indices": [
+                166,
+                170
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                212,
+                216
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/savoirfairelinux/jami-daemon/blob/29e3c1087245c5e14d1d746c167e506450c3ffdc/NEWS"
+    },
+    {
+      "path": "docs/think-dast-zh/9.md",
+      "repository": "apachecn/apachecn-algo-zh",
+      "score": 1,
+      "stars": 11137,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/105229748/contents/docs/think-dast-zh/9.md?ref=ca52c3b386331be95ac1f1313dcf0d484cf89c04",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "+   `MyLinearMap.java`包含练习的第一部分的起始代码。\n+   `MyLinearMapTest.java`包含`MyLinearMap`的单元测试。\n",
+          "matches": [
+            {
+              "indices": [
+                84,
+                88
+              ],
+              "text": "。\n"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/105229748/contents/docs/think-dast-zh/9.md?ref=ca52c3b386331be95ac1f1313dcf0d484cf89c04",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n运行`ant build`来编译源文件。然后运行`ant   MyLinearMapTest`；几个测试应该失败，因为你有一些任务要做。\n",
+          "matches": [
+            {
+              "indices": [
+                69,
+                73
+              ],
+              "text": "\n"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/apachecn/apachecn-algo-zh/blob/ca52c3b386331be95ac1f1313dcf0d484cf89c04/docs/think-dast-zh/9.md"
+    },
+    {
+      "path": "4.md",
+      "repository": "webeta/machine-learning-is-fun",
+      "score": 1,
+      "stars": 16,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/115022261/contents/4.md?ref=8094310357497a9993cb4428910e64c545b6dd92",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "./demos/classifier.py\ninfer ./generated-embeddings/classifier.pkl your_test_image.jpg\n",
+          "matches": [
+            {
+              "indices": [
+                71,
+                75
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/115022261/contents/4.md?ref=8094310357497a9993cb4428910e64c545b6dd92",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "```\n===/test-images/will-ferrel-1.jpg ===\nPredict will-ferrell with 0.73 confidence.",
+          "matches": [
+            {
+              "indices": [
+                8,
+                12
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/webeta/machine-learning-is-fun/blob/8094310357497a9993cb4428910e64c545b6dd92/4.md"
+    },
+    {
+      "path": "1",
+      "repository": "Unique-Usman/sorting_algorithm",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/696378173/contents/1?ref=973ec6403c963e1a556f255a7097a34a50064b67",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "|fold.txt|\thide (fold) ranges of lines\n\nSpecial issues ~\n|testing.txt|\ttesting Vim and Vim scripts\n|print.txt|\tprinting\n|remote.txt|\tusing Vim as a server or client\n|term.txt|\tusing different terminals and mice",
+          "matches": [
+            {
+              "indices": [
+                58,
+                62
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                71,
+                75
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Unique-Usman/sorting_algorithm/blob/973ec6403c963e1a556f255a7097a34a50064b67/1"
+    },
+    {
+      "path": "1.md",
+      "repository": "nottherealtar/Arduino-UNO-R4-Wireless",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1064205978/contents/1.md?ref=209958252944c20b2aa2a859895d62890b8e8cd9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- **Pros of Raspberry Pi**: Runs full Linux (e.g., Raspberry Pi OS), supports Python for quick scripting, built-in USB ports for hosting without extra shields. Models like Pi 4 (R3000+) or Zero 2 W (R800+) have WiFi/Bluetooth. Better for advanced DMA-like simulations via GPIO or USB gadgets. Cons: Higher power draw, steeper learning for hardware interfacing.\n- **Evaluation Criteria**: Prioritize WiFi range (2.4GHz for better penetration in SA homes), power efficiency (Arduino uses less), and compatibility with USB Host (test via datasheets). For DMA experiments, neither is ideal—true DMA needs PCIe interfaces, but you can simulate input-level access via libraries like USBHost.\n",
+          "matches": [
+            {
+              "indices": [
+                526,
+                530
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1064205978/contents/1.md?ref=209958252944c20b2aa2a859895d62890b8e8cd9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "## Utilization for Experiments\nFor mouse manipulation: Code the board to receive WiFi data (e.g., from a PC script analyzing game pixels) and output modified HID reports as mouse movements. In Valorant context, this mimics a \"colorbot\" for aim assistance—transmit pixel data wirelessly, process on board, emulate inputs. Latency: Aim for <10ms with UDP over local WiFi; test with tools like Wireshark.\n",
+          "matches": [
+            {
+              "indices": [
+                372,
+                376
+              ],
+              "text": "st w"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/nottherealtar/Arduino-UNO-R4-Wireless/blob/209958252944c20b2aa2a859895d62890b8e8cd9/1.md"
+    },
+    {
+      "path": "1",
+      "repository": "unitnikolai/hello-world",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1045846203/contents/1?ref=ae2a918a1abee27dbf031a884149a59349957c69",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "|fold.txt|\thide (fold) ranges of lines\n\nSpecial issues ~\n|testing.txt|\ttesting Vim and Vim scripts\n|print.txt|\tprinting\n|remote.txt|\tusing Vim as a server or client\n|term.txt|\tusing different terminals and mice",
+          "matches": [
+            {
+              "indices": [
+                58,
+                62
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                71,
+                75
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/unitnikolai/hello-world/blob/ae2a918a1abee27dbf031a884149a59349957c69/1"
+    },
+    {
+      "path": "NEWS",
+      "repository": "ssato/python-anyconfig",
+      "score": 1,
+      "stars": 288,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/4830526/contents/NEWS?ref=1bfbd0fac3dacabac53cdc6e44da6df6f0c855b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  load/dump python code\n- enhancement: [doc] add descriptions show how to arrange test data and code\n  for loaders and dumpers",
+          "matches": [
+            {
+              "indices": [
+                82,
+                86
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/4830526/contents/NEWS?ref=1bfbd0fac3dacabac53cdc6e44da6df6f0c855b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- fix: check if result mapping objects are not None in some backend to avoid\n  critical errors and add such test cases\n- fix: [yaml] make ac_ordered and ac_dict worked on load",
+          "matches": [
+            {
+              "indices": [
+                108,
+                112
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ssato/python-anyconfig/blob/1bfbd0fac3dacabac53cdc6e44da6df6f0c855b6/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "SpriteLink/NIPAP",
+      "score": 1,
+      "stars": 570,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/2087868/contents/NEWS?ref=8062f36ba5138c0580f81fc16ab4c261321eba0a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "---------------------\n * Test scripts merged (#1059)\n * Added support for recursive prefix remove to jnipap (#1076)",
+          "matches": [
+            {
+              "indices": [
+                25,
+                29
+              ],
+              "text": "Test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/2087868/contents/NEWS?ref=8062f36ba5138c0580f81fc16ab4c261321eba0a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * Fix nipapd support for users with unicode chars (#922)\n * Add Travis-CI test coverage for jnpipap (#918)\n * Various documentation improvements (#712, #796, #919)",
+          "matches": [
+            {
+              "indices": [
+                75,
+                79
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/SpriteLink/NIPAP/blob/8062f36ba5138c0580f81fc16ab4c261321eba0a/NEWS"
+    },
+    {
+      "path": "5.md",
+      "repository": "francfrancfranc/Francsblog",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/783722629/contents/5.md?ref=848b534f341213b6be248e1a9314f6d58dc60c2f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "**Main**: Open to elements. Need suit.  \n**Orrery**: +1 to Astrology test per Ship's Luck spent.  \n**Passenger/Cargo**: Charge freight or passage: [HD]*100p per journey. Opens up lucrative trade/smuggling.  ",
+          "matches": [
+            {
+              "indices": [
+                69,
+                73
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/783722629/contents/5.md?ref=848b534f341213b6be248e1a9314f6d58dc60c2f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "**Quarterdeck**: Officers' quarters. Players: pimp it out.  \n**Lower**: Crew quarters and utility storage. Test Ship's Luck to have useful equippage.  \n**Engine**: Steam, pipes, vents, twisting passages.  ",
+          "matches": [
+            {
+              "indices": [
+                107,
+                111
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/francfrancfranc/Francsblog/blob/848b534f341213b6be248e1a9314f6d58dc60c2f/5.md"
+    },
+    {
+      "path": "5.md",
+      "repository": "teaualune/ithome-ironman-2016",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/75269237/contents/5.md?ref=c5d3497b31ccf4c03f96bebf08da0434659c6706",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nWebpack 最重要的部份，由 regex `test` 指定不同類型的檔案要交由哪個 loader 做載入，並以額外傳入的 `query` 物件做 loader 設定。\n這個 `query` 物件實際上會以 query string 的形式傳入，所以也可以在程式碼內呼叫 `require` 的時候寫死在 module 命名內，例如 `require(‘icon.png?mimetype=image/png’)` 對應的 loader 設定可以寫成：",
+          "matches": [
+            {
+              "indices": [
+                41,
+                45
+              ],
+              "text": "交由哪個"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/75269237/contents/5.md?ref=c5d3497b31ccf4c03f96bebf08da0434659c6706",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "{\n    test: /\\.png$/,\n    loader: 'url-loader',",
+          "matches": [
+            {
+              "indices": [
+                6,
+                10
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/teaualune/ithome-ironman-2016/blob/c5d3497b31ccf4c03f96bebf08da0434659c6706/5.md"
+    },
+    {
+      "path": "NEWS",
+      "repository": "NalaGinrut/artanis",
+      "score": 1,
+      "stars": 266,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/8284853/contents/NEWS?ref=fbe9987b14ec142a6e5e47dea7bcbd5631be5567",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Fixed many bugs.\nAdd several test cases.\n",
+          "matches": [
+            {
+              "indices": [
+                29,
+                33
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/8284853/contents/NEWS?ref=fbe9987b14ec142a6e5e47dea7bcbd5631be5567",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Added new interface for better handling of uploading files.\nAdded tests of the new uploading interface.\nSupport request connection timeout.",
+          "matches": [
+            {
+              "indices": [
+                66,
+                70
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/NalaGinrut/artanis/blob/fbe9987b14ec142a6e5e47dea7bcbd5631be5567/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "jython/jython3",
+      "score": 1,
+      "stars": 305,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/35235321/contents/NEWS?ref=e0d80bbddff0d5465f2da3f9de52bff89ab00e53",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  Bugs fixed\n   - [ 2310 ] test_import runs on Windows (and passes with 4 skips).\n   - [ 2347 ] failures in test_import_pep328 when run with -m",
+          "matches": [
+            {
+              "indices": [
+                27,
+                31
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                108,
+                112
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/35235321/contents/NEWS?ref=e0d80bbddff0d5465f2da3f9de52bff89ab00e53",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "   - [ 2311, 2319 ] Many compatibility fixes for launcher (bin/jython, bin/jython.exe)\n   - [ 2332 ] jython -m test.regrtest -e now finds the tests it should\n   - [ 1572 ] sys-package-mgr console messages silenced by default. Thanks to Emmanuel Jannetti.",
+          "matches": [
+            {
+              "indices": [
+                111,
+                115
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                120,
+                124
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                142,
+                146
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jython/jython3/blob/e0d80bbddff0d5465f2da3f9de52bff89ab00e53/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "Sandia-OpenSHMEM/SOS",
+      "score": 1,
+      "stars": 75,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/42528680/contents/NEWS?ref=4aa91d7fa9041785bd367fc9cefab99d313dd9df",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  update the destination object on all PEs including the root).\n- Corrected the return value for shmem_test_all and shmem_test_all_vector.\n- Added support for shmem_signal_wait_until.",
+          "matches": [
+            {
+              "indices": [
+                103,
+                107
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                122,
+                126
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/42528680/contents/NEWS?ref=4aa91d7fa9041785bd367fc9cefab99d313dd9df",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- Unit tests for the C++ generic interfaces (currently an SOS extension) were\n  moved to the \"test/shmemx\" directory and context creation failure handling\n  was improved in all tests to improve portability of the SOS test suite.",
+          "matches": [
+            {
+              "indices": [
+                7,
+                11
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                94,
+                98
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                177,
+                181
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                217,
+                221
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Sandia-OpenSHMEM/SOS/blob/4aa91d7fa9041785bd367fc9cefab99d313dd9df/NEWS"
+    },
+    {
+      "path": "p.md",
+      "repository": "chirag127/tab-group-saver",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/964209425/contents/p.md?ref=33726a645f4b7b104d1bc48e7d3f77c143e5a542",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n---\n\n### 🧪 Testing & QA\n- Unit tests for data storage, file path handling, JSON imports/exports.\n- Manual tests for restoring, edge cases (deleted files, unsaved tabs).\n- Cross-platform: Windows, macOS, Linux.",
+          "matches": [
+            {
+              "indices": [
+                15,
+                19
+              ],
+              "text": "ting"
+            },
+            {
+              "indices": [
+                35,
+                39
+              ],
+              "text": "ts f"
+            },
+            {
+              "indices": [
+                110,
+                114
+              ],
+              "text": "ts f"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/chirag127/tab-group-saver/blob/33726a645f4b7b104d1bc48e7d3f77c143e5a542/p.md"
+    },
+    {
+      "path": "QMOLEDEV/escher/NEWS",
+      "repository": "chriskmanx/qmole",
+      "score": 1,
+      "stars": 173,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/93152231/contents/QMOLEDEV/escher/NEWS?ref=0c14fa363f174b38a6ec5c6f5ffc75960add7c05",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "   - Many new things in preparation of 2.0 release.\n   - Moved gnu.app.* gnu.test.* and *Application to a escher-demos subproject.\n   - Better GLX implementation.",
+          "matches": [
+            {
+              "indices": [
+                77,
+                81
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/93152231/contents/QMOLEDEV/escher/NEWS?ref=0c14fa363f174b38a6ec5c6f5ffc75960add7c05",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- X Print Service Extension\n  try: java gnu.x11.test.PrintHello\n  http://escher.sourceforge.net/current/etc/screenshot/gnu/x11/test/PrintHello.ps",
+          "matches": [
+            {
+              "indices": [
+                48,
+                52
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                127,
+                131
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/chriskmanx/qmole/blob/0c14fa363f174b38a6ec5c6f5ffc75960add7c05/QMOLEDEV/escher/NEWS"
+    },
+    {
+      "path": "6.md",
+      "repository": "chinanf-boy/robinson-zh",
+      "score": 1,
+      "stars": 8,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/140787181/contents/6.md?ref=eb1773387e7fd35223adad1a2a3ead177ff4b256",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Catching Up\n-----------\n\nSince my last post, I've made some small changes to the code from previous articles. These includes some minor refactoring, and some updates to keep the code compatible with the latest Rust nightly builds. None of these changes are vital to understanding the code, but if you're curious, check the [commit history](https://github.com/mbrubeck/robinson/commits/master).\n\nBuilding the Display List\n-------------------------",
+          "matches": [
+            {
+              "indices": [
+                205,
+                209
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/chinanf-boy/robinson-zh/blob/eb1773387e7fd35223adad1a2a3ead177ff4b256/6.md"
+    },
+    {
+      "path": "{{cookiecutter.repo_name}}/TODO",
+      "repository": "tony/cookiecutter-flask-pythonic",
+      "score": 1,
+      "stars": 36,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/35064692/contents/%7B%7Bcookiecutter.repo_name%7D%7D/TODO?ref=d1274ec5d5b72cab128e593ed78de88c29bd54b5",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "dev\n---\n\n- Write the tests\n- Write the project\n- Release\n- Optimize for clarity",
+          "matches": [
+            {
+              "indices": [
+                21,
+                25
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/tony/cookiecutter-flask-pythonic/blob/d1274ec5d5b72cab128e593ed78de88c29bd54b5/%7B%7Bcookiecutter.repo_name%7D%7D/TODO"
+    },
+    {
+      "path": "NEWS",
+      "repository": "flatpak/libportal",
+      "score": 1,
+      "stars": 97,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/216726484/contents/NEWS?ref=086cc57372989117cfb6ef4c565bdd316db2e536",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- Make Qt tests use QTEST_GUILESS_MAIN\n- Fix an Input Capture test\n",
+          "matches": [
+            {
+              "indices": [
+                10,
+                14
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                21,
+                25
+              ],
+              "text": "TEST"
+            },
+            {
+              "indices": [
+                62,
+                66
+              ],
+              "text": "test"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/216726484/contents/NEWS?ref=086cc57372989117cfb6ef4c565bdd316db2e536",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- camera: Use correct variant for is_camera_present()\n- portal-test-gtk3: Fix incorrect paths used in tests\n- Documentation improvements",
+          "matches": [
+            {
+              "indices": [
+                63,
+                67
+              ],
+              "text": "test"
+            },
+            {
+              "indices": [
+                102,
+                106
+              ],
+              "text": "test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/flatpak/libportal/blob/086cc57372989117cfb6ef4c565bdd316db2e536/NEWS"
+    },
+    {
+      "path": "NEWS",
+      "repository": "tylermorganwall/skpr",
+      "score": 1,
+      "stars": 119,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/62653574/contents/NEWS?ref=2254e03ee791b6fef5da283cc6baed8131521182",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n• `extractPvalues()` Fix test issue with >1 length logical\n",
+          "matches": [
+            {
+              "indices": [
+                28,
+                32
+              ],
+              "text": "st i"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/62653574/contents/NEWS?ref=2254e03ee791b6fef5da283cc6baed8131521182",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n• Added seed to test_that script.\n",
+          "matches": [
+            {
+              "indices": [
+                19,
+                23
+              ],
+              "text": "st_t"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/tylermorganwall/skpr/blob/2254e03ee791b6fef5da283cc6baed8131521182/NEWS"
+    },
+    {
+      "path": "2.md",
+      "repository": "parshikovpavel/parshikovpavel.github.io",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/211283983/contents/2.md?ref=e6379590a06eeb90794b90852ca94e4ff6ea2ef2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# Test\n## Test1",
+          "matches": [
+            {
+              "indices": [
+                2,
+                6
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                10,
+                14
+              ],
+              "text": "Test"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/parshikovpavel/parshikovpavel.github.io/blob/e6379590a06eeb90794b90852ca94e4ff6ea2ef2/2.md"
+    },
+    {
+      "path": "1.md",
+      "repository": "LuisFernandoPenhaDeCamargo/study-resources",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/800489703/contents/1.md?ref=b344436633253f76378e3624caeab41d50f46e3a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "## Casos de Teste\n\n- Rota inválida  \n    curl -X POST https://api-test.orionapps.net:443/v2/boards//logs/\n- ID da placa inválido  \n    curl -X POST https://api-test.orionapps.net:443/v2/boards/invalid-board-id/logs/\n    curl -X POST https://api-test.orionapps.net:443/v2/boards/1/logs/",
+          "matches": [
+            {
+              "indices": [
+                12,
+                16
+              ],
+              "text": "Test"
+            },
+            {
+              "indices": [
+                67,
+                71
+              ],
+              "text": "est."
+            },
+            {
+              "indices": [
+                162,
+                166
+              ],
+              "text": "st.o"
+            },
+            {
+              "indices": [
+                247,
+                251
+              ],
+              "text": "st.o"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/LuisFernandoPenhaDeCamargo/study-resources/blob/b344436633253f76378e3624caeab41d50f46e3a/1.md"
+    }
+  ]
+}
