@@ -1,6 +1,6 @@
 ---
 description: Google Search research via Gemini CLI with grounding
-allowed-tools: Bash(pnpm gemini-research:*), Read, Edit
+allowed-tools: Bash(aaa gemini-research:*), Bash(bin/aaa gemini-research:*), Read, Edit
 argument-hint: <query> [--mode quick|deep|code]
 ---
 
@@ -12,7 +12,7 @@ Execute Google Search-grounded research using Gemini CLI.
 
 ## Documentation
 
-Refer to @docs/knowledge/gemini-cli/GEMINI_CLI.md for usage and workflow.
+Refer to @context/knowledge/gemini-cli/GEMINI_CLI.md for usage and workflow.
 
 ## Constraints
 

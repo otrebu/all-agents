@@ -13,7 +13,7 @@ Analyze `$ARGUMENTS` to generate a concise plugin name and description.
 1. **Generate Metadata**: Derive specific `<plugin-name>` and `<plugin-description>` from `$ARGUMENTS`.
 2. **Create Plugin**:
    ```bash
-   node ./docs/meta/create-plugin.ts <plugin-name> <plugin-description>
+   node ./context/meta/create-plugin.ts <plugin-name> <plugin-description>
    ```
 3. **Refine**: Populate generated files with relevant content, including the README.md file.
 
@@ -23,5 +23,5 @@ Input: "I need something to handle my database migrations automatically"
 Action:
 
 ```bash
-node ./docs/meta/create-plugin.ts migration-automator "Automates database schema migrations and version control"
+node ./context/meta/create-plugin.ts migration-automator "Automates database schema migrations and version control"
 ```

@@ -9,3 +9,4 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-debug.log*
 
+bin/aaa

@@ -1,6 +1,6 @@
 ---
 description: Search GitHub for code examples and patterns
-allowed-tools: Bash(pnpm gh-search:*), Read
+allowed-tools: Bash(aaa gh-search:*), Bash(bin/aaa gh-search:*), Read
 argument-hint: <query>
 ---
 
@@ -28,7 +28,7 @@ Find production code showing:
 ## Workflow
 
 1. Generate 3-5 targeted queries (language filters, patterns, file types)
-2. Execute: `pnpm gh-search "query"` per query
+2. Execute: `aaa gh-search "query"` per query
 3. Aggregate results, deduplicate, ensure diversity
 4. Analyze: Extract imports, patterns, structures
 5. Report findings with GitHub URLs
@@ -75,9 +75,9 @@ Find production code showing:
 
 - **No results**: Broaden query, remove filters
 - **Too many**: Add language/file filters
-- **Auth error**: Run `gh auth login` or set `GH_TOKEN`
+- **Auth error**: Run `gh auth login` or set `AAA_GITHUB_TOKEN`
 
 ## Constraints
 
 - Requires `gh` CLI authenticated
-- Scripts in `docs/knowledge/github/scripts/`
+- Scripts in `context/knowledge/github/scripts/`

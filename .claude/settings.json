@@ -97,7 +97,8 @@
       "Bash(npx tsx:*)",
       "Bash(node --version)",
       "Bash(./node_modules/.bin/tsx:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [
       "Read(.env*)",
