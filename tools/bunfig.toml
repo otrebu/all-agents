@@ -1,0 +1,7 @@
+[install]
+# Dependencies are in tools/ but scripts are in context/
+# This ensures bun can find modules when building
+
+[resolve]
+# Path aliases for module resolution
+paths = { "@context/*" = "../context/*", "@tools/*" = "./src/*", "@lib/*" = "./lib/*" }
