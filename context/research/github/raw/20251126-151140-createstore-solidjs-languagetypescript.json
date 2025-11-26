@@ -1,0 +1,4058 @@
+{
+  "files": [
+    {
+      "content": "import { QueriesObserver, noop } from '@tanstack/query-core'\nimport { createStore, unwrap } from 'solid-js/store'\nimport {\n  batch,\n  createComputed,\n  createMemo,\n  createRenderEffect,\n  createResource,\n  mergeProps,\n  on,\n  onCleanup,\n  onMount,\n} from 'solid-js'\nimport { useQueryClient } from './QueryClientProvider'\nimport { useIsRestoring } from './isRestoring'\nimport type { SolidQueryOptions, UseQueryResult } from './types'\nimport type { Accessor } from 'solid-js'\nimport type { QueryClient } from './QueryClient'\nimport type {\n  DefaultError,\n  OmitKeyof,\n  QueriesObserverOptions,\n  QueriesPlaceholderDataFunction,\n\n---\n\nQueryFunction,\n  QueryKey,\n  QueryObserverOptions,\n  QueryObserverResult,\n  ThrowOnError,\n} from '@tanstack/query-core'\n\n// This defines the `UseQueryOptions` that are accepted in `QueriesOptions` & `GetOptions`.\n// `placeholderData` function does not have a parameter\ntype UseQueryOptionsForUseQueries<\n  TQueryFnData = unknown,\n  TError = DefaultError,\n  TData = TQueryFnData,\n  TQueryKey extends QueryKey = QueryKey,\n> = OmitKeyof<\n  SolidQueryOptions<TQueryFnData, TError, TData, TQueryKey>,\n  'placeholderData' | 'suspense'\n> & {\n  placeholderData?: TQueryFnData | QueriesPlaceholderDataFunction<TQueryFnData>\n  /**\n   * @deprecated The `suspense` option has been deprecated in v5 and will be removed in the next major version.\n   * The `data` property on useQueries is a plain object and not a SolidJS Resource.\n   * It will not suspend when the data is loading.\n   * Setting `suspense` to `true` will be a no-op.\n   */\n  suspense?: boolean\n}\n\n// Avoid TS depth-limit error in case of large array literal\ntype MAXIMUM_DEPTH = 20\n\n// Widen the type of the symbol to enable type inference even if skipToken is not immutable.\ntype SkipTokenForUseQueries = symbol\n\ntype GetOptions<T> =\n  // Part 1: responsible for applying explicit type parameter to function arguments, if object { queryFnData: TQueryFnData, error: TError, data: TData }\n  T extends {\n    queryFnData: infer TQueryFnData\n    error?: infer TError\n    data: infer TData\n  }\n    ? UseQueryOptionsForUseQueries<TQueryFnData, TError, TData>\n    : T extends { queryFnData: infer TQueryFnData; error?: infer TError }",
+      "language": "typescript",
+      "lines": 69,
+      "path": "packages/solid-query/src/useQueries.ts",
+      "rank": 1,
+      "repository": "TanStack/query",
+      "stars": 47529,
+      "url": "https://github.com/TanStack/query/blob/8b387341eb8e5ce6447b55023c724c76747d4f00/packages/solid-query/src/useQueries.ts"
+    },
+    {
+      "content": "defaultOptions._optimisticResults = isRestoring()\n      ? 'isRestoring'\n      : 'optimistic'\n    defaultOptions.structuralSharing = false\n    if (isServer) {\n      defaultOptions.retry = false\n      defaultOptions.throwOnError = true\n      // Enable prefetch during render for SSR - required for createResource to work\n      // Without this, queries wait for effects which never run on the server\n      defaultOptions.experimental_prefetchInRender = true\n    }\n    return defaultOptions\n  })\n  const initialOptions = defaultedOptions()\n\n  const [observer, setObserver] = createSignal(\n    new Observer(client(), defaultedOptions()),\n  )\n\n  let observerResult = observer().getOptimisticResult(defaultedOptions())\n  const [state, setState] =\n    createStore<QueryObserverResult<TData, TError>>(observerResult)\n\n  const createServerSubscriber = (\n    resolve: (\n      data: ResourceData | PromiseLike<ResourceData | undefined> | undefined,\n    ) => void,\n    reject: (reason?: any) => void,\n  ) => {\n    return observer().subscribe((result) => {\n      notifyManager.batchCalls(() => {\n        const query = observer().getCurrentQuery()\n        const unwrappedResult = hydratableObserverResult(query, result)\n\n        if (result.data !== undefined && unwrappedResult.isError) {\n          reject(unwrappedResult.error)\n          unsubscribeIfQueued()\n        } else {\n          resolve(unwrappedResult)\n          unsubscribeIfQueued()\n        }\n      })()\n    })\n\n---\n\nif (!observerResult.isLoading) {\n          resolver = null\n          return resolve(\n            hydratableObserverResult(obs.getCurrentQuery(), observerResult),\n          )\n        }\n\n        setStateWithReconciliation(observerResult)\n      })\n    },\n    {\n      storage: createDeepSignal,\n\n      get deferStream() {\n        return options().deferStream\n      },\n\n      /**\n       * If this resource was populated on the server (either sync render, or streamed in over time), onHydrated\n       * will be called. This is the point at which we can hydrate the query cache state, and setup the query subscriber.\n       *\n       * Leveraging onHydrated allows us to plug into the async and streaming support that solidjs resources already support.\n       *\n       * Note that this is only invoked on the client, for queries that were originally run on the server.\n       */\n      onHydrated(_k, info) {\n        if (info.value && 'hydrationData' in info.value) {\n          hydrate(client(), {\n            // @ts-expect-error - hydrationData is not correctly typed internally\n            queries: [{ ...info.value.hydrationData }],\n          })\n        }\n\n        if (unsubscribe) return\n        /**\n         * Do not refetch query on mount if query was fetched on server,\n         * even if `staleTime` is not set.\n         */\n        const newOptions = { ...initialOptions }\n        if (\n          (initialOptions.staleTime || !initialOptions.initialData) &&\n          info.value\n        ) {",
+      "language": "typescript",
+      "lines": 89,
+      "path": "packages/solid-query/src/useBaseQuery.ts",
+      "rank": 2,
+      "repository": "TanStack/query",
+      "stars": 47529,
+      "url": "https://github.com/TanStack/query/blob/8b387341eb8e5ce6447b55023c724c76747d4f00/packages/solid-query/src/useBaseQuery.ts"
+    },
+    {
+      "content": "K2 extends KeyOf<W<W<T>[K1]>>,\n    K3 extends KeyOf<W<W<W<T>[K1]>[K2]>>,\n    K4 extends KeyOf<W<W<W<W<T>[K1]>[K2]>[K3]>>,\n    K5 extends KeyOf<W<W<W<W<W<T>[K1]>[K2]>[K3]>[K4]>>,\n    K6 extends KeyOf<W<W<W<W<W<W<T>[K1]>[K2]>[K3]>[K4]>[K5]>>,\n    K7 extends KeyOf<W<W<W<W<W<W<W<T>[K1]>[K2]>[K3]>[K4]>[K5]>[K6]>>\n  >(\n    k1: Part<W<T>, K1>,\n    k2: Part<W<W<T>[K1]>, K2>,\n    k3: Part<W<W<W<T>[K1]>[K2]>, K3>,\n    k4: Part<W<W<W<W<T>[K1]>[K2]>[K3]>, K4>,\n    k5: Part<W<W<W<W<W<T>[K1]>[K2]>[K3]>[K4]>, K5>,\n    k6: Part<W<W<W<W<W<W<T>[K1]>[K2]>[K3]>[K4]>[K5]>, K6>,\n    k7: Part<W<W<W<W<W<W<W<T>[K1]>[K2]>[K3]>[K4]>[K5]>[K6]>, K7>,\n    ...rest: Rest<W<W<W<W<W<W<W<T>[K1]>[K2]>[K3]>[K4]>[K5]>[K6]>[K7], [K7, K6, K5, K4, K3, K2, K1]>\n  ): void;\n}\n\n/**\n * Creates a reactive store that can be read through a proxy object and written with a setter function\n *\n * @description https://docs.solidjs.com/reference/store-utilities/create-store\n */\nexport function createStore<T extends object = {}>(\n  ...[store, options]: {} extends T\n    ? [store?: T | Store<T>, options?: { name?: string }]\n    : [store: T | Store<T>, options?: { name?: string }]\n): [get: Store<T>, set: SetStoreFunction<T>] {\n  const unwrappedStore = unwrap((store || {}) as T);\n  const isArray = Array.isArray(unwrappedStore);\n  if (IS_DEV && typeof unwrappedStore !== \"object\" && typeof unwrappedStore !== \"function\")\n    throw new Error(\n      `Unexpected type ${typeof unwrappedStore} received when initializing 'createStore'. Expected an object.`\n    );\n  const wrappedStore = wrap(unwrappedStore);\n  if (IS_DEV) DEV!.registerGraph({ value: unwrappedStore, name: options && options.name });\n  function setStore(...args: any[]): void {\n    batch(() => {\n      isArray && args.length === 1\n        ? updateArray(unwrappedStore, args[0])\n        : updatePath(unwrappedStore, args);\n    });\n  }\n\n  return [wrappedStore, setStore];\n}",
+      "language": "typescript",
+      "lines": 46,
+      "path": "packages/solid/store/src/store.ts",
+      "rank": 3,
+      "repository": "solidjs/solid",
+      "stars": 34634,
+      "url": "https://github.com/solidjs/solid/blob/a5b51fe200fd59a158410f4008677948fec611d9/packages/solid/store/src/store.ts"
+    },
+    {
+      "content": "store: MitosisState;\n    },\n  );\n\n  const hasMutableState = Object.keys(mutable).length > 0;\n  const hasSignalState = Object.keys(signal).length > 0;\n  const hasStoreState = Object.keys(store).length > 0;\n\n  const mutableStateStr = hasMutableState\n    ? pipe(mutable, getMemberObjectString, (str) => `const state = createMutable(${str});`)\n    : '';\n  const signalStateStr = hasSignalState ? getSignalsCode({ json, options, state: signal }) : '';\n  const storeStateStr = hasStoreState ? getStoreCode({ json, options, state: store }) : '';\n\n  const stateStr = `\n  ${mutableStateStr}\n  ${signalStateStr}\n  ${storeStateStr}\n  `;\n\n  const importObj: State['import'] = {\n    store: [\n      ...(hasMutableState ? ['createMutable'] : []),\n      ...(hasStoreState ? ['createStore', 'reconcile'] : []),\n    ],\n    solidjs: [\n      ...(hasSignalState ? ['createSignal', 'createMemo'] : []),\n      ...(hasStoreState ? ['createEffect', 'on'] : []),\n    ],\n  };\n\n  return {\n    str: stateStr,\n    import: importObj,\n  };\n};",
+      "language": "typescript",
+      "lines": 36,
+      "path": "packages/core/src/generators/solid/state/state.ts",
+      "rank": 4,
+      "repository": "BuilderIO/mitosis",
+      "stars": 13466,
+      "url": "https://github.com/BuilderIO/mitosis/blob/993fd9e53243ed9de5ccb19ba2d4653efbd1d9d2/packages/core/src/generators/solid/state/state.ts"
+    },
+    {
+      "content": "import type { JSX } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport {\n  createComponent,\n  getHydrationKey,\n  getOwner,\n  hydrate,\n  type MountableElement\n} from \"solid-js/web\";\n\n/**\n *\n * Read more: https://docs.solidjs.com/solid-start/reference/client/mount\n */\nexport function mount(fn: () => JSX.Element, el: MountableElement) {\n  if (import.meta.env.START_ISLANDS) {\n    const map = new WeakMap();\n    async function mountIsland(el: HTMLElement) {\n      if (el.dataset.css) {\n        let css = JSON.parse(el.dataset.css);\n        for (let href of css) {\n          if (!document.querySelector(`link[href=\"${href}\"]`)) {\n            let link = document.createElement(\"link\");\n\n---\n\nimport type { JSX } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport {\n  createComponent,\n  getHydrationKey,\n  getOwner,\n  hydrate,\n  type MountableElement\n} from \"solid-js/web\";\n\n/**\n *\n * Read more: https://docs.solidjs.com/solid-start/reference/client/mount\n */\nexport function mount(fn: () => JSX.Element, el: MountableElement) {\n  if (import.meta.env.START_ISLANDS) {\n    const map = new WeakMap();\n    async function mountIsland(el: HTMLElement) {\n      if (el.dataset.css) {\n        let css = JSON.parse(el.dataset.css);\n        for (let href of css) {\n          if (!document.querySelector(`link[href=\"${href}\"]`)) {\n            let link = document.createElement(\"link\");\n            link.rel = \"stylesheet\";\n            link.href = href;\n            document.head.appendChild(link);\n          }\n        }\n      }\n\n      let mod = await import(\n        /* @vite-ignore */\n        import.meta.env.MANIFEST[\"client\"]!.chunks[el.dataset.id!.split(\"#\")[0] as string]!.output\n          .path",
+      "language": "typescript",
+      "lines": 60,
+      "path": "packages/start/src/client/mount.ts",
+      "rank": 5,
+      "repository": "solidjs/solid-start",
+      "stars": 5728,
+      "url": "https://github.com/solidjs/solid-start/blob/d88785560496a011c63b504ec47c1e75fe00ff28/packages/start/src/client/mount.ts"
+    },
+    {
+      "content": "import { Params, useSearchParams } from \"@solidjs/router\";\nimport { createEffect, on } from \"solid-js\";\nimport { createStore, unwrap } from \"solid-js/store\";\nimport { Filters } from \"../components/FilterModal\";\n\nexport interface SortByField {\n  field: string;\n}\n\nexport interface SortBySearchType {\n  rerank_type: string;\n  rerank_query: string;\n}\n\nexport interface MultiQuery {\n  query: string;\n  weight: number;\n}\n\nexport interface FulltextBoost {\n  phrase?: string;\n  boost_factor?: number;\n}\n\nexport interface SemanticBoost {\n  phrase?: string;\n  distance_factor?: number;",
+      "language": "typescript",
+      "lines": 27,
+      "path": "frontends/search/src/hooks/useSearch.ts",
+      "rank": 6,
+      "repository": "devflowinc/trieve",
+      "stars": 2561,
+      "url": "https://github.com/devflowinc/trieve/blob/b496426e4238a57f238b67938d85ed34c603705e/frontends/search/src/hooks/useSearch.ts"
+    },
+    {
+      "content": "/*\n * https://github.com/morethanwords/tweb\n * Copyright (C) 2019-2021 Eduard Kuzmenko\n * https://github.com/morethanwords/tweb/blob/master/LICENSE\n */\n\nimport {render} from 'solid-js/web';\nimport {createStore} from 'solid-js/store';\n\nimport type Chat from '../chat/chat';\nimport type {SendFileDetails} from '../../lib/appManagers/appMessagesManager';\nimport type {ChatRights} from '../../lib/appManagers/appChatsManager';\nimport PopupElement from '.';\nimport Scrollable from '../scrollable';\nimport {toast, toastNew} from '../toast';\nimport SendContextMenu from '../chat/sendContextMenu';\nimport {createPosterFromMedia, createPosterFromVideo} from '../../helpers/createPoster';\nimport {MyDocument} from '../../lib/appManagers/appDocsManager';\nimport I18n, {FormatterArguments, i18n, LangPackKey} from '../../lib/langPack';\nimport calcImageInBox from '../../helpers/calcImageInBox';\nimport placeCaretAtEnd from '../../helpers/dom/placeCaretAtEnd';\nimport {attachClickEvent} from '../../helpers/dom/clickEvent';\nimport MEDIA_MIME_TYPES_SUPPORTED from '../../environment/mediaMimeTypesSupport';\nimport getGifDuration from '../../helpers/getGifDuration';\nimport replaceContent from '../../helpers/dom/replaceContent';\nimport createVideo from '../../helpers/dom/createVideo';\nimport prepareAlbum from '../prepareAlbum';\nimport {makeMediaSize} from '../../helpers/mediaSize';\nimport {ThumbCache} from '../../lib/storages/thumbs';\n\n---\n\nimport InputFieldAnimated from '../inputFieldAnimated';\nimport IMAGE_MIME_TYPES_SUPPORTED from '../../environment/imageMimeTypesSupport';\nimport VIDEO_MIME_TYPES_SUPPORTED from '../../environment/videoMimeTypesSupport';\nimport rootScope from '../../lib/rootScope';\nimport shake from '../../helpers/dom/shake';\nimport AUDIO_MIME_TYPES_SUPPORTED from '../../environment/audioMimeTypeSupport';\nimport liteMode from '../../helpers/liteMode';\nimport handleVideoLeak from '../../helpers/dom/handleVideoLeak';\nimport wrapDraft from '../wrappers/draft';\nimport getRichValueWithCaret from '../../helpers/dom/getRichValueWithCaret';\nimport {ChatType} from '../chat/chat';\nimport pause from '../../helpers/schedulers/pause';\nimport {Accessor, createEffect, createMemo, createRoot, createSignal, Setter} from 'solid-js';\nimport SelectedEffect from '../chat/selectedEffect';\nimport PopupMakePaid from './makePaid';\nimport paymentsWrapCurrencyAmount from '../../helpers/paymentsWrapCurrencyAmount';\nimport Icon from '../icon';\nimport {MediaEditorFinalResult, MediaEditorFinalResultPayload} from '../mediaEditor/finalRender/createFinalResult';\nimport RenderProgressCircle from '../mediaEditor/renderProgressCircle';\nimport {animateValue, delay, lerp} from '../mediaEditor/utils';\nimport {IS_MOBILE} from '../../environment/userAgent';\nimport SolidJSHotReloadGuardProvider from '../../lib/solidjs/hotReloadGuardProvider';\nimport throttle from '../../helpers/schedulers/throttle';\nimport {numberThousandSplitterForStars} from '../../helpers/number/numberThousandSplitter';\nimport {PAYMENT_REJECTED} from '../chat/paidMessagesInterceptor';\nimport ListenerSetter from '../../helpers/listenerSetter';\nimport canVideoBeAnimated from '../../lib/appManagers/utils/docs/canVideoBeAnimated';\nimport {NumberPair} from '../mediaEditor/types';\nimport MarkupTooltip from '../chat/markupTooltip';\nimport {MAX_EDITABLE_VIDEO_SIZE, supportsVideoEncoding} from '../mediaEditor/support';\n\ntype SendFileParams = SendFileDetails & {\n  file?: File,\n  scaledBlob?: Blob,\n  noSound?: boolean,\n  itemDiv: HTMLElement,\n  mediaSpoiler?: HTMLElement,\n  middlewareHelper: MiddlewareHelper,\n  editResult?: MediaEditorFinalResult\n};\n\nlet currentPopup: PopupNewMedia;",
+      "language": "typescript",
+      "lines": 74,
+      "path": "src/components/popups/newMedia.ts",
+      "rank": 7,
+      "repository": "morethanwords/tweb",
+      "stars": 2338,
+      "url": "https://github.com/morethanwords/tweb/blob/2071f286df0737b223da54001a501dd904c47117/src/components/popups/newMedia.ts"
+    },
+    {
+      "content": "import ScrollableLoader from '../../../../helpers/scrollableLoader';\nimport {ChannelParticipant, Chat, ChatAdminRights, ChatBannedRights} from '../../../../layer';\nimport appDialogsManager, {DialogDom, DIALOG_LIST_ELEMENT_TAG} from '../../../../lib/appManagers/appDialogsManager';\nimport {AppManagers} from '../../../../lib/appManagers/managers';\nimport combineParticipantBannedRights from '../../../../lib/appManagers/utils/chats/combineParticipantBannedRights';\nimport hasRights from '../../../../lib/appManagers/utils/chats/hasRights';\nimport getPeerActiveUsernames from '../../../../lib/appManagers/utils/peers/getPeerActiveUsernames';\nimport getPeerId from '../../../../lib/appManagers/utils/peers/getPeerId';\nimport {i18n, join, LangPackKey} from '../../../../lib/langPack';\nimport rootScope from '../../../../lib/rootScope';\nimport PopupPickUser from '../../../popups/pickUser';\nimport Row from '../../../row';\nimport SettingSection from '../../../settingSection';\nimport {SliderSuperTabEventable} from '../../../sliderTab';\nimport {toast} from '../../../toast';\nimport AppUserPermissionsTab from '../userPermissions';\nimport CheckboxFields, {CheckboxFieldsField} from '../../../checkboxFields';\nimport PopupElement from '../../../popups';\nimport wrapPeerTitle from '../../../wrappers/peerTitle';\nimport apiManagerProxy from '../../../../lib/mtproto/mtprotoworker';\nimport RangeStepsSelector from '../../../rangeStepsSelector';\nimport formatDuration from '../../../../helpers/formatDuration';\nimport {wrapFormattedDuration} from '../../../wrappers/wrapDuration';\nimport SolidJSHotReloadGuardProvider from '../../../../lib/solidjs/hotReloadGuardProvider';\nimport {createEffect, createRoot, createSignal} from 'solid-js';\nimport {createStore, unwrap} from 'solid-js/store';\nimport deepEqual from '../../../../helpers/object/deepEqual';\nimport ButtonIcon from '../../../buttonIcon';\nimport throttle from '../../../../helpers/schedulers/throttle';\nimport {NoneToVoidFunction} from '../../../../types';\nimport {PopupPeerOptions} from '../../../popups/peer';\nimport confirmationPopup, {ConfirmationPopupRejectReason} from '../../../confirmationPopup';\n\ntype PermissionsCheckboxFieldsField = CheckboxFieldsField & {\n  flags: ChatRights[],\n  exceptionText: LangPackKey\n};\n\ntype AdministratorRightsCheckboxFieldsField = CheckboxFieldsField & {\n  flags: ChatRights[]\n};\n\nexport class ChatPermissions extends CheckboxFields<PermissionsCheckboxFieldsField> {\n  protected chat: Chat.chat | Chat.channel;\n  protected rights: ChatBannedRights.chatBannedRights;\n  protected defaultBannedRights: ChatBannedRights.chatBannedRights;",
+      "language": "typescript",
+      "lines": 46,
+      "path": "src/components/sidebarRight/tabs/groupPermissions/index.ts",
+      "rank": 8,
+      "repository": "morethanwords/tweb",
+      "stars": 2338,
+      "url": "https://github.com/morethanwords/tweb/blob/2071f286df0737b223da54001a501dd904c47117/src/components/sidebarRight/tabs/groupPermissions/index.ts"
+    },
+    {
+      "content": "const addEventListener: (typeof import('solid-js/web'))['addEventListener']\n  const batch: typeof import('solid-js')['batch']\n  const cache: typeof import('@solidjs/router')['cache']\n  const catchError: (typeof import('solid-js'))['catchError']\n  const children: typeof import('solid-js')['children']\n  const createAsync: typeof import('@solidjs/router')['createAsync']\n  const createAsyncStore: typeof import('@solidjs/router')['createAsyncStore']\n  const createBeforeLeave: typeof import('@solidjs/router')['createBeforeLeave']\n  const createComponent: (typeof import('solid-js'))['createComponent']\n  const createComputed: (typeof import('solid-js'))['createComputed']\n  const createContext: typeof import('solid-js')['createContext']\n  const createDeferred: typeof import('solid-js')['createDeferred']\n  const createEffect: typeof import('solid-js')['createEffect']\n  const createIntegration: (typeof import('@solidjs/router'))['createIntegration']\n  const createMemo: typeof import('solid-js')['createMemo']\n  const createMemoryHistory: typeof import('@solidjs/router')['createMemoryHistory']\n  const createMutable: typeof import('solid-js/store')['createMutable']\n  const createReaction: (typeof import('solid-js'))['createReaction']\n  const createRenderEffect: typeof import('solid-js')['createRenderEffect']\n  const createResource: typeof import('solid-js')['createResource']\n  const createRoot: typeof import('solid-js')['createRoot']\n  const createRouter: typeof import('@solidjs/router')['createRouter']\n  const createSelector: typeof import('solid-js')['createSelector']\n  const createSignal: typeof import('solid-js')['createSignal']\n  const createStore: typeof import('solid-js/store')['createStore']\n  const createUniqueId: (typeof import('solid-js'))['createUniqueId']\n  const delegateEvents: (typeof import('solid-js/web'))['delegateEvents']\n  const enableExternalSource: (typeof import('solid-js'))['enableExternalSource']\n  const enableHydration: (typeof import('solid-js'))['enableHydration']\n  const enableScheduling: (typeof import('solid-js'))['enableScheduling']\n  const equalFn: (typeof import('solid-js'))['equalFn']\n  const escape: (typeof import('solid-js/web'))['escape']\n  const from: (typeof import('solid-js'))['from']\n  const generateHydrationScript: (typeof import('solid-js/web'))['generateHydrationScript']\n  const getAssets: (typeof import('solid-js/web'))['getAssets']\n  const getHydrationKey: (typeof import('solid-js/web'))['getHydrationKey']\n  const getListener: (typeof import('solid-js'))['getListener']\n  const getOwner: (typeof import('solid-js'))['getOwner']\n  const getRequestEvent: (typeof import('solid-js/web'))['getRequestEvent']\n  const hashIntegration: (typeof import('@solidjs/router'))['hashIntegration']\n  const hydrate: typeof import('solid-js/web')['hydrate']\n  const indexArray: typeof import('solid-js')['indexArray']\n  const insert: (typeof import('solid-js/web'))['insert']\n\n---\n\nconst catchError: (typeof import('solid-js'))['catchError']\n  const children: typeof import('solid-js')['children']\n  const createAsync: typeof import('@solidjs/router')['createAsync']\n  const createAsyncStore: typeof import('@solidjs/router')['createAsyncStore']\n  const createBeforeLeave: typeof import('@solidjs/router')['createBeforeLeave']\n  const createComponent: (typeof import('solid-js'))['createComponent']\n  const createComputed: (typeof import('solid-js'))['createComputed']\n  const createContext: typeof import('solid-js')['createContext']\n  const createDeferred: typeof import('solid-js')['createDeferred']\n  const createEffect: typeof import('solid-js')['createEffect']\n  const createIntegration: (typeof import('@solidjs/router'))['createIntegration']\n  const createMemo: typeof import('solid-js')['createMemo']\n  const createMemoryHistory: typeof import('@solidjs/router')['createMemoryHistory']\n  const createMutable: typeof import('solid-js/store')['createMutable']\n  const createReaction: (typeof import('solid-js'))['createReaction']\n  const createRenderEffect: typeof import('solid-js')['createRenderEffect']\n  const createResource: typeof import('solid-js')['createResource']\n  const createRoot: typeof import('solid-js')['createRoot']\n  const createRouter: typeof import('@solidjs/router')['createRouter']\n  const createSelector: typeof import('solid-js')['createSelector']\n  const createSignal: typeof import('solid-js')['createSignal']\n  const createStore: typeof import('solid-js/store')['createStore']\n  const createUniqueId: (typeof import('solid-js'))['createUniqueId']\n  const delegateEvents: (typeof import('solid-js/web'))['delegateEvents']\n  const enableExternalSource: (typeof import('solid-js'))['enableExternalSource']\n  const enableHydration: (typeof import('solid-js'))['enableHydration']\n  const enableScheduling: (typeof import('solid-js'))['enableScheduling']\n  const equalFn: (typeof import('solid-js'))['equalFn']\n  const escape: (typeof import('solid-js/web'))['escape']\n  const from: (typeof import('solid-js'))['from']\n  const generateHydrationScript: (typeof import('solid-js/web'))['generateHydrationScript']\n  const getAssets: (typeof import('solid-js/web'))['getAssets']\n  const getHydrationKey: (typeof import('solid-js/web'))['getHydrationKey']\n  const getListener: (typeof import('solid-js'))['getListener']\n  const getOwner: (typeof import('solid-js'))['getOwner']\n  const getRequestEvent: (typeof import('solid-js/web'))['getRequestEvent']\n  const hashIntegration: (typeof import('@solidjs/router'))['hashIntegration']\n  const hydrate: typeof import('solid-js/web')['hydrate']\n  const indexArray: typeof import('solid-js')['indexArray']\n  const insert: (typeof import('solid-js/web'))['insert']\n  const isDev: (typeof import('solid-js/web'))['isDev']\n  const isServer: typeof import('solid-js/web')['isServer']\n  const json: typeof import('@solidjs/router')['json']",
+      "language": "typescript",
+      "lines": 89,
+      "path": "auto-imports.d.ts",
+      "rank": 10,
+      "repository": "MetaCubeX/metacubexd",
+      "stars": 2710,
+      "url": "https://github.com/MetaCubeX/metacubexd/blob/ea0a8dcb7975b1af899921c50fc4d062b6d93063/auto-imports.d.ts"
+    }
+  ],
+  "ranked": [
+    {
+      "path": "packages/solid-query/src/useQueries.ts",
+      "repository": "TanStack/query",
+      "score": 1,
+      "stars": 47529,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/207645083/contents/packages/solid-query/src/useQueries.ts?ref=8b387341eb8e5ce6447b55023c724c76747d4f00",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { QueriesObserver, noop } from '@tanstack/query-core'\nimport { createStore, unwrap } from 'solid-js/store'\nimport {",
+          "matches": [
+            {
+              "indices": [
+                70,
+                81
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/207645083/contents/packages/solid-query/src/useQueries.ts?ref=8b387341eb8e5ce6447b55023c724c76747d4f00",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "   * @deprecated The `suspense` option has been deprecated in v5 and will be removed in the next major version.\n   * The `data` property on useQueries is a plain object and not a SolidJS Resource.\n   * It will not suspend when the data is loading.",
+          "matches": [
+            {
+              "indices": [
+                179,
+                186
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/TanStack/query/blob/8b387341eb8e5ce6447b55023c724c76747d4f00/packages/solid-query/src/useQueries.ts",
+      "qualityScore": 0.5501967814294758,
+      "rank": 1
+    },
+    {
+      "path": "packages/solid-query/src/useBaseQuery.ts",
+      "repository": "TanStack/query",
+      "score": 1,
+      "stars": 47529,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/207645083/contents/packages/solid-query/src/useBaseQuery.ts?ref=8b387341eb8e5ce6447b55023c724c76747d4f00",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const [state, setState] =\n    createStore<QueryObserverResult<TData, TError>>(observerResult)\n",
+          "matches": [
+            {
+              "indices": [
+                32,
+                43
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/207645083/contents/packages/solid-query/src/useBaseQuery.ts?ref=8b387341eb8e5ce6447b55023c724c76747d4f00",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "       *\n       * Leveraging onHydrated allows us to plug into the async and streaming support that solidjs resources already support.\n       *",
+          "matches": [
+            {
+              "indices": [
+                100,
+                107
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/TanStack/query/blob/8b387341eb8e5ce6447b55023c724c76747d4f00/packages/solid-query/src/useBaseQuery.ts",
+      "qualityScore": 0.5501967814294758,
+      "rank": 2
+    },
+    {
+      "path": "packages/solid/store/src/store.ts",
+      "repository": "solidjs/solid",
+      "score": 1,
+      "stars": 34634,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/130884470/contents/packages/solid/store/src/store.ts?ref=a5b51fe200fd59a158410f4008677948fec611d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * @description https://docs.solidjs.com/reference/store-utilities/create-store\n */\nexport function createStore<T extends object = {}>(\n  ...[store, options]: {} extends T\n    ? [store?: T | Store<T>, options?: { name?: string }]\n    : [store: T | Store<T>, options?: { name?: string }]",
+          "matches": [
+            {
+              "indices": [
+                32,
+                39
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                103,
+                114
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs/solid/blob/a5b51fe200fd59a158410f4008677948fec611d9/packages/solid/store/src/store.ts",
+      "qualityScore": 0.5364515191972858,
+      "rank": 3
+    },
+    {
+      "path": "packages/core/src/generators/solid/state/state.ts",
+      "repository": "BuilderIO/mitosis",
+      "score": 1,
+      "stars": 13466,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/310456670/contents/packages/core/src/generators/solid/state/state.ts?ref=993fd9e53243ed9de5ccb19ba2d4653efbd1d9d2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const importObj: State['import'] = {\n    store: [\n      ...(hasMutableState ? ['createMutable'] : []),\n      ...(hasStoreState ? ['createStore', 'reconcile'] : []),\n    ],\n    solidjs: [\n      ...(hasSignalState ? ['createSignal', 'createMemo'] : []),",
+          "matches": [
+            {
+              "indices": [
+                133,
+                144
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                178,
+                185
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/BuilderIO/mitosis/blob/993fd9e53243ed9de5ccb19ba2d4653efbd1d9d2/packages/core/src/generators/solid/state/state.ts",
+      "qualityScore": 0.49542708601213153,
+      "rank": 4
+    },
+    {
+      "path": "packages/start/src/client/mount.ts",
+      "repository": "solidjs/solid-start",
+      "score": 1,
+      "stars": 5728,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/352861350/contents/packages/start/src/client/mount.ts?ref=d88785560496a011c63b504ec47c1e75fe00ff28",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import type { JSX } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport {",
+          "matches": [
+            {
+              "indices": [
+                46,
+                57
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/352861350/contents/packages/start/src/client/mount.ts?ref=d88785560496a011c63b504ec47c1e75fe00ff28",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * Read more: https://docs.solidjs.com/solid-start/reference/client/mount\n */",
+          "matches": [
+            {
+              "indices": [
+                30,
+                37
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs/solid-start/blob/d88785560496a011c63b504ec47c1e75fe00ff28/packages/start/src/client/mount.ts",
+      "qualityScore": 0.45830788222496127,
+      "rank": 5
+    },
+    {
+      "path": "frontends/search/src/hooks/useSearch.ts",
+      "repository": "devflowinc/trieve",
+      "score": 1,
+      "stars": 2561,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/619284964/contents/frontends/search/src/hooks/useSearch.ts?ref=b496426e4238a57f238b67938d85ed34c603705e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Params, useSearchParams } from \"@solidjs/router\";\nimport { createEffect, on } from \"solid-js\";\nimport { createStore, unwrap } from \"solid-js/store\";\nimport { Filters } from \"../components/FilterModal\";\n\nexport interface SortByField {\n  field: string;",
+          "matches": [
+            {
+              "indices": [
+                42,
+                49
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                113,
+                124
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/devflowinc/trieve/blob/b496426e4238a57f238b67938d85ed34c603705e/frontends/search/src/hooks/useSearch.ts",
+      "qualityScore": 0.4283579125408667,
+      "rank": 6
+    },
+    {
+      "path": "src/components/popups/newMedia.ts",
+      "repository": "morethanwords/tweb",
+      "score": 1,
+      "stars": 2338,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/popups/newMedia.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {render} from 'solid-js/web';\nimport {createStore} from 'solid-js/store';\n",
+          "matches": [
+            {
+              "indices": [
+                45,
+                56
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/popups/newMedia.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {IS_MOBILE} from '../../environment/userAgent';\nimport SolidJSHotReloadGuardProvider from '../../lib/solidjs/hotReloadGuardProvider';\nimport throttle from '../../helpers/schedulers/throttle';",
+          "matches": [
+            {
+              "indices": [
+                62,
+                69
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                108,
+                115
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/morethanwords/tweb/blob/2071f286df0737b223da54001a501dd904c47117/src/components/popups/newMedia.ts",
+      "qualityScore": 0.41440302218091535,
+      "rank": 7
+    },
+    {
+      "path": "src/components/sidebarRight/tabs/groupPermissions/index.ts",
+      "repository": "morethanwords/tweb",
+      "score": 1,
+      "stars": 2338,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/sidebarRight/tabs/groupPermissions/index.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import RangeStepsSelector from '../../../rangeStepsSelector';\nimport formatDuration from '../../../../helpers/formatDuration';\nimport {wrapFormattedDuration} from '../../../wrappers/wrapDuration';\nimport SolidJSHotReloadGuardProvider from '../../../../lib/solidjs/hotReloadGuardProvider';\nimport {createEffect, createRoot, createSignal} from 'solid-js';\nimport {createStore, unwrap} from 'solid-js/store';\nimport deepEqual from '../../../../helpers/object/deepEqual';",
+          "matches": [
+            {
+              "indices": [
+                204,
+                211
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                256,
+                263
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                362,
+                373
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/morethanwords/tweb/blob/2071f286df0737b223da54001a501dd904c47117/src/components/sidebarRight/tabs/groupPermissions/index.ts",
+      "qualityScore": 0.41440302218091535,
+      "rank": 8
+    },
+    {
+      "path": "src/components/chat/input.ts",
+      "repository": "morethanwords/tweb",
+      "score": 1,
+      "stars": 2338,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/chat/input.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {Accessor, createEffect, createMemo, createRoot, createSignal, onCleanup, Setter} from 'solid-js';\nimport {createStore} from 'solid-js/store';\nimport SelectedEffect from './selectedEffect';",
+          "matches": [
+            {
+              "indices": [
+                114,
+                125
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/chat/input.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    const {default: SuggestPostPopup} = await import('./suggestPostPopup');\n    new SuggestPostPopup({HotReloadGuard: SolidJSHotReloadGuardProvider, suggestChange: !!initial?.changeMid, initialStars: initial?.stars, initialTimestamp: initial?.timestamp, onFinish: (payload) => {\n      const balance = +useStars()() || 0;",
+          "matches": [
+            {
+              "indices": [
+                118,
+                125
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/morethanwords/tweb/blob/2071f286df0737b223da54001a501dd904c47117/src/components/chat/input.ts",
+      "qualityScore": 0.41440302218091535,
+      "rank": 9
+    },
+    {
+      "path": "auto-imports.d.ts",
+      "repository": "MetaCubeX/metacubexd",
+      "score": 1,
+      "stars": 2710,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/664925328/contents/auto-imports.d.ts?ref=ea0a8dcb7975b1af899921c50fc4d062b6d93063",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const createRoot: typeof import('solid-js')['createRoot']\n  const createRouter: typeof import('@solidjs/router')['createRouter']\n  const createSelector: typeof import('solid-js')['createSelector']",
+          "matches": [
+            {
+              "indices": [
+                98,
+                105
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/664925328/contents/auto-imports.d.ts?ref=ea0a8dcb7975b1af899921c50fc4d062b6d93063",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const createSignal: typeof import('solid-js')['createSignal']\n  const createStore: typeof import('solid-js/store')['createStore']\n  const createUniqueId: (typeof import('solid-js'))['createUniqueId']",
+          "matches": [
+            {
+              "indices": [
+                72,
+                83
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                118,
+                129
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/MetaCubeX/metacubexd/blob/ea0a8dcb7975b1af899921c50fc4d062b6d93063/auto-imports.d.ts",
+      "qualityScore": 0.40581295175804855,
+      "rank": 10
+    }
+  ],
+  "results": [
+    {
+      "path": "packages/solid/store/src/store.ts",
+      "repository": "solidjs/solid",
+      "score": 1,
+      "stars": 34634,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/130884470/contents/packages/solid/store/src/store.ts?ref=a5b51fe200fd59a158410f4008677948fec611d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * @description https://docs.solidjs.com/reference/store-utilities/create-store\n */\nexport function createStore<T extends object = {}>(\n  ...[store, options]: {} extends T\n    ? [store?: T | Store<T>, options?: { name?: string }]\n    : [store: T | Store<T>, options?: { name?: string }]",
+          "matches": [
+            {
+              "indices": [
+                32,
+                39
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                103,
+                114
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs/solid/blob/a5b51fe200fd59a158410f4008677948fec611d9/packages/solid/store/src/store.ts"
+    },
+    {
+      "path": ".backup/20251114_031649/libraries/solidjs-router.ts",
+      "repository": "SylphxAI/benchmark",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1090582962/contents/.backup/20251114_031649/libraries/solidjs-router.ts?ref=dc98730ec0887db30e802e9c6c89c0c0dbad554a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  description: 'Router for SolidJS framework',\n\n  setup: {\n    createStore: () => ({}),\n  },\n\n  features: [],",
+          "matches": [
+            {
+              "indices": [
+                27,
+                34
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                63,
+                74
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/SylphxAI/benchmark/blob/dc98730ec0887db30e802e9c6c89c0c0dbad554a/.backup/20251114_031649/libraries/solidjs-router.ts"
+    },
+    {
+      "path": "packages/core/src/generators/solid/state/state.ts",
+      "repository": "BuilderIO/mitosis",
+      "score": 1,
+      "stars": 13466,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/310456670/contents/packages/core/src/generators/solid/state/state.ts?ref=993fd9e53243ed9de5ccb19ba2d4653efbd1d9d2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const importObj: State['import'] = {\n    store: [\n      ...(hasMutableState ? ['createMutable'] : []),\n      ...(hasStoreState ? ['createStore', 'reconcile'] : []),\n    ],\n    solidjs: [\n      ...(hasSignalState ? ['createSignal', 'createMemo'] : []),",
+          "matches": [
+            {
+              "indices": [
+                133,
+                144
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                178,
+                185
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/BuilderIO/mitosis/blob/993fd9e53243ed9de5ccb19ba2d4653efbd1d9d2/packages/core/src/generators/solid/state/state.ts"
+    },
+    {
+      "path": "packages/solid-query/src/useQueries.ts",
+      "repository": "TanStack/query",
+      "score": 1,
+      "stars": 47529,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/207645083/contents/packages/solid-query/src/useQueries.ts?ref=8b387341eb8e5ce6447b55023c724c76747d4f00",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { QueriesObserver, noop } from '@tanstack/query-core'\nimport { createStore, unwrap } from 'solid-js/store'\nimport {",
+          "matches": [
+            {
+              "indices": [
+                70,
+                81
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/207645083/contents/packages/solid-query/src/useQueries.ts?ref=8b387341eb8e5ce6447b55023c724c76747d4f00",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "   * @deprecated The `suspense` option has been deprecated in v5 and will be removed in the next major version.\n   * The `data` property on useQueries is a plain object and not a SolidJS Resource.\n   * It will not suspend when the data is loading.",
+          "matches": [
+            {
+              "indices": [
+                179,
+                186
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/TanStack/query/blob/8b387341eb8e5ce6447b55023c724c76747d4f00/packages/solid-query/src/useQueries.ts"
+    },
+    {
+      "path": "fluid/src/store.ts",
+      "repository": "everweij/solidjs-fine-grained-reactivity",
+      "score": 1,
+      "stars": 11,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/493606245/contents/fluid/src/store.ts?ref=114438310fd94210afa34f26c0ea5646ac21ad84",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * Note: this is a approximation of the createStore function from solid-js.\n */\nexport function createStore<T extends AnyObject>(initialState: T) {\n  // Start by bootstrapping the initial provided state\n  const state = wrapProxy(initialState);\n",
+          "matches": [
+            {
+              "indices": [
+                43,
+                54
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                99,
+                110
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/everweij/solidjs-fine-grained-reactivity/blob/114438310fd94210afa34f26c0ea5646ac21ad84/fluid/src/store.ts"
+    },
+    {
+      "path": "auto-imports.d.ts",
+      "repository": "MetaCubeX/metacubexd",
+      "score": 1,
+      "stars": 2710,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/664925328/contents/auto-imports.d.ts?ref=ea0a8dcb7975b1af899921c50fc4d062b6d93063",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const createRoot: typeof import('solid-js')['createRoot']\n  const createRouter: typeof import('@solidjs/router')['createRouter']\n  const createSelector: typeof import('solid-js')['createSelector']",
+          "matches": [
+            {
+              "indices": [
+                98,
+                105
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/664925328/contents/auto-imports.d.ts?ref=ea0a8dcb7975b1af899921c50fc4d062b6d93063",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const createSignal: typeof import('solid-js')['createSignal']\n  const createStore: typeof import('solid-js/store')['createStore']\n  const createUniqueId: (typeof import('solid-js'))['createUniqueId']",
+          "matches": [
+            {
+              "indices": [
+                72,
+                83
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                118,
+                129
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/MetaCubeX/metacubexd/blob/ea0a8dcb7975b1af899921c50fc4d062b6d93063/auto-imports.d.ts"
+    },
+    {
+      "path": "src/solid.ts",
+      "repository": "doeixd/annette",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/916822228/contents/src/solid.ts?ref=9ab14aa5fbda7329e93be6ec43b34daffc9d1e2f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// The provided stubs are very high-level.\n\n// Stub for createStore\nexport function createStore<T extends object>(\n  initialValue: T\n): [T, (updater: (prevState: T) => Partial<T> | void | T ) => void] {\n  if (!reactiveNetwork) initReactiveSystem();",
+          "matches": [
+            {
+              "indices": [
+                56,
+                67
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                84,
+                95
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/doeixd/annette/blob/9ab14aa5fbda7329e93be6ec43b34daffc9d1e2f/src/solid.ts"
+    },
+    {
+      "path": "frontends/search/src/hooks/useSearch.ts",
+      "repository": "devflowinc/trieve",
+      "score": 1,
+      "stars": 2561,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/619284964/contents/frontends/search/src/hooks/useSearch.ts?ref=b496426e4238a57f238b67938d85ed34c603705e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Params, useSearchParams } from \"@solidjs/router\";\nimport { createEffect, on } from \"solid-js\";\nimport { createStore, unwrap } from \"solid-js/store\";\nimport { Filters } from \"../components/FilterModal\";\n\nexport interface SortByField {\n  field: string;",
+          "matches": [
+            {
+              "indices": [
+                42,
+                49
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                113,
+                124
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/devflowinc/trieve/blob/b496426e4238a57f238b67938d85ed34c603705e/frontends/search/src/hooks/useSearch.ts"
+    },
+    {
+      "path": "src/lib/xyflow/store/index.ts",
+      "repository": "Dryspell/ast-viewer",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/995187328/contents/src/lib/xyflow/store/index.ts?ref=b602196f04494c5851581854c896212d4cfddd7d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import type { Node, Edge, UnselectNodesAndEdgesParams, FitViewOptions, ReactFlowActions } from '../types';\nimport { batch } from 'solid-js';\n\nconst createStore = ({\n  nodes,\n  edges,\n  defaultNodes,",
+          "matches": [
+            {
+              "indices": [
+                148,
+                159
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Dryspell/ast-viewer/blob/b602196f04494c5851581854c896212d4cfddd7d/src/lib/xyflow/store/index.ts"
+    },
+    {
+      "path": "packages/start/src/client/mount.ts",
+      "repository": "solidjs/solid-start",
+      "score": 1,
+      "stars": 5728,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/352861350/contents/packages/start/src/client/mount.ts?ref=d88785560496a011c63b504ec47c1e75fe00ff28",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import type { JSX } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport {",
+          "matches": [
+            {
+              "indices": [
+                46,
+                57
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/352861350/contents/packages/start/src/client/mount.ts?ref=d88785560496a011c63b504ec47c1e75fe00ff28",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * Read more: https://docs.solidjs.com/solid-start/reference/client/mount\n */",
+          "matches": [
+            {
+              "indices": [
+                30,
+                37
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs/solid-start/blob/d88785560496a011c63b504ec47c1e75fe00ff28/packages/start/src/client/mount.ts"
+    },
+    {
+      "path": "dashboard/src/libs/localStore.ts",
+      "repository": "traPtitech/NeoShowcase",
+      "score": 1,
+      "stars": 61,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/299799968/contents/dashboard/src/libs/localStore.ts?ref=7c007e0e43f72bedb3ecae268d6a94ec03c99df3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createEffect, createSignal } from 'solid-js'\nimport { createStore } from 'solid-js/store'\n",
+          "matches": [
+            {
+              "indices": [
+                63,
+                74
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/299799968/contents/dashboard/src/libs/localStore.ts?ref=7c007e0e43f72bedb3ecae268d6a94ec03c99df3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n// https://www.solidjs.com/examples/todos\n",
+          "matches": [
+            {
+              "indices": [
+                16,
+                23
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/traPtitech/NeoShowcase/blob/7c007e0e43f72bedb3ecae268d6a94ec03c99df3/dashboard/src/libs/localStore.ts"
+    },
+    {
+      "path": "src/utils.ts",
+      "repository": "webmastersmith/pixx",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/898593385/contents/src/utils.ts?ref=7865b55481f0717ac2c0a3bce3947ad59f8fb4e7",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * @param options client provided options\n * @returns store object.\n */\nexport function createStore(\n  _filePaths: string | string[],\n  optionDefaults: OptionType,\n  options: Partial<OptionType>,",
+          "matches": [
+            {
+              "indices": [
+                88,
+                99
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/webmastersmith/pixx/blob/7865b55481f0717ac2c0a3bce3947ad59f8fb4e7/src/utils.ts"
+    },
+    {
+      "path": "src/App.ts",
+      "repository": "iksaku/inertia-adapter-solid",
+      "score": 1,
+      "stars": 55,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/640137820/contents/src/App.ts?ref=5cc9250c3ffc6864e952a1368508339612d7d89b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { type Page, type PageResolver, router } from '@inertiajs/core'\nimport { MetaProvider } from '@solidjs/meta'\nimport {",
+          "matches": [
+            {
+              "indices": [
+                102,
+                109
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/640137820/contents/src/App.ts?ref=5cc9250c3ffc6864e952a1368508339612d7d89b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from 'solid-js'\nimport { createStore, reconcile } from 'solid-js/store'\nimport { isServer } from 'solid-js/web'",
+          "matches": [
+            {
+              "indices": [
+                27,
+                38
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/iksaku/inertia-adapter-solid/blob/5cc9250c3ffc6864e952a1368508339612d7d89b/src/App.ts"
+    },
+    {
+      "path": "web/shared/hooks.ts",
+      "repository": "agnaistic/agnai",
+      "score": 1,
+      "stars": 665,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/609727033/contents/web/shared/hooks.ts?ref=320ebb0e7bee1560cb5100e0b89acfd8cc19afce",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  onMount,\n} from 'solid-js'\nimport { createSignal, createRenderEffect } from 'solid-js'\nimport { useLocation, useParams, useSearchParams } from '@solidjs/router'\nimport { createImageCache } from '../store/images'\nimport { createStore } from 'solid-js/store'\nimport { getSettingColor, hexToRgb } from './colors'",
+          "matches": [
+            {
+              "indices": [
+                147,
+                154
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                223,
+                234
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/agnaistic/agnai/blob/320ebb0e7bee1560cb5100e0b89acfd8cc19afce/web/shared/hooks.ts"
+    },
+    {
+      "path": "packages/deep/src/store-updates.ts",
+      "repository": "solidjs-community/solid-primitives",
+      "score": 1,
+      "stars": 1460,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/369884446/contents/packages/deep/src/store-updates.ts?ref=0cbdb59bb42f50de5e08000027789ae3d4c80280",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * @see https://github.com/solidjs-community/solid-primitives/tree/main/packages/deep#captureStoreUpdates\n *",
+          "matches": [
+            {
+              "indices": [
+                30,
+                37
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/369884446/contents/packages/deep/src/store-updates.ts?ref=0cbdb59bb42f50de5e08000027789ae3d4c80280",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * ```ts\n * const [state, setState] = createStore({ todos: [] });\n *",
+          "matches": [
+            {
+              "indices": [
+                38,
+                49
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs-community/solid-primitives/blob/0cbdb59bb42f50de5e08000027789ae3d4c80280/packages/deep/src/store-updates.ts"
+    },
+    {
+      "path": "src/lib/createYjsStore.ts",
+      "repository": "ai25/conduit",
+      "score": 1,
+      "stars": 57,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/674721530/contents/src/lib/createYjsStore.ts?ref=dc5cbfca58e8a79185199bd1b2635469c1dec469",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    if (yvalue instanceof Y.Map) {\n      //  TODO\n      //  solid's stores does a shallow merge on objects\n      //  https://www.solidjs.com/docs/latest/api#createstore : 'Objects are always shallowly merged.'\n      //  since we are only checking the path, inconsistencies might arise when a signal gets shallowly merged\n      //  so that it has mutliple entry-paths in a store\n",
+          "matches": [
+            {
+              "indices": [
+                129,
+                136
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                157,
+                168
+              ],
+              "text": "createstore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ai25/conduit/blob/dc5cbfca58e8a79185199bd1b2635469c1dec469/src/lib/createYjsStore.ts"
+    },
+    {
+      "path": "src/urlstore.ts",
+      "repository": "homebrewing/malt.io",
+      "score": 1,
+      "stars": 9,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/13765109/contents/src/urlstore.ts?ref=7e5c16186484a5033ddb88c24dfc51d0a01a3514",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { SetStoreFunction, createStore } from \"solid-js/store\";\nimport { useNavigate, useParams } from \"@solidjs/router\";\n\nimport { createRenderEffect } from \"solid-js\";\n\nexport default function createURLStore<T extends object>(\n  prefix: string,",
+          "matches": [
+            {
+              "indices": [
+                27,
+                38
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                105,
+                112
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/homebrewing/malt.io/blob/7e5c16186484a5033ddb88c24dfc51d0a01a3514/src/urlstore.ts"
+    },
+    {
+      "path": "packages/site/src/data/solidjs/libraries.ts",
+      "repository": "Uvacoder/framework.deb",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/569877138/contents/packages/site/src/data/solidjs/libraries.ts?ref=451b8cd25420160e7e1106ee8e64a3d5693b51be",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t\tauthor: \"SolidJs\",\n\t\trepo: \"https://www.github.com/solidjs/solid/tree/main/packages/solid/store\",\n\t\tpackage: \"\",\n\t\thref: \"https://www.solidjs.com/tutorial/stores_createstore\",\n\t\tdescription:\n\t\t\t\"This submodules contains the means for handling deeps nested reactivity.\",\n\t\timage: defaultImage,",
+          "matches": [
+            {
+              "indices": [
+                11,
+                18
+              ],
+              "text": "SolidJs"
+            },
+            {
+              "indices": [
+                53,
+                60
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                136,
+                143
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                164,
+                175
+              ],
+              "text": "createstore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Uvacoder/framework.deb/blob/451b8cd25420160e7e1106ee8e64a3d5693b51be/packages/site/src/data/solidjs/libraries.ts"
+    },
+    {
+      "path": "src/stores/cache.ts",
+      "repository": "Vexcited/SolidCord",
+      "score": 1,
+      "stars": 27,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/585246340/contents/src/stores/cache.ts?ref=50fcef1498c3ffe1afd88d26c688bfc3124913d3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { type SetStoreFunction, createStore } from \"solid-js/store\";\nimport { createSignal } from \"solid-js\";\nimport { useParams } from \"@solidjs/router\";\n\nimport type { OpDispatchReady } from \"@/websockets/gateway/types\";\nimport type { CacheUser } from \"@/types/cache\";\nimport type { User } from \"@/types/discord/user\";",
+          "matches": [
+            {
+              "indices": [
+                32,
+                43
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                138,
+                145
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Vexcited/SolidCord/blob/50fcef1498c3ffe1afd88d26c688bfc3124913d3/src/stores/cache.ts"
+    },
+    {
+      "path": "projects/solid-forms/src/form-group.ts",
+      "repository": "jorroll/solid-forms",
+      "score": 1,
+      "stars": 70,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/498693824/contents/projects/solid-forms/src/form-group.ts?ref=9c5c0bf36b678894f2030410508c428e84b512fd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from './abstract-control-base';\nimport { createStore, produce, SetStoreFunction, Store } from 'solid-js/store';\nimport { Accessor, createMemo } from 'solid-js';",
+          "matches": [
+            {
+              "indices": [
+                43,
+                54
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/498693824/contents/projects/solid-forms/src/form-group.ts?ref=9c5c0bf36b678894f2030410508c428e84b512fd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport const FormGroupInterface = '@@FormGroupInterface_solidjs';\n",
+          "matches": [
+            {
+              "indices": [
+                57,
+                64
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jorroll/solid-forms/blob/9c5c0bf36b678894f2030410508c428e84b512fd/projects/solid-forms/src/form-group.ts"
+    },
+    {
+      "path": "src/content-script/popup-store.ts",
+      "repository": "dvdvdmt/popup-tab-switcher",
+      "score": 1,
+      "stars": 96,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/159941087/contents/src/content-script/popup-store.ts?ref=29d827ab92c999ed7055bfac2815f679669d725b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "export function createPopupStore() {\n  const [store, setStore] = createStore<IStore>({\n    tabs: [],",
+          "matches": [
+            {
+              "indices": [
+                65,
+                76
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/159941087/contents/src/content-script/popup-store.ts?ref=29d827ab92c999ed7055bfac2815f679669d725b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    })\n    // This makes DOM updates efficient https://github.com/solidjs/solid/discussions/366#discussioncomment-5004420\n    setStore('settings', reconcile(model.settings))",
+          "matches": [
+            {
+              "indices": [
+                66,
+                73
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/dvdvdmt/popup-tab-switcher/blob/29d827ab92c999ed7055bfac2815f679669d725b/src/content-script/popup-store.ts"
+    },
+    {
+      "path": "packages/solid/src/utils/routing.ts",
+      "repository": "swordev/dreamkit",
+      "score": 1,
+      "stars": 11,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/873282733/contents/packages/solid/src/utils/routing.ts?ref=26de87b5f49e7d9e7a9f900dda53653fb364f376",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  createJsonSearchParams,\n  prettySearchParams,\n} from \"@dreamkit/utils/search-params.js\";\nimport type { NavigateOptions } from \"@solidjs/router\";\nimport { onCleanup } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { isServer } from \"solid-js/web\";",
+          "matches": [
+            {
+              "indices": [
+                130,
+                137
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                194,
+                205
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/swordev/dreamkit/blob/26de87b5f49e7d9e7a9f900dda53653fb364f376/packages/solid/src/utils/routing.ts"
+    },
+    {
+      "path": "packages/frontend/src/api/document.ts",
+      "repository": "ToposInstitute/CatColab",
+      "score": 1,
+      "stars": 128,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/776557283/contents/packages/frontend/src/api/document.ts?ref=814bfc72ac957e7e1d0972c5b2b7d4eded072fef",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n    const [store, setStore] = createStore<T>(init as T);\n",
+          "matches": [
+            {
+              "indices": [
+                31,
+                42
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/776557283/contents/packages/frontend/src/api/document.ts?ref=814bfc72ac957e7e1d0972c5b2b7d4eded072fef",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    const onChange = (payload: DocHandleChangePayload<T>) => {\n        // Use [`reconcile`](https://www.solidjs.com/tutorial/stores_immutable)\n        // function to diff the data and thus avoid re-rendering the whole DOM.",
+          "matches": [
+            {
+              "indices": [
+                104,
+                111
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ToposInstitute/CatColab/blob/814bfc72ac957e7e1d0972c5b2b7d4eded072fef/packages/frontend/src/api/document.ts"
+    },
+    {
+      "path": "internal/web/src/providers/session.ts",
+      "repository": "ItsNotGoodName/ipcmanview",
+      "score": 1,
+      "stars": 6,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/671446175/contents/internal/web/src/providers/session.ts?ref=72e33f6f9b0d5d00a1f4661ef434b845b2b72c75",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { makePersisted } from \"@solid-primitives/storage\"\nimport { cache } from \"@solidjs/router\"\nimport { createStore } from \"solid-js/store\"\n\nexport type Session = {\n  valid: boolean\n  username: string",
+          "matches": [
+            {
+              "indices": [
+                82,
+                89
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                107,
+                118
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ItsNotGoodName/ipcmanview/blob/72e33f6f9b0d5d00a1f4661ef434b845b2b72c75/internal/web/src/providers/session.ts"
+    },
+    {
+      "path": "src/components/util/selection.ts",
+      "repository": "echab/JA-Tennis",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/517415/contents/src/components/util/selection.ts?ref=5d7c954e4b1f0f59334c4f53df6f834d48f01a68",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { useParams } from \"@solidjs/router\";\nimport { createStore, produce } from \"solid-js/store\";\nimport type { Draw, Match, PlayerIn } from \"../../domain/draw\";\nimport type { Player } from \"../../domain/player\";\nimport type { Place, TEvent, Tournament } from \"../../domain/tournament\";\nimport type { DrawProblem, PlayerProblem } from \"../../domain/validation\";\nimport { groupFindQ, isMatch } from \"../../services/drawService\";",
+          "matches": [
+            {
+              "indices": [
+                28,
+                35
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                54,
+                65
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/echab/JA-Tennis/blob/5d7c954e4b1f0f59334c4f53df6f834d48f01a68/src/components/util/selection.ts"
+    },
+    {
+      "path": "packages/solidjs/src/database.ts",
+      "repository": "joris-gallot/zorm",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/957513131/contents/packages/solidjs/src/database.ts?ref=0c8c21d9e3aec85ef27b0d0b8a871c4adc825263",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport class SolidjsDatabase implements ZormDatabase {\n  private store: [Record<string, Record<string, ObjectWithId>>, SetStoreFunction<Record<string, Record<string, ObjectWithId>>>]",
+          "matches": [
+            {
+              "indices": [
+                14,
+                21
+              ],
+              "text": "Solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/957513131/contents/packages/solidjs/src/database.ts?ref=0c8c21d9e3aec85ef27b0d0b8a871c4adc825263",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  constructor({ localStorage: isLocalStorage = false }: SolidjsDatabaseOptions = {}) {\n    this.store = createStore<Record<string, Record<string, ObjectWithId>>>({})\n    this.setStore = this.store[1]",
+          "matches": [
+            {
+              "indices": [
+                56,
+                63
+              ],
+              "text": "Solidjs"
+            },
+            {
+              "indices": [
+                104,
+                115
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/joris-gallot/zorm/blob/0c8c21d9e3aec85ef27b0d0b8a871c4adc825263/packages/solidjs/src/database.ts"
+    },
+    {
+      "path": "src/components/popups/newMedia.ts",
+      "repository": "morethanwords/tweb",
+      "score": 1,
+      "stars": 2338,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/popups/newMedia.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {render} from 'solid-js/web';\nimport {createStore} from 'solid-js/store';\n",
+          "matches": [
+            {
+              "indices": [
+                45,
+                56
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/popups/newMedia.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {IS_MOBILE} from '../../environment/userAgent';\nimport SolidJSHotReloadGuardProvider from '../../lib/solidjs/hotReloadGuardProvider';\nimport throttle from '../../helpers/schedulers/throttle';",
+          "matches": [
+            {
+              "indices": [
+                62,
+                69
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                108,
+                115
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/morethanwords/tweb/blob/2071f286df0737b223da54001a501dd904c47117/src/components/popups/newMedia.ts"
+    },
+    {
+      "path": "client/src/stores/terminal.ts",
+      "repository": "billchurch/webssh2_client",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/830507959/contents/client/src/stores/terminal.ts?ref=34830a0fe621f12106703a2674af45c00eb01bf5",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// SolidJS State Management for WebSSH2 Client\nimport { createStore } from 'solid-js/store'\nimport { createSignal } from 'solid-js'\nimport createDebug from 'debug'\n\nconst debug = createDebug('webssh2-client:state-solid')\n",
+          "matches": [
+            {
+              "indices": [
+                3,
+                10
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                56,
+                67
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/billchurch/webssh2_client/blob/34830a0fe621f12106703a2674af45c00eb01bf5/client/src/stores/terminal.ts"
+    },
+    {
+      "path": "src/store/common.ts",
+      "repository": "cuixiaorui/solidjs-real-world",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/547906443/contents/src/store/common.ts?ref=1d96528c1f40f8a4be283c48dc8c296b96fde449",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "}\nconst [state, setState] = createStore({\n  count: 0,",
+          "matches": [
+            {
+              "indices": [
+                28,
+                39
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/547906443/contents/src/store/common.ts?ref=1d96528c1f40f8a4be283c48dc8c296b96fde449",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  token: localStorage.getItem(\"Token\") || \"\",\n  appName: \"cxr-solidjs-real-world\",\n  currentUser: { username: \"\" },",
+          "matches": [
+            {
+              "indices": [
+                62,
+                69
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/cuixiaorui/solidjs-real-world/blob/1d96528c1f40f8a4be283c48dc8c296b96fde449/src/store/common.ts"
+    },
+    {
+      "path": "src/hooks/useForm.ts",
+      "repository": "tendant/simple-idm-solid",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1088161402/contents/src/hooks/useForm.ts?ref=2c5d6b5ae945ba2c762e6f034c68c7c90c16a9b6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "/**\n * useForm hook - Simple form state management for SolidJS\n */\nimport { createStore } from 'solid-js/store';\nimport { createSignal } from 'solid-js';\n\nexport type ValidationRule<T> = (value: T) => string | undefined;",
+          "matches": [
+            {
+              "indices": [
+                55,
+                62
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                76,
+                87
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/tendant/simple-idm-solid/blob/2c5d6b5ae945ba2c762e6f034c68c7c90c16a9b6/src/hooks/useForm.ts"
+    },
+    {
+      "path": "examples/astro-solid-router/src/app/data/useLoader.ts",
+      "repository": "TanStack/bling",
+      "score": 1,
+      "stars": 1503,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/604841634/contents/examples/astro-solid-router/src/app/data/useLoader.ts?ref=62703ba3d204a0315ef6043d0f59c5b70c27e73d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  useContext,\n} from 'solid-js'\nimport type { ReconcileOptions } from 'solid-js/store'\nimport { createStore, reconcile, unwrap } from 'solid-js/store'\nimport { isServer } from 'solid-js/web'\nimport { useNavigate } from '@solidjs/router'\nimport { isRedirectResponse, LocationHeader } from '@tanstack/bling'",
+          "matches": [
+            {
+              "indices": [
+                96,
+                107
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                221,
+                228
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/TanStack/bling/blob/62703ba3d204a0315ef6043d0f59c5b70c27e73d/examples/astro-solid-router/src/app/data/useLoader.ts"
+    },
+    {
+      "path": "app.config.ts",
+      "repository": "devagrawal09/solid-next-docs",
+      "score": 1,
+      "stars": 11,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/970009382/contents/app.config.ts?ref=bb9dbcb93c0456abc92a0f3394e834368fe1c04a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { defineConfig } from \"@solidjs/start/config\";\nimport { withSolidBase } from \"@kobalte/solidbase/config\";\n",
+          "matches": [
+            {
+              "indices": [
+                31,
+                38
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/970009382/contents/app.config.ts?ref=bb9dbcb93c0456abc92a0f3394e834368fe1c04a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "              {\n                title: \"createStore\",\n                link: \"/stores/createStore\",",
+          "matches": [
+            {
+              "indices": [
+                40,
+                51
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                85,
+                96
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/devagrawal09/solid-next-docs/blob/bb9dbcb93c0456abc92a0f3394e834368fe1c04a/app.config.ts"
+    },
+    {
+      "path": ".backup/20251114_031649/libraries/solid-js.ts",
+      "repository": "SylphxAI/benchmark",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1090582962/contents/.backup/20251114_031649/libraries/solid-js.ts?ref=dc98730ec0887db30e802e9c6c89c0c0dbad554a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  description: 'Fine-grained reactivity primitive from Solid.js for building performant UIs',\n\n  setup: {\n    createStore: () => {\n      // Basic counter signal\n      const [getCounter, setCounter] = createSignal(0);\n",
+          "matches": [
+            {
+              "indices": [
+                110,
+                121
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/SylphxAI/benchmark/blob/dc98730ec0887db30e802e9c6c89c0c0dbad554a/.backup/20251114_031649/libraries/solid-js.ts"
+    },
+    {
+      "path": "public/eleventy-cherries-support/solid-js/store/types/store.d.ts",
+      "repository": "chee/cherries",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/916895101/contents/public/eleventy-cherries-support/solid-js/store/types/store.d.ts?ref=50ff92fd0097cc5d4a85c52a3c406cd9e7b98176",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * @description https://docs.solidjs.com/reference/store-utilities/create-store\n */\nexport declare function createStore<T extends object = {}>(\n  ...[store, options]: {} extends T\n    ? [\n        store?: T | Store<T>,",
+          "matches": [
+            {
+              "indices": [
+                32,
+                39
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                111,
+                122
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/chee/cherries/blob/50ff92fd0097cc5d4a85c52a3c406cd9e7b98176/public/eleventy-cherries-support/solid-js/store/types/store.d.ts"
+    },
+    {
+      "path": "src/createPluginBus.ts",
+      "repository": "dsnchz/solid-uplot",
+      "score": 1,
+      "stars": 15,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/982918254/contents/src/createPluginBus.ts?ref=bbfd57a03670da80e1c930565dcbd47c3dcffcf4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "): PluginStore<T> => {\n  const [data, setData] = createStore<T>(initialData);\n  return { data, setData };",
+          "matches": [
+            {
+              "indices": [
+                49,
+                60
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/982918254/contents/src/createPluginBus.ts?ref=bbfd57a03670da80e1c930565dcbd47c3dcffcf4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * This allows plugins to communicate with each other and share state reactively through\n * the SolidJS store system. Plugin factories receive a context object containing the\n * plugin bus and return a standard uPlot plugin.",
+          "matches": [
+            {
+              "indices": [
+                96,
+                103
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/dsnchz/solid-uplot/blob/bbfd57a03670da80e1c930565dcbd47c3dcffcf4/src/createPluginBus.ts"
+    },
+    {
+      "path": "src/store/storeContext.ts",
+      "repository": "stevej2608/solid-realworld",
+      "score": 1,
+      "stars": 19,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/656120564/contents/src/store/storeContext.ts?ref=40dab237fef29f03d1af67156d437c6c15eb2ccc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n  const [state, setState] = createStore<IStoreState>({\n",
+          "matches": [
+            {
+              "indices": [
+                29,
+                40
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/656120564/contents/src/store/storeContext.ts?ref=40dab237fef29f03d1af67156d437c6c15eb2ccc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  // Instantiate all the resource stores. Each of these functions\n  // returns an instance of a solidJS resource state that is updated\n  // by machinery embedded in the function that accesses the associated server API",
+          "matches": [
+            {
+              "indices": [
+                96,
+                103
+              ],
+              "text": "solidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/stevej2608/solid-realworld/blob/40dab237fef29f03d1af67156d437c6c15eb2ccc/src/store/storeContext.ts"
+    },
+    {
+      "path": "src/features/auth/useAuth.ts",
+      "repository": "reg00/stuffy-frontend-solid",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/591718223/contents/src/features/auth/useAuth.ts?ref=55962e907ec6dd3474c94d94802456ddf992a7e6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  Suspense,\n  useContext,\n} from 'solid-js'\nimport { useNavigate } from '@solidjs/router'\nimport { createStore } from 'solid-js/store'\nimport api, { instance } from '../../api/api'\nimport {",
+          "matches": [
+            {
+              "indices": [
+                74,
+                81
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                99,
+                110
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/reg00/stuffy-frontend-solid/blob/55962e907ec6dd3474c94d94802456ddf992a7e6/src/features/auth/useAuth.ts"
+    },
+    {
+      "path": "web/src/lib/use_records_live.ts",
+      "repository": "ycysdf/tracing-live",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/907041309/contents/web/src/lib/use_records_live.ts?ref=23da9e1e5d32d2af047efe120f6723c70100c5c6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from \"solid-js\";\nimport qs from \"qs\";\nimport {TracingTreeFilter} from \"~/routes/traces\";\nimport {createAsync} from \"@solidjs/router\";\nimport {createStore, produce, reconcile, unwrap} from \"solid-js/store\";\n\nexport interface RecordsTreeData {",
+          "matches": [
+            {
+              "indices": [
+                119,
+                126
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                144,
+                155
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ycysdf/tracing-live/blob/23da9e1e5d32d2af047efe120f6723c70100c5c6/web/src/lib/use_records_live.ts"
+    },
+    {
+      "path": "app/stores/user.ts",
+      "repository": "00-team/ilia",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/678008394/contents/app/stores/user.ts?ref=715257011574a5f3cbaa6274f6e3bad2fe0b0bcc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { RouteDataFunc } from '@solidjs/router'\nimport { Resource, createResource } from 'solid-js'\nimport { createStore } from 'solid-js/store'\n\nconst AP = {\n    MASTER: 1n << 0n,\n",
+          "matches": [
+            {
+              "indices": [
+                32,
+                39
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                109,
+                120
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/00-team/ilia/blob/715257011574a5f3cbaa6274f6e3bad2fe0b0bcc/app/stores/user.ts"
+    },
+    {
+      "path": "src/stores/github.ts",
+      "repository": "pedro00dk/pedro00dk.github.io",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/736479973/contents/src/stores/github.ts?ref=965355c2c6c9bb1bd79103e004606dd791b7d090",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { cache } from '@solidjs/router'\nimport { createStore } from 'solid-js/store'\n\nexport type Owner = {\n    type: string\n    login: string\n    avatar_url: string",
+          "matches": [
+            {
+              "indices": [
+                24,
+                31
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                49,
+                60
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/pedro00dk/pedro00dk.github.io/blob/965355c2c6c9bb1bd79103e004606dd791b7d090/src/stores/github.ts"
+    },
+    {
+      "path": "packages/coli-naming/reserved/reserved-keywords.ts",
+      "repository": "gridaco/CoLI",
+      "score": 1,
+      "stars": 18,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/300628290/contents/packages/coli-naming/reserved/reserved-keywords.ts?ref=cfde3cf8ac5ce15ea8ce9fe51c834a50c3828de5",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " */\nconst solidjs = [\n  \"createSignal\",",
+          "matches": [
+            {
+              "indices": [
+                10,
+                17
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/300628290/contents/packages/coli-naming/reserved/reserved-keywords.ts?ref=cfde3cf8ac5ce15ea8ce9fe51c834a50c3828de5",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  \"indexArray\",\n  \"createStore\",\n  \"StoreNode\",",
+          "matches": [
+            {
+              "indices": [
+                19,
+                30
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/gridaco/CoLI/blob/cfde3cf8ac5ce15ea8ce9fe51c834a50c3828de5/packages/coli-naming/reserved/reserved-keywords.ts"
+    },
+    {
+      "path": "src/app/utils/dataStore.ts",
+      "repository": "f3liz-dev/koro-i18n",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1091462000/contents/src/app/utils/dataStore.ts?ref=1fa4a195f3818901325d761670ebe4f4502d8b97",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "/**\n * Centralized data store for caching API responses using SolidJS createStore.\n * \n * This provides instant data access when cached, avoiding loading states and skeleton loaders.\n * Data is fetched in the background and the store is updated when fresh data arrives.\n * \n * On page reload, data is fetched with cache bypass to ensure freshness.",
+          "matches": [
+            {
+              "indices": [
+                62,
+                69
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                70,
+                81
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/f3liz-dev/koro-i18n/blob/1fa4a195f3818901325d761670ebe4f4502d8b97/src/app/utils/dataStore.ts"
+    },
+    {
+      "path": "solid-todo/src/store/todoStore.ts",
+      "repository": "Hokaiii/Solid-Todo",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1027850632/contents/solid-todo/src/store/todoStore.ts?ref=b0d3923afabccab82eef434b3ff42e564e4f1677",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { STORAGE_KEYS, DEFAULTS, TODO_STATUSES, TODO_CATEGORIES } from '../constants';\nimport { sampleTodos } from '../data/sampleTodos';\n\n// Store pour les todos avec createStore de SolidJS\nconst [todoStore, setTodoStore] = createStore({\n  todos: [] as Todo[],\n  loading: true,",
+          "matches": [
+            {
+              "indices": [
+                168,
+                179
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                183,
+                190
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                225,
+                236
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Hokaiii/Solid-Todo/blob/b0d3923afabccab82eef434b3ff42e564e4f1677/solid-todo/src/store/todoStore.ts"
+    },
+    {
+      "path": "src/features/theme/context.ts",
+      "repository": "chris-kruining/streamarr",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/851328889/contents/src/features/theme/context.ts?ref=49bd1abe7995f678689d400060ba7dabe6ab2dc2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  createContextProvider,\n} from \"@solid-primitives/context\";\nimport { action, createAsyncStore, query, useAction } from \"@solidjs/router\";\nimport { createStore } from \"solid-js/store\";\nimport { useSession } from \"vinxi/http\";\n\nexport enum ColorScheme {",
+          "matches": [
+            {
+              "indices": [
+                122,
+                129
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                148,
+                159
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/chris-kruining/streamarr/blob/49bd1abe7995f678689d400060ba7dabe6ab2dc2/src/features/theme/context.ts"
+    },
+    {
+      "path": "packages/solid/src/store/index.ts",
+      "repository": "circonomit/solid-flow",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1007269319/contents/packages/solid/src/store/index.ts?ref=627c8f829ae968fcbbbb8e01170e43a38bd7d5d0",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from \"../utils/changes\";\nimport getInitialState from \"./initialState\";\n\nconst createStore = ({\n\tnodes,\n\tedges,\n\tdefaultNodes,",
+          "matches": [
+            {
+              "indices": [
+                80,
+                91
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/circonomit/solid-flow/blob/627c8f829ae968fcbbbb8e01170e43a38bd7d5d0/packages/solid/src/store/index.ts"
+    },
+    {
+      "path": "src/use-resize-observer/use-resize-observer.ts",
+      "repository": "Blankeos/bagon-hooks",
+      "score": 1,
+      "stars": 10,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/864688907/contents/src/use-resize-observer/use-resize-observer.ts?ref=694d6c60995897f626dbabc656d0a87a1b5eb829",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  /**\n   * SolidJS stores always need a deeper object for the 'setter' and 'reconcile' to work,\n   * hence why I wrapped it in { rect: ObserverRect }. When originally, it sohuld just be `ObserverRect`.",
+          "matches": [
+            {
+              "indices": [
+                11,
+                18
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/864688907/contents/src/use-resize-observer/use-resize-observer.ts?ref=694d6c60995897f626dbabc656d0a87a1b5eb829",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "   */\n  const [rectStore, setRectStore] = createStore<{ rect: ObserverRect }>({ rect: defaultState });\n",
+          "matches": [
+            {
+              "indices": [
+                42,
+                53
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Blankeos/bagon-hooks/blob/694d6c60995897f626dbabc656d0a87a1b5eb829/src/use-resize-observer/use-resize-observer.ts"
+    },
+    {
+      "path": "src/store-ref.ts",
+      "repository": "frostime/solid-signal-ref",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/870136075/contents/src/store-ref.ts?ref=be9208673d77ea77b946ce9b3a816bafbe2a0181",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// 实现对 solid 的 store 的 ref 的封装\nimport { createStore, type Store, type SetStoreFunction, unwrap } from \"solid-js/store\";\n",
+          "matches": [
+            {
+              "indices": [
+                56,
+                67
+              ],
+              "text": "e Store, ty"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/870136075/contents/src/store-ref.ts?ref=be9208673d77ea77b946ce9b3a816bafbe2a0181",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n    // The result of Accessor<T>, with proxy from solidjs\n    value: T;",
+          "matches": [
+            {
+              "indices": [
+                51,
+                58
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/frostime/solid-signal-ref/blob/be9208673d77ea77b946ce9b3a816bafbe2a0181/src/store-ref.ts"
+    },
+    {
+      "path": "src/chat.solid.ts",
+      "repository": "Rajaniraiyn/ai-sdk-solid",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1049311894/contents/src/chat.solid.ts?ref=5283d7b7ab9e0e32cc3c0d1f3b7999b086fcfbf9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\tconstructor(messages: UI_MESSAGE[] = []) {\n\t\t[this.#store, this.#setStore] = createStore<{\n\t\t\tmessages: UI_MESSAGE[];",
+          "matches": [
+            {
+              "indices": [
+                78,
+                89
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1049311894/contents/src/chat.solid.ts?ref=5283d7b7ab9e0e32cc3c0d1f3b7999b086fcfbf9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t * Deeply clones plain arrays/objects while stripping all symbol-keyed properties\n\t * (e.g. SolidJS internals: $RAW/$PROXY/$TRACK/$NODE/$HAS/$SELF/$ROOT) by copying\n\t * only own enumerable string keys. Cycle-safe via WeakMap. Optimized for speed.",
+          "matches": [
+            {
+              "indices": [
+                93,
+                100
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Rajaniraiyn/ai-sdk-solid/blob/5283d7b7ab9e0e32cc3c0d1f3b7999b086fcfbf9/src/chat.solid.ts"
+    },
+    {
+      "path": "src/solid.ts",
+      "repository": "overthemike/ripplio",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1047328418/contents/src/solid.ts?ref=ac14349ffdffb47fddf7bc98fe92336f140a247c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\treturn [snapshotSignal]\n}\n\n// Utility to create a reactive store-like object (similar to SolidJS createStore but backed by ripplio)\nexport function createSnapshotStore<T extends object>(state: T) {\n\tconst store = getStoreFor(state)\n\tconst componentId = Symbol(\"solid-snapshot-store\")",
+          "matches": [
+            {
+              "indices": [
+                90,
+                97
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                98,
+                109
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/overthemike/ripplio/blob/ac14349ffdffb47fddf7bc98fe92336f140a247c/src/solid.ts"
+    },
+    {
+      "path": "src/stores/tabStore.ts",
+      "repository": "Chanseok/rMatterCertis",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1009976316/contents/src/stores/tabStore.ts?ref=caac1640ddfa83a89efab524996a1b17aefe9ffc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * Tab Store - 새로운 탭 기반 UI를 위한 상태 관리\n * SolidJS-UI-Implementation-Guide.md를 기반으로 구현\n */",
+          "matches": [
+            {
+              "indices": [
+                66,
+                73
+              ],
+              "text": "Guide.m"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1009976316/contents/src/stores/tabStore.ts?ref=caac1640ddfa83a89efab524996a1b17aefe9ffc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nimport { createStore } from 'solid-js/store';\nimport { windowState } from './windowStore';",
+          "matches": [
+            {
+              "indices": [
+                10,
+                21
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Chanseok/rMatterCertis/blob/caac1640ddfa83a89efab524996a1b17aefe9ffc/src/stores/tabStore.ts"
+    },
+    {
+      "path": "src/tuiExample/main.ts",
+      "repository": "SikongJueluo/cc-utils",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1075872701/contents/src/tuiExample/main.ts?ref=66b46c6d7051a558d0db7df6831b462523f4dc33",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * Example using the new ccTUI framework with reactive components\n * Demonstrates the SolidJS-inspired API\n */",
+          "matches": [
+            {
+              "indices": [
+                86,
+                93
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1075872701/contents/src/tuiExample/main.ts?ref=66b46c6d7051a558d0db7df6831b462523f4dc33",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  For,\n  createStore,\n  removeIndex,",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/SikongJueluo/cc-utils/blob/66b46c6d7051a558d0db7df6831b462523f4dc33/src/tuiExample/main.ts"
+    },
+    {
+      "path": "src/modules/home/components/HomeClock/useHomeClock.hook.ts",
+      "repository": "rifandani/solid-app",
+      "score": 1,
+      "stars": 14,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/521826063/contents/src/modules/home/components/HomeClock/useHomeClock.hook.ts?ref=c928a8da45aae490881eccb631b8d01079652fce",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createAutoAnimate } from '@formkit/auto-animate/solid';\nimport { shuffle } from '@rifandani/nxact-yutiriti';\nimport { useI18n } from '@shared/hooks/usei18n/usei18n.hook';\nimport { useNavigate } from '@solidjs/router';\nimport { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';\nimport { createStore } from 'solid-js/store';\n",
+          "matches": [
+            {
+              "indices": [
+                210,
+                217
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                314,
+                325
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/rifandani/solid-app/blob/c928a8da45aae490881eccb631b8d01079652fce/src/modules/home/components/HomeClock/useHomeClock.hook.ts"
+    },
+    {
+      "path": "frontend/src/weightForm.ts",
+      "repository": "Ebrahimgreat/personalTrainerApp",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/967912987/contents/frontend/src/weightForm.ts?ref=dc4e8c885bfcbcfbc6ffa65d1bb14aca1548d5fc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\";\nimport { useAuth } from \"clerk-solidjs\";\ntype FormField={\n    created_at:string,\n    scaleWeight:number\n    \n};",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                77,
+                84
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Ebrahimgreat/personalTrainerApp/blob/dc4e8c885bfcbcfbc6ffa65d1bb14aca1548d5fc/frontend/src/weightForm.ts"
+    },
+    {
+      "path": "src/state/playStore.ts",
+      "repository": "noahpodgurski/MeleeGuessr",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/481800768/contents/src/state/playStore.ts?ref=0107237fb94e1f0b852b772115b81be78c634c7e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nimport { createStore } from \"solid-js/store\";\nimport toast from \"solid-toast\";",
+          "matches": [
+            {
+              "indices": [
+                10,
+                21
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/481800768/contents/src/state/playStore.ts?ref=0107237fb94e1f0b852b772115b81be78c634c7e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { useLoader } from \"~/components/common/Loader\";\nimport { Navigator } from \"@solidjs/router\";\nimport { setLoaderIsHexType } from \"~/components/Loader\";",
+          "matches": [
+            {
+              "indices": [
+                84,
+                91
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/noahpodgurski/MeleeGuessr/blob/0107237fb94e1f0b852b772115b81be78c634c7e/src/state/playStore.ts"
+    },
+    {
+      "path": "src/app/stores/data/tokenPrice/useTokenPrice.ts",
+      "repository": "edsolater/shears",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/600792043/contents/src/app/stores/data/tokenPrice/useTokenPrice.ts?ref=b59c3dbdd86a752bd4e861a3cadaac0ae7b818d7",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * turn a short info (only tokenPrice'mint) into rich\n * whether loaded or not, it will return a tokenPrice (even emptyTokenPrice)\n *\n * it use solidjs's createStore to store a object data\n */\n\nexport function useTokenPrice(params?: Tokenable): Accessor<Price | undefined> {",
+          "matches": [
+            {
+              "indices": [
+                144,
+                151
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                154,
+                165
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/edsolater/shears/blob/b59c3dbdd86a752bd4e861a3cadaac0ae7b818d7/src/app/stores/data/tokenPrice/useTokenPrice.ts"
+    },
+    {
+      "path": "internal/web/src/pages/data.ts",
+      "repository": "ItsNotGoodName/ipcmanview",
+      "score": 1,
+      "stars": 6,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/671446175/contents/internal/web/src/pages/data.ts?ref=72e33f6f9b0d5d00a1f4661ef434b845b2b72c75",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { makePersisted } from \"@solid-primitives/storage\"\nimport { cache } from \"@solidjs/router\"\nimport { createStore } from \"solid-js/store\"\nimport { useClient } from \"~/providers/client\"\nimport { GetConfigResp } from \"~/twirp/rpc\"\n\n// HACK: this allows App.tsx to switch routes",
+          "matches": [
+            {
+              "indices": [
+                82,
+                89
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                107,
+                118
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ItsNotGoodName/ipcmanview/blob/72e33f6f9b0d5d00a1f4661ef434b845b2b72c75/internal/web/src/pages/data.ts"
+    },
+    {
+      "path": "old/src/components/hook/todo-hook.ts",
+      "repository": "0-don/coding.global-web",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/621855346/contents/old/src/components/hook/todo-hook.ts?ref=19cd8f36d7bd8a302b762108c7b3036030a182ee",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Create } from \"@sinclair/typebox/value\";\nimport { query } from \"@solidjs/router\";\nimport {",
+          "matches": [
+            {
+              "indices": [
+                74,
+                81
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/621855346/contents/old/src/components/hook/todo-hook.ts?ref=19cd8f36d7bd8a302b762108c7b3036030a182ee",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from \"@tanstack/solid-query\";\nimport { createStore } from \"solid-js/store\";\nimport { toast } from \"solid-sonner\";",
+          "matches": [
+            {
+              "indices": [
+                41,
+                52
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/0-don/coding.global-web/blob/19cd8f36d7bd8a302b762108c7b3036030a182ee/old/src/components/hook/todo-hook.ts"
+    },
+    {
+      "path": "assets/pages/login/useLogin.ts",
+      "repository": "ekastn/DMHI-platform",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/885330612/contents/assets/pages/login/useLogin.ts?ref=2eb035383a8afb949e9c70ef86efd79c652ed4bf",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { useNavigate } from \"@solidjs/router\";\nimport { isAxiosError } from \"axios\";\nimport { createSignal } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { useAuth } from \"../../context/AuthContext\";\nimport { APIResponseType } from \"../../types/api\";\nimport { FormSubmitEventType, InputEventType } from \"../../types/events\";",
+          "matches": [
+            {
+              "indices": [
+                30,
+                37
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                135,
+                146
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ekastn/DMHI-platform/blob/2eb035383a8afb949e9c70ef86efd79c652ed4bf/assets/pages/login/useLogin.ts"
+    },
+    {
+      "path": "packages/web/components/checkbox/useCheckbox.ts",
+      "repository": "Sax-Yusuph/arco-design-solid",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/739517961/contents/packages/web/components/checkbox/useCheckbox.ts?ref=a65fd6cbd4a0675e394938621c48da5d96650ef6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore, reconcile } from 'solid-js/store'\nimport { toValue } from 'solidjs-use'\nimport { isArray } from '../../utils/is'\n\nexport type ResultType<T> = [\n  /** 当前选中项 */\n  selected: T[],",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                81,
+                88
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Sax-Yusuph/arco-design-solid/blob/a65fd6cbd4a0675e394938621c48da5d96650ef6/packages/web/components/checkbox/useCheckbox.ts"
+    },
+    {
+      "path": "packages/solid-query/src/useBaseQuery.ts",
+      "repository": "TanStack/query",
+      "score": 1,
+      "stars": 47529,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/207645083/contents/packages/solid-query/src/useBaseQuery.ts?ref=8b387341eb8e5ce6447b55023c724c76747d4f00",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const [state, setState] =\n    createStore<QueryObserverResult<TData, TError>>(observerResult)\n",
+          "matches": [
+            {
+              "indices": [
+                32,
+                43
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/207645083/contents/packages/solid-query/src/useBaseQuery.ts?ref=8b387341eb8e5ce6447b55023c724c76747d4f00",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "       *\n       * Leveraging onHydrated allows us to plug into the async and streaming support that solidjs resources already support.\n       *",
+          "matches": [
+            {
+              "indices": [
+                100,
+                107
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/TanStack/query/blob/8b387341eb8e5ce6447b55023c724c76747d4f00/packages/solid-query/src/useBaseQuery.ts"
+    },
+    {
+      "path": "assets/pages/story/useStory.ts",
+      "repository": "ekastn/DMHI-platform",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/885330612/contents/assets/pages/story/useStory.ts?ref=2eb035383a8afb949e9c70ef86efd79c652ed4bf",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { useNavigate, useParams } from \"@solidjs/router\";\nimport { isAxiosError } from \"axios\";\nimport { createSignal, onMount } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { APIResponseType } from \"../../types/api\"; // Adjust import path as needed\nimport { catchError } from \"../../utils/common\"; // Utility function for error handling\nimport { readStoryApi, updateStoryApi, deleteStoryApi } from \"../../services/storyService\";",
+          "matches": [
+            {
+              "indices": [
+                41,
+                48
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                155,
+                166
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ekastn/DMHI-platform/blob/2eb035383a8afb949e9c70ef86efd79c652ed4bf/assets/pages/story/useStory.ts"
+    },
+    {
+      "path": "packages/start/src/middleware/createStorefrontMiddleware.ts",
+      "repository": "KookiKodes/solidifront",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/816073821/contents/packages/start/src/middleware/createStorefrontMiddleware.ts?ref=256ba138d6540102bb85f24aa8c4c78f8f393f53",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from \"@solidifront/storefront-client/effect\";\nimport type { FetchEvent } from \"@solidjs/start/server\";\n",
+          "matches": [
+            {
+              "indices": [
+                82,
+                89
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/816073821/contents/packages/start/src/middleware/createStorefrontMiddleware.ts?ref=256ba138d6540102bb85f24aa8c4c78f8f393f53",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nexport namespace createStorefrontMiddleware {\n\texport interface Config {",
+          "matches": [
+            {
+              "indices": [
+                18,
+                29
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/KookiKodes/solidifront/blob/256ba138d6540102bb85f24aa8c4c78f8f393f53/packages/start/src/middleware/createStorefrontMiddleware.ts"
+    },
+    {
+      "path": "packages/web/components/input/hooks/use-cursor.ts",
+      "repository": "Sax-Yusuph/arco-design-solid",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/739517961/contents/packages/web/components/input/hooks/use-cursor.ts?ref=a65fd6cbd4a0675e394938621c48da5d96650ef6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore, reconcile } from 'solid-js/store'\nimport { toValue } from 'solidjs-use'\n\n// Refer to Element Plus\nexport function useCursor(input: HTMLInputElement | undefined): [() => void, () => void] {\n  const [getSelectionRef, setSelectionRef] = createStore<{\n    selectionStart?: number",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                81,
+                88
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                256,
+                267
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Sax-Yusuph/arco-design-solid/blob/a65fd6cbd4a0675e394938621c48da5d96650ef6/packages/web/components/input/hooks/use-cursor.ts"
+    },
+    {
+      "path": "src/pages/Home/Home.data.ts",
+      "repository": "PrimalHQ/primal-studio-web",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/984225780/contents/src/pages/Home/Home.data.ts?ref=e7cab5e98f03feb8fb6b3d791867357d8583a991",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Params, query, RoutePreloadFuncArgs } from \"@solidjs/router\";\r\nimport { APP_ID } from \"../../App\";\r\nimport { pageStore, updatePageStore } from \"../../stores/PageStore\";\r",
+          "matches": [
+            {
+              "indices": [
+                54,
+                61
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/984225780/contents/src/pages/Home/Home.data.ts?ref=e7cab5e98f03feb8fb6b3d791867357d8583a991",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { batch } from \"solid-js\";\r\nimport { createStore } from \"solid-js/store\";\r\nimport { emptyStudioTotals, getHomeGraph, getHomeTotals, getTopEvents, HomePayload, StudioGraph, StudioTotals } from \"src/primal_api/studio\";\r",
+          "matches": [
+            {
+              "indices": [
+                44,
+                55
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/PrimalHQ/primal-studio-web/blob/e7cab5e98f03feb8fb6b3d791867357d8583a991/src/pages/Home/Home.data.ts"
+    },
+    {
+      "path": "packages/bluefish-solid/src/scenegraph.ts",
+      "repository": "bluefishjs/bluefish",
+      "score": 1,
+      "stars": 146,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/855993283/contents/packages/bluefish-solid/src/scenegraph.ts?ref=516ec19ed9e3226ec5d14b9dc3fb16c2e6307447",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { SetStoreFunction, createStore, produce } from \"solid-js/store\";\nimport { getLCAChainSuffixes } from \"./util/lca\";\nimport _ from \"lodash\";",
+          "matches": [
+            {
+              "indices": [
+                27,
+                38
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/855993283/contents/packages/bluefish-solid/src/scenegraph.ts?ref=516ec19ed9e3226ec5d14b9dc3fb16c2e6307447",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// Inspired by JSX tokenizer:\n// https://github.com/solidjs-community/solid-primitives/blob/199ddd6bd7f0e996cd48915c6ff910f6b8220989/packages/jsx-tokenizer/src/index.ts#L135\nexport const resolveScenegraphElements = (",
+          "matches": [
+            {
+              "indices": [
+                52,
+                59
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bluefishjs/bluefish/blob/516ec19ed9e3226ec5d14b9dc3fb16c2e6307447/packages/bluefish-solid/src/scenegraph.ts"
+    },
+    {
+      "path": "packages/core/benchmarks/core-comparison.bench.ts",
+      "repository": "commoncurriculum/supergrain",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1050130341/contents/packages/core/benchmarks/core-comparison.bench.ts?ref=b521a0897f4b74abe282f5593f8e26112e305ce4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { effect } from 'alien-signals'\n// Import browser builds explicitly to enable reactivity in Node.js\nimport { createRoot, createEffect, batch } from 'solid-js/dist/solid.js'\nimport { createStore as createSolidStore } from 'solid-js/store/dist/store.js'\nimport { testEffect } from '@solidjs/testing-library'\n\nfunction validationError(message: string) {",
+          "matches": [
+            {
+              "indices": [
+                189,
+                200
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                288,
+                295
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/commoncurriculum/supergrain/blob/b521a0897f4b74abe282f5593f8e26112e305ce4/packages/core/benchmarks/core-comparison.bench.ts"
+    },
+    {
+      "path": "packages/site/src/lib.ts",
+      "repository": "lukeshafer/snailyluke-cafe",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/749638737/contents/packages/site/src/lib.ts?ref=9b63bdd26a2d5cf7417864a88d0eb6d2ab7b1156",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { useLocation } from \"@solidjs/router\";\nimport { createEffect } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\n\nexport function createUrlStore<Defaults extends Record<string, string>>(\n\tdefaults: Defaults,\n) {",
+          "matches": [
+            {
+              "indices": [
+                30,
+                37
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                97,
+                108
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lukeshafer/snailyluke-cafe/blob/9b63bdd26a2d5cf7417864a88d0eb6d2ab7b1156/packages/site/src/lib.ts"
+    },
+    {
+      "path": "src/utils/createRefetchableAsync.ts",
+      "repository": "richardhadden/pangloss-interface_REDUNDANT",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/893898227/contents/src/utils/createRefetchableAsync.ts?ref=c88a38a595c18dbea83e89106efc1cddefa99808",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createResource, sharedConfig, untrack, type Accessor, type Setter } from \"solid-js\";\nimport { createStore, reconcile, unwrap, type ReconcileOptions } from \"solid-js/store\";\nimport { isServer } from \"solid-js/web\";",
+          "matches": [
+            {
+              "indices": [
+                103,
+                114
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/893898227/contents/src/utils/createRefetchableAsync.ts?ref=c88a38a595c18dbea83e89106efc1cddefa99808",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nimport { cache } from \"@solidjs/router\";\n",
+          "matches": [
+            {
+              "indices": [
+                25,
+                32
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/richardhadden/pangloss-interface_REDUNDANT/blob/c88a38a595c18dbea83e89106efc1cddefa99808/src/utils/createRefetchableAsync.ts"
+    },
+    {
+      "path": "src/components/sidebarRight/tabs/groupPermissions/index.ts",
+      "repository": "morethanwords/tweb",
+      "score": 1,
+      "stars": 2338,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/sidebarRight/tabs/groupPermissions/index.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import RangeStepsSelector from '../../../rangeStepsSelector';\nimport formatDuration from '../../../../helpers/formatDuration';\nimport {wrapFormattedDuration} from '../../../wrappers/wrapDuration';\nimport SolidJSHotReloadGuardProvider from '../../../../lib/solidjs/hotReloadGuardProvider';\nimport {createEffect, createRoot, createSignal} from 'solid-js';\nimport {createStore, unwrap} from 'solid-js/store';\nimport deepEqual from '../../../../helpers/object/deepEqual';",
+          "matches": [
+            {
+              "indices": [
+                204,
+                211
+              ],
+              "text": "SolidJS"
+            },
+            {
+              "indices": [
+                256,
+                263
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                362,
+                373
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/morethanwords/tweb/blob/2071f286df0737b223da54001a501dd904c47117/src/components/sidebarRight/tabs/groupPermissions/index.ts"
+    },
+    {
+      "path": "packages/web-components/src/components/hash-router/hooks/useRoutes.ts",
+      "repository": "devinatbryt/shopify-monorepo",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/819237284/contents/packages/web-components/src/components/hash-router/hooks/useRoutes.ts?ref=8fb6917c64301151c1776a5e30d2ad347b515b4a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { type RouteProps } from \"@solidjs/router\";\nimport { createStore } from \"solid-js/store\";\nimport {\n  type ICustomElement,\n  consume,\n  provide,\n  createContext,",
+          "matches": [
+            {
+              "indices": [
+                34,
+                41
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                60,
+                71
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/devinatbryt/shopify-monorepo/blob/8fb6917c64301151c1776a5e30d2ad347b515b4a/packages/web-components/src/components/hash-router/hooks/useRoutes.ts"
+    },
+    {
+      "path": "src/core/state/actions.ts",
+      "repository": "PsySecGroup/forge-client",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/843013361/contents/src/core/state/actions.ts?ref=545a4170c2cdc4366a883f192a9486d9a36af8d7",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *   - `get`: The current state (unused here, but could be used in other variants).\n *   - `set`: The SolidJS store setter function for updating state.\n *",
+          "matches": [
+            {
+              "indices": [
+                102,
+                109
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/843013361/contents/src/core/state/actions.ts?ref=545a4170c2cdc4366a883f192a9486d9a36af8d7",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * ```ts\n * const [state, setState] = createStore({ count: 0 })\n *",
+          "matches": [
+            {
+              "indices": [
+                38,
+                49
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/PsySecGroup/forge-client/blob/545a4170c2cdc4366a883f192a9486d9a36af8d7/src/core/state/actions.ts"
+    },
+    {
+      "path": "apps/client/src/routes/Game/game.store.ts",
+      "repository": "DogAndHerDude/cards-against",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/571143318/contents/apps/client/src/routes/Game/game.store.ts?ref=858e26ef5e9434851c5ee9f16798a32e212cd072",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// I'm just using this until I get the gist of the structure\n//  and a general understanding of SolidJS\nfunction createGameStore() {",
+          "matches": [
+            {
+              "indices": [
+                96,
+                103
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/571143318/contents/apps/client/src/routes/Game/game.store.ts?ref=858e26ef5e9434851c5ee9f16798a32e212cd072",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const [gameStage, setGameStage] = createSignal<GameStage>();\n  const [cards, setCards] = createStore<IWhiteCard[]>([]);\n  const [cardsInPlay, setCardsInPlay] = createSignal<string[][]>([]);",
+          "matches": [
+            {
+              "indices": [
+                91,
+                102
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/DogAndHerDude/cards-against/blob/858e26ef5e9434851c5ee9f16798a32e212cd072/apps/client/src/routes/Game/game.store.ts"
+    },
+    {
+      "path": "packages/solid/store/src/store.ts",
+      "repository": "thetarnav/slugger",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/458907663/contents/packages/solid/store/src/store.ts?ref=3a1a686c726bb5cb809e32bb9d4b6d8866ed44e2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * @description https://www.solidjs.com/docs/latest/api#createstore\n */\nexport function createStore<T extends StoreNode>(\n  store: T | Store<T>,\n  options?: { name?: string }\n): [get: Store<T>, set: SetStoreFunction<T>] {",
+          "matches": [
+            {
+              "indices": [
+                31,
+                38
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                59,
+                70
+              ],
+              "text": "createstore"
+            },
+            {
+              "indices": [
+                91,
+                102
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/thetarnav/slugger/blob/3a1a686c726bb5cb809e32bb9d4b6d8866ed44e2/packages/solid/store/src/store.ts"
+    },
+    {
+      "path": "src/services/storage.ts",
+      "repository": "poohcom1/twitter-art-tags",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/809869021/contents/src/services/storage.ts?ref=44e1bb0e407185318acd7e386df0c9e865833d80",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n// Solidjs store\n",
+          "matches": [
+            {
+              "indices": [
+                4,
+                11
+              ],
+              "text": "Solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/809869021/contents/src/services/storage.ts?ref=44e1bb0e407185318acd7e386df0c9e865833d80",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": ") {\n    const [viewModel, setViewModel] = createStore<T>(defVal);\n",
+          "matches": [
+            {
+              "indices": [
+                42,
+                53
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/poohcom1/twitter-art-tags/blob/44e1bb0e407185318acd7e386df0c9e865833d80/src/services/storage.ts"
+    },
+    {
+      "path": "packages/app/src/utils/form-hooks.ts",
+      "repository": "f0rbit/devpad",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/554180092/contents/packages/app/src/utils/form-hooks.ts?ref=ec053e07bc263f654380a723fa6c6ac5b7f8b153",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\";\nimport { createOptimisticUpdate, createOptimisticForm, type OptimisticUpdateOptions } from \"./optimistic-updates\";\n",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/554180092/contents/packages/app/src/utils/form-hooks.ts?ref=ec053e07bc263f654380a723fa6c6ac5b7f8b153",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "/**\n * Form state management utilities for SolidJS components\n * Reduces duplication in TaskEditor, TagEditor, and other form components",
+          "matches": [
+            {
+              "indices": [
+                43,
+                50
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/f0rbit/devpad/blob/ec053e07bc263f654380a723fa6c6ac5b7f8b153/packages/app/src/utils/form-hooks.ts"
+    },
+    {
+      "path": "web/src/pages/Room/ws.ts",
+      "repository": "mattwells19/DevsPlayingPoker",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/510381009/contents/web/src/pages/Room/ws.ts?ref=5c7cad15374e6410ca210e70f73bdf9dc9becb95",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { useIntl } from \"@/i18n\";\nimport { JoinEvent, WebSocketTriggeredEvent } from \"@/shared-types\";\nimport { useNavigate } from \"@solidjs/router\";\nimport { batch, createEffect, createSignal, onCleanup } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport toast from \"solid-toast\";\nimport { defaultRoomDetails, RoomDetails } from \"./RoomContext\";",
+          "matches": [
+            {
+              "indices": [
+                133,
+                140
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                232,
+                243
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mattwells19/DevsPlayingPoker/blob/5c7cad15374e6410ca210e70f73bdf9dc9becb95/web/src/pages/Room/ws.ts"
+    },
+    {
+      "path": "src/solid/primitives/create-local-store.ts",
+      "repository": "nathanbabcock/nbabcock-toolkit",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/462912156/contents/src/solid/primitives/create-local-store.ts?ref=5c3e2d32721f25d4895660f7dfb315e8aebab874",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from 'solid-js/store'\n\n/**",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/462912156/contents/src/solid/primitives/create-local-store.ts?ref=5c3e2d32721f25d4895660f7dfb315e8aebab874",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * @see https://github.com/solidjs-community/solid-primitives/issues/205\n *",
+          "matches": [
+            {
+              "indices": [
+                30,
+                37
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/nathanbabcock/nbabcock-toolkit/blob/5c3e2d32721f25d4895660f7dfb315e8aebab874/src/solid/primitives/create-local-store.ts"
+    },
+    {
+      "path": "frontend/src/db/utils.ts",
+      "repository": "xyaman/lumi-reader",
+      "score": 1,
+      "stars": 23,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/975546568/contents/frontend/src/db/utils.ts?ref=d10f0758e0e91183458eca3d4594c335b6273eb0",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { onCleanup, onMount } from \"solid-js\"\nimport { createStore, reconcile, ReconcileOptions } from \"solid-js/store\"\n",
+          "matches": [
+            {
+              "indices": [
+                55,
+                66
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/975546568/contents/frontend/src/db/utils.ts?ref=d10f0758e0e91183458eca3d4594c335b6273eb0",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// https://dexie.org/docs/liveQuery%28%29#deep-dive\n// https://docs.solidjs.com/reference/store-utilities/reconcile\nexport function useLiveQuery<T>(query: () => T[] | Promise<T[]>, options?: ReconcileOptions): T[] {",
+          "matches": [
+            {
+              "indices": [
+                68,
+                75
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/xyaman/lumi-reader/blob/d10f0758e0e91183458eca3d4594c335b6273eb0/frontend/src/db/utils.ts"
+    },
+    {
+      "path": "frontend_legacy/src/utils/form.ts",
+      "repository": "windwhisper99/minibell",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/872248263/contents/frontend_legacy/src/utils/form.ts?ref=0684ff0000c7c7c9903154a9f2321bd925f323e3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Action, useAction } from \"@solidjs/router\";\nimport { Accessor, createSignal } from \"solid-js\";\nimport { createStore, SetStoreFunction, unwrap } from \"solid-js/store\";\n\nexport type UseForm<T> = {\n  form: T;\n  loading: Accessor<boolean>;",
+          "matches": [
+            {
+              "indices": [
+                36,
+                43
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                113,
+                124
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/windwhisper99/minibell/blob/0684ff0000c7c7c9903154a9f2321bd925f323e3/frontend_legacy/src/utils/form.ts"
+    },
+    {
+      "path": "src/services/app-service.ts",
+      "repository": "team-h2/repeat-app",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/767850212/contents/src/services/app-service.ts?ref=5fc450ff77393ca5cc26247edc02898a16d4851b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore, produce, SetStoreFunction } from \"solid-js/store\";\n\nimport { PlaybackEffects } from \"@/const\";\nimport { Navigator } from \"@solidjs/router\";\n\nimport AudioService from \"./audio-service\";\nimport DbService from \"./db-service\";",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                145,
+                152
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/team-h2/repeat-app/blob/5fc450ff77393ca5cc26247edc02898a16d4851b/src/services/app-service.ts"
+    },
+    {
+      "path": "packages/solid/src/use-chat.ts",
+      "repository": "khulnasoft/ai-toolkit",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/944719990/contents/packages/solid/src/use-chat.ts?ref=d043bab555433670f880c944ec2d2c1970b5e2ae",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from 'solid-js';\nimport { createStore, reconcile, Store } from 'solid-js/store';\nimport { convertToAccessorOptions } from './utils/convert-to-accessor-options';",
+          "matches": [
+            {
+              "indices": [
+                28,
+                39
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/944719990/contents/packages/solid/src/use-chat.ts?ref=d043bab555433670f880c944ec2d2c1970b5e2ae",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  /**\n   * Current messages in the chat as a SolidJS store.\n   */",
+          "matches": [
+            {
+              "indices": [
+                45,
+                52
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/khulnasoft/ai-toolkit/blob/d043bab555433670f880c944ec2d2c1970b5e2ae/packages/solid/src/use-chat.ts"
+    },
+    {
+      "path": "simple/solid-simple-crud/frontend/vite.config.ts",
+      "repository": "protob/stacks-comparison",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1097316454/contents/simple/solid-simple-crud/frontend/vite.config.ts?ref=0b7ba787ff64e01c3ec283235b3eb994701ab570",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "      imports: [\n        'solid-js',\n        {\n          '@solidjs/router': ['Router', 'Route', 'Navigate', 'useNavigate', 'useLocation', 'useParams', 'useSearchParams'],\n          'solid-js/store': ['createStore', 'produce', 'reconcile'],\n          'solid-js/web': ['Portal'],\n          'clsx': [['default', 'clsx']],",
+          "matches": [
+            {
+              "indices": [
+                59,
+                66
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                201,
+                212
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/protob/stacks-comparison/blob/0b7ba787ff64e01c3ec283235b3eb994701ab570/simple/solid-simple-crud/frontend/vite.config.ts"
+    },
+    {
+      "path": "packages/eslint-plugin-solid/src/rules/imports.ts",
+      "repository": "solidjs-community/eslint-plugin-solid",
+      "score": 1,
+      "stars": 255,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/383257021/contents/packages/eslint-plugin-solid/src/rules/imports.ts?ref=6d3bc31189e4e04594cfda0c4558964c29627c80",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "for (const primitive of [\n  \"createStore\",\n  \"produce\",",
+          "matches": [
+            {
+              "indices": [
+                29,
+                40
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/383257021/contents/packages/eslint-plugin-solid/src/rules/imports.ts?ref=6d3bc31189e4e04594cfda0c4558964c29627c80",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "        'Enforce consistent imports from \"solid-js\", \"solid-js/web\", and \"solid-js/store\".',\n      url: \"https://github.com/solidjs-community/eslint-plugin-solid/blob/main/packages/eslint-plugin-solid/docs/imports.md\",\n    },",
+          "matches": [
+            {
+              "indices": [
+                124,
+                131
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs-community/eslint-plugin-solid/blob/6d3bc31189e4e04594cfda0c4558964c29627c80/packages/eslint-plugin-solid/src/rules/imports.ts"
+    },
+    {
+      "path": "src/shared/ui/helpers/create-floating-ui.ts",
+      "repository": "garrettmk/solid-start-fsd",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/636557604/contents/src/shared/ui/helpers/create-floating-ui.ts?ref=03f543cb35b579bbb6b4964f4fa400d332ec4488",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Accessor, createEffect, createSignal } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\n",
+          "matches": [
+            {
+              "indices": [
+                74,
+                85
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/636557604/contents/src/shared/ui/helpers/create-floating-ui.ts?ref=03f543cb35b579bbb6b4964f4fa400d332ec4488",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "/**\n * A SolidJS store for managing a floating UI.\n */",
+          "matches": [
+            {
+              "indices": [
+                9,
+                16
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/garrettmk/solid-start-fsd/blob/03f543cb35b579bbb6b4964f4fa400d332ec4488/src/shared/ui/helpers/create-floating-ui.ts"
+    },
+    {
+      "path": "src/GlobalStores/auth.ts",
+      "repository": "Pulsix-PLX/Pulsix",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/944682234/contents/src/GlobalStores/auth.ts?ref=1b46d66dc143d24d86315d4b2f9cea6d5e67e11b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createSignal, createEffect } from 'solid-js';\nimport { createStore } from 'solid-js/store';\nimport axios, { AxiosError } from 'axios'; // Importa axios e AxiosError",
+          "matches": [
+            {
+              "indices": [
+                64,
+                75
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/944682234/contents/src/GlobalStores/auth.ts?ref=1b46d66dc143d24d86315d4b2f9cea6d5e67e11b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { api } from '../server/Axios';\nimport { useNavigate } from '@solidjs/router';\ndeclare module 'axios' {",
+          "matches": [
+            {
+              "indices": [
+                69,
+                76
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Pulsix-PLX/Pulsix/blob/1b46d66dc143d24d86315d4b2f9cea6d5e67e11b/src/GlobalStores/auth.ts"
+    },
+    {
+      "path": "src/helper/createContextStore/createContextStore.ts",
+      "repository": "ur-wesley/solid-helper",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/904678473/contents/src/helper/createContextStore/createContextStore.ts?ref=8d03d14ba5ed3207f85f5022f7af0378be5f4b9c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createRoot } from \"solid-js\";\nimport { createStore, SetStoreFunction } from \"solid-js/store\";\n",
+          "matches": [
+            {
+              "indices": [
+                48,
+                59
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/904678473/contents/src/helper/createContextStore/createContextStore.ts?ref=8d03d14ba5ed3207f85f5022f7af0378be5f4b9c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "/**\n * Utility function to create a SolidJS context store.\n * @param initialState - The initial state for the store.",
+          "matches": [
+            {
+              "indices": [
+                36,
+                43
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ur-wesley/solid-helper/blob/8d03d14ba5ed3207f85f5022f7af0378be5f4b9c/src/helper/createContextStore/createContextStore.ts"
+    },
+    {
+      "path": "packages/solid/src/use-chat.ts",
+      "repository": "akabarki76/expert-fishstick",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1007339300/contents/packages/solid/src/use-chat.ts?ref=ddc7dd3e4090196cd72f062dce137256a476ec47",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from 'solid-js';\nimport { createStore, reconcile, Store } from 'solid-js/store';\nimport { convertToAccessorOptions } from './utils/convert-to-accessor-options';",
+          "matches": [
+            {
+              "indices": [
+                28,
+                39
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1007339300/contents/packages/solid/src/use-chat.ts?ref=ddc7dd3e4090196cd72f062dce137256a476ec47",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  /**\n   * Current messages in the chat as a SolidJS store.\n   */",
+          "matches": [
+            {
+              "indices": [
+                45,
+                52
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/akabarki76/expert-fishstick/blob/ddc7dd3e4090196cd72f062dce137256a476ec47/packages/solid/src/use-chat.ts"
+    },
+    {
+      "path": "src/packages/pivkit/hooks/smartStore/createSmartStore.ts",
+      "repository": "edsolater/conveyor",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/661966787/contents/src/packages/pivkit/hooks/smartStore/createSmartStore.ts?ref=a84d142462e8fc56c515d47e57a87cbb570d234d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n  /** don't use. as much as possible, it's unwrapped solidjs/store setStore */\n  _rawStore: T",
+          "matches": [
+            {
+              "indices": [
+                54,
+                61
+              ],
+              "text": "solidjs"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/661966787/contents/src/packages/pivkit/hooks/smartStore/createSmartStore.ts?ref=a84d142462e8fc56c515d47e57a87cbb570d234d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    createStorePropertySignal: createStorePropertySignal,\n    createStorePropertySetter: createStorePropertySetter,\n",
+          "matches": [
+            {
+              "indices": [
+                4,
+                15
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                31,
+                42
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                62,
+                73
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                89,
+                100
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/edsolater/conveyor/blob/a84d142462e8fc56c515d47e57a87cbb570d234d/src/packages/pivkit/hooks/smartStore/createSmartStore.ts"
+    },
+    {
+      "path": "frontend/src/lib/globalstate.ts",
+      "repository": "lPrimemaster/mulex-fk",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/874200076/contents/frontend/src/lib/globalstate.ts?ref=5e4d9b55125722d1d5444c9e472a97d9b1700cf2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// Global signals/stores\nconst [backends, setBackends] = createStore<BackendStatusList>();\nconst [loggedUser, setLoggedUser] = createSignal<string>('');",
+          "matches": [
+            {
+              "indices": [
+                57,
+                68
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/874200076/contents/frontend/src/lib/globalstate.ts?ref=5e4d9b55125722d1d5444c9e472a97d9b1700cf2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t// This data is always persistent through the entire frontend\n\t// Would be possible to move all this to a solidjs context\n\t// and use it on the root file. However I decided to use this",
+          "matches": [
+            {
+              "indices": [
+                107,
+                114
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lPrimemaster/mulex-fk/blob/5e4d9b55125722d1d5444c9e472a97d9b1700cf2/frontend/src/lib/globalstate.ts"
+    },
+    {
+      "path": "client/src/components/homebrew/create/parts/subraces/useSubraceEditor.ts",
+      "repository": "ColeHend/serving-solid-characters",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/751144091/contents/client/src/components/homebrew/create/parts/subraces/useSubraceEditor.ts?ref=8c44640e9fef0fe71aba29aa2798f2c79ff22383",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createMemo, createSignal, onCleanup } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { useSearchParams } from \"@solidjs/router\";\nimport { Clone, homebrewManager, SIZE_TOKENS } from \"../../../../../shared\";\nimport {\n  SubraceDraft,\n  blankDraft,",
+          "matches": [
+            {
+              "indices": [
+                73,
+                84
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                144,
+                151
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ColeHend/serving-solid-characters/blob/8c44640e9fef0fe71aba29aa2798f2c79ff22383/client/src/components/homebrew/create/parts/subraces/useSubraceEditor.ts"
+    },
+    {
+      "path": "src/data/data.ts",
+      "repository": "dankoster/mux",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/862627919/contents/src/data/data.ts?ref=dd4c7613b605ad98b1ae6bf06d7357cc702381ac",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "const [friendRequests, setFriendRequests] = createStore<FriendRequest[]>([])\nconst [friends, setFriends] = createStore<Friend[]>([])\nconst [id, setId] = createSignal(\"\")",
+          "matches": [
+            {
+              "indices": [
+                44,
+                55
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                107,
+                118
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/862627919/contents/src/data/data.ts?ref=dd4c7613b605ad98b1ae6bf06d7357cc702381ac",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t\t\tif (!(index >= 0)) throw new Error(`${update.connectionId} not found in connections`)\n\t\t\t//https://docs.solidjs.com/concepts/stores#range-specification\n\t\t\tsetConnections({ from: index, to: index }, update.field, update.value)",
+          "matches": [
+            {
+              "indices": [
+                107,
+                114
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/dankoster/mux/blob/dd4c7613b605ad98b1ae6bf06d7357cc702381ac/src/data/data.ts"
+    },
+    {
+      "path": "packages/solid/src/use-chat.ts",
+      "repository": "Emprndefast/demo-vercel",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1006718230/contents/packages/solid/src/use-chat.ts?ref=156c9f7be935905b6871c93e195e1fdade251bf5",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "} from 'solid-js';\nimport { createStore, reconcile, Store } from 'solid-js/store';\nimport { convertToAccessorOptions } from './utils/convert-to-accessor-options';",
+          "matches": [
+            {
+              "indices": [
+                28,
+                39
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1006718230/contents/packages/solid/src/use-chat.ts?ref=156c9f7be935905b6871c93e195e1fdade251bf5",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  /**\n   * Current messages in the chat as a SolidJS store.\n   */",
+          "matches": [
+            {
+              "indices": [
+                45,
+                52
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Emprndefast/demo-vercel/blob/156c9f7be935905b6871c93e195e1fdade251bf5/packages/solid/src/use-chat.ts"
+    },
+    {
+      "path": "packages/web/components/input/useComposition.ts",
+      "repository": "Sax-Yusuph/arco-design-solid",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/739517961/contents/packages/web/components/input/useComposition.ts?ref=a65fd6cbd4a0675e394938621c48da5d96650ef6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "): CompositionReturn<typeof onInput> {\n  const [state, setState] = createStore({ isComposition: false, compositionValue: '' })\n",
+          "matches": [
+            {
+              "indices": [
+                67,
+                78
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/739517961/contents/packages/web/components/input/useComposition.ts?ref=a65fd6cbd4a0675e394938621c48da5d96650ef6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "        //special case to make sure input it truly controlled\n        // https://github.com/solidjs/solid/discussions/416\n        if (value()) {",
+          "matches": [
+            {
+              "indices": [
+                92,
+                99
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Sax-Yusuph/arco-design-solid/blob/a65fd6cbd4a0675e394938621c48da5d96650ef6/packages/web/components/input/useComposition.ts"
+    },
+    {
+      "path": "src/components/chat/input.ts",
+      "repository": "morethanwords/tweb",
+      "score": 1,
+      "stars": 2338,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/chat/input.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {Accessor, createEffect, createMemo, createRoot, createSignal, onCleanup, Setter} from 'solid-js';\nimport {createStore} from 'solid-js/store';\nimport SelectedEffect from './selectedEffect';",
+          "matches": [
+            {
+              "indices": [
+                114,
+                125
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/238722026/contents/src/components/chat/input.ts?ref=2071f286df0737b223da54001a501dd904c47117",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    const {default: SuggestPostPopup} = await import('./suggestPostPopup');\n    new SuggestPostPopup({HotReloadGuard: SolidJSHotReloadGuardProvider, suggestChange: !!initial?.changeMid, initialStars: initial?.stars, initialTimestamp: initial?.timestamp, onFinish: (payload) => {\n      const balance = +useStars()() || 0;",
+          "matches": [
+            {
+              "indices": [
+                118,
+                125
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/morethanwords/tweb/blob/2071f286df0737b223da54001a501dd904c47117/src/components/chat/input.ts"
+    },
+    {
+      "path": "bff/solid/src/state.ts",
+      "repository": "crystaldba/crystaldba",
+      "score": 1,
+      "stars": 34,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/848949017/contents/bff/solid/src/state.ts?ref=028cc6023237c929c01849604b0ce79e57e0e2f4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nconst [state, setState]: [State, SetStoreFunction<State>] = createStore({\n  apiThrottle: {",
+          "matches": [
+            {
+              "indices": [
+                61,
+                72
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/848949017/contents/bff/solid/src/state.ts?ref=028cc6023237c929c01849604b0ce79e57e0e2f4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    produce((apiThrottle: ApiThrottle) => {\n      // biome-ignore lint/style/noNonNullAssertion: required by SolidJS\n      apiThrottle.requestWaiting = undefined!;",
+          "matches": [
+            {
+              "indices": [
+                109,
+                116
+              ],
+              "text": "SolidJS"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/crystaldba/crystaldba/blob/028cc6023237c929c01849604b0ce79e57e0e2f4/bff/solid/src/state.ts"
+    },
+    {
+      "path": "web/src/pages/create/components/useWishCreation.ts",
+      "repository": "nomercy360/sacred",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/905630021/contents/web/src/pages/create/components/useWishCreation.ts?ref=15db18d705069b8dd97060e2fff42cce88f6b2d7",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from 'solid-js/store'\nimport { useNavigate } from '@solidjs/router'\nimport { createEffect, createSignal, onCleanup } from 'solid-js'\nimport { createWish, CreateWishData, UpdateWishRequest } from '~/lib/api'\nimport { useBackButton } from '~/lib/useBackButton'\nimport { useMainButton } from '~/lib/useMainButton'\nimport { addToast } from '~/components/toast'",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                75,
+                82
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/nomercy360/sacred/blob/15db18d705069b8dd97060e2fff42cce88f6b2d7/web/src/pages/create/components/useWishCreation.ts"
+    },
+    {
+      "path": "src/lib/createYjsStore.ts",
+      "repository": "bigmistqke/solid-yjs-store",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/582483125/contents/src/lib/createYjsStore.ts?ref=f7e43c0f6c7ec1e97ea61d8d712da9c23d8f5869",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    if (yvalue instanceof Y.Map) {\n      //  TODO\n      //  solid's stores does a shallow merge on objects\n      //  https://www.solidjs.com/docs/latest/api#createstore : 'Objects are always shallowly merged.'\n      //  since we are only checking the path, inconsistencies might arise when a signal gets shallowly merged\n      //  so that it has mutliple entry-paths in a store\n",
+          "matches": [
+            {
+              "indices": [
+                129,
+                136
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                157,
+                168
+              ],
+              "text": "createstore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bigmistqke/solid-yjs-store/blob/f7e43c0f6c7ec1e97ea61d8d712da9c23d8f5869/src/lib/createYjsStore.ts"
+    },
+    {
+      "path": "src/packages/conveyor/solidjsAdapter/smartStore/utils/setStoreByObject.ts",
+      "repository": "edsolater/conveyor",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/661966787/contents/src/packages/conveyor/solidjsAdapter/smartStore/utils/setStoreByObject.ts?ref=a84d142462e8fc56c515d47e57a87cbb570d234d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { produce } from 'solid-js/store'\n\n/** it pass returned function to setStore\n * use solidjs's produce to avoid\n */\nexport function createStoreSetter<T extends Record<string, any>>(newStorePieces: Partial<T>) {\n  return produce((draft: AnyObj) => {",
+          "matches": [
+            {
+              "indices": [
+                91,
+                98
+              ],
+              "text": "solidjs"
+            },
+            {
+              "indices": [
+                138,
+                149
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/edsolater/conveyor/blob/a84d142462e8fc56c515d47e57a87cbb570d234d/src/packages/conveyor/solidjsAdapter/smartStore/utils/setStoreByObject.ts"
+    },
+    {
+      "path": "web/src/auto-imports.d.ts",
+      "repository": "96368a/ChatGPT-Web",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/605488439/contents/web/src/auto-imports.d.ts?ref=e6f27b3d419ec3217ef3c608300d73bbeffe0853",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const createSelector: typeof import('solid-js')['createSelector']\n  const createSignal: typeof import('solid-js')['createSignal']\n  const createStore: typeof import('solid-js/store')['createStore']\n  const hashIntegration: typeof import('@solidjs/router')['hashIntegration']\n  const hydrate: typeof import('solid-js/web')['hydrate']\n  const indexArray: typeof import('solid-js')['indexArray']\n  const isServer: typeof import('solid-js/web')['isServer']",
+          "matches": [
+            {
+              "indices": [
+                140,
+                151
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                186,
+                197
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                241,
+                248
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/96368a/ChatGPT-Web/blob/e6f27b3d419ec3217ef3c608300d73bbeffe0853/web/src/auto-imports.d.ts"
+    },
+    {
+      "path": "src/store/projection.ts",
+      "repository": "solidjs/signals",
+      "score": 1,
+      "stars": 236,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/576016608/contents/src/store/projection.ts?ref=fee1f7071bec1a2dbeaad75edde08950535e6988",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    if (source[$TARGET]?.[STORE_WRAP] === wrapProjection) return source;\n    const wrapped = createStoreProxy(source, traps, {\n      [STORE_WRAP]: wrapProjection,",
+          "matches": [
+            {
+              "indices": [
+                93,
+                104
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/576016608/contents/src/store/projection.ts?ref=fee1f7071bec1a2dbeaad75edde08950535e6988",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * @see {@link https://github.com/solidjs/x-reactivity#createprojection}\n */",
+          "matches": [
+            {
+              "indices": [
+                37,
+                44
+              ],
+              "text": "solidjs"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs/signals/blob/fee1f7071bec1a2dbeaad75edde08950535e6988/src/store/projection.ts"
+    }
+  ]
+}

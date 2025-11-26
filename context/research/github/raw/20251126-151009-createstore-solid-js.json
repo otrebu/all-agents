@@ -1,0 +1,4346 @@
+{
+  "files": [
+    {
+      "content": "```js\nconst [count, setCount] = createSignal(0);\n\nsetCount(c => c + 1);\n```\n\nThis promotes immutable patterns, let's you access the previous value without it being tracked, and makes Signals consistent with State.\n\nIt means that when functions are stored in signals you need to use this form to remove ambiguity\n\n```js\nconst [count, setCount] = createSignal(ComponentA);\n\n// Do this:\nsetCount(() => ComponentB);\n\n// Don't do this as it will call the function immediately:\nsetCount(ComponentB);\n```\n\n#### `createState` moved and renamed\n\n`createState` has been renamed to `createStore` and moved to `solid-js/store`. Also moved to `solid-js/store`: `createMutable`, `produce`, `reconcile`\n\n#### SSR Entry points\n\n`renderToString` and `renderToStringAsync` now only return their stringified markup. To insert scripts you need to call `generateHydrationScript` or use the new `<HydrationScript>` component.\n\n`renderToNodeStream` and `renderToWebStream` have been replaced with `pipeToNodeWritable` and `pipeToWritable`, respectively.\n\n#### Options Objects\n\nMost non-essential arguments on reactive primitives are now living on an options object. This was done to homogenize the API and make it easier to make future additions while remaining backwards compatible.\n\n#### on\n\nNo longer uses rest parameters for multiple dependencies. Instead pass an array. This facilitates new option to defer execution until dependencies change.\n\n#### Actions renamed to Directives\n\nTo remove future confusion with other uses of actions the `JSX.Actions` interace is now the `JSX.Directives` interface.\n\n## 0.26.0 - 2021-04-09\n\nThis release is about finalizing some API changes on the road to 1.0. This one has one breaking change and not much else.",
+      "language": "markdown",
+      "lines": 45,
+      "path": "CHANGELOG.md",
+      "rank": 1,
+      "repository": "solidjs/solid",
+      "stars": 34634,
+      "url": "https://github.com/solidjs/solid/blob/a5b51fe200fd59a158410f4008677948fec611d9/CHANGELOG.md"
+    },
+    {
+      "content": "const batch: typeof import('solid-js')['batch']\n  const cache: typeof import('@solidjs/router')['cache']\n  const catchError: (typeof import('solid-js'))['catchError']\n  const children: typeof import('solid-js')['children']\n  const createAsync: typeof import('@solidjs/router')['createAsync']\n  const createAsyncStore: typeof import('@solidjs/router')['createAsyncStore']\n  const createBeforeLeave: typeof import('@solidjs/router')['createBeforeLeave']\n  const createComponent: (typeof import('solid-js'))['createComponent']\n  const createComputed: (typeof import('solid-js'))['createComputed']\n  const createContext: typeof import('solid-js')['createContext']\n  const createDeferred: typeof import('solid-js')['createDeferred']\n  const createEffect: typeof import('solid-js')['createEffect']\n  const createIntegration: (typeof import('@solidjs/router'))['createIntegration']\n  const createMemo: typeof import('solid-js')['createMemo']\n  const createMemoryHistory: typeof import('@solidjs/router')['createMemoryHistory']\n  const createMutable: typeof import('solid-js/store')['createMutable']\n  const createReaction: (typeof import('solid-js'))['createReaction']\n  const createRenderEffect: typeof import('solid-js')['createRenderEffect']\n  const createResource: typeof import('solid-js')['createResource']\n  const createRoot: typeof import('solid-js')['createRoot']\n  const createRouter: typeof import('@solidjs/router')['createRouter']\n  const createSelector: typeof import('solid-js')['createSelector']\n  const createSignal: typeof import('solid-js')['createSignal']\n  const createStore: typeof import('solid-js/store')['createStore']\n  const createUniqueId: (typeof import('solid-js'))['createUniqueId']\n  const delegateEvents: (typeof import('solid-js/web'))['delegateEvents']\n  const enableExternalSource: (typeof import('solid-js'))['enableExternalSource']\n  const enableHydration: (typeof import('solid-js'))['enableHydration']\n  const enableScheduling: (typeof import('solid-js'))['enableScheduling']\n  const equalFn: (typeof import('solid-js'))['equalFn']\n  const escape: (typeof import('solid-js/web'))['escape']\n  const from: (typeof import('solid-js'))['from']\n  const generateHydrationScript: (typeof import('solid-js/web'))['generateHydrationScript']\n  const getAssets: (typeof import('solid-js/web'))['getAssets']\n  const getHydrationKey: (typeof import('solid-js/web'))['getHydrationKey']\n  const getListener: (typeof import('solid-js'))['getListener']\n  const getOwner: (typeof import('solid-js'))['getOwner']\n  const getRequestEvent: (typeof import('solid-js/web'))['getRequestEvent']\n  const hashIntegration: (typeof import('@solidjs/router'))['hashIntegration']\n  const hydrate: typeof import('solid-js/web')['hydrate']\n  const indexArray: typeof import('solid-js')['indexArray']\n  const insert: (typeof import('solid-js/web'))['insert']\n  const isDev: (typeof import('solid-js/web'))['isDev']\n  const isServer: typeof import('solid-js/web')['isServer']\n  const json: typeof import('@solidjs/router')['json']\n  const keepDepth: typeof import('@solidjs/router')['keepDepth']\n  const lazy: typeof import('solid-js')['lazy']",
+      "language": "typescript",
+      "lines": 47,
+      "path": "auto-imports.d.ts",
+      "rank": 2,
+      "repository": "MetaCubeX/metacubexd",
+      "stars": 2710,
+      "url": "https://github.com/MetaCubeX/metacubexd/blob/ea0a8dcb7975b1af899921c50fc4d062b6d93063/auto-imports.d.ts"
+    },
+    {
+      "content": "<p>\n  <img width=\"100%\" src=\"https://assets.solidjs.com/banner?type=Primitives&background=tiles&project=mutable\" alt=\"Solid Primitives mutable\">\n</p>\n\n# @solid-primitives/mutable\n\n[![size](https://img.shields.io/bundlephobia/minzip/@solid-primitives/mutable?style=for-the-badge&label=size)](https://bundlephobia.com/package/@solid-primitives/mutable)\n[![version](https://img.shields.io/npm/v/@solid-primitives/mutable?style=for-the-badge)](https://www.npmjs.com/package/@solid-primitives/mutable)\n[![stage](https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fraw.githubusercontent.com%2Fsolidjs-community%2Fsolid-primitives%2Fmain%2Fassets%2Fbadges%2Fstage-0.json)](https://github.com/solidjs-community/solid-primitives#contribution-process)\n\nA primitive for creating a mutable store proxy object. An alternative to `createStore` from `\"solid-js/store\"`.\n\n- [`createMutable`](#createmutable) - Creates a mutable store proxy object.\n- [`modifyMutable`](#modifymutable) - Helper for applying store mutation utilities - like `produce` or `reconcile` from `\"solid-js/store\"` - to a mutable store.\n\n## Installation\n\n```bash\nnpm install @solid-primitives/mutable\n# or\npnpm add @solid-primitives/mutable\n# or\nyarn add @solid-primitives/mutable\n```\n\n## `createMutable`\n\n```ts\nimport { createMutable } from \"@solid-primitives/mutable\";\n\ndeclare function createMutable<T extends StoreNode>(state: T): T;\n```\n\nCreates a new mutable Store proxy object. Stores only trigger updates on values changing. Tracking is done by intercepting property access and automatically tracks deep nesting via proxy.",
+      "language": "markdown",
+      "lines": 34,
+      "path": "packages/mutable/README.md",
+      "rank": 3,
+      "repository": "solidjs-community/solid-primitives",
+      "stars": 1460,
+      "url": "https://github.com/solidjs-community/solid-primitives/blob/0cbdb59bb42f50de5e08000027789ae3d4c80280/packages/mutable/README.md"
+    },
+    {
+      "content": "import { Relay, relayInit } from \"../lib/nTools\";\r\nimport { createStore, unwrap } from \"solid-js/store\";\r\nimport LinkPreview from \"../components/LinkPreview/LinkPreview\";\r\nimport { addrRegex, appleMusicRegex, emojiRegex, hashtagRegex, interpunctionRegex, Kind, linebreakRegex, lnRegex, lnUnifiedRegex, mixCloudRegex, nostrNestsRegex, noteRegexLocal, profileRegex, rumbleRegex, soundCloudRegex, spotifyRegex, tagMentionRegex, tidalEmbedRegex, twitchPlayerRegex, twitchRegex, urlRegex, urlRegexG, wavlakeRegex, youtubeRegex, zapStreamEmbedRegex } from \"../constants\";\r\nimport { sendMessage, subsTo } from \"../sockets\";\r\nimport { EventCoordinate, MediaSize, NostrRelays, NostrRelaySignedEvent, PrimalArticle, PrimalDVM, PrimalNote, PrimalUser, SendNoteResult } from \"../types/primal\";\r\nimport { decodeIdentifier, npubToHex } from \"./keys\";\r\nimport { logError, logInfo, logWarning } from \"./logger\";\r\nimport { getMediaUrl as getMediaUrlDefault } from \"./media\";\r\nimport { encrypt44, signEvent } from \"./nostrAPI\";\r\nimport { ArticleEdit } from \"../pages/ReadsEditor\";\r\nimport ExternalLiveEventPreview from \"../components/LiveVideo/ExternalLiveEventPreview\";\r\nimport { APP_ID } from \"../App\";\r\n\r\nconst getLikesStorageKey = () => {\r\n  const key = localStorage.getItem('pubkey') || 'anon';\r\n  return `likes_${key}`;\r\n};\r\n\r\nexport const getStoredLikes = () => {\r\n  return JSON.parse(localStorage.getItem(getLikesStorageKey()) || '[]');\r\n};\r\n\r\nexport const setStoredLikes = (likes: string[]) => {\r\n  return localStorage.setItem(getLikesStorageKey(), JSON.stringify(likes));\r\n};",
+      "language": "typescript",
+      "lines": 26,
+      "path": "src/lib/notes.tsx",
+      "rank": 4,
+      "repository": "PrimalHQ/primal-web-app",
+      "stars": 249,
+      "url": "https://github.com/PrimalHQ/primal-web-app/blob/c304dd989be0f10828c39ea48943820b44e103a8/src/lib/notes.tsx"
+    },
+    {
+      "content": "import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';\nimport { createStore } from 'solid-js/store';\n\nimport 'firacode';\nimport Tare from 'tare';\nimport { pulse, type } from './animations';\nimport './index.css';\n\n/*\n * Map of caps to mode names/modules\n */\n\nexport const modes = new Map();\nconst modeImports = import.meta.globEager('./modes/*');\nconst basename = /([a-z]+)\\.jsx/;\nfor (let [path, module] of Object.entries(modeImports)) {\n  const name = path.match(basename)[1];\n  modes.set(module.cap, { name, ...module });\n}\n\n\n/*\n * Event handlers\n */\n\nconst capsByEventCode = new Map([\n  ['Escape', undefined],",
+      "language": "javascript",
+      "lines": 27,
+      "path": "ui/app.jsx",
+      "rank": 5,
+      "repository": "kofigumbs/typebeat",
+      "stars": 435,
+      "url": "https://github.com/kofigumbs/typebeat/blob/792dfd21204a06d0b86e95b3ba1be4bf70e31704/ui/app.jsx"
+    },
+    {
+      "content": "import './style.css';\nimport { Plugin, type App, type PluginManifest } from 'obsidian';\nimport { createStore, unwrap, type Store, type SetStoreFunction  } from 'solid-js/store';\nimport { render } from 'solid-js/web';\nimport { PluginSolidSettingTab } from './solidify';\nimport backend from './backend';\nimport SettingTab from './components/SettingTab';\nimport CodeBlock from './components/CodeBlock';\n\nimport SETTING_DEFAULT, { type PluginSetting } from './setting';\n\n\n\nexport default class CodeEmitterPlugin extends Plugin {\n  readonly settings: Store<PluginSetting>;\n  readonly settingsUpdate: SetStoreFunction<PluginSetting>;\n\n  public constructor(app: App, manifest: PluginManifest) {\n    super(app, manifest);\n    const [settings, settingsUpdate ] = createStore(SETTING_DEFAULT);\n    this.settings = settings;\n    this.settingsUpdate = settingsUpdate;\n  }\n\n\n  async onload() {\n    // Platform.isDesktop && window.hmr && window.hmr(this, 2000);",
+      "language": "typescript",
+      "lines": 27,
+      "path": "src/main.tsx",
+      "rank": 6,
+      "repository": "mokeyish/obsidian-code-emitter",
+      "stars": 367,
+      "url": "https://github.com/mokeyish/obsidian-code-emitter/blob/c34b5c7d7d51ea5d22ce463ec94b1bd2deb908f6/src/main.tsx"
+    },
+    {
+      "content": "import { Component } from 'solid-js';\nimport { createStore, produce } from 'solid-js/store';\nimport { createKbdShortcuts } from './createKbdShortcuts';\nimport { getActiveParentAction } from './actionUtils/actionUtils';\nimport { rootParentActionId } from './constants';\nimport { Provider } from './StoreContext';\nimport { RootProps, StoreState, StoreMethods, StoreContext, DynamicContextMap } from './types';\n\nconst RootInternal: Component = () => {\n  createKbdShortcuts();\n\n  return null;\n};\n\nexport const Root: Component<RootProps> = (p) => {\n  const initialActions = p.actions || {};\n  const initialActionsContext = p.actionsContext || {};\n\n  const [state, setState] = createStore<StoreState>({\n    visibility: 'closed',\n    searchText: '',\n    activeParentActionIdList: [rootParentActionId],\n    actions: initialActions,\n    actionsContext: {\n      root: initialActionsContext,\n      dynamic: {},\n    },",
+      "language": "typescript",
+      "lines": 27,
+      "path": "src/lib/Root.tsx",
+      "rank": 7,
+      "repository": "itaditya/solid-command-palette",
+      "stars": 164,
+      "url": "https://github.com/itaditya/solid-command-palette/blob/595a4a9c7cb7ee535c103669b788297bdbf004c3/src/lib/Root.tsx"
+    },
+    {
+      "content": "For,\n  JSX,\n  ParentProps,\n  createRenderEffect,\n  createSignal,\n  on,\n  onCleanup,\n  useContext,\n} from \"solid-js\";\nimport {\n  BBox,\n  Transform,\n  UNSAFE_useScenegraph,\n  LayoutFn,\n  Id,\n  ScenegraphElement,\n  resolveScenegraphElements,\n  UNSAFE_asNode,\n} from \"./scenegraph\";\nimport { IdContext } from \"./withBluefish\";\nimport { ScopeContext } from \"./createName\";\nimport { useError } from \"./errorContext\";\nimport { LayoutUIDContext } from \"./bluefish\";\nimport { createStore, produce } from \"solid-js/store\";\n\nexport type LayoutProps = ParentProps<{\n  name: Id;\n  bbox?: BBox;\n  layout: LayoutFn;\n  paint: (props: {\n    bbox: BBox;\n    transform: Transform;\n    children: JSX.Element;\n    customData?: any;\n  }) => JSX.Element;\n}>;\n\nexport const Layout = (props: LayoutProps) => {\n  const [_scope, setScope] = useContext(ScopeContext);\n  const error = useError();\n  const layoutUID = useContext(LayoutUIDContext);\n  const [childLayouts, setChildLayouts] = createSignal<\n    ((parentId: Id | null) => void)[]\n  >([]);\n\n  const [scenegraphInfo, setScenegraphInfo] = createStore({\n    bbox: {},",
+      "language": "typescript",
+      "lines": 47,
+      "path": "packages/bluefish-solid/src/layout.tsx",
+      "rank": 8,
+      "repository": "bluefishjs/bluefish",
+      "stars": 146,
+      "url": "https://github.com/bluefishjs/bluefish/blob/516ec19ed9e3226ec5d14b9dc3fb16c2e6307447/packages/bluefish-solid/src/layout.tsx"
+    },
+    {
+      "content": "},\n  set count(_param) {\n    this.__$set$count(() => _param);\n  },\n  get message() {\n    return this.__$get$message();\n  }\n};\nlet [_count, _setcount] = _createSignal(0);\nconst _message = _createMemo(() => `Count: ${_count()}`);\nconst obj = {\n  __proto__: _proto,\n  __$get$count: _count,\n  __$set$count: _setcount,\n  __$get$message: _message\n};\n```\n\n## Store\n\nThese CTFs are based from `solid-js/store` exports.\n\n- `$store` -> `createStore`\n- `$mutable` -> `createMutable`\n- `$reconcile` -> `reconcile`\n- `$produce` -> `produce`\n- `$unwrap` -> `unwrap`\n\n## Components\n\nThese CTFs are auto-imported components from `solid-js` and `solid-js/web`. You can still use their original identifiers since those are already supported by `babel-preset-solid`.\n\n## Tooling\n\nOn any `d.ts` file, add a reference markup\n\n```ts\n/// <reference types=\"solid-labels\" />\n```\n\nAll CTFs are declared globally so there's no need to import.\n\n---\n\nthis.__$set$count(() => _param);\n  },\n  get message() {\n    return this.__$get$message();\n  }\n};\nlet [_count, _setcount] = _createSignal(0);\nconst _message = _createMemo(() => `Count: ${_count()}`);\nconst obj = {\n  __proto__: _proto,\n  __$get$count: _count,\n  __$set$count: _setcount,\n  __$get$message: _message\n};\n```\n\n## Store\n\nThese CTFs are based from `solid-js/store` exports.\n\n- `$store` -> `createStore`\n- `$mutable` -> `createMutable`\n- `$reconcile` -> `reconcile`\n- `$produce` -> `produce`\n- `$unwrap` -> `unwrap`\n\n## Components\n\nThese CTFs are auto-imported components from `solid-js` and `solid-js/web`. You can still use their original identifiers since those are already supported by `babel-preset-solid`.\n\n## Tooling\n\nOn any `d.ts` file, add a reference markup\n\n```ts\n/// <reference types=\"solid-labels\" />\n```\n\nAll CTFs are declared globally so there's no need to import.",
+      "language": "markdown",
+      "lines": 83,
+      "path": "docs/ctf.md",
+      "rank": 9,
+      "repository": "lxsmnsyc/solid-labels",
+      "stars": 254,
+      "url": "https://github.com/lxsmnsyc/solid-labels/blob/56eecd581df1483e301a1c32f3968ea287342380/docs/ctf.md"
+    },
+    {
+      "content": "import { ContextMap, StorageKey, WordContext } from '../constant'\nimport { Accessor, createEffect, createSignal, For, Setter, Show } from 'solid-js'\nimport { createStore } from 'solid-js/store'\nimport { getLocalValue } from '../lib/storage'\nimport { createDraggable } from '@neodrag/solid'\nimport { getFaviconByDomain, getRelativeTimeString, formatTime } from '../lib/utils'\n\ntype Video = { title: string; url: string; thumb: string; sentence: string; current: boolean }\n\nexport const App = () => {\n  const [contexts, setContexts] = createSignal<ContextMap>({})\n  const [isDesc, setIsDesc] = createSignal<boolean>(localStorage.getItem('isDesc') !== '0')\n  const [random, setRandom] = createSignal<number>(0)\n  const [page, setPage] = createSignal<number>(1)\n  const [youtubeOnly, setYoutubeOnly] = createSignal<boolean>(localStorage.getItem('youtubeOnly') === '1')\n\n  const [showVideoWindow, setShowVideoWindow] = createSignal<boolean>(false)\n  const [videoSrc, setVideoSrc] = createSignal<string>('')\n  const [videosMap, setVideosMap] = createStore<Record<string, { loading: boolean; videos: Video[] }>>({})\n\n  const [isSessionRunning, setIsSessionRunning] = createSignal<boolean>(false)\n  const [aiSession, setAiSession] = createSignal<AITextSession>()\n\n  createEffect(() => {\n    if (!window.ai) return false\n    window.ai.canCreateTextSession().then(async status => {\n      if (status === 'readily') {",
+      "language": "typescript",
+      "lines": 27,
+      "path": "src/review/app.tsx",
+      "rank": 10,
+      "repository": "word-hunter/word-hunter",
+      "stars": 170,
+      "url": "https://github.com/word-hunter/word-hunter/blob/f43323996d49e3add6b1ba588ec576aa422470f0/src/review/app.tsx"
+    }
+  ],
+  "ranked": [
+    {
+      "path": "CHANGELOG.md",
+      "repository": "solidjs/solid",
+      "score": 1,
+      "stars": 34634,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/130884470/contents/CHANGELOG.md?ref=a5b51fe200fd59a158410f4008677948fec611d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n#### `createState` moved and renamed\n\n`createState` has been renamed to `createStore` and moved to `solid-js/store`. Also moved to `solid-js/store`: `createMutable`, `produce`, `reconcile`\n\n#### SSR Entry points\n",
+          "matches": [
+            {
+              "indices": [
+                74,
+                85
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                101,
+                109
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                133,
+                141
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs/solid/blob/a5b51fe200fd59a158410f4008677948fec611d9/CHANGELOG.md",
+      "qualityScore": 0.5114515191972858,
+      "rank": 1
+    },
+    {
+      "path": "auto-imports.d.ts",
+      "repository": "MetaCubeX/metacubexd",
+      "score": 1,
+      "stars": 2710,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/664925328/contents/auto-imports.d.ts?ref=ea0a8dcb7975b1af899921c50fc4d062b6d93063",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const createRouter: typeof import('@solidjs/router')['createRouter']\n  const createSelector: typeof import('solid-js')['createSelector']\n  const createSignal: typeof import('solid-js')['createSignal']\n  const createStore: typeof import('solid-js/store')['createStore']\n  const createUniqueId: (typeof import('solid-js'))['createUniqueId']\n  const delegateEvents: (typeof import('solid-js/web'))['delegateEvents']\n  const enableExternalSource: (typeof import('solid-js'))['enableExternalSource']",
+          "matches": [
+            {
+              "indices": [
+                110,
+                118
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                176,
+                184
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                211,
+                222
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                239,
+                247
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                257,
+                268
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                311,
+                319
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                381,
+                389
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                461,
+                469
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/MetaCubeX/metacubexd/blob/ea0a8dcb7975b1af899921c50fc4d062b6d93063/auto-imports.d.ts",
+      "qualityScore": 0.40581295175804855,
+      "rank": 2
+    },
+    {
+      "path": "packages/mutable/README.md",
+      "repository": "solidjs-community/solid-primitives",
+      "score": 1,
+      "stars": 1460,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/369884446/contents/packages/mutable/README.md?ref=0cbdb59bb42f50de5e08000027789ae3d4c80280",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "[![version](https://img.shields.io/npm/v/@solid-primitives/mutable?style=for-the-badge)](https://www.npmjs.com/package/@solid-primitives/mutable)\n[![stage](https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fraw.githubusercontent.com%2Fsolidjs-community%2Fsolid-primitives%2Fmain%2Fassets%2Fbadges%2Fstage-0.json)](https://github.com/solidjs-community/solid-primitives#contribution-process)\n\nA primitive for creating a mutable store proxy object. An alternative to `createStore` from `\"solid-js/store\"`.\n\n- [`createMutable`](#createmutable) - Creates a mutable store proxy object.\n- [`modifyMutable`](#modifymutable) - Helper for applying store mutation utilities - like `produce` or `reconcile` from `\"solid-js/store\"` - to a mutable store.",
+          "matches": [
+            {
+              "indices": [
+                484,
+                495
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                504,
+                512
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                721,
+                729
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs-community/solid-primitives/blob/0cbdb59bb42f50de5e08000027789ae3d4c80280/packages/mutable/README.md",
+      "qualityScore": 0.3839650215934297,
+      "rank": 3
+    },
+    {
+      "path": "src/lib/notes.tsx",
+      "repository": "PrimalHQ/primal-web-app",
+      "score": 1,
+      "stars": 249,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/594140799/contents/src/lib/notes.tsx?ref=c304dd989be0f10828c39ea48943820b44e103a8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Relay, relayInit } from \"../lib/nTools\";\r\nimport { createStore, unwrap } from \"solid-js/store\";\r\nimport LinkPreview from \"../components/LinkPreview/LinkPreview\";\r\nimport { addrRegex, appleMusicRegex, emojiRegex, hashtagRegex, interpunctionRegex, Kind, linebreakRegex, lnRegex, lnUnifiedRegex, mixCloudRegex, nostrNestsRegex, noteRegexLocal, profileRegex, rumbleRegex, soundCloudRegex, spotifyRegex, tagMentionRegex, tidalEmbedRegex, twitchPlayerRegex, twitchRegex, urlRegex, urlRegexG, wavlakeRegex, youtubeRegex, zapStreamEmbedRegex } from \"../constants\";\r\nimport { sendMessage, subsTo } from \"../sockets\";\r\nimport { EventCoordinate, MediaSize, NostrRelays, NostrRelaySignedEvent, PrimalArticle, PrimalDVM, PrimalNote, PrimalUser, SendNoteResult } from \"../types/primal\";\r\nimport { decodeIdentifier, npubToHex } from \"./keys\";\r",
+          "matches": [
+            {
+              "indices": [
+                60,
+                71
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                88,
+                96
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/PrimalHQ/primal-web-app/blob/c304dd989be0f10828c39ea48943820b44e103a8/src/lib/notes.tsx",
+      "qualityScore": 0.3222940008672038,
+      "rank": 4
+    },
+    {
+      "path": "ui/app.jsx",
+      "repository": "kofigumbs/typebeat",
+      "score": 1,
+      "stars": 435,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/262607883/contents/ui/app.jsx?ref=792dfd21204a06d0b86e95b3ba1be4bf70e31704",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';\nimport { createStore } from 'solid-js/store';\n\nimport 'firacode';\nimport Tare from 'tare';\nimport { pulse, type } from './animations';\nimport './index.css';",
+          "matches": [
+            {
+              "indices": [
+                67,
+                75
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                87,
+                98
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                107,
+                115
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/kofigumbs/typebeat/blob/792dfd21204a06d0b86e95b3ba1be4bf70e31704/ui/app.jsx",
+      "qualityScore": 0.32144864892685865,
+      "rank": 5
+    },
+    {
+      "path": "src/main.tsx",
+      "repository": "mokeyish/obsidian-code-emitter",
+      "score": 1,
+      "stars": 367,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/519450328/contents/src/main.tsx?ref=c34b5c7d7d51ea5d22ce463ec94b1bd2deb908f6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import './style.css';\nimport { Plugin, type App, type PluginManifest } from 'obsidian';\nimport { createStore, unwrap, type Store, type SetStoreFunction  } from 'solid-js/store';\nimport { render } from 'solid-js/web';\nimport { PluginSolidSettingTab } from './solidify';\nimport backend from './backend';\nimport SettingTab from './components/SettingTab';",
+          "matches": [
+            {
+              "indices": [
+                97,
+                108
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                161,
+                169
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                202,
+                210
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mokeyish/obsidian-code-emitter/blob/c34b5c7d7d51ea5d22ce463ec94b1bd2deb908f6/src/main.tsx",
+      "qualityScore": 0.3190847818673518,
+      "rank": 6
+    },
+    {
+      "path": "src/lib/Root.tsx",
+      "repository": "itaditya/solid-command-palette",
+      "score": 1,
+      "stars": 164,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/450847216/contents/src/lib/Root.tsx?ref=595a4a9c7cb7ee535c103669b788297bdbf004c3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Component } from 'solid-js';\nimport { createStore, produce } from 'solid-js/store';\nimport { createKbdShortcuts } from './createKbdShortcuts';\nimport { getActiveParentAction } from './actionUtils/actionUtils';\nimport { rootParentActionId } from './constants';\nimport { Provider } from './StoreContext';\nimport { RootProps, StoreState, StoreMethods, StoreContext, DynamicContextMap } from './types';",
+          "matches": [
+            {
+              "indices": [
+                27,
+                35
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                47,
+                58
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                76,
+                84
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/itaditya/solid-command-palette/blob/595a4a9c7cb7ee535c103669b788297bdbf004c3/src/lib/Root.tsx",
+      "qualityScore": 0.3042483944213906,
+      "rank": 7
+    },
+    {
+      "path": "packages/bluefish-solid/src/layout.tsx",
+      "repository": "bluefishjs/bluefish",
+      "score": 1,
+      "stars": 146,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/855993283/contents/packages/bluefish-solid/src/layout.tsx?ref=516ec19ed9e3226ec5d14b9dc3fb16c2e6307447",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { ScopeContext } from \"./createName\";\nimport { useError } from \"./errorContext\";\nimport { LayoutUIDContext } from \"./bluefish\";\nimport { createStore, produce } from \"solid-js/store\";\n\nexport type LayoutProps = ParentProps<{\n  name: Id;",
+          "matches": [
+            {
+              "indices": [
+                144,
+                155
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                173,
+                181
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bluefishjs/bluefish/blob/516ec19ed9e3226ec5d14b9dc3fb16c2e6307447/packages/bluefish-solid/src/layout.tsx",
+      "qualityScore": 0.29923173347481763,
+      "rank": 8
+    },
+    {
+      "path": "docs/ctf.md",
+      "repository": "lxsmnsyc/solid-labels",
+      "score": 1,
+      "stars": 254,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/407243045/contents/docs/ctf.md?ref=56eecd581df1483e301a1c32f3968ea287342380",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nThese CTFs are based from `solid-js/store` exports.\n",
+          "matches": [
+            {
+              "indices": [
+                28,
+                36
+              ],
+              "text": "solid-js"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/407243045/contents/docs/ctf.md?ref=56eecd581df1483e301a1c32f3968ea287342380",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n- `$store` -> `createStore`\n- `$mutable` -> `createMutable`",
+          "matches": [
+            {
+              "indices": [
+                16,
+                27
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lxsmnsyc/solid-labels/blob/56eecd581df1483e301a1c32f3968ea287342380/docs/ctf.md",
+      "qualityScore": 0.29815401804339553,
+      "rank": 9
+    },
+    {
+      "path": "src/review/app.tsx",
+      "repository": "word-hunter/word-hunter",
+      "score": 1,
+      "stars": 170,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/564594825/contents/src/review/app.tsx?ref=f43323996d49e3add6b1ba588ec576aa422470f0",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { ContextMap, StorageKey, WordContext } from '../constant'\nimport { Accessor, createEffect, createSignal, For, Setter, Show } from 'solid-js'\nimport { createStore } from 'solid-js/store'\nimport { getLocalValue } from '../lib/storage'\nimport { createDraggable } from '@neodrag/solid'\nimport { getFaviconByDomain, getRelativeTimeString, formatTime } from '../lib/utils'\n",
+          "matches": [
+            {
+              "indices": [
+                139,
+                147
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                158,
+                169
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                178,
+                186
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/word-hunter/word-hunter/blob/f43323996d49e3add6b1ba588ec576aa422470f0/src/review/app.tsx",
+      "qualityScore": 0.29579961103921537,
+      "rank": 10
+    }
+  ],
+  "results": [
+    {
+      "path": "src/store.ts",
+      "repository": "zzzachzzz/toontown-combos",
+      "score": 1,
+      "stars": 6,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/148352666/contents/src/store.ts?ref=fc0197d18cb283e30e7d9968ac9141851c802d2e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  initialState?: Partial<State>;\n};\n\nexport const createStore = ({\n  initialState,\n}: CreateStoreArgs = {}) => {\n  const [state, setState] = _createStore<State>({",
+          "matches": [
+            {
+              "indices": [
+                50,
+                61
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                86,
+                97
+              ],
+              "text": "CreateStore"
+            },
+            {
+              "indices": [
+                142,
+                153
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/zzzachzzz/toontown-combos/blob/fc0197d18cb283e30e7d9968ac9141851c802d2e/src/store.ts"
+    },
+    {
+      "path": "src/Store.js",
+      "repository": "ryansolid/solid-hackernews-app",
+      "score": 1,
+      "stars": 20,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/186333595/contents/src/Store.js?ref=fbfaee44b663b4a749343d6029a7a9fad6a09d76",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  ask: \"ask\",\n  job: \"jobs\"\n};\nfunction createStore() {\n  const cache = {};\n\n  const get = (path) =>",
+          "matches": [
+            {
+              "indices": [
+                40,
+                51
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ryansolid/solid-hackernews-app/blob/fbfaee44b663b4a749343d6029a7a9fad6a09d76/src/Store.js"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "repository": "solidjs/solid",
+      "score": 1,
+      "stars": 34634,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/130884470/contents/CHANGELOG.md?ref=a5b51fe200fd59a158410f4008677948fec611d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n#### `createState` moved and renamed\n\n`createState` has been renamed to `createStore` and moved to `solid-js/store`. Also moved to `solid-js/store`: `createMutable`, `produce`, `reconcile`\n\n#### SSR Entry points\n",
+          "matches": [
+            {
+              "indices": [
+                74,
+                85
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                101,
+                109
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                133,
+                141
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs/solid/blob/a5b51fe200fd59a158410f4008677948fec611d9/CHANGELOG.md"
+    },
+    {
+      "path": "src/utils.ts",
+      "repository": "rturnq/solid-store",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/256071163/contents/src/utils.ts?ref=6ca593af1ebf61d31c7273a6e45850bf2c713e9f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { untrack, createComputed, createSignal, batch } from 'solid-js';\nimport { Store, MappedStore, AnyStore } from './types';\n\nexport function createStore<S extends object, A extends object>(\n  state: S,\n  actions: A\n): Store<S, A> {",
+          "matches": [
+            {
+              "indices": [
+                62,
+                70
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                146,
+                157
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/rturnq/solid-store/blob/6ca593af1ebf61d31c7273a6e45850bf2c713e9f/src/utils.ts"
+    },
+    {
+      "path": "auto-imports.d.ts",
+      "repository": "MetaCubeX/metacubexd",
+      "score": 1,
+      "stars": 2710,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/664925328/contents/auto-imports.d.ts?ref=ea0a8dcb7975b1af899921c50fc4d062b6d93063",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const createRouter: typeof import('@solidjs/router')['createRouter']\n  const createSelector: typeof import('solid-js')['createSelector']\n  const createSignal: typeof import('solid-js')['createSignal']\n  const createStore: typeof import('solid-js/store')['createStore']\n  const createUniqueId: (typeof import('solid-js'))['createUniqueId']\n  const delegateEvents: (typeof import('solid-js/web'))['delegateEvents']\n  const enableExternalSource: (typeof import('solid-js'))['enableExternalSource']",
+          "matches": [
+            {
+              "indices": [
+                110,
+                118
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                176,
+                184
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                211,
+                222
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                239,
+                247
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                257,
+                268
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                311,
+                319
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                381,
+                389
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                461,
+                469
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/MetaCubeX/metacubexd/blob/ea0a8dcb7975b1af899921c50fc4d062b6d93063/auto-imports.d.ts"
+    },
+    {
+      "path": "createStore.md",
+      "repository": "alpo22/solidjs-notes",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/999767417/contents/createStore.md?ref=50b14126296726166f46155731e244643add53e1",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "## Basic Example\n\n```javascript\nimport { createStore } from 'solid-js/store';\n\nfunction UserProfile() {\n  const [user, setUser] = createStore({",
+          "matches": [
+            {
+              "indices": [
+                41,
+                52
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                61,
+                69
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                130,
+                141
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/alpo22/solidjs-notes/blob/50b14126296726166f46155731e244643add53e1/createStore.md"
+    },
+    {
+      "path": "fluid/src/store.ts",
+      "repository": "everweij/solidjs-fine-grained-reactivity",
+      "score": 1,
+      "stars": 11,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/493606245/contents/fluid/src/store.ts?ref=114438310fd94210afa34f26c0ea5646ac21ad84",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " *\n * Note: this is a approximation of the createStore function from solid-js.\n */\nexport function createStore<T extends AnyObject>(initialState: T) {\n  // Start by bootstrapping the initial provided state\n  const state = wrapProxy(initialState);\n",
+          "matches": [
+            {
+              "indices": [
+                43,
+                54
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                69,
+                77
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                99,
+                110
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/everweij/solidjs-fine-grained-reactivity/blob/114438310fd94210afa34f26c0ea5646ac21ad84/fluid/src/store.ts"
+    },
+    {
+      "path": "packages/mutable/README.md",
+      "repository": "solidjs-community/solid-primitives",
+      "score": 1,
+      "stars": 1460,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/369884446/contents/packages/mutable/README.md?ref=0cbdb59bb42f50de5e08000027789ae3d4c80280",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "[![version](https://img.shields.io/npm/v/@solid-primitives/mutable?style=for-the-badge)](https://www.npmjs.com/package/@solid-primitives/mutable)\n[![stage](https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fraw.githubusercontent.com%2Fsolidjs-community%2Fsolid-primitives%2Fmain%2Fassets%2Fbadges%2Fstage-0.json)](https://github.com/solidjs-community/solid-primitives#contribution-process)\n\nA primitive for creating a mutable store proxy object. An alternative to `createStore` from `\"solid-js/store\"`.\n\n- [`createMutable`](#createmutable) - Creates a mutable store proxy object.\n- [`modifyMutable`](#modifymutable) - Helper for applying store mutation utilities - like `produce` or `reconcile` from `\"solid-js/store\"` - to a mutable store.",
+          "matches": [
+            {
+              "indices": [
+                484,
+                495
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                504,
+                512
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                721,
+                729
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs-community/solid-primitives/blob/0cbdb59bb42f50de5e08000027789ae3d4c80280/packages/mutable/README.md"
+    },
+    {
+      "path": "web/store/create.ts",
+      "repository": "demandcluster/charluv",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/633760261/contents/web/store/create.ts?ref=55b00fcde87a96ebc8b87693558b0367174d39d3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\ntype StateSetter<S> = (next: Partial<S>) => Promise<void>\n\nexport function createStore<State extends {}>(name: string, init: State) {\n  let setter: any\n  let getter: any\n",
+          "matches": [
+            {
+              "indices": [
+                76,
+                87
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/demandcluster/charluv/blob/55b00fcde87a96ebc8b87693558b0367174d39d3/web/store/create.ts"
+    },
+    {
+      "path": "ui/app.jsx",
+      "repository": "kofigumbs/typebeat",
+      "score": 1,
+      "stars": 435,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/262607883/contents/ui/app.jsx?ref=792dfd21204a06d0b86e95b3ba1be4bf70e31704",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';\nimport { createStore } from 'solid-js/store';\n\nimport 'firacode';\nimport Tare from 'tare';\nimport { pulse, type } from './animations';\nimport './index.css';",
+          "matches": [
+            {
+              "indices": [
+                67,
+                75
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                87,
+                98
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                107,
+                115
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/kofigumbs/typebeat/blob/792dfd21204a06d0b86e95b3ba1be4bf70e31704/ui/app.jsx"
+    },
+    {
+      "path": "src/store/index.ts",
+      "repository": "amoutonbrady/alexplorer",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/249256260/contents/src/store/index.ts?ref=48122175341a8e3b21474dd19af31c6f7efa36ae",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nconst StoreCtx = createContext<StoreType>(null);\n\nexport const createStore = ({ children }) => {\n\tconst [gtfs, setGtfs] = createState<Gtfs>({});\n\tconst [isReady, setIsReady] = createSignal(false);\n\tconst [route, setRoute] = createSignal(\"/\");",
+          "matches": [
+            {
+              "indices": [
+                64,
+                75
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/amoutonbrady/alexplorer/blob/48122175341a8e3b21474dd19af31c6f7efa36ae/src/store/index.ts"
+    },
+    {
+      "path": "src/main.tsx",
+      "repository": "mokeyish/obsidian-code-emitter",
+      "score": 1,
+      "stars": 367,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/519450328/contents/src/main.tsx?ref=c34b5c7d7d51ea5d22ce463ec94b1bd2deb908f6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import './style.css';\nimport { Plugin, type App, type PluginManifest } from 'obsidian';\nimport { createStore, unwrap, type Store, type SetStoreFunction  } from 'solid-js/store';\nimport { render } from 'solid-js/web';\nimport { PluginSolidSettingTab } from './solidify';\nimport backend from './backend';\nimport SettingTab from './components/SettingTab';",
+          "matches": [
+            {
+              "indices": [
+                97,
+                108
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                161,
+                169
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                202,
+                210
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mokeyish/obsidian-code-emitter/blob/c34b5c7d7d51ea5d22ce463ec94b1bd2deb908f6/src/main.tsx"
+    },
+    {
+      "path": "index.js",
+      "repository": "lotus128/fiddle-solid-array-effect",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/737544207/contents/index.js?ref=c85cf49726647449a3cc507cceee276cc3d667d9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  } else\n    setProperty(current, part, value);\n};\nvar createStore = function(...[store, options]) {\n  const unwrappedStore = unwrap(store || {});\n  const isArray = Array.isArray(unwrappedStore);\n  const wrappedStore = wrap$1(unwrappedStore);",
+          "matches": [
+            {
+              "indices": [
+                55,
+                66
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lotus128/fiddle-solid-array-effect/blob/c85cf49726647449a3cc507cceee276cc3d667d9/index.js"
+    },
+    {
+      "path": "src/store.jsx",
+      "repository": "serprex/openEtG",
+      "score": 1,
+      "stars": 80,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/14814565/contents/src/store.jsx?ref=150bb1dd243b6a2d334e29dde06d2f553f78cc78",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { onCleanup } from 'solid-js';\nimport { createStore } from 'solid-js/store';\n\nimport * as usercmd from './usercmd.js';\nimport { changeMusic, changeSound, musicList } from './audio.js';\nimport { iterraw, mergedecks, removedecks } from './etgutil.js';\nimport { playMusic } from './audio.js';",
+          "matches": [
+            {
+              "indices": [
+                27,
+                35
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                47,
+                58
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                67,
+                75
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/serprex/openEtG/blob/150bb1dd243b6a2d334e29dde06d2f553f78cc78/src/store.jsx"
+    },
+    {
+      "path": "docs/ctf.md",
+      "repository": "lxsmnsyc/solid-labels",
+      "score": 1,
+      "stars": 254,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/407243045/contents/docs/ctf.md?ref=56eecd581df1483e301a1c32f3968ea287342380",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nThese CTFs are based from `solid-js/store` exports.\n",
+          "matches": [
+            {
+              "indices": [
+                28,
+                36
+              ],
+              "text": "solid-js"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/407243045/contents/docs/ctf.md?ref=56eecd581df1483e301a1c32f3968ea287342380",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n- `$store` -> `createStore`\n- `$mutable` -> `createMutable`",
+          "matches": [
+            {
+              "indices": [
+                16,
+                27
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lxsmnsyc/solid-labels/blob/56eecd581df1483e301a1c32f3968ea287342380/docs/ctf.md"
+    },
+    {
+      "path": "src/Toast.tsx",
+      "repository": "blopker/alic",
+      "score": 1,
+      "stars": 129,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/753889796/contents/src/Toast.tsx?ref=e77611b4d0b4f37b3a44032a22d95c31002d9ce3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// types.ts\nimport { type Component, For, type JSXElement } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { TransitionGroup } from \"solid-transition-group\";\nexport type ToastType = \"success\" | \"error\" | \"info\" | \"warning\";\n\nimport { FaSolidXmark } from \"solid-icons/fa\";",
+          "matches": [
+            {
+              "indices": [
+                66,
+                74
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                86,
+                97
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                106,
+                114
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/blopker/alic/blob/e77611b4d0b4f37b3a44032a22d95c31002d9ce3/src/Toast.tsx"
+    },
+    {
+      "path": "src/App.tsx",
+      "repository": "argimenes/speedy-ts",
+      "score": 1,
+      "stars": 33,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/677621779/contents/src/App.tsx?ref=5cb144cb2052cfde64ead65eff5f20b974906168",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Component, Show } from 'solid-js';\nimport { BlockManagerWindow } from './components/workspace';\nimport { UniverseBlock } from './universe-block';\nimport { createStore } from 'solid-js/store';\n\ntype Model = {\n  manager: UniverseBlock;",
+          "matches": [
+            {
+              "indices": [
+                33,
+                41
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                164,
+                175
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                184,
+                192
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/argimenes/speedy-ts/blob/5cb144cb2052cfde64ead65eff5f20b974906168/src/App.tsx"
+    },
+    {
+      "path": "src/context/ui.jsx",
+      "repository": "harshmangalam/hydrogen-solidjs-client",
+      "score": 1,
+      "stars": 88,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/453410665/contents/src/context/ui.jsx?ref=2c292390768ce5870ca8e2443f354b9f809fd486",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createContext, useContext } from \"solid-js\";\nimport { createStore, produce } from \"solid-js/store\";\nimport shortId from \"shortid\";\n\nconst UIStateContext = createContext();\nconst UIDispatchContext = createContext();\n",
+          "matches": [
+            {
+              "indices": [
+                43,
+                51
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                63,
+                74
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                92,
+                100
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/harshmangalam/hydrogen-solidjs-client/blob/2c292390768ce5870ca8e2443f354b9f809fd486/src/context/ui.jsx"
+    },
+    {
+      "path": "llm/solid-js.md",
+      "repository": "thednp/fetch-library-data",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/896580557/contents/llm/solid-js.md?ref=533bb4305639d6e2356158f8c7e787e79faa5b17",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n    import { createStore } from \"solid-js/store\"\n    // Initialize storeconst [store, setStore] = createStore({  userCount: 3,  users: [    {      id: 0,      username: \"felix909\",      location: \"England\",      loggedIn: false,    },    {      id: 1,      username: \"tracy634\",      location: \"Canada\",      loggedIn: true,    },    {      id: 2,      username: \"johny123\",      location: \"India\",      loggedIn: true,    },  ],})",
+          "matches": [
+            {
+              "indices": [
+                14,
+                25
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                34,
+                42
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                99,
+                110
+              ],
+              "text": "createStore"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/896580557/contents/llm/solid-js.md?ref=533bb4305639d6e2356158f8c7e787e79faa5b17",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n    import { createStore } from \"solid-js/store\"\n    const App = () => {  const [state, setState] = createStore({    tasks: [],    numberOfTasks: 0,  })}",
+          "matches": [
+            {
+              "indices": [
+                14,
+                25
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                34,
+                42
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                101,
+                112
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/thednp/fetch-library-data/blob/533bb4305639d6e2356158f8c7e787e79faa5b17/llm/solid-js.md"
+    },
+    {
+      "path": "src/lib/notes.tsx",
+      "repository": "PrimalHQ/primal-web-app",
+      "score": 1,
+      "stars": 249,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/594140799/contents/src/lib/notes.tsx?ref=c304dd989be0f10828c39ea48943820b44e103a8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Relay, relayInit } from \"../lib/nTools\";\r\nimport { createStore, unwrap } from \"solid-js/store\";\r\nimport LinkPreview from \"../components/LinkPreview/LinkPreview\";\r\nimport { addrRegex, appleMusicRegex, emojiRegex, hashtagRegex, interpunctionRegex, Kind, linebreakRegex, lnRegex, lnUnifiedRegex, mixCloudRegex, nostrNestsRegex, noteRegexLocal, profileRegex, rumbleRegex, soundCloudRegex, spotifyRegex, tagMentionRegex, tidalEmbedRegex, twitchPlayerRegex, twitchRegex, urlRegex, urlRegexG, wavlakeRegex, youtubeRegex, zapStreamEmbedRegex } from \"../constants\";\r\nimport { sendMessage, subsTo } from \"../sockets\";\r\nimport { EventCoordinate, MediaSize, NostrRelays, NostrRelaySignedEvent, PrimalArticle, PrimalDVM, PrimalNote, PrimalUser, SendNoteResult } from \"../types/primal\";\r\nimport { decodeIdentifier, npubToHex } from \"./keys\";\r",
+          "matches": [
+            {
+              "indices": [
+                60,
+                71
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                88,
+                96
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/PrimalHQ/primal-web-app/blob/c304dd989be0f10828c39ea48943820b44e103a8/src/lib/notes.tsx"
+    },
+    {
+      "path": "src/App.ts",
+      "repository": "iksaku/inertia-adapter-solid",
+      "score": 1,
+      "stars": 55,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/640137820/contents/src/App.ts?ref=5cc9250c3ffc6864e952a1368508339612d7d89b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  createComponent,\n  createMemo,\n  mergeProps,\n} from 'solid-js'\nimport { createStore, reconcile } from 'solid-js/store'\nimport { isServer } from 'solid-js/web'\nimport PageContext from './PageContext'",
+          "matches": [
+            {
+              "indices": [
+                55,
+                63
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                74,
+                85
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                105,
+                113
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                147,
+                155
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/iksaku/inertia-adapter-solid/blob/5cc9250c3ffc6864e952a1368508339612d7d89b/src/App.ts"
+    },
+    {
+      "path": "src/store.tsx",
+      "repository": "lyonbot/video-to-gif",
+      "score": 1,
+      "stars": 53,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/785767407/contents/src/store.tsx?ref=43c72792639d786ddeb6de25139147ac2195af30",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import type { FFmpeg } from '@ffmpeg/ffmpeg';\nimport { FileData } from '@ffmpeg/ffmpeg/dist/esm/types';\nimport { createEffect, createMemo, createRoot, on, onCleanup } from 'solid-js';\nimport { createStore } from 'solid-js/store';\nimport { debounce, pick } from 'lodash-es';\nimport { readVideoFileInfo } from './processors/readFileInfo';\n",
+          "matches": [
+            {
+              "indices": [
+                173,
+                181
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                193,
+                204
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                213,
+                221
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lyonbot/video-to-gif/blob/43c72792639d786ddeb6de25139147ac2195af30/src/store.tsx"
+    },
+    {
+      "path": "src/Chat.tsx",
+      "repository": "networked-aframe/naf-valid-avatars",
+      "score": 1,
+      "stars": 15,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/726582497/contents/src/Chat.tsx?ref=f1e7d36ea61c144cc2c2c790f6e53b3bebaf7b7f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "/* global NAF */\nimport { Component, For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';\nimport { createStore } from 'solid-js/store';\nimport { Portal } from 'solid-js/web';\n// @ts-ignore\nimport Linkify from 'solid-media-linkify';\nimport { BsChatDots, BsSend } from 'solid-icons/bs';",
+          "matches": [
+            {
+              "indices": [
+                115,
+                123
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                135,
+                146
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                155,
+                163
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                196,
+                204
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/networked-aframe/naf-valid-avatars/blob/f1e7d36ea61c144cc2c2c790f6e53b3bebaf7b7f/src/Chat.tsx"
+    },
+    {
+      "path": "src/useForm.ts",
+      "repository": "iksaku/inertia-adapter-solid",
+      "score": 1,
+      "stars": 55,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/640137820/contents/src/useForm.ts?ref=5cc9250c3ffc6864e952a1368508339612d7d89b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { cloneDeep, isEqual, omit, toMerged } from 'es-toolkit'\nimport { get, set } from 'es-toolkit/compat'\nimport { batch, createMemo, createSignal } from 'solid-js'\nimport { type SetStoreFunction, type Store, createStore, produce, reconcile, unwrap } from 'solid-js/store'\nimport { isServer } from 'solid-js/web'\nimport useRemember from './useRemember'\n",
+          "matches": [
+            {
+              "indices": [
+                158,
+                166
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                212,
+                223
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                260,
+                268
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                302,
+                310
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/iksaku/inertia-adapter-solid/blob/5cc9250c3ffc6864e952a1368508339612d7d89b/src/useForm.ts"
+    },
+    {
+      "path": "src/stores.ts",
+      "repository": "datawan-labs/schools",
+      "score": 1,
+      "stars": 60,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/878709642/contents/src/stores.ts?ref=e617f9aa2ef58b8d0a835f2b799a31dc9a72e1e4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { ColorConfig } from \"./libs/colors\";\nimport { MAP_STYLES, SAVED_QUERY } from \"./constants\";\nimport { createStore, createMutable } from \"solid-js/store\";\n\nconst config = createMutable({\n  /**\n   * selected from saved query",
+          "matches": [
+            {
+              "indices": [
+                109,
+                120
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                144,
+                152
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/datawan-labs/schools/blob/e617f9aa2ef58b8d0a835f2b799a31dc9a72e1e4/src/stores.ts"
+    },
+    {
+      "path": "src/utils.ts",
+      "repository": "alarbada/portfolio",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/603498568/contents/src/utils.ts?ref=fdc2ccc8881b9f3b4a57598be821ed4cab0211bd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore as _createStore, produce } from 'solid-js/store'\n\nexport function createStore<T extends object>(value: T) {\n    const [getter, setter] = _createStore(value)\n\n    type mutationFunction = (val: T) => void\n",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                25,
+                36
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                54,
+                62
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                87,
+                98
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                159,
+                170
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/alarbada/portfolio/blob/fdc2ccc8881b9f3b4a57598be821ed4cab0211bd/src/utils.ts"
+    },
+    {
+      "path": "src/index.tsx",
+      "repository": "mikeplus64/solid-typefu-router5",
+      "score": 1,
+      "stars": 18,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/281308766/contents/src/index.tsx?ref=6ed7ef9f83030ed4a7ab597a91d7fabcb88eb1b9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Route, Router as Router5 } from \"router5\";\nimport { Unsubscribe } from \"router5/dist/types/base\";\nimport { DefaultDependencies } from \"router5/dist/types/router\";\nimport { JSX, onCleanup } from \"solid-js\";\nimport { createStore, reconcile } from \"solid-js/store\";\nimport { Link, LinkNav, LinkProps } from \"./components/Link\";\nimport RouteStateMachine, { RSM } from \"./components/Router\";",
+          "matches": [
+            {
+              "indices": [
+                204,
+                212
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                224,
+                235
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                255,
+                263
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mikeplus64/solid-typefu-router5/blob/6ed7ef9f83030ed4a7ab597a91d7fabcb88eb1b9/src/index.tsx"
+    },
+    {
+      "path": "src/app/view.tsx",
+      "repository": "effector/inspector",
+      "score": 1,
+      "stars": 27,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/240887831/contents/src/app/view.tsx?ref=ef3976cadfbb364503ac0445f92bffe29163de3b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {createEvent, createStore, sample} from 'effector';\nimport {useUnit} from 'effector-solid';\nimport {For, Match, Show, Switch} from 'solid-js';\nimport {createGlobalStyles, styled} from 'solid-styled-components';\n\nimport {createJsonSetting, createSetting} from '../shared/lib/setting';\nimport {useDragable} from '../shared/lib/use-dragable';",
+          "matches": [
+            {
+              "indices": [
+                21,
+                32
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                139,
+                147
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/effector/inspector/blob/ef3976cadfbb364503ac0445f92bffe29163de3b/src/app/view.tsx"
+    },
+    {
+      "path": "src/util/db.ts",
+      "repository": "franzaps/zapthreads",
+      "score": 1,
+      "stars": 35,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/655930802/contents/src/util/db.ts?ref=30a214b8a17333e3b83534748161a906dc0149a8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { InitializedResource, Signal, createMemo, createResource, on } from \"solid-js\";\nimport batchedFunction from \"./batched-function.ts\";\nimport { createMutable, createStore, reconcile, unwrap } from \"solid-js/store\";\nimport { IDBPDatabase, IndexKey, IndexNames, StoreNames, StoreValue, openDB } from \"idb\";\nimport { ZapthreadsSchema, indices, upgrade } from \"./models.ts\";\n\ntype DBTypes = ZapthreadsSchema;",
+          "matches": [
+            {
+              "indices": [
+                77,
+                85
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                165,
+                176
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                204,
+                212
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/franzaps/zapthreads/blob/30a214b8a17333e3b83534748161a906dc0149a8/src/util/db.ts"
+    },
+    {
+      "path": "src/index.tsx",
+      "repository": "niliadu/solid-js-form",
+      "score": 1,
+      "stars": 36,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/403427132/contents/src/index.tsx?ref=69489619559afddb3445cd6ff27c836ffcdf1be8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Accessor, createContext, createMemo, JSX, JSXElement, useContext, splitProps } from \"solid-js\";\nimport { createStore, Store } from \"solid-js/store\";\nimport * as Yup from \"yup\";\nimport { ObjectShape } from \"yup/lib/object\";\n\nexport namespace FormType {\n  export type Touched<T extends object = any> = { [Key in keyof T]: boolean };",
+          "matches": [
+            {
+              "indices": [
+                94,
+                102
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                114,
+                125
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                141,
+                149
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/niliadu/solid-js-form/blob/69489619559afddb3445cd6ff27c836ffcdf1be8/src/index.tsx"
+    },
+    {
+      "path": "src/utils.tsx",
+      "repository": "homebrewing/malt.io",
+      "score": 1,
+      "stars": 9,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/13765109/contents/src/utils.tsx?ref=7e5c16186484a5033ddb88c24dfc51d0a01a3514",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { SetStoreFunction, Store, createStore } from \"solid-js/store\";\n\nimport { createEffect } from \"solid-js\";\n\nexport function createLocalStore<T extends object>(\n  name: string,\n  init: T",
+          "matches": [
+            {
+              "indices": [
+                34,
+                45
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                54,
+                62
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                102,
+                110
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/homebrewing/malt.io/blob/7e5c16186484a5033ddb88c24dfc51d0a01a3514/src/utils.tsx"
+    },
+    {
+      "path": "ui/b/shell.jsx",
+      "repository": "tim-janik/anklang",
+      "score": 1,
+      "stars": 71,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/315066706/contents/ui/b/shell.jsx?ref=a4eef8f96509772725764b27694a6eddeb428ea4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * : Implicit *Ase.Project*, using App.project().\n */\n\nimport { createSignal, createEffect, onMount, onCleanup, For, Show } from 'solid-js'; // createStore\n\nimport * as Signal from \"../signal.js\";\nimport * as Util from \"../util.js\";",
+          "matches": [
+            {
+              "indices": [
+                130,
+                138
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                144,
+                155
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/tim-janik/anklang/blob/a4eef8f96509772725764b27694a6eddeb428ea4/ui/b/shell.jsx"
+    },
+    {
+      "path": "src/Provider.tsx",
+      "repository": "jotaijs/solid-jotai",
+      "score": 1,
+      "stars": 35,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/575101587/contents/src/Provider.tsx?ref=ef11f221eadc1c0f2b486d1feb83122738ccdb84",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import type { Component, JSX } from 'solid-js'\nimport { createStore, getDefaultStore } from 'jotai/vanilla'\nimport { createContext, useContext } from 'solid-js'\n\ntype Store = ReturnType<typeof createStore>\n\nconst StoreContext = createContext<Store | undefined>(undefined)",
+          "matches": [
+            {
+              "indices": [
+                37,
+                45
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                56,
+                67
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                151,
+                159
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                193,
+                204
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jotaijs/solid-jotai/blob/ef11f221eadc1c0f2b486d1feb83122738ccdb84/src/Provider.tsx"
+    },
+    {
+      "path": "src/index.tsx",
+      "repository": "wobsoriano/solid-sonner",
+      "score": 1,
+      "stars": 91,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/660289592/contents/src/index.tsx?ref=0922788fb2e43fbc03af3d8bf5fdf5f2d1cf9ed8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " */\nimport './styles.css'\nimport type { Component } from 'solid-js'\nimport { For, Show, createEffect, createSignal, mergeProps, on, onCleanup, onMount } from 'solid-js'\nimport { createStore, produce, reconcile } from 'solid-js/store'\nimport { Loader, getAsset } from './assets'\nimport type { ExternalToast, HeightT, Position, ToastProps, ToastT, ToastToDismiss, ToasterProps } from './types'",
+          "matches": [
+            {
+              "indices": [
+                58,
+                66
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                159,
+                167
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                178,
+                189
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                218,
+                226
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/wobsoriano/solid-sonner/blob/0922788fb2e43fbc03af3d8bf5fdf5f2d1cf9ed8/src/index.tsx"
+    },
+    {
+      "path": "src/solid-dexie.ts",
+      "repository": "faassen/solid-dexie",
+      "score": 1,
+      "stars": 64,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/511211911/contents/src/solid-dexie.ts?ref=562eb724a6066b4d65ca10a2d76ecab1a5ca849a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  createEffect,\n  on,\n  onCleanup,\n} from \"solid-js\";\nimport { createStore, reconcile, SetStoreFunction } from \"solid-js/store\";\nimport { liveQuery, PromiseExtended } from \"dexie\";\n",
+          "matches": [
+            {
+              "indices": [
+                43,
+                51
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                63,
+                74
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                112,
+                120
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/faassen/solid-dexie/blob/562eb724a6066b4d65ca10a2d76ecab1a5ca849a/src/solid-dexie.ts"
+    },
+    {
+      "path": "src/createQuery.ts",
+      "repository": "merged-js/solid-apollo",
+      "score": 1,
+      "stars": 58,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/402404564/contents/src/createQuery.ts?ref=aa9e931f021df66cee4573c8111a435d8a6796ad",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import type { WatchQueryOptions, OperationVariables } from '@apollo/client/core'\nimport type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'\nimport type { Accessor } from 'solid-js'\nimport { createResource, onCleanup } from 'solid-js'\nimport { createStore, reconcile } from 'solid-js/store'\n\nimport { useApollo } from './ApolloProvider'",
+          "matches": [
+            {
+              "indices": [
+                203,
+                211
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                256,
+                264
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                275,
+                286
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                306,
+                314
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/merged-js/solid-apollo/blob/aa9e931f021df66cee4573c8111a435d8a6796ad/src/createQuery.ts"
+    },
+    {
+      "path": "src/presence.ts",
+      "repository": "networked-aframe/naf-valid-avatars",
+      "score": 1,
+      "stars": 15,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/726582497/contents/src/presence.ts?ref=f1e7d36ea61c144cc2c2c790f6e53b3bebaf7b7f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "/* global NAF */\nimport { createStore } from 'solid-js/store';\n\nexport interface Presence {\n  id: string;\n  muted: boolean;\n  name: string;",
+          "matches": [
+            {
+              "indices": [
+                26,
+                37
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                46,
+                54
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/networked-aframe/naf-valid-avatars/blob/f1e7d36ea61c144cc2c2c790f6e53b3bebaf7b7f/src/presence.ts"
+    },
+    {
+      "path": "src/index.tsx",
+      "repository": "Mokshit06/solid-table",
+      "score": 1,
+      "stars": 35,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/480330604/contents/src/index.tsx?ref=615aac3dcece714db930ed3781d0cc69360b17f9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  createComponent,\n  createRenderEffect,\n} from 'solid-js';\nimport { createStore } from 'solid-js/store';\n\nexport * from '@tanstack/table-core';\n",
+          "matches": [
+            {
+              "indices": [
+                49,
+                57
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                69,
+                80
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                89,
+                97
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Mokshit06/solid-table/blob/615aac3dcece714db930ed3781d0cc69360b17f9/src/index.tsx"
+    },
+    {
+      "path": "src/utils.tsx",
+      "repository": "Kanttiinit/web",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/64589821/contents/src/utils.tsx?ref=47c931e41a0d24ed17287191cdea044b08f0810c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nimport { CourseType, FavoriteType, Order, RestaurantType } from './types';\nimport { state, resources } from './state';\nimport { createStore } from 'solid-js/store';\nimport { ISortByObjectSorter, sort } from 'fast-sort';\n\nexport const selectedFavorites = createMemo(() => {",
+          "matches": [
+            {
+              "indices": [
+                129,
+                140
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                149,
+                157
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Kanttiinit/web/blob/47c931e41a0d24ed17287191cdea044b08f0810c/src/utils.tsx"
+    },
+    {
+      "path": "src/review/app.tsx",
+      "repository": "word-hunter/word-hunter",
+      "score": 1,
+      "stars": 170,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/564594825/contents/src/review/app.tsx?ref=f43323996d49e3add6b1ba588ec576aa422470f0",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { ContextMap, StorageKey, WordContext } from '../constant'\nimport { Accessor, createEffect, createSignal, For, Setter, Show } from 'solid-js'\nimport { createStore } from 'solid-js/store'\nimport { getLocalValue } from '../lib/storage'\nimport { createDraggable } from '@neodrag/solid'\nimport { getFaviconByDomain, getRelativeTimeString, formatTime } from '../lib/utils'\n",
+          "matches": [
+            {
+              "indices": [
+                139,
+                147
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                158,
+                169
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                178,
+                186
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/word-hunter/word-hunter/blob/f43323996d49e3add6b1ba588ec576aa422470f0/src/review/app.tsx"
+    },
+    {
+      "path": "src/provider.tsx",
+      "repository": "the-cookbook/solid-intl",
+      "score": 1,
+      "stars": 20,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/584793192/contents/src/provider.tsx?ref=ecdccf29caae8b3800ebc68d2b5512a43f39dcd1",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createComputed, createContext } from \"solid-js\";\nimport { createStore, createMutable } from \"solid-js/store\";\nimport { IntlCache, createIntl, createIntlCache } from \"@formatjs/intl\";\nimport type { FlowComponent } from \"solid-js\";\n\nimport processConfig from \"./process-config\";\nimport is from \"./utils/is\";",
+          "matches": [
+            {
+              "indices": [
+                47,
+                55
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                67,
+                78
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                102,
+                110
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                228,
+                236
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/the-cookbook/solid-intl/blob/ecdccf29caae8b3800ebc68d2b5512a43f39dcd1/src/provider.tsx"
+    },
+    {
+      "path": "src/App.civet",
+      "repository": "edemaine/three-tiles",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/888695955/contents/src/App.civet?ref=513ad26a2299c474dc1cbe267aa77c6e5f0dfa8b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "from solid-js import { createMemo, createSelector, createSignal, For, Index }\nfrom solid-js/store import { createStore }\nfrom @thisbeyond/solid-dnd import {\n  DragDropProvider\n  DragDropSensors\n  DragEventHandler\n}",
+          "matches": [
+            {
+              "indices": [
+                5,
+                13
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                83,
+                91
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                107,
+                118
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/edemaine/three-tiles/blob/513ad26a2299c474dc1cbe267aa77c6e5f0dfa8b/src/App.civet"
+    },
+    {
+      "path": "src/Globals.jsx",
+      "repository": "adithyasource/clear",
+      "score": 1,
+      "stars": 60,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/695641803/contents/src/Globals.jsx?ref=90f0092a496c551038151596ee4095813e7eb562",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { appDataDir } from \"@tauri-apps/api/path\";\nimport { invoke } from \"@tauri-apps/api/tauri\";\n// importing code snippets and library functions\nimport { createContext, createSignal } from \"solid-js\";\nimport { createStore, produce } from \"solid-js/store\";\nimport { parseVDF } from \"./libraries/parseVDF.js\";\n",
+          "matches": [
+            {
+              "indices": [
+                193,
+                201
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                213,
+                224
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                242,
+                250
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/adithyasource/clear/blob/90f0092a496c551038151596ee4095813e7eb562/src/Globals.jsx"
+    },
+    {
+      "path": "src/urlstore.ts",
+      "repository": "homebrewing/malt.io",
+      "score": 1,
+      "stars": 9,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/13765109/contents/src/urlstore.ts?ref=7e5c16186484a5033ddb88c24dfc51d0a01a3514",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { SetStoreFunction, createStore } from \"solid-js/store\";\nimport { useNavigate, useParams } from \"@solidjs/router\";\n\nimport { createRenderEffect } from \"solid-js\";\n\nexport default function createURLStore<T extends object>(\n  prefix: string,",
+          "matches": [
+            {
+              "indices": [
+                27,
+                38
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                47,
+                55
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                159,
+                167
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/homebrewing/malt.io/blob/7e5c16186484a5033ddb88c24dfc51d0a01a3514/src/urlstore.ts"
+    },
+    {
+      "path": "src/lib/skye.js",
+      "repository": "johnhyde/turf",
+      "score": 1,
+      "stars": 21,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/630285006/contents/src/lib/skye.js?ref=bc6a1030751c71da1cccb101ededc83130c15e04",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// import { createMemo, createResource } from \"solid-js\";\nimport { createStore, produce, reconcile } from 'solid-js/store';\nimport * as api from 'lib/api.js';\n\nexport class Skye { // we use a class so we can put it inside a store without getting proxied\n  constructor(id, stirMark) {\n    const [skye, $skye] = createStore({});",
+          "matches": [
+            {
+              "indices": [
+                47,
+                55
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                67,
+                78
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                107,
+                115
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                310,
+                321
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/johnhyde/turf/blob/bc6a1030751c71da1cccb101ededc83130c15e04/src/lib/skye.js"
+    },
+    {
+      "path": "app/index.jsx",
+      "repository": "niklasbuschmann/zenreader",
+      "score": 1,
+      "stars": 6,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/253008703/contents/app/index.jsx?ref=d8bc442606be2185480ec43eef6f6f0302067908",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import './index.sass'\nimport { createEffect } from 'solid-js';\nimport { createStore } from 'solid-js/store';\nimport { render } from 'solid-js/web';\nimport api from './api.jsx';\nimport App from './components/app.jsx';\n",
+          "matches": [
+            {
+              "indices": [
+                52,
+                60
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                72,
+                83
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                92,
+                100
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                133,
+                141
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/niklasbuschmann/zenreader/blob/d8bc442606be2185480ec43eef6f6f0302067908/app/index.jsx"
+    },
+    {
+      "path": "src/useQuery.ts",
+      "repository": "aboviq/powersync-solid",
+      "score": 1,
+      "stars": 10,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/896045375/contents/src/useQuery.ts?ref=efad7da403d627351b627ba1759ee478993f61d2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  type Resource,\n  type Setter,\n} from 'solid-js';\nimport { createStore } from 'solid-js/store';\nimport { usePowerSync } from './PowerSyncContext';\n\ntype MaybeAccessor<T> = T | Accessor<T>;",
+          "matches": [
+            {
+              "indices": [
+                40,
+                48
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                60,
+                71
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                80,
+                88
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/aboviq/powersync-solid/blob/efad7da403d627351b627ba1759ee478993f61d2/src/useQuery.ts"
+    },
+    {
+      "path": "createFind.ts",
+      "repository": "edemaine/solid-meteor-data",
+      "score": 1,
+      "stars": 16,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/442893559/contents/createFind.ts?ref=77771f39f1d78b18d87787221acacfff89643938",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {Mongo} from 'meteor/mongo';\nimport {Tracker} from 'meteor/tracker';\nimport {createComputed, createSignal, onCleanup} from 'solid-js';\nimport type {Accessor} from 'solid-js';\nimport {createStore, reconcile, unwrap} from 'solid-js/store';\nimport type {Store} from 'solid-js/store';\n",
+          "matches": [
+            {
+              "indices": [
+                131,
+                139
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                171,
+                179
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                190,
+                201
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                228,
+                236
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                271,
+                279
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/edemaine/solid-meteor-data/blob/77771f39f1d78b18d87787221acacfff89643938/createFind.ts"
+    },
+    {
+      "path": "src/App.civet",
+      "repository": "edemaine/word-ladder",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/772836102/contents/src/App.civet?ref=8705c4fc7be3e921ec69b55cde0c32c926007878",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "{createEffect, createMemo, createSignal, Show} from 'solid-js'\n{createStore} from 'solid-js/store'\n{type LadderDAG, type LadderOptions, LadderSearch} from './ladder.civet'\n\nwordListEcprice from '../data/wordlist.ecprice.txt'\nwordListDwyl from '../data/wordlist.dwyl.txt'\nwordListURL :=",
+          "matches": [
+            {
+              "indices": [
+                53,
+                61
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                64,
+                75
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                83,
+                91
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/edemaine/word-ladder/blob/8705c4fc7be3e921ec69b55cde0c32c926007878/src/App.civet"
+    },
+    {
+      "path": "src/app.tsx",
+      "repository": "QuentinWidlocher/mtg-proxy-maker",
+      "score": 1,
+      "stars": 12,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/623671240/contents/src/app.tsx?ref=98eeef76b149d930e66b3e5dd35bed54e6142be7",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  createResource,\n  createSignal,\n} from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport CardComponent from \"./components/card/card\";\nimport CardVerso from \"./components/card/card-verso\";\nimport EditCardForm from \"./components/edit-card-form\";",
+          "matches": [
+            {
+              "indices": [
+                42,
+                50
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                62,
+                73
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                82,
+                90
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/QuentinWidlocher/mtg-proxy-maker/blob/98eeef76b149d930e66b3e5dd35bed54e6142be7/src/app.tsx"
+    },
+    {
+      "path": "src/store/app.ts",
+      "repository": "molgenis/vip-report-template",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/267228285/contents/src/store/app.ts?ref=4e45315d7ab75fd19340ff15e7588757dd61e212",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore, produce } from \"solid-js/store\";\nimport { AppActions, AppState, AppStore } from \"../types/store\";\n\nconst defaultState: AppState = { variants: {}, sampleVariants: {}, samples: {} };\n\nexport function createAppStore(): AppStore {\n  const [state, setState] = createStore(defaultState);",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                38,
+                46
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                277,
+                288
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/molgenis/vip-report-template/blob/4e45315d7ab75fd19340ff15e7588757dd61e212/src/store/app.ts"
+    },
+    {
+      "path": "src/state.tsx",
+      "repository": "YoungerMax/solid-news",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/513338076/contents/src/state.tsx?ref=8b8808a9c6303f70814bc9d203701902892a6373",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\";\n\ninterface AppState {\n    settings: object;\n}\n\nexport default createStore<AppState>({",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                108,
+                119
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/YoungerMax/solid-news/blob/8b8808a9c6303f70814bc9d203701902892a6373/src/state.tsx"
+    },
+    {
+      "path": "src/page/Page3.tsx",
+      "repository": "19wintersp/custom-euroscope",
+      "score": 1,
+      "stars": 7,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/811403728/contents/src/page/Page3.tsx?ref=ddc9cb8098615d2f8925eb54301290b10fd31824",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\tAccessor, For, Match, Show, Suspense, Switch, createEffect, createResource,\n\tcreateSignal, useContext,\n} from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\n\nimport \"./Page3.css\";\n",
+          "matches": [
+            {
+              "indices": [
+                112,
+                120
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                132,
+                143
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                152,
+                160
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/19wintersp/custom-euroscope/blob/ddc9cb8098615d2f8925eb54301290b10fd31824/src/page/Page3.tsx"
+    },
+    {
+      "path": "src/demo/App.jsx",
+      "repository": "milahu/solidjs-treeview-component",
+      "score": 1,
+      "stars": 17,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/353810527/contents/src/demo/App.jsx?ref=43b0f63e0c19279653e4361b74df7995e8e72459",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { onMount } from \"solid-js\";\nimport { createStore, unwrap } from \"solid-js/store\";\nimport { glob as globalStyle } from \"solid-styled-components\";\n\nimport TreeView from \"../../\"; // -> package.json -> module -> src/TreeView.jsx\nimport pkg from \"../../package.json\";\n",
+          "matches": [
+            {
+              "indices": [
+                25,
+                33
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                45,
+                56
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                73,
+                81
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/milahu/solidjs-treeview-component/blob/43b0f63e0c19279653e4361b74df7995e8e72459/src/demo/App.jsx"
+    },
+    {
+      "path": "src/app.tsx",
+      "repository": "peerreynders/solid-start-ws-demo",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/781795630/contents/src/app.tsx?ref=57c6f92342a205308acc3ab006e44b799a19deaa",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// file: src/app.tsx\nimport { MetaProvider, Title } from '@solidjs/meta';\nimport { createStore } from 'solid-js/store';\nimport { For, onMount } from 'solid-js';\n\n// Custom types\ntype Message = {",
+          "matches": [
+            {
+              "indices": [
+                83,
+                94
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                103,
+                111
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                150,
+                158
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/peerreynders/solid-start-ws-demo/blob/57c6f92342a205308acc3ab006e44b799a19deaa/src/app.tsx"
+    },
+    {
+      "path": "src/app.tsx",
+      "repository": "ddPn08/REAL-ESRGAN-UI",
+      "score": 1,
+      "stars": 8,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/535936707/contents/src/app.tsx?ref=400c6b628f8e61f244f2182e0dab642b1c87d614",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { dirname } from '@tauri-apps/api/path'\nimport { invoke } from '@tauri-apps/api/tauri'\nimport { createContext, createSignal, Setter } from 'solid-js'\nimport { createStore } from 'solid-js/store'\n\nimport { FormatSelect } from './components/format-select'\nimport { ImageInput } from './components/image-input'",
+          "matches": [
+            {
+              "indices": [
+                147,
+                155
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                166,
+                177
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                186,
+                194
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ddPn08/REAL-ESRGAN-UI/blob/400c6b628f8e61f244f2182e0dab642b1c87d614/src/app.tsx"
+    },
+    {
+      "path": "]",
+      "repository": "HachiroSan/zebar-dotfiles",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1002621147/contents/]?ref=566e0d755887eeccc579b25e6a88138c97a2b45d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "/* @refresh reload */\nimport './index.css';\nimport { render } from 'solid-js/web';\nimport { createStore } from 'solid-js/store';\nimport * as zebar from 'zebar';\n// Modern minimalist icons from solid-icons\nimport { ",
+          "matches": [
+            {
+              "indices": [
+                68,
+                76
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                92,
+                103
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                112,
+                120
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/HachiroSan/zebar-dotfiles/blob/566e0d755887eeccc579b25e6a88138c97a2b45d/]"
+    },
+    {
+      "path": "src/context.tsx",
+      "repository": "ddPn08/decorock",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/582101452/contents/src/context.tsx?ref=d7e3de21a2b70d3f09ae0bb038ad0b3c488ba837",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Component, createContext, JSX, splitProps, useContext } from 'solid-js'\nimport { createStore } from 'solid-js/store'\n\nexport interface DefaultTheme {}\n\ntype Context = {\n  theme: DefaultTheme",
+          "matches": [
+            {
+              "indices": [
+                71,
+                79
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                90,
+                101
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                110,
+                118
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ddPn08/decorock/blob/d7e3de21a2b70d3f09ae0bb038ad0b3c488ba837/src/context.tsx"
+    },
+    {
+      "path": "src/lib/util.ts",
+      "repository": "zaiste/solid-storefront",
+      "score": 1,
+      "stars": 10,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/445845395/contents/src/lib/util.ts?ref=0fd766c075f7985dc268093f9d01e096b8585bf3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createEffect } from \"solid-js\";\nimport { createStore, SetStoreFunction, Store } from \"solid-js/store\";\n\nexport function createLocalStore<T>(initState: T): [Store<T>, SetStoreFunction<T>] {\n\tconst [state, setState] = createStore(initState);\n\n  if (typeof window !== 'undefined') {",
+          "matches": [
+            {
+              "indices": [
+                30,
+                38
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                50,
+                61
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                95,
+                103
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                225,
+                236
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/zaiste/solid-storefront/blob/0fd766c075f7985dc268093f9d01e096b8585bf3/src/lib/util.ts"
+    },
+    {
+      "path": "src/GameStore.ts",
+      "repository": "grinstead/MarbleMarcherWebGPU",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/796796959/contents/src/GameStore.ts?ref=e4cfd1b8b2c68eda0d1044f7cf6fcb2c5cfcff7d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\";\nimport { Docket } from \"@grinstead/ambush\";\nimport { Persisted } from \"./Persisted.ts\";\nimport { number, object, record, string } from \"zod\";\nimport { FractalProps, genericFractal } from \"./Fractal.tsx\";\n\nexport type GameLoopTypes = \"step\";",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/grinstead/MarbleMarcherWebGPU/blob/e4cfd1b8b2c68eda0d1044f7cf6fcb2c5cfcff7d/src/GameStore.ts"
+    },
+    {
+      "path": "src/router.ts",
+      "repository": "danielo515/openhasp-designer",
+      "score": 1,
+      "stars": 9,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/455683896/contents/src/router.ts?ref=393bafa13100390912a25a2bf5441c55e7507c50",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\";\n\ntype topPaths = \"controls\" | \"settings\";\n\nconst initialState = {\n  topFrame: \"controls\" as topPaths,\n};",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/danielo515/openhasp-designer/blob/393bafa13100390912a25a2bf5441c55e7507c50/src/router.ts"
+    },
+    {
+      "path": "src/App.civet",
+      "repository": "gbagan/gomoku",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/864232908/contents/src/App.civet?ref=def8cd0cba438f8e5da3ab82331cbfd75b149bf7",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Component, createMemo, onMount } from 'solid-js'\nimport { createStore, produce } from \"solid-js/store\"\nimport { delay, last } from './util.civet'\nimport { computerMove, erdosTable } from './erdos.civet'\nimport { Config, getThreats, hasWon, newState } from './model.civet'\nimport Board from './components/Board.civet'\nimport NewGame from './components/NewGame.civet'",
+          "matches": [
+            {
+              "indices": [
+                48,
+                56
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                67,
+                78
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                96,
+                104
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/gbagan/gomoku/blob/def8cd0cba438f8e5da3ab82331cbfd75b149bf7/src/App.civet"
+    },
+    {
+      "path": "src/CreateForm.ts",
+      "repository": "jucian0/solidjs-createform",
+      "score": 1,
+      "stars": 6,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/498936311/contents/src/CreateForm.ts?ref=8c3ebd86206448b3a3ceee6a937bbb4bafeef662",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore, unwrap } from 'solid-js/store'\nimport { parseInputValue } from './ParseInputValue'\nimport { createInitialTouched } from './CreateInitialTouched'\nimport { Errors, Form, ProtoForm, Touched, Values } from './Types'\nimport { syncValidation } from './Validate'\nimport { clone, get, set } from './ObjectUtils'\nimport { createInitialErrors } from './CreateInitialErrors'",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                37,
+                45
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jucian0/solidjs-createform/blob/8c3ebd86206448b3a3ceee6a937bbb4bafeef662/src/CreateForm.ts"
+    },
+    {
+      "path": "src/lib/Root.tsx",
+      "repository": "itaditya/solid-command-palette",
+      "score": 1,
+      "stars": 164,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/450847216/contents/src/lib/Root.tsx?ref=595a4a9c7cb7ee535c103669b788297bdbf004c3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Component } from 'solid-js';\nimport { createStore, produce } from 'solid-js/store';\nimport { createKbdShortcuts } from './createKbdShortcuts';\nimport { getActiveParentAction } from './actionUtils/actionUtils';\nimport { rootParentActionId } from './constants';\nimport { Provider } from './StoreContext';\nimport { RootProps, StoreState, StoreMethods, StoreContext, DynamicContextMap } from './types';",
+          "matches": [
+            {
+              "indices": [
+                27,
+                35
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                47,
+                58
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                76,
+                84
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/itaditya/solid-command-palette/blob/595a4a9c7cb7ee535c103669b788297bdbf004c3/src/lib/Root.tsx"
+    },
+    {
+      "path": "src/utils/modal.ts",
+      "repository": "OpenBuilders/contest-app",
+      "score": 1,
+      "stars": 10,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1013447148/contents/src/utils/modal.ts?ref=f0189d9b6f41ec1d4e072c31d0b364d0be3fa0bb",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import type { Component } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport ModalAnonymous from \"../modals/Anonymous\";\nimport ModalModeratorJoin from \"../modals/ModeratorJoin\";\nimport ModalParticipate from \"../modals/Participate\";\nimport ModalSettings from \"../modals/Settings\";\nimport ModalSubmission from \"../modals/Submission\";",
+          "matches": [
+            {
+              "indices": [
+                32,
+                40
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                52,
+                63
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                72,
+                80
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/OpenBuilders/contest-app/blob/f0189d9b6f41ec1d4e072c31d0b364d0be3fa0bb/src/utils/modal.ts"
+    },
+    {
+      "path": "src/App.jsx",
+      "repository": "AsaiToshiya/prompter",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/554885758/contents/src/App.jsx?ref=e8235028bbfb7776043b09f46a8bec1f3a51a385",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createSignal } from \"solid-js\";\nimport { createStore, unwrap } from \"solid-js/store\";\nimport Prompt from \"./components/Prompt\";\n\nconst PICKER_OPTIONS = {\n  types: [\n    {",
+          "matches": [
+            {
+              "indices": [
+                30,
+                38
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                50,
+                61
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                78,
+                86
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/AsaiToshiya/prompter/blob/e8235028bbfb7776043b09f46a8bec1f3a51a385/src/App.jsx"
+    },
+    {
+      "path": "lib/MapContext.tsx",
+      "repository": "andi23rosca/solid-leaflet",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/582098180/contents/lib/MapContext.tsx?ref=3122c8a04550f78b7b8639370445630c3871df16",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  JSX,\n  useContext,\n} from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\n\nexport type MapContextObj = [\n  {",
+          "matches": [
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                49,
+                60
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                69,
+                77
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/andi23rosca/solid-leaflet/blob/3122c8a04550f78b7b8639370445630c3871df16/lib/MapContext.tsx"
+    },
+    {
+      "path": "src/gameState.ts",
+      "repository": "Jutanium/dominion-chess",
+      "score": 1,
+      "stars": 7,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/518245691/contents/src/gameState.ts?ref=f5e40a0cb20dde05c696575caa477e503e3a6f67",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createMemo, createSignal } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { Owner, Piece } from \"./Piece\";\nimport { Player } from \"./Players\";\n\n\nexport interface Point {",
+          "matches": [
+            {
+              "indices": [
+                42,
+                50
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                62,
+                73
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                82,
+                90
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Jutanium/dominion-chess/blob/f5e40a0cb20dde05c696575caa477e503e3a6f67/src/gameState.ts"
+    },
+    {
+      "path": "src/Store.ts",
+      "repository": "bigmistqke/bOdy",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/539538753/contents/src/Store.ts?ref=d6df635b2b65769fb18879575ef33706ec030805",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from 'solid-js/store'\nimport * as THREE from 'three'\nimport { MorphsDictionary, PoseNode } from './helpers/helpers'\n\nconst [store, setStore] = createStore<{\n  mode: string\n  model: THREE.Object3D",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                166,
+                177
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bigmistqke/bOdy/blob/d6df635b2b65769fb18879575ef33706ec030805/src/Store.ts"
+    },
+    {
+      "path": "src/storage.ts",
+      "repository": "wgsl-tooling-wg/wesl-playground",
+      "score": 1,
+      "stars": 6,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/865630435/contents/src/storage.ts?ref=f04e2ad05648afcd66b06405ae949573684ad444",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Accessor, createEffect, createSignal, Setter } from 'solid-js'\nimport { createStore, SetStoreFunction, Store } from 'solid-js/store'\nimport { z } from 'zod'\nimport { Options, Files, optionsSchema } from './state'\n\nconst urlParams = new URLSearchParams(window.location.search)\n",
+          "matches": [
+            {
+              "indices": [
+                62,
+                70
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                81,
+                92
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                126,
+                134
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/wgsl-tooling-wg/wesl-playground/blob/f04e2ad05648afcd66b06405ae949573684ad444/src/storage.ts"
+    },
+    {
+      "path": "_setup/solidts.php",
+      "repository": "puneetxp/the",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/527784226/contents/_setup/solidts.php?ref=fde301fd09ca1d23e4a1421430d76d05f67de816",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  $Name = ucfirst($table['name']);\n  $names = $table['table'];\n  $dir = \"../../\";\n  return \"import { createStore, unwrap } from 'solid-js/store';\n import { $Name } from '\" . $dir . \"Interface/Model/$Name';\n interface \" . $Name . \"StateModel {\n  $names :\" . $Name . \"[]",
+          "matches": [
+            {
+              "indices": [
+                101,
+                112
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                129,
+                137
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/puneetxp/the/blob/fde301fd09ca1d23e4a1421430d76d05f67de816/_setup/solidts.php"
+    },
+    {
+      "path": "web/App.jsx",
+      "repository": "colinchilds/giftorio",
+      "score": 1,
+      "stars": 12,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/927440450/contents/web/App.jsx?ref=c5549ab2975a4173a1326365a89b312a6da40b0b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createSignal, onMount, createEffect } from 'solid-js';\nimport { createStore } from 'solid-js/store';\nimport Background from './Background';\nimport infoIcon from \"./assets/img/info.png\";\n\n// Constants\nconst INITIAL_VALUES = {",
+          "matches": [
+            {
+              "indices": [
+                53,
+                61
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                73,
+                84
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                93,
+                101
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/colinchilds/giftorio/blob/c5549ab2975a4173a1326365a89b312a6da40b0b/web/App.jsx"
+    },
+    {
+      "path": "src/context.ts",
+      "repository": "jpmaga/inertia-solid-adapter",
+      "score": 1,
+      "stars": 9,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/612387419/contents/src/context.ts?ref=9d22c9622169f20b4f594b2e04cbe28b255e405e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\"\nimport { createSignal } from \"solid-js\"\n\nexport const [inertiaCtx, setInertiaCtx] = createSignal<any>({\n  component: null,\n  page: {},\n  key: null,",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                75,
+                83
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jpmaga/inertia-solid-adapter/blob/9d22c9622169f20b4f594b2e04cbe28b255e405e/src/context.ts"
+    },
+    {
+      "path": "src/Cache.tsx",
+      "repository": "BunnyGamezsc/Effectue-Launcher",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/699017139/contents/src/Cache.tsx?ref=1fb9c5422bf76e984868266be9cd678eeb4a8d39",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\";\nimport { settings } from \"./Settings\";\nimport { createEffect } from \"solid-js\";\n\nconst [appCache, setAppCache] = createStore<[{\"id\": string, \"data\": object}]>([])\n\ncreateEffect(()=>{",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                115,
+                123
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                159,
+                170
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/BunnyGamezsc/Effectue-Launcher/blob/1fb9c5422bf76e984868266be9cd678eeb4a8d39/src/Cache.tsx"
+    },
+    {
+      "path": "src/index.tsx",
+      "repository": "kkharji/solid-codeblock",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/548078429/contents/src/index.tsx?ref=cfadf46dff3d3073ec7c15c231353fc2df2cdfce",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { ILanguageRegistration, Lang, Theme } from \"shiki\";\nimport { Accessor, createEffect, createMemo, onMount, ParentProps, useContext } from \"solid-js\"\nimport { createResource, mergeProps, ParentComponent, Show, createContext } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { getHighlighter, setCDN } from \"shiki\";\nimport { Component, JSXElement } from \"solid-js\";\nimport \"./index.scss\"",
+          "matches": [
+            {
+              "indices": [
+                146,
+                154
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                238,
+                246
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                258,
+                269
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                278,
+                286
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                382,
+                390
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/kkharji/solid-codeblock/blob/cfadf46dff3d3073ec7c15c231353fc2df2cdfce/src/index.tsx"
+    },
+    {
+      "path": "src/Canvas.tsx",
+      "repository": "sanspointes/solixi",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/674428324/contents/src/Canvas.tsx?ref=9616087dc93dac6324f18beeac9c9a48675955dc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { Solixi } from '.';\nimport { InternalState, RootState, SolixiState } from './state';\nimport { SolixiRoot } from '@bearbroidery/constructables/src/renderer';\nimport { SetStoreFunction, createStore, produce } from 'solid-js/store';\nimport {\n    Constructable,\n    SxiObject,",
+          "matches": [
+            {
+              "indices": [
+                192,
+                203
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                221,
+                229
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/sanspointes/solixi/blob/9616087dc93dac6324f18beeac9c9a48675955dc/src/Canvas.tsx"
+    },
+    {
+      "path": "src/utils/user.ts",
+      "repository": "hu-hicoder/hicord",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/494541598/contents/src/utils/user.ts?ref=7abaedf28d7fd010c9e55ab68d98152f6d6b29ae",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { NIL as NIL_UUID } from 'uuid'\nimport { createSignal } from 'solid-js'\nimport { createStore } from 'solid-js/store'\nimport { Coordinate } from './coordinate'\nimport { addOrUpdateInfoFromPrev } from './info'\nimport { ROOM_HEIGHT, ROOM_WIDTH } from './room'\n",
+          "matches": [
+            {
+              "indices": [
+                69,
+                77
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                88,
+                99
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                108,
+                116
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/hu-hicoder/hicord/blob/7abaedf28d7fd010c9e55ab68d98152f6d6b29ae/src/utils/user.ts"
+    },
+    {
+      "path": "src/App.civet",
+      "repository": "edemaine/qr-layers",
+      "score": 1,
+      "stars": 12,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/883954588/contents/src/App.civet?ref=f4900e5dc1b03f5af6035299e7ba1fd5446049ef",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "solid-js import {batch, createEffect, createMemo, createSignal, onMount, Index, For, Show}\nsolid-js/store import {createStore, reconcile}\nqrcode import qrcode, {type BitMatrix, type QRCode}\n@soorria/solid-dropzone import {createDropzone}\n\n./layers.civet import {computeLayering, computeOutlines, type Layering}\n./matrix.civet import {bitMatrixToMatrix, Matrix, type MatrixType}",
+          "matches": [
+            {
+              "indices": [
+                0,
+                8
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                91,
+                99
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                114,
+                125
+              ],
+              "text": "createStore"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/edemaine/qr-layers/blob/f4900e5dc1b03f5af6035299e7ba1fd5446049ef/src/App.civet"
+    },
+    {
+      "path": "src/chat.solid.ts",
+      "repository": "Rajaniraiyn/ai-sdk-solid",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1049311894/contents/src/chat.solid.ts?ref=5283d7b7ab9e0e32cc3c0d1f3b7999b086fcfbf9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\tUIMessage,\n} from \"ai\";\nimport { AbstractChat } from \"ai\";\nimport { createSignal } from \"solid-js\";\nimport { createStore, reconcile } from \"solid-js/store\";\n\nexport type { CreateUIMessage, UIMessage };",
+          "matches": [
+            {
+              "indices": [
+                90,
+                98
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                110,
+                121
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                141,
+                149
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Rajaniraiyn/ai-sdk-solid/blob/5283d7b7ab9e0e32cc3c0d1f3b7999b086fcfbf9/src/chat.solid.ts"
+    },
+    {
+      "path": "src/App.js",
+      "repository": "MilosRasic/hammerting-tools",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/476243187/contents/src/App.js?ref=991ca490a38e02bc3a4c5cb3d29dd0b4fd3d0fc9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import {createStore} from 'solid-js/store';\nimport {createMemo} from 'solid-js';\n\nimport bonesDefs from './data/bones';\nimport metalsDefs from './data/metals';\nimport craftedBonesRules from './data/craftedBones';\nimport items from './data/items';",
+          "matches": [
+            {
+              "indices": [
+                8,
+                19
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                27,
+                35
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                70,
+                78
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/MilosRasic/hammerting-tools/blob/991ca490a38e02bc3a4c5cb3d29dd0b4fd3d0fc9/src/App.js"
+    },
+    {
+      "path": "src/stores/data.ts",
+      "repository": "meow-d/fedicule",
+      "score": 1,
+      "stars": 10,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/914219801/contents/src/stores/data.ts?ref=1cf625babfa7f8b738f2e239070da4ba04fd8963",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\";\nimport { makePersisted } from \"@solid-primitives/storage\";\n\n// Processed\nexport interface Node {\n  label: string;\n  mastoApiId?: string;",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/meow-d/fedicule/blob/1cf625babfa7f8b738f2e239070da4ba04fd8963/src/stores/data.ts"
+    },
+    {
+      "path": "src/stores/auth.ts",
+      "repository": "meow-d/fedicule",
+      "score": 1,
+      "stars": 10,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/914219801/contents/src/stores/auth.ts?ref=1cf625babfa7f8b738f2e239070da4ba04fd8963",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from \"solid-js/store\";\nimport { makePersisted } from \"@solid-primitives/storage\";\n\ntype LoggedOut = {\n  type: \"\";\n};\n",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/meow-d/fedicule/blob/1cf625babfa7f8b738f2e239070da4ba04fd8963/src/stores/auth.ts"
+    },
+    {
+      "path": "src/store/obj.ts",
+      "repository": "NodeSeekDev/nlist-web",
+      "score": 1,
+      "stars": 9,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/999988220/contents/src/store/obj.ts?ref=82ce3cd29e361a80fa992cfe92ef17efa2cab3f5",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import naturalSort from \"typescript-natural-sort\"\nimport { cookieStorage, createStorageSignal } from \"@solid-primitives/storage\"\nimport { createMemo, createSignal } from \"solid-js\"\nimport { createStore, produce } from \"solid-js/store\"\nimport { Obj, StoreObj } from \"~/types\"\nimport { bus, log } from \"~/utils\"\nimport { keyPressed } from \"./key-event\"",
+          "matches": [
+            {
+              "indices": [
+                171,
+                179
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                190,
+                201
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                219,
+                227
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/NodeSeekDev/nlist-web/blob/82ce3cd29e361a80fa992cfe92ef17efa2cab3f5/src/store/obj.ts"
+    },
+    {
+      "path": "src/Folder.tsx",
+      "repository": "xonika9/speed-dial-firefox",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/947897059/contents/src/Folder.tsx?ref=fd7769faebd1d5f64cdd5a4304e7ec5b8178e8d1",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    createSignal,\n    onCleanup,\n    useContext,\n} from 'solid-js';\nimport { createStore, reconcile } from 'solid-js/store';\nimport browser, { Bookmarks, bookmarks } from 'webextension-polyfill';\nimport Tile, { openTile } from './Tile';",
+          "matches": [
+            {
+              "indices": [
+                57,
+                65
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                77,
+                88
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                108,
+                116
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/xonika9/speed-dial-firefox/blob/fd7769faebd1d5f64cdd5a4304e7ec5b8178e8d1/src/Folder.tsx"
+    },
+    {
+      "path": "src/stores/graph.ts",
+      "repository": "meow-d/fedicule",
+      "score": 1,
+      "stars": 10,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/914219801/contents/src/stores/graph.ts?ref=1cf625babfa7f8b738f2e239070da4ba04fd8963",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createSignal } from \"solid-js\";\nimport { Node } from \"./data\";\nimport { createStore } from \"solid-js/store\";\n\ninterface SelectedNode extends Node {\n  color: string;\n  neighbors?: SelectedNode[];",
+          "matches": [
+            {
+              "indices": [
+                30,
+                38
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                81,
+                92
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                101,
+                109
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/meow-d/fedicule/blob/1cf625babfa7f8b738f2e239070da4ba04fd8963/src/stores/graph.ts"
+    },
+    {
+      "path": "src/state.ts",
+      "repository": "adfinis/vault-gui",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/742453549/contents/src/state.ts?ref=b2ff2a59e076a270d425010b291353b36d5dc8af",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createStore } from 'solid-js/store';\n\ntype State = {\n    kv: string;\n    path: string;\n    authenticated: boolean;\n};",
+          "matches": [
+            {
+              "indices": [
+                9,
+                20
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                29,
+                37
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/adfinis/vault-gui/blob/b2ff2a59e076a270d425010b291353b36d5dc8af/src/state.ts"
+    },
+    {
+      "path": "src/index.tsx",
+      "repository": "solidjs/solid-todomvc",
+      "score": 1,
+      "stars": 33,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/149561106/contents/src/index.tsx?ref=f48302376244513396de3e353e73ba136151b874",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createMemo, createEffect, onCleanup, Show, For, type JSX } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { render } from \"solid-js/web\";\n\ntype Todo = {\n  id: number;\n  title: string;",
+          "matches": [
+            {
+              "indices": [
+                74,
+                82
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                94,
+                105
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                114,
+                122
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                155,
+                163
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/solidjs/solid-todomvc/blob/f48302376244513396de3e353e73ba136151b874/src/index.tsx"
+    },
+    {
+      "path": "src/lib/form.tsx",
+      "repository": "12products/warroom-frontend",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/456276705/contents/src/lib/form.tsx?ref=5d0c04e4bed1956c42e13cfed767291430a9bcb4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  createMemo,\n  JSXElement,\n  useContext,\n} from 'solid-js'\nimport { createStore, Store } from 'solid-js/store'\nimport * as Yup from 'yup'\nimport { ObjectShape } from 'yup/lib/object'",
+          "matches": [
+            {
+              "indices": [
+                50,
+                58
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                69,
+                80
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                96,
+                104
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/12products/warroom-frontend/blob/5d0c04e4bed1956c42e13cfed767291430a9bcb4/src/lib/form.tsx"
+    },
+    {
+      "path": "src/settings.tsx",
+      "repository": "xonika9/speed-dial-firefox",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/947897059/contents/src/settings.tsx?ref=fd7769faebd1d5f64cdd5a4304e7ec5b8178e8d1",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { ParentComponent, Show, createContext, createEffect, createSignal } from 'solid-js';\nimport { createStore, unwrap } from 'solid-js/store';\nimport { bookmarks } from 'webextension-polyfill';\nimport { storageGet, storageSet } from './utils/database';\nimport { isFolder, rootFolderId } from './utils/bookmark';\nimport { difference } from './utils/assorted';\nimport { ToolbarKind, ToolbarKinds, ToolbarKindsSet } from './Toolbar';",
+          "matches": [
+            {
+              "indices": [
+                82,
+                90
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                102,
+                113
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                130,
+                138
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/xonika9/speed-dial-firefox/blob/fd7769faebd1d5f64cdd5a4304e7ec5b8178e8d1/src/settings.tsx"
+    },
+    {
+      "path": "src/Store.ts",
+      "repository": "bigmistqke/tr8ck",
+      "score": 1,
+      "stars": 22,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/546794382/contents/src/Store.ts?ref=3ad3dd7636c6aa10fc33e6af7857d5c73413e11b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import Faust2WebAudio, { Faust, FaustAudioWorkletNode } from \"faust2webaudio\";\nimport { TCompiledDsp } from \"faust2webaudio/src/types\";\nimport { getHex, getPastelColor } from \"pastel-color\";\nimport { batch, createEffect, createMemo, createRoot, untrack } from \"solid-js\";\nimport { createStore, produce, StoreSetter } from \"solid-js/store\";\nimport zeptoid from \"zeptoid\";\n",
+          "matches": [
+            {
+              "indices": [
+                261,
+                269
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                281,
+                292
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                323,
+                331
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bigmistqke/tr8ck/blob/3ad3dd7636c6aa10fc33e6af7857d5c73413e11b/src/Store.ts"
+    },
+    {
+      "path": "src/Editor.tsx",
+      "repository": "homebrewing/malt.io",
+      "score": 1,
+      "stars": 9,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/13765109/contents/src/Editor.tsx?ref=7e5c16186484a5033ddb88c24dfc51d0a01a3514",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  untrack,\n} from \"solid-js\";\nimport { Outlet, useLocation, useNavigate, useParams } from \"@solidjs/router\";\nimport { SetStoreFunction, createStore } from \"solid-js/store\";\nimport {\n  cToF,\n  calculateColor,",
+          "matches": [
+            {
+              "indices": [
+                19,
+                27
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                136,
+                147
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                156,
+                164
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/homebrewing/malt.io/blob/7e5c16186484a5033ddb88c24dfc51d0a01a3514/src/Editor.tsx"
+    },
+    {
+      "path": "src/store/ui.ts",
+      "repository": "lyonbot/onebox",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/733936522/contents/src/store/ui.ts?ref=343eb0c56937862f3fbff1b790f0012f44acc529",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import localForage from 'localforage';\nimport { JSXElement, getOwner, runWithOwner } from 'solid-js';\nimport { createStore } from 'solid-js/store';\nimport { PromptRequest } from '~/components/PromptBox';\nimport { watch } from '~/utils/solid';\n\nconst LS_DARK_MODE = 'oneBox:darkMode';",
+          "matches": [
+            {
+              "indices": [
+                91,
+                99
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                111,
+                122
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                131,
+                139
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/lyonbot/onebox/blob/343eb0c56937862f3fbff1b790f0012f44acc529/src/store/ui.ts"
+    },
+    {
+      "path": "READER_SOLID_MIGRATION.md",
+      "repository": "Aeolun/writer2",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/507507397/contents/READER_SOLID_MIGRATION.md?ref=483212820c2315bc441bde29f87d6541cadc89be",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n**src/lib/stores/bookshelf.ts**\n```typescript\nimport { createStore } from 'solid-js/store';\n\ntype BookshelfState = {\n  isOpen: boolean;",
+          "matches": [
+            {
+              "indices": [
+                56,
+                67
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                76,
+                84
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Aeolun/writer2/blob/483212820c2315bc441bde29f87d6541cadc89be/READER_SOLID_MIGRATION.md"
+    },
+    {
+      "path": "src/TodoApp.jsx",
+      "repository": "petermuessig/solidjs-todoapp",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/539561249/contents/src/TodoApp.jsx?ref=b1aa474ce578f3ae4a701d83d2ea7a7dfa751a41",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { createMemo, createEffect, onCleanup, lazy } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\n\nimport { getAppI18nBundle } from \"./assets/I18NSupport\";\nimport { setTheme } from \"./assets/ThemeSupport\";\n\nimport './TodoApp.scss';",
+          "matches": [
+            {
+              "indices": [
+                59,
+                67
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                79,
+                90
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                99,
+                107
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/petermuessig/solidjs-todoapp/blob/b1aa474ce578f3ae4a701d83d2ea7a7dfa751a41/src/TodoApp.jsx"
+    },
+    {
+      "path": "src/App.jsx",
+      "repository": "narze/awesome-salim-candidates",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/493744476/contents/src/App.jsx?ref=7df5c718beca5295d108d749f381cb91c6f2bf2e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import logo from \"./logo.svg\";\nimport styles from \"./App.module.css\";\nimport { createSignal, For, Show } from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\n\nconst QUESTIONS_COUNT = 10;\n",
+          "matches": [
+            {
+              "indices": [
+                111,
+                119
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                131,
+                142
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                151,
+                159
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/narze/awesome-salim-candidates/blob/7df5c718beca5295d108d749f381cb91c6f2bf2e/src/App.jsx"
+    },
+    {
+      "path": "packages/bluefish-solid/src/layout.tsx",
+      "repository": "bluefishjs/bluefish",
+      "score": 1,
+      "stars": 146,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/855993283/contents/packages/bluefish-solid/src/layout.tsx?ref=516ec19ed9e3226ec5d14b9dc3fb16c2e6307447",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { ScopeContext } from \"./createName\";\nimport { useError } from \"./errorContext\";\nimport { LayoutUIDContext } from \"./bluefish\";\nimport { createStore, produce } from \"solid-js/store\";\n\nexport type LayoutProps = ParentProps<{\n  name: Id;",
+          "matches": [
+            {
+              "indices": [
+                144,
+                155
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                173,
+                181
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bluefishjs/bluefish/blob/516ec19ed9e3226ec5d14b9dc3fb16c2e6307447/packages/bluefish-solid/src/layout.tsx"
+    },
+    {
+      "path": "src/useSnapshot.ts",
+      "repository": "wobsoriano/solid-valtio",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/757498877/contents/src/useSnapshot.ts?ref=7a52960f9573c7b28524f13fe1428a41fe71ef4e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import type { Store } from 'solid-js/store'\nimport { createStore, reconcile } from 'solid-js/store'\nimport { Accessor, SignalOptions, createSignal, onCleanup } from 'solid-js'\nimport { snapshot, subscribe } from 'valtio/vanilla'\n\nfunction unwrap<T extends object>(proxyObject: T): T {\n  return JSON.parse(JSON.stringify(proxyObject))",
+          "matches": [
+            {
+              "indices": [
+                28,
+                36
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                53,
+                64
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                84,
+                92
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                166,
+                174
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/wobsoriano/solid-valtio/blob/7a52960f9573c7b28524f13fe1428a41fe71ef4e/src/useSnapshot.ts"
+    },
+    {
+      "path": "src/state.ts",
+      "repository": "sharechess/sharechess",
+      "score": 1,
+      "stars": 68,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/447468552/contents/src/state.ts?ref=f249b986859523c2c3f39d8f99f9edf824fff5c6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import isMobile from \"is-mobile\";\nimport { createStore } from \"solid-js/store\";\nimport Game from \"./game/Game\";\nimport loadConfig from \"./persistance/loadConfig\";\nimport { BoardConfig, GameConfig, SiteConfig, Recent } from \"./types\";\nimport UAParser from \"ua-parser-js\";\n",
+          "matches": [
+            {
+              "indices": [
+                43,
+                54
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                63,
+                71
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/sharechess/sharechess/blob/f249b986859523c2c3f39d8f99f9edf824fff5c6/src/state.ts"
+    },
+    {
+      "path": "src/app.tsx",
+      "repository": "dev-msp/dual",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/814259316/contents/src/app.tsx?ref=b40f0a3f43dacdf0de95ce91d87e686d15658315",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  createSignal,\n  onCleanup,\n} from \"solid-js\";\nimport { createStore } from \"solid-js/store\";\nimport { z } from \"zod/v4\";\n\nimport { TrackList } from \"./components/TrackList\";",
+          "matches": [
+            {
+              "indices": [
+                37,
+                45
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                57,
+                68
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                77,
+                85
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/dev-msp/dual/blob/b40f0a3f43dacdf0de95ce91d87e686d15658315/src/app.tsx"
+    },
+    {
+      "path": "src/AppState.tsx",
+      "repository": "ErisTeam/strife",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/708068970/contents/src/AppState.tsx?ref=d5cbf1b7a3ba0459bac8143abd34e7a70ea008d8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// SolidJS\nimport { Accessor, JSX, Setter, createContext, createSignal, useContext } from 'solid-js';\nimport { createStore, produce } from 'solid-js/store';\n// API\nimport { Locale } from './Translation';\n\nimport { Tab } from './types';",
+          "matches": [
+            {
+              "indices": [
+                91,
+                99
+              ],
+              "text": "solid-js"
+            },
+            {
+              "indices": [
+                111,
+                122
+              ],
+              "text": "createStore"
+            },
+            {
+              "indices": [
+                140,
+                148
+              ],
+              "text": "solid-js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ErisTeam/strife/blob/d5cbf1b7a3ba0459bac8143abd34e7a70ea008d8/src/AppState.tsx"
+    }
+  ]
+}
