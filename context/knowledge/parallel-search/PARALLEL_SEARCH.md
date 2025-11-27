@@ -40,8 +40,8 @@ aaa parallel-search \
 1. Identify objective + 3-5 distinct query angles
 2. Execute `aaa parallel-search` via Bash tool
 3. Tool automatically saves results:
-   - Raw JSON: `context/research/parallel/raw/<timestamp:YYYYMMDD-HHMMSS>-<topic>.json`
-   - Report: `context/research/parallel/<timestamp:YYYYMMDD-HHMMSS>-<topic>.md`
+   - Raw JSON: `docs/research/parallel/raw/<timestamp:YYYYMMDD-HHMMSS>-<topic>.json`
+   - Report: `docs/research/parallel/<timestamp:YYYYMMDD-HHMMSS>-<topic>.md`
 4. Synthesize results -> key findings in the generated report
 
 ## Report Format

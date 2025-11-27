@@ -2,19 +2,45 @@
 
 Bridging Cursor and Claude Code AI configuration, making prompts work across local and cloud-based AI agents.
 
-## Quick Start
+## Setup Options
+
+### Option 1: Global User Config (Recommended)
+
+Use this repo as your global Claude Code configuration:
 
 ```bash
-# First time setup (builds CLI and creates symlink)
-cd tools && ./setup.sh
+# Clone and build
+git clone <repo> ~/dev/all-agents
+cd ~/dev/all-agents/tools && ./setup.sh
 
-# If ~/.local/bin not in PATH, add to ~/.zshrc:
+# Add to ~/.zshrc or ~/.bashrc:
+export CLAUDE_CONFIG_DIR="$HOME/dev/all-agents/.claude"
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+**Result:** All Claude Code sessions use this repo's commands, agents, and skills.
+
+> **Note:** `CLAUDE_CONFIG_DIR` is not officially documented. Claude may still create `.claude/settings.local.json` in workspaces.
+
+### Option 2: Project-Level Setup
+
+Add shared documentation to a specific project:
+
+```bash
+cd your-project
+
+# Symlink shared docs (coding standards, tool docs, prompting)
+ln -s ~/dev/all-agents/context context
+
+# Create project-local directories
+mkdir -p docs/planning docs/research
+```
+
+**Result:** Project gets shared standards via `context/`, keeps local planning/research in `docs/`.
+
 ### Environment Variables
 
-Copy `.env.example` to `.env` in the project root:
+Copy `.env.example` to `.env`:
 
 ```bash
 AAA_PARALLEL_API_KEY=   # Required for parallel-search (https://platform.parallel.ai/)
@@ -38,7 +64,7 @@ aaa parallel-search --objective "RAG patterns" --queries "chunking" "retrieval"
 aaa gemini-research "Next.js 15 features" --mode deep
 ```
 
-Research outputs are saved to `context/research/`.
+Research outputs are saved to `docs/research/`.
 
 ## Using with Claude Code
 
@@ -79,13 +105,38 @@ Research outputs are saved to `context/research/`.
 
 Generate `.cursorrules` files using the `/meta:create-cursor-rule` command. The shared documentation in `context/` can be referenced by both Claude Code and Cursor.
 
+### Cursor Integration with Symlinked `context/`
+
+When your project has `context/` symlinked from this repo:
+
+**`.cursorrules` (root-level)**
+```
+@context/coding/CODING_STYLE.md
+@context/meta/PROMPTING.md
+```
+
+**`.cursor/rules/*.mdc` (modular rules)**
+```markdown
+---
+description: TypeScript coding standards
+globs: ["**/*.ts", "**/*.tsx"]
+---
+
+Follow guidelines in @context/coding/ts/STACK.md
+```
+
+**Key references:**
+- `@context/coding/CODING_STYLE.md` - FP patterns, naming
+- `@context/coding/ts/STACK.md` - TypeScript stack
+- `@context/meta/PROMPTING.md` - Prompt engineering
+
 ## Directory Structure
 
 ```
 all-agents/
 ├── bin/                           # Compiled binary (gitignored)
 │   └── aaa
-├── context/                       # Documentation & research outputs
+├── context/                       # SHAREABLE (symlink to projects)
 │   ├── knowledge/                 # Tool documentation
 │   │   ├── github/GH_SEARCH.md
 │   │   ├── parallel-search/PARALLEL_SEARCH.md
@@ -96,22 +147,24 @@ all-agents/
 │   │   ├── ts/                    # TypeScript stack & testing
 │   │   ├── backend/               # Backend patterns
 │   │   └── frontend/              # Frontend patterns
-│   ├── meta/                      # Prompting & agent standards
-│   │   ├── PROMPTING.md
-│   │   └── AGENT_TEMPLATES.md
-│   ├── research/                  # Output directory
-│   │   ├── github/
-│   │   ├── google/
-│   │   └── parallel/
-│   └── planning/                  # Roadmap & stories
+│   └── meta/                      # Prompting standards + templates
+│       ├── PROMPTING.md
+│       ├── story-template.md
+│       └── task-template.md
+├── docs/                          # PROJECT-LOCAL (not shared)
+│   ├── planning/                  # Roadmaps, stories, tasks
+│   │   ├── roadmap.md
+│   │   └── stories/
+│   └── research/                  # Generated research outputs
+│       ├── github/
+│       ├── google/
+│       └── parallel/
 ├── tools/                         # CLI source code
 │   ├── src/
 │   │   ├── cli.ts                 # Entry point
-│   │   ├── env.ts                 # Zod env parser
 │   │   └── commands/              # Command implementations
 │   ├── lib/                       # Shared utilities
 │   ├── tests/                     # E2E tests
-│   ├── package.json
 │   └── setup.sh                   # Installation script
 ├── .claude/
 │   ├── commands/                  # Slash commands
@@ -122,6 +175,17 @@ all-agents/
 ├── CLAUDE.md                      # Claude Code project guidance
 └── README.md
 ```
+
+### What's Shared vs Local
+
+| Content | Location | Shared? | Purpose |
+|:--------|:---------|:--------|:--------|
+| Coding standards | `context/coding/` | ✅ Yes | Reusable style guides |
+| Tool documentation | `context/knowledge/` | ✅ Yes | Research tool usage |
+| Prompting standards | `context/meta/` | ✅ Yes | AI prompt patterns |
+| Templates | `context/meta/` | ✅ Yes | Story/task templates |
+| Roadmaps, stories | `docs/planning/` | ❌ No | Project-specific |
+| Research outputs | `docs/research/` | ❌ No | Generated content |
 
 ## Documentation Index
 
@@ -136,7 +200,7 @@ all-agents/
 | **DevOps** | `context/coding/devops/` - Deployment, monitoring |
 | **Meta** | `context/meta/` - Prompting standards, agent templates |
 | **Knowledge** | `context/knowledge/` - Research tool documentation |
-| **Planning** | `context/planning/` - Roadmap, user stories |
+| **Planning** | `docs/planning/` - Roadmap, user stories (project-local) |
 
 ## Development
 

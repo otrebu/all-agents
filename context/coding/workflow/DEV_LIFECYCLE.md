@@ -20,7 +20,7 @@ A feature/change is complete when ALL of these are true:
 
 **Before starting:**
 
-- Use plan mode → write to `@context/planning/stories/*` or `@context/planning/tasks/*`
+- Use plan mode → write to `docs/planning/stories/*` or `docs/planning/tasks/*`
 - Include: implementation steps, reasoning, broken-down tasks
 - Research external knowledge if needed (Task tool)
 - Think MVP - don't over-plan
@@ -31,7 +31,7 @@ A feature/change is complete when ALL of these are true:
 - Update plan as you work
 - Append detailed change descriptions (for handover)
 
-See: `@context/planning/story-template.md`
+See: `@context/meta/story-template.md`
 
 ## 2) Tests 🧪
 

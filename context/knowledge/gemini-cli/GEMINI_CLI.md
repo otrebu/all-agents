@@ -53,7 +53,7 @@ aaa gemini-research "your query here" [--mode quick|deep|code]
 
 ### Output Structure
 
-The script generates two files in `context/research/google/`:
+The script generates two files in `docs/research/google/`:
 
 1. **Raw Data**: `raw/YYYYMMDDHHMMSS-topic.json`
    - Contains the raw structured data from Gemini (sources, quotes, key points).

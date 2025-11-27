@@ -93,43 +93,37 @@ Available via `/` prefix (see `.claude/commands/`):
 all-agents/
 ├── bin/                           # Compiled binary (gitignored)
 │   └── aaa
-├── context/                       # Documentation (was docs/)
-│   ├── knowledge/
-│   │   ├── github/
-│   │   │   └── GH_SEARCH.md
-│   │   ├── parallel-search/
-│   │   │   └── PARALLEL_SEARCH.md
-│   │   └── gemini-cli/
-│   │       └── GEMINI_CLI.md
-│   ├── research/                  # Output directory
-│   ├── coding/
-│   └── meta/
+├── context/                       # SHAREABLE docs (symlink to projects)
+│   ├── knowledge/                 # Tool documentation
+│   │   ├── github/GH_SEARCH.md
+│   │   ├── parallel-search/PARALLEL_SEARCH.md
+│   │   └── gemini-cli/GEMINI_CLI.md
+│   ├── coding/                    # Coding standards
+│   └── meta/                      # Prompting standards + templates
+│       ├── PROMPTING.md
+│       ├── story-template.md
+│       └── task-template.md
+├── docs/                          # PROJECT-LOCAL (not shared)
+│   ├── planning/                  # Roadmaps, stories, tasks
+│   │   ├── roadmap.md
+│   │   └── stories/
+│   └── research/                  # Generated research outputs
+│       ├── github/
+│       ├── google/
+│       └── parallel/
 ├── tools/
 │   ├── lib/                       # Shared utilities
-│   │   ├── log.ts
-│   │   ├── format.ts
-│   │   └── research.ts
 │   ├── src/
 │   │   ├── cli.ts                 # Main entry point
-│   │   ├── env.ts                 # Zod env parser
 │   │   ├── commands/              # CLI command implementations
-│   │   │   ├── github/            # GitHub search command
-│   │   │   ├── parallel-search/   # Parallel search command
-│   │   │   └── gemini/            # Gemini research command
-│   │   └── utils/
-│   │       └── paths.ts           # Runtime path resolution
-│   ├── tests/
-│   │   ├── lib/
-│   │   └── e2e/
+│   │   └── utils/paths.ts         # Runtime path resolution
+│   ├── tests/e2e/
 │   ├── package.json
-│   ├── tsconfig.json
-│   ├── eslint.config.js
-│   └── vitest.config.ts
+│   └── tsconfig.json
 ├── .claude/
 │   ├── agents/          # Sub-agents (gemini-research, parallel-search)
 │   ├── commands/        # Slash commands (dev, meta, research)
 │   ├── skills/          # Skills (brainwriting, dev-work-summary)
-│   ├── hooks/           # Command hooks
 │   └── settings.json    # Tool permissions & hooks
 ├── .env.example
 ├── CLAUDE.md
@@ -144,7 +138,7 @@ Commands in `.claude/commands/` typically reference docs in `context/` (via `@co
 Example: `/dev:git-commit` → `@context/coding/COMMIT.md`
 
 **Research tools generate reports:**
-Research commands execute scripts in `tools/src/commands/` and save results to `context/research/*/`.
+Research commands execute scripts in `tools/src/commands/` and save results to `docs/research/*/`.
 
 **Shared utilities in `tools/lib/`:**
 Common functions (e.g., `sanitizeForFilename`, `log`) live in `tools/lib/` with path alias `@lib/*`.
@@ -245,7 +239,7 @@ When tests are added, follow @context/coding/ts/TESTING.md.
 
 ### Gemini Research (`/gemini-research`)
 
-Google Search-grounded research via Gemini CLI. Outputs JSON + Markdown to `context/research/google/`.
+Google Search-grounded research via Gemini CLI. Outputs JSON + Markdown to `docs/research/google/`.
 
 **After running:** Must read raw JSON, synthesize analysis, and update Markdown report.
 
@@ -253,13 +247,13 @@ See @context/knowledge/gemini-cli/GEMINI_CLI.md
 
 ### Parallel Search (`/parallel-search`)
 
-Multi-angle web research (up to 30K chars/result). Outputs to `context/research/parallel/`.
+Multi-angle web research (up to 30K chars/result). Outputs to `docs/research/parallel/`.
 
 See @context/knowledge/parallel-search/PARALLEL_SEARCH.md
 
 ### GitHub Search (`/gh-search`)
 
-Search GitHub for real-world code examples. Outputs to `context/research/github/`.
+Search GitHub for real-world code examples. Outputs to `docs/research/github/`.
 
 See @context/knowledge/github/GH_SEARCH.md
 

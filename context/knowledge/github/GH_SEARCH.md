@@ -30,7 +30,7 @@ aaa gh-search "your query"
 4.  **Analyze:** Extract imports, architectural styles, structures.
 5.  **Report:** Synthesize findings with GitHub URLs.
 6.  **Generate timestamp:** `date "+%Y%m%d-%H%M%S"`
-7.  **Save to:** `context/research/github/[timestamp]-topic.md`
+7.  **Save to:** `docs/research/github/[timestamp]-topic.md`
 
 ## Report Format
 

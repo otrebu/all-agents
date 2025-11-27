@@ -31,11 +31,19 @@ ln -sf "$BIN_PATH" "$SYMLINK_PATH"
 # Check if ~/.local/bin is in PATH
 if [[ ":$PATH:" != *":$LOCAL_BIN:"* ]]; then
   echo ""
-  echo "Add ~/.local/bin to your PATH by adding this to ~/.zshrc:"
+  echo "Add these to your ~/.zshrc or ~/.bashrc:"
+  echo ""
+  echo "  # all-agents CLI"
   echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+  echo ""
+  echo "  # (Optional) Use this repo as global Claude Code config"
+  echo "  export CLAUDE_CONFIG_DIR=\"$PROJECT_ROOT/.claude\""
   echo ""
   echo "Then run: source ~/.zshrc"
 else
   echo "Success! aaa is now available."
   aaa --version
+  echo ""
+  echo "To use this repo as global Claude Code config, add to ~/.zshrc:"
+  echo "  export CLAUDE_CONFIG_DIR=\"$PROJECT_ROOT/.claude\""
 fi

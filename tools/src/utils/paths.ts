@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path'
 let cachedRoot: null | string = null
 
 function getOutputDirectory(subpath: string): string {
-  return resolve(getProjectRoot(), 'context', subpath)
+  return resolve(getProjectRoot(), 'docs', subpath)
 }
 
 function getProjectRoot(): string {

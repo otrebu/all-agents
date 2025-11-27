@@ -3,7 +3,7 @@ import { glob } from "glob";
 import { access, readFile, rm } from "node:fs/promises";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-const RESEARCH_DIR = "../context/research/parallel";
+const RESEARCH_DIR = "../docs/research/parallel";
 const TEST_OBJECTIVE = "TypeScript testing frameworks comparison";
 // 2 minutes for network calls
 const TIMEOUT_MS = 120_000;

@@ -3,7 +3,7 @@ import { glob } from "glob";
 import { access, readFile, rm } from "node:fs/promises";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-const RESEARCH_DIR = "../context/research/google";
+const RESEARCH_DIR = "../docs/research/google";
 // 2 minutes for network calls
 const TIMEOUT_MS = 120_000;
 
