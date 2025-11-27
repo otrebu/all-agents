@@ -2,7 +2,7 @@
 
 import log from "@lib/log.js"
 import { saveResearchOutput } from "@lib/research.js"
-import { debug, env } from "@tools/env.js"
+import { debug } from "@tools/env.js"
 import { getOutputDir } from "@tools/utils/paths.js"
 import ora from "ora"
 
@@ -15,21 +15,21 @@ import {
   ValidationError,
 } from "./types.js"
 
-export interface ParallelSearchOptions {
-  objective: string
-  queries?: string[]
-  processor?: 'lite' | 'base' | 'pro' | 'ultra'
-  maxResults?: number
+interface ParallelSearchOptions {
   maxChars?: number
+  maxResults?: number
+  objective: string
+  processor?: 'base' | 'pro'
+  queries?: Array<string>
 }
 
-export interface ParallelSearchResult {
-  results: unknown[]
+interface ParallelSearchResult {
   jsonPath: string
   mdPath: string
+  results: Array<unknown>
 }
 
-export async function runParallelSearch(options: ParallelSearchOptions): Promise<ParallelSearchResult> {
+async function runParallelSearch(options: ParallelSearchOptions): Promise<ParallelSearchResult> {
   const RESEARCH_DIR = getOutputDir('research/parallel')
   debug('Parallel search config:', options)
 
@@ -68,7 +68,7 @@ export async function runParallelSearch(options: ParallelSearchOptions): Promise
   if (results.length === 0) {
     spinner.warn("No results found")
     log.dim("\nTry a different query or adjust your search parameters.\n")
-    return { results: [], jsonPath: '', mdPath: '' }
+    return { jsonPath: '', mdPath: '', results: [] }
   }
 
   spinner.succeed(`Found ${results.length} results`)
@@ -97,10 +97,10 @@ export async function runParallelSearch(options: ParallelSearchOptions): Promise
   log.info(`📄 Raw Data: ${jsonPath}`)
   log.info(`📝 Report: ${mdPath}`)
 
-  return { results, jsonPath, mdPath }
+  return { jsonPath, mdPath, results }
 }
 
-export async function runParallelSearchCli(options: ParallelSearchOptions): Promise<void> {
+async function runParallelSearchCli(options: ParallelSearchOptions): Promise<void> {
   try {
     await runParallelSearch(options)
   } catch (error: unknown) {
@@ -141,12 +141,5 @@ export async function runParallelSearchCli(options: ParallelSearchOptions): Prom
   }
 }
 
-// Standalone execution
-if (import.meta.main) {
-  const { Command } = await import('@commander-js/extra-typings')
-  const { makeParallelSearchCommand } = await import('./command.js')
-
-  const program = new Command()
-  program.addCommand(makeParallelSearchCommand())
-  program.parse()
-}
+export type { ParallelSearchOptions, ParallelSearchResult }
+export { runParallelSearch, runParallelSearchCli }

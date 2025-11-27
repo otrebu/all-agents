@@ -1,0 +1,4680 @@
+{
+  "files": [
+    {
+      "content": "Our framework component will be a glorified counter. Assuming the page consists of an article a reader can upvote, we’ll build an upvote button.\n\n<figure>\n    <img src=\"images/ch4/upvote-counter.png\" width=\"50%\" alt=\"The upvote counter illustrated.\" align=\"center\">\n    <figcaption><em>The upvote counter illustrated.</em></figcaption>\n    <br><br><br>\n</figure>\n\nHere’s the annotated `UpvoteContent` React component:\n\n```js\n<!-- 📂 src/components/UpvoteContent.tsx -->\n\nimport { useState } from \"react\";\n\n// The maximum number of upvotes available\nconst MAX_COUNT = 50;\n\nexport const UpvoteContent = () => {\n  // the initial state of the upvote counter\n  const [upvoteCount, setUpvoteCount] = useState(0);\n\n  return (\n    <div>\n      <button\n       // update state when a user clicks the counter. check if\n       //The maximum count value was reached first.\n        onClick={() => {\n          setUpvoteCount((prevCount) =>\n            prevCount < MAX_COUNT ? prevCount + 1 : prevCount\n          );\n        }}\n      >\n       { /** Upvote counter SVG icon. shortened for brevity **/}\n        <svg />\n        Upvote\n      </button>\n\n      <div>\n        <div>{`${upvoteCount} upvotes`}</div>\n\n\t\t{/** show a growing visual bar based on the upvote count **/}\n\n---\n\nTo create a state value, nanostores use atoms to store strings, numbers, and arrays.\n\nLet’s create an atom to hold the counter state variable:\n\n```js\n<!-- 📂 src/stores/upvote.ts -->\nimport { atom } from \"nanostores\";\n\nexport const upvoteCountStore = atom(0);\n```\n\n- We create a new file in `src/stores/upvote.ts`.\n- We import `atom` from `nanostore`.\n- We create a new state number value called `upvoteCountStore`.\n\nWe may think of atoms as small pieces of state to be shared across components in our application.\n\n### Using the state value in framework components\n\nIn the React component, we will leverage the `useStore` hook provided in `@nanostores/react` to retrieve the state value from the `upvoteCountStore`:\n\n```js\n// 📂 src/components/UpvoteContent.tsx\n\nimport { useStore } from \"@nanostores/react\";\nimport { upvoteCountStore } from \"../stores/upvote\";\n\nconst MAX_COUNT = 50;\n\nexport const UpvoteContent = () => {\n  // Get the state value from the created store\n  const upvoteCount = useStore(upvoteCountStore);\n\n  return (\n    <div>\n      <button\n        onClick={() => {\n          if (upvoteCount < MAX_COUNT) {\n            //Update the store via the set method\n            upvoteCountStore.set(upvoteCount + 1);\n          }",
+      "language": "markdown",
+      "lines": 86,
+      "path": "ch4.md",
+      "rank": 1,
+      "repository": "understanding-astro/understanding-astro-book",
+      "stars": 863,
+      "url": "https://github.com/understanding-astro/understanding-astro-book/blob/da59245cebe87c59f994113f4edbf372d898490b/ch4.md"
+    },
+    {
+      "content": "<script type=\"module\">\n      import \"../mini-island.js\";\n    </script>\n  </head>\n\n  <body>\n    <h1>Preact</h1>\n    <p>This is a preact counter</p>\n\n    <p>By default, this button is not rendered or hydrated</p>\n\n    <mini-island client:idle>\n      <div id=\"preact-app\">\n        <mark\n          >The counter island will be rendered and hydrated just above this mark\n          when the browser is idle</mark\n        >\n      </div>\n\n      <template data-island>\n        <script type=\"module\">\n          import { h, Component, render } from \"https://esm.sh/preact\";\n          import { useState } from \"https://esm.sh/preact/hooks\";\n          import htm from \"https://esm.sh/htm\";\n\n          // Initialize htm with Preact\n          const html = htm.bind(h);\n\n          function App(props) {\n            const [count, setCount] = useState(0);\n\n            const increment = () =>\n              setCount((currentCount) => currentCount + 1);\n\n            return html`<div>\n              <button onClick=${() => increment()}>\n                <span>⬆️ </span>\n\n                <div>\n                  <strong>Preact</strong>\n                  <div>\n                    <span>${count}</span>\n                    <span>-</span>\n                    <span>clicks</span>\n                  </div>\n                </div>",
+      "language": "markdown",
+      "lines": 46,
+      "path": "ch3.md",
+      "rank": 2,
+      "repository": "understanding-astro/understanding-astro-book",
+      "stars": 863,
+      "url": "https://github.com/understanding-astro/understanding-astro-book/blob/da59245cebe87c59f994113f4edbf372d898490b/ch3.md"
+    },
+    {
+      "content": "#### Clear the login transaction when the app moves to the background/foreground\n\nYou can invoke `cancelWebAuth()` to manually clear the current login transaction when the app moves to the background or back to the foreground. However, you need to make sure to not cancel valid login attempts –for example, when the user switches briefly to another app while the login page is open.\n\n#### Avoid the login/logout alert box\n\nIf you don't need SSO, consider using `ephemeral sessions` or `SFSafariViewController` instead of `ASWebAuthenticationSession`. See [2. How can I disable the iOS _login_ alert box?](#2-how-can-i-disable-the-ios-login-alert-box) for more information.\n\n## 9. Why doesn't `await authorize()` work on the web? How do I handle login?\n\nThis is a key difference between native and web platforms.\n\n- **On Native (iOS/Android):** `authorize()` opens an in-app browser overlay. Your app continues running in the background. When the user authenticates, the browser dismisses and the `authorize()` promise resolves with the credentials. `await` works as expected.\n\n- **On Web:** `authorize()` triggers a **full-page browser redirect** to the Auth0 Universal Login page. Your application's current state is lost. After authentication, the user is redirected back to your app, which causes your entire React application to reload and re-initialize from scratch. Because of this, the original `authorize()` promise is never able to resolve.\n\n**The Solution: Use the `useAuth0` Hook**\n\nThe recommended way to handle this is by using the `Auth0Provider` and `useAuth0` hook. They are designed to manage this flow automatically:\n\n1.  **On initial load:** The provider checks if the user is returning from a login redirect. If so, it processes the credentials in the URL and establishes a session.\n2.  **State Management:** The `user` and `isLoading` properties from the `useAuth0` hook will automatically update to reflect the authenticated state after the redirect is handled.\n\nYour UI should be reactive to the `user` and `isLoading` state, rather than trying to `await` the result of `authorize()`.\n\n```jsx\nimport { useAuth0 } from 'react-native-auth0';\n\nconst MyComponent = () => {\n  const { authorize, user, isLoading } = useAuth0();\n\n  // This component will re-render after the redirect,\n  // and `user` will be populated.\n  if (isLoading) {\n    return <Text>Loading...</Text>;\n  }\n\n  return (\n    <View>\n      {user ? (\n        <Text>Welcome, {user.name}!</Text>\n      ) : (\n        <Button\n\n---\n\n**How to disable it (if needed):**\n\n```javascript\nconst auth0 = new Auth0({\n  domain: 'YOUR_AUTH0_DOMAIN',\n  clientId: 'YOUR_AUTH0_CLIENT_ID',\n  useDPoP: false, // Disable DPoP\n});\n```\n\n## 14. How do I migrate existing users to DPoP?\n\nWhen you enable DPoP in your app, existing users will still have Bearer tokens from their previous sessions. DPoP only applies to **new sessions** created after it's enabled. Here's how to handle the migration:\n\n### Option 1: Automatic Detection and Re-authentication\n\nCheck the token type when your app starts and automatically prompt users to log in again if they have old Bearer tokens:\n\n```javascript\nimport { useAuth0 } from 'react-native-auth0';\nimport { useEffect, useState } from 'react';\n\nfunction App() {\n  const { authorize, getCredentials, clearSession, hasValidCredentials } =\n    useAuth0();\n  const [isReady, setIsReady] = useState(false);\n  const [needsMigration, setNeedsMigration] = useState(false);\n\n  useEffect(() => {\n    checkTokenType();\n  }, []);\n\n  const checkTokenType = async () => {\n    try {\n      const hasValid = await hasValidCredentials();\n\n      if (!hasValid) {\n        // No credentials, user needs to log in\n        setIsReady(true);\n        return;\n      }",
+      "language": "markdown",
+      "lines": 87,
+      "path": "FAQ.md",
+      "rank": 3,
+      "repository": "auth0/react-native-auth0",
+      "stars": 536,
+      "url": "https://github.com/auth0/react-native-auth0/blob/f89477f6da05f312c2c5686558d96baa45d06b64/FAQ.md"
+    },
+    {
+      "content": "border: new Border({ top: new BorderSide(...) })  // Missing other sides!\n```\n\n### BorderRadius\n```typescript\n// ✅ CORRECT\nborderRadius: BorderRadius.circular(8)\nborderRadius: BorderRadius.only({ \n  topLeft: Radius.circular(8),\n  topRight: Radius.circular(8),\n  bottomLeft: Radius.circular(0),\n  bottomRight: Radius.circular(0)\n})\n\n// ❌ WRONG\nborderRadius: 8  // Not a number!\n```\n\n## 🔄 State Management - Flutter Style Only!\n\n### ❌ NEVER Use React Patterns\n```typescript\n// ❌ WRONG - No React hooks!\nconst [count, setCount] = useState(0);\nlet isExpanded = false;  // No outside state variables!\n```\n\n### ✅ ALWAYS Use StatefulWidget Pattern\n```typescript\nclass MyWidget extends StatefulWidget {\n  createState() {\n    return new MyWidgetState();\n  }\n}\n\nclass MyWidgetState extends State<MyWidget> {\n  // State as class properties\n  count = 0;\n  isExpanded = false;\n  \n  build(context) {\n    return Container({\n      child: Text(`Count: ${this.count}`)\n    });\n  }\n  \n  incrementCount() {",
+      "language": "markdown",
+      "lines": 47,
+      "path": "ai.md",
+      "rank": 4,
+      "repository": "meursyphus/flitter",
+      "stars": 371,
+      "url": "https://github.com/meursyphus/flitter/blob/bff1696631027a347152e29ca584255a37835462/ai.md"
+    },
+    {
+      "content": "This action will remove the link between your local directory and the Vercel Project. The `.vercel` directory contains both the organization and `id` of your Vercel Project, so deleting it effectively unlinks your project.\r\n\r\nAfter removing the `.vercel` directory, if you run `vercel` again in this directory, it will treat it as a new project and prompt you to set up a new link.</answer>\r\n</verified_qa_pair>\r\n\r\n\r\n<verified_qa_pair>\r\n<question>Should I wrap client components that use the `use` hook in Suspense?</question>\r\n<answer>Yes, you should generally wrap Client Components that use the `use` hook with Suspense. Here's why:\r\n\r\n1. Suspense Integration: The `use` hook integrates with Suspense when called with a Promise. This means that when the Promise is pending, the component will suspend.\r\n2. Fallback UI: By wrapping the component in Suspense, you can provide a fallback UI that will be displayed while the Promise is resolving. This improves the user experience by showing a loading state instead of an empty or partially rendered component.\r\n3. Error Handling: Suspense works in conjunction with error boundaries. If the Promise passed to `use` is rejected, the fallback of the nearest Error Boundary will be displayed.\r\n\r\n\r\nHere's an example of how you might structure this:\r\n\r\n[CODE]\r\n\r\nIn this example, the `DataComponent` uses the `use` hook to read a Promise. It's wrapped in a Suspense boundary in the parent component, which provides a fallback UI to show while the data is loading.\r\n\r\nRemember that the Suspense boundary needs to be placed higher in the tree than the component using `use`. It won't work if the boundary is inside the component that's doing the data fetching.\r\nIt's important to note that `use` is not a Hook, despite its similar naming convention to Hooks like `useState` or `useEffect`.</answer>\r\n</verified_qa_pair>\r\n\r\n\r\n<verified_qa_pair>\r\n<question>Can I set a request header for an external rewrite?</question>\r\n<answer><Thinking>This question is about modifying request headers for external rewrites, which can be done using Next.js configuration or middleware. A code example would be helpful to illustrate the process.\r\n</Thinking>\r\n\r\nYes, you can set a request header for an external rewrite in Next.js. There are two main approaches to achieve this:\r\n- Using `next.config.js`\t \r\n- Using Middleware\r\nLet's explore both methods:\r\n- Using `next.config.js`: You can use the `headers` option in your `next.config.js` file to add custom headers to your requests. However, this method is more suitable for adding headers to your own routes rather than external rewrites.\r\n- Using Middleware: For external rewrites, using Middleware is the recommended approach. It allows you to modify request headers before they are sent to the destination. Here's how you can do it:\r\n\r\n[CODE]\r\nIn this example:\r\n- We import `NextResponse` from `next/server`.\r\n- In the `middleware` function, we clone the request headers.\r\n- We add a new custom header `X-Custom-Header` with a value.\r\n- We create a new response using `NextResponse.next()`, including the modified headers.\r\n- We set the `x-middleware-rewrite` header to perform the external rewrite.\r\n- Finally, we return the modified response.",
+      "language": "markdown",
+      "lines": 46,
+      "path": "V0.md",
+      "rank": 5,
+      "repository": "guy915/System-Prompts",
+      "stars": 212,
+      "url": "https://github.com/guy915/System-Prompts/blob/0d0404520fa78551d3f72e94df2de2265bce0664/V0.md"
+    },
+    {
+      "content": "```\n   onNext(ev) {\n       this.state.currentIndex++;\n   }\n   onPrevious(ev) {\n       this.state.currentIndex--;\n   }\n   ```\n\n![图16.3 – 文本两边添加箭头](https://i.cdnl.ink/homepage/wp-content/uploads/2021/03/2021030806033650.png)\n\n图16.3 – 文本两边添加箭头\n\n如果点击箭头，消息文本会根据构造函数中的消息列表进行改变。\n\n### 实现原理...\n\n第1步中，我们更新了组件中的XML模板。基本上是对模板做了两处修改。我们通过消息列表渲染文本消息，根据状态变量中`currentIndex`的值来选取消息。我们在文本块两边添加了箭头图标。在箭头图标内，添加了`t-on-clic`属性来对箭头绑定点击事件。\n\n第2步中，我们通过OWL导入了`useState`钩子。这个钩子用于处理组件的状态。第3步中，我们添加了构造函数。在创建对象实例时会调用这一构造函数。在构造函数内，我们添加了希望展示的消息列表，然后使用`useState`钩子添加了状态变量。这会使得组件成为响应式。在状态发生改变时，UI会按照新的状态进行更新。本例中，我们在`useState`钩子内使用了`currentIndex`。这表示在`currentIndex`的值发生变化时，UI也会进行更新。\n\n> 📝**重要信息：**定义钩子只有一条规则，即仅在构造函数时声明的钩子有效。还有其它类型的钩子，请参见[官方文档](https://github.com/odoo/owl/blob/master/doc/reference/hooks.md)。\n\n第4步中，我们添加了处理箭头点击事件的方法。在点击箭头时我们会改变组件的状态。因为对状态使用了钩子，组件的UI会自动进行更新。\n\n## 掌握OWL组件的生命周期\n\nOWL组件拥有一些有助于开发者创建强大、交互性组件的方法。本节中，我们学习这些组件的一些重要方法以及这些方法调用所处的生命周期。本节中我们会对组件添加一些方法，并会在控制台中打印消息来协助理解组件的生命周期。\n\n### 准备工作\n\n本节中，我们将继续使用前一小节中的`my_library`模块。\n\n### 如何实现...\n\n需要执行如下步骤来对组件添加生命周期方法：\n\n1. 在组件中已经有构造方法了，我们对控制台添加消息如下：\n\n   ```\n   constructor() {\n\n---\n\nonNext(ev) {\n       this.state.currentIndex++;\n   }\n   onPrevious(ev) {\n       this.state.currentIndex--;\n   }\n   ```\n\n![图16.3 – 文本两边添加箭头](https://i.cdnl.ink/homepage/wp-content/uploads/2021/03/2021030806033650.png)\n\n图16.3 – 文本两边添加箭头\n\n如果点击箭头，消息文本会根据构造函数中的消息列表进行改变。\n\n### 实现原理...\n\n第1步中，我们更新了组件中的XML模板。基本上是对模板做了两处修改。我们通过消息列表渲染文本消息，根据状态变量中`currentIndex`的值来选取消息。我们在文本块两边添加了箭头图标。在箭头图标内，添加了`t-on-clic`属性来对箭头绑定点击事件。\n\n第2步中，我们通过OWL导入了`useState`钩子。这个钩子用于处理组件的状态。第3步中，我们添加了构造函数。在创建对象实例时会调用这一构造函数。在构造函数内，我们添加了希望展示的消息列表，然后使用`useState`钩子添加了状态变量。这会使得组件成为响应式。在状态发生改变时，UI会按照新的状态进行更新。本例中，我们在`useState`钩子内使用了`currentIndex`。这表示在`currentIndex`的值发生变化时，UI也会进行更新。\n\n> 📝**重要信息：**定义钩子只有一条规则，即仅在构造函数时声明的钩子有效。还有其它类型的钩子，请参见[官方文档](https://github.com/odoo/owl/blob/master/doc/reference/hooks.md)。\n\n第4步中，我们添加了处理箭头点击事件的方法。在点击箭头时我们会改变组件的状态。因为对状态使用了钩子，组件的UI会自动进行更新。\n\n## 掌握OWL组件的生命周期\n\nOWL组件拥有一些有助于开发者创建强大、交互性组件的方法。本节中，我们学习这些组件的一些重要方法以及这些方法调用所处的生命周期。本节中我们会对组件添加一些方法，并会在控制台中打印消息来协助理解组件的生命周期。\n\n### 准备工作\n\n本节中，我们将继续使用前一小节中的`my_library`模块。\n\n### 如何实现...\n\n需要执行如下步骤来对组件添加生命周期方法：\n\n1. 在组件中已经有构造方法了，我们对控制台添加消息如下：\n\n   ```\n   constructor() {\n       console.log('CALLED:> constructor');\n   ...",
+      "language": "markdown",
+      "lines": 86,
+      "path": "16.md",
+      "rank": 6,
+      "repository": "iTranslateX/odoo-cookbook",
+      "stars": 196,
+      "url": "https://github.com/iTranslateX/odoo-cookbook/blob/66da4e88051db26d632f21872625e80b83a86db3/16.md"
+    },
+    {
+      "content": "\"use client\";\n\nimport CodeViewer from \"@/components/code-viewer\";\nimport { useScrollTo } from \"@/hooks/use-scroll-to\";\nimport { domain } from \"@/utils/domain\";\nimport { CheckIcon } from \"@heroicons/react/16/solid\";\nimport { ArrowLongRightIcon, ChevronDownIcon } from \"@heroicons/react/20/solid\";\nimport { ArrowUpOnSquareIcon } from \"@heroicons/react/24/outline\";\nimport * as Select from \"@radix-ui/react-select\";\nimport * as Switch from \"@radix-ui/react-switch\";\nimport * as Tooltip from \"@radix-ui/react-tooltip\";\nimport { AnimatePresence, motion } from \"framer-motion\";\nimport { FormEvent, useEffect, useState, useCallback } from \"react\";\nimport { toast, Toaster } from \"sonner\";\nimport LoadingDots from \"../../components/loading-dots\";\nimport { shareApp } from \"./actions\";\nimport ProductHunt from \"@/components/producthunt\";\n\nexport default function Home() {\n  let [status, setStatus] = useState<\n    \"initial\" | \"creating\" | \"created\" | \"updating\" | \"updated\"\n  >(\"initial\");\n  let [prompt, setPrompt] = useState(\"\");\n  let models = [\n    { label: \"claude-3-5-sonnet\", value: \"claude-3-5-sonnet\" },\n\n---\n\n\"use client\";\n\nimport CodeViewer from \"@/components/code-viewer\";\nimport { useScrollTo } from \"@/hooks/use-scroll-to\";\nimport { domain } from \"@/utils/domain\";\nimport { CheckIcon } from \"@heroicons/react/16/solid\";\nimport { ArrowLongRightIcon, ChevronDownIcon } from \"@heroicons/react/20/solid\";\nimport { ArrowUpOnSquareIcon } from \"@heroicons/react/24/outline\";\nimport * as Select from \"@radix-ui/react-select\";\nimport * as Switch from \"@radix-ui/react-switch\";\nimport * as Tooltip from \"@radix-ui/react-tooltip\";\nimport { AnimatePresence, motion } from \"framer-motion\";\nimport { FormEvent, useEffect, useState, useCallback } from \"react\";\nimport { toast, Toaster } from \"sonner\";\nimport LoadingDots from \"../../components/loading-dots\";\nimport { shareApp } from \"./actions\";\nimport ProductHunt from \"@/components/producthunt\";\n\nexport default function Home() {\n  let [status, setStatus] = useState<\n    \"initial\" | \"creating\" | \"created\" | \"updating\" | \"updated\"\n  >(\"initial\");\n  let [prompt, setPrompt] = useState(\"\");\n  let models = [\n    { label: \"claude-3-5-sonnet\", value: \"claude-3-5-sonnet\" },\n    { label: \"claude-3-5-sonnet-20240620\", value: \"claude-3-5-sonnet-20240620\" },\n    { label: \"claude-sonnet-3.5\", value: \"claude-sonnet-3.5\" },\n    { label: \"claude\", value: \"claude\" },\n  ];\n  let [model, setModel] = useState(models[0].value);\n  let [shadcn, setShadcn] = useState(false);\n  let [modification, setModification] = useState(\"\");\n  let [generatedCode, setGeneratedCode] = useState(\"\");\n  let [initialAppConfig, setInitialAppConfig] = useState({",
+      "language": "txt",
+      "lines": 62,
+      "path": "app.txt",
+      "rank": 7,
+      "repository": "akshaynstack/reactai",
+      "stars": 145,
+      "url": "https://github.com/akshaynstack/reactai/blob/3a10c8dc42b46a657728e4f00ad7c2480ffc11df/app.txt"
+    },
+    {
+      "content": "before we create a tool out of the database, we need to make sure the seed script is being executed.\n\nwe're opening the `src/app/page.tsx` file again\n\n```tsx\nimport { seed } from \"./database\";\n\nexport default function Home() {\n  const [inputMessage, setInputMessage] = useState(\"\");\n  const [messages, setMessages] = useState<BaseMessage[]>([\n    new SystemMessage(`\n      You are an expert SQL assistant. Your task is to generate SQL queries based on user requests. Follow these strict formatting guidelines:\n        \n      You should create a SQLite query based on natural language. \n      Use the \"getFromDB\" tool to get data from a database.\n\n      - Always enclose field names and table names in double quotes (\"), even if they contain no special characters.\n      - Ensure proper SQL syntax and use best practices for readability.\n      - Maintain consistency in capitalization (e.g., SQL keywords in uppercase).\n    `),\n  ]);\n  const [isLoading, setIsLoading] = useState(false);\n\n  useEffect(() => {\n    seed();\n  });\n\n  // ...\n}\n```\n\nhere we're importing the seed script, updaed the system prompt a little so it knows to use the database tool and we execute the seed script once the page renders -- yes, I know there are more sophisticated ways to do this. but frontend application optimization is a topic for another day.\n\nin `src/app/actions.ts` we're already importing the tool and zod utilities from langchain, we need to import the database necessities as well\n\n```ts\nimport { execute } from \"./database\";\nimport { customerTable, orderTable } from \"./constants\";\n```\n\nthen we can define the database tool:\n\n```ts\n\n---\n\ndescription: `Get data from a database, the database has the following schema:\n\n    ${orderTable}\n    ${customerTable}  \n    `,\n    schema: z.object({\n      sql: z\n        .string()\n        .describe(\n          \"SQL query to get data from a SQL database. Put quotes around the field and table names.\"\n        ),\n    }),\n  }\n);\n```\n\nin there we have hte tool execution function and the tool definition, the execution will call the `execute` function with the sql query generated by the llm\n\nthe definition describes what the tool does, note that I input the database shcema here so the llm can use it to generate the SQL query.\n\nfinally, I need to hook this to the langgraph agent:\n\n```ts\nconst agent = createReactAgent({\n  llm: new ChatOllama({ model: \"llama3.2\", temperature: 0 }),\n  tools: [getFromDB],\n});\n```\n\nnow we can start asking some questions like:\n\n- how many order are there\n- return all orders\n- which customers placed the most orders\n\nlet's look at the sql generated.",
+      "language": "markdown",
+      "lines": 82,
+      "path": "examples/text-to-sql-agent/DEMO.md",
+      "rank": 8,
+      "repository": "IBM/wxflows",
+      "stars": 110,
+      "url": "https://github.com/IBM/wxflows/blob/d04e77f6ea588327f51108f27bcb7964f7f36e2c/examples/text-to-sql-agent/DEMO.md"
+    },
+    {
+      "content": "signInOptions: [\n\t\tfirebase.auth.EmailAuthProvider.PROVIDER_ID,\n\t\tfirebase.auth.GoogleAuthProvider.PROVIDER_ID,\n\t],\n\tcallbacks: {\n\t\t// Avoid redirects after sign-in.\n\t\tsignInSuccessWithAuthResult: () => false\n\t}\n\n};\n```\n\n> [For more information about config](https://github.com/firebase/firebaseui-web#configuration).\n\n> [For more information about react-firebaseui](https://github.com/firebase/firebaseui-web-react).\n\nThe following lines are generated on creating HomePage container. These lines are responsible for attaching reducer or saga dynamically. [Dynamic means that it will be injected when the component it attached to is mounted](https://github.com/react-boilerplate/react-boilerplate/blob/master/docs/js/redux.md).\n\n```js\nuseInjectReducer({ key: 'homePage', reducer });\nuseInjectSaga({ key: 'homePage', saga });\n```\n\nWe define a local state using the useState hook for holding the user's auth state.\n\n```js\nconst [isSignedIn, setSignedIn] = useState(false);\n```\n\nWe use the useEffect hook to listen to the Firebase Auth state and set the local state.\n\n```js\nuseEffect(() => {\n    // componentDidMount\n    const unregisterAuthObserver = firebase\n      .auth()\n      .onAuthStateChanged(firebaseUser => {\n        setSignedIn(!!firebaseUser);\n      });\n\n    // componentWillUnmount\n    return () => {\n      unregisterAuthObserver();\n    };\n  }, []);\n```",
+      "language": "markdown",
+      "lines": 46,
+      "path": "DIY.md",
+      "rank": 9,
+      "repository": "iethem/spring-jwt-firebase",
+      "stars": 49,
+      "url": "https://github.com/iethem/spring-jwt-firebase/blob/c2efaf611cd93f2ab880fcc8c845f3c07c6f9ced/DIY.md"
+    },
+    {
+      "content": "name: \"display-name\",\n    props: {\n      firstName: String,\n      lastName: String,\n    },\n    computed: {\n      displayName: function () {\n        return `${this.firstName} ${this.lastName}`;\n      },\n    },\n  };\n</script>\n\n...\n\n<DisplayName firstName=\"Hello\" lastName=\"World\" />\n```\n\n## Watch\n\n_React.js don't have `watch` property, but we can achieve this through react hook easily_\n\n```javascript\nfunction MyReactComponent() {\n  const [count, setCount] = useState(0);\n\n  const increaseCount = () => {\n    setCount((currentCount) => currentCount + 1);\n  };\n\n  useEffect(() => {\n    localStorage.setItem(\"my_count\", newCount);\n  }, [count]);\n\n  return (\n    <div>\n      <span>{count}</span>\n      <button onClick={increaseCount}>Add</button>\n    </div>\n  );\n}\n```\n\n---\n\nincreaseCount = () => {\n    this.setState({ count: this.state.count + 1 });\n    // get current state before update to make sure we didn't use the stale value\n    // this.setState(currentState => ({ count: currentState.count + 1 }));\n  };\n\n  render() {\n    return (\n      <div>\n        <span>{this.state.count}</span>\n        <button onClick={this.increaseCount}>Add</button>\n      </div>\n    );\n  }\n}\n```\n\n#### Function component\n\n```javascript\nfunction MyReactComponent() {\n  const [count, setCount] = useState(0);\n\n  const increaseCount = () => {\n    setCount(count + 1);\n    // setCount(currentCount => currentCount + 1);\n  };\n\n  return (\n    <div>\n      <span>{count}</span>\n      <button onClick={increaseCount}>Add</button>\n    </div>\n  );\n}\n```\n\n### Vue.js\n\n```html\n<template>\n  <div>\n    <span>{{count}}</span>",
+      "language": "markdown",
+      "lines": 88,
+      "path": "CORE.md",
+      "rank": 10,
+      "repository": "oahehc/react-vue-comparison",
+      "stars": 37,
+      "url": "https://github.com/oahehc/react-vue-comparison/blob/fc756310e517a237130073651ea8a31239389c9a/CORE.md"
+    }
+  ],
+  "ranked": [
+    {
+      "path": "ch4.md",
+      "repository": "understanding-astro/understanding-astro-book",
+      "score": 1,
+      "stars": 863,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/637738724/contents/ch4.md?ref=da59245cebe87c59f994113f4edbf372d898490b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  // the initial state of the upvote counter\n  const [upvoteCount, setUpvoteCount] = useState(0);\n",
+          "matches": [
+            {
+              "indices": [
+                85,
+                93
+              ],
+              "text": "useState"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/637738724/contents/ch4.md?ref=da59245cebe87c59f994113f4edbf372d898490b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nIn the React component, we will leverage the `useStore` hook provided in `@nanostores/react` to retrieve the state value from the `upvoteCountStore`:\n",
+          "matches": [
+            {
+              "indices": [
+                57,
+                61
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/understanding-astro/understanding-astro-book/blob/da59245cebe87c59f994113f4edbf372d898490b/ch4.md",
+      "qualityScore": 0.35115137424788934,
+      "rank": 1
+    },
+    {
+      "path": "ch3.md",
+      "repository": "understanding-astro/understanding-astro-book",
+      "score": 1,
+      "stars": 863,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/637738724/contents/ch3.md?ref=da59245cebe87c59f994113f4edbf372d898490b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "      <template data-island>\n        <script type=\"module\">\n          import { h, Component, render } from \"https://esm.sh/preact\";\n          import { useState } from \"https://esm.sh/preact/hooks\";\n          import htm from \"https://esm.sh/htm\";\n\n          // Initialize htm with Preact",
+          "matches": [
+            {
+              "indices": [
+                151,
+                159
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                190,
+                194
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/understanding-astro/understanding-astro-book/blob/da59245cebe87c59f994113f4edbf372d898490b/ch3.md",
+      "qualityScore": 0.35115137424788934,
+      "rank": 2
+    },
+    {
+      "path": "FAQ.md",
+      "repository": "auth0/react-native-auth0",
+      "score": 1,
+      "stars": 536,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/61161994/contents/FAQ.md?ref=f89477f6da05f312c2c5686558d96baa45d06b64",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "1.  **On initial load:** The provider checks if the user is returning from a login redirect. If so, it processes the credentials in the URL and establishes a session.\n2.  **State Management:** The `user` and `isLoading` properties from the `useAuth0` hook will automatically update to reflect the authenticated state after the redirect is handled.\n",
+          "matches": [
+            {
+              "indices": [
+                251,
+                255
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/61161994/contents/FAQ.md?ref=f89477f6da05f312c2c5686558d96baa45d06b64",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { useAuth0 } from 'react-native-auth0';\nimport { useEffect, useState } from 'react';\n",
+          "matches": [
+            {
+              "indices": [
+                67,
+                75
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/auth0/react-native-auth0/blob/f89477f6da05f312c2c5686558d96baa45d06b64/FAQ.md",
+      "qualityScore": 0.33049742856995556,
+      "rank": 3
+    },
+    {
+      "path": "ai.md",
+      "repository": "meursyphus/flitter",
+      "score": 1,
+      "stars": 371,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/769435195/contents/ai.md?ref=bff1696631027a347152e29ca584255a37835462",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "### ❌ NEVER Use React Patterns\n```typescript\n// ❌ WRONG - No React hooks!\nconst [count, setCount] = useState(0);\nlet isExpanded = false;  // No outside state variables!\n```\n",
+          "matches": [
+            {
+              "indices": [
+                71,
+                75
+              ],
+              "text": "s!\nc"
+            },
+            {
+              "indices": [
+                104,
+                112
+              ],
+              "text": "tate(0);"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/meursyphus/flitter/blob/bff1696631027a347152e29ca584255a37835462/ai.md",
+      "qualityScore": 0.3145542939881898,
+      "rank": 4
+    },
+    {
+      "path": "V0.md",
+      "repository": "guy915/System-Prompts",
+      "score": 1,
+      "stars": 212,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/928531171/contents/V0.md?ref=0d0404520fa78551d3f72e94df2de2265bce0664",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "In this example, the `DataComponent` uses the `use` hook to read a Promise. It's wrapped in a Suspense boundary in the parent component, which provides a fallback UI to show while the data is loading.\r\n\r\nRemember that the Suspense boundary needs to be placed higher in the tree than the component using `use`. It won't work if the boundary is inside the component that's doing the data fetching.\r\nIt's important to note that `use` is not a Hook, despite its similar naming convention to Hooks like `useState` or `useEffect`.</answer>\r\n</verified_qa_pair>\r\n\r\n\r",
+          "matches": [
+            {
+              "indices": [
+                52,
+                56
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                440,
+                444
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                487,
+                491
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                499,
+                507
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/guy915/System-Prompts/blob/0d0404520fa78551d3f72e94df2de2265bce0664/V0.md",
+      "qualityScore": 0.2903379603438738,
+      "rank": 5
+    },
+    {
+      "path": "16.md",
+      "repository": "iTranslateX/odoo-cookbook",
+      "score": 1,
+      "stars": 196,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/361607647/contents/16.md?ref=66da4e88051db26d632f21872625e80b83a86db3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n第2步中，我们通过OWL导入了`useState`钩子。这个钩子用于处理组件的状态。第3步中，我们添加了构造函数。在创建对象实例时会调用这一构造函数。在构造函数内，我们添加了希望展示的消息列表，然后使用`useState`钩子添加了状态变量。这会使得组件成为响应式。在状态发生改变时，UI会按照新的状态进行更新。本例中，我们在`useState`钩子内使用了`currentIndex`。这表示在`currentIndex`的值发生变化时，UI也会进行更新。\n",
+          "matches": [
+            {
+              "indices": [
+                39,
+                47
+              ],
+              "text": "的状态。第3步中"
+            },
+            {
+              "indices": [
+                275,
+                283
+              ],
+              "text": null
+            },
+            {
+              "indices": [
+                437,
+                445
+              ],
+              "text": null
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/361607647/contents/16.md?ref=66da4e88051db26d632f21872625e80b83a86db3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n> 📝**重要信息：**定义钩子只有一条规则，即仅在构造函数时声明的钩子有效。还有其它类型的钩子，请参见[官方文档](https://github.com/odoo/owl/blob/master/doc/reference/hooks.md)。\n",
+          "matches": [
+            {
+              "indices": [
+                215,
+                219
+              ],
+              "text": null
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/iTranslateX/odoo-cookbook/blob/66da4e88051db26d632f21872625e80b83a86db3/16.md",
+      "qualityScore": 0.28694662261615933,
+      "rank": 6
+    },
+    {
+      "path": "app.txt",
+      "repository": "akshaynstack/reactai",
+      "score": 1,
+      "stars": 145,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/895742402/contents/app.txt?ref=3a10c8dc42b46a657728e4f00ad7c2480ffc11df",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import CodeViewer from \"@/components/code-viewer\";\nimport { useScrollTo } from \"@/hooks/use-scroll-to\";\nimport { domain } from \"@/utils/domain\";",
+          "matches": [
+            {
+              "indices": [
+                82,
+                86
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/895742402/contents/app.txt?ref=3a10c8dc42b46a657728e4f00ad7c2480ffc11df",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { AnimatePresence, motion } from \"framer-motion\";\nimport { FormEvent, useEffect, useState, useCallback } from \"react\";\nimport { toast, Toaster } from \"sonner\";",
+          "matches": [
+            {
+              "indices": [
+                88,
+                96
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/akshaynstack/reactai/blob/3a10c8dc42b46a657728e4f00ad7c2480ffc11df/app.txt",
+      "qualityScore": 0.2739352855784437,
+      "rank": 7
+    },
+    {
+      "path": "examples/text-to-sql-agent/DEMO.md",
+      "repository": "IBM/wxflows",
+      "score": 1,
+      "stars": 110,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/822793282/contents/examples/text-to-sql-agent/DEMO.md?ref=d04e77f6ea588327f51108f27bcb7964f7f36e2c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  ]);\n  const [isLoading, setIsLoading] = useState(false);\n",
+          "matches": [
+            {
+              "indices": [
+                42,
+                50
+              ],
+              "text": "useState"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/822793282/contents/examples/text-to-sql-agent/DEMO.md?ref=d04e77f6ea588327f51108f27bcb7964f7f36e2c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nfinally, I need to hook this to the langgraph agent:\n",
+          "matches": [
+            {
+              "indices": [
+                20,
+                24
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/IBM/wxflows/blob/d04e77f6ea588327f51108f27bcb7964f7f36e2c/examples/text-to-sql-agent/DEMO.md",
+      "qualityScore": 0.2720322978786658,
+      "rank": 8
+    },
+    {
+      "path": "DIY.md",
+      "repository": "iethem/spring-jwt-firebase",
+      "score": 1,
+      "stars": 49,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/259025747/contents/DIY.md?ref=c2efaf611cd93f2ab880fcc8c845f3c07c6f9ced",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "useInjectSaga({ key: 'homePage', saga });\n```\n\nWe define a local state using the useState hook for holding the user's auth state.\n\n```js\nconst [isSignedIn, setSignedIn] = useState(false);",
+          "matches": [
+            {
+              "indices": [
+                81,
+                89
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                90,
+                94
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                171,
+                179
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/iethem/spring-jwt-firebase/blob/c2efaf611cd93f2ab880fcc8c845f3c07c6f9ced/DIY.md",
+      "qualityScore": 0.2273970004336019,
+      "rank": 9
+    },
+    {
+      "path": "CORE.md",
+      "repository": "oahehc/react-vue-comparison",
+      "score": 1,
+      "stars": 37,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/256620647/contents/CORE.md?ref=fc756310e517a237130073651ea8a31239389c9a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n_React.js don't have `watch` property, but we can achieve this through react hook easily_\n",
+          "matches": [
+            {
+              "indices": [
+                78,
+                82
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/256620647/contents/CORE.md?ref=fc756310e517a237130073651ea8a31239389c9a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "function MyReactComponent() {\n  const [count, setCount] = useState(0);\n",
+          "matches": [
+            {
+              "indices": [
+                58,
+                66
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/oahehc/react-vue-comparison/blob/fc756310e517a237130073651ea8a31239389c9a/CORE.md",
+      "qualityScore": 0.215478359661681,
+      "rank": 10
+    }
+  ],
+  "results": [
+    {
+      "path": "hook.md",
+      "repository": "omelab/nginx-server-manage",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/562570892/contents/hook.md?ref=310c2d7273128570a44f4fe2054337cc3a048703",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Note: \n- The useFetch custom hook is created to encapsulate the logic for fetching data from an API.\n\n- Inside the custom hook, useState is used to manage state for data, loading status, and errors.\n\n- useEffect is used to perform the data fetching operation when the component mounts or when the url prop changes.\n",
+          "matches": [
+            {
+              "indices": [
+                29,
+                33
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                122,
+                126
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                128,
+                136
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/omelab/nginx-server-manage/blob/310c2d7273128570a44f4fe2054337cc3a048703/hook.md"
+    },
+    {
+      "path": "Hook.md",
+      "repository": "Hong-JunHyeok/React_Standard",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/362737192/contents/Hook.md?ref=fb11200b4d6636a45e55197c7f4f64df0b2b638b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n![image](https://user-images.githubusercontent.com/48292190/116961678-f484e780-acde-11eb-95a4-a8f739c220ec.png)\n\n처음으로 배우게 될 hook은 `useState()`입니다.\n\n이전에 함수형 컴포넌트에서는 state를 사용하지 못한다고 했었는데, hooks를 도입함으로써 그것이 해결되었습니다.\n",
+          "matches": [
+            {
+              "indices": [
+                141,
+                145
+              ],
+              "text": ")`입니"
+            },
+            {
+              "indices": [
+                150,
+                158
+              ],
+              "text": "전에 함수형 컴"
+            },
+            {
+              "indices": [
+                264,
+                268
+              ],
+              "text": null
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Hong-JunHyeok/React_Standard/blob/fb11200b4d6636a45e55197c7f4f64df0b2b638b/Hook.md"
+    },
+    {
+      "path": "DIY.md",
+      "repository": "iethem/spring-jwt-firebase",
+      "score": 1,
+      "stars": 49,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/259025747/contents/DIY.md?ref=c2efaf611cd93f2ab880fcc8c845f3c07c6f9ced",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "useInjectSaga({ key: 'homePage', saga });\n```\n\nWe define a local state using the useState hook for holding the user's auth state.\n\n```js\nconst [isSignedIn, setSignedIn] = useState(false);",
+          "matches": [
+            {
+              "indices": [
+                81,
+                89
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                90,
+                94
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                171,
+                179
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/iethem/spring-jwt-firebase/blob/c2efaf611cd93f2ab880fcc8c845f3c07c6f9ced/DIY.md"
+    },
+    {
+      "path": "1.md",
+      "repository": "1921622004/webapi",
+      "score": 1,
+      "stars": 10,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/160914303/contents/1.md?ref=1db8f8225cd123aea341dc7878a85ec82eb3d42d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nWhen people first look at the Hooks proposal API, they often wonder: how does useState “know what to do”? The assumption is that it’s more “magical” than a base React.Component class with this.setState().\n\nBut as we have seen today, the base class setState() implementation has been an illusion all along. It doesn’t do anything except forwarding the call to the current renderer. And useState Hook does exactly the same thing.\n\nInstead of an updater field, Hooks use a “dispatcher” object. When you call React.useState(), React.useEffect(), or another built-in Hook, these calls are forwarded to the current dispatcher.\n",
+          "matches": [
+            {
+              "indices": [
+                31,
+                35
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                79,
+                87
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                398,
+                406
+              ],
+              "text": "k does e"
+            },
+            {
+              "indices": [
+                407,
+                411
+              ],
+              "text": "actl"
+            },
+            {
+              "indices": [
+                471,
+                475
+              ],
+              "text": "“dis"
+            },
+            {
+              "indices": [
+                528,
+                536
+              ],
+              "text": "t.useEff"
+            },
+            {
+              "indices": [
+                579,
+                583
+              ],
+              "text": "s ar"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/1921622004/webapi/blob/1db8f8225cd123aea341dc7878a85ec82eb3d42d/1.md"
+    },
+    {
+      "path": "r.txt",
+      "repository": "itzmejanak/ReactJS_Practice",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/751898981/contents/r.txt?ref=dab2f11e8e71557b5f4b32bf4f3f2de476b0c710",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "5. [State and Lifecycle](#state-and-lifecycle)\n    - Understanding State in React\n    - Lifecycle Methods in Class Components\n    - Using the useState Hook in Function Components\n6. [Handling Events](#handling-events)\n    - Handling Events in React\n    - Binding Event Handlers",
+          "matches": [
+            {
+              "indices": [
+                142,
+                150
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                151,
+                155
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/itzmejanak/ReactJS_Practice/blob/dab2f11e8e71557b5f4b32bf4f3f2de476b0c710/r.txt"
+    },
+    {
+      "path": "th.txt",
+      "repository": "samirvithlani/mern24-backup",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/810091393/contents/th.txt?ref=39d69d75edf6f17ba0d8316c782cd7e30473d39e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "when we update the state of the component, the virtual dom is updated first.\nthen the diff algorithm runs to identify the difference between the previous dom and the new dom.\n\nto update state of real dom we will use usestate hook.\nhook: v.16 function based :\nhooks are builtin life cycle methods of react js.\n",
+          "matches": [
+            {
+              "indices": [
+                216,
+                224
+              ],
+              "text": "usestate"
+            },
+            {
+              "indices": [
+                225,
+                229
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                231,
+                235
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                259,
+                263
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/samirvithlani/mern24-backup/blob/39d69d75edf6f17ba0d8316c782cd7e30473d39e/th.txt"
+    },
+    {
+      "path": "code.md",
+      "repository": "threewebcode/mystack",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/617752700/contents/code.md?ref=34c1f91a20cd3fccf88331f336ff9a9464355ff9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nThe component imports various dependencies such as axios for making HTTP requests, react-router for routing, react-hot-toast for displaying toast notifications, and react-responsive-modal for displaying modals. It also imports types related to Twitter API responses.\n\nThe component defines state variables using the useState hook, such as \"open\" to control the visibility of the modal, and \"tweetData\" to store data related to a tweet. It also defines functions to open and close the modal.\n\nThe component extracts query parameters from the router, such as \"code\", \"state\", and \"error\" which may be used for Twitter authentication. It also retrieves a \"giveAwayId\" from local storage.\n",
+          "matches": [
+            {
+              "indices": [
+                317,
+                325
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                326,
+                330
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/threewebcode/mystack/blob/34c1f91a20cd3fccf88331f336ff9a9464355ff9/code.md"
+    },
+    {
+      "path": "txt.txt",
+      "repository": "Deepakl07/Reactchatbot",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/829398454/contents/txt.txt?ref=2759457226263e1d69388829f146198cb115149d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "In class components, state is managed differently. You define state in the constructor and use this.setState to update it.\n\n\n\nState in React allows you to create interactive and dynamic applications. By using the useState hook in functional components or state in class components, you can manage and respond to user inputs and other dynamic data in your app.\n\n",
+          "matches": [
+            {
+              "indices": [
+                213,
+                221
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                222,
+                226
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Deepakl07/Reactchatbot/blob/2759457226263e1d69388829f146198cb115149d/txt.txt"
+    },
+    {
+      "path": "React.md",
+      "repository": "EvgeniiKlepilin/devnotebook",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/555006009/contents/React.md?ref=7ab674aff366b2cb7723f11efc2281a1f9aedfa4",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# React\n## Troubleshooting\n### Waiting for state update with useState hook\n#### Issue\nReact state updates are asynchronously processed, but the state updater function itself isn't `async` so you can't wait for the update to happen. You can only ever access the state value from the current render cycle. This is why images is likely still your initial state, an empty array (`[]`).\n#### Solution\nI think you should rethink how you compute the next state of images, do a single update, and then use an `useEffect` hook to dispatch the action with the updated state value.",
+          "matches": [
+            {
+              "indices": [
+                61,
+                69
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                70,
+                74
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                513,
+                517
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/EvgeniiKlepilin/devnotebook/blob/7ab674aff366b2cb7723f11efc2281a1f9aedfa4/React.md"
+    },
+    {
+      "path": "RT.md",
+      "repository": "veerrajukakarla434/2025-Front-End-Technology-Stack-Pilot-Project",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/452369664/contents/RT.md?ref=7d9896da4221d55e895f77e8d5e03aa41e67ae5d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n\n\nThe useState hook defines a state object named formData that contains three properties: name, email, and message, each initialized to an empty string.\n\nThe handleChange function is called whenever a user types in one of the form fields. It extracts the name and value of the form field that has changed using the event.target object and then updates the formData state variable using the setFormData function.\n",
+          "matches": [
+            {
+              "indices": [
+                7,
+                15
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                16,
+                20
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/veerrajukakarla434/2025-Front-End-Technology-Stack-Pilot-Project/blob/7d9896da4221d55e895f77e8d5e03aa41e67ae5d/RT.md"
+    },
+    {
+      "path": "doc.txt",
+      "repository": "Nimasaghi-dev/Portfolio",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1029297763/contents/doc.txt?ref=09d723f8f09da747df0df37e2701453e063ea4c6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "                                - IMPORTANT : IN NEXTJS EVERY COMPONENT IS SERVER SIDE COMPONENT BY DEFAULT.\n- in server components you can not use hooks.\n\n- now in the Nav function we create a stick variable using useState hook. --> const [ navbBg , setNavBg ] = useState(false);\n- then we use useEffect hook. --> useEffect(() => {}, []) and we will add an empty dependency array here.\n- inside the useEffect body we add a handler function --> const handler = () => {}\n- then we add a if statement inside it to check if the window is scrolled more than 90px in y direction --> if(window.scrollY >= 90) and if its true we set our navBg to true and it will show the background.",
+          "matches": [
+            {
+              "indices": [
+                148,
+                152
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                215,
+                223
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                224,
+                228
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                264,
+                272
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                305,
+                309
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Nimasaghi-dev/Portfolio/blob/09d723f8f09da747df0df37e2701453e063ea4c6/doc.txt"
+    },
+    {
+      "path": "53.md",
+      "repository": "Anisha3102/react-guide",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/960311462/contents/53.md?ref=bc4477bf02165fc361653b4878294ebfc859e2db",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# How does useState work, and what does it return? \r\n\r\n## How useState Works in React\r\n- The useState hook is used to add state to a functional component. It lets our component \"remember\" values between renders.\r\n\r\n### Syntax\r\n```js\r",
+          "matches": [
+            {
+              "indices": [
+                11,
+                19
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                62,
+                70
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                93,
+                101
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                102,
+                106
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Anisha3102/react-guide/blob/bc4477bf02165fc361653b4878294ebfc859e2db/53.md"
+    },
+    {
+      "path": "20.md",
+      "repository": "Shaikhmohddanish/React-JS",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1051193099/contents/20.md?ref=27bcffa531949d28ed82f00f406d380951a2f41d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "#  05 - Let's Get Hooked!\n\nIn this , we focus on organizing our codebase and introducing React Hooks. We'll learn how to structure our React application properly and implement state management using the useState Hook.\n\n## Key Concepts Covered\n\n1. File and Folder Structure",
+          "matches": [
+            {
+              "indices": [
+                18,
+                22
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                95,
+                99
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                203,
+                211
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                212,
+                216
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Shaikhmohddanish/React-JS/blob/27bcffa531949d28ed82f00f406d380951a2f41d/20.md"
+    },
+    {
+      "path": "Req.txt",
+      "repository": "sharmagourav28/Javascript--The-Brain",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/893912408/contents/Req.txt?ref=534db2e1bb852e77699032d039e0eae65ae5d72c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "• Prop Types\n\n𝟑.𝐒𝐭𝐚𝐭𝐞\n• useState Hook\n• Class Component State\n• Immutable State\n",
+          "matches": [
+            {
+              "indices": [
+                46,
+                54
+              ],
+              "text": "Componen"
+            },
+            {
+              "indices": [
+                55,
+                59
+              ],
+              "text": " Sta"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/sharmagourav28/Javascript--The-Brain/blob/534db2e1bb852e77699032d039e0eae65ae5d72c/Req.txt"
+    },
+    {
+      "path": "API.md",
+      "repository": "mcclayton/react-state-patterns",
+      "score": 1,
+      "stars": 16,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/175096388/contents/API.md?ref=0d2ab3e0852c965607856b576f14795e8014a06f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    + [`useContext()`](#useContext)\n  - Utils\n    + [`hookSchema()`](#hookSchema)\n    + [`useStateHook()`](#useStateHook)\n\n\n## Main API",
+          "matches": [
+            {
+              "indices": [
+                54,
+                58
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                70,
+                74
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                90,
+                98
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                98,
+                102
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                108,
+                116
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                116,
+                120
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mcclayton/react-state-patterns/blob/0d2ab3e0852c965607856b576f14795e8014a06f/API.md"
+    },
+    {
+      "path": "Doc.md",
+      "repository": "Muskan-kumari1/Reactfile",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/811208478/contents/Doc.md?ref=239efbac0b31a0234a706e8c545e93ed5ef73615",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n## 10. Managing state in React \n\n* Component State: State is a built-in React object used to hold data that can change over time. Each class component can have its own state, initialized in the constructor, and updated using this.setState(). Functional components use the useState hook to handle state.\n\n* useState Hook: For functional components, the useState hook is used to declare state variables. It returns an array with two elements: the current state value and a function to update it. This hook allows functional components to have state and manage it.\n",
+          "matches": [
+            {
+              "indices": [
+                273,
+                281
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                282,
+                286
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                307,
+                315
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                316,
+                320
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                353,
+                361
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                362,
+                366
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                500,
+                504
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Muskan-kumari1/Reactfile/blob/239efbac0b31a0234a706e8c545e93ed5ef73615/Doc.md"
+    },
+    {
+      "path": "imp.txt",
+      "repository": "GundA99/Notes",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/835710229/contents/imp.txt?ref=49fdda32d9f979990a8d69ab3127b0ef485e1bbb",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "state: Every componant is react has a build in state object. which contains all the values that belong to that componant, state can be change by using setstate method in class.\n\n#Hooks\nHooks is a special fuction that let you use state and other feature without writing class Ex usestate hook lets us define state for a component.\nHooks is a special function by using that we can set state of the components.ex usestate.\n\n#AJAX(Asynchronous Javascript and xml)",
+          "matches": [
+            {
+              "indices": [
+                179,
+                183
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                185,
+                189
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                278,
+                286
+              ],
+              "text": "usestate"
+            },
+            {
+              "indices": [
+                287,
+                291
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                330,
+                334
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                410,
+                418
+              ],
+              "text": "usestate"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/GundA99/Notes/blob/49fdda32d9f979990a8d69ab3127b0ef485e1bbb/imp.txt"
+    },
+    {
+      "path": "plan.md",
+      "repository": "Reinoptland/picture-explorer-routing",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/282217620/contents/plan.md?ref=609de0a35dfb8426c2342c4c945c1a30e6e4107a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    - X api (https://picsum.photos/v2/list)\n    - X useEffect\n    - X async function\n    - X useState hook (to store dynamic data)\n  - Display the pictures\n    - X map the array\n    - X Write JSX",
+          "matches": [
+            {
+              "indices": [
+                93,
+                101
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                102,
+                106
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Reinoptland/picture-explorer-routing/blob/609de0a35dfb8426c2342c4c945c1a30e6e4107a/plan.md"
+    },
+    {
+      "path": "note.md",
+      "repository": "HuuCao/todo-project",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/803185072/contents/note.md?ref=52e0389107d317418402508fd3b2f582f483351b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# useState hook\n\n### Dùng khi nào?\n\n- Khi muốn dữ liệu thay đổi thì giao diện từ động được cập nhật (render lại theo dữ liệu)\n- hook chỉ sử dụng được cho function component\n",
+          "matches": [
+            {
+              "indices": [
+                2,
+                10
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                11,
+                15
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                161,
+                165
+              ],
+              "text": "n co"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/HuuCao/todo-project/blob/52e0389107d317418402508fd3b2f582f483351b/note.md"
+    },
+    {
+      "path": "warp.md",
+      "repository": "Pheakboy/Ecommerce_Shop",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1044375143/contents/warp.md?ref=9a2334f30351fcfa752a7805ab0448bbd3ea675d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n### State Management\n- Global state: Use Zustand store (`/src/lib/store.ts`)\n- Local state: React useState hook\n- Forms: React Hook Form with Yup validation\n\n## 🎯 Common Development Tasks",
+          "matches": [
+            {
+              "indices": [
+                99,
+                107
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                108,
+                112
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                128,
+                132
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Pheakboy/Ecommerce_Shop/blob/9a2334f30351fcfa752a7805ab0448bbd3ea675d/warp.md"
+    },
+    {
+      "path": "DEMO.md",
+      "repository": "rafia-ijaz/HealthCare",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1026694277/contents/DEMO.md?ref=46075527977a48e03a81567694f176040da75ab6",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Currently **4 code snippets** are available:\n\n1. **Python List Comprehension Examples** - Python Guru (1 ❤️)\n2. **React useState Hook Example** - React Developer (0 ❤️)\n3. **Hello World React Component** - Demo User (5 ❤️)\n4. **Python Fibonacci Generator** - Code Master (12 ❤️)\n",
+          "matches": [
+            {
+              "indices": [
+                124,
+                132
+              ],
+              "text": "tate Hoo"
+            },
+            {
+              "indices": [
+                133,
+                137
+              ],
+              "text": " Exa"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/rafia-ijaz/HealthCare/blob/46075527977a48e03a81567694f176040da75ab6/DEMO.md"
+    },
+    {
+      "path": "TODO.md",
+      "repository": "ak5064617/React-Learn",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/837331605/contents/TODO.md?ref=41d97b07776e0d0a055c2f65aba50d0ff6530042",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n- What is the `difference` between `Named export`, `Default export`, and `* as export`?\n- What are `React Hooks`?\n- Why do we need `useState Hook`?\n\n## Code:\n",
+          "matches": [
+            {
+              "indices": [
+                107,
+                111
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                133,
+                141
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                142,
+                146
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ak5064617/React-Learn/blob/41d97b07776e0d0a055c2f65aba50d0ff6530042/TODO.md"
+    },
+    {
+      "path": "Code.md",
+      "repository": "DharmikVaja/ReactJS-Internship",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/744617544/contents/Code.md?ref=bfdb91de59c22ccf268d5eb560cc70f3a79ba9c3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// }\n// ----------------------------------------\n\n**useState hook\n <!-- const state = useState(); -->\n  const [count, setCount] = useState(40);\n",
+          "matches": [
+            {
+              "indices": [
+                52,
+                60
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                61,
+                65
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                86,
+                94
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                130,
+                138
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/DharmikVaja/ReactJS-Internship/blob/bfdb91de59c22ccf268d5eb560cc70f3a79ba9c3/Code.md"
+    },
+    {
+      "path": "chat.md",
+      "repository": "krabbypatty1031-blip/MapGPT_Web",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1092819961/contents/chat.md?ref=28294559309f753128ad0e0ce1a57b28027175de",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "CardItem.js – Represents each feature or content block shown in the prototype. It accepts props such as title, description, and imageSource, ensuring reusability.\nFormInput.js – A stylized TextInput component that supports error validation and dynamic placeholders, following the app’s color scheme from constants/theme.js.\nActionButton.js – A general-purpose button with adjustable width and color variants, used for CTA sections.\nImagePreview.js – Implements placeholder logic for non-live image uploads, using local assets and a simple useState hook for state management.\nEach component follows functional conventions (React.FC) with explicit prop types and centralized styles defined via StyleSheet.create. I created a shared theme file (constants/theme.js) to store typography, colors, and spacing tokens for visual consistency. The layout uses Flexbox and Dimensions to maintain responsiveness across iOS and Android devices.\nThis structure ensures scalability and maintainability—new features from future prototype iterations can be integrated simply by composing or extending existing components. Placeholder logic (e.g., for uploads or authentication) makes the app fully front-end only while preserving realistic interactivity, preparing the codebase for seamless backend integration later.”\n- Impact: ",
+          "matches": [
+            {
+              "indices": [
+                549,
+                557
+              ],
+              "text": "ook for "
+            },
+            {
+              "indices": [
+                558,
+                562
+              ],
+              "text": "tate"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/krabbypatty1031-blip/MapGPT_Web/blob/28294559309f753128ad0e0ce1a57b28027175de/chat.md"
+    },
+    {
+      "path": "quiz.md",
+      "repository": "yeyehandsome1984/Assignment_5.2",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/889005655/contents/quiz.md?ref=87a90c785df9230f20b556b80bedfd1a3f6e3091",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- **- D: uri\n---\n\n### Q7: True or false, the useState hook can be used for TextInputs?\n**- A: True\n- B: False\n---",
+          "matches": [
+            {
+              "indices": [
+                45,
+                53
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                54,
+                58
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/yeyehandsome1984/Assignment_5.2/blob/87a90c785df9230f20b556b80bedfd1a3f6e3091/quiz.md"
+    },
+    {
+      "path": "Lab2.md",
+      "repository": "thuyduong955/Lab02_Web",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1084853873/contents/Lab2.md?ref=1b26b847beaa1b9e52b96c7c082bdb5244ed3663",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// Your implementation here\r\n}\r\n// TODO: Implement basic state management\r\n// Simple useState hook for components\r\nexport function useState<T>(initialValue: T): [() => T, (newValue: T) => void] {\r\n// STEP 1: Store the current value\r\n// STEP 2: Create getter function\r",
+          "matches": [
+            {
+              "indices": [
+                85,
+                93
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                94,
+                98
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                131,
+                139
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/thuyduong955/Lab02_Web/blob/1b26b847beaa1b9e52b96c7c082bdb5244ed3663/Lab2.md"
+    },
+    {
+      "path": "JS.md",
+      "repository": "Kodeden/interview-prep",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/701787520/contents/JS.md?ref=881e1f7815fe805fb086b291c5e9ee07c2d674d2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nReact, especially when combined with the Hooks API introduced in React 16.8, makes extensive use of closures. Here's how closures play a role in React and its ecosystem:\n\n1. **useState Hook:**\n    - Consider the `useState` hook. When you call it, you get back a piece of state and a function to update that state. The update function is a closure over the component's current render, allowing you to set state based on the current value.\n    ```javascript\n    const [count, setCount] = useState(0);",
+          "matches": [
+            {
+              "indices": [
+                42,
+                46
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                177,
+                185
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                186,
+                190
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                214,
+                222
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                224,
+                228
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                487,
+                495
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Kodeden/interview-prep/blob/881e1f7815fe805fb086b291c5e9ee07c2d674d2/JS.md"
+    },
+    {
+      "path": "10.md",
+      "repository": "okamyuji/react_tutorial",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/929710842/contents/10.md?ref=89649880381ce924944f0481791b0378eb714cdc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n// カスタムフック useCounter を定義\nexport const useCounter = (initialCount = 0) => {\n  const [count, setCount] = useState(initialCount); // useState Hookを使用して count 状態を管理\n\n  const increment = useCallback(() => { // useCallback Hookを使用して increment 関数をメモ化\n    setCount(prevCount => prevCount + 1);",
+          "matches": [
+            {
+              "indices": [
+                125,
+                133
+              ],
+              "text": "t); // u"
+            },
+            {
+              "indices": [
+                152,
+                160
+              ],
+              "text": "ount 状態を"
+            },
+            {
+              "indices": [
+                161,
+                165
+              ],
+              "text": "理\n\n "
+            },
+            {
+              "indices": [
+                259,
+                263
+              ],
+              "text": "prev"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/okamyuji/react_tutorial/blob/89649880381ce924944f0481791b0378eb714cdc/10.md"
+    },
+    {
+      "path": "log.md",
+      "repository": "maelingmurphy/My-Learning-Path",
+      "score": 1,
+      "stars": 7,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/232397391/contents/log.md?ref=932903ed64ad4df910837891eecb38c107e0d6f0",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    - Styling in React\n    - Viewing the component tree with React Dev Tools\n    -  Events\n    - State & useState Hook\n    - Global state\n    - Icons with `react-icons`\n    - Build for production",
+          "matches": [
+            {
+              "indices": [
+                105,
+                113
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                114,
+                118
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/maelingmurphy/My-Learning-Path/blob/932903ed64ad4df910837891eecb38c107e0d6f0/log.md"
+    },
+    {
+      "path": "str.md",
+      "repository": "Spriha-Ghosh/MERN",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/869962778/contents/str.md?ref=03994f70b0782d9eb72bf8f082f85664e5e9b949",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "Context API\nReact Redux\nUpdating the screen\nUsing Hooks- useState Hook\nuseEffect Hook\nuseRef Hook\nuseMemo Hook",
+          "matches": [
+            {
+              "indices": [
+                50,
+                54
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                57,
+                65
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                66,
+                70
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                81,
+                85
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                93,
+                97
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                106,
+                110
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Spriha-Ghosh/MERN/blob/03994f70b0782d9eb72bf8f082f85664e5e9b949/str.md"
+    },
+    {
+      "path": "ETP.md",
+      "repository": "Xta1neR/react-projects",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/757268875/contents/ETP.md?ref=2a0b2b06242f230fc6a77d95ae5928c85ad6264d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "**implement a React component for useState and useEffect hooks separately to manage component states and effects with any example.**\n\n\n### Component using useState hook:\n\n```jsx\nimport React, { useState } from 'react';",
+          "matches": [
+            {
+              "indices": [
+                34,
+                42
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                57,
+                61
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                155,
+                163
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                164,
+                168
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                194,
+                202
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Xta1neR/react-projects/blob/2a0b2b06242f230fc6a77d95ae5928c85ad6264d/ETP.md"
+    },
+    {
+      "path": "r.md",
+      "repository": "DarrenDuanAU/big-brain",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/682346115/contents/r.md?ref=687bbea06153ed7038b705805db2d9dcef382b7e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " * [ReactJS Introduction](https://cgi.cse.unsw.edu.au/~cs6080/23T1/content/lectures/react-intro)\n * [ReactJS Global CSS Usage](https://cgi.cse.unsw.edu.au/~cs6080/23T1/content/lectures/react-css-basic)\n * [ReactJS Lifecycle](https://cgi.cse.unsw.edu.au/~cs6080/23T1/content/lectures/react-lifecycle)\n * [ReactJS useState hook](https://cgi.cse.unsw.edu.au/~cs6080/23T1/content/lectures/react-hooks-state)\n * [ReactJS useEffect hook](https://cgi.cse.unsw.edu.au/~cs6080/23T1/content/lectures/react-hooks-effect)\n * [Working with multiple files](https://cgi.cse.unsw.edu.au/~cs6080/23T1/content/lectures/multi-file-import)\n * [Components & Props](https://cgi.cse.unsw.edu.au/~cs6080/23T1/content/lectures/react-components-props)",
+          "matches": [
+            {
+              "indices": [
+                312,
+                320
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                321,
+                325
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                391,
+                395
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                426,
+                430
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                496,
+                500
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/DarrenDuanAU/big-brain/blob/687bbea06153ed7038b705805db2d9dcef382b7e/r.md"
+    },
+    {
+      "path": "2.md",
+      "repository": "vakhovakho88/ReactJs",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/428007133/contents/2.md?ref=e9f2b808a496cf9835c4ce41a80e55d12118835a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n#### State\n\n- To change a value of UI elements we need to use useState hook\n- This is one of many hooks from react\n\n```javascript",
+          "matches": [
+            {
+              "indices": [
+                63,
+                71
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                72,
+                76
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                99,
+                103
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/vakhovakho88/ReactJs/blob/e9f2b808a496cf9835c4ce41a80e55d12118835a/2.md"
+    },
+    {
+      "path": "WARP.md",
+      "repository": "ferryhinardi/supertool",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1082684117/contents/WARP.md?ref=dd7c5c84404c0a17007b94634dafd08d151510d2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "**Code Analysis:**\n\n```\n\"Find all files using useState hook\"\n\"Show me the git diff for uncommitted changes\"\n```\n",
+          "matches": [
+            {
+              "indices": [
+                46,
+                54
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                55,
+                59
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ferryhinardi/supertool/blob/dd7c5c84404c0a17007b94634dafd08d151510d2/WARP.md"
+    },
+    {
+      "path": "V0.md",
+      "repository": "guy915/System-Prompts",
+      "score": 1,
+      "stars": 212,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/928531171/contents/V0.md?ref=0d0404520fa78551d3f72e94df2de2265bce0664",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "In this example, the `DataComponent` uses the `use` hook to read a Promise. It's wrapped in a Suspense boundary in the parent component, which provides a fallback UI to show while the data is loading.\r\n\r\nRemember that the Suspense boundary needs to be placed higher in the tree than the component using `use`. It won't work if the boundary is inside the component that's doing the data fetching.\r\nIt's important to note that `use` is not a Hook, despite its similar naming convention to Hooks like `useState` or `useEffect`.</answer>\r\n</verified_qa_pair>\r\n\r\n\r",
+          "matches": [
+            {
+              "indices": [
+                52,
+                56
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                440,
+                444
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                487,
+                491
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                499,
+                507
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/guy915/System-Prompts/blob/0d0404520fa78551d3f72e94df2de2265bce0664/V0.md"
+    },
+    {
+      "path": "abc.txt",
+      "repository": "shannican/mern9React",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/832225038/contents/abc.txt?ref=91f9cb15512b2f7b76ea6801da5e54992361c484",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- Installation and folder structure\n- real dom vs virtual dom \n- jsx export import \n- useState Hooks \n- functions calling \n- two way binding\n- form handling ",
+          "matches": [
+            {
+              "indices": [
+                86,
+                94
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                95,
+                99
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/shannican/mern9React/blob/91f9cb15512b2f7b76ea6801da5e54992361c484/abc.txt"
+    },
+    {
+      "path": "doc.md",
+      "repository": "ant-design/functional-mini",
+      "score": 1,
+      "stars": 30,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/674033856/contents/doc.md?ref=39fee08992e899b7e2b400425e1b03879eb29317",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n下面是 React 内置的 hooks，详细用法可以看 [React](https://reactjs.org/docs/hooks-reference.html) 官方文档：\n\n- `useState`\n- `useReducer`\n- `useEffect`\n- `useRef`",
+          "matches": [
+            {
+              "indices": [
+                27,
+                31
+              ],
+              "text": "看 [R"
+            },
+            {
+              "indices": [
+                90,
+                94
+              ],
+              "text": "\n- `"
+            },
+            {
+              "indices": [
+                132,
+                140
+              ],
+              "text": "\n- `useR"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ant-design/functional-mini/blob/39fee08992e899b7e2b400425e1b03879eb29317/doc.md"
+    },
+    {
+      "path": "hook.md",
+      "repository": "italoartista/js-functions",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/786511923/contents/hook.md?ref=3c20f6ee05d2c0d0d261d3ab7cd51006343f3d89",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "```markdown\n# Implementação do Hook `useState` \n\n## Passo a Passo da Implementação:\n\n1. **Definição da Função `createComponent`:** \n",
+          "matches": [
+            {
+              "indices": [
+                33,
+                37
+              ],
+              "text": "ok `"
+            },
+            {
+              "indices": [
+                39,
+                47
+              ],
+              "text": "eState` "
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/italoartista/js-functions/blob/3c20f6ee05d2c0d0d261d3ab7cd51006343f3d89/hook.md"
+    },
+    {
+      "path": "FAQ.md",
+      "repository": "auth0/react-native-auth0",
+      "score": 1,
+      "stars": 536,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/61161994/contents/FAQ.md?ref=f89477f6da05f312c2c5686558d96baa45d06b64",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "1.  **On initial load:** The provider checks if the user is returning from a login redirect. If so, it processes the credentials in the URL and establishes a session.\n2.  **State Management:** The `user` and `isLoading` properties from the `useAuth0` hook will automatically update to reflect the authenticated state after the redirect is handled.\n",
+          "matches": [
+            {
+              "indices": [
+                251,
+                255
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/61161994/contents/FAQ.md?ref=f89477f6da05f312c2c5686558d96baa45d06b64",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { useAuth0 } from 'react-native-auth0';\nimport { useEffect, useState } from 'react';\n",
+          "matches": [
+            {
+              "indices": [
+                67,
+                75
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/auth0/react-native-auth0/blob/f89477f6da05f312c2c5686558d96baa45d06b64/FAQ.md"
+    },
+    {
+      "path": "t.md",
+      "repository": "jefferson-da-silva-santos/readings",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/931277382/contents/t.md?ref=452092d2b4249203477c521bac50be63a140c7fe",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "│       │   │   Estruturas Projetos FrontEnd com React.md\n│       │   │   React Router.md\n│       │   │   Hook useEffect do React.md\n│       │   │   Hook useState do React.md\n│       │   │   Hooks do React.md\n│       │   │   Requisições para APIs com Fetch.md\n│       │   │   Context API do react.md",
+          "matches": [
+            {
+              "indices": [
+                124,
+                128
+              ],
+              "text": "Reac"
+            },
+            {
+              "indices": [
+                173,
+                177
+              ],
+              "text": "d\n│ "
+            },
+            {
+              "indices": [
+                178,
+                186
+              ],
+              "text": "     │  "
+            },
+            {
+              "indices": [
+                221,
+                225
+              ],
+              "text": "│   "
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/jefferson-da-silva-santos/readings/blob/452092d2b4249203477c521bac50be63a140c7fe/t.md"
+    },
+    {
+      "path": "TS.md",
+      "repository": "naresh5033/Journal-Materials",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/677664394/contents/TS.md?ref=fda70cc88e7332ffd214d32b28109d8d8e5f0858",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- when we use the state hook with the fn declaration then it runs only once every time our comp loads ex const [state, setState] = useState(() => { console.log(\"only once\"); }); // so it is useful when we re really using some complex or computational task..\n- and one thing to keep in mind if we use the object in the useState hook as the default val ex const [count, setCount] = useState({count: 4, theme: blue}) // then to update just one field in the obj it will entirely override the obj so we will loose the second field to make it in righ way we ve to spread and then update the field we wanted\n  - ex - function decrementCount() {setState(prevState => { return { ...prevState, count: prevState.count -1 }; }); // so this way our theme field will still be intact..",
+          "matches": [
+            {
+              "indices": [
+                24,
+                28
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                131,
+                139
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                318,
+                326
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                327,
+                331
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                380,
+                388
+              ],
+              "text": "useState"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/677664394/contents/TS.md?ref=fda70cc88e7332ffd214d32b28109d8d8e5f0858",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- make our fn with the prefix of use so react will do all the linting and pre check for us..\n- ex - export default function useLocalStorage(key, initialValue) { const [value, setValue] = useState(''); return [value, setValue]; } //now we can use this hook as the same as the useState hook..\n- and to get the stored val .. function getSavedValue(key, initialValue) { JSON.parse(localStorage.getItem(key)) ..// the key is what our vars is (that we store in the local storage.)",
+          "matches": [
+            {
+              "indices": [
+                187,
+                195
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                251,
+                255
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                275,
+                283
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                284,
+                288
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/naresh5033/Journal-Materials/blob/fda70cc88e7332ffd214d32b28109d8d8e5f0858/TS.md"
+    },
+    {
+      "path": "Read.md",
+      "repository": "manishsinghraj/learn-ReactJS",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/697870137/contents/Read.md?ref=46adba0cd35832590a79202e284d3ef0f56c2473",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\r\n// In the onClick handler for the list items, you update selectedIndex directly.However, React doesn't detect this as a state change, so the component doesn't re - render, and the UI won't reflect the selected item correctly.\r\n\r\n// To make the code work as expected, you should use React's state management mechanisms, such as the useState hook, to manage the selected index. This way, when the state changes, React knows to re-render the component, and the UI will update accordingly.\r\n\r\n```ts\r\nfunction ListGroup() {\r",
+          "matches": [
+            {
+              "indices": [
+                333,
+                341
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                342,
+                346
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/manishsinghraj/learn-ReactJS/blob/46adba0cd35832590a79202e284d3ef0f56c2473/Read.md"
+    },
+    {
+      "path": "hook.md",
+      "repository": "doyeonghwang82/studySummary",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1073229398/contents/hook.md?ref=fa8e457b10192d442cbeec1a50ae0a436e65d427",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n1. Built-in Hook(내장 훅)\n-  [[State Hooks|State 관련]]\n  - useState : 상태 값과 setter 반환. 단순한 상태 변경\n  - useReducer : 복잡한 상태 로직 관리. 복잡한 상태 변경. redux와 유사.\n-  [[Effect Hooks|Effect 관련]]\n  - useEffect : 사이드 이펙트 실행(API 호출, DOM 조작 등)",
+          "matches": [
+            {
+              "indices": [
+                13,
+                17
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                41,
+                45
+              ],
+              "text": "Stat"
+            },
+            {
+              "indices": [
+                66,
+                74
+              ],
+              "text": " 상태 값과 s"
+            },
+            {
+              "indices": [
+                233,
+                237
+              ],
+              "text": null
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/doyeonghwang82/studySummary/blob/fa8e457b10192d442cbeec1a50ae0a436e65d427/hook.md"
+    },
+    {
+      "path": "doc.md",
+      "repository": "pranaysuyash/stt_main",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/856518907/contents/doc.md?ref=09d3d256a55897eb5a9a7fd0cf3d2ef3ee185920",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "This file defines a React component named `ResetPassword` that provides a user interface for resetting a password. The component includes a form where users can enter a new password and confirm it. It interacts with an API to perform the password reset and provides feedback to the user.\n\n### Imports\n- `React, { useState }`: Importing React and the useState hook for managing component state.\n- `{ useParams, useNavigate }`: React Router hooks to access route parameters and navigate programmatically.\n- `styled`: A utility from styled-components for creating styled React components.\n- `api`: A utility module for making API calls, located at '../../utils/api'.",
+          "matches": [
+            {
+              "indices": [
+                313,
+                321
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                350,
+                358
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                359,
+                363
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                439,
+                443
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/pranaysuyash/stt_main/blob/09d3d256a55897eb5a9a7fd0cf3d2ef3ee185920/doc.md"
+    },
+    {
+      "path": "docs.md",
+      "repository": "hpi-swa-lab/pivr",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/527633851/contents/docs.md?ref=0f479c6af0f2e10b7d268986d5ae42e75ad0cafe",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "        pressed: [count set: [:c | c + 1]]\n```\n\nHooks are identified by the `use` prefix at the start of the method. Here, we are using the `useState` hook that initializes a piece of state with its parameter. So, in this case, we creating a piece of state and initialize it to the number 0. The hook returns a wrapper that we can call `get` on to read the current state value. In addition, we can call `set:` to change it.\n\nWe can either just set a new value, e.g. `count set: 7`, or update the current value, in which case we pass a Smalltalk block as shown above. As such, every time we click the button, the label on the button increments.\n",
+          "matches": [
+            {
+              "indices": [
+                48,
+                52
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                141,
+                149
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                151,
+                155
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                296,
+                300
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/hpi-swa-lab/pivr/blob/0f479c6af0f2e10b7d268986d5ae42e75ad0cafe/docs.md"
+    },
+    {
+      "path": "sc.md",
+      "repository": "ViniciusSCG/documentacao",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/814279945/contents/sc.md?ref=a63a9444aaff65521a402ea2e2f6e928540fa811",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n##### Inicialização e Autenticação\nO componente ReportPowerBi recebe propriedades como reportidPbi, sectionidPbi, e id, que são usados para configurar o relatório do Power BI a ser embutido.\nUtiliza o hook useState para armazenar o token de acesso obtido através da função getTokenPowerBi, que é chamada dentro de um useEffect para garantir que o token seja obtido na montagem do componente.\n##### Configuração do Relatório do Power BI\nO componente utiliza a biblioteca powerbi-client para embutir o relatório dentro da aplicação web.\n",
+          "matches": [
+            {
+              "indices": [
+                208,
+                212
+              ],
+              "text": "seSt"
+            },
+            {
+              "indices": [
+                213,
+                221
+              ],
+              "text": "te para "
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/ViniciusSCG/documentacao/blob/a63a9444aaff65521a402ea2e2f6e928540fa811/sc.md"
+    },
+    {
+      "path": "WARP.md",
+      "repository": "israelseleshi/nano-computing-website",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1051493734/contents/WARP.md?ref=84a43226cf64902d4ee730900a15818d4e37a84e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "### State Management\n- **Theme State**: Managed via ThemeProvider context\n- **Navigation State**: Local state in App component\n- **Component State**: Local useState hooks for component-specific state\n- **No External State Library**: Currently uses only React's built-in state management\n\n### Performance Considerations",
+          "matches": [
+            {
+              "indices": [
+                156,
+                164
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                165,
+                169
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/israelseleshi/nano-computing-website/blob/84a43226cf64902d4ee730900a15818d4e37a84e/WARP.md"
+    },
+    {
+      "path": "TODO.md",
+      "repository": "rafalgiemza/react-hooks-intro",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/533949706/contents/TODO.md?ref=4c8aa8bbad5afd4f1fc654622f21af68974d9544",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "1. Where is bulbasaur? \n  - 1.1 you need hook useState in [PokemonsList](/components/PokemonsList.tsx)\n  - 1.2 implement handleOnSearchChange\n\n2. Choose Bulbasaur!\n  - 2.1 you need hook useState in [PokemonsShowTime](/components/PokemonsShowTime.tsx)\n  - 2.2 and use it in [PokemonsList](/components/PokemonsList.tsx) ",
+          "matches": [
+            {
+              "indices": [
+                41,
+                45
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                46,
+                54
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                181,
+                185
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                186,
+                194
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/rafalgiemza/react-hooks-intro/blob/4c8aa8bbad5afd4f1fc654622f21af68974d9544/TODO.md"
+    },
+    {
+      "path": "WARP.md",
+      "repository": "Ishhh16/CampusBae",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1052514381/contents/WARP.md?ref=f4ce157a84816c2a6019135f84fb6f587bc61487",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n**State Management:**\n- Global auth state via React Context\n- Local component state with useState hooks\n- No external state management library\n\n**Navigation:**",
+          "matches": [
+            {
+              "indices": [
+                90,
+                98
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                99,
+                103
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Ishhh16/CampusBae/blob/f4ce157a84816c2a6019135f84fb6f587bc61487/WARP.md"
+    },
+    {
+      "path": "CORE.md",
+      "repository": "oahehc/react-vue-comparison",
+      "score": 1,
+      "stars": 37,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/256620647/contents/CORE.md?ref=fc756310e517a237130073651ea8a31239389c9a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n_React.js don't have `watch` property, but we can achieve this through react hook easily_\n",
+          "matches": [
+            {
+              "indices": [
+                78,
+                82
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/256620647/contents/CORE.md?ref=fc756310e517a237130073651ea8a31239389c9a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "function MyReactComponent() {\n  const [count, setCount] = useState(0);\n",
+          "matches": [
+            {
+              "indices": [
+                58,
+                66
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/oahehc/react-vue-comparison/blob/fc756310e517a237130073651ea8a31239389c9a/CORE.md"
+    },
+    {
+      "path": "ai.md",
+      "repository": "meursyphus/flitter",
+      "score": 1,
+      "stars": 371,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/769435195/contents/ai.md?ref=bff1696631027a347152e29ca584255a37835462",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "### ❌ NEVER Use React Patterns\n```typescript\n// ❌ WRONG - No React hooks!\nconst [count, setCount] = useState(0);\nlet isExpanded = false;  // No outside state variables!\n```\n",
+          "matches": [
+            {
+              "indices": [
+                71,
+                75
+              ],
+              "text": "s!\nc"
+            },
+            {
+              "indices": [
+                104,
+                112
+              ],
+              "text": "tate(0);"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/meursyphus/flitter/blob/bff1696631027a347152e29ca584255a37835462/ai.md"
+    },
+    {
+      "path": "R.txt",
+      "repository": "srirajkumark/react-ui",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/821216065/contents/R.txt?ref=c52a639b7b37e7a37682393c2f45b5dc7f467ee3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nReact Hooks\n------------",
+          "matches": [
+            {
+              "indices": [
+                7,
+                11
+              ],
+              "text": "Hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/821216065/contents/R.txt?ref=c52a639b7b37e7a37682393c2f45b5dc7f467ee3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nuseState()\nuseEffect()",
+          "matches": [
+            {
+              "indices": [
+                1,
+                9
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/srirajkumark/react-ui/blob/c52a639b7b37e7a37682393c2f45b5dc7f467ee3/R.txt"
+    },
+    {
+      "path": "ch4.md",
+      "repository": "understanding-astro/understanding-astro-book",
+      "score": 1,
+      "stars": 863,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/637738724/contents/ch4.md?ref=da59245cebe87c59f994113f4edbf372d898490b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  // the initial state of the upvote counter\n  const [upvoteCount, setUpvoteCount] = useState(0);\n",
+          "matches": [
+            {
+              "indices": [
+                85,
+                93
+              ],
+              "text": "useState"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/637738724/contents/ch4.md?ref=da59245cebe87c59f994113f4edbf372d898490b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nIn the React component, we will leverage the `useStore` hook provided in `@nanostores/react` to retrieve the state value from the `upvoteCountStore`:\n",
+          "matches": [
+            {
+              "indices": [
+                57,
+                61
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/understanding-astro/understanding-astro-book/blob/da59245cebe87c59f994113f4edbf372d898490b/ch4.md"
+    },
+    {
+      "path": "q.txt",
+      "repository": "mern-trainer/Risin-Batch-ReactJS",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/898823134/contents/q.txt?ref=50e45753fbfeff0e7008b283b15ceeeead8d0bdc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "7. How to create => useState()\n=> functional & class\n8. Hook => a function that allows you to use state and other React features in functional components\n9. useState => a Hook that allows you to have state variables in functional components => manages the state of the component\n10. useEffect => a Hook that allows you to perform side effects in functional components => to handle lifecycle of a component\n11. mounting => called after initial render\n12. updating => called after re-render - state/props change",
+          "matches": [
+            {
+              "indices": [
+                20,
+                28
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                56,
+                60
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                157,
+                165
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                171,
+                175
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                298,
+                302
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mern-trainer/Risin-Batch-ReactJS/blob/50e45753fbfeff0e7008b283b15ceeeead8d0bdc/q.txt"
+    },
+    {
+      "path": "ZZ.txt",
+      "repository": "Mritunjaymishra2004/React",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/969046287/contents/ZZ.txt?ref=68b2a97a5619db484d21f824c0424117e52e310a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nUI apdation ko react control karta hai\n\nhook--> useState(mri/{})\n                                                                for help--> #reactFiber article page git hub\ncreateRoot Method this is create DOM\n",
+          "matches": [
+            {
+              "indices": [
+                41,
+                45
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                49,
+                57
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Mritunjaymishra2004/React/blob/68b2a97a5619db484d21f824c0424117e52e310a/ZZ.txt"
+    },
+    {
+      "path": "Ans.txt",
+      "repository": "NitinBharti007/Flowlaunch_Task_List_Manager",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/901217399/contents/Ans.txt?ref=8b8a64e5c0a123ffb0e463129514a2798a4d6c64",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "I used a controlled 'Select' dropdown ('FilterDropdown') component to allow users to filter tasks based on their status. The component maintains a 'filter' state that holds the selected status value (e.g., 'To Do', 'In Progress', 'Done'). When the user selects a status from the dropdown, the 'filter' state is updated. I then used this filter state to filter the tasks in the main component. The filtering logic checks if the task's 'status' matches the selected filter. If no filter is selected, all tasks are displayed. Additionally, I also applied a search functionality that filters tasks based on the title or description.\n\n4. How did you manage the state of tasks when adding or editing them?\nI managed the state of tasks using the React 'useState' hook. The state variable 'tasks' holds an array of all tasks, while the 'setTasks' function is used to update this state. When adding a new task, I update the state by appending the new task object to the existing 'tasks' array. I dynamically assign an ID to the new task by setting it to the length of the current tasks array plus one. For editing a task, I find the task to be edited in the 'tasks' array, update its properties, and then update the state with the new task array. Whenever a task is added or edited, I trigger a toast notification to notify the user of the successful operation.\n\n5. What challenges did you face during development, and how did you overcome them?\nOne challenge I faced during development was ensuring that the tasks were dynamically updated without losing their existing order or data when a task was deleted. To overcome this, I re-numbered the tasks after deletion to maintain a sequential order of task IDs. Another challenge was dealing with state management when handling task updates, especially when multiple tasks could be edited. I overcame this by making sure that only the specific task being edited was updated in the state, and I used a key ('id') to ensure that updates were correctly applied to the right task. Lastly, integrating the search and filter functionality was initially tricky, but I solved it by applying filtering logic on both the task status and search input to provide a seamless user experience.\" > answers.txt",
+          "matches": [
+            {
+              "indices": [
+                746,
+                754
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                756,
+                760
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/NitinBharti007/Flowlaunch_Task_List_Manager/blob/8b8a64e5c0a123ffb0e463129514a2798a4d6c64/Ans.txt"
+    },
+    {
+      "path": "ch3.md",
+      "repository": "understanding-astro/understanding-astro-book",
+      "score": 1,
+      "stars": 863,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/637738724/contents/ch3.md?ref=da59245cebe87c59f994113f4edbf372d898490b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "      <template data-island>\n        <script type=\"module\">\n          import { h, Component, render } from \"https://esm.sh/preact\";\n          import { useState } from \"https://esm.sh/preact/hooks\";\n          import htm from \"https://esm.sh/htm\";\n\n          // Initialize htm with Preact",
+          "matches": [
+            {
+              "indices": [
+                151,
+                159
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                190,
+                194
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/understanding-astro/understanding-astro-book/blob/da59245cebe87c59f994113f4edbf372d898490b/ch3.md"
+    },
+    {
+      "path": "Hook.md",
+      "repository": "PollyGotACracker/study-react",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/574443246/contents/Hook.md?ref=0cb877d4b2e7b5053f3ac12dd9f7588163831dc2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- 일반 자바스크립트 함수가 아닌, 함수 컴포넌트 또는 Custom Hook 내에서만 Hook 을 호출해야 한다.\n- \\*Custom Hook: 상태 관련 로직을 다른 컴포넌트에서 재사용할 경우. 각 컴포넌트의 state 는 독립적(useSomthing 네이밍)\n",
+          "matches": [
+            {
+              "indices": [
+                80,
+                84
+              ],
+              "text": " 상태 "
+            },
+            {
+              "indices": [
+                98,
+                102
+              ],
+              "text": "에서 재"
+            },
+            {
+              "indices": [
+                139,
+                143
+              ],
+              "text": "ng 네"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/574443246/contents/Hook.md?ref=0cb877d4b2e7b5053f3ac12dd9f7588163831dc2",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n## useState\n",
+          "matches": [
+            {
+              "indices": [
+                4,
+                12
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/PollyGotACracker/study-react/blob/0cb877d4b2e7b5053f3ac12dd9f7588163831dc2/Hook.md"
+    },
+    {
+      "path": "app.txt",
+      "repository": "akshaynstack/reactai",
+      "score": 1,
+      "stars": 145,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/895742402/contents/app.txt?ref=3a10c8dc42b46a657728e4f00ad7c2480ffc11df",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import CodeViewer from \"@/components/code-viewer\";\nimport { useScrollTo } from \"@/hooks/use-scroll-to\";\nimport { domain } from \"@/utils/domain\";",
+          "matches": [
+            {
+              "indices": [
+                82,
+                86
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/895742402/contents/app.txt?ref=3a10c8dc42b46a657728e4f00ad7c2480ffc11df",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { AnimatePresence, motion } from \"framer-motion\";\nimport { FormEvent, useEffect, useState, useCallback } from \"react\";\nimport { toast, Toaster } from \"sonner\";",
+          "matches": [
+            {
+              "indices": [
+                88,
+                96
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/akshaynstack/reactai/blob/3a10c8dc42b46a657728e4f00ad7c2480ffc11df/app.txt"
+    },
+    {
+      "path": "examples/text-to-sql-agent/DEMO.md",
+      "repository": "IBM/wxflows",
+      "score": 1,
+      "stars": 110,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/822793282/contents/examples/text-to-sql-agent/DEMO.md?ref=d04e77f6ea588327f51108f27bcb7964f7f36e2c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  ]);\n  const [isLoading, setIsLoading] = useState(false);\n",
+          "matches": [
+            {
+              "indices": [
+                42,
+                50
+              ],
+              "text": "useState"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/822793282/contents/examples/text-to-sql-agent/DEMO.md?ref=d04e77f6ea588327f51108f27bcb7964f7f36e2c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nfinally, I need to hook this to the langgraph agent:\n",
+          "matches": [
+            {
+              "indices": [
+                20,
+                24
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/IBM/wxflows/blob/d04e77f6ea588327f51108f27bcb7964f7f36e2c/examples/text-to-sql-agent/DEMO.md"
+    },
+    {
+      "path": "JOTAI.md",
+      "repository": "Theonlyhamstertoh/MY-NOTES-AND-LEARNING",
+      "score": 1,
+      "stars": 11,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/376575846/contents/JOTAI.md?ref=14e3b4d3b290f815c8594d9cd4e0ccc9f1224e71",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# Jotai\nJotai, a atom based state managment system. You know how in Zustand, you had only giant state managament system? Now with Jotai, you use what are called atoms which acts like a useState but can be accessed in any function by calling the `useAtoms` hook. \n",
+          "matches": [
+            {
+              "indices": [
+                185,
+                193
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                256,
+                260
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/376575846/contents/JOTAI.md?ref=14e3b4d3b290f815c8594d9cd4e0ccc9f1224e71",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nUnlike `useState`, `atoms` are not tied to any  specific component. \n",
+          "matches": [
+            {
+              "indices": [
+                9,
+                17
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Theonlyhamstertoh/MY-NOTES-AND-LEARNING/blob/14e3b4d3b290f815c8594d9cd4e0ccc9f1224e71/JOTAI.md"
+    },
+    {
+      "path": "rca.md",
+      "repository": "benjiwilli/madly_08.08.2025",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1034195747/contents/rca.md?ref=0e1bc79f8441f287411590342f4303e3e51869b9",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n### Complexity Assessment\n- **Lines of Code**: 1,939 (recommended max: 300)\n- **useState Hooks**: 20+ state variables\n- **useEffect Hooks**: 15+ side effects\n- **Cyclomatic Complexity**: Estimated >50 (recommended max: 10)\n",
+          "matches": [
+            {
+              "indices": [
+                81,
+                89
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                90,
+                94
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                133,
+                137
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/benjiwilli/madly_08.08.2025/blob/0e1bc79f8441f287411590342f4303e3e51869b9/rca.md"
+    },
+    {
+      "path": "vj4.md",
+      "repository": "kula124/HCi_2020_Fresh",
+      "score": 1,
+      "stars": 4,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/292671425/contents/vj4.md?ref=f6be94ace6165bbb3dc8204a453e944ac0567447",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- Što je Unutarnja komponenta [[link](#ic)]\n- Kako se dekunstruira i mapira objekt istovremeno [[link](#dec)]\n- React pattern [[link](#state)]\n- React `UseState` Hook [[link](#hook)]\n  - Varijabla i `setState` funkcija \n  - Prosljeđivanje setState funkcije [[link](#props)]\n- Što je NPM i `node_modules` [[link](#npm)]",
+          "matches": [
+            {
+              "indices": [
+                153,
+                161
+              ],
+              "text": "seState`"
+            },
+            {
+              "indices": [
+                163,
+                167
+              ],
+              "text": "ook "
+            },
+            {
+              "indices": [
+                177,
+                181
+              ],
+              "text": "ook)"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/kula124/HCi_2020_Fresh/blob/f6be94ace6165bbb3dc8204a453e944ac0567447/vj4.md"
+    },
+    {
+      "path": "rus.md",
+      "repository": "FrontenderMagazine/intro-to-hooks",
+      "score": 1,
+      "stars": 2,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/179138175/contents/rus.md?ref=2ccb9a651238c1ec16b0c52dafabdf22e4d9096e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "[1]: https://daveceddia.com/intro-to-hooks/#rules-of-hooks\n[2]: https://reactjs.org/docs/hooks-rules.html#eslint-plugin\n[3]: https://daveceddia.com/usestate-hook-examples/\n[4]: https://daveceddia.com/usestate-hook-examples/#example-showhide-a-component-with-usestate\n[5]: https://reactjs.org/docs/hooks-intro.html\n[6]: https://reactjs.org/docs/hooks-faq.html\n[7]: https://github.com/reactjs/rfcs/pull/68",
+          "matches": [
+            {
+              "indices": [
+                37,
+                41
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                53,
+                57
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                89,
+                93
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                148,
+                156
+              ],
+              "text": "usestate"
+            },
+            {
+              "indices": [
+                157,
+                161
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                200,
+                208
+              ],
+              "text": "usestate"
+            },
+            {
+              "indices": [
+                209,
+                213
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                258,
+                266
+              ],
+              "text": "usestate"
+            },
+            {
+              "indices": [
+                297,
+                301
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                344,
+                348
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/FrontenderMagazine/intro-to-hooks/blob/2ccb9a651238c1ec16b0c52dafabdf22e4d9096e/rus.md"
+    },
+    {
+      "path": "log.md",
+      "repository": "adisreyaj/100DaysofCode-React",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/262348517/contents/log.md?ref=1867917c16e3e47d36fd612e6d7c950718660817",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n- Create the first react app using Create React App tool. Familiarizing with Folder structure and files.\n- Created multiple child components\n- Used `props` and `useState` hook\n\n**Thoughts:** Always wanted to explore React and the time has finally come. I was not a fan of writing HTML is JS, but yeah, this is me doing the same thing now.\n",
+          "matches": [
+            {
+              "indices": [
+                162,
+                170
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                172,
+                176
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/adisreyaj/100DaysofCode-React/blob/1867917c16e3e47d36fd612e6d7c950718660817/log.md"
+    },
+    {
+      "path": "API.md",
+      "repository": "borderland-dev/sniper-context",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1003248026/contents/API.md?ref=2615f43273b148dc1e5ac60ba341c0f88f3f829f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    {\n      \"id\": \"snp-example-1\",\n      \"contextId\": \"ctx-example-1\",\n      \"title\": \"useState Hook Example\",\n      \"description\": \"Exemplo básico...\",\n      \"code\": \"import React, { useState } from 'react'...\",\n      \"language\": \"tsx\",",
+          "matches": [
+            {
+              "indices": [
+                87,
+                95
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                96,
+                100
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                185,
+                193
+              ],
+              "text": "seState "
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/borderland-dev/sniper-context/blob/2615f43273b148dc1e5ac60ba341c0f88f3f829f/API.md"
+    },
+    {
+      "path": "note.md",
+      "repository": "alywheng27/nextjs14_React_Hooks",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1000784492/contents/note.md?ref=883fd566bb077773c4cf2ff8c89404ea33a9ef22",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "### Basic Hooks\n\n## useState Hook\n- The page will re-render everytime a state changes.\n\n  const [input, setInput] = useState('')\n",
+          "matches": [
+            {
+              "indices": [
+                10,
+                14
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                20,
+                28
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                29,
+                33
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                116,
+                124
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/alywheng27/nextjs14_React_Hooks/blob/883fd566bb077773c4cf2ff8c89404ea33a9ef22/note.md"
+    },
+    {
+      "path": "React.md",
+      "repository": "SamuelCooper1105/ObsidianNotes",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/979564672/contents/React.md?ref=8d07c7dae55def48c3bf64f25e80a5f84838ee92",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "React uses components, which are elements of the UI, to create applications. Components can either be a function or a class. Function components return markup, and Class Components extend React.Component. \n\nProps or properties are read only inputs to components, this allows for data in function to be passed from a parent to a child. \nState is a data type that changes over time, usually in response to user actions. State is managed within a component and can be updated using the useState hook in function components. \n\nThe useState function is unmutable, as in we do not change the actual data itself ever. The use state returns two objects, a value that we use to measure state and a function to change the state. for example `` const [IsTrue, setIsTrue] = useState(true);`` this code returns the value of the state we are checking IsTrue which will be a Boolean value as defined by the type set by the useState declaration. setIsTrue is the function to change the value IsTrue. Typically we don't want to explicitly change the data, but exceptions are made like in this example. where we use the setIsTrue function to explicitly change IsTrue from true to false, like so ``setIsTrue=(!IsTrue)``.  \n",
+          "matches": [
+            {
+              "indices": [
+                483,
+                491
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                492,
+                496
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                527,
+                535
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                762,
+                770
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                908,
+                916
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/SamuelCooper1105/ObsidianNotes/blob/8d07c7dae55def48c3bf64f25e80a5f84838ee92/React.md"
+    },
+    {
+      "path": "old.txt",
+      "repository": "kamal2283/Nebula-Manager",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/889212742/contents/old.txt?ref=5a204bb2b558445787e79c35610771361d0afa9c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import Link from \"next/link\";\nimport React, { useState } from \"react\";\nimport { z } from \"zod\";",
+          "matches": [
+            {
+              "indices": [
+                46,
+                54
+              ],
+              "text": "useState"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/889212742/contents/old.txt?ref=5a204bb2b558445787e79c35610771361d0afa9c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import { z } from \"zod\";\nimport { zodResolver } from \"@hookform/resolvers/zod\";\nimport { useForm } from \"react-hook-form\";",
+          "matches": [
+            {
+              "indices": [
+                55,
+                59
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                111,
+                115
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/kamal2283/Nebula-Manager/blob/5a204bb2b558445787e79c35610771361d0afa9c/old.txt"
+    },
+    {
+      "path": "01.txt",
+      "repository": "pandeyayush0811/All-Notes",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/929521131/contents/01.txt?ref=b67b28b504a41f2e82408655520677ac076f833c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  🔹 Hook banate waqt:\n\n  Function ka naam use se start hona chahiye → (e.g., useToggle)\n  Hooks ke andar normal React hooks (useState, useEffect) use ho sakte hain\n\n  🔥 Summary\n  ✔ Custom Hook ek function hai jo React hooks use karta hai (like useState, useEffect)",
+          "matches": [
+            {
+              "indices": [
+                7,
+                11
+              ],
+              "text": "k ba"
+            },
+            {
+              "indices": [
+                95,
+                99
+              ],
+              "text": " ke "
+            },
+            {
+              "indices": [
+                123,
+                127
+              ],
+              "text": " (us"
+            },
+            {
+              "indices": [
+                130,
+                138
+              ],
+              "text": "ate, use"
+            },
+            {
+              "indices": [
+                198,
+                202
+              ],
+              "text": "ncti"
+            },
+            {
+              "indices": [
+                228,
+                232
+              ],
+              "text": "kart"
+            },
+            {
+              "indices": [
+                254,
+                262
+              ],
+              "text": "useEffec"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/pandeyayush0811/All-Notes/blob/b67b28b504a41f2e82408655520677ac076f833c/01.txt"
+    },
+    {
+      "path": "Q.txt",
+      "repository": "Arpan3211/Notes",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/854158216/contents/Q.txt?ref=cec42c1e655aa8b606d873d36aec5c81cb203514",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "I was asked to fetch an API that returns a list of product IDs. For each of these product IDs, I had to fetch additional details using another API and display the complete product information on the UI using React.\n🔹 2. React Hooks:\nWhat are the different types of React Hooks you’ve used?\nCan you explain your experience and use cases with hooks like useState, useEffect, useContext, useMemo, and useCallback?\n🔹 3. Virtual DOM vs Real DOM:\nWhat is the difference between the Virtual DOM and the Real DOM?\nHow does React leverage the Virtual DOM to enhance performance?",
+          "matches": [
+            {
+              "indices": [
+                229,
+                233
+              ],
+              "text": "ks:\n"
+            },
+            {
+              "indices": [
+                274,
+                278
+              ],
+              "text": "ks y"
+            },
+            {
+              "indices": [
+                346,
+                350
+              ],
+              "text": " lik"
+            },
+            {
+              "indices": [
+                357,
+                365
+              ],
+              "text": "ate, use"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Arpan3211/Notes/blob/cec42c1e655aa8b606d873d36aec5c81cb203514/Q.txt"
+    },
+    {
+      "path": "18.txt",
+      "repository": "AnuradhaNama/JS-ASSIGNMENTS",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/839027112/contents/18.txt?ref=11c89dae02aaed7d2aafbc5bf8fd18296b268958",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n6. Debug Hooks:\n* Inspect Hook States: If you're using hooks, the \"Hooks\" section of React DevTools allows you to inspect the current state of hooks.\n* View Hook Values: You can see the current values of hooks like useState and useReducer.\n\n7. Check React Version:\n* Version Info: In the React DevTools, you can check which version of React your app is using. This can be helpful when troubleshooting version-specific issues.",
+          "matches": [
+            {
+              "indices": [
+                10,
+                14
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                27,
+                31
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                56,
+                60
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                68,
+                72
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                144,
+                148
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                158,
+                162
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                205,
+                209
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                216,
+                224
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/AnuradhaNama/JS-ASSIGNMENTS/blob/11c89dae02aaed7d2aafbc5bf8fd18296b268958/18.txt"
+    },
+    {
+      "path": "s.txt",
+      "repository": "venkateshpandrinki/community-app",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/796153789/contents/s.txt?ref=b644e07de7a2b4daa8feed4dff6e821d64003147",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\"use client\";\nimport React, { FC, useCallback, useEffect, useRef, useState } from \"react\";\nimport TextareaAutosize from \"react-textarea-autosize\";\nimport { useForm } from \"react-hook-form\";\nimport { PostCreationRequest, PostValidator } from \"@/lib/validators/post\";\nimport { zodResolver } from \"@hookform/resolvers/zod\";\nimport EditorJS from \"@editorjs/editorjs\";",
+          "matches": [
+            {
+              "indices": [
+                66,
+                74
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                178,
+                182
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                296,
+                300
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/venkateshpandrinki/community-app/blob/b644e07de7a2b4daa8feed4dff6e821d64003147/s.txt"
+    },
+    {
+      "path": "2.txt",
+      "repository": "rajshah9305/Nocodeaiappbuilder_cerebrascrewai",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1043286650/contents/2.txt?ref=50f57b2f769b6242690b456b4925ffe0e11bea87",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import apiClient from ‘../services/apiClient’;\nimport toast from ‘react-hot-toast’;\n\n// Hook for managing agents\nexport const useAgents = () => {\nconst [agents, setAgents] = useState<Agent[]>([]);\nconst [activity, setActivity] = useState<AgentActivity[]>([]);",
+          "matches": [
+            {
+              "indices": [
+                96,
+                100
+              ],
+              "text": " man"
+            },
+            {
+              "indices": [
+                182,
+                190
+              ],
+              "text": "<Agent[]"
+            },
+            {
+              "indices": [
+                237,
+                245
+              ],
+              "text": "<AgentAc"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/rajshah9305/Nocodeaiappbuilder_cerebrascrewai/blob/50f57b2f769b6242690b456b4925ffe0e11bea87/2.txt"
+    },
+    {
+      "path": "prd.md",
+      "repository": "tox6q/timelinemx",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/984997852/contents/prd.md?ref=2e49e393d79b766dfb8357c6e3d6154029476cc8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "### Implementation Details\n\n#### CartContext (`src/contexts/CartContext.tsx`)\n- **Global State Management**: React Context with useState hooks\n- **Persistence**: localStorage with SSR safety checks\n- **Item Operations**: Add, remove, update quantity, clear cart\n- **Smart Duplicate Handling**: Same product + config = quantity increase",
+          "matches": [
+            {
+              "indices": [
+                128,
+                136
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                137,
+                141
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/tox6q/timelinemx/blob/2e49e393d79b766dfb8357c6e3d6154029476cc8/prd.md"
+    },
+    {
+      "path": "ep5.txt",
+      "repository": "gauravrajput2003/Food-Ordering-App",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/888936964/contents/ep5.txt?ref=a08bb0606048fd5f9a414fca952a97541e9174ad",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "         as use state\r\n         React Hook is norml js fxn,that fxn \r\n         ->two imp hooks\r\n         1) useState() 80%times you use\r\n         ->supowerful react variable->you have to import from reacy\r\n         import {useState} from \"react\"\r\n         2) useEfffect()\r",
+          "matches": [
+            {
+              "indices": [
+                38,
+                42
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                89,
+                93
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                108,
+                116
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                223,
+                231
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/gauravrajput2003/Food-Ordering-App/blob/a08bb0606048fd5f9a414fca952a97541e9174ad/ep5.txt"
+    },
+    {
+      "path": "2aDD.md",
+      "repository": "quazfenton/futuraa",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1031058000/contents/2aDD.md?ref=7b4b807a4ce3daf66c711cbd4d2858d40e1d5be5",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nCurrent Architecture:\n├── ModularInterface (Main Component)\n│   ├── State Management (useState hooks)\n│   │   ├── activeModules: string[]\n│   │   ├── maximizedModule: string | null\n│   │   ├── modulePositions: Record<string, Position>",
+          "matches": [
+            {
+              "indices": [
+                101,
+                109
+              ],
+              "text": ")\n│   │ "
+            },
+            {
+              "indices": [
+                110,
+                114
+              ],
+              "text": " ├──"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/quazfenton/futuraa/blob/7b4b807a4ce3daf66c711cbd4d2858d40e1d5be5/2aDD.md"
+    },
+    {
+      "path": "my.txt",
+      "repository": "amitjamwal119/Skill-Bridge",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/983002214/contents/my.txt?ref=31f02cd9c88049e72081be9a77053f5a5ca43692",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "import axios from 'axios';\nimport { useForm } from 'react-hook-form';\nimport Navbar from \"../../components/Navbar\";",
+          "matches": [
+            {
+              "indices": [
+                58,
+                62
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/983002214/contents/my.txt?ref=31f02cd9c88049e72081be9a77053f5a5ca43692",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "export const UserProfile = () => {\n  const [user, setUser] = useState(null);\n  const navigate = useNavigate();",
+          "matches": [
+            {
+              "indices": [
+                61,
+                69
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/amitjamwal119/Skill-Bridge/blob/31f02cd9c88049e72081be9a77053f5a5ca43692/my.txt"
+    },
+    {
+      "path": "TODO.MD",
+      "repository": "viniciusalbino/ClauseDiff",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/994472984/contents/TODO.MD?ref=7741747e9e9181a46e5facbf94d82f9f2a3c421b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\t•\tCriar o arquivo supabaseClient.js com createClient.\n\t•\tGerar um componente Login.js com um botão que chama signInWithOAuth.\n\t•\tMostrar como integrar o provedor Google (no Supabase, isso requer previamente configurar o app Google nas configurações do projeto Supabase).\n\t•\tSugerir um contexto AuthProvider ou uso do hook useState no _app.js para guardar o usuário.\n\t•\tTalvez até dar exemplo de proteger páginas (em Next, podemos usar getServerSideProps para verificar sessão ou no cliente verificar e redirect).\n\t•\tFornecer um exemplo de middleware backend para validar tokens (se pedirmos).\n",
+          "matches": [
+            {
+              "indices": [
+                329,
+                333
+              ],
+              "text": "te n"
+            },
+            {
+              "indices": [
+                334,
+                342
+              ],
+              "text": " _app.js"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/viniciusalbino/ClauseDiff/blob/7741747e9e9181a46e5facbf94d82f9f2a3c421b/TODO.MD"
+    },
+    {
+      "path": "erd.md",
+      "repository": "qiuweisen/arabic-calligraphy-creator",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/988101645/contents/erd.md?ref=1abeb2ff9460a159c813449385156fff6ff488ee",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "   - Template selection via template browser\n\n2. **State Management**:\n   - Component-level state using React's `useState` hooks\n   - Real-time preview updates based on state changes\n\n3. **Export Process**:",
+          "matches": [
+            {
+              "indices": [
+                113,
+                121
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                123,
+                127
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/qiuweisen/arabic-calligraphy-creator/blob/1abeb2ff9460a159c813449385156fff6ff488ee/erd.md"
+    },
+    {
+      "path": "TRD.md",
+      "repository": "pfongkye/antelopes-app",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/702630149/contents/TRD.md?ref=d56652a56bc49429cdf946fbedbe8f92296d7993",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n- I used radio buttons to navigate between the different data visualizations but a better way would be to use client-side routing (using [React Router](https://reactrouter.com/en/main) for example) and navigate through links.\n\n- I used `useEffect` hook to fetch data from antelopes API but a better way would be to use a library that caches the data and prevents waterfall API calls in nested components (for example [RTK query](https://redux-toolkit.js.org/rtk-query/overview)). I could manage the antelopes data in a context and a reducer to share them between the page components but I preferred as a first simple implementation to use `useState` hook and passing props to the components. Also, since antelopes is server data, I would instead use RTK query to handle the data instead of classical state management.\n\n- I assume the antelopes data would not grow in size (fixed amount of antelopes), thus I don't need any pagination or virtualization in data table.\n",
+          "matches": [
+            {
+              "indices": [
+                249,
+                253
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                641,
+                649
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                651,
+                655
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/pfongkye/antelopes-app/blob/d56652a56bc49429cdf946fbedbe8f92296d7993/TRD.md"
+    },
+    {
+      "path": "16.md",
+      "repository": "iTranslateX/odoo-cookbook",
+      "score": 1,
+      "stars": 196,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/361607647/contents/16.md?ref=66da4e88051db26d632f21872625e80b83a86db3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n第2步中，我们通过OWL导入了`useState`钩子。这个钩子用于处理组件的状态。第3步中，我们添加了构造函数。在创建对象实例时会调用这一构造函数。在构造函数内，我们添加了希望展示的消息列表，然后使用`useState`钩子添加了状态变量。这会使得组件成为响应式。在状态发生改变时，UI会按照新的状态进行更新。本例中，我们在`useState`钩子内使用了`currentIndex`。这表示在`currentIndex`的值发生变化时，UI也会进行更新。\n",
+          "matches": [
+            {
+              "indices": [
+                39,
+                47
+              ],
+              "text": "的状态。第3步中"
+            },
+            {
+              "indices": [
+                275,
+                283
+              ],
+              "text": null
+            },
+            {
+              "indices": [
+                437,
+                445
+              ],
+              "text": null
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/361607647/contents/16.md?ref=66da4e88051db26d632f21872625e80b83a86db3",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n> 📝**重要信息：**定义钩子只有一条规则，即仅在构造函数时声明的钩子有效。还有其它类型的钩子，请参见[官方文档](https://github.com/odoo/owl/blob/master/doc/reference/hooks.md)。\n",
+          "matches": [
+            {
+              "indices": [
+                215,
+                219
+              ],
+              "text": null
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/iTranslateX/odoo-cookbook/blob/66da4e88051db26d632f21872625e80b83a86db3/16.md"
+    },
+    {
+      "path": "tr.txt",
+      "repository": "nbunnyhub/tot",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/996745284/contents/tr.txt?ref=aaeda0f14fff93cc22f4adb23c9d1490c112273c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// (Sadece temel senkronizasyon, onay ve sonuç kodları. Gerekirse geliştiririz.)\nfunction AdminScreen() {\n  // BÜTÜN HOOK'LAR FONKSİYONUN EN ÜSTÜNDE!\n  const [auth, setAuth] = useState(false);\n  const [pass, setPass] = useState(\"\");\n  const [fail, setFail] = useState(false);\n",
+          "matches": [
+            {
+              "indices": [
+                122,
+                126
+              ],
+              "text": "LAR "
+            },
+            {
+              "indices": [
+                184,
+                192
+              ],
+              "text": "(false);"
+            },
+            {
+              "indices": [
+                227,
+                235
+              ],
+              "text": "(\"\");\n  "
+            },
+            {
+              "indices": [
+                267,
+                275
+              ],
+              "text": "(false);"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/nbunnyhub/tot/blob/aaeda0f14fff93cc22f4adb23c9d1490c112273c/tr.txt"
+    },
+    {
+      "path": "todo.md",
+      "repository": "Coding-Rod/CodingPractice",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/440738767/contents/todo.md?ref=4c27a65bc2f6f46f0c5dbb0a36c63dda01fb60f8",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n### Week 3-4: Advanced React Concepts and Projects\n- **Deepen understanding of advanced React concepts:**\n  - **Hooks (useState, useEffect, useContext, etc.):**  \n    React hooks are functions that allow you to use state and other React features in functional components.\n    ```jsx\n    // Example of using useState and useEffect hooks",
+          "matches": [
+            {
+              "indices": [
+                113,
+                117
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                120,
+                128
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                174,
+                178
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                308,
+                316
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                331,
+                335
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Coding-Rod/CodingPractice/blob/4c27a65bc2f6f46f0c5dbb0a36c63dda01fb60f8/todo.md"
+    },
+    {
+      "path": "udemy.md",
+      "repository": "wsdo/reactjs-top",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/167337496/contents/udemy.md?ref=6ea76d61c176a752c95d4130632490fb8a56aa10",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "05:03\nFunction Components Naming\n00:31\nUsing the useState() Hook for State Manipulation\n13:51\nStateless vs Stateful Components\n03:08",
+          "matches": [
+            {
+              "indices": [
+                49,
+                57
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                60,
+                64
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/wsdo/reactjs-top/blob/6ea76d61c176a752c95d4130632490fb8a56aa10/udemy.md"
+    },
+    {
+      "path": "Qwen.md",
+      "repository": "dmall00/OpenDarts",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1050677304/contents/Qwen.md?ref=baa0ef6632a2d0113927910b0bbb510d06adfc8e",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "- **Platform Handling**: Use platform-specific files (`.web.tsx`) and `isWeb()` utility for cross-platform compatibility\n\n**State Management**\n- Use React hooks (`useState`, `useEffect`, `useCallback`) for local state\n- Prefer custom hooks for complex logic: `useWebSocket`, `useGameCapture`, `useCameraUI`\n- Use Zustand stores for global state management\n- Keep component state minimal and focused",
+          "matches": [
+            {
+              "indices": [
+                155,
+                159
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                163,
+                171
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                234,
+                238
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/dmall00/OpenDarts/blob/baa0ef6632a2d0113927910b0bbb510d06adfc8e/Qwen.md"
+    },
+    {
+      "path": "p4.txt",
+      "repository": "mattyray/ai-convert",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/998132039/contents/p4.txt?ref=10e6d642a025efd5b2bb9cd3d8bd84628183528b",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "# ==== src/hooks/useAuth.ts ====\n\n// src/hooks/useAuth.ts\nimport { useState, useEffect, useCallback } from 'react';\nimport { FaceSwapAPI } from '../services/api';\n\ninterface User {",
+          "matches": [
+            {
+              "indices": [
+                11,
+                15
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                41,
+                45
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                67,
+                75
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mattyray/ai-convert/blob/10e6d642a025efd5b2bb9cd3d8bd84628183528b/p4.txt"
+    },
+    {
+      "path": "next.md",
+      "repository": "VedantBhawsar/100-interview-questions",
+      "score": 1,
+      "stars": 26,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/985865474/contents/next.md?ref=62adb7063104a925022d1b195ce252613a363e7a",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    export default function Counter() { /* ... uses useState ... */ }\n    ```\n\n43. **Q: Can Server Components use React Hooks like `useState` or `useEffect`?**\n    **A:** No. Server Components render entirely on the server and do not have the client-side interactivity or lifecycle that `useState` or `useEffect` manage. For interactivity, you use Client Components.\n\n44. **Q: How do Server Components fetch data in the `app` directory?**",
+          "matches": [
+            {
+              "indices": [
+                52,
+                60
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                120,
+                124
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                132,
+                140
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                288,
+                296
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/VedantBhawsar/100-interview-questions/blob/62adb7063104a925022d1b195ce252613a363e7a/next.md"
+    },
+    {
+      "path": "3.txt",
+      "repository": "AdamBabinicz/fryzjer",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/981222478/contents/3.txt?ref=7b828cf54a77cb298c5f154d2fcae38607f1d81f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  const { toast } = useToast();\n  const [email, setEmail] = useState(\"\");\n  const { theme } = useTheme();",
+          "matches": [
+            {
+              "indices": [
+                60,
+                68
+              ],
+              "text": "useState"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/981222478/contents/3.txt?ref=7b828cf54a77cb298c5f154d2fcae38607f1d81f",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n  // Formspree form hook - replace with your newsletter form ID\n  const [formState, handleFormspreeSubmit] = useForm(",
+          "matches": [
+            {
+              "indices": [
+                21,
+                25
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/AdamBabinicz/fryzjer/blob/7b828cf54a77cb298c5f154d2fcae38607f1d81f/3.txt"
+    },
+    {
+      "path": "c14.md",
+      "repository": "vikaforever/devcamp-checkpoint14",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/841890052/contents/c14.md?ref=cfde6669f925e7d8f06a3f3ecbbbc3f12235ee4c",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "1. Guardar datos entre renders.\n2. El desencadenador Nat para renderizar un componente con datos nuevos (re-renderizado).\n\nHook useState proporciona estas dos cosas:\n\n1. Variable state para guardar datos entre renders.\n2. La función state setter para actualizar la variable y ejecutar Nat para volver a renderizar el componente.",
+          "matches": [
+            {
+              "indices": [
+                123,
+                127
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                128,
+                136
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/vikaforever/devcamp-checkpoint14/blob/cfde6669f925e7d8f06a3f3ecbbbc3f12235ee4c/c14.md"
+    },
+    {
+      "path": "ok.txt",
+      "repository": "bakerdandal1234/Mern-Book-Projects-main",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/986246795/contents/ok.txt?ref=e781d85ec9c9b5ca5965c5587c5e388bbfad680d",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\"use client\"\n\nimport React, { useState, useEffect } from \"react\"\nimport { useForm } from \"react-hook-form\"\nimport { zodResolver } from \"@hookform/resolvers/zod\"\nimport * as z from \"zod\"\nimport { useNavigate, useParams } from \"react-router-dom\"",
+          "matches": [
+            {
+              "indices": [
+                30,
+                38
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                96,
+                100
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                137,
+                141
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/bakerdandal1234/Mern-Book-Projects-main/blob/e781d85ec9c9b5ca5965c5587c5e388bbfad680d/ok.txt"
+    },
+    {
+      "path": "FAQ.md",
+      "repository": "joshl26/pomodoro-app",
+      "score": 1,
+      "stars": 1,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/565941149/contents/FAQ.md?ref=e7581c6c002f197e36db14f088f354cee26484fd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "1. Create file in `src/hooks/`: `useNewHook.js`\n2. Write hook:\n",
+          "matches": [
+            {
+              "indices": [
+                23,
+                27
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                39,
+                43
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                57,
+                61
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/565941149/contents/FAQ.md?ref=e7581c6c002f197e36db14f088f354cee26484fd",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "```javascript\nimport { useState, useEffect } from 'react';\n",
+          "matches": [
+            {
+              "indices": [
+                23,
+                31
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/joshl26/pomodoro-app/blob/e7581c6c002f197e36db14f088f354cee26484fd/FAQ.md"
+    },
+    {
+      "path": "A3.md",
+      "repository": "Capgemini/grade-ladder-fullstack",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/497895413/contents/A3.md?ref=233e973fe700cf0f5ca758ef476db6e8762d6697",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  - Handling user inputs with forms and events\n  - Making API requests with React (i.e. fetch, axios)\n  - React hooks:\n    - useState\n    - useEffect\n    - useRef\n",
+          "matches": [
+            {
+              "indices": [
+                112,
+                116
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                125,
+                133
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Capgemini/grade-ladder-fullstack/blob/233e973fe700cf0f5ca758ef476db6e8762d6697/A3.md"
+    },
+    {
+      "path": "A4.md",
+      "repository": "Capgemini/grade-ladder-fullstack",
+      "score": 1,
+      "stars": 5,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/497895413/contents/A4.md?ref=233e973fe700cf0f5ca758ef476db6e8762d6697",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "  - Handling user inputs with forms and events\n  - Making API requests with React (i.e. fetch, axios)\n  - React hooks:\n    - useState\n    - useEffect\n    - useRef\n - **React Routing**",
+          "matches": [
+            {
+              "indices": [
+                112,
+                116
+              ],
+              "text": "hook"
+            },
+            {
+              "indices": [
+                125,
+                133
+              ],
+              "text": "useState"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/Capgemini/grade-ladder-fullstack/blob/233e973fe700cf0f5ca758ef476db6e8762d6697/A4.md"
+    },
+    {
+      "path": "JWT.md",
+      "repository": "mdrijoanmaruf/ProFast_Client_P7",
+      "score": 1,
+      "stars": 3,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/1018557764/contents/JWT.md?ref=b1e308c1b0de8ddcebf33e683b5adfe57bb836fe",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "// src/components/Dashboard.jsx\nimport { useState, useEffect } from 'react';\nimport { useApi } from '../hooks/useApi';",
+          "matches": [
+            {
+              "indices": [
+                41,
+                49
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                104,
+                108
+              ],
+              "text": "hook"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/1018557764/contents/JWT.md?ref=b1e308c1b0de8ddcebf33e683b5adfe57bb836fe",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    │   ├── contexts/AuthContext.jsx\n    │   ├── hooks/useApi.js\n    │   ├── api/axios.js",
+          "matches": [
+            {
+              "indices": [
+                65,
+                69
+              ],
+              "text": "    "
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/mdrijoanmaruf/ProFast_Client_P7/blob/b1e308c1b0de8ddcebf33e683b5adfe57bb836fe/JWT.md"
+    },
+    {
+      "path": "KN.md",
+      "repository": "HAIR04/DWallet",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/857782610/contents/KN.md?ref=4c25fa5e4cf94752021af80b8a799af09d996b36",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\nVD : thằng cha truyền Props cho thằng con\n\n3. Hook (useState) : trạng thái \n- Có biến (function) để có thể tại sử dụng nhiều lần \n===============================================================================================================================\nHAI THỨ QUAN TRỌNG PHẢI HỌC Kĩ",
+          "matches": [
+            {
+              "indices": [
+                53,
+                57
+              ],
+              "text": "useS"
+            },
+            {
+              "indices": [
+                59,
+                67
+              ],
+              "text": "te) : tr"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/HAIR04/DWallet/blob/4c25fa5e4cf94752021af80b8a799af09d996b36/KN.md"
+    },
+    {
+      "path": "00.md",
+      "repository": "okamyuji/react_tutorial",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/929710842/contents/00.md?ref=89649880381ce924944f0481791b0378eb714cdc",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n## 0.3 学習ゴール\n\n- React Hooks (useState, useReducer, useEffect, useContext, useRef, useCallback, useMemo, カスタムフック) の基本的な使い方と原則を理解し、適切に使用できるようになる。\n- Reactを用いたアプリケーション開発の一連の流れ (開発環境構築、コンポーネント設計、実装、テスト、デプロイ) を経験し、実践的なスキルを習得する。\n- パフォーマンス最適化やテスタビリティを意識したReactコンポーネントの実装ができるようになる。\n- 実務で役立つReactの普及しているライブラリについての知識を得る。",
+          "matches": [
+            {
+              "indices": [
+                33,
+                37
+              ],
+              "text": "Stat"
+            },
+            {
+              "indices": [
+                40,
+                48
+              ],
+              "text": "useReduc"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/okamyuji/react_tutorial/blob/89649880381ce924944f0481791b0378eb714cdc/00.md"
+    },
+    {
+      "path": "map.md",
+      "repository": "dhruv-barapatre/react-all_notes",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/852630633/contents/map.md?ref=46836e75c6f6cff917b42a065fbb8d14eaec1acf",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "    * Returning JSX from components.\n* **Topic:** **`useState`**\n    * State management within functional components.\n    * Declaring and updating state variables using the `useState` hook.\n    * Understanding state immutability and the setter function.\n    * Reading state values.\n* **Topic:** **Event Handling**",
+          "matches": [
+            {
+              "indices": [
+                53,
+                61
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                174,
+                182
+              ],
+              "text": "useState"
+            },
+            {
+              "indices": [
+                184,
+                188
+              ],
+              "text": "hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/dhruv-barapatre/react-all_notes/blob/46836e75c6f6cff917b42a065fbb8d14eaec1acf/map.md"
+    },
+    {
+      "path": "react.md",
+      "repository": "opencodes/interview-prepration",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/990354459/contents/react.md?ref=20aac7add11a9408254b0031e825fe2a0b718e08",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "2. **What are Hooks?**\n   - Functions like **useState, useEffect** that allow state and lifecycle logic in **functional components**.\n",
+          "matches": [
+            {
+              "indices": [
+                14,
+                18
+              ],
+              "text": "Hook"
+            },
+            {
+              "indices": [
+                45,
+                53
+              ],
+              "text": "useState"
+            }
+          ]
+        },
+        {
+          "object_url": "https://api.github.com/repositories/990354459/contents/react.md?ref=20aac7add11a9408254b0031e825fe2a0b718e08",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": "\n28. **Creating a Custom Hook Example:**\n```js",
+          "matches": [
+            {
+              "indices": [
+                25,
+                29
+              ],
+              "text": "Hook"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/opencodes/interview-prepration/blob/20aac7add11a9408254b0031e825fe2a0b718e08/react.md"
+    },
+    {
+      "path": "TP3.md",
+      "repository": "baptiste100/w42-react-books",
+      "score": 1,
+      "stars": 0,
+      "textMatches": [
+        {
+          "object_url": "https://api.github.com/repositories/966355886/contents/TP3.md?ref=86491cdf0ab3810c771c429ddafc37831e7c4674",
+          "object_type": "FileContent",
+          "property": "content",
+          "fragment": " Utiliser cette API afin de persister les données du composant `GroceryApp` dans le navigateur. Au chargement du composant, les données seront chargées si elles existent. À chaque modification des données, elles seront sauvegardées.\n\n _Indications_ :\n - le hook `useState` peut recevoir une fonction en paramètre plutôt qu'une valeur initiale. Cette fonction doit retourner la valeur utilisée en tant que valeur initiale. Elle est exécutée par `react` uniquement lors de l'arrivée du composant dans l'interface.\n - le hook `useEffect` permet de déclencher l'exécution d'une fonction après un rendu quand une valeur a changé par rapport au rendu précédent.\n - les fonctions `JSON.stringify(obj)` et `JSON.parse(string)` permettent respectivement de transformer un objet Javascript en chaîne de caractère au format JSON et de transformer une chaîne de caractère au format JSON en objet Javascript.\n",
+          "matches": [
+            {
+              "indices": [
+                263,
+                267
+              ],
+              "text": "useS"
+            },
+            {
+              "indices": [
+                269,
+                277
+              ],
+              "text": "te` peut"
+            },
+            {
+              "indices": [
+                530,
+                534
+              ],
+              "text": "ect`"
+            }
+          ]
+        }
+      ],
+      "url": "https://github.com/baptiste100/w42-react-books/blob/86491cdf0ab3810c771c429ddafc37831e7c4674/TP3.md"
+    }
+  ]
+}

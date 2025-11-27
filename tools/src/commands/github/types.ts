@@ -60,14 +60,14 @@ export interface TextMatch {
 // ===== ERROR CLASSES =====
 
 export class AuthError extends Error {
-  constructor(message: string, public cause?: Error) {
+  constructor(message: string, public override cause?: Error) {
     super(message)
     this.name = 'AuthError'
   }
 }
 
 export class FetchError extends Error {
-  public cause?: Error;
+  public override cause?: Error;
   public path: string;
   public repository: string;
 
@@ -95,7 +95,7 @@ export class RateLimitError extends Error {
 }
 
 export class SearchError extends Error {
-  constructor(message: string, public cause?: Error) {
+  constructor(message: string, public override cause?: Error) {
     super(message)
     this.name = 'SearchError'
   }

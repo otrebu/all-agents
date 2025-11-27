@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git mv:*)",
-      "Bash(bin/aaa gemini-research:*)"
+      "Bash(bin/aaa gemini-research:*)",
+      "Bash(../bin/aaa:*)"
     ],
     "deny": [],
     "ask": []

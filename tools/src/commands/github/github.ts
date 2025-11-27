@@ -211,6 +211,9 @@ async function fetchRepoStars(
       const batchResults = await Promise.all(
         batch.map(async (fullName) => {
           const [owner, repo] = fullName.split("/");
+          if (owner === undefined || repo === undefined) {
+            return { fullName, stars: 0 };
+          }
           try {
             const response = await octokit.rest.repos.get({ owner, repo });
             return { fullName, stars: response.data.stargazers_count };
@@ -239,6 +242,9 @@ async function fetchSingleFile(
   const { contextLinesCount, octokit, result } = options;
   try {
     const [owner, repo] = result.repository.split("/");
+    if (owner === undefined || repo === undefined) {
+      throw new Error(`Invalid repository format: ${result.repository}`);
+    }
 
     const response = await octokit.rest.repos.getContent({
       mediaType: { format: "raw" },

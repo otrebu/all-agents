@@ -175,7 +175,7 @@ function validateSearchOptions(options: SearchOptions): void {
   }
 
   if (options.processor !== undefined) {
-    const validProcessors = ['lite', 'base', 'pro', 'ultra'] as const
+    const validProcessors = ['base', 'pro'] as const
     if (!validProcessors.includes(options.processor)) {
       throw new ValidationError(
         `Invalid processor: ${options.processor}. Must be one of: ${validProcessors.join(', ')}`

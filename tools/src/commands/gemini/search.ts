@@ -1,28 +1,28 @@
 #!/usr/bin/env node
 
-import log from "@lib/log.js"
-import { saveResearchOutput } from "@lib/research.js"
-import { debug } from "@tools/env.js"
-import { getOutputDir } from "@tools/utils/paths.js"
-import { execa } from "execa"
-import { writeFile } from "node:fs/promises"
-import ora from "ora"
+import log from "@lib/log.js";
+import { saveResearchOutput } from "@lib/research.js";
+import { debug } from "@tools/env.js";
+import { getOutputDir } from "@tools/utils/paths.js";
+import { execa } from "execa";
+import { writeFile } from "node:fs/promises";
+import ora from "ora";
 
-import type { GeminiResponse } from "./types.js"
+import type { GeminiResponse } from "./types.js";
 
-export type GeminiMode = 'quick' | 'deep' | 'code'
+type GeminiMode = "code" | "deep" | "quick";
 
-export interface GeminiResearchResult {
-  data: GeminiResponse | null
-  jsonPath: string
-  mdPath: string
+interface GeminiResearchResult {
+  data: GeminiResponse | null;
+  jsonPath: string;
+  mdPath: string;
 }
 
 /**
  * Parse the Gemini CLI response and extract the JSON content
  */
 function parseGeminiResponse(stdout: string): GeminiResponse {
-  const parsed: unknown = JSON.parse(stdout)
+  const parsed: unknown = JSON.parse(stdout);
 
   // Gemini CLI returns { response: "...", ... }
   const content: unknown =
@@ -32,19 +32,19 @@ function parseGeminiResponse(stdout: string): GeminiResponse {
     parsed.response !== null &&
     parsed.response !== undefined
       ? parsed.response
-      : parsed
+      : parsed;
 
   // Clean potential markdown blocks if Gemini wrapped it
   const cleanContent =
     typeof content === "string"
       ? content.replaceAll(/```json\n?|\n?```/g, "")
-      : JSON.stringify(content)
+      : JSON.stringify(content);
 
-  return JSON.parse(cleanContent) as GeminiResponse
+  return JSON.parse(cleanContent) as GeminiResponse;
 }
 
 // Prompt templates (as strings to avoid external file dependencies)
-const TEMPLATES: Record<string, string> = {
+const TEMPLATES: Record<GeminiMode, string> = {
   code: `Use GoogleSearch to find practical code examples for: %QUERY%
 
 Execute 3-4 code-focused queries (GitHub, Stack Overflow, official docs). Fetch 6-10 sources with working examples. Extract actual code snippets. Identify patterns, anti-patterns, libraries, and gotchas. Include URLs for all sources.
@@ -127,22 +127,25 @@ Return JSON:
   ],
   "summary": "3-5 sentence overview synthesizing findings"
 }`,
-}
+};
 
-export async function runGeminiResearch(query: string, mode: GeminiMode = 'quick'): Promise<GeminiResearchResult> {
-  const RESEARCH_DIR = getOutputDir('research/google')
-  debug('Gemini research:', { query, mode })
+async function runGeminiResearch(
+  query: string,
+  mode: GeminiMode = "quick"
+): Promise<GeminiResearchResult> {
+  const RESEARCH_DIR = getOutputDir("research/google");
+  debug("Gemini research:", { mode, query });
 
-  log.header("\n🔍 Gemini Research CLI\n")
+  log.header("\n🔍 Gemini Research CLI\n");
 
   if (!(mode in TEMPLATES)) {
-    throw new Error(`Invalid mode: ${mode}. Valid modes: quick, deep, code`)
+    throw new Error(`Invalid mode: ${mode}. Valid modes: quick, deep, code`);
   }
 
   // Construct prompt
-  const prompt = TEMPLATES[mode].replace("%QUERY%", query)
+  const prompt = TEMPLATES[mode].replace("%QUERY%", query);
 
-  const spinner = ora(`Searching (${mode} mode): ${query}`).start()
+  const spinner = ora(`Searching (${mode} mode): ${query}`).start();
 
   // Execute Gemini CLI
   const { stdout } = await execa({
@@ -151,15 +154,15 @@ export async function runGeminiResearch(query: string, mode: GeminiMode = 'quick
       PATH: process.env.PATH,
     },
     preferLocal: true,
-  })`gemini -p "${prompt}" --output-format json`
+  })`gemini -p "${prompt}" --output-format json`;
 
   // Parse response to validate JSON and extract content
-  let responseData: GeminiResponse | null = null
+  let responseData: GeminiResponse | null = null;
   try {
-    responseData = parseGeminiResponse(stdout)
+    responseData = parseGeminiResponse(stdout);
   } catch {
-    spinner.fail("Failed to parse Gemini response")
-    log.error("Raw output was not valid JSON")
+    spinner.fail("Failed to parse Gemini response");
+    log.error("Raw output was not valid JSON");
 
     // Save raw output anyway for debugging using the utility
     const { jsonPath } = await saveResearchOutput({
@@ -167,12 +170,12 @@ export async function runGeminiResearch(query: string, mode: GeminiMode = 'quick
       outputDir: RESEARCH_DIR,
       rawData: stdout,
       topic: query,
-    })
-    log.dim(`Raw output saved to: ${jsonPath}`)
-    return { data: null, jsonPath, mdPath: '' }
+    });
+    log.dim(`Raw output saved to: ${jsonPath}`);
+    return { data: null, jsonPath, mdPath: "" };
   }
 
-  spinner.succeed("Research complete!")
+  spinner.succeed("Research complete!");
 
   // Save research output using shared utility
   const { jsonPath, mdPath } = await saveResearchOutput({
@@ -180,10 +183,11 @@ export async function runGeminiResearch(query: string, mode: GeminiMode = 'quick
     outputDir: RESEARCH_DIR,
     rawData: responseData,
     topic: query,
-  })
+  });
 
   // Update markdown with proper link to raw data
-  const sanitizedTopic = jsonPath.split("/").pop()?.replace(".json", "") ?? "research"
+  const sanitizedTopic =
+    jsonPath.split("/").pop()?.replace(".json", "") ?? "research";
   const markdownContent = `# Research: ${query}
 
 **Date**: ${new Date().toLocaleString()}
@@ -200,26 +204,29 @@ export async function runGeminiResearch(query: string, mode: GeminiMode = 'quick
 3. Replace this entire section with your analysis.
 
 ---
-`
+`;
 
   // Update the markdown file with correct content
-  await writeFile(mdPath, markdownContent)
+  await writeFile(mdPath, markdownContent);
 
-  log.plain("")
-  log.info(`📄 Raw Data: ${jsonPath}`)
-  log.info(`📝 Report Placeholder: ${mdPath}`)
-  log.plain("")
+  log.plain("");
+  log.info(`📄 Raw Data: ${jsonPath}`);
+  log.info(`📝 Report Placeholder: ${mdPath}`);
+  log.plain("");
   log.warn(
     "👉 NEXT STEP: Open the Markdown file and let Claude generate the full report using the GEMINI_CLI template."
-  )
-  log.plain("")
+  );
+  log.plain("");
 
-  return { data: responseData, jsonPath, mdPath }
+  return { data: responseData, jsonPath, mdPath };
 }
 
-export async function runGeminiResearchCli(query: string, mode: GeminiMode = 'quick'): Promise<void> {
+async function runGeminiResearchCli(
+  query: string,
+  mode: GeminiMode = "quick"
+): Promise<void> {
   try {
-    await runGeminiResearch(query, mode)
+    await runGeminiResearch(query, mode);
   } catch (error: unknown) {
     if (
       error !== null &&
@@ -228,8 +235,8 @@ export async function runGeminiResearchCli(query: string, mode: GeminiMode = 'qu
       typeof error.stderr === "string" &&
       error.stderr.includes("not authenticated")
     ) {
-      log.error("Authentication required")
-      log.dim('Run: gemini -p "test" to authenticate with Google')
+      log.error("Authentication required");
+      log.dim('Run: gemini -p "test" to authenticate with Google');
     } else {
       const errorMessage =
         error !== null &&
@@ -237,19 +244,12 @@ export async function runGeminiResearchCli(query: string, mode: GeminiMode = 'qu
         "message" in error &&
         typeof error.message === "string"
           ? error.message
-          : String(error)
-      log.error(errorMessage)
+          : String(error);
+      log.error(errorMessage);
     }
-    process.exit(1)
+    process.exit(1);
   }
 }
 
-// Standalone execution
-if (import.meta.main) {
-  const { Command } = await import('@commander-js/extra-typings')
-  const { makeGeminiResearchCommand } = await import('./command.js')
-
-  const program = new Command()
-  program.addCommand(makeGeminiResearchCommand())
-  program.parse()
-}
+export type { GeminiMode, GeminiResearchResult };
+export { runGeminiResearch, runGeminiResearchCli };

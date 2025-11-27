@@ -17,13 +17,55 @@ import {
   SearchError
 } from './types.js'
 
-export interface GitHubSearchResult {
-  files: CodeFile[]
+interface GitHubSearchResult {
+  files: Array<CodeFile>
   jsonPath: string
   mdPath: string
 }
 
-export async function runGitHubSearch(userQuery: string): Promise<GitHubSearchResult> {
+function formatMarkdownReport(
+  files: Array<CodeFile>,
+  stats: { executionTimeMs: number; query: string; totalResults: number }
+): string {
+  const sections: Array<string> = []
+
+  // Header
+  sections.push(`# GitHub Code Search Results\n`)
+  sections.push(`**Query:** \`${stats.query}\``)
+  sections.push(`**Found:** ${stats.totalResults} results, showing top ${files.length}`)
+  sections.push(`**Execution:** ${(stats.executionTimeMs / 1000).toFixed(1)}s\n`)
+  sections.push('---\n')
+
+  // Code files with lightweight structured format
+  for (const file of files) {
+    const repoUrl = file.url.split('/blob/')[0] ?? file.url
+
+    sections.push(`### ${file.rank}. [${file.repository}](${repoUrl}) ⭐ ${formatStars(file.stars)}\n`)
+    sections.push(`**Path:** \`${file.path}\``)
+    sections.push(`**Language:** ${file.language} | **Lines:** ${file.lines}`)
+    sections.push(`**Link:** ${file.url}\n`)
+
+    // Show code snippet (first 40 lines)
+    const snippet = file.content.split('\n').slice(0, 40).join('\n')
+    sections.push(`\`\`\`${file.language}`)
+    sections.push(snippet)
+    if (file.lines > 40) sections.push('// ... truncated ...')
+    sections.push('```\n')
+    sections.push('---\n')
+  }
+
+  return sections.join('\n')
+}
+
+function formatStars(stars: number | undefined): string {
+  if (stars === undefined || stars === 0) return '0'
+  if (stars >= 1000) {
+    return `${(stars / 1000).toFixed(1)}k`
+  }
+  return stars.toString()
+}
+
+async function runGitHubSearch(userQuery: string): Promise<GitHubSearchResult> {
   const RESEARCH_DIR = getOutputDir('research/github')
   debug('Research dir:', RESEARCH_DIR)
 
@@ -98,7 +140,7 @@ export async function runGitHubSearch(userQuery: string): Promise<GitHubSearchRe
   return { files, jsonPath, mdPath }
 }
 
-export async function runGitHubSearchCli(userQuery: string): Promise<void> {
+async function runGitHubSearchCli(userQuery: string): Promise<void> {
   try {
     await runGitHubSearch(userQuery)
   } catch (error) {
@@ -129,54 +171,5 @@ export async function runGitHubSearchCli(userQuery: string): Promise<void> {
   }
 }
 
-function formatMarkdownReport(
-  files: Array<CodeFile>,
-  stats: { executionTimeMs: number; query: string; totalResults: number }
-): string {
-  const sections: Array<string> = []
-
-  // Header
-  sections.push(`# GitHub Code Search Results\n`)
-  sections.push(`**Query:** \`${stats.query}\``)
-  sections.push(`**Found:** ${stats.totalResults} results, showing top ${files.length}`)
-  sections.push(`**Execution:** ${(stats.executionTimeMs / 1000).toFixed(1)}s\n`)
-  sections.push('---\n')
-
-  // Code files with lightweight structured format
-  for (const file of files) {
-    const repoUrl = file.url.split('/blob/')[0] ?? file.url
-
-    sections.push(`### ${file.rank}. [${file.repository}](${repoUrl}) ⭐ ${formatStars(file.stars)}\n`)
-    sections.push(`**Path:** \`${file.path}\``)
-    sections.push(`**Language:** ${file.language} | **Lines:** ${file.lines}`)
-    sections.push(`**Link:** ${file.url}\n`)
-
-    // Show code snippet (first 40 lines)
-    const snippet = file.content.split('\n').slice(0, 40).join('\n')
-    sections.push(`\`\`\`${file.language}`)
-    sections.push(snippet)
-    if (file.lines > 40) sections.push('// ... truncated ...')
-    sections.push('```\n')
-    sections.push('---\n')
-  }
-
-  return sections.join('\n')
-}
-
-function formatStars(stars: number | undefined): string {
-  if (stars === undefined || stars === 0) return '0'
-  if (stars >= 1000) {
-    return `${(stars / 1000).toFixed(1)}k`
-  }
-  return stars.toString()
-}
-
-// Standalone execution
-if (import.meta.main) {
-  const { Command } = await import('@commander-js/extra-typings')
-  const { makeGhSearchCommand } = await import('./command.js')
-
-  const program = new Command()
-  program.addCommand(makeGhSearchCommand())
-  program.parse()
-}
+export type { GitHubSearchResult }
+export { runGitHubSearch, runGitHubSearchCli }

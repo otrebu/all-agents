@@ -1,15 +1,32 @@
 import { execa } from "execa";
 import { glob } from "glob";
 import { access, readFile, rm } from "node:fs/promises";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-const RESEARCH_DIR = "docs/research/parallel";
+const RESEARCH_DIR = "../context/research/parallel";
 const TEST_OBJECTIVE = "TypeScript testing frameworks comparison";
 // 2 minutes for network calls
 const TIMEOUT_MS = 120_000;
 
+function hasParallelApiKey(): boolean {
+  return (
+    (process.env.PARALLEL_API_KEY !== undefined && process.env.PARALLEL_API_KEY !== "") ||
+    (process.env.AAA_PARALLEL_API_KEY !== undefined && process.env.AAA_PARALLEL_API_KEY !== "")
+  );
+}
+
 describe("parallel-search E2E", () => {
   const createdFiles: Array<string> = [];
+
+  beforeAll(() => {
+    if (!hasParallelApiKey()) {
+      throw new Error(
+        "Parallel Search API key required.\n\n" +
+        "Get your key at: https://platform.parallel.ai/\n" +
+        "Then run: export PARALLEL_API_KEY=your-key\n"
+      );
+    }
+  });
 
   afterEach(async () => {
     // Cleanup created files
@@ -30,19 +47,12 @@ describe("parallel-search E2E", () => {
     "should complete search and create files",
     { timeout: TIMEOUT_MS },
     async () => {
-      // Skip if PARALLEL_API_KEY not available
-      if (
-        process.env.PARALLEL_API_KEY === undefined ||
-        process.env.PARALLEL_API_KEY === ""
-      ) {
-        console.log("⏭️  Skipping: PARALLEL_API_KEY not set");
-        return;
-      }
 
       // Execute search command with minimal results
-      const { exitCode, stdout } = await execa({
-        preferLocal: true,
-      })`pnpm parallel-search --objective "${TEST_OBJECTIVE}" --max-results 1`;
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "parallel-search", "--objective", TEST_OBJECTIVE, "--max-results", "1"]
+      );
 
       // Assert: Exit code 0
       expect(exitCode).toBe(0);
@@ -59,6 +69,10 @@ describe("parallel-search E2E", () => {
 
       const jsonFile = jsonFiles[0];
       const mdFile = mdFiles[0];
+
+      if (jsonFile === undefined || mdFile === undefined) {
+        throw new Error("Expected files to exist after length check");
+      }
 
       createdFiles.push(jsonFile, mdFile);
 
@@ -93,6 +107,117 @@ describe("parallel-search E2E", () => {
       expect(mdContent).toMatch(/^# /m);
       // The file should have some content beyond just a title
       expect(mdContent.length).toBeGreaterThan(100);
+    }
+  );
+
+  it(
+    "should work with --processor base",
+    { timeout: TIMEOUT_MS },
+    async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "parallel-search", "--objective", "JavaScript frameworks", "--processor", "base", "--max-results", "1"]
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Search completed in");
+
+      const jsonFiles = (await glob(`${RESEARCH_DIR}/raw/*.json`)).sort().reverse();
+      expect(jsonFiles.length).toBeGreaterThan(0);
+
+      const jsonFile = jsonFiles[0];
+      if (jsonFile === undefined) {
+        throw new Error("Expected JSON file to exist after length check");
+      }
+      createdFiles.push(jsonFile);
+
+      // Find corresponding MD file
+      const mdFiles = (await glob(`${RESEARCH_DIR}/*.md`)).sort().reverse();
+      if (mdFiles.length > 0) {
+        const mdFile = mdFiles[0];
+        if (mdFile !== undefined) {
+          createdFiles.push(mdFile);
+        }
+      }
+    }
+  );
+
+  it(
+    "should work with multiple --queries",
+    { timeout: TIMEOUT_MS },
+    async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run", "dev", "parallel-search",
+          "--objective", "Web development best practices",
+          "--queries", "React patterns", "Vue patterns",
+          "--max-results", "1"
+        ]
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Search completed in");
+
+      const jsonFiles = (await glob(`${RESEARCH_DIR}/raw/*.json`)).sort().reverse();
+      expect(jsonFiles.length).toBeGreaterThan(0);
+
+      const jsonFile = jsonFiles[0];
+      if (jsonFile === undefined) {
+        throw new Error("Expected JSON file to exist after length check");
+      }
+      createdFiles.push(jsonFile);
+
+      // Find corresponding MD file
+      const mdFiles = (await glob(`${RESEARCH_DIR}/*.md`)).sort().reverse();
+      if (mdFiles.length > 0) {
+        const mdFile = mdFiles[0];
+        if (mdFile !== undefined) {
+          createdFiles.push(mdFile);
+        }
+      }
+    }
+  );
+
+  it(
+    "should respect --max-chars option",
+    { timeout: TIMEOUT_MS },
+    async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run", "dev", "parallel-search",
+          "--objective", "Node.js performance",
+          "--max-chars", "1000",
+          "--max-results", "1"
+        ]
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Search completed in");
+
+      const jsonFiles = (await glob(`${RESEARCH_DIR}/raw/*.json`)).sort().reverse();
+      expect(jsonFiles.length).toBeGreaterThan(0);
+
+      const jsonFile = jsonFiles[0];
+      if (jsonFile === undefined) {
+        throw new Error("Expected JSON file to exist after length check");
+      }
+      createdFiles.push(jsonFile);
+
+      // Verify JSON structure
+      const jsonContent = await readFile(jsonFile, "utf8");
+      const jsonData: unknown = JSON.parse(jsonContent);
+      expect(Array.isArray(jsonData)).toBe(true);
+
+      // Find corresponding MD file
+      const mdFiles = (await glob(`${RESEARCH_DIR}/*.md`)).sort().reverse();
+      if (mdFiles.length > 0) {
+        const mdFile = mdFiles[0];
+        if (mdFile !== undefined) {
+          createdFiles.push(mdFile);
+        }
+      }
     }
   );
 });

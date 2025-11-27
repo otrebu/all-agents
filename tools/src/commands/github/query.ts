@@ -32,8 +32,8 @@ function buildQueryIntent(userQuery: string): QueryIntent {
 
   // Extract repo constraint (e.g., "in repo:user/repo")
   const repoMatch = /(?:in|from|repo:?)\s+(?<repoName>[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+)/i.exec(userQuery)
-  const { repoName } = repoMatch?.groups ?? {};
-  if (repoName !== undefined) {
+  const repoName = repoMatch?.groups?.repoName
+  if (repoMatch && repoName !== undefined && repoName !== '') {
     options.repo = repoName
     query = query.replace(repoMatch[0], '').trim()
   }

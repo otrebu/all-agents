@@ -1,14 +1,41 @@
 import { execa } from "execa";
 import { glob } from "glob";
 import { access, readFile, rm } from "node:fs/promises";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-const RESEARCH_DIR = "docs/research/github";
+const RESEARCH_DIR = "../context/research/github";
 // 2 minutes for network calls
 const TIMEOUT_MS = 120_000;
 
+async function checkGitHubAuth(): Promise<boolean> {
+  const hasEnvToken =
+    (process.env.GITHUB_TOKEN !== undefined && process.env.GITHUB_TOKEN !== "") ||
+    (process.env.GH_TOKEN !== undefined && process.env.GH_TOKEN !== "");
+
+  if (hasEnvToken) return true;
+
+  try {
+    await execa`gh auth status`;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 describe("gh-search E2E", () => {
   const createdFiles: Array<string> = [];
+
+  beforeAll(async () => {
+    const hasAuth = await checkGitHubAuth();
+    if (!hasAuth) {
+      throw new Error(
+        "GitHub authentication required.\n\n" +
+        "Run one of:\n" +
+        "  gh auth login\n" +
+        "  export GITHUB_TOKEN=your-token\n"
+      );
+    }
+  });
 
   afterEach(async () => {
     // Cleanup created files
@@ -29,28 +56,12 @@ describe("gh-search E2E", () => {
     "should complete search and create files",
     { timeout: TIMEOUT_MS },
     async () => {
-      // Skip if GITHUB_TOKEN not available
-      const hasGithubToken =
-        (process.env.GITHUB_TOKEN !== undefined &&
-          process.env.GITHUB_TOKEN !== "") ||
-        (process.env.GH_TOKEN !== undefined && process.env.GH_TOKEN !== "");
-
-      if (!hasGithubToken) {
-        try {
-          // Check if gh CLI is authenticated
-          await execa`gh auth status`;
-        } catch {
-          console.log("⏭️  Skipping: No GitHub authentication available");
-          return;
-        }
-      }
 
       // Execute search command (use a common pattern more likely to return results)
       const query = "useState hook";
       const { exitCode, stdout } = await execa(
-        "pnpm",
-        ["gh-search", query],
-        { preferLocal: true }
+        "bun",
+        ["run", "dev", "gh-search", query]
       );
 
       // Assert: Exit code 0
@@ -76,6 +87,10 @@ describe("gh-search E2E", () => {
 
       const jsonFile = jsonFiles[0];
       const mdFile = mdFiles[0];
+
+      if (jsonFile === undefined || mdFile === undefined) {
+        throw new Error("Expected files to exist after length check");
+      }
 
       createdFiles.push(jsonFile, mdFile);
 

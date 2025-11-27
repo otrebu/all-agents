@@ -1,7 +1,6 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { saveResearchOutput } from "../../lib/research";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import * as fs from "node:fs/promises";
-import path from "node:path";
 
 // Mock fs
 vi.mock("node:fs/promises", () => ({
@@ -11,7 +10,7 @@ vi.mock("node:fs/promises", () => ({
 
 // Mock format utility
 vi.mock("../../lib/format", () => ({
-  default: (s: string) => s.replace(/\s+/g, "-").toLowerCase(),
+  default: (s: string) => s.replaceAll(/\s+/g, "-").toLowerCase(),
 }));
 
 describe("saveResearchOutput", () => {

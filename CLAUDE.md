@@ -54,11 +54,12 @@ bun run dev gh-search <query>
 ```
 
 **E2E Tests**: Tests verify CLI functionality end-to-end. They require authentication:
-- `gh-search` needs GitHub token (via `gh auth login` or `AAA_GITHUB_TOKEN`)
-- `parallel-search` needs `AAA_PARALLEL_API_KEY` env var
-- `gemini-research` needs Gemini CLI auth (`gemini -p "test"`)
+- `gh-search` needs GitHub token (via `gh auth login` or `GITHUB_TOKEN`)
+- `parallel-search` needs `PARALLEL_API_KEY` env var
 
-Tests automatically skip if credentials are missing (no CI failures).
+**Note**: `gemini-research` tests are skipped by default - Gemini CLI web search is currently unreliable. Set `GEMINI_TEST_ENABLED=1` to run them anyway.
+
+Tests fail with clear auth instructions if credentials are missing.
 
 ### Slash Commands
 

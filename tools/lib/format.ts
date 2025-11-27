@@ -20,10 +20,20 @@ function extractTopicFromUrl(url: string): string {
       }
     } else if (domainParts.length >= 3) {
       // Has subdomain (e.g., docs.tanstack.com -> docs, tanstack)
-      parts.push(domainParts[0], domainParts[1]);
+      const firstPart = domainParts[0];
+      const secondPart = domainParts[1];
+      if (firstPart !== undefined && firstPart !== '') {
+        parts.push(firstPart);
+      }
+      if (secondPart !== undefined && secondPart !== '') {
+        parts.push(secondPart);
+      }
     } else {
       // No subdomain (e.g., example.com -> example)
-      parts.push(domainParts[0]);
+      const firstPart = domainParts[0];
+      if (firstPart !== undefined && firstPart !== '') {
+        parts.push(firstPart);
+      }
     }
 
     // Get path segments (exclude 'latest' and version numbers)

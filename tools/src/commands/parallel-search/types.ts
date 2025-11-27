@@ -14,7 +14,7 @@ export interface SearchOptions {
   maxCharsPerResult?: number
   maxResults?: number
   objective?: string
-  processor?: 'base' | 'lite' | 'pro' | 'ultra'
+  processor?: 'base' | 'pro'
   searchQueries?: Array<string>
 }
 
@@ -44,7 +44,7 @@ export class AuthError extends Error {
  * Network error - connection issues
  */
 export class NetworkError extends Error {
-  constructor(message: string, public cause?: Error) {
+  constructor(message: string, public override cause?: Error) {
     super(message)
     this.name = 'NetworkError'
     Error.captureStackTrace(this, NetworkError)
@@ -55,7 +55,7 @@ export class NetworkError extends Error {
  * Base error class for Parallel Search errors
  */
 export class ParallelSearchError extends Error {
-  constructor(message: string, public cause?: Error) {
+  constructor(message: string, public override cause?: Error) {
     super(message)
     this.name = 'ParallelSearchError'
     Error.captureStackTrace(this, ParallelSearchError)
