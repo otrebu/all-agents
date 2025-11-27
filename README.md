@@ -1,54 +1,172 @@
 # all-agents
 
-Briding between Cursor and Claude code AI configuration, making it work as much as possible for web / cloud agents too that don't have the full capabilities of their local counterparts.
+Bridging Cursor and Claude Code AI configuration, making prompts work across local and cloud-based AI agents.
 
-## Functionality / Prompts
+## Quick Start
+
+```bash
+# First time setup (builds CLI and creates symlink)
+cd tools && ./setup.sh
+
+# If ~/.local/bin not in PATH, add to ~/.zshrc:
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Environment Variables
+
+Copy `.env.example` to `.env` in the project root:
+
+```bash
+AAA_PARALLEL_API_KEY=   # Required for parallel-search (https://platform.parallel.ai/)
+AAA_GITHUB_TOKEN=       # Optional, uses gh CLI by default
+AAA_ROOT_PATH=          # Optional, for deployed binary
+AAA_DEBUG=false         # Enable verbose logging
+```
+
+## CLI Tools
+
+The `aaa` binary provides research and search commands:
+
+```bash
+# GitHub code search - find real-world examples
+aaa gh-search "react hooks typescript"
+
+# Multi-angle web research (up to 30K chars/result)
+aaa parallel-search --objective "RAG patterns" --queries "chunking" "retrieval"
+
+# Google Search via Gemini CLI
+aaa gemini-research "Next.js 15 features" --mode deep
+```
+
+Research outputs are saved to `context/research/`.
+
+## Using with Claude Code
+
+### Slash Commands
+
+| Command | Description | Documentation |
+|:--------|:------------|:--------------|
+| `/dev:git-commit` | Create conventional commits from diffs | `@context/coding/workflow/COMMIT.md` |
+| `/dev:start-feature` | Create/switch feature branches | `@context/coding/workflow/START_FEATURE.md` |
+| `/dev:complete-feature` | Merge feature branch to main | `@context/coding/workflow/COMPLETE_FEATURE.md` |
+| `/dev:code-review` | AI-assisted code review | `@context/coding/workflow/CODE_REVIEW.md` |
+| `/gh-search <query>` | Search GitHub for code examples | `@context/knowledge/github/GH_SEARCH.md` |
+| `/gemini-research <query>` | Google Search via Gemini CLI | `@context/knowledge/gemini-cli/GEMINI_CLI.md` |
+| `/parallel-search <topic>` | Multi-angle web research | `@context/knowledge/parallel-search/PARALLEL_SEARCH.md` |
+| `/meta:claude-code:create-command` | Create a new slash command | `@context/meta/PROMPTING.md` |
+| `/meta:claude-code:create-agent` | Create a new sub-agent | `@context/meta/AGENT_TEMPLATES.md` |
+| `/meta:claude-code:create-skill` | Create a new skill | — |
+| `/meta:claude-code:create-plugin` | Scaffold a plugin structure | — |
+| `/meta:create-cursor-rule` | Create a `.cursorrules` file | `@context/meta/PROMPTING.md` |
+| `/meta:how-to-prompt` | Prompting guidance | `@context/meta/PROMPTING.md` |
+| `/meta:optimize-prompt` | Optimize existing prompts | `@context/meta/OPTIMIZE-PROMPT.md` |
 
 ### Sub-agents
 
-| Agent Name        | Summary                                                                                                        | Documentation                                        |
-| :---------------- | :------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------- |
-| `gemini-research` | Web research via Gemini CLI with Google Search grounding. Generates raw JSON data and a Markdown placeholder.  | `@docs/knowledge/gemini-cli/GEMINI_CLI.md`           |
-| `parallel-search` | Multi-angle web research using Parallel Search API. Useful for comparative analysis and deep content research. | `@docs/knowledge/parallel-search/PARALLEL_SEARCH.md` |
-| `eslint-fixer` ❌ | Automated ESLint fixing orchestrator (Work In Progress).                                                       | N/A                                                  |
-
-### Commands
-
-| Command                           | Summary                                           | Documentation / Reference                                                                                       |
-| :-------------------------------- | :------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------- |
-| `how-to-prompt`                   | Guides on effective prompting strategies.         | `@docs/meta/PROMPTING.md`                                                                                       |
-| `optimize-prompt`                 | Tools and guides to optimize existing prompts.    | `@docs/meta/OPTIMIZE-PROMPT.md`                                                                                 |
-| `meta/claude-code/create-command` | Create a new slash command for Claude Code.       | Web docs<br>• `@docs/meta/PROMPTING.md`<br>• `@docs/meta/CLAUDE-CODE-TOOLS-PERMISSIONS.md`                      |
-| `meta/claude-code/create-agent`   | Create a new sub-agent configuration.             | Web docs<br>• `@docs/meta/AGENT_TEMPLATES.md`                                                                   |
-| `meta/claude-code/create-plugin`  | Scaffold a new plugin structure.                  | `create-plugin.ts` script                                                                                       |
-| `meta/claude-code/create-skill`   | Scaffold a new skill structure.                   | `create-skill.py` script                                                                                        |
-| `meta/create-cursor-rule`         | Create a new `.cursorrules` file.                 | `@docs/meta/PROMPTING.md`                                                                                       |
-| `dev/code-review`                 | AI-assisted code review workflow.                 | `@docs/coding/workflow/CODE_REVIEW.md`                                                                          |
-| `dev/git-commit`                  | Generate conventional commit messages from diffs. | `@docs/coding/workflow/COMMIT.md`                                                                               |
-| `dev/start-feature`               | Workflow for starting a new feature branch.       | `@docs/coding/workflow/START_FEATURE.md`                                                                        |
-| `dev/complete-feature`            | Workflow for completing/merging a feature.        | `@docs/coding/workflow/COMPLETE_FEATURE.md`                                                                     |
-| `parallel-search`                 | Run the parallel search research tool.            | • `@docs/knowledge/parallel-search/PARALLEL_SEARCH.md`<br>• `@docs/knowledge/parallel-search/scripts/search.ts` |
-| `gemini-research`                 | Run the Gemini research tool.                     | • `@docs/knowledge/gemini-cli/GEMINI_CLI.md`<br>• `@docs/knowledge/gemini-cli/scripts/search.ts`                |
+| Agent | Description | Documentation |
+|:------|:------------|:--------------|
+| `gemini-research` | Web research via Gemini CLI with Google Search grounding | `@context/knowledge/gemini-cli/GEMINI_CLI.md` |
+| `parallel-search` | Multi-angle web research using Parallel Search API | `@context/knowledge/parallel-search/PARALLEL_SEARCH.md` |
 
 ### Skills
 
-| Skill              | Summary                                         | Documentation                              |
-| :----------------- | :---------------------------------------------- | :----------------------------------------- |
-| `dev-work-summary` | Generates a summary of recent development work. | `.claude/skills/dev-work-summary/SKILL.md` |
-| `brainwriting`     | Facilitates brainwriting ideation sessions.     | `.claude/skills/brainwriting/SKILL.md`     |
+| Skill | Description |
+|:------|:------------|
+| `dev-work-summary` | Scan ~/dev for git repos and report today's work |
+| `brainwriting` | Facilitate structured brainstorming using parallel sub-agents |
 
-### Documentation Index
+## Using with Cursor
 
-| Category          | Files                                                                                                                                                                                                                                                                                                                                               |
-| :---------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Architecture**  | • `docs/architecture/ARCHITECTURE_OVERVIEW.md`: System architecture overview<br>• `docs/architecture/decisions/`: Architecture Decision Records (ADRs)<br>• `docs/architecture/diagrams/`: Architecture diagrams                                                                                                                                   |
-| **Coding (Core)** | • `docs/coding/CODING_OVERVIEW.md`: Index & orientation to coding docs<br>• `docs/coding/CODING_STYLE.md`: FP patterns, naming, comments, logging<br>• `docs/coding/SECURITY.md`: Security guidelines and best practices                                                                                                                          |
-| **Workflow**      | • `docs/coding/workflow/DEV_LIFECYCLE.md`: Complete development process & Definition of Done<br>• `docs/coding/workflow/COMMIT.md`: Conventional commits<br>• `docs/coding/workflow/START_FEATURE.md`: Feature branching<br>• `docs/coding/workflow/COMPLETE_FEATURE.md`: Merging & cleanup<br>• `docs/coding/workflow/CODE_REVIEW.md`: Review process<br>• `docs/coding/workflow/REFACTORING.md`: Refactoring strategies |
-| **Backend**       | • `docs/coding/backend/BACKEND_OVERVIEW.md`: Backend architecture<br>• `docs/coding/backend/AUTHENTICATION.md`: Auth patterns & implementation<br>• `docs/coding/backend/BACKEND_TESTING.md`: Backend test strategies<br>• `docs/coding/backend/DATA_VALIDATION.md`: Validation patterns                                                           |
-| **Frontend**      | • `docs/coding/frontend/FRONTEND_OVERVIEW.md`: Frontend architecture<br>• `docs/coding/frontend/COMPONENT_ARCHITECTURE.md`: Component design patterns<br>• `docs/coding/frontend/FRONTEND_TESTING.md`: Testing strategies<br>• `docs/coding/frontend/STATE_MANAGEMENT.md`: State management patterns                                               |
-| **Database**      | • `docs/coding/database/DB_OVERVIEW.md`: Database architecture<br>• `docs/coding/database/DATABASE_MIGRATIONS.md`: Migration strategies                                                                                                                                                                                                            |
-| **DevOps**        | • `docs/coding/devops/DEPLOYMENT.md`: Deployment procedures<br>• `docs/coding/devops/MONITORING.md`: Monitoring & observability                                                                                                                                                                                                                    |
-| **TypeScript**    | • `docs/coding/ts/TYPESCRIPT.md`: TypeScript setup & config<br>• `docs/coding/ts/STACK.md`: Preferred libraries & tools<br>• `docs/coding/ts/TESTING.md`: Vitest, test patterns<br>• `docs/coding/ts/LOGGING.md`: Structured & CLI logging<br>• `docs/coding/ts/TOOLING.md`: Build tools, linting, formatting                                     |
-| **Planning**      | • `docs/planning/roadmap.md`: Product roadmap<br>• `docs/planning/task-template.md`: Task definition template<br>• `docs/planning/stories/`: User story templates & examples                                                                                                                                                                      |
-| **Meta**          | • `docs/meta/PROMPTING.md`: Context engineering & prompting standards<br>• `docs/meta/OPTIMIZE-PROMPT.md`: Prompt optimization strategies<br>• `docs/meta/AGENT_TEMPLATES.md`: Agent creation templates<br>• `docs/meta/CLAUDE-CODE-TOOLS-PERMISSIONS.md`: Tool permission configurations                                                           |
-| **Knowledge**     | • `docs/knowledge/gemini-cli/GEMINI_CLI.md`: Gemini research tool<br>• `docs/knowledge/parallel-search/PARALLEL_SEARCH.md`: Parallel Search API<br>• `docs/knowledge/github/GH_SEARCH.md`: GitHub code search                                                                                                                                     |
+Generate `.cursorrules` files using the `/meta:create-cursor-rule` command. The shared documentation in `context/` can be referenced by both Claude Code and Cursor.
+
+## Directory Structure
+
+```
+all-agents/
+├── bin/                           # Compiled binary (gitignored)
+│   └── aaa
+├── context/                       # Documentation & research outputs
+│   ├── knowledge/                 # Tool documentation
+│   │   ├── github/GH_SEARCH.md
+│   │   ├── parallel-search/PARALLEL_SEARCH.md
+│   │   └── gemini-cli/GEMINI_CLI.md
+│   ├── coding/                    # Coding standards & workflows
+│   │   ├── CODING_STYLE.md
+│   │   ├── workflow/              # Git, commits, code review
+│   │   ├── ts/                    # TypeScript stack & testing
+│   │   ├── backend/               # Backend patterns
+│   │   └── frontend/              # Frontend patterns
+│   ├── meta/                      # Prompting & agent standards
+│   │   ├── PROMPTING.md
+│   │   └── AGENT_TEMPLATES.md
+│   ├── research/                  # Output directory
+│   │   ├── github/
+│   │   ├── google/
+│   │   └── parallel/
+│   └── planning/                  # Roadmap & stories
+├── tools/                         # CLI source code
+│   ├── src/
+│   │   ├── cli.ts                 # Entry point
+│   │   ├── env.ts                 # Zod env parser
+│   │   └── commands/              # Command implementations
+│   ├── lib/                       # Shared utilities
+│   ├── tests/                     # E2E tests
+│   ├── package.json
+│   └── setup.sh                   # Installation script
+├── .claude/
+│   ├── commands/                  # Slash commands
+│   ├── agents/                    # Sub-agents
+│   ├── skills/                    # Skills
+│   └── settings.json              # Tool permissions
+├── .env.example
+├── CLAUDE.md                      # Claude Code project guidance
+└── README.md
+```
+
+## Documentation Index
+
+| Category | Files |
+|:---------|:------|
+| **Coding (Core)** | `context/coding/CODING_STYLE.md` - FP patterns, naming, logging |
+| **Workflow** | `context/coding/workflow/` - Commits, branches, code review, refactoring |
+| **TypeScript** | `context/coding/ts/` - Stack, testing, logging, tooling |
+| **Backend** | `context/coding/backend/` - API conventions, auth, validation, error handling |
+| **Frontend** | `context/coding/frontend/` - Components, state management, testing |
+| **Database** | `context/coding/database/` - Schema, migrations |
+| **DevOps** | `context/coding/devops/` - Deployment, monitoring |
+| **Meta** | `context/meta/` - Prompting standards, agent templates |
+| **Knowledge** | `context/knowledge/` - Research tool documentation |
+| **Planning** | `context/planning/` - Roadmap, user stories |
+
+## Development
+
+```bash
+cd tools
+
+# Install dependencies
+bun install
+
+# Build CLI
+bun run build              # Creates bin/aaa
+
+# Development mode
+bun run dev gh-search <query>
+
+# Testing
+bun run test               # E2E tests (requires API keys)
+bun run test:watch
+
+# Linting
+bun run lint
+bun run lint:fix
+```
+
+### Testing Requirements
+
+- `gh-search`: GitHub token via `gh auth login` or `GITHUB_TOKEN`
+- `parallel-search`: `AAA_PARALLEL_API_KEY` env var
+- `gemini-research`: Skipped by default (set `GEMINI_TEST_ENABLED=1` to run)
+
+## License
+
+MIT
