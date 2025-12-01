@@ -84,14 +84,7 @@ Follow @context/path/to/doc.md very carefully and strictly.
 ---
 name: parallel-search
 description: Execute multi-angle web research
-tools:
-  [
-    Bash,
-    Read,
-    Write,
-    Bash(pnpm parallel-search:*),
-    Bash(node context/knowledge/parallel-search/scripts/search.ts:*),
-  ]
+tools: [Bash, Read, Write, Bash(aaa parallel-search:*)]
 ---
 
 # Parallel Search Agent

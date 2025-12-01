@@ -6,6 +6,7 @@ import type { GeminiMode } from './commands/gemini/search.js'
 import { runGeminiResearchCli } from './commands/gemini/search.js'
 import { runGitHubSearchCli } from './commands/github/main.js'
 import { runParallelSearchCli } from './commands/parallel-search/search.js'
+import { runSetup } from './commands/setup/index.js'
 
 const program = new Command()
   .name('aaa')
@@ -47,6 +48,14 @@ program.addCommand(
       processor: options.processor,
       queries: [...(options.queries ?? []), ...extraQueries],
     }))
+)
+
+program.addCommand(
+  new Command('setup')
+    .description('Setup all-agents for user or project')
+    .option('--user', 'Setup CLI globally (build, symlink, env vars)')
+    .option('--project', 'Setup current project (symlink context/, create docs/)')
+    .action(runSetup)
 )
 
 program.parse()

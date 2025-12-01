@@ -98,7 +98,9 @@
       "Bash(node --version)",
       "Bash(./node_modules/.bin/tsx:*)",
       "Bash(bash:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(bin/aaa gemini-research:*)",
+      "Bash(../bin/aaa:*)"
     ],
     "deny": [
       "Read(.env*)",
@@ -168,7 +170,8 @@
       "Bash(docker-compose down:*)",
       "Bash(tar -czf:*)",
       "Bash(zip:*)"
-    ]
+    ],
+    "defaultMode": "plan"
   },
   "hooks": {
     "Stop": [

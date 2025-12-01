@@ -1,4 +1,3 @@
-import { env } from '@tools/env.js'
 import { existsSync, realpathSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
@@ -11,13 +10,7 @@ function getOutputDirectory(subpath: string): string {
 function getProjectRoot(): string {
   if (cachedRoot !== null) return cachedRoot
 
-  // 1. Environment override (AAA_ROOT_PATH)
-  if (env.AAA_ROOT_PATH !== undefined && env.AAA_ROOT_PATH !== '') {
-    cachedRoot = env.AAA_ROOT_PATH
-    return cachedRoot
-  }
-
-  // 2. Walk up from CWD to find context/ (works from any subdirectory)
+  // 1. Walk up from CWD to find context/ (works from any subdirectory)
   let searchDirectory = process.cwd()
   for (let index = 0; index < 10; index += 1) {
     if (existsSync(resolve(searchDirectory, 'context'))) {
@@ -29,7 +22,7 @@ function getProjectRoot(): string {
     searchDirectory = parent
   }
 
-  // 3. Relative to binary (handles symlinks, but not Bun's $bunfs virtual paths)
+  // 2. Relative to binary (handles symlinks, but not Bun's $bunfs virtual paths)
   const binaryPath = process.argv[1]
   if (binaryPath !== undefined && binaryPath !== '' && !binaryPath.startsWith('/$bunfs')) {
     const realPath = existsSync(binaryPath) ? realpathSync(binaryPath) : binaryPath
@@ -43,7 +36,7 @@ function getProjectRoot(): string {
     }
   }
 
-  // 4. Relative to real executable path (for compiled binary run from elsewhere)
+  // 3. Relative to real executable path (for compiled binary run from elsewhere)
   const {execPath} = process
   if (execPath.length > 0 && !execPath.startsWith('/$bunfs')) {
     const execDirectory = dirname(execPath)
@@ -55,7 +48,7 @@ function getProjectRoot(): string {
   }
 
   throw new Error(
-    'Cannot find project root. Set AAA_ROOT_PATH or run from project directory.'
+    'Cannot find project root. Run from project directory with context/ folder.'
   )
 }
 

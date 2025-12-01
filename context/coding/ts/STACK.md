@@ -4,9 +4,9 @@ This document lists the preferred tools and libraries for TypeScript/JavaScript 
 
 ## Package Management & Build Tools
 
-- **pnpm** - Package manager
-- **pnpm workspaces** - Monorepo structure
-- **Node.js** - Runtime
+- **pnpm** or **bun** - Package manager
+- **pnpm workspaces** or **bun workspaces** - Monorepo structure
+- **Node.js** or **Bun** - Runtime
 - **TypeScript** - Programming language
 - **Vite** - Build tool
 

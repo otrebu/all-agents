@@ -14,9 +14,6 @@ const envSchema = z.object({
 
   // Required for parallel-search
   AAA_PARALLEL_API_KEY: z.string().optional(),
-
-  // Project root override (for binary deployment)
-  AAA_ROOT_PATH: z.string().optional(),
 })
 
 type Env = z.infer<typeof envSchema>

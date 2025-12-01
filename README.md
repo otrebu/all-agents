@@ -9,14 +9,17 @@ Bridging Cursor and Claude Code AI configuration, making prompts work across loc
 Use this repo as your global Claude Code configuration:
 
 ```bash
-# Clone and build
+# Clone and setup
 git clone <repo> ~/dev/all-agents
-cd ~/dev/all-agents/tools && ./setup.sh
-
-# Add to ~/.zshrc or ~/.bashrc:
-export CLAUDE_CONFIG_DIR="$HOME/dev/all-agents/.claude"
-export PATH="$HOME/.local/bin:$PATH"
+cd ~/dev/all-agents/tools
+bun install
+bun run dev setup --user
 ```
+
+The setup wizard will:
+- Build the CLI binary
+- Create symlink at `~/.local/bin/aaa`
+- Prompt to set `CLAUDE_CONFIG_DIR`
 
 **Result:** All Claude Code sessions use this repo's commands, agents, and skills.
 
@@ -28,13 +31,12 @@ Add shared documentation to a specific project:
 
 ```bash
 cd your-project
-
-# Symlink shared docs (coding standards, tool docs, prompting)
-ln -s ~/dev/all-agents/context context
-
-# Create project-local directories
-mkdir -p docs/planning docs/research
+aaa setup --project
 ```
+
+This will:
+- Symlink `context/` to all-agents shared docs
+- Create `docs/planning/` and `docs/research/` directories
 
 **Result:** Project gets shared standards via `context/`, keeps local planning/research in `docs/`.
 
@@ -45,7 +47,6 @@ Copy `.env.example` to `.env`:
 ```bash
 AAA_PARALLEL_API_KEY=   # Required for parallel-search (https://platform.parallel.ai/)
 AAA_GITHUB_TOKEN=       # Optional, uses gh CLI by default
-AAA_ROOT_PATH=          # Optional, for deployed binary
 AAA_DEBUG=false         # Enable verbose logging
 ```
 
@@ -164,8 +165,7 @@ all-agents/
 │   │   ├── cli.ts                 # Entry point
 │   │   └── commands/              # Command implementations
 │   ├── lib/                       # Shared utilities
-│   ├── tests/                     # E2E tests
-│   └── setup.sh                   # Installation script
+│   └── tests/                     # E2E tests
 ├── .claude/
 │   ├── commands/                  # Slash commands
 │   ├── agents/                    # Sub-agents
