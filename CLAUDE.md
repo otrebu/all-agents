@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **all-agents** bridges Cursor and Claude Code AI configuration, making prompts work across local and cloud-based AI agents.
 
 The repo provides:
+
 - Claude Code slash commands for development workflows
 - Research/search integrations (Gemini, GitHub, Parallel Search)
 - Meta-commands for creating agents, commands, and skills
@@ -54,6 +55,7 @@ bun run dev gh-search <query>
 ```
 
 **E2E Tests**: Tests verify CLI functionality end-to-end. They require authentication:
+
 - `gh-search` needs GitHub token (via `gh auth login` or `GITHUB_TOKEN`)
 - `parallel-search` needs `PARALLEL_API_KEY` env var
 
@@ -66,17 +68,20 @@ Tests fail with clear auth instructions if credentials are missing.
 Available via `/` prefix (see `.claude/commands/`):
 
 **Development:**
+
 - `/dev:git-commit` - Create conventional commits from diffs
 - `/dev:start-feature` - Create/switch feature branches
 - `/dev:complete-feature` - Merge feature branch to main
 - `/dev:code-review` - Review code quality
 
 **Research:**
+
 - `/gh-search <query>` - Search GitHub for code examples
 - `/gemini-research <query>` - Google Search via Gemini CLI
 - `/parallel-search <topic>` - Multi-angle web research
 
 **Meta (creating Claude Code artifacts):**
+
 - `/meta:claude-code:create-skill` - Create new skill
 - `/meta:claude-code:create-command` - Create new command
 - `/meta:claude-code:create-agent` - Create new agent
@@ -158,6 +163,7 @@ Common functions (e.g., `sanitizeForFilename`, `log`) live in `tools/lib/` with 
 7. **Update CLAUDE.md** (if foundational change)
 
 **Example:** `/gemini-research` command
+
 - Docs: `context/knowledge/gemini-cli/GEMINI_CLI.md`
 - Script: `tools/src/commands/gemini/search.ts`
 - Command: `.claude/commands/gemini-research.md`
@@ -191,29 +197,32 @@ Ask before creating feature branches. Some workflows allow direct commits to `ma
 See @context/coding/CODING_STYLE.md for comprehensive guidelines. Key points:
 
 **Functional Programming:**
+
 - Avoid classes (except custom Error types)
 - Small, focused functions
 - Immutable returns, pure functions
 - Composition over inheritance
 
 **Naming:**
+
 - Explicit, descriptive (include units: `timeoutMs`, `priceGBP`)
 - Booleans: `is/has/should`
 - Functions: verbs; Data: nouns
 
 **Logging (CLI projects):**
 This is a CLI-focused repo. Use human-readable output with `tools/lib/log.ts` (chalk-based):
+
 ```typescript
-import log from '@lib/log'
-log.success('Operation complete')
-log.error('Failed to process')
+import log from "@lib/log";
+log.success("Operation complete");
+log.error("Failed to process");
 ```
 
 See @context/coding/CODING_STYLE.md#logging for service vs CLI patterns.
 
 ## TypeScript Stack
 
-See @context/coding/ts/STACK.md for full list. Preferred tools:
+See @context/coding/stacks/ for stack compositions. Preferred tools:
 
 - **Package manager:** pnpm (for tools/), bun (for runtime/build)
 - **Runtime:** Bun, TypeScript
@@ -223,15 +232,17 @@ See @context/coding/ts/STACK.md for full list. Preferred tools:
 - **Utils:** date-fns, dotenv, zod
 
 **Import aliases:**
+
 - `@lib/*` maps to `./tools/lib/*`
 - `@tools/*` maps to `./tools/src/*`
 - `@context/*` maps to `./context/*`
 
 ## Testing
 
-When tests are added, follow @context/coding/ts/TESTING.md.
+When tests are added, follow @context/coding/testing/UNIT_TESTING.md.
 
 **Parameterized vs Individual:**
+
 - Pure functions with similar edge cases → `test.each()`
 - Different setup/mocks or business scenarios → individual tests
 

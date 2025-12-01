@@ -8,7 +8,7 @@
 
 Fast unit test framework with native ESM support.
 
-For Vitest setup and configuration, see @context/coding/ts/TOOLING.md#vitest
+For Vitest setup and configuration, see @context/coding/dx/LINT_FORMATTING.md
 
 ### Testing Guidelines: Parameterized vs Individual Tests
 

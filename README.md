@@ -123,12 +123,12 @@ description: TypeScript coding standards
 globs: ["**/*.ts", "**/*.tsx"]
 ---
 
-Follow guidelines in @context/coding/ts/STACK.md
+Follow guidelines in @context/coding/stacks/
 ```
 
 **Key references:**
 - `@context/coding/CODING_STYLE.md` - FP patterns, naming
-- `@context/coding/ts/STACK.md` - TypeScript stack
+- `@context/coding/stacks/` - TypeScript stack compositions
 - `@context/meta/PROMPTING.md` - Prompt engineering
 
 ## Directory Structure
@@ -189,18 +189,19 @@ all-agents/
 
 ## Documentation Index
 
-| Category | Files |
-|:---------|:------|
-| **Coding (Core)** | `context/coding/CODING_STYLE.md` - FP patterns, naming, logging |
-| **Workflow** | `context/coding/workflow/` - Commits, branches, code review, refactoring |
-| **TypeScript** | `context/coding/ts/` - Stack, testing, logging, tooling |
-| **Backend** | `context/coding/backend/` - API conventions, auth, validation, error handling |
-| **Frontend** | `context/coding/frontend/` - Components, state management, testing |
-| **Database** | `context/coding/database/` - Schema, migrations |
-| **DevOps** | `context/coding/devops/` - Deployment, monitoring |
-| **Meta** | `context/meta/` - Prompting standards, agent templates |
-| **Knowledge** | `context/knowledge/` - Research tool documentation |
-| **Planning** | `docs/planning/` - Roadmap, user stories (project-local) |
+See **[context/README.md](context/README.md)** for the full documentation index with:
+- Stack quick start (Bun vs pnpm+Node)
+- Atomic docs (building blocks)
+- Stack aggregators (composition)
+
+| Category | Key Files |
+|:---------|:----------|
+| **TypeScript Stacks** | `context/coding/ts/STACK_TS_BUN.md`, `STACK_TS_PNPM_NODE.md` |
+| **Coding Style** | `context/coding/CODING_STYLE.md` |
+| **Workflow** | `context/coding/workflow/` - Commits, branches, code review |
+| **Meta** | `context/meta/PROMPTING.md`, `AGENT_TEMPLATES.md` |
+| **Knowledge** | `context/knowledge/` - Research tool docs |
+| **Planning** | `docs/planning/` - Roadmap, stories (project-local) |
 
 ## Development
 
