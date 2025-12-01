@@ -62,4 +62,4 @@
 - Test names should tell a story
 - Tests serve as documentation
 
-For language-specific testing patterns, see @context/typescript/TESTING.md
+For language-specific testing patterns, see @context/coding/ts/TESTING.md

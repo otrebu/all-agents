@@ -154,7 +154,7 @@ export default ubaPrettierConfig;
 
 Fast unit test framework with native ESM support.
 
-For testing patterns and guidelines, see @context/typescript/TESTING.md
+For testing patterns and guidelines, see @context/coding/ts/TESTING.md
 
 ## UI Libraries
 
@@ -277,7 +277,7 @@ import chalk from "chalk";
 console.log(chalk.blue.bold("Success!"));
 ```
 
-For CLI logging patterns, see @context/typescript/LOGGING.md
+For CLI logging patterns, see @context/coding/ts/LOGGING.md
 
 ### commander
 
@@ -305,7 +305,7 @@ const spinner = ora("Loading...").start();
 spinner.succeed("Done!");
 ```
 
-For CLI logging patterns, see @context/typescript/LOGGING.md
+For CLI logging patterns, see @context/coding/ts/LOGGING.md
 
 ## Utilities
 
