@@ -8,3 +8,15 @@ yarn-debug.log*
 yarn-error.log*
 
 bin/aaa
+
+# Claude Code internals (session/debug state)
+.claude/*.json
+.claude/*.json.backup
+.claude/debug/
+.claude/file-history/
+.claude/history.jsonl
+.claude/plans/
+.claude/projects/
+.claude/shell-snapshots/
+.claude/statsig/
+.claude/todos/

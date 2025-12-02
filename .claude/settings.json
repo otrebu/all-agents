@@ -181,10 +181,6 @@
           {
             "type": "command",
             "command": "afplay /System/Library/Sounds/Glass.aiff"
-          },
-          {
-            "type": "prompt",
-            "prompt": "Evaluate if Claude should stop: $ARGUMENTS. Check if all tasks are complete."
           }
         ]
       }
