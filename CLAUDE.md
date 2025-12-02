@@ -7,7 +7,7 @@ Development reference for Claude Code when working in this repo. For setup, usag
 - **Runtime:** Bun (TypeScript)
 - **CLI libs:** commander, chalk, ora, boxen
 - **Linting:** ESLint (uba-eslint-config), `no-console` allowed
-- **Testing:** Vitest (E2E)
+- **Testing:** bun:test (E2E)
 
 **Import aliases:**
 - `@lib/*` → `./tools/lib/*`
@@ -159,4 +159,4 @@ Ask before creating feature branches. Use `/dev:start-feature <description>` if 
 
 - No emojis in code/commits unless requested
 - FP-first: avoid `this`, `new`, classes (except errors)
-- Follow @context/coding/DEVELOPMENT_WORKFLOW.md when coding
+- Follow @context/coding/workflow/DEV_LIFECYCLE.md when coding

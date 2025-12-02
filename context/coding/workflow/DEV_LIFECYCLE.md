@@ -74,3 +74,24 @@ Update docs immediately after implementing features:
 - Lint/type checks pass
 - Docs updated (README/examples)
 - PR description explains what/why, links ticket, notes breaking changes
+
+## 7) Tools/ CLI Development
+
+Pre-commit hooks automatically run when `tools/` files are staged:
+- `bun run lint`
+- `bun run format:check`
+- `bun run typecheck`
+
+Tests are NOT in hooks (judgment call based on change scope).
+
+**Quick commands:**
+```bash
+cd tools
+bun run dev <cmd>      # Run CLI
+bun run lint           # Lint
+bun run format         # Format
+bun run typecheck      # Type check
+bun test               # Run tests
+```
+
+See `@context/coding/E2E_CLI_TESTING.md` for test patterns.

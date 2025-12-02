@@ -1,0 +1,5 @@
+# Only run checks if tools/ files are staged
+if git diff --cached --name-only | grep -q "^tools/"; then
+  echo "Running tools/ pre-commit checks..."
+  cd tools && bun run lint && bun run format:check && bun run typecheck
+fi

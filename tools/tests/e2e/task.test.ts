@@ -1,7 +1,13 @@
 import { getProjectRoot } from "@tools/utils/paths.js";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -62,7 +68,15 @@ describe("task E2E", () => {
   test("create: first task in empty dir is 001", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
-      ["run", "dev", "task", "create", "my-first-task", "--dir", temporaryDirectory],
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "my-first-task",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR, reject: false },
     );
 
@@ -81,7 +95,15 @@ describe("task E2E", () => {
 
     const { exitCode, stdout } = await execa(
       "bun",
-      ["run", "dev", "task", "create", "second-task", "--dir", temporaryDirectory],
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "second-task",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR, reject: false },
     );
 
@@ -116,7 +138,15 @@ describe("task E2E", () => {
 
     const { exitCode, stdout } = await execa(
       "bun",
-      ["run", "dev", "task", "create", "first-real-task", "--dir", temporaryDirectory],
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "first-real-task",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR, reject: false },
     );
 
@@ -144,7 +174,15 @@ describe("task E2E", () => {
   test("create: outputs full filepath to stdout", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
-      ["run", "dev", "task", "create", "path-test", "--dir", temporaryDirectory],
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "path-test",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR, reject: false },
     );
 
