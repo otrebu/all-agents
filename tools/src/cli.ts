@@ -1,14 +1,15 @@
 #!/usr/bin/env bun
 import { Command, Option } from "@commander-js/extra-typings";
 
-import type { GeminiMode } from "./commands/gemini/search.js";
+import type { GeminiMode } from "./commands/gemini/search";
 
-import { runGeminiResearchCli } from "./commands/gemini/search.js";
-import { runGitHubSearchCli } from "./commands/github/main.js";
-import { runParallelSearchCli } from "./commands/parallel-search/search.js";
-import runSetup from "./commands/setup/index.js";
-import { runTaskCreateCli } from "./commands/task/index.js";
-import runUninstall from "./commands/uninstall/index.js";
+import { runGeminiResearchCli } from "./commands/gemini/search";
+import { runGitHubSearchCli } from "./commands/github/main";
+import { runParallelSearchCli } from "./commands/parallel-search/search";
+import runSetup from "./commands/setup/index";
+import { runStoryCreateCli } from "./commands/story/index";
+import { runTaskCreateCli } from "./commands/task/index";
+import runUninstall from "./commands/uninstall/index";
 
 const program = new Command()
   .name("aaa")
@@ -85,6 +86,7 @@ program.addCommand(
     .action(runUninstall),
 );
 
+// Task management
 const taskCommand = new Command("task").description(
   "Task management utilities",
 );
@@ -101,5 +103,23 @@ taskCommand.addCommand(
 );
 
 program.addCommand(taskCommand);
+
+// Story management
+const storyCommand = new Command("story").description(
+  "Story management utilities",
+);
+
+storyCommand.addCommand(
+  new Command("create")
+    .description("Create empty story file with auto-numbered name")
+    .argument("<name>", "Story name in kebab-case")
+    .option(
+      "-d, --dir <path>",
+      "Custom stories directory (default: docs/planning/stories)",
+    )
+    .action(runStoryCreateCli),
+);
+
+program.addCommand(storyCommand);
 
 program.parse();
