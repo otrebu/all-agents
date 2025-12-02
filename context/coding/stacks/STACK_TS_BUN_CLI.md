@@ -8,7 +8,7 @@ CLI tools with Bun runtime: fast startup, native TS, single-file executables.
 |-------|-----------|
 | Runtime | @context/coding/runtime/BUN.md |
 | CLI | @context/coding/cli/CLI_LIBS.md, @context/coding/cli/LOGGING_CLI.md |
-| Testing | @context/coding/testing/UNIT_TESTING.md |
+| Testing | @context/coding/testing/UNIT_TESTING.md, @context/coding/E2E_CLI_TESTING.md |
 | DX | @context/coding/dx/LINT_FORMATTING.md |
 | Libs | @context/coding/libs/DOTENV.md |
 | Workflow | @context/coding/workflow/COMMIT.md, @context/coding/workflow/DEV_LIFECYCLE.md |
@@ -60,10 +60,13 @@ mycli/
 ```bash
 bun run src/cli.ts          # Dev run
 bun test                    # Run tests
+bun test tools/tests/e2e/   # Run E2E tests only
 bun run typecheck           # tsc --noEmit
 bun run lint                # ESLint
 bun build ./src/cli.ts --compile --outfile ./bin/mycli  # Build exe
 ```
+
+**New CLI commands must have E2E tests.** See @context/coding/E2E_CLI_TESTING.md.
 
 ## Minimal CLI
 

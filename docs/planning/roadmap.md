@@ -12,6 +12,12 @@
   - Move command definitions next to related documentation
   - Each command module exports its own Command instance
 
+## Setup Enhancements
+
+- [ ] Add Cursor rules to setup command
+  - Copy `.cursor/rules/*.mdc` files to project
+  - Include coding style, stack-specific rules
+
 ## Release & CI/CD
 
 - [ ] Add semantic-release

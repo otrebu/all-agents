@@ -1,3 +1,1 @@
-import { ubaPrettierConfig } from "uba-eslint-config";
-
-export default ubaPrettierConfig;
+export { ubaPrettierConfig as default } from "uba-eslint-config";

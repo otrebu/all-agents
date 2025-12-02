@@ -117,24 +117,23 @@ async function setupProject(): Promise<void> {
   // Step 4: Copy docs templates
   const DIRS_ONLY = ["planning", "research"];
   const docsSource = resolve(root, "docs");
-  const docsDest = resolve(cwd, "docs");
+  const docsDestination = resolve(cwd, "docs");
 
   const subdirs = readdirSync(docsSource, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
 
   for (const subdir of subdirs) {
-    const destDir = resolve(docsDest, subdir);
-    if (existsSync(destDir)) {
+    const destinationDirectory = resolve(docsDestination, subdir);
+    if (existsSync(destinationDirectory)) {
       p.log.info(`docs/${subdir}/ already exists`);
-      continue;
-    }
-
-    if (DIRS_ONLY.includes(subdir)) {
-      mkdirSync(destDir, { recursive: true });
+    } else if (DIRS_ONLY.includes(subdir)) {
+      mkdirSync(destinationDirectory, { recursive: true });
       p.log.success(`Created docs/${subdir}/`);
     } else {
-      cpSync(resolve(docsSource, subdir), destDir, { recursive: true });
+      cpSync(resolve(docsSource, subdir), destinationDirectory, {
+        recursive: true,
+      });
       p.log.success(`Copied docs/${subdir}/`);
     }
   }
