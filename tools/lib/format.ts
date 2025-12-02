@@ -11,27 +11,27 @@ function extractTopicFromUrl(url: string): string {
     const parts: Array<string> = [];
 
     // Get domain name (include subdomain if meaningful, e.g., docs.tanstack.com)
-    const domainParts = urlObject.hostname.split('.');
-    if (domainParts[0] === 'www') {
+    const domainParts = urlObject.hostname.split(".");
+    if (domainParts[0] === "www") {
       // Skip www, take next parts (e.g., www.example.com -> example)
       const secondPart = domainParts[1];
-      if (secondPart !== undefined && secondPart !== '') {
+      if (secondPart !== undefined && secondPart !== "") {
         parts.push(secondPart);
       }
     } else if (domainParts.length >= 3) {
       // Has subdomain (e.g., docs.tanstack.com -> docs, tanstack)
       const firstPart = domainParts[0];
       const secondPart = domainParts[1];
-      if (firstPart !== undefined && firstPart !== '') {
+      if (firstPart !== undefined && firstPart !== "") {
         parts.push(firstPart);
       }
-      if (secondPart !== undefined && secondPart !== '') {
+      if (secondPart !== undefined && secondPart !== "") {
         parts.push(secondPart);
       }
     } else {
       // No subdomain (e.g., example.com -> example)
       const firstPart = domainParts[0];
-      if (firstPart !== undefined && firstPart !== '') {
+      if (firstPart !== undefined && firstPart !== "") {
         parts.push(firstPart);
       }
     }
@@ -39,21 +39,23 @@ function extractTopicFromUrl(url: string): string {
     // Get path segments (exclude 'latest' and version numbers)
     // Max 3 path segments
     const pathSegments = urlObject.pathname
-      .split('/')
-      .filter(seg => seg.length > 0 && seg !== 'latest' && !/^v\d+$/.test(seg))
+      .split("/")
+      .filter(
+        (seg) => seg.length > 0 && seg !== "latest" && !/^v\d+$/.test(seg),
+      )
       .slice(0, 3);
     parts.push(...pathSegments);
 
     // Join with hyphens and sanitize
     return parts
-      .join('-')
+      .join("-")
       .toLowerCase()
-      .replaceAll(/[^a-z0-9-]/g, '')
-      .replaceAll(/-+/g, '-')
-      .replaceAll(/^-+|-+$/g, '');
+      .replaceAll(/[^a-z0-9-]/g, "")
+      .replaceAll(/-+/g, "-")
+      .replaceAll(/^-+|-+$/g, "");
   } catch {
     // Invalid URL, return empty string to fall back
-    return '';
+    return "";
   }
 }
 
@@ -67,7 +69,7 @@ function sanitizeForFilename(query: string): string {
   const trimmed = query.trim().toLowerCase();
 
   // Try to extract meaningful topic from URL
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     const urlTopic = extractTopicFromUrl(trimmed);
     if (urlTopic.length > 0) {
       return urlTopic.slice(0, 50);
@@ -76,11 +78,11 @@ function sanitizeForFilename(query: string): string {
 
   // Fall back to natural language sanitization
   return trimmed
-    .replaceAll(/[^a-z0-9\s-]/g, '')
+    .replaceAll(/[^a-z0-9\s-]/g, "")
     .trim()
-    .replaceAll(/\s+/g, '-')
-    .replaceAll(/-+/g, '-')
+    .replaceAll(/\s+/g, "-")
+    .replaceAll(/-+/g, "-")
     .slice(0, 50);
 }
 
-export default sanitizeForFilename
+export default sanitizeForFilename;

@@ -37,21 +37,25 @@ interface FetchSingleFileOptions {
 }
 
 interface OctokitError extends Error {
-  response?: {
-    headers?: Record<string, string>;
-  };
+  response?: { headers?: Record<string, string> };
   status?: number;
 }
 
 function buildSearchQuery(query: string, options: SearchOptions): string {
   let q = query;
 
-  if (options.language !== undefined && options.language.length > 0) q += ` language:${options.language}`;
-  if (options.extension !== undefined && options.extension.length > 0) q += ` extension:${options.extension}`;
-  if (options.filename !== undefined && options.filename.length > 0) q += ` filename:${options.filename}`;
-  if (options.repo !== undefined && options.repo.length > 0) q += ` repo:${options.repo}`;
-  if (options.owner !== undefined && options.owner.length > 0) q += ` user:${options.owner}`;
-  if (options.path !== undefined && options.path.length > 0) q += ` path:${options.path}`;
+  if (options.language !== undefined && options.language.length > 0)
+    q += ` language:${options.language}`;
+  if (options.extension !== undefined && options.extension.length > 0)
+    q += ` extension:${options.extension}`;
+  if (options.filename !== undefined && options.filename.length > 0)
+    q += ` filename:${options.filename}`;
+  if (options.repo !== undefined && options.repo.length > 0)
+    q += ` repo:${options.repo}`;
+  if (options.owner !== undefined && options.owner.length > 0)
+    q += ` user:${options.owner}`;
+  if (options.path !== undefined && options.path.length > 0)
+    q += ` path:${options.path}`;
 
   return q.trim();
 }
@@ -82,7 +86,11 @@ function detectLanguage(path: string): string {
 
 // ===== PARALLEL FETCHING =====
 
-function expandContextBackward(content: string, startPos: number, lineCount: number): number {
+function expandContextBackward(
+  content: string,
+  startPos: number,
+  lineCount: number,
+): number {
   let contextStart = startPos;
   let currentLineCount = 0;
 
@@ -96,7 +104,11 @@ function expandContextBackward(content: string, startPos: number, lineCount: num
   return contextStart;
 }
 
-function expandContextForward(content: string, endPos: number, lineCount: number): number {
+function expandContextForward(
+  content: string,
+  endPos: number,
+  lineCount: number,
+): number {
   let contextEnd = endPos;
   let currentLineCount = 0;
 
@@ -111,14 +123,14 @@ function expandContextForward(content: string, endPos: number, lineCount: number
 }
 
 function extractMatchesWithContext(
-  options: ExtractMatchesWithContextOptions
+  options: ExtractMatchesWithContextOptions,
 ): string {
   const { content, contextLinesCount, textMatches } = options;
   const fragments: Array<string> = [];
 
   for (const match of textMatches) {
     if (match.property === "content") {
-      const {fragment} = match;
+      const { fragment } = match;
       const fragmentIndex = content.indexOf(fragment);
 
       if (fragmentIndex === -1) {
@@ -131,8 +143,16 @@ function extractMatchesWithContext(
         if (endPos === -1) endPos = content.length;
 
         // Expand context
-        let contextStart = expandContextBackward(content, startPos, contextLinesCount);
-        const contextEnd = expandContextForward(content, endPos, contextLinesCount);
+        let contextStart = expandContextBackward(
+          content,
+          startPos,
+          contextLinesCount,
+        );
+        const contextEnd = expandContextForward(
+          content,
+          endPos,
+          contextLinesCount,
+        );
 
         // Adjust to line boundaries
         contextStart = content.lastIndexOf("\n", contextStart) + 1;
@@ -150,7 +170,7 @@ function extractMatchesWithContext(
 }
 
 async function fetchCodeFiles(
-  options: FetchCodeFilesOptions
+  options: FetchCodeFilesOptions,
 ): Promise<Array<CodeFile>> {
   const {
     contextLinesCount = 20,
@@ -162,13 +182,15 @@ async function fetchCodeFiles(
 
   const fetchPromises = rankedResults
     .slice(0, maxFiles)
-    .map(async (result) => fetchSingleFile({ contextLinesCount, octokit, result }));
+    .map(async (result) =>
+      fetchSingleFile({ contextLinesCount, octokit, result }),
+    );
 
   const settled = await Promise.allSettled(fetchPromises);
 
   const successfulFetches = settled
     .filter(
-      (r): r is PromiseFulfilledResult<CodeFile> => r.status === "fulfilled"
+      (r): r is PromiseFulfilledResult<CodeFile> => r.status === "fulfilled",
     )
     .map((r) => r.value);
 
@@ -178,7 +200,7 @@ async function fetchCodeFiles(
 
   if (failures.length > 0) {
     log.warn(
-      `Failed to fetch ${failures.length}/${rankedResults.length} files`
+      `Failed to fetch ${failures.length}/${rankedResults.length} files`,
     );
     failures.slice(0, 3).forEach((error) => {
       log.dim(`   - ${error.repository}/${error.path}: ${error.message}`);
@@ -194,7 +216,7 @@ async function fetchCodeFiles(
 // WHY: Code Search API doesn't return star counts, so we batch fetch repo details
 async function fetchRepoStars(
   octokit: Octokit,
-  results: Array<RawSearchResult>
+  results: Array<RawSearchResult>,
 ): Promise<Map<string, number>> {
   // Extract unique repo names
   const uniqueRepos = [...new Set(results.map((r) => r.repository.full_name))];
@@ -221,7 +243,7 @@ async function fetchRepoStars(
             // If repo fetch fails (deleted, private, etc), default to 0 stars
             return { fullName, stars: 0 };
           }
-        })
+        }),
       );
 
       for (const { fullName, stars } of batchResults) {
@@ -237,7 +259,7 @@ async function fetchRepoStars(
 }
 
 async function fetchSingleFile(
-  options: FetchSingleFileOptions
+  options: FetchSingleFileOptions,
 ): Promise<CodeFile> {
   const { contextLinesCount, octokit, result } = options;
   try {
@@ -310,7 +332,7 @@ function getGitHubToken(): string {
   } catch (error) {
     throw new AuthError(
       "GitHub CLI not found or authentication failed. Install: https://cli.github.com/",
-      error as Error
+      error as Error,
     );
   }
 }
@@ -330,7 +352,7 @@ function isAuthenticated(): boolean {
 async function searchGitHubCode(
   token: string,
   query: string,
-  options: SearchOptions = {}
+  options: SearchOptions = {},
 ): Promise<Array<SearchResult>> {
   const octokit = new Octokit({ auth: token });
   const searchQuery = buildSearchQuery(query, options);
@@ -340,11 +362,12 @@ async function searchGitHubCode(
   let page = 1;
   let remaining = limit;
 
-  async function fetchPage(pageNumber: number, itemsPerPage: number): Promise<Array<RawSearchResult>> {
+  async function fetchPage(
+    pageNumber: number,
+    itemsPerPage: number,
+  ): Promise<Array<RawSearchResult>> {
     const response = await octokit.rest.search.code({
-      headers: {
-        Accept: "application/vnd.github.v3.text-match+json",
-      },
+      headers: { Accept: "application/vnd.github.v3.text-match+json" },
       page: pageNumber,
       per_page: itemsPerPage,
       q: searchQuery,
@@ -354,18 +377,15 @@ async function searchGitHubCode(
     const rateLimitRemainingHeader = response.headers["x-ratelimit-remaining"];
     const rateLimitRemaining = Number.parseInt(
       rateLimitRemainingHeader ?? "0",
-      10
+      10,
     );
     const rateLimitResetHeader = response.headers["x-ratelimit-reset"];
-    const rateLimitReset = Number.parseInt(
-      rateLimitResetHeader ?? "0",
-      10
-    );
+    const rateLimitReset = Number.parseInt(rateLimitResetHeader ?? "0", 10);
 
     if (rateLimitRemaining < 10) {
       const resetDate = new Date(rateLimitReset * 1000);
       log.warn(
-        `Rate limit low: ${rateLimitRemaining} requests remaining (resets at ${resetDate.toLocaleTimeString()})`
+        `Rate limit low: ${rateLimitRemaining} requests remaining (resets at ${resetDate.toLocaleTimeString()})`,
       );
     }
 
@@ -388,16 +408,20 @@ async function searchGitHubCode(
       const octokitError = error as OctokitError;
       if (octokitError.status === 403) {
         const resetTime = octokitError.response?.headers?.["x-ratelimit-reset"];
-        const resetDate = (resetTime !== undefined && resetTime.length > 0)
-          ? new Date(Number.parseInt(resetTime, 10) * 1000)
-          : new Date();
+        const resetDate =
+          resetTime !== undefined && resetTime.length > 0
+            ? new Date(Number.parseInt(resetTime, 10) * 1000)
+            : new Date();
         throw new RateLimitError(
           "GitHub API rate limit exceeded",
           resetDate,
-          0
+          0,
         );
       }
-      throw new SearchError(`Search failed: ${octokitError.message}`, octokitError);
+      throw new SearchError(
+        `Search failed: ${octokitError.message}`,
+        octokitError,
+      );
     }
   }
 

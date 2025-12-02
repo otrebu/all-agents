@@ -131,7 +131,7 @@ Return JSON:
 
 async function runGeminiResearch(
   query: string,
-  mode: GeminiMode = "quick"
+  mode: GeminiMode = "quick",
 ): Promise<GeminiResearchResult> {
   const RESEARCH_DIR = getOutputDir("research/google");
   debug("Gemini research:", { mode, query });
@@ -214,7 +214,7 @@ async function runGeminiResearch(
   log.info(`📝 Report Placeholder: ${mdPath}`);
   log.plain("");
   log.warn(
-    "👉 NEXT STEP: Open the Markdown file and let Claude generate the full report using the GEMINI_CLI template."
+    "👉 NEXT STEP: Open the Markdown file and let Claude generate the full report using the GEMINI_CLI template.",
   );
   log.plain("");
 
@@ -223,7 +223,7 @@ async function runGeminiResearch(
 
 async function runGeminiResearchCli(
   query: string,
-  mode: GeminiMode = "quick"
+  mode: GeminiMode = "quick",
 ): Promise<void> {
   try {
     await runGeminiResearch(query, mode);

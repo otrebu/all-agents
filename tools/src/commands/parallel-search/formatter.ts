@@ -27,7 +27,7 @@ function formatDomainSummary(results: Array<SearchResult>): Array<string> {
  */
 function formatResults(
   results: Array<SearchResult>,
-  metadata: SearchMetadata
+  metadata: SearchMetadata,
 ): string {
   const header = [
     "# Parallel Search Results\n",

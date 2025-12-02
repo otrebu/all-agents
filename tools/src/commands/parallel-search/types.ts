@@ -2,31 +2,31 @@
  * Metadata about the search execution
  */
 export interface SearchMetadata {
-  executionTimeMs: number
-  objective: string
-  resultCount: number
+  executionTimeMs: number;
+  objective: string;
+  resultCount: number;
 }
 
 /**
  * Search configuration options
  */
 export interface SearchOptions {
-  maxCharsPerResult?: number
-  maxResults?: number
-  objective?: string
-  processor?: 'base' | 'pro'
-  searchQueries?: Array<string>
+  maxCharsPerResult?: number;
+  maxResults?: number;
+  objective?: string;
+  processor?: "base" | "pro";
+  searchQueries?: Array<string>;
 }
 
 /**
  * Individual search result from Parallel API
  */
 export interface SearchResult {
-  domain: string
-  excerpts: Array<string>
-  rank: number
-  title: string
-  url: string
+  domain: string;
+  excerpts: Array<string>;
+  rank: number;
+  title: string;
+  url: string;
 }
 
 /**
@@ -34,9 +34,9 @@ export interface SearchResult {
  */
 export class AuthError extends Error {
   constructor(message: string) {
-    super(message)
-    this.name = 'AuthError'
-    Error.captureStackTrace(this, AuthError)
+    super(message);
+    this.name = "AuthError";
+    Error.captureStackTrace(this, AuthError);
   }
 }
 
@@ -44,10 +44,13 @@ export class AuthError extends Error {
  * Network error - connection issues
  */
 export class NetworkError extends Error {
-  constructor(message: string, public override cause?: Error) {
-    super(message)
-    this.name = 'NetworkError'
-    Error.captureStackTrace(this, NetworkError)
+  constructor(
+    message: string,
+    public override cause?: Error,
+  ) {
+    super(message);
+    this.name = "NetworkError";
+    Error.captureStackTrace(this, NetworkError);
   }
 }
 
@@ -55,10 +58,13 @@ export class NetworkError extends Error {
  * Base error class for Parallel Search errors
  */
 export class ParallelSearchError extends Error {
-  constructor(message: string, public override cause?: Error) {
-    super(message)
-    this.name = 'ParallelSearchError'
-    Error.captureStackTrace(this, ParallelSearchError)
+  constructor(
+    message: string,
+    public override cause?: Error,
+  ) {
+    super(message);
+    this.name = "ParallelSearchError";
+    Error.captureStackTrace(this, ParallelSearchError);
   }
 }
 
@@ -69,11 +75,11 @@ export class RateLimitError extends Error {
   constructor(
     message: string,
     public resetAt?: Date,
-    public remaining?: number
+    public remaining?: number,
   ) {
-    super(message)
-    this.name = 'RateLimitError'
-    Error.captureStackTrace(this, RateLimitError)
+    super(message);
+    this.name = "RateLimitError";
+    Error.captureStackTrace(this, RateLimitError);
   }
 }
 
@@ -82,8 +88,8 @@ export class RateLimitError extends Error {
  */
 export class ValidationError extends Error {
   constructor(message: string) {
-    super(message)
-    this.name = 'ValidationError'
-    Error.captureStackTrace(this, ValidationError)
+    super(message);
+    this.name = "ValidationError";
+    Error.captureStackTrace(this, ValidationError);
   }
 }

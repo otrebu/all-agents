@@ -23,7 +23,7 @@ export interface SaveResearchOptions {
  * @returns Paths to the created files and the timestamp used
  */
 export async function saveResearchOutput(
-  options: SaveResearchOptions
+  options: SaveResearchOptions,
 ): Promise<ResearchPaths> {
   const { markdownContent, outputDir, rawData, topic } = options;
 

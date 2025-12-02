@@ -1,59 +1,61 @@
 #!/usr/bin/env node
 
-import log from "@lib/log.js"
-import { saveResearchOutput } from "@lib/research.js"
-import { debug } from "@tools/env.js"
-import { getOutputDir } from "@tools/utils/paths.js"
-import ora from "ora"
+import log from "@lib/log.js";
+import { saveResearchOutput } from "@lib/research.js";
+import { debug } from "@tools/env.js";
+import { getOutputDir } from "@tools/utils/paths.js";
+import ora from "ora";
 
-import { formatResults } from "./formatter.js"
-import executeSearch from "./parallel-client.js"
+import { formatResults } from "./formatter.js";
+import executeSearch from "./parallel-client.js";
 import {
   AuthError,
   NetworkError,
   RateLimitError,
   ValidationError,
-} from "./types.js"
+} from "./types.js";
 
 interface ParallelSearchOptions {
-  maxChars?: number
-  maxResults?: number
-  objective: string
-  processor?: 'base' | 'pro'
-  queries?: Array<string>
+  maxChars?: number;
+  maxResults?: number;
+  objective: string;
+  processor?: "base" | "pro";
+  queries?: Array<string>;
 }
 
 interface ParallelSearchResult {
-  jsonPath: string
-  mdPath: string
-  results: Array<unknown>
+  jsonPath: string;
+  mdPath: string;
+  results: Array<unknown>;
 }
 
-async function runParallelSearch(options: ParallelSearchOptions): Promise<ParallelSearchResult> {
-  const RESEARCH_DIR = getOutputDir('research/parallel')
-  debug('Parallel search config:', options)
+async function runParallelSearch(
+  options: ParallelSearchOptions,
+): Promise<ParallelSearchResult> {
+  const RESEARCH_DIR = getOutputDir("research/parallel");
+  debug("Parallel search config:", options);
 
-  const startTime = Date.now()
-  const queries = options.queries ?? []
-  const processor = options.processor ?? 'pro'
-  const maxResults = options.maxResults ?? 15
-  const maxChars = options.maxChars ?? 5000
+  const startTime = Date.now();
+  const queries = options.queries ?? [];
+  const processor = options.processor ?? "pro";
+  const maxResults = options.maxResults ?? 15;
+  const maxChars = options.maxChars ?? 5000;
 
-  log.header("\n🔍 Parallel Search\n")
+  log.header("\n🔍 Parallel Search\n");
 
-  log.dim("Search Configuration:")
-  log.dim(`  Objective: "${options.objective}"`)
+  log.dim("Search Configuration:");
+  log.dim(`  Objective: "${options.objective}"`);
   if (queries.length > 0) {
-    log.dim(`  Queries: ${queries.length}`)
+    log.dim(`  Queries: ${queries.length}`);
     queries.forEach((query: string, index: number) => {
-      log.dim(`    ${index + 1}. "${query}"`)
-    })
+      log.dim(`    ${index + 1}. "${query}"`);
+    });
   }
-  log.dim(`  Processor: ${processor}`)
-  log.dim(`  Max Results: ${maxResults}`)
-  log.dim(`  Max Chars: ${maxChars}\n`)
+  log.dim(`  Processor: ${processor}`);
+  log.dim(`  Max Results: ${maxResults}`);
+  log.dim(`  Max Chars: ${maxChars}\n`);
 
-  const spinner = ora("Searching...").start()
+  const spinner = ora("Searching...").start();
 
   const results = await executeSearch({
     maxCharsPerResult: maxChars,
@@ -61,24 +63,24 @@ async function runParallelSearch(options: ParallelSearchOptions): Promise<Parall
     objective: options.objective,
     processor,
     searchQueries: queries,
-  })
+  });
 
-  const executionTimeMs = Date.now() - startTime
+  const executionTimeMs = Date.now() - startTime;
 
   if (results.length === 0) {
-    spinner.warn("No results found")
-    log.dim("\nTry a different query or adjust your search parameters.\n")
-    return { jsonPath: '', mdPath: '', results: [] }
+    spinner.warn("No results found");
+    log.dim("\nTry a different query or adjust your search parameters.\n");
+    return { jsonPath: "", mdPath: "", results: [] };
   }
 
-  spinner.succeed(`Found ${results.length} results`)
+  spinner.succeed(`Found ${results.length} results`);
 
   // Format and output results
   const report = formatResults(results, {
     executionTimeMs,
     objective: options.objective,
     resultCount: results.length,
-  })
+  });
 
   // Save research output
   const { jsonPath, mdPath } = await saveResearchOutput({
@@ -86,60 +88,60 @@ async function runParallelSearch(options: ParallelSearchOptions): Promise<Parall
     outputDir: RESEARCH_DIR,
     rawData: results,
     topic: options.objective,
-  })
+  });
 
-  log.plain(`\n${report}`)
+  log.plain(`\n${report}`);
 
-  log.success(
-    `\nSearch completed in ${(executionTimeMs / 1000).toFixed(1)}s`
-  )
-  log.plain("")
-  log.info(`📄 Raw Data: ${jsonPath}`)
-  log.info(`📝 Report: ${mdPath}`)
+  log.success(`\nSearch completed in ${(executionTimeMs / 1000).toFixed(1)}s`);
+  log.plain("");
+  log.info(`📄 Raw Data: ${jsonPath}`);
+  log.info(`📝 Report: ${mdPath}`);
 
-  return { jsonPath, mdPath, results }
+  return { jsonPath, mdPath, results };
 }
 
-async function runParallelSearchCli(options: ParallelSearchOptions): Promise<void> {
+async function runParallelSearchCli(
+  options: ParallelSearchOptions,
+): Promise<void> {
   try {
-    await runParallelSearch(options)
+    await runParallelSearch(options);
   } catch (error: unknown) {
     if (error instanceof AuthError) {
-      log.error("\nAuthentication failed")
-      log.dim(error.message)
-      log.dim("\nGet your API key at: https://platform.parallel.ai/")
-      log.dim('Then run: export AAA_PARALLEL_API_KEY="your-key-here"\n')
+      log.error("\nAuthentication failed");
+      log.dim(error.message);
+      log.dim("\nGet your API key at: https://platform.parallel.ai/");
+      log.dim('Then run: export AAA_PARALLEL_API_KEY="your-key-here"\n');
     } else if (error instanceof RateLimitError) {
-      log.error("\nRate limit exceeded")
-      log.dim(error.message)
+      log.error("\nRate limit exceeded");
+      log.dim(error.message);
       if (error.resetAt !== undefined) {
-        log.dim(`\nResets at: ${error.resetAt.toLocaleString()}`)
+        log.dim(`\nResets at: ${error.resetAt.toLocaleString()}`);
       }
       if (error.remaining !== undefined) {
-        log.dim(`Remaining requests: ${error.remaining}`)
+        log.dim(`Remaining requests: ${error.remaining}`);
       }
-      log.dim("")
+      log.dim("");
     } else if (error instanceof NetworkError) {
-      log.error("\nNetwork error")
-      log.dim(error.message)
-      log.dim("\nPlease check your internet connection and try again.\n")
+      log.error("\nNetwork error");
+      log.dim(error.message);
+      log.dim("\nPlease check your internet connection and try again.\n");
     } else if (error instanceof ValidationError) {
-      log.error("\nValidation error")
-      log.dim(error.message)
-      log.dim("\nRun with --help to see valid options.\n")
+      log.error("\nValidation error");
+      log.dim(error.message);
+      log.dim("\nRun with --help to see valid options.\n");
     } else {
-      const errorObject = error as Error
-      log.error("\nUnexpected error")
-      log.dim(errorObject.message)
+      const errorObject = error as Error;
+      log.error("\nUnexpected error");
+      log.dim(errorObject.message);
       if (errorObject.stack !== undefined) {
-        log.dim(`\n${errorObject.stack}`)
+        log.dim(`\n${errorObject.stack}`);
       }
-      log.dim("")
+      log.dim("");
     }
 
-    process.exit(1)
+    process.exit(1);
   }
 }
 
-export type { ParallelSearchOptions, ParallelSearchResult }
-export { runParallelSearch, runParallelSearchCli }
+export type { ParallelSearchOptions, ParallelSearchResult };
+export { runParallelSearch, runParallelSearchCli };
