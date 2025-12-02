@@ -2,27 +2,28 @@
 
 ## Definition of Done ✓
 
-A feature/change is complete when ALL of these are true:
+A feature/change is complete when ALL of these are done:
 
-1. ✅ Tests added/updated and passing
-2. ✅ README and relevant docs updated
-3. ✅ Committed with conventional commit message
-4. ✅ On feature branch (when appropriate)
+- [ ] Tests added/updated and passing
+- [ ] README, CLAUDE.md and relevant docs updated
+- [ ] Committed with conventional commit message
+- [ ] On feature branch (when appropriate)
 
 ---
 
 ## 0) Get context
 
-- Read `README` and package/project config first
+- Read @README.md and package.json first
 - Ask concise questions if missing info (test command, branch naming, CI)
 
 ## 1) Planning 📋
 
 **Before starting:**
 
-- Use plan mode → write to `docs/planning/stories/*` or `docs/planning/tasks/*`
-- Include: implementation steps, reasoning, broken-down tasks
-- Research external knowledge if needed (Task tool)
+- Use plan mode to plan
+- Write to `docs/planning/stories/*` or `docs/planning/tasks/*` when plan is approved
+- Follow @context/meta/task-template.md and @context/meta/story-template.md for templates
+- Research external knowledge if needed with @parallel-search or @gh-search
 - Think MVP - don't over-plan
 - **Ask for review before proceeding**
 
@@ -30,8 +31,6 @@ A feature/change is complete when ALL of these are true:
 
 - Update plan as you work
 - Append detailed change descriptions (for handover)
-
-See: `@context/meta/story-template.md`
 
 ## 2) Tests 🧪
 
@@ -64,7 +63,8 @@ Read & follow: `@context/coding/workflow/COMPLETE_FEATURE.md`
 Update docs immediately after implementing features:
 
 - **README**: Add features/commands, update examples, refresh structure
-- **Relevant docs**: Update `/docs`, HOW_TO guides, patterns
+- **CLAUDE.md**: Update technical details, how to develop on the project
+- **Relevant docs**: Update `/context` if it is central global knowledge or `/docs` if it is project specific knowledge
 - **Commit with feature** or in immediate follow-up
 - **For AI**: Don't wait to be asked. Ask "What docs need updating?" and do it
 
@@ -77,21 +77,10 @@ Update docs immediately after implementing features:
 
 ## 7) Tools/ CLI Development
 
-Pre-commit hooks automatically run when `tools/` files are staged:
-- `bun run lint`
-- `bun run format:check`
-- `bun run typecheck`
+If pre-commit hooks are installed they will run automatically for quality checks like:
 
-Tests are NOT in hooks (judgment call based on change scope).
+- `run lint:fix`
+- `run format:check`
+- `run typecheck`
 
-**Quick commands:**
-```bash
-cd tools
-bun run dev <cmd>      # Run CLI
-bun run lint           # Lint
-bun run format         # Format
-bun run typecheck      # Type check
-bun test               # Run tests
-```
-
-See `@context/coding/E2E_CLI_TESTING.md` for test patterns.
+If Tests are NOT in hooks (judgment call based on change scope), and `run test` for big changes.

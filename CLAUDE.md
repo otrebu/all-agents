@@ -42,12 +42,12 @@ tools/src/commands/my-cmd/
 ```typescript
 // tools/src/commands/my-cmd/types.ts
 export class MyCmdError extends Error {
-  name = 'MyCmdError'
+  override name = 'MyCmdError'
 }
 
 // tools/src/commands/my-cmd/main.ts
-import log from '@lib/log.js'
-import { MyCmdError } from './types.js'
+import log from '@lib/log'
+import { MyCmdError } from './types'
 
 interface MyCmdOptions {
   verbose?: boolean
@@ -81,7 +81,7 @@ export async function runMyCmdCli(query: string, options: MyCmdOptions): Promise
 
 ```typescript
 // tools/src/cli.ts
-import { runMyCmdCli } from './commands/my-cmd/main.js'
+import { runMyCmdCli } from './commands/my-cmd/main'
 
 program.addCommand(
   new Command('my-cmd')
@@ -95,11 +95,13 @@ program.addCommand(
 ### 4. Shared Utilities
 
 ```typescript
-import log from '@lib/log.js'           // Colored output
-import { saveResearchOutput } from '@lib/research.js'  // Save JSON + MD
-import { sanitizeForFilename } from '@lib/format.js'   // Safe filenames
-import { getOutputDir } from '@tools/utils/paths.js'   // Output paths
+import log from '@lib/log'                         // Colored output
+import { saveResearchOutput } from '@lib/research' // Save JSON + MD
+import { sanitizeForFilename } from '@lib/format'  // Safe filenames
+import { getOutputDir } from '@tools/utils/paths'  // Output paths
 ```
+
+**Note:** No `.js` extensions needed - Bun with `moduleResolution: "bundler"` resolves `.ts` directly.
 
 ### 5. (Optional) Claude Code Integration
 
@@ -126,16 +128,35 @@ tools/
 │   │   ├── gemini/         # gemini-research
 │   │   ├── parallel-search/
 │   │   ├── setup/
-│   │   └── task/
+│   │   ├── story/          # story create
+│   │   └── task/           # task create
 │   └── utils/paths.ts      # Path resolution
 ├── lib/                    # Shared utilities
 │   ├── log.ts              # CLI logging
+│   ├── numbered-files.ts   # Shared numbered file creation
 │   ├── research.ts         # saveResearchOutput()
 │   └── format.ts           # sanitizeForFilename()
 └── tests/e2e/
 ```
 
 **Pattern:** Commands reference docs in `context/`, generate output to `docs/research/`.
+
+## Running Tools
+
+Run CLI commands from project root using `--cwd`:
+
+```bash
+# Run CLI commands
+bun --cwd tools run dev <command>
+
+# Run tests
+bun --cwd tools test
+bun --cwd tools test ./tests/e2e/task.test.ts
+
+# Lint/typecheck
+bun --cwd tools run lint
+bun --cwd tools run typecheck
+```
 
 ## Workflow
 
