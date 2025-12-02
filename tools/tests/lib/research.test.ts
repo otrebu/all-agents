@@ -1,32 +1,36 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { saveResearchOutput } from "../../lib/research";
+import { saveResearchOutput } from "@lib/research";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  setSystemTime,
+  test,
+} from "bun:test";
 
 // Mock fs
-vi.mock("node:fs/promises", () => ({
-  mkdir: vi.fn(),
-  writeFile: vi.fn(),
+void mock.module("node:fs/promises", () => ({
+  mkdir: mock(async () => {}),
+  writeFile: mock(async () => {}),
 }));
 
 // Mock format utility
-vi.mock("../../lib/format", () => ({
+void mock.module("../../lib/format", () => ({
   default: (s: string) => s.replaceAll(/\s+/g, "-").toLowerCase(),
 }));
 
 describe("saveResearchOutput", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     // Set a fixed date: 2025-11-20T13:45:30.000Z
-    const date = new Date("2025-11-20T13:45:30.000Z");
-    vi.setSystemTime(date);
+    setSystemTime(new Date("2025-11-20T13:45:30.000Z"));
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    vi.clearAllMocks();
+    setSystemTime();
   });
 
-  it("generates correct timestamp format YYYYMMDD-HHMMSS", async () => {
+  test("generates correct timestamp format YYYYMMDD-HHMMSS", async () => {
     const options = {
       markdownContent: "# Test",
       outputDir: "docs/research/test",

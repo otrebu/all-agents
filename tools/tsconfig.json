@@ -12,10 +12,7 @@
     "outDir": "./dist",
     "rootDir": ".",
     "baseUrl": ".",
-    "paths": {
-      "@lib/*": ["./lib/*"],
-      "@tools/*": ["./src/*"]
-    },
+    "paths": { "@lib/*": ["./lib/*"], "@tools/*": ["./src/*"] },
     "types": ["bun-types"]
   },
   "include": [

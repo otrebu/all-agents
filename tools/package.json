@@ -1,14 +1,16 @@
 {
   "name": "all-agents-tools",
-  "type": "module",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "bun run src/cli.ts",
     "build": "bun build --compile --outfile ../bin/aaa ./src/cli.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "dev": "bun run src/cli.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -29,8 +31,8 @@
     "bun-types": "latest",
     "eslint": "^9.39.1",
     "glob": "^13.0.0",
+    "prettier": "^3.7.3",
     "typescript": "^5.9.3",
-    "uba-eslint-config": "^1.1.2",
-    "vitest": "^4.0.12"
+    "uba-eslint-config": "^1.2.0"
   }
 }
