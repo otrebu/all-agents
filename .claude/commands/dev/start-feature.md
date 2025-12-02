@@ -4,4 +4,4 @@ description: Create or switch to feature branches with proper naming conventions
 allowed-tools: Bash(git status:*), Bash(git branch:*), Bash(git checkout:*)
 ---
 
-@context/coding/START_FEATURE.md
+@context/coding/workflow/START_FEATURE.md

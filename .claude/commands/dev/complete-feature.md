@@ -3,4 +3,4 @@ allowed-tools: Bash(git branch:*), Bash(git status), Bash(git checkout:*), Bash(
 description: Merge a feature branch to main and handle cleanup
 ---
 
-@context/coding/COMPLETE_FEATURE.md
+@context/coding/workflow/COMPLETE_FEATURE.md
