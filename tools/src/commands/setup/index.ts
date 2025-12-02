@@ -1,6 +1,12 @@
 import * as p from "@clack/prompts";
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, symlinkSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  symlinkSync,
+} from "node:fs";
 import { resolve } from "node:path";
 
 import {
@@ -108,18 +114,29 @@ async function setupProject(): Promise<void> {
     p.log.success(`Symlink: context/ -> ${contextTarget}`);
   }
 
-  // Step 4: Create docs structure
-  const docsPlanning = resolve(cwd, "docs/planning");
-  const docsResearch = resolve(cwd, "docs/research");
+  // Step 4: Copy docs templates
+  const DIRS_ONLY = ["planning", "research"];
+  const docsSource = resolve(root, "docs");
+  const docsDest = resolve(cwd, "docs");
 
-  if (!existsSync(docsPlanning)) {
-    mkdirSync(docsPlanning, { recursive: true });
-    p.log.success("Created docs/planning/");
-  }
+  const subdirs = readdirSync(docsSource, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
 
-  if (!existsSync(docsResearch)) {
-    mkdirSync(docsResearch, { recursive: true });
-    p.log.success("Created docs/research/");
+  for (const subdir of subdirs) {
+    const destDir = resolve(docsDest, subdir);
+    if (existsSync(destDir)) {
+      p.log.info(`docs/${subdir}/ already exists`);
+      continue;
+    }
+
+    if (DIRS_ONLY.includes(subdir)) {
+      mkdirSync(destDir, { recursive: true });
+      p.log.success(`Created docs/${subdir}/`);
+    } else {
+      cpSync(resolve(docsSource, subdir), destDir, { recursive: true });
+      p.log.success(`Copied docs/${subdir}/`);
+    }
   }
 
   p.outro("Project setup complete");
