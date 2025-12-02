@@ -1,6 +1,6 @@
 import Parallel from "parallel-web";
 
-import type { SearchOptions, SearchResult } from "./types.js";
+import type { SearchOptions, SearchResult } from "./types";
 
 import {
   AuthError,
@@ -8,7 +8,7 @@ import {
   ParallelSearchError,
   RateLimitError,
   ValidationError,
-} from "./types.js";
+} from "./types";
 
 /**
  * Error with status and headers from Parallel API

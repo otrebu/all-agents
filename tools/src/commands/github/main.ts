@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
-import log from "@lib/log.js";
-import { saveResearchOutput } from "@lib/research.js";
-import { debug } from "@tools/env.js";
-import { getOutputDir } from "@tools/utils/paths.js";
+import log from "@lib/log";
+import { saveResearchOutput } from "@lib/research";
+import { debug } from "@tools/env";
+import { getOutputDir } from "@tools/utils/paths";
 import ora from "ora";
 
-import type { CodeFile } from "./types.js";
+import type { CodeFile } from "./types";
 
-import { fetchCodeFiles, getGitHubToken, searchGitHubCode } from "./github.js";
-import buildQueryIntent from "./query.js";
-import getRankedResults from "./ranker.js";
-import { AuthError, RateLimitError, SearchError } from "./types.js";
+import { fetchCodeFiles, getGitHubToken, searchGitHubCode } from "./github";
+import buildQueryIntent from "./query";
+import getRankedResults from "./ranker";
+import { AuthError, RateLimitError, SearchError } from "./types";
 
 interface GitHubSearchResult {
   files: Array<CodeFile>;

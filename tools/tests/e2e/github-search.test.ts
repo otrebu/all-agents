@@ -1,4 +1,4 @@
-import { getOutputDir } from "@tools/utils/paths.js";
+import { getOutputDir } from "@tools/utils/paths";
 import {
   afterAll,
   afterEach,

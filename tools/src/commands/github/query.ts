@@ -1,4 +1,4 @@
-import type { SearchOptions } from "./types.js";
+import type { SearchOptions } from "./types";
 
 interface QueryIntent {
   options: SearchOptions;

@@ -1,4 +1,4 @@
-import type { SearchMetadata, SearchResult } from "./types.js";
+import type { SearchMetadata, SearchResult } from "./types";
 
 /**
  * Format domain distribution summary
@@ -67,4 +67,4 @@ function getDomainCounts(results: Array<SearchResult>): Map<string, number> {
 }
 
 export { formatResults };
-export { default as sanitizeForFilename } from "@lib/format.js";
+export { default as sanitizeForFilename } from "@lib/format";

@@ -1,4 +1,4 @@
-import sanitizeForFilename from "@lib/format.js";
+import sanitizeForFilename from "@lib/format";
 import { describe, expect, test } from "bun:test";
 
 describe("sanitizeForFilename", () => {

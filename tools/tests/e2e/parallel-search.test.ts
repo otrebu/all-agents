@@ -1,4 +1,4 @@
-import { getOutputDir } from "@tools/utils/paths.js";
+import { getOutputDir } from "@tools/utils/paths";
 import { afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { execa } from "execa";
 import { glob } from "glob";

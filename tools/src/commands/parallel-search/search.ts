@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
-import log from "@lib/log.js";
-import { saveResearchOutput } from "@lib/research.js";
-import { debug } from "@tools/env.js";
-import { getOutputDir } from "@tools/utils/paths.js";
+import log from "@lib/log";
+import { saveResearchOutput } from "@lib/research";
+import { debug } from "@tools/env";
+import { getOutputDir } from "@tools/utils/paths";
 import ora from "ora";
 
-import { formatResults } from "./formatter.js";
-import executeSearch from "./parallel-client.js";
+import { formatResults } from "./formatter";
+import executeSearch from "./parallel-client";
 import {
   AuthError,
   NetworkError,
   RateLimitError,
   ValidationError,
-} from "./types.js";
+} from "./types";
 
 interface ParallelSearchOptions {
   maxChars?: number;

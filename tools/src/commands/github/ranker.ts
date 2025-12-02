@@ -1,4 +1,4 @@
-import type { RankedResult, SearchResult } from "./types.js";
+import type { RankedResult, SearchResult } from "./types";
 
 // Configuration: Adaptive filtering thresholds
 const MIN_STARS_THRESHOLD = 10;

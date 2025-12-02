@@ -1,4 +1,4 @@
-import { getProjectRoot } from "@tools/utils/paths.js";
+import { getProjectRoot } from "@tools/utils/paths";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
 import {

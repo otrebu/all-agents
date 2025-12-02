@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-import log from "@lib/log.js";
-import { saveResearchOutput } from "@lib/research.js";
-import { debug } from "@tools/env.js";
-import { getOutputDir } from "@tools/utils/paths.js";
+import log from "@lib/log";
+import { saveResearchOutput } from "@lib/research";
+import { debug } from "@tools/env";
+import { getOutputDir } from "@tools/utils/paths";
 import { execa } from "execa";
 import { writeFile } from "node:fs/promises";
 import ora from "ora";
 
-import type { GeminiResponse } from "./types.js";
+import type { GeminiResponse } from "./types";
 
 type GeminiMode = "code" | "deep" | "quick";
 

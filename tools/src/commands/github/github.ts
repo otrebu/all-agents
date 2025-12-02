@@ -1,4 +1,4 @@
-import log from "@lib/log.js";
+import log from "@lib/log";
 import { Octokit } from "@octokit/rest";
 import { execSync } from "node:child_process";
 
@@ -9,9 +9,9 @@ import type {
   SearchOptions,
   SearchResult,
   TextMatch,
-} from "./types.js";
+} from "./types";
 
-import { AuthError, FetchError, RateLimitError, SearchError } from "./types.js";
+import { AuthError, FetchError, RateLimitError, SearchError } from "./types";
 
 // ===== AUTHENTICATION =====
 

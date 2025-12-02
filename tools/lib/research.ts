@@ -1,4 +1,4 @@
-import sanitizeForFilename from "@lib/format.js";
+import sanitizeForFilename from "@lib/format";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
