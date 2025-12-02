@@ -65,6 +65,9 @@ aaa parallel-search --objective "RAG patterns" --queries "chunking" "retrieval"
 
 # Google Search via Gemini CLI
 aaa gemini-research "Next.js 15 features" --mode deep
+
+# Create numbered task files
+aaa task create my-feature
 ```
 
 Research outputs are saved to `docs/research/`.
@@ -82,6 +85,7 @@ Research outputs are saved to `docs/research/`.
 | `/gh-search <query>` | Search GitHub for code examples | `@context/knowledge/github/GH_SEARCH.md` |
 | `/gemini-research <query>` | Google Search via Gemini CLI | `@context/knowledge/gemini-cli/GEMINI_CLI.md` |
 | `/parallel-search <topic>` | Multi-angle web research | `@context/knowledge/parallel-search/PARALLEL_SEARCH.md` |
+| `/create-task <name>` | Create numbered task file | — |
 | `/meta:claude-code:create-command` | Create a new slash command | `@context/meta/PROMPTING.md` |
 | `/meta:claude-code:create-agent` | Create a new sub-agent | `@context/meta/AGENT_TEMPLATES.md` |
 | `/meta:claude-code:create-skill` | Create a new skill | — |

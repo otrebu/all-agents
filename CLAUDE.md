@@ -125,7 +125,8 @@ tools/
 │   │   ├── github/         # gh-search
 │   │   ├── gemini/         # gemini-research
 │   │   ├── parallel-search/
-│   │   └── setup/
+│   │   ├── setup/
+│   │   └── task/
 │   └── utils/paths.ts      # Path resolution
 ├── lib/                    # Shared utilities
 │   ├── log.ts              # CLI logging
