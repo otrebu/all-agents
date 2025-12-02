@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git mv:*)",
       "Bash(bin/aaa gemini-research:*)",
-      "Bash(../bin/aaa:*)"
+      "Bash(../bin/aaa:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
