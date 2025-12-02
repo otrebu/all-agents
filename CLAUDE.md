@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Development reference for Claude Code when working in this repo.
+Development reference for Claude Code when working in this repo. For setup, usage, and features overview, see [README.md](README.md).
 
 ## Stack
 
