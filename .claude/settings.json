@@ -189,5 +189,10 @@
   "statusLine": {
     "type": "command",
     "command": "/Users/Uberto.Rapizzi/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "feature-dev@claude-code-plugins": true,
+    "frontend-design@claude-code-plugins": true,
+    "hookify@claude-code-plugins": true
   }
 }

@@ -4,7 +4,14 @@
       "Bash(git mv:*)",
       "Bash(bin/aaa gemini-research:*)",
       "Bash(../bin/aaa:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(\"simple task template AI agents examples\" )",
+      "Bash(\"developer task template format best practices\" )",
+      "Bash(\"Claude Opus task prompt template structure\")",
+      "Bash(/Users/Uberto.Rapizzi/dev/all-agents/node_modules/.bin/aaa parallel-search:*)",
+      "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools test)",
+      "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools test --bail ./tests/e2e/task.test.ts)",
+      "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools test --concurrency 1)"
     ],
     "deny": [],
     "ask": []
