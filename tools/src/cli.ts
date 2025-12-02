@@ -7,6 +7,7 @@ import { runGeminiResearchCli } from "./commands/gemini/search.js";
 import { runGitHubSearchCli } from "./commands/github/main.js";
 import { runParallelSearchCli } from "./commands/parallel-search/search.js";
 import runSetup from "./commands/setup/index.js";
+import { runTaskCreateCli } from "./commands/task/index.js";
 import runUninstall from "./commands/uninstall/index.js";
 
 const program = new Command()
@@ -83,5 +84,22 @@ program.addCommand(
     .option("--project", "Remove context/ symlink from current project")
     .action(runUninstall),
 );
+
+const taskCommand = new Command("task").description(
+  "Task management utilities",
+);
+
+taskCommand.addCommand(
+  new Command("create")
+    .description("Create empty task file with auto-numbered name")
+    .argument("<name>", "Task name in kebab-case")
+    .option(
+      "-d, --dir <path>",
+      "Custom tasks directory (default: docs/planning/tasks)",
+    )
+    .action(runTaskCreateCli),
+);
+
+program.addCommand(taskCommand);
 
 program.parse();
