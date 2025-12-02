@@ -2,14 +2,13 @@
 
 Bridging Cursor and Claude Code AI configuration, making prompts work across local and cloud-based AI agents.
 
-## Setup Options
+## Setup
 
 ### Option 1: Global User Config (Recommended)
 
 Use this repo as your global Claude Code configuration:
 
 ```bash
-# Clone and setup
 git clone <repo> ~/dev/all-agents
 cd ~/dev/all-agents/tools
 bun install
@@ -17,8 +16,9 @@ bun run dev setup --user
 ```
 
 The setup wizard will:
-- Build the CLI binary
+- Build the CLI binary (`bin/aaa`)
 - Create symlink at `~/.local/bin/aaa`
+- Check PATH includes `~/.local/bin`
 - Prompt to set `CLAUDE_CONFIG_DIR`
 
 **Result:** All Claude Code sessions use this repo's commands, agents, and skills.
@@ -35,7 +35,9 @@ aaa setup --project
 ```
 
 This will:
-- Symlink `context/` to all-agents shared docs
+- Check if CLI is installed (warns if not)
+- Check/prompt for `CLAUDE_CONFIG_DIR`
+- Symlink `context/` → all-agents shared docs
 - Create `docs/planning/` and `docs/research/` directories
 
 **Result:** Project gets shared standards via `context/`, keeps local planning/research in `docs/`.
@@ -90,10 +92,10 @@ Research outputs are saved to `docs/research/`.
 
 ### Sub-agents
 
-| Agent | Description | Documentation |
-|:------|:------------|:--------------|
-| `gemini-research` | Web research via Gemini CLI with Google Search grounding | `@context/knowledge/gemini-cli/GEMINI_CLI.md` |
-| `parallel-search` | Multi-angle web research using Parallel Search API | `@context/knowledge/parallel-search/PARALLEL_SEARCH.md` |
+| Agent | Description |
+|:------|:------------|
+| `gemini-research` | Web research via Gemini CLI with Google Search grounding |
+| `parallel-search` | Multi-angle web research using Parallel Search API |
 
 ### Skills
 
@@ -126,104 +128,43 @@ globs: ["**/*.ts", "**/*.tsx"]
 Follow guidelines in @context/coding/stacks/
 ```
 
-**Key references:**
-- `@context/coding/CODING_STYLE.md` - FP patterns, naming
-- `@context/coding/stacks/` - TypeScript stack compositions
-- `@context/meta/PROMPTING.md` - Prompt engineering
-
 ## Directory Structure
 
 ```
 all-agents/
-├── bin/                           # Compiled binary (gitignored)
-│   └── aaa
-├── context/                       # SHAREABLE (symlink to projects)
-│   ├── knowledge/                 # Tool documentation
-│   │   ├── github/GH_SEARCH.md
-│   │   ├── parallel-search/PARALLEL_SEARCH.md
-│   │   └── gemini-cli/GEMINI_CLI.md
-│   ├── coding/                    # Coding standards & workflows
-│   │   ├── CODING_STYLE.md
-│   │   ├── workflow/              # Git, commits, code review
-│   │   ├── ts/                    # TypeScript stack & testing
-│   │   ├── backend/               # Backend patterns
-│   │   └── frontend/              # Frontend patterns
-│   └── meta/                      # Prompting standards + templates
-│       ├── PROMPTING.md
-│       ├── story-template.md
-│       └── task-template.md
-├── docs/                          # PROJECT-LOCAL (not shared)
-│   ├── planning/                  # Roadmaps, stories, tasks
-│   │   ├── roadmap.md
-│   │   └── stories/
-│   └── research/                  # Generated research outputs
-│       ├── github/
-│       ├── google/
-│       └── parallel/
-├── tools/                         # CLI source code
-│   ├── src/
-│   │   ├── cli.ts                 # Entry point
-│   │   └── commands/              # Command implementations
-│   ├── lib/                       # Shared utilities
-│   └── tests/                     # E2E tests
-├── .claude/
-│   ├── commands/                  # Slash commands
-│   ├── agents/                    # Sub-agents
-│   ├── skills/                    # Skills
-│   └── settings.json              # Tool permissions
-├── .env.example
-├── CLAUDE.md                      # Claude Code project guidance
-└── README.md
+├── bin/                   # Compiled binary (gitignored)
+├── context/               # SHAREABLE (symlink to projects)
+│   ├── knowledge/         # Tool docs (gh-search, gemini, parallel)
+│   ├── coding/            # Coding standards, stacks, workflow
+│   └── meta/              # Prompting standards, templates
+├── docs/                  # PROJECT-LOCAL (not shared)
+│   ├── planning/          # Roadmaps, stories
+│   └── research/          # Generated research outputs
+├── tools/                 # CLI source code
+│   ├── src/cli.ts         # Entry point
+│   ├── src/commands/      # Command implementations
+│   └── lib/               # Shared utilities
+├── .claude/               # Claude Code config
+│   ├── commands/          # Slash commands
+│   ├── agents/            # Sub-agents
+│   └── skills/            # Skills
+├── CLAUDE.md              # Dev reference (stack, extending CLI)
+└── README.md              # This file
 ```
 
-### What's Shared vs Local
-
-| Content | Location | Shared? | Purpose |
-|:--------|:---------|:--------|:--------|
-| Coding standards | `context/coding/` | ✅ Yes | Reusable style guides |
-| Tool documentation | `context/knowledge/` | ✅ Yes | Research tool usage |
-| Prompting standards | `context/meta/` | ✅ Yes | AI prompt patterns |
-| Templates | `context/meta/` | ✅ Yes | Story/task templates |
-| Roadmaps, stories | `docs/planning/` | ❌ No | Project-specific |
-| Research outputs | `docs/research/` | ❌ No | Generated content |
-
-## Documentation Index
-
-See **[context/README.md](context/README.md)** for the full documentation index with:
-- Stack quick start (Bun vs pnpm+Node)
-- Atomic docs (building blocks)
-- Stack aggregators (composition)
-
-| Category | Key Files |
-|:---------|:----------|
-| **TypeScript Stacks** | `context/coding/ts/STACK_TS_BUN.md`, `STACK_TS_PNPM_NODE.md` |
-| **Coding Style** | `context/coding/CODING_STYLE.md` |
-| **Workflow** | `context/coding/workflow/` - Commits, branches, code review |
-| **Meta** | `context/meta/PROMPTING.md`, `AGENT_TEMPLATES.md` |
-| **Knowledge** | `context/knowledge/` - Research tool docs |
-| **Planning** | `docs/planning/` - Roadmap, stories (project-local) |
+See **[context/README.md](context/README.md)** for full documentation index.
 
 ## Development
 
 ```bash
 cd tools
 
-# Install dependencies
-bun install
-
-# Build CLI
-bun run build              # Creates bin/aaa
-
-# Development mode
-bun run dev gh-search <query>
-
-# Testing
-bun run test               # E2E tests (requires API keys)
-bun run test:watch
-
-# Linting
-bun run lint
-bun run lint:fix
+bun install           # Install dependencies
+bun run build         # Build CLI → bin/aaa
+bun run dev <cmd>     # Dev mode
+bun run test          # E2E tests (requires API keys)
+bun run lint          # Linting
+bun run lint:fix      # Auto-fix
 ```
 
 ### Testing Requirements
