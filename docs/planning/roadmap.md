@@ -7,6 +7,11 @@
   - Properly resolves `bun:*` imports (bun:test, bun:sqlite, etc.)
   - Currently using `import/core-modules` workaround in tools/eslint.config.js
 
+- [ ] Colocate CLI commands with their docs
+  - Use `program.addCommand()` in commander to register subcommands
+  - Move command definitions next to related documentation
+  - Each command module exports its own Command instance
+
 ## Release & CI/CD
 
 - [ ] Add semantic-release
