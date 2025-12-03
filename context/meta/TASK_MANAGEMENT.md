@@ -1,45 +1,79 @@
 # Task Management
 
-Create structured task files for planning and execution.
+Create structured task/story files for planning and execution.
 
-## When to Create Tasks
+## When to Create
 
-- New features, bug fixes, refactors
-- Work requiring structured planning
-- Delegating to humans or AI agents
+- **Tasks:** Concrete work items (features, bugs, refactors)
+- **Stories:** User-facing value → spawns related tasks
 
-## Workflow
+## Creating a Task
 
-1. **Read templates** - See @context/meta/task-template.md for available templates:
-   - Feature, Bug, Refactor, Spike, Integration
+1. Draft content per @context/meta/task-template.md
+2. Run: `aaa task create <name>`
+3. Write content to returned filepath
 
-2. **Draft task content** - Pick appropriate template, fill in sections
+## Creating a Story with Tasks
 
-3. **Derive task name** - Kebab-case, descriptive (e.g., `add-user-auth`, `fix-login-timeout`)
+1. Draft story per @context/meta/story-template.md
+2. `aaa story create <name>` → e.g., `001-my-story.md`
+3. For each task:
+   - `aaa task create <name>` → e.g., `001-my-task.md`
+   - Add task link to story's Tasks section
+   - Add story link to task header
+4. Write all files
 
-4. **Create file** - Run CLI to get numbered filepath:
-   ```bash
-   aaa task create <task-name>
-   # Creates: docs/planning/tasks/001-<task-name>.md
-   ```
+## Linking Convention
 
-5. **Write content** - Save drafted content to the returned filepath
+```markdown
+# In story (Tasks section):
+- [ ] [001-auth-api](../tasks/001-auth-api.md)
+
+# In task (header):
+**Story:** [001-user-auth](../stories/001-user-auth.md)
+```
 
 ## File Naming
 
-- Format: `<number>-<kebab-case-name>.md`
-- Numbers: Zero-padded 3 digits (001, 002, ...)
-- Location: `docs/planning/tasks/`
+- Format: `NNN-kebab-name.md` (auto-numbered)
+- Stories: `docs/planning/stories/`
+- Tasks: `docs/planning/tasks/`
 
-## Template Quick Reference
+## Progress Tracking
 
-| Type | When | Key Sections |
-|------|------|--------------|
-| Feature | New functionality | Steps, Technical Notes, Out of Scope |
-| Bug | Fixing broken behavior | Repro Steps, Investigation |
-| Refactor | Code improvement | Current/Target State, Risk |
-| Spike | Research → decision | Timebox, Questions, Options Table |
-| Integration | System changes | Migration Strategy, Monitoring |
+Maintain `docs/planning/PROGRESS.md` for session continuity:
+
+### Format
+
+```markdown
+# Progress
+
+## Current Focus
+**Story:** [NNN-story-name](stories/NNN-story-name.md)
+**Task:** [NNN-task-name](tasks/NNN-task-name.md)
+**Status:** in-progress | blocked | review
+
+## Session Notes
+
+### 2025-12-03T14:30:00: Implementing auth API
+**Refs:** [001-user-auth](stories/001-user-auth.md) → [002-jwt-validation](tasks/002-jwt-validation.md)
+- Completed JWT validation
+- Blocked on Redis config
+- **Next:** Fix Redis connection, then token refresh
+
+### 2025-12-02T09:15:00: Started auth story
+**Refs:** [001-user-auth](stories/001-user-auth.md)
+...
+```
+
+### Guidelines
+
+- Update when switching story/task focus
+- ISO timestamp + brief title: `### 2025-12-03T14:30:00: Title`
+- Add `**Refs:**` line linking relevant story/tasks
+- Keep notes brief, actionable
+- Always include **Next:** for handover
+- Retain ~5 sessions, archive older to `docs/planning/archive/`
 
 ## Principles
 
