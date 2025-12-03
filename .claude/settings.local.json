@@ -11,7 +11,10 @@
       "Bash(/Users/Uberto.Rapizzi/dev/all-agents/node_modules/.bin/aaa parallel-search:*)",
       "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools test)",
       "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools test --bail ./tests/e2e/task.test.ts)",
-      "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools test --concurrency 1)"
+      "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools test --concurrency 1)",
+      "Bash(file:*)",
+      "Bash(python3:*)",
+      "Skill(task-create)"
     ],
     "deny": [],
     "ask": []
