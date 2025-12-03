@@ -9,11 +9,17 @@ Development reference for Claude Code when working in this repo. For setup, usag
 - **Linting:** ESLint (uba-eslint-config), `no-console` allowed
 - **Testing:** bun:test (E2E)
 
-**Import aliases:**
-- `@lib/*` → `./tools/lib/*`
-- `@tools/*` → `./tools/src/*`
-
 See @context/coding/stacks/STACK_TS_BUN_CLI.md for full stack patterns.
+
+## CLI Tools (`aaa`)
+
+This repo includes the `aaa` CLI for research and task management. Run from project root:
+
+```bash
+bun --cwd tools run dev <command>
+```
+
+For CLI development (adding commands, architecture, extending): see [tools/CLAUDE.md](tools/CLAUDE.md).
 
 ## Coding Style
 
@@ -23,140 +29,6 @@ See @context/coding/CODING_STYLE.md. Key points:
 - Small, focused functions
 - Explicit naming: `timeoutMs`, `priceGBP`, `isValid`
 - CLI logging via `tools/lib/log.ts` (chalk-based)
-
-## Extending the CLI
-
-### 1. Create Command Module
-
-Create `tools/src/commands/<name>/`:
-
-```
-tools/src/commands/my-cmd/
-├── main.ts      # Entry point
-├── types.ts     # Custom errors
-└── utils.ts     # Helpers (optional)
-```
-
-### 2. Implement the Command
-
-```typescript
-// tools/src/commands/my-cmd/types.ts
-export class MyCmdError extends Error {
-  override name = 'MyCmdError'
-}
-
-// tools/src/commands/my-cmd/main.ts
-import log from '@lib/log'
-import { MyCmdError } from './types'
-
-interface MyCmdOptions {
-  verbose?: boolean
-}
-
-async function runMyCmd(query: string, options: MyCmdOptions): Promise<void> {
-  log.header('\n🔍 My Command\n')
-  log.dim(`Query: ${query}`)
-
-  // ... implementation
-
-  log.success('✓ Done')
-}
-
-export async function runMyCmdCli(query: string, options: MyCmdOptions): Promise<void> {
-  try {
-    await runMyCmd(query, options)
-  } catch (error) {
-    if (error instanceof MyCmdError) {
-      log.error(`✗ ${error.message}`)
-    } else {
-      log.error('Unexpected error')
-      console.error(error)
-    }
-    process.exit(1)
-  }
-}
-```
-
-### 3. Register in cli.ts
-
-```typescript
-// tools/src/cli.ts
-import { runMyCmdCli } from './commands/my-cmd/main'
-
-program.addCommand(
-  new Command('my-cmd')
-    .description('Does something useful')
-    .argument('<query>', 'Search query')
-    .option('-v, --verbose', 'Verbose output')
-    .action(runMyCmdCli)
-)
-```
-
-### 4. Shared Utilities
-
-```typescript
-import log from '@lib/log'                         // Colored output
-import { saveResearchOutput } from '@lib/research' // Save JSON + MD
-import { sanitizeForFilename } from '@lib/format'  // Safe filenames
-import { getOutputDir } from '@tools/utils/paths'  // Output paths
-```
-
-**Note:** No `.js` extensions needed - Bun with `moduleResolution: "bundler"` resolves `.ts` directly.
-
-### 5. (Optional) Claude Code Integration
-
-Create `.claude/commands/my-cmd.md`:
-
-```yaml
----
-description: Run my-cmd for X
-allowed-tools: Bash(aaa my-cmd:*), Read
-argument-hint: <query>
----
-
-Execute `aaa my-cmd "$ARGUMENTS"` and summarize results.
-```
-
-## Architecture
-
-```
-tools/
-├── src/
-│   ├── cli.ts              # Entry point (Commander.js)
-│   ├── commands/           # Command implementations
-│   │   ├── github/         # gh-search
-│   │   ├── gemini/         # gemini-research
-│   │   ├── parallel-search/
-│   │   ├── setup/
-│   │   ├── story/          # story create
-│   │   └── task/           # task create
-│   └── utils/paths.ts      # Path resolution
-├── lib/                    # Shared utilities
-│   ├── log.ts              # CLI logging
-│   ├── numbered-files.ts   # Shared numbered file creation
-│   ├── research.ts         # saveResearchOutput()
-│   └── format.ts           # sanitizeForFilename()
-└── tests/e2e/
-```
-
-**Pattern:** Commands reference docs in `context/`, generate output to `docs/research/`.
-
-## Running Tools
-
-Run CLI commands from project root using `--cwd`:
-
-```bash
-# Run CLI commands
-bun --cwd tools run dev <command>
-
-# Run tests
-bun --cwd tools test
-bun --cwd tools test ./tests/e2e/task.test.ts
-
-# Lint/typecheck
-bun --cwd tools run lint
-bun --cwd tools run typecheck
-```
 
 ## Workflow
 
