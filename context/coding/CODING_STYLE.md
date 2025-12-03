@@ -3,11 +3,13 @@
 ## Functional Programming Patterns
 
 - FP-first, minimal OOP. Avoid classes (exception: custom error types)
+- Never use this keyword in JavaScript/TypeScript code.
 - Prefer small, focused functions. If >3 params, use single options object
 - Favor immutable returns and pure functions; isolate side effects at edges
 - Use plain data structures over class instances
 - Prefer data-first utilities (inputs first, options last)
 - Use composition over inheritance
+- Use function keyword for all functions, never use arrow functions.
 
 ## Explicit, descriptive verbose naming
 
