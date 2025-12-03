@@ -66,8 +66,12 @@ aaa parallel-search --objective "RAG patterns" --queries "chunking" "retrieval"
 # Google Search via Gemini CLI
 aaa gemini-research "Next.js 15 features" --mode deep
 
-# Create numbered task files
+# Create numbered task/story files
 aaa task create my-feature
+aaa story create my-story
+
+# Download URLs and convert to markdown
+aaa download <urls...> [-o name] [-d dir]
 ```
 
 Research outputs are saved to `docs/research/`.
@@ -86,6 +90,7 @@ Research outputs are saved to `docs/research/`.
 | `/gemini-research <query>` | Google Search via Gemini CLI | `@context/knowledge/gemini-cli/GEMINI_CLI.md` |
 | `/parallel-search <topic>` | Multi-angle web research | `@context/knowledge/parallel-search/PARALLEL_SEARCH.md` |
 | `/create-task <name>` | Create numbered task file | — |
+| `/download <urls...>` | Download URLs, extract text, save as markdown | — |
 | `/meta:claude-code:create-command` | Create a new slash command | `@context/meta/PROMPTING.md` |
 | `/meta:claude-code:create-agent` | Create a new sub-agent | `@context/meta/AGENT_TEMPLATES.md` |
 | `/meta:claude-code:create-skill` | Create a new skill | — |
@@ -107,6 +112,7 @@ Research outputs are saved to `docs/research/`.
 |:------|:------------|
 | `dev-work-summary` | Scan ~/dev for git repos and report today's work |
 | `brainwriting` | Facilitate structured brainstorming using parallel sub-agents |
+| `task-create` | Create structured task files for planning dev work |
 
 ## Using with Cursor
 
