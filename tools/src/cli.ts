@@ -3,6 +3,7 @@ import { Command, Option } from "@commander-js/extra-typings";
 
 import type { GeminiMode } from "./commands/gemini/search";
 
+import runDownloadCli from "./commands/download/main";
 import { runGeminiResearchCli } from "./commands/gemini/search";
 import { runGitHubSearchCli } from "./commands/github/main";
 import { runParallelSearchCli } from "./commands/parallel-search/search";
@@ -15,6 +16,21 @@ const program = new Command()
   .name("aaa")
   .description("All-Agents CLI Toolkit")
   .version("1.0.0");
+
+program.addCommand(
+  new Command("download")
+    .description("Download URLs, extract text, save as markdown")
+    .argument("<urls...>", "URLs to download")
+    .option(
+      "-o, --output <name>",
+      "Output filename (auto-generated if omitted)",
+    )
+    .option(
+      "-d, --dir <path>",
+      "Output directory (default: docs/research/downloads)",
+    )
+    .action(runDownloadCli),
+);
 
 program.addCommand(
   new Command("gh-search")
