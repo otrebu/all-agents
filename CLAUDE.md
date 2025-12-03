@@ -13,10 +13,10 @@ See @context/coding/stacks/STACK_TS_BUN_CLI.md for full stack patterns.
 
 ## CLI Tools (`aaa`)
 
-This repo includes the `aaa` CLI for research and task management. Run from project root:
+This repo includes the `aaa` CLI for research and task management:
 
 ```bash
-bun --cwd tools run dev <command>
+aaa <command>
 ```
 
 For CLI development (adding commands, architecture, extending): see [tools/CLAUDE.md](tools/CLAUDE.md).

@@ -14,7 +14,10 @@
       "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools test --concurrency 1)",
       "Bash(file:*)",
       "Bash(python3:*)",
-      "Skill(task-create)"
+      "Skill(task-create)",
+      "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools run typecheck)",
+      "Bash(bun:*)",
+      "Bash(aaa download:*)"
     ],
     "deny": [],
     "ask": []
