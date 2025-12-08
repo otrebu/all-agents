@@ -17,7 +17,9 @@
       "Skill(task-create)",
       "Bash(bun --cwd /Users/Uberto.Rapizzi/dev/all-agents/tools run typecheck)",
       "Bash(bun:*)",
-      "Bash(aaa download:*)"
+      "Bash(aaa download:*)",
+      "Bash(for file in *.md)",
+      "Bash(do if ! head -1 \"$file\")"
     ],
     "deny": [],
     "ask": []

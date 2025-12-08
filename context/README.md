@@ -1,120 +1,140 @@
-# Context Documentation Index
+# Context Documentation
 
-Shareable AI context docs - atomic building blocks + stack aggregators.
+Atomic documentation structure: primitives → foundations → stacks.
 
 ## Quick Start
 
-1. **Pick your stack:** `coding/stacks/`
-   - `STACK_TS_BUN.md` - Bun all-in-one
-   - `STACK_TS_PNPM_NODE.md` - Traditional (pnpm + Node)
-   - `STACK_TS_REACT.md` - Frontend
-   - `STACK_TS_CLI.md` - CLI tools
+1. **Pick your stack:** `stacks/`
+   - `ts-bun-cli.md` - Bun CLI tools
+   - `ts-pnpm-node-cli.md` - Node + pnpm CLI
+   - `ts-pnpm-node-rest-api.md` - REST API with Node + pnpm
+   - `ts-vite-react.md` - React frontend
 
-2. **Browse atomic docs** by domain (below)
+2. **Browse atomic docs** by layer (below)
 
-## Atomic Docs
-
-### Runtime (`coding/runtime/`)
-
-| File | Description |
-|------|-------------|
-| BUN.md | Bun: runtime, pkg mgr, bundler, test |
-| PNPM.md | pnpm commands, workspaces |
-| NODE.md | Node.js runtime, nvm |
-| TYPESCRIPT.md | tsconfig, path aliases, FP patterns |
-
-### Frontend (`coding/frontend/`)
-
-| File | Description |
-|------|-------------|
-| REACT.md | Hooks, context |
-| VITE.md | Bundler, HMR |
-| TAILWIND.md | Utility CSS |
-| SHADCN.md | UI components |
-| FORMS.md | react-hook-form + zod |
-| TANSTACK.md | Query + Router |
-| STORYBOOK.md | Component isolation |
-
-### CLI (`coding/cli/`)
-
-| File | Description |
-|------|-------------|
-| CLI_LIBS.md | commander, chalk, ora, boxen |
-| LOGGING_CLI.md | Terminal output patterns |
-
-### Libs (`coding/libs/`)
-
-| File | Description |
-|------|-------------|
-| XSTATE.md | State machines (v5) |
-| DATE_FNS.md | Date utilities |
-| DOTENV.md | Env vars |
-
-### DevOps (`coding/devops/`)
-
-| File | Description |
-|------|-------------|
-| SEMANTIC_RELEASE.md | Automated versioning |
-
-### DX (`coding/dx/`)
-
-| File | Description |
-|------|-------------|
-| LINT_FORMATTING.md | ESLint + Prettier |
-| HUSKY.md | Git hooks |
-
-### Testing (`coding/testing/`)
-
-| File | Description |
-|------|-------------|
-| UNIT_TESTING.md | Vitest patterns |
-
-### Workflow (`coding/workflow/`)
-
-| File | Description |
-|------|-------------|
-| DEV_LIFECYCLE.md | Dev workflow |
-| START_FEATURE.md | Feature branches |
-| COMMIT.md | Conventional commits |
-| COMPLETE_FEATURE.md | Merge to main |
-| CODE_REVIEW.md | Review checklist |
-
-### Core
-
-| File | Description |
-|------|-------------|
-| CODING_STYLE.md | FP patterns, naming |
-
-## Knowledge (External Tools)
-
-| Dir | Description |
-|-----|-------------|
-| `knowledge/gemini-cli/` | Google Search research |
-| `knowledge/github/` | GitHub code search |
-| `knowledge/parallel-search/` | Multi-angle web research |
-
-## Meta (Prompting)
-
-| File | Description |
-|------|-------------|
-| PROMPTING.md | Context engineering |
-| AGENT_TEMPLATES.md | Agent patterns |
-
-## Directory Structure
+## Structure
 
 ```
 context/
-├── coding/
-│   ├── runtime/      # BUN, NODE, PNPM, TYPESCRIPT
-│   ├── frontend/     # React, Vite, Tailwind, etc.
-│   ├── cli/          # CLI libs, logging
-│   ├── libs/         # XState, date-fns, dotenv
-│   ├── backend/      # API patterns (universal)
-│   ├── devops/       # Semantic release
-│   ├── dx/           # Lint, Husky
-│   ├── testing/      # Unit testing
-│   ├── stacks/       # Stack aggregators
-│   └── workflow/     # Git workflows
-├── knowledge/        # External tool guides
-└── meta/             # Prompting standards
+├── primitives/
+│   ├── tools/          # 31 single-tech docs
+│   ├── principles/     # 8 universal philosophies
+│   └── patterns/       # 11 context-specific techniques
+├── foundations/        # 4 platform combos
+├── stacks/            # 4 app shapes
+└── workflows/         # 6 dev processes
 ```
+
+## Primitives
+
+### Tools (`primitives/tools/`)
+
+Single library/technology docs.
+
+**Runtime:** bun, node, pnpm, typescript
+
+**Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
+
+**Backend:** fastify, orpc
+
+**Validation:** zod
+
+**State:** xstate
+
+**Utilities:** date-fns, dotenv
+
+**CLI:** commander, chalk, ora, boxen
+
+**DX:** eslint, prettier, husky, vitest, semantic-release
+
+**External:** gemini-cli, gh-search, parallel-search
+
+### Principles (`primitives/principles/`)
+
+Universal philosophies and approaches.
+
+| File | Description |
+|------|-------------|
+| coding-style.md | FP patterns, naming conventions |
+| vocabulary.md | Terminology standards |
+| error-handling.md | Error handling philosophy |
+| logging.md | Logging principles |
+| testing.md | Testing philosophy & patterns |
+| prompting.md | Context engineering |
+| optimize-prompt.md | Prompt optimization |
+| claude-code-tools-permissions.md | Tool permissions reference |
+
+### Patterns (`primitives/patterns/`)
+
+Context-specific techniques.
+
+| File | Description |
+|------|-------------|
+| api-testing.md | API test patterns |
+| backend-testing.md | Backend test patterns |
+| frontend-testing.md | Frontend test patterns |
+| cli-e2e-testing.md | CLI E2E test patterns |
+| forms-validation-react.md | React form validation |
+| logging-services.md | Service logging (pino, structured) |
+| logging-cli.md | CLI logging (chalk, terminal) |
+| agent-templates.md | AI agent patterns |
+| task-management.md | Task management approaches |
+| task-template.md | Task file template |
+| story-template.md | Story file template |
+
+## Foundations
+
+Platform choices (runtime + toolchain combos).
+
+| File | Description |
+|------|-------------|
+| bun-runtime.md | Bun as complete platform |
+| node-pnpm.md | Node + pnpm platform |
+| typescript-config.md | TypeScript configurations |
+| code-standards.md | ESLint + Prettier + Husky integration |
+
+## Stacks
+
+App shapes built on foundations.
+
+| File | Description |
+|------|-------------|
+| ts-bun-cli.md | CLI tools with Bun |
+| ts-pnpm-node-cli.md | CLI tools with Node + pnpm |
+| ts-pnpm-node-rest-api.md | REST API with Fastify + oRPC |
+| ts-vite-react.md | React frontend with Vite |
+
+## Workflows
+
+Development processes.
+
+| File | Description |
+|------|-------------|
+| dev-lifecycle.md | Complete dev workflow |
+| start-feature.md | Feature branch creation |
+| commit.md | Conventional commits |
+| complete-feature.md | Merge to main |
+| code-review.md | Review checklist |
+| refactoring.md | Refactoring patterns |
+
+## Frontmatter
+
+All files use YAML frontmatter:
+
+```yaml
+---
+tags: [cli, runtime]          # Optional: existing folder/tech names only
+depends:                       # Optional: dependency paths
+  - @primitives/tools/bun.md
+  - @foundations/code-standards.md
+---
+```
+
+## Reference Format
+
+Use `@` prefix for cross-references:
+
+- `@primitives/tools/bun.md`
+- `@foundations/node-pnpm.md`
+- `@stacks/ts-bun-cli.md`
+- `@workflows/commit.md`

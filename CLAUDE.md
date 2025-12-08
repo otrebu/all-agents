@@ -9,7 +9,7 @@ Development reference for Claude Code when working in this repo. For setup, usag
 - **Linting:** ESLint (uba-eslint-config), `no-console` allowed
 - **Testing:** bun:test (E2E)
 
-See @context/coding/stacks/STACK_TS_BUN_CLI.md for full stack patterns.
+See @stacks/ts-bun-cli.md for full stack patterns.
 
 ## CLI Tools (`aaa`)
 
