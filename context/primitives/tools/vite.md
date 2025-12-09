@@ -47,14 +47,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@/components": path.resolve(__dirname, "./src/components"),
-      "@/utils": path.resolve(__dirname, "./src/utils"),
+      "@components": path.resolve(__dirname, "./src/components"),
+      "@utils": path.resolve(__dirname, "./src/utils"),
     },
   },
 });
 ```
 
-See @primitives/tools/typescript.md for tsconfig.json alias setup.
+See @context/primitives/tools/typescript.md for tsconfig.json alias setup.
 
 ## Tailwind CSS
 
@@ -99,13 +99,13 @@ pnpm vite preview
 
 ## When to Use Vite vs Bun Build
 
-| Scenario | Use |
-|----------|-----|
-| Frontend w/ React, HMR | Vite |
-| Complex plugin needs | Vite |
-| Production web optimization | Vite |
-| Simple CLI tool | Bun build |
-| Fast iteration, no plugins | Bun build |
+| Scenario                    | Use       |
+| --------------------------- | --------- |
+| Frontend w/ React, HMR      | Vite      |
+| Complex plugin needs        | Vite      |
+| Production web optimization | Vite      |
+| Simple CLI tool             | Bun build |
+| Fast iteration, no plugins  | Bun build |
 
 Vite = frontend, HMR, plugins
 Bun build = simplicity, speed, CLI tools

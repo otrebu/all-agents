@@ -5,4 +5,4 @@ allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*), Bash(git
 model: haiku
 ---
 
-@context/coding/workflow/COMMIT.md
+@context/workflows/commit.md

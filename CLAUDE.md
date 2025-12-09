@@ -23,7 +23,7 @@ For CLI development (adding commands, architecture, extending): see [tools/CLAUD
 
 ## Coding Style
 
-See @context/coding/CODING_STYLE.md. Key points:
+See @context/primitives/principles/coding-style.md. Key points:
 
 - FP-first, avoid classes (except custom errors)
 - Small, focused functions
@@ -52,4 +52,4 @@ Ask before creating feature branches. Use `/dev:start-feature <description>` if 
 
 - No emojis in code/commits unless requested
 - FP-first: avoid `this`, `new`, classes (except errors)
-- Follow @context/coding/workflow/DEV_LIFECYCLE.md when coding
+- Follow @context/workflows/dev-lifecycle.md when coding

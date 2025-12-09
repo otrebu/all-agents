@@ -62,4 +62,4 @@ aaa gh-search "your query"
 
 ## Implementation
 
-Scripts: `context/knowledge/github/scripts/`
+Scripts: `tools/src/commands/github/`

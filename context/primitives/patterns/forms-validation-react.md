@@ -6,11 +6,11 @@ depends: []
 
 react-hook-form + zod for performant, type-safe forms.
 
-> **Zod reference:** See @primitives/tools/zod.md for schema patterns
+> **Zod reference:** See @context/primitives/tools/zod.md for schema patterns
 
 ## Setup
 
-Install react-hook-form zod @hookform/resolvers
+Install react-hook-form zod `@hookform/resolvers`
 
 ## Basic Form
 

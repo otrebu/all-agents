@@ -8,15 +8,15 @@ CLI tools with traditional Node.js stack: pnpm packages, tsc build, maximum comp
 
 ## Layers
 
-| Layer | Reference |
-|-------|-----------|
-| Runtime | @primitives/tools/PNPM.md, @primitives/tools/NODE.md, @primitives/tools/TYPESCRIPT.md |
-| CLI | @primitives/patterns/CLI_LIBS.md, @primitives/patterns/LOGGING_CLI.md |
-| Testing | @primitives/principles/testing.md |
-| DX | @foundations/code-standards.md, @primitives/tools/husky.md |
-| DevOps | @primitives/tools/semantic-release.md |
-| Libs | @primitives/tools/DOTENV.md |
-| Workflow | @workflows/COMMIT.md, @workflows/DEV_LIFECYCLE.md |
+| Layer    | Reference                                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------- |
+| Runtime  | @context/primitives/tools/pnpm.md, @context/primitives/tools/node.md, @context/primitives/tools/typescript.md |
+| CLI      | @context/primitives/patterns/logging-cli.md                         |
+| Testing  | @context/primitives/principles/testing.md                                                                     |
+| DX       | @context/foundations/code-standards.md, @context/primitives/tools/husky.md                                    |
+| DevOps   | @context/primitives/tools/semantic-release.md                                                                 |
+| Libs     | @context/primitives/tools/dotenv.md                                                                           |
+| Workflow | @context/workflows/commit.md, @context/workflows/dev-lifecycle.md                                                             |
 
 ## Quick Start
 

@@ -30,7 +30,7 @@ This document defines the standards for creating effective prompts and context d
 - Allow agents to discover information just-in-time
 - Document files must be lightweight pointers.
   - ❌ **BAD**: Duplicating tool flags/options in the prompt.
-  - ✅ **GOOD**: `3. Execute search per @context/knowledge/parallel-search/PARALLEL_SEARCH.md`
+  - ✅ **GOOD**: `3. Execute search per @context/primitives/tools/parallel-search.md`
 
 ## Prompt template
 
@@ -92,6 +92,6 @@ The response should not exceed 500 tokens and must include name and email.
 - [ ] No redundant info, no fluff
 - [ ] Actionable instructions
 - [ ] Constraints defined in list
-- [ ] References (`@context/...`) used instead of duplication
+- [ ] References (`@../...`) used instead of duplication
 - [ ] No "historical context" or "evolution"
 - [ ] No overlapping tool definitions

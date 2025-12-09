@@ -60,4 +60,4 @@ Improve an existing prompt using context engineering principles.
 
 ## Reference
 
-@primitives/principles/prompting.md
+@context/primitives/principles/prompting.md

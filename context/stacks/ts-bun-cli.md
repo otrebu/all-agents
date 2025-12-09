@@ -1,18 +1,18 @@
 ---
 tags: [cli]
 depends:
-  - @foundations/bun-runtime.md
-  - @primitives/tools/commander.md
-  - @primitives/tools/chalk.md
-  - @primitives/tools/ora.md
-  - @primitives/tools/boxen.md
-  - @primitives/patterns/logging-cli.md
-  - @primitives/patterns/cli-e2e-testing.md
-  - @primitives/principles/testing.md
-  - @foundations/code-standards.md
-  - @primitives/tools/dotenv.md
-  - @workflows/commit.md
-  - @workflows/dev-lifecycle.md
+  - @context/foundations/bun-runtime.md
+  - @context/primitives/tools/commander.md
+  - @context/primitives/tools/chalk.md
+  - @context/primitives/tools/ora.md
+  - @context/primitives/tools/boxen.md
+  - @context/primitives/patterns/logging-cli.md
+  - @context/primitives/patterns/cli-e2e-testing.md
+  - @context/primitives/principles/testing.md
+  - @context/foundations/code-standards.md
+  - @context/primitives/tools/dotenv.md
+  - @context/workflows/commit.md
+  - @context/workflows/dev-lifecycle.md
 ---
 
 # TypeScript + Bun CLI Stack
@@ -21,15 +21,15 @@ CLI tools with Bun runtime: fast startup, native TS, single-file executables.
 
 ## Layers
 
-| Layer | Reference |
-|-------|-----------|
-| Foundation | @foundations/bun-runtime.md |
-| CLI Tools | @primitives/tools/commander.md, @primitives/tools/chalk.md, @primitives/tools/ora.md, @primitives/tools/boxen.md |
-| CLI Patterns | @primitives/patterns/logging-cli.md |
-| Testing | @primitives/principles/testing.md, @primitives/patterns/cli-e2e-testing.md |
-| Code Standards | @foundations/code-standards.md |
-| Libs | @primitives/tools/dotenv.md |
-| Workflows | @workflows/commit.md, @workflows/dev-lifecycle.md |
+| Layer          | Reference                                                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Foundation     | @context/foundations/bun-runtime.md                                                                                                              |
+| CLI Tools      | @context/primitives/tools/commander.md, @context/primitives/tools/chalk.md, @context/primitives/tools/ora.md, @context/primitives/tools/boxen.md |
+| CLI Patterns   | @context/primitives/patterns/logging-cli.md                                                                                                      |
+| Testing        | @context/primitives/principles/testing.md, @context/primitives/patterns/cli-e2e-testing.md                                                       |
+| Code Standards | @context/foundations/code-standards.md                                                                                                           |
+| Libs           | @context/primitives/tools/dotenv.md                                                                                                              |
+| Workflows      | @context/workflows/commit.md, @context/workflows/dev-lifecycle.md                                                                                                |
 
 ## Quick Start
 
@@ -84,7 +84,7 @@ bun run lint                # ESLint
 bun build ./src/cli.ts --compile --outfile ./bin/mycli  # Build exe
 ```
 
-**New CLI commands must have E2E tests.** See @primitives/patterns/cli-e2e-testing.md.
+**New CLI commands must have E2E tests.** See @context/primitives/patterns/cli-e2e-testing.md.
 
 ## Minimal CLI
 

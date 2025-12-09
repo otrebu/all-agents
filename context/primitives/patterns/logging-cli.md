@@ -6,10 +6,10 @@ depends: []
 
 Human-readable terminal output for CLI tools.
 
-> **Principles:** See @primitives/principles/coding-style.md#logging
+> **Principles:** See @context/primitives/principles/coding-style.md#logging
 
 **✅ Use for:** CLI tools, terminal apps, interactive commands
-**❌ Don't use for:** Services, APIs, web servers → see @primitives/patterns/logging-services.md
+**❌ Don't use for:** Services, APIs, web servers → see @context/primitives/patterns/logging-services.md
 
 **DO NOT use pino, winston, or JSON loggers.** CLIs output text for humans, not log aggregators.
 

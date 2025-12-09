@@ -7,7 +7,7 @@ argument-hint: [rule-name] [description]
 
 Create a Cursor rules file in `.cursor/rules/` directory following MDC format.
 
-**MANDATORY** Write the rule based on @context/meta/PROMPTING.md
+**MANDATORY** Write the rule based on @context/primitives/principles/prompting.md
 
 ## Instructions
 

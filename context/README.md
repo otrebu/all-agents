@@ -5,6 +5,7 @@ Atomic documentation structure: primitives → foundations → stacks.
 ## Quick Start
 
 1. **Pick your stack:** `stacks/`
+
    - `ts-bun-cli.md` - Bun CLI tools
    - `ts-pnpm-node-cli.md` - Node + pnpm CLI
    - `ts-pnpm-node-rest-api.md` - REST API with Node + pnpm
@@ -53,69 +54,69 @@ Single library/technology docs.
 
 Universal philosophies and approaches.
 
-| File | Description |
-|------|-------------|
-| coding-style.md | FP patterns, naming conventions |
-| vocabulary.md | Terminology standards |
-| error-handling.md | Error handling philosophy |
-| logging.md | Logging principles |
-| testing.md | Testing philosophy & patterns |
-| prompting.md | Context engineering |
-| optimize-prompt.md | Prompt optimization |
-| claude-code-tools-permissions.md | Tool permissions reference |
+| File                             | Description                     |
+| -------------------------------- | ------------------------------- |
+| coding-style.md                  | FP patterns, naming conventions |
+| vocabulary.md                    | Terminology standards           |
+| error-handling.md                | Error handling philosophy       |
+| logging.md                       | Logging principles              |
+| testing.md                       | Testing philosophy & patterns   |
+| prompting.md                     | Context engineering             |
+| optimize-prompt.md               | Prompt optimization             |
+| claude-code-tools-permissions.md | Tool permissions reference      |
 
 ### Patterns (`primitives/patterns/`)
 
 Context-specific techniques.
 
-| File | Description |
-|------|-------------|
-| api-testing.md | API test patterns |
-| backend-testing.md | Backend test patterns |
-| frontend-testing.md | Frontend test patterns |
-| cli-e2e-testing.md | CLI E2E test patterns |
-| forms-validation-react.md | React form validation |
-| logging-services.md | Service logging (pino, structured) |
-| logging-cli.md | CLI logging (chalk, terminal) |
-| agent-templates.md | AI agent patterns |
-| task-management.md | Task management approaches |
-| task-template.md | Task file template |
-| story-template.md | Story file template |
+| File                      | Description                        |
+| ------------------------- | ---------------------------------- |
+| api-testing.md            | API test patterns                  |
+| backend-testing.md        | Backend test patterns              |
+| frontend-testing.md       | Frontend test patterns             |
+| cli-e2e-testing.md        | CLI E2E test patterns              |
+| forms-validation-react.md | React form validation              |
+| logging-services.md       | Service logging (pino, structured) |
+| logging-cli.md            | CLI logging (chalk, terminal)      |
+| agent-templates.md        | AI agent patterns                  |
+| task-management.md        | Task management approaches         |
+| task-template.md          | Task file template                 |
+| story-template.md         | Story file template                |
 
 ## Foundations
 
 Platform choices (runtime + toolchain combos).
 
-| File | Description |
-|------|-------------|
-| bun-runtime.md | Bun as complete platform |
-| node-pnpm.md | Node + pnpm platform |
-| typescript-config.md | TypeScript configurations |
-| code-standards.md | ESLint + Prettier + Husky integration |
+| File                 | Description                           |
+| -------------------- | ------------------------------------- |
+| bun-runtime.md       | Bun as complete platform              |
+| node-pnpm.md         | Node + pnpm platform                  |
+| typescript-config.md | TypeScript configurations             |
+| code-standards.md    | ESLint + Prettier + Husky integration |
 
 ## Stacks
 
 App shapes built on foundations.
 
-| File | Description |
-|------|-------------|
-| ts-bun-cli.md | CLI tools with Bun |
-| ts-pnpm-node-cli.md | CLI tools with Node + pnpm |
+| File                     | Description                  |
+| ------------------------ | ---------------------------- |
+| ts-bun-cli.md            | CLI tools with Bun           |
+| ts-pnpm-node-cli.md      | CLI tools with Node + pnpm   |
 | ts-pnpm-node-rest-api.md | REST API with Fastify + oRPC |
-| ts-vite-react.md | React frontend with Vite |
+| ts-vite-react.md         | React frontend with Vite     |
 
 ## Workflows
 
 Development processes.
 
-| File | Description |
-|------|-------------|
-| dev-lifecycle.md | Complete dev workflow |
-| start-feature.md | Feature branch creation |
-| commit.md | Conventional commits |
-| complete-feature.md | Merge to main |
-| code-review.md | Review checklist |
-| refactoring.md | Refactoring patterns |
+| File                | Description             |
+| ------------------- | ----------------------- |
+| dev-lifecycle.md    | Complete dev workflow   |
+| start-feature.md    | Feature branch creation |
+| commit.md           | Conventional commits    |
+| complete-feature.md | Merge to main           |
+| code-review.md      | Review checklist        |
+| refactoring.md      | Refactoring patterns    |
 
 ## Frontmatter
 
@@ -125,8 +126,8 @@ All files use YAML frontmatter:
 ---
 tags: [cli, runtime]          # Optional: existing folder/tech names only
 depends:                       # Optional: dependency paths
-  - @primitives/tools/bun.md
-  - @foundations/code-standards.md
+  - @context/primitives/tools/bun.md
+  - @context/foundations/code-standards.md
 ---
 ```
 
@@ -134,7 +135,7 @@ depends:                       # Optional: dependency paths
 
 Use `@` prefix for cross-references:
 
-- `@primitives/tools/bun.md`
-- `@foundations/node-pnpm.md`
-- `@stacks/ts-bun-cli.md`
-- `@workflows/commit.md`
+- `@context/primitives/tools/bun.md`
+- `@context/foundations/node-pnpm.md`
+- `@context/stacks/ts-bun-cli.md`
+- `@context/workflows/commit.md`

@@ -1,6 +1,6 @@
 ---
 depends:
-  - @primitives/principles/coding-style.md
+  - @context/primitives/principles/coding-style.md
 ---
 
 # Development Workflow
@@ -27,7 +27,7 @@ A feature/change is complete when ALL of these are done:
 
 - Use plan mode to plan
 - Write to `docs/planning/stories/*` or `docs/planning/tasks/*` when plan is approved
-- Follow @context/meta/task-template.md and @context/meta/story-template.md for templates
+- Follow @context/primitives/patterns/task-template.md and @context/primitives/patterns/story-template.md for templates
 - Research external knowledge if needed with @parallel-search or @gh-search
 - Think MVP - don't over-plan
 - **Ask for review before proceeding**
@@ -53,15 +53,15 @@ A feature/change is complete when ALL of these are done:
 - ❗ AI SHALL NEVER sign commits
 - Run tests before commit
 
-**Read & follow:** `@workflows/commit.md`
+**Read & follow:** `@context/workflows/commit.md`
 
 ## 4) Branching 🔀
 
 **Start new feature:**
-Read & follow: `@workflows/start-feature.md`
+Read & follow: `@context/workflows/start-feature.md`
 
 **Complete feature:**
-Read & follow: `@workflows/complete-feature.md`
+Read & follow: `@context/workflows/complete-feature.md`
 
 ## 5) Documentation 📝
 

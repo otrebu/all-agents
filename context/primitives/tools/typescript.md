@@ -89,20 +89,21 @@ Make imports readable and stable using path aliases.
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "@/services/*": ["./src/services/*"]
+      "@*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@services/*": ["./src/services/*"]
     }
   }
 }
 ```
 
 **IMPORTANT:** Path aliases must be configured in BOTH:
+
 1. `tsconfig.json` (for TypeScript)
 2. Your bundler config (Vite, Webpack, etc.)
 
-See @primitives/tools/vite.md for Vite alias config.
+See @context/primitives/tools/vite.md for Vite alias config.
 
 ## Type-Checking
 
@@ -130,17 +131,14 @@ tsc --watch --noEmit
 
 ## Monorepo with Project References
 
-See @primitives/tools/pnpm.md for full pnpm workspace setup.
+See @context/primitives/tools/pnpm.md for full pnpm workspace setup.
 
 **Root tsconfig.json:**
 
 ```json
 {
   "files": [],
-  "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/cli" }
-  ]
+  "references": [{ "path": "./packages/core" }, { "path": "./packages/cli" }]
 }
 ```
 
@@ -153,9 +151,7 @@ See @primitives/tools/pnpm.md for full pnpm workspace setup.
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "references": [
-    { "path": "../core" }
-  ]
+  "references": [{ "path": "../core" }]
 }
 ```
 

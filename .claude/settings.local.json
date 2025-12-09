@@ -19,9 +19,19 @@
       "Bash(bun:*)",
       "Bash(aaa download:*)",
       "Bash(for file in *.md)",
-      "Bash(do if ! head -1 \"$file\")"
+      "Bash(do if ! head -1 \"$file\")",
+      "Bash(at-ref ./)",
+      "Bash(at-ref context:*)",
+      "Bash(for f in context/foundations/*.md)",
+      "Bash(do sed -i '' 's|@primitives/|@../primitives/|g; s|@foundations/|@./|g' \"$f\")",
+      "Bash(done)",
+      "Bash(at-ref .claude context)"
     ],
     "deny": [],
     "ask": []
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
   }
 }

@@ -8,16 +8,16 @@ Modern React frontend: Vite build, Tailwind CSS, shadcn/ui components. Supports 
 
 ## Layers
 
-| Layer | Reference |
-|-------|-----------|
-| Runtime | @primitives/tools/PNPM.md, @primitives/tools/NODE.md, @primitives/tools/TYPESCRIPT.md |
-| Frontend | @primitives/tools/REACT.md, @primitives/tools/VITE.md, @primitives/tools/TAILWIND.md |
-| UI | @primitives/tools/SHADCN.md, @primitives/tools/COMPONENT_ARCHITECTURE.md |
-| Data | @primitives/tools/TANSTACK.md, @primitives/tools/FORMS.md |
-| Testing | @primitives/principles/testing.md, @primitives/tools/FRONTEND_TESTING.md, @primitives/tools/STORYBOOK.md |
-| DX | @foundations/code-standards.md, @primitives/tools/husky.md |
-| Libs | @primitives/tools/DATE_FNS.md, @primitives/tools/XSTATE.md |
-| Workflow | @workflows/COMMIT.md, @workflows/DEV_LIFECYCLE.md |
+| Layer    | Reference                                                                                                                        |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime  | @context/primitives/tools/pnpm.md, @context/primitives/tools/node.md, @context/primitives/tools/typescript.md                    |
+| Frontend | @context/primitives/tools/react.md, @context/primitives/tools/vite.md, @context/primitives/tools/tailwind.md                     |
+| UI       | @context/primitives/tools/shadcn.md                                         |
+| Data     | @context/primitives/tools/tanstack-query.md                                                        |
+| Testing  | @context/primitives/principles/testing.md, @context/primitives/tools/storybook.md |
+| DX       | @context/foundations/code-standards.md, @context/primitives/tools/husky.md                                                       |
+| Libs     | @context/primitives/tools/date-fns.md, @context/primitives/tools/xstate.md                                                       |
+| Workflow | @context/workflows/commit.md, @context/workflows/dev-lifecycle.md                                                                                |
 
 ## Quick Start (Standalone)
 
@@ -33,7 +33,7 @@ pnpm add -D eslint prettier uba-eslint-config vitest @testing-library/react husk
 
 ## Quick Start (Monorepo)
 
-See @primitives/tools/PNPM.md for full workspace setup. Key gotchas below.
+See @context/primitives/tools/pnpm.md for full workspace setup. Key gotchas below.
 
 ## When to Use
 
@@ -93,6 +93,7 @@ export default defineConfig({
 All configs must align. Example with `@myorg/ui` package:
 
 **pnpm-workspace.yaml**
+
 ```yaml
 packages:
   - "apps/*"
@@ -100,6 +101,7 @@ packages:
 ```
 
 **tsconfig.json** (root)
+
 ```json
 {
   "compilerOptions": {
@@ -109,14 +111,12 @@ packages:
       "@myorg/utils": ["packages/utils/src"]
     }
   },
-  "references": [
-    { "path": "./apps/web" },
-    { "path": "./packages/ui" }
-  ]
+  "references": [{ "path": "./apps/web" }, { "path": "./packages/ui" }]
 }
 ```
 
 **apps/web/package.json**
+
 ```json
 {
   "name": "web",
@@ -127,6 +127,7 @@ packages:
 ```
 
 **apps/web/vite.config.ts**
+
 ```typescript
 resolve: {
   alias: {
@@ -137,6 +138,7 @@ resolve: {
 ```
 
 **packages/ui/package.json**
+
 ```json
 {
   "name": "@myorg/ui",
@@ -147,13 +149,13 @@ resolve: {
 
 **Key: configs must match**
 
-| Config | Defines |
-|--------|---------|
-| pnpm-workspace.yaml | `packages/*` location |
-| root tsconfig paths | `@myorg/ui` → `packages/ui/src` |
-| app package.json | `@myorg/ui: workspace:*` |
-| app vite.config | alias `@myorg/ui` → same path |
-| package package.json | `name: @myorg/ui` |
+| Config               | Defines                         |
+| -------------------- | ------------------------------- |
+| pnpm-workspace.yaml  | `packages/*` location           |
+| root tsconfig paths  | `@myorg/ui` → `packages/ui/src` |
+| app package.json     | `@myorg/ui: workspace:*`        |
+| app vite.config      | alias `@myorg/ui` → same path   |
+| package package.json | `name: @myorg/ui`               |
 
 **Commands**: `pnpm --filter web dev`, `pnpm add -Dw <pkg>` (root), `tsc --build`
 
@@ -191,7 +193,11 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 function LoginForm() {
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 

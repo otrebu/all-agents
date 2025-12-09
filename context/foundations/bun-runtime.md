@@ -1,7 +1,7 @@
 ---
 tags: [runtime]
 depends:
-  - @primitives/tools/bun.md
+  - @context/primitives/tools/bun.md
 ---
 
 # Bun Runtime
@@ -23,7 +23,7 @@ Bun as complete platform: runtime + package manager + bundler + test runner.
 
 ## Components
 
-- **Runtime**: @primitives/tools/bun.md
+- **Runtime**: @context/primitives/tools/bun.md
 - Fast, all-in-one JavaScript/TypeScript toolkit
 - Native TypeScript support (no tsc needed for execution)
 - Built-in package manager, bundler, and test runner

@@ -79,7 +79,7 @@ Use this when the agent follows a procedure defined in an existing documentation
 
 You are a [role] responsible for [goal].
 
-Follow @context/path/to/doc.md very carefully and strictly.
+Follow @../../path/to/doc.md very carefully and strictly.
 ```
 
 **Example: Parallel Search Agent**
@@ -99,5 +99,5 @@ Execute multi-angle web research using Parallel Search API.
 
 ---
 
-Follow @context/knowledge/parallel-search/PARALLEL_SEARCH.md very carefully and strictly.
+Follow @context/primitives/tools/parallel-search.md very carefully and strictly.
 ```

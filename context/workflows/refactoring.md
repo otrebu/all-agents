@@ -1,6 +1,6 @@
 ---
 depends:
-  - @primitives/principles/coding-style.md
+  - @context/primitives/principles/coding-style.md
 ---
 
 # Refactoring Guide

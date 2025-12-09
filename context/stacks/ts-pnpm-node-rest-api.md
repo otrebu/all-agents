@@ -8,16 +8,16 @@ Fastify + Zod for type-safe, self-documenting REST APIs with OpenAPI generation.
 
 ## Layers
 
-| Layer | Reference |
-|-------|-----------|
-| Runtime | @primitives/tools/PNPM.md, @primitives/tools/NODE.md, @primitives/tools/TYPESCRIPT.md |
-| Framework | @primitives/tools/FASTIFY.md |
-| Validation | @primitives/tools/ZOD.md |
-| Logging | @primitives/patterns/logging-services.md |
-| Testing | @primitives/patterns/api-testing.md |
-| DX | @foundations/code-standards.md |
-| DevOps | @primitives/tools/semantic-release.md |
-| Workflow | @workflows/COMMIT.md, @workflows/DEV_LIFECYCLE.md |
+| Layer      | Reference                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------- |
+| Runtime    | @context/primitives/tools/pnpm.md, @context/primitives/tools/node.md, @context/primitives/tools/typescript.md |
+| Framework  | @context/primitives/tools/fastify.md                                                                          |
+| Validation | @context/primitives/tools/zod.md                                                                              |
+| Logging    | @context/primitives/patterns/logging-services.md                                                              |
+| Testing    | @context/primitives/patterns/api-testing.md                                                                   |
+| DX         | @context/foundations/code-standards.md                                                                        |
+| DevOps     | @context/primitives/tools/semantic-release.md                                                                 |
+| Workflow   | @context/workflows/commit.md, @context/workflows/dev-lifecycle.md                                                             |
 
 ## Quick Start
 

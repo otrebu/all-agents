@@ -15,7 +15,7 @@ Install vite and create a new project:
 pnpm/bun create vite . --template react-ts
 ```
 
-See @primitives/tools/vite.md for Vite setup.
+See @context/primitives/tools/vite.md for Vite setup.
 
 ## Core Principles
 
@@ -59,25 +59,25 @@ const theme = useContext(ThemeContext);
 
 ## Styling with Tailwind CSS
 
-See @primitives/tools/tailwind.md for Tailwind CSS setup.
+See @context/primitives/tools/tailwind.md for Tailwind CSS setup.
 
 ## UI Components
 
 If an existing or other component library is not in use, use shadcn/ui.
-See @primitives/tools/shadcn.md for shadcn/ui setup.
+See @context/primitives/tools/shadcn.md for shadcn/ui setup.
 
 ## Component Development
 
-Follow @primitives/tools/storybook.md for component development.
+Follow @context/primitives/tools/storybook.md for component development.
 
 ## Forms
 
-Follow @primitives/patterns/forms-validation-react.md for forms.
+Follow @context/primitives/patterns/forms-validation-react.md for forms.
 
 ## Data/Routing
 
-Follow @primitives/tools/tanstack-query.md for data/routing.
+Follow @context/primitives/tools/tanstack-query.md for data/routing.
 
 ## State Management and complex interactions
 
-Follow @primitives/tools/xstate.md.
+Follow @context/primitives/tools/xstate.md.

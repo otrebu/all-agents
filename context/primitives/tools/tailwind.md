@@ -8,7 +8,7 @@ Utility-first CSS framework.
 
 ## Setup
 
-See @primitives/tools/vite.md for Vite integration.
+See @context/primitives/tools/vite.md for Vite integration.
 
 ```bash
 pnpm add tailwindcss @tailwindcss/vite

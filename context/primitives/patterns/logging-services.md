@@ -6,10 +6,10 @@ depends: []
 
 Structured JSON logging for services, APIs, and background workers.
 
-> **Principles:** See @primitives/principles/coding-style.md#logging
+> **Principles:** See @context/primitives/principles/coding-style.md#logging
 
 **✅ Use for:** Services, APIs, web servers, background workers, daemons
-**❌ Don't use for:** CLI tools → see @primitives/patterns/logging-cli.md
+**❌ Don't use for:** CLI tools → see @context/primitives/patterns/logging-cli.md
 
 ## Setup (pino)
 

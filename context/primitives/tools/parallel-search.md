@@ -100,4 +100,4 @@ Get key: https://platform.parallel.ai/
 
 ## Implementation
 
-Scripts: `context/knowledge/parallel-search/scripts/`
+Scripts: `tools/src/commands/parallel/`

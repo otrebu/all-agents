@@ -6,7 +6,7 @@ depends: []
 
 Component library built on Radix UI + Tailwind.
 
-**Requires:** @primitives/tools/tailwind.md
+**Requires:** @context/primitives/tools/tailwind.md
 
 ## Setup
 
@@ -24,8 +24,8 @@ pnpm dlx shadcn@latest add card dialog dropdown-menu
 ## Usage
 
 ```tsx
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/card";
 
 <Card>
   <CardHeader>

@@ -7,12 +7,11 @@ description: Create a Claude Code sub-agent
 ## Workflow
 
 1. Fetch latest docs: `WebFetch(https://code.claude.com/context/en/sub-agents.md)`
-2. Pick the agent structure that fits the best for the agent you are creating from @context/meta/AGENT_TEMPLATES.md
-3. Apply prompting standards from @context/meta/PROMPTING.md
+2. Pick the agent structure that fits the best for the agent you are creating from @context/primitives/patterns/agent-templates.md
+3. Apply prompting standards from @context/primitives/principles/prompting.md
 4. **IMPORTANT**: When a document is provided in the `$ARGUMENTS` input you must only reference it (`@context/path/to/document.md`), don't include the content of the document in the agent file.
 5. Create `.claude/agents/[name].md` (lowercase-hyphen naming from `$ARGUMENTS`).
-6. Read @context/meta/CLAUDE-CODE-TOOLS-PERMISSIONS.md to understand how tools are configured
-7. Add YAML frontmatter with `tools` to allow all tools used by the agent
+6. Add YAML frontmatter with `tools` to allow all tools used by the agent
 
 ## Output
 

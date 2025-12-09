@@ -1,6 +1,6 @@
 ---
 depends:
-  - @primitives/principles/coding-style.md
+  - @context/primitives/principles/coding-style.md
 ---
 
 # Git Commit
@@ -12,11 +12,13 @@ Stage changes and create atomic conventional commits from diff analysis.
 **Goal:** Commit ALL changes in multiple atomic conventional commits
 
 **How we code:** Commit frequently while coding, not just at the end
+
 - After each logical unit of work (feature step, fix, refactor)
 - Partial/incomplete features are fine - commit progress with clear scope
 - Claude: proactively commit when it makes sense during development
 
 **Atomic commit:** One logical change that can be reverted independently
+
 - Can include deps + code + tests + docs together
 - Group by scope (auth, payment), NOT by type (deps, code, tests)
 
@@ -47,10 +49,12 @@ Parse output: staged vs unstaged vs untracked files
 ### 2. Safety Filter
 
 **Auto-exclude (never commit):**
+
 - `.env*`, `node_modules/`, `dist/`, `build/`, `.next/`
 - Credentials: `credentials.json`, `secrets.yaml`, `.npmrc` with tokens
 
 **Ask about suspicious:**
+
 - Patterns: `*.tmp`, `temp/`, `.cache/`, `*.log`, large files (>1MB)
 - Prompt: "Found suspicious: [list]. (c)ommit / (g)itignore / (s)kip?"
 - If gitignore → append to `.gitignore`, exclude from commit
@@ -58,6 +62,7 @@ Parse output: staged vs unstaged vs untracked files
 ### 3. Analyze & Group Changes
 
 Group by logical change scope:
+
 - ✅ All auth changes together (deps + code + tests + docs)
 - ✅ Partial feature progress (just token signing, verification later)
 - ❌ NOT separate: deps commit, then code, then tests
@@ -65,6 +70,7 @@ Group by logical change scope:
 **Atomic test:** "Can this be reverted independently?"
 
 **Partial features OK:**
+
 - `feat(auth): add JWT token signing` (verification comes later)
 - `feat(auth): add token verification` (separate commit)
 
@@ -79,6 +85,7 @@ Note: Step 1 unstages everything. No data loss, just reorganization.
 ### 5. Create Commit
 
 Generate from diff:
+
 - **Type**: feat, fix, refactor, docs, test, chore
 - **Scope**: module (singular, lowercase)
 - **Description**: imperative, 50-72 chars
@@ -96,6 +103,7 @@ git commit -m "feat(auth): add JWT token signing" -m "Implements RS256 algorithm
 ```
 
 **Rules:**
+
 - Imperative: "add" not "added"
 - Generate from diff, not user's words
 - ❗ NEVER add AI signatures
@@ -124,6 +132,7 @@ If upstream needed: `git push -u origin $(git branch --show-current)`
 ## When to Commit
 
 Commit frequently during development:
+
 - After each logical unit completes
 - Before switching contexts (auth → payment)
 - Before risky refactors (save working state)
@@ -183,17 +192,21 @@ Action:
 ## Troubleshooting
 
 **Nothing to commit:**
+
 - All changes already committed or no changes exist
 - Response: "No changes to commit. Working tree clean."
 
 **Pre-commit hook modified files:**
+
 - Hook changed files after staging
 - Re-run step 4 (reset, stage, verify) and retry commit
 
 **Merge conflicts or detached HEAD:**
+
 - Don't auto-commit, requires manual intervention
 - Response: "Repository needs manual intervention (conflict/detached HEAD)"
 
 **Large refactors (50+ files):**
+
 - Group by module/directory
 - Ask: "Large refactor (X files). Single commit or split by module?"
