@@ -1,4 +1,9 @@
 {
+  "[markdown]": {
+    "editor.foldingStrategy": "auto",
+    "editor.folding": true
+  },
+  "editor.foldingHighlight": true,
   "workbench.colorCustomizations": {
     "activityBar.background": "#392B18",
     "activityBar.activeBackground": "#392B18",
