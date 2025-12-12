@@ -1,4 +1,38 @@
 {
-  "version": 1,
-  "plugins": {}
+  "version": 2,
+  "plugins": {
+    "feature-dev@claude-code-plugins": [
+      {
+        "scope": "user",
+        "installPath": "/Users/Uberto.Rapizzi/dev/all-agents/.claude/plugins/cache/claude-code-plugins/feature-dev/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2025-12-03T06:56:03.242Z",
+        "lastUpdated": "2025-12-09T13:33:03.103Z",
+        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1",
+        "isLocal": true
+      }
+    ],
+    "frontend-design@claude-code-plugins": [
+      {
+        "scope": "user",
+        "installPath": "/Users/Uberto.Rapizzi/dev/all-agents/.claude/plugins/cache/claude-code-plugins/frontend-design/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2025-12-03T06:56:03.242Z",
+        "lastUpdated": "2025-12-09T13:33:03.103Z",
+        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1",
+        "isLocal": true
+      }
+    ],
+    "hookify@claude-code-plugins": [
+      {
+        "scope": "user",
+        "installPath": "/Users/Uberto.Rapizzi/dev/all-agents/.claude/plugins/cache/claude-code-plugins/hookify/0.1.0",
+        "version": "0.1.0",
+        "installedAt": "2025-12-03T06:56:03.242Z",
+        "lastUpdated": "2025-12-09T13:33:03.103Z",
+        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1",
+        "isLocal": true
+      }
+    ]
+  }
 }
