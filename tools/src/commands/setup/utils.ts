@@ -187,13 +187,21 @@ function tryResolveFromBinaryPath(): null | string {
     const realPath = existsSync(binaryPath)
       ? realpathSync(binaryPath)
       : binaryPath;
-    const candidate = resolve(dirname(realPath), "..");
 
-    if (
-      existsSync(resolve(candidate, "context")) &&
-      existsSync(resolve(candidate, "tools"))
-    ) {
-      return candidate;
+    // Walk up directory tree to find all-agents root
+    let candidate = dirname(realPath);
+    const maxDepth = 5;
+    for (let depth = 0; depth < maxDepth; depth += 1) {
+      if (
+        existsSync(resolve(candidate, "context")) &&
+        existsSync(resolve(candidate, "tools"))
+      ) {
+        return candidate;
+      }
+      const parent = resolve(candidate, "..");
+      // Reached filesystem root
+      if (parent === candidate) break;
+      candidate = parent;
     }
   } catch {
     // Path exists but can't be resolved
