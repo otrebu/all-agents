@@ -12,7 +12,7 @@ Execute Google Search-grounded research using Gemini CLI.
 
 ## Documentation
 
-Refer to @context/primitives/tools/gemini-cli.md for usage and workflow.
+Refer to @context/blocks/tools/gemini-cli.md for usage and workflow.
 
 ## Constraints
 

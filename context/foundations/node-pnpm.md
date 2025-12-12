@@ -1,8 +1,8 @@
 ---
 tags: [runtime]
 depends:
-  - @context/primitives/tools/node.md
-  - @context/primitives/tools/pnpm.md
+  - @context/blocks/tools/node.md
+  - @context/blocks/tools/pnpm.md
 ---
 
 # Node + pnpm Platform
@@ -23,7 +23,7 @@ Traditional Node.js runtime with pnpm package management.
 
 ## Components
 
-- **Runtime**: @context/primitives/tools/node.md
-- **Package Manager**: @context/primitives/tools/pnpm.md
+- **Runtime**: @context/blocks/tools/node.md
+- **Package Manager**: @context/blocks/tools/pnpm.md
 
-See @context/primitives/tools/pnpm.md for workspace configuration.
+See @context/blocks/tools/pnpm.md for workspace configuration.

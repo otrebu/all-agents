@@ -4,4 +4,4 @@ description: How to prompt AI
 
 # How to prompt AI
 
-@context/primitives/principles/prompting.md
+@context/blocks/principles/prompting.md

@@ -97,7 +97,7 @@ Research outputs are saved to `docs/research/`.
 | `/meta:claude-code:create-plugin` | Scaffold a plugin structure | — |
 | `/meta:create-cursor-rule` | Create a `.cursorrules` file | `@primitives/principles/prompting.md` |
 | `/meta:how-to-prompt` | Prompting guidance | `@primitives/principles/prompting.md` |
-| `/meta:optimize-prompt` | Optimize existing prompts | `@context/primitives/principles/optimize-prompt.md` |
+| `/meta:optimize-prompt` | Optimize existing prompts | `@context/blocks/principles/optimize-prompt.md` |
 
 ### Sub-agents
 

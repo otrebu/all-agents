@@ -1,39 +1,24 @@
 ---
 tags: [dx]
 depends:
-  - @context/primitives/tools/eslint.md
-  - @context/primitives/tools/prettier.md
-  - @context/primitives/tools/husky.md
-  - @context/primitives/principles/coding-style.md
+  - @context/blocks/tools/eslint.md
+  - @context/blocks/tools/prettier.md
+  - @context/blocks/tools/husky.md
+  - @context/blocks/principles/coding-style.md
 ---
 
-# Code Standards
+## Code Standards
 
+Package.json scripts that must be included, and taxonomy of naming scripts.
 How linting, formatting, and git hooks work together.
 
-## Integration
+## How to write code The following instructions MUST BE FOLLOWED:
 
-### package.json Scripts
+@context/blocks/principles/coding-style.md
 
-```json
-{
-  "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
-  }
-}
-```
+## Tools to uphold code standards
 
-### Pre-commit Hooks
-
-Use pre-commit hooks for lint/format on commit is highly recommended.
-See @context/primitives/tools/husky.md for git hooks to run lint/format on commit.
-
-## Components
-
-- **ESLint**: @context/primitives/tools/eslint.md
-- **Prettier**: @context/primitives/tools/prettier.md
-- **Git Hooks**: @context/primitives/tools/husky.md
-- **Style Guide**: @context/primitives/principles/coding-style.md
+@context/blocks/tools/eslint.md
+@context/blocks/tools/prettier.md
+@context/blocks/tools/commitlint.md
+@context/blocks/tools/husky.md

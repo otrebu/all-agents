@@ -9,7 +9,7 @@ Development reference for Claude Code when working in this repo. For setup, usag
 - **Linting:** ESLint (uba-eslint-config), `no-console` allowed
 - **Testing:** bun:test (E2E)
 
-See @stacks/ts-bun-cli.md for full stack patterns.
+See @context/stacks/ts-bun-cli.md for full stack patterns.
 
 ## CLI Tools (`aaa`)
 
@@ -23,7 +23,7 @@ For CLI development (adding commands, architecture, extending): see [tools/CLAUD
 
 ## Coding Style
 
-See @context/primitives/principles/coding-style.md. Key points:
+See @context/blocks/principles/coding-style.md Key points:
 
 - FP-first, avoid classes (except custom errors)
 - Small, focused functions

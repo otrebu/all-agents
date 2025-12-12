@@ -1,8 +1,3 @@
----
-depends:
-  - @context/primitives/principles/coding-style.md
----
-
 # Development Workflow
 
 ## Definition of Done ✓
@@ -18,7 +13,7 @@ A feature/change is complete when ALL of these are done:
 
 ## 0) Get context
 
-- Read @README.md and package.json first
+- Read README.md and package.json first
 - Ask concise questions if missing info (test command, branch naming, CI)
 
 ## 1) Planning 📋
@@ -27,8 +22,8 @@ A feature/change is complete when ALL of these are done:
 
 - Use plan mode to plan
 - Write to `docs/planning/stories/*` or `docs/planning/tasks/*` when plan is approved
-- Follow @context/primitives/patterns/task-template.md and @context/primitives/patterns/story-template.md for templates
-- Research external knowledge if needed with @parallel-search or @gh-search
+- Follow context/blocks/patterns/task-template.md and context/blocks/patterns/story-template.md for templates
+- Research external knowledge if needed with `parallel-search` or `gh-search`
 - Think MVP - don't over-plan
 - **Ask for review before proceeding**
 
@@ -46,22 +41,15 @@ A feature/change is complete when ALL of these are done:
 
 ## 3) Commit discipline ✍️
 
-**ATOMIC COMMITS:** One logical change that can be reverted independently
-
-- Commit frequently (after each logical unit)
-- Group by scope (auth, payment), NOT type (deps, code, tests)
-- ❗ AI SHALL NEVER sign commits
-- Run tests before commit
-
-**Read & follow:** `@context/workflows/commit.md`
+@context/workflows/commit.md
 
 ## 4) Branching 🔀
 
 **Start new feature:**
-Read & follow: `@context/workflows/start-feature.md`
+@context/workflows/start-feature.md
 
 **Complete feature:**
-Read & follow: `@context/workflows/complete-feature.md`
+@context/workflows/complete-feature.md
 
 ## 5) Documentation 📝
 

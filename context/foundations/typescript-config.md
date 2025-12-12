@@ -1,13 +1,13 @@
 ---
 depends:
-  - @context/primitives/tools/typescript.md
+  - @context/blocks/tools/typescript.md
 ---
 
 # TypeScript Configuration
 
 Standard TypeScript configurations for different project types.
 
-See @context/primitives/tools/typescript.md for:
+See @context/blocks/tools/typescript.md for:
 
 - Standard tsconfig patterns
 - Library builds

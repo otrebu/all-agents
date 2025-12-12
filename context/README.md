@@ -1,6 +1,6 @@
 # Context Documentation
 
-Atomic documentation structure: primitives → foundations → stacks.
+Atomic documentation structure: blocks → foundations → stacks.
 
 ## Quick Start
 
@@ -17,7 +17,7 @@ Atomic documentation structure: primitives → foundations → stacks.
 
 ```
 context/
-├── primitives/
+├── blocks/
 │   ├── tools/          # 31 single-tech docs
 │   ├── principles/     # 8 universal philosophies
 │   └── patterns/       # 11 context-specific techniques
@@ -26,9 +26,9 @@ context/
 └── workflows/         # 6 dev processes
 ```
 
-## Primitives
+## Blocks
 
-### Tools (`primitives/tools/`)
+### Tools (`blocks/tools/`)
 
 Single library/technology docs.
 
@@ -50,7 +50,7 @@ Single library/technology docs.
 
 **External:** gemini-cli, gh-search, parallel-search
 
-### Principles (`primitives/principles/`)
+### Principles (`blocks/principles/`)
 
 Universal philosophies and approaches.
 
@@ -65,7 +65,7 @@ Universal philosophies and approaches.
 | optimize-prompt.md               | Prompt optimization             |
 | claude-code-tools-permissions.md | Tool permissions reference      |
 
-### Patterns (`primitives/patterns/`)
+### Patterns (`blocks/patterns/`)
 
 Context-specific techniques.
 
@@ -126,7 +126,7 @@ All files use YAML frontmatter:
 ---
 tags: [cli, runtime]          # Optional: existing folder/tech names only
 depends:                       # Optional: dependency paths
-  - @context/primitives/tools/bun.md
+  - @context/blocks/tools/bun.md
   - @context/foundations/code-standards.md
 ---
 ```
@@ -135,7 +135,7 @@ depends:                       # Optional: dependency paths
 
 Use `@` prefix for cross-references:
 
-- `@context/primitives/tools/bun.md`
+- `@context/blocks/tools/bun.md`
 - `@context/foundations/node-pnpm.md`
 - `@context/stacks/ts-bun-cli.md`
 - `@context/workflows/commit.md`

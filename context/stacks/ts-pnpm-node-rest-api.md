@@ -10,13 +10,13 @@ Fastify + Zod for type-safe, self-documenting REST APIs with OpenAPI generation.
 
 | Layer      | Reference                                                                                                     |
 | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| Runtime    | @context/primitives/tools/pnpm.md, @context/primitives/tools/node.md, @context/primitives/tools/typescript.md |
-| Framework  | @context/primitives/tools/fastify.md                                                                          |
-| Validation | @context/primitives/tools/zod.md                                                                              |
-| Logging    | @context/primitives/patterns/logging-services.md                                                              |
-| Testing    | @context/primitives/patterns/api-testing.md                                                                   |
+| Runtime    | @context/blocks/tools/pnpm.md, @context/blocks/tools/node.md, @context/blocks/tools/typescript.md |
+| Framework  | @context/blocks/tools/fastify.md                                                                          |
+| Validation | @context/blocks/tools/zod.md                                                                              |
+| Logging    | @context/blocks/patterns/logging-services.md                                                              |
+| Testing    | @context/blocks/patterns/api-testing.md                                                                   |
 | DX         | @context/foundations/code-standards.md                                                                        |
-| DevOps     | @context/primitives/tools/semantic-release.md                                                                 |
+| DevOps     | @context/blocks/tools/semantic-release.md                                                                 |
 | Workflow   | @context/workflows/commit.md, @context/workflows/dev-lifecycle.md                                                             |
 
 ## Quick Start

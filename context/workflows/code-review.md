@@ -1,6 +1,6 @@
 ---
 depends:
-  - @context/primitives/principles/coding-style.md
+  - @context/blocks/principles/coding-style.md
 ---
 
 # Code Review

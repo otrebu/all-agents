@@ -10,13 +10,13 @@ Modern React frontend: Vite build, Tailwind CSS, shadcn/ui components. Supports 
 
 | Layer    | Reference                                                                                                                        |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime  | @context/primitives/tools/pnpm.md, @context/primitives/tools/node.md, @context/primitives/tools/typescript.md                    |
-| Frontend | @context/primitives/tools/react.md, @context/primitives/tools/vite.md, @context/primitives/tools/tailwind.md                     |
-| UI       | @context/primitives/tools/shadcn.md                                         |
-| Data     | @context/primitives/tools/tanstack-query.md                                                        |
-| Testing  | @context/primitives/principles/testing.md, @context/primitives/tools/storybook.md |
-| DX       | @context/foundations/code-standards.md, @context/primitives/tools/husky.md                                                       |
-| Libs     | @context/primitives/tools/date-fns.md, @context/primitives/tools/xstate.md                                                       |
+| Runtime  | @context/blocks/tools/pnpm.md, @context/blocks/tools/node.md, @context/blocks/tools/typescript.md                    |
+| Frontend | @context/blocks/tools/react.md, @context/blocks/tools/vite.md, @context/blocks/tools/tailwind.md                     |
+| UI       | @context/blocks/tools/shadcn.md                                         |
+| Data     | @context/blocks/tools/tanstack-query.md                                                        |
+| Testing  | @context/blocks/principles/testing.md, @context/blocks/tools/storybook.md |
+| DX       | @context/foundations/code-standards.md, @context/blocks/tools/husky.md                                                       |
+| Libs     | @context/blocks/tools/date-fns.md, @context/blocks/tools/xstate.md                                                       |
 | Workflow | @context/workflows/commit.md, @context/workflows/dev-lifecycle.md                                                                                |
 
 ## Quick Start (Standalone)
@@ -33,7 +33,7 @@ pnpm add -D eslint prettier uba-eslint-config vitest @testing-library/react husk
 
 ## Quick Start (Monorepo)
 
-See @context/primitives/tools/pnpm.md for full workspace setup. Key gotchas below.
+See @context/blocks/tools/pnpm.md for full workspace setup. Key gotchas below.
 
 ## When to Use
 

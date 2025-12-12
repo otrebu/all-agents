@@ -1,8 +1,3 @@
----
-depends:
-  - @context/primitives/principles/coding-style.md
----
-
 # Git Commit
 
 Stage changes and create atomic conventional commits from diff analysis.
