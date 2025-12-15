@@ -1,3 +1,9 @@
+---
+depends:
+  - "@blocks/tools/zod.md"
+  - "@blocks/tools/dotenv.md"
+---
+
 # Typed environment variables
 
 # TypeScript Config with Zod
