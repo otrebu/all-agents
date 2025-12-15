@@ -1,27 +1,41 @@
 import { getOutputDir } from "@tools/utils/paths";
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { execa } from "execa";
 import { glob } from "glob";
-import { access, readFile, rm } from "node:fs/promises";
+import { rmSync } from "node:fs";
+import { access, readFile } from "node:fs/promises";
 
 const RESEARCH_DIR = getOutputDir("research/google");
 const TIMEOUT_MS = 120_000;
 
 describe("gemini-research E2E", () => {
+  beforeAll(() => {
+    // Check for Gemini API key
+    if (
+      process.env.GEMINI_API_KEY === undefined ||
+      process.env.GEMINI_API_KEY === ""
+    ) {
+      throw new Error(
+        "GEMINI_API_KEY required.\n\n" +
+          "Get key at: https://makersuite.google.com/app/apikey\n" +
+          "Then: export GEMINI_API_KEY=your-key\n",
+      );
+    }
+  });
+
   const createdFiles: Array<string> = [];
 
-  afterEach(async () => {
+  // SYNC REQUIRED: Bun bug #19660 - async hooks may not complete
+  afterEach(() => {
     const filesToRemove = [...createdFiles];
     createdFiles.length = 0;
-    await Promise.all(
-      filesToRemove.map(async (file) => {
-        try {
-          await rm(file, { force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
-      }),
-    );
+    for (const file of filesToRemove) {
+      try {
+        rmSync(file, { force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   });
 
   test(

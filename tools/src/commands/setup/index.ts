@@ -1,4 +1,5 @@
 import * as p from "@clack/prompts";
+import log from "@lib/log";
 import { execSync } from "node:child_process";
 import {
   cpSync,
@@ -31,12 +32,12 @@ async function handleClaudeConfigDirectory(): Promise<void> {
   const shellConfig = getShellConfigPath();
 
   if (status === "correct") {
-    p.log.success("CLAUDE_CONFIG_DIR already set correctly");
+    log.success("CLAUDE_CONFIG_DIR already set correctly");
     return;
   }
 
   if (status === "different") {
-    p.log.warn(`CLAUDE_CONFIG_DIR points to: ${current}`);
+    log.warn(`CLAUDE_CONFIG_DIR points to: ${current}`);
     p.note(
       `To use all-agents globally, update ${shellConfig}:\n\n  ${getExportLine("CLAUDE_CONFIG_DIR", expected)}`,
       "CLAUDE_CONFIG_DIR",
@@ -51,7 +52,7 @@ async function handleClaudeConfigDirectory(): Promise<void> {
   });
 
   if (p.isCancel(shouldSet) || !shouldSet) {
-    p.log.info("Skipped CLAUDE_CONFIG_DIR setup");
+    log.info("Skipped CLAUDE_CONFIG_DIR setup");
     return;
   }
 
@@ -77,7 +78,7 @@ async function setup(options: SetupOptions): Promise<void> {
 
 async function setupCommand(options: SetupOptions): Promise<void> {
   if (options.user !== true && options.project !== true) {
-    p.log.error("Specify --user or --project");
+    log.error("Specify --user or --project");
     process.exit(1);
   }
 
@@ -92,13 +93,13 @@ async function setupProject(): Promise<void> {
 
   // Check if running from all-agents itself
   if (resolve(cwd) === resolve(root)) {
-    p.log.error("Cannot setup project in all-agents repo itself");
+    log.error("Cannot setup project in all-agents repo itself");
     process.exit(1);
   }
 
   // Step 1: Check user setup
   if (!isCliInstalled()) {
-    p.log.warn(
+    log.warn(
       "CLI not installed. Run: aaa setup --user (or bun run dev setup --user)",
     );
   }
@@ -112,14 +113,14 @@ async function setupProject(): Promise<void> {
 
   const existingTarget = getSymlinkTarget(contextLink);
   if (existingTarget === contextTarget) {
-    p.log.info("context/ symlink already exists");
+    log.info("context/ symlink already exists");
   } else if (existsSync(contextLink)) {
-    p.log.error("context/ already exists (not a symlink to all-agents)");
-    p.log.info(`Remove it first: rm -rf "${contextLink}"`);
+    log.error("context/ already exists (not a symlink to all-agents)");
+    log.info(`Remove it first: rm -rf "${contextLink}"`);
     process.exit(1);
   } else {
     symlinkSync(contextTarget, contextLink);
-    p.log.success(`Symlink: context/ -> ${contextTarget}`);
+    log.success(`Symlink: context/ -> ${contextTarget}`);
   }
 
   // Step 4: Copy docs templates
@@ -134,15 +135,15 @@ async function setupProject(): Promise<void> {
   for (const subdir of subdirs) {
     const destinationDirectory = resolve(docsDestination, subdir);
     if (existsSync(destinationDirectory)) {
-      p.log.info(`docs/${subdir}/ already exists`);
+      log.info(`docs/${subdir}/ already exists`);
     } else if (DIRS_ONLY.includes(subdir)) {
       mkdirSync(destinationDirectory, { recursive: true });
-      p.log.success(`Created docs/${subdir}/`);
+      log.success(`Created docs/${subdir}/`);
     } else {
       cpSync(resolve(docsSource, subdir), destinationDirectory, {
         recursive: true,
       });
-      p.log.success(`Copied docs/${subdir}/`);
+      log.success(`Copied docs/${subdir}/`);
     }
   }
 
@@ -164,36 +165,36 @@ async function setupUser(): Promise<void> {
     s.stop("CLI built");
   } catch (error) {
     s.stop("Build failed");
-    p.log.error(error instanceof Error ? error.message : "Unknown error");
+    log.error(error instanceof Error ? error.message : "Unknown error");
     process.exit(1);
   }
 
   if (!existsSync(binPath)) {
-    p.log.error(`Binary not found at ${binPath}`);
+    log.error(`Binary not found at ${binPath}`);
     process.exit(1);
   }
 
   // Step 2: Create ~/.local/bin
   if (!existsSync(LOCAL_BIN)) {
     mkdirSync(LOCAL_BIN, { recursive: true });
-    p.log.info(`Created ${LOCAL_BIN}`);
+    log.info(`Created ${LOCAL_BIN}`);
   }
 
   // Step 3: Symlink
   const existingSymlinkTarget = getSymlinkTarget(AAA_SYMLINK);
   if (existingSymlinkTarget === binPath) {
-    p.log.info("Symlink already exists");
+    log.info("Symlink already exists");
   } else {
     if (existsSync(AAA_SYMLINK)) {
       execSync(`rm "${AAA_SYMLINK}"`);
     }
     symlinkSync(binPath, AAA_SYMLINK);
-    p.log.success(`Symlink: ${AAA_SYMLINK} -> ${binPath}`);
+    log.success(`Symlink: ${AAA_SYMLINK} -> ${binPath}`);
   }
 
   // Step 4: Check PATH
   if (!isInPath(LOCAL_BIN)) {
-    p.log.warn(`${LOCAL_BIN} not in PATH`);
+    log.warn(`${LOCAL_BIN} not in PATH`);
     p.note(
       `Add to ${getShellConfigPath()}:\n\n  ${getExportLine("PATH", "$HOME/.local/bin:$PATH")}`,
       "PATH setup",

@@ -1,8 +1,5 @@
-import { config } from "dotenv";
+import log from "@lib/log";
 import { z } from "zod";
-
-// Load .env file
-config();
 
 const envSchema = z.object({
   // Debug mode - enables verbose logging
@@ -16,6 +13,18 @@ const envSchema = z.object({
 
   // Required for parallel-search
   AAA_PARALLEL_API_KEY: z.string().optional(),
+
+  // Claude config directory
+  CLAUDE_CONFIG_DIR: z.string().optional(),
+
+  // Parallel API key (alternative name)
+  PARALLEL_API_KEY: z.string().optional(),
+
+  // System PATH
+  PATH: z.string().default(""),
+
+  // Shell environment
+  SHELL: z.string().default(""),
 });
 
 type Env = z.infer<typeof envSchema>;
@@ -24,8 +33,8 @@ type Env = z.infer<typeof envSchema>;
 const parseResult = envSchema.safeParse(process.env);
 
 if (!parseResult.success) {
-  console.error("Invalid environment variables:");
-  console.error(parseResult.error.format());
+  log.error("Invalid environment variables:");
+  log.plain(JSON.stringify(parseResult.error.flatten().fieldErrors, null, 2));
   process.exit(1);
 }
 

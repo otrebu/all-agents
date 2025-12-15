@@ -2,7 +2,7 @@
 
 import log from "@lib/log";
 import { saveResearchOutput } from "@lib/research";
-import { debug } from "@tools/env";
+import { debug, env } from "@tools/env";
 import { getOutputDir } from "@tools/utils/paths";
 import { execa } from "execa";
 import { writeFile } from "node:fs/promises";
@@ -181,7 +181,7 @@ async function performGeminiSearch(
   const { stdout } = await execa({
     env: {
       // Ensure PATH includes npm bin
-      PATH: process.env.PATH,
+      PATH: env.PATH,
     },
     preferLocal: true,
   })`gemini -p "${prompt}" --output-format json`;

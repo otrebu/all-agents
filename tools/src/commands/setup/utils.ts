@@ -1,3 +1,4 @@
+import { env } from "@tools/env";
 import { existsSync, lstatSync, readlinkSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
@@ -86,7 +87,7 @@ function getClaudeConfigStatus(): {
 } {
   const root = getAllAgentsRoot();
   const expected = resolve(root, ".claude");
-  const current = process.env.CLAUDE_CONFIG_DIR;
+  const current = env.CLAUDE_CONFIG_DIR;
 
   if (current === undefined || current === "")
     return { expected, status: "unset" };
@@ -106,7 +107,7 @@ function getExportLine(variableName: string, value: string): string {
  * Determines shell config file path based on SHELL environment variable
  */
 function getShellConfigPath(): string {
-  const shell = process.env.SHELL ?? "";
+  const shell = env.SHELL;
   if (shell.includes("zsh")) return "~/.zshrc";
   if (shell.includes("bash")) return "~/.bashrc";
   return "~/.profile";
@@ -148,7 +149,7 @@ function isCliInstalled(): boolean {
  * Checks if a directory is in the PATH environment variable
  */
 function isInPath(directory: string): boolean {
-  const pathDirectories = (process.env.PATH ?? "").split(":");
+  const pathDirectories = env.PATH.split(":");
   return pathDirectories.some(
     (p) => p === directory || p === directory.replace(homedir(), "~"),
   );

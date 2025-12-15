@@ -767,6 +767,8 @@ const spinner = ora("Loading...").start();
 spinner.succeed("Done!");
 // or
 spinner.fail("Failed!");
+// or
+spinner.warn("Warning!");
 ```
 
 ### With async
@@ -785,7 +787,7 @@ try {
 </file>
 <file name="boxen.md" path="~/dev/all-agents/context/blocks/tools/boxen.md">
 
-## boxen
+## boxen (optional)
 
 Create boxes in terminal output.
 
@@ -1098,6 +1100,8 @@ const spinner = ora("Loading...").start();
 spinner.succeed("Done!");
 // or
 spinner.fail("Failed!");
+// or
+spinner.warn("Warning!");
 ```
 
 ###### With async
@@ -1115,20 +1119,47 @@ try {
 
 </file>
 
+##### @clack/prompts
+
+Interactive CLI prompts and spinners.
+
+###### Usage
+
+```typescript
+import * as p from "@clack/prompts";
+
+const result = await p.select({
+  message: "Choose an option",
+  options: [
+    { value: "opt1", label: "Option 1" },
+    { value: "opt2", label: "Option 2" }
+  ]
+});
+
+const spinner = p.spinner();
+spinner.start("Loading...");
+// work
+spinner.stop("Done!");
+```
+
 #### Conditional Verbosity
 
 You must be able to control the verbosity of the CLI output.
 
+**Debug Mode:**
+Debug mode is enabled via the `AAA_DEBUG` environment variable, not via a `--verbose` flag.
+Use the `debug()` function from `@tools/env` to conditionally log debug information.
+
 ```typescript
 import log from "@lib/log";
-const verbose = options.verbose;
+import { debug } from "@tools/env";
 
 // Always show
 log.success("Done!");
 log.error("Failed");
 
-// Verbose only
-if (verbose) {
+// Debug mode only
+if (debug()) {
   log.dim("Debug: processing file.ts");
 }
 ```
@@ -1138,11 +1169,12 @@ if (verbose) {
 **DO:**
 
 - ✅ `console.log()` for stdout (normal output)
-- ✅ `console.error()` for stderr (errors, warnings)
+- ✅ `console.error()` for stderr (errors)
+- ✅ `console.warn()` for stderr (warnings)
 - ✅ Create a logger wrapper to hide the console.log/error calls
 - ✅ Use chalk for colors
 - ✅ Use ora for spinners/progress
-- ✅ Respect `--quiet` and `--verbose` flags
+- ✅ Respect debug mode via `AAA_DEBUG` env var
 
 **DON'T:**
 
@@ -2161,12 +2193,23 @@ bun build ./src/cli.ts --compile --outfile ./bin/mycli  # Build exe
 
 Colocate command definition + handler, import into central CLI.
 
-Command Files:
+Command Files (nested structure with index.ts):
+
+```
+src/commands/
+├── task/
+│   ├── index.ts       # Main task command
+│   ├── create.ts      # task create subcommand
+│   └── list.ts        # task list subcommand
+└── story/
+    ├── index.ts       # Main story command
+    └── create.ts      # story create subcommand
+```
 
 ```typescript
-// src/commands/task-create.ts
+// src/commands/task/create.ts
 import { Command } from "commander";
-import { createTaskFile } from "../lib/tasks.js";
+import { createTaskFile } from "@lib/tasks";
 
 export const taskCreateCommand = new Command("create")
   .description("Create empty task file with auto-numbered name")
@@ -2179,9 +2222,9 @@ export const taskCreateCommand = new Command("create")
 ```
 
 ```typescript
-// src/commands/task-list.ts
+// src/commands/task/list.ts
 import { Command } from "commander";
-import { listTasks } from "../lib/tasks.js";
+import { listTasks } from "@lib/tasks";
 
 export const taskListCommand = new Command("list")
   .description("List all tasks")
@@ -2198,9 +2241,21 @@ export const taskListCommand = new Command("list")
 ```
 
 ```typescript
-// src/commands/story-create.ts
+// src/commands/task/index.ts
 import { Command } from "commander";
-import { createStoryFile } from "../lib/stories.js";
+import { taskCreateCommand } from "./create.js";
+import { taskListCommand } from "./list.js";
+
+export const taskCommand = new Command("task")
+  .description("Task management")
+  .addCommand(taskCreateCommand)
+  .addCommand(taskListCommand);
+```
+
+```typescript
+// src/commands/story/create.ts
+import { Command } from "commander";
+import { createStoryFile } from "@lib/stories";
 
 export const storyCreateCommand = new Command("create")
   .description("Create empty story file with auto-numbered name")
@@ -2217,28 +2272,31 @@ export const storyCreateCommand = new Command("create")
   });
 ```
 
+```typescript
+// src/commands/story/index.ts
+import { Command } from "commander";
+import { storyCreateCommand } from "./create.js";
+
+export const storyCommand = new Command("story")
+  .description("Story management")
+  .addCommand(storyCreateCommand);
+```
+
 Central CLI:
 
 ```typescript
 // src/cli.ts
 import { Command } from "commander";
-import { taskCreateCommand } from "./commands/task-create.js";
-import { taskListCommand } from "./commands/task-list.js";
-import { storyCreateCommand } from "./commands/story-create.js";
+import { taskCommand } from "./commands/task/index.js";
+import { storyCommand } from "./commands/story/index.js";
 
 const program = new Command()
   .name("plan")
   .description("Project planning utilities")
   .version("1.0.0");
 
-const task = new Command("task").description("Task management");
-task.addCommand(taskCreateCommand);
-task.addCommand(taskListCommand);
-program.addCommand(task);
-
-const story = new Command("story").description("Story management");
-story.addCommand(storyCreateCommand);
-program.addCommand(story);
+program.addCommand(taskCommand);
+program.addCommand(storyCommand);
 
 program.parse();
 ```
