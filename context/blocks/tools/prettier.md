@@ -4,7 +4,7 @@ Opinionated code formatter.
 
 ### Install
 
-Install the prettier configuration from: https://www.npmjs.com/package/uba-prettier-config
+Install the prettier configuration from: https://www.npmjs.com/package/uba-eslint-config
 
 ### Configure
 

@@ -32,13 +32,13 @@ nvm use 20
 nvm alias default 20
 ```
 
-## LTS Recommendation
+### LTS Recommendation
 
 Always use latest **LTS (Long Term Support)** version for production:
 
 Check latest LTS: https://nodejs.org/en/about/releases/
 
-## .nvmrc
+### .nvmrc
 
 Pin Node version per project:
 
@@ -50,7 +50,7 @@ echo "24" > .nvmrc
 nvm use
 ```
 
-## package.json engines
+### package.json engines
 
 Enforce Node version:
 
@@ -58,6 +58,24 @@ Enforce Node version:
 {
   "engines": {
     "node": ">=24"
+  }
+}
+```
+
+## Loading Environment Variables
+
+Node.js requires the `--env-file` flag to load environment variables from a specific file.
+
+```bash
+node --env-file=.env src/index.ts
+```
+
+package.json example:
+
+```json
+{
+  "scripts": {
+    "start": "node --env-file=.env src/index.ts"
   }
 }
 ```

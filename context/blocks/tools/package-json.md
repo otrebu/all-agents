@@ -1,18 +1,75 @@
-## Package.json
+# package.json Scripts
 
-List of scripts that should ALWAYS be present in a package.json
+npm script naming patterns for projects & monorepos.
+
+---
+
+## Patterns
+
+| Pattern                | Meaning              | Examples                                  |
+| ---------------------- | -------------------- | ----------------------------------------- |
+| `{verb}`               | Default/all targets  | `build`, `test`, `lint`                   |
+| `{verb}:{target}`      | Specific app/package | `dev:api`, `build:web`                    |
+| `{verb}:{modifier}`    | Variant              | `test:watch`, `lint:fix`, `test:coverage` |
+| `{noun}:{verb}`        | Domain operations    | `db:migrate`, `db:seed`                   |
+| `{verb}:{environment}` | Environment-specific | `check:ci`, `build:prod`                  |
+
+## Rules
+
+- Bare command = default (all/primary target)
+- `:fix` = auto-correct issues
+- `:watch` = continuous/interactive mode
+- `:ci` = strict, non-interactive + coverage
+- `:all` = explicit parallel when bare doesn't
+
+## Simple Project
 
 ```json
 {
   "scripts": {
+    "// DEV": "",
+    "dev": "<dev server>",
+    "dev:debug": "<dev w/ debugger>",
+
+    "// PROD": "",
+    "build": "<build>",
+    "start": "<prod server>",
+
+    "// TEST": "",
+    "test": "<all tests>",
+    "test:watch": "<watch mode>",
+    "test:ui": "<w/ ui>",
+    "test:coverage": "<w/ coverage>",
+    "test:e2e": "<e2e>",
+    "test:e2e:ui": "<e2e w/ ui>",
+
+    "// QUALITY": "",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    // TODO: without compiling
-    "typecheck: "tsc "
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
+    "check": "<package manager> run lint && <package manager> run typecheck && <package manager> run test",
+    "check:ci": "<package manager> run format:check && <package manager> run lint && <package manager> run typecheck && <package manager> run test:coverage",
+
+    "// DB": "",
+    "db:generate": "<generate schema/types>",
+    "db:migrate": "<run migrations>",
+    "db:push": "<push schema>",
+    "db:seed": "<seed>",
+    "db:reset": "<reset+reseed>",
+    "db:studio": "<db gui>",
+
+    "// UTIL": "",
+    "clean": "rm -rf dist node_modules <framework dirs>",
+    "prepare": "husky"
   }
 }
 ```
 
-TODO: describe the taxonomy of how I prefer scripts to be names with : separators
+## Monorepo Proxy
+
+Root `package.json` delegates to workspaces = convenience + indirection.
+
+**Recommendation:** Proxy common commands only (`dev`, `build`, `test`, `check`). Use `--filter` directly for rare operations.

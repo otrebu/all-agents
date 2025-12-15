@@ -150,6 +150,65 @@ tsc --build --force
 pnpm --filter @monorepo/package-name dev
 ```
 
+#### Package.json monorepo scripts
+
+package.json for a monorepo using pnpm:
+
+```json
+{
+  "name": "my-monorepo",
+  "private": true,
+  "scripts": {
+    "// === DEVELOPMENT ===": "",
+    "dev": "pnpm --filter @scope/web dev",
+    "dev:api": "pnpm --filter @scope/api dev",
+    "dev:admin": "pnpm --filter @scope/admin dev",
+    "dev:all": "pnpm -r --parallel dev",
+
+    "// === PRODUCTION ===": "",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @scope/web build",
+    "build:api": "pnpm --filter @scope/api build",
+    "build:packages": "pnpm --filter './packages/*' build",
+    "start": "pnpm --filter @scope/web start",
+    "start:api": "pnpm --filter @scope/api start",
+
+    "// === TESTING ===": "",
+    "test": "pnpm -r test",
+    "test:unit": "pnpm -r test:unit",
+    "test:integration": "pnpm -r test:integration",
+    "test:e2e": "pnpm --filter @scope/e2e test",
+    "test:watch": "pnpm -r --parallel test:watch",
+    "test:coverage": "pnpm -r test:coverage",
+
+    "// === CODE QUALITY ===": "",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "check:ci": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage",
+
+    "// === DATABASE ===": "",
+    "db:generate": "pnpm --filter @scope/db generate",
+    "db:migrate": "pnpm --filter @scope/db migrate",
+    "db:push": "pnpm --filter @scope/db push",
+    "db:seed": "pnpm --filter @scope/db seed",
+    "db:studio": "pnpm --filter @scope/db studio",
+
+    "// === UTILITIES ===": "",
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "prepare": "husky",
+
+    "// === RELEASE ===": "",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm build && changeset publish"
+  }
+}
+```
+
 Key points:
 
 - workspace:\* protocol for internal dependencies (auto-converts on publish)

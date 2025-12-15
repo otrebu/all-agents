@@ -1,29 +1,51 @@
 ## commander
 
 CLI framework for building command-line commands with options and parameters with parsing and validation.
-Use with `@commander-js/extra-typings` for type safety.
 
-### Usage
+### Setup
+
+Install `commander`.
+
+### Commander.js Option Syntax → TypeScript Types
+
+Here's a summary of how the option string syntax affects the parsed value:
+
+| Syntax Pattern                  | Example                | Parsed Type                        | Notes                                        |
+| ------------------------------- | ---------------------- | ---------------------------------- | -------------------------------------------- |
+| **Boolean** (no placeholder)    | `--debug`              | `boolean \| undefined`             | `true` when present, `undefined` when absent |
+| **Required value** (`<>`)       | `--port <number>`      | `string \| undefined`              | String value required if option used         |
+| **Optional value** (`[]`)       | `--cheese [type]`      | `string \| boolean \| undefined`   | `true` if flag only, `string` if value given |
+| **Negatable** (`no-` prefix)    | `--no-sauce`           | `boolean`                          | Default `true`, becomes `false` when used    |
+| **Variadic required** (`<...>`) | `--numbers <nums...>`  | `string[] \| undefined`            | Array of strings                             |
+| **Variadic optional** (`[...]`) | `--letters [chars...]` | `string[] \| boolean \| undefined` | `true` if flag only, `string[]` if values    |
+
+### Key nuances:
+
+1. **With default value**: removes `undefined` from the union
+2. **With `.requiredOption()`**: removes `undefined` (guaranteed at runtime)
+3. **`no-` alone** (e.g., only `--no-sauce` defined): defaults to `true`, no way to set `true` explicitly
+4. **`no-` paired** (e.g., `--sauce` AND `--no-sauce`): default depends on which is defined first
+
+### TypeScript type examples:
 
 ```typescript
-import { Command } from "@commander-js/extra-typings";
-// The log library is a shared library that is used to log messages to the console.
-// It is used to log messages to the console in a consistent way.
-import log from "@lib/log";
+interface Options {
+  // --debug (boolean)
+  debug?: boolean;
 
-const program = new Command();
+  // --port <number> (required value)
+  port?: string;
 
-program.name("mycli").description("My CLI tool").version("1.0.0");
+  // --cheese [type] (optional value)
+  cheese?: string | boolean;
 
-program
-  .command("greet")
-  .description("Greet someone")
-  .argument("<name>", "Name to greet")
-  .option("-l, --loud", "Shout the greeting")
-  .action((name, options) => {
-    const greeting = `Hello, ${name}!`;
-    log.info(options.loud ? greeting.toUpperCase() : greeting);
-  });
+  // --no-sauce (negatable, defined alone)
+  sauce: boolean; // defaults true, no undefined
 
-program.parse();
+  // --numbers <nums...> (variadic)
+  numbers?: string[];
+
+  // --letters [chars...] (optional variadic)
+  letters?: string[] | boolean;
+}
 ```

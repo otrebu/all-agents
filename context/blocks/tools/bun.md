@@ -79,6 +79,23 @@ bun ./script.js                      # Run JS
 
 **Native TypeScript**: Bun executes `.ts` files directly without compilation. No `ts-node` or build step needed for development
 
+## Loading Environment Variables
+
+Bun loads `.env` files automatically (no flags needed):
+
+```json
+{
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts"
+  }
+}
+```
+
+**Variable Expansion**: Bun supports `$VAR` syntax for environment variables.
+
+It also supports `--env-file` flag to load environment variables from a specific file.
+
 ## TypeScript with Bun
 
 Bun runs TS natively but **does not type-check**. For type safety:
@@ -206,6 +223,66 @@ bun run --filter '*' <script>
 {
   "dependencies": {
     "@myorg/shared": "workspace:*"
+  }
+}
+```
+
+### Package.json monorepo scripts
+
+package.json for a monorepo using Bun:
+
+```json
+{
+  "name": "my-monorepo",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "// === DEVELOPMENT ===": "",
+    "dev": "bun --filter @scope/web dev",
+    "dev:api": "bun --filter @scope/api dev",
+    "dev:admin": "bun --filter @scope/admin dev",
+    "dev:all": "bun --filter '*' dev",
+
+    "// === PRODUCTION ===": "",
+    "build": "bun --filter '*' build",
+    "build:web": "bun --filter @scope/web build",
+    "build:api": "bun --filter @scope/api build",
+    "build:packages": "bun --filter './packages/*' build",
+    "start": "bun --filter @scope/web start",
+    "start:api": "bun --filter @scope/api start",
+
+    "// === TESTING ===": "",
+    "test": "bun test",
+    "test:unit": "bun --filter '*' test:unit",
+    "test:integration": "bun --filter '*' test:integration",
+    "test:e2e": "bun --filter @scope/e2e test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+
+    "// === CODE QUALITY ===": "",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run lint && bun run typecheck && bun run test",
+    "check:ci": "bun run format:check && bun run lint && bun run typecheck && bun run test:coverage",
+
+    "// === DATABASE ===": "",
+    "db:generate": "bun --filter @scope/db generate",
+    "db:migrate": "bun --filter @scope/db migrate",
+    "db:push": "bun --filter @scope/db push",
+    "db:seed": "bun --filter @scope/db seed",
+    "db:studio": "bun --filter @scope/db studio",
+
+    "// === UTILITIES ===": "",
+    "clean": "bun --filter '*' clean && rm -rf node_modules",
+    "prepare": "husky",
+
+    "// === RELEASE ===": "",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "bun run build && changeset publish"
   }
 }
 ```
