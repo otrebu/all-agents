@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 import { Command, Option } from "@commander-js/extra-typings";
 
-import type { GeminiMode } from "./commands/gemini/search";
+import type { GeminiMode } from "./commands/gemini/index";
 
-import downloadCommand from "./commands/download/main";
-import geminiResearchCommand from "./commands/gemini/search";
-import ghSearchCommand from "./commands/github/main";
-import parallelSearchCommand from "./commands/parallel-search/search";
+import downloadCommand from "./commands/download/index";
+import geminiResearchCommand from "./commands/gemini/index";
+import ghSearchCommand from "./commands/github/index";
+import parallelSearchCommand from "./commands/parallel-search/index";
 import setupCommand from "./commands/setup/index";
 import createStoryCommand from "./commands/story/index";
 import createTaskCommand from "./commands/task/index";

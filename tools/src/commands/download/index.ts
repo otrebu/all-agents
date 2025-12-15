@@ -37,14 +37,13 @@ async function download(
   log.dim(`Downloading ${urls.length} URL${urls.length > 1 ? "s" : ""}...`);
 
   const spinner = ora("Fetching...").start();
-  const contents: Array<DownloadedContent> = [];
 
-  for (const url of urls) {
-    spinner.text = `Fetching: ${url}`;
-    // eslint-disable-next-line no-await-in-loop
-    const content = await fetchAndConvert(url);
-    contents.push(content);
-  }
+  const contents = await Promise.all(
+    urls.map(async (url) => {
+      spinner.text = `Fetching: ${url}`;
+      return fetchAndConvert(url);
+    }),
+  );
 
   spinner.succeed(
     `Fetched ${contents.length} URL${contents.length > 1 ? "s" : ""}`,
@@ -73,7 +72,7 @@ async function downloadCommand(
       log.error(error.message);
     } else {
       log.error("Unexpected error");
-      console.error(error);
+      log.error(String(error));
     }
     process.exit(1);
   }

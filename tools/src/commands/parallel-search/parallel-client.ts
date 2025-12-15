@@ -1,3 +1,4 @@
+import { env } from "@tools/env";
 import Parallel from "parallel-web";
 
 import type { SearchOptions, SearchResult } from "./types";
@@ -45,7 +46,7 @@ async function executeSearch(
 ): Promise<Array<SearchResult>> {
   validateSearchOptions(options);
 
-  const apiKey = process.env.PARALLEL_API_KEY;
+  const apiKey = env.PARALLEL_API_KEY;
   if (apiKey === undefined || apiKey.length === 0) {
     throw new AuthError(
       "PARALLEL_API_KEY environment variable not set. Get your API key at https://platform.parallel.ai/",
