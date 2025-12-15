@@ -19,6 +19,37 @@ interface GitHubSearchResult {
   mdPath: string;
 }
 
+async function executeGithubSearch(userQuery: string): Promise<void> {
+  try {
+    await performGithubSearch(userQuery);
+  } catch (error) {
+    const unknownError = error as Error;
+    if (error instanceof AuthError) {
+      log.error("\nAuthentication failed");
+      log.dim(error.message);
+      log.dim("\nInstall gh CLI: https://cli.github.com/");
+      log.dim("Then run: gh auth login --web\n");
+    } else if (error instanceof RateLimitError) {
+      log.error("\nRate limit exceeded");
+      log.dim(error.message);
+      log.dim(`\nResets at: ${error.resetAt.toLocaleString()}`);
+      log.dim(`Remaining requests: ${error.remaining}\n`);
+    } else if (error instanceof SearchError) {
+      log.error("\nSearch failed");
+      log.dim(`${error.message}\n`);
+    } else {
+      log.error("\nUnexpected error");
+      const errorMessage = unknownError.message;
+      log.dim(errorMessage);
+      const errorStack = unknownError.stack;
+      if (errorStack !== undefined && errorStack.length > 0) {
+        log.dim(`\n${errorStack}`);
+      }
+    }
+    process.exit(1);
+  }
+}
+
 function formatMarkdownReport(
   files: Array<CodeFile>,
   stats: { executionTimeMs: number; query: string; totalResults: number },
@@ -67,7 +98,9 @@ function formatStars(stars: number | undefined): string {
   return stars.toString();
 }
 
-async function runGitHubSearch(userQuery: string): Promise<GitHubSearchResult> {
+async function performGithubSearch(
+  userQuery: string,
+): Promise<GitHubSearchResult> {
   const RESEARCH_DIR = getOutputDir("research/github");
   debug("Research dir:", RESEARCH_DIR);
 
@@ -144,36 +177,6 @@ async function runGitHubSearch(userQuery: string): Promise<GitHubSearchResult> {
   return { files, jsonPath, mdPath };
 }
 
-async function runGitHubSearchCli(userQuery: string): Promise<void> {
-  try {
-    await runGitHubSearch(userQuery);
-  } catch (error) {
-    const unknownError = error as Error;
-    if (error instanceof AuthError) {
-      log.error("\nAuthentication failed");
-      log.dim(error.message);
-      log.dim("\nInstall gh CLI: https://cli.github.com/");
-      log.dim("Then run: gh auth login --web\n");
-    } else if (error instanceof RateLimitError) {
-      log.error("\nRate limit exceeded");
-      log.dim(error.message);
-      log.dim(`\nResets at: ${error.resetAt.toLocaleString()}`);
-      log.dim(`Remaining requests: ${error.remaining}\n`);
-    } else if (error instanceof SearchError) {
-      log.error("\nSearch failed");
-      log.dim(`${error.message}\n`);
-    } else {
-      log.error("\nUnexpected error");
-      const errorMessage = unknownError.message;
-      log.dim(errorMessage);
-      const errorStack = unknownError.stack;
-      if (errorStack !== undefined && errorStack.length > 0) {
-        log.dim(`\n${errorStack}`);
-      }
-    }
-    process.exit(1);
-  }
-}
-
 export type { GitHubSearchResult };
-export { runGitHubSearch, runGitHubSearchCli };
+export { performGithubSearch };
+export default executeGithubSearch;

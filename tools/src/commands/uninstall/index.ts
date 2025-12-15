@@ -16,6 +16,29 @@ interface UninstallOptions {
   user?: boolean;
 }
 
+function executeUninstall(options: UninstallOptions): void {
+  if (options.user !== true && options.project !== true) {
+    p.log.error("Specify --user or --project");
+    process.exit(1);
+  }
+
+  performUninstall(options);
+}
+
+function performUninstall(options: UninstallOptions): void {
+  if (options.user !== true && options.project !== true) {
+    return;
+  }
+
+  if (options.user === true) {
+    removeUserInstallation();
+  }
+
+  if (options.project === true) {
+    removeProjectInstallation();
+  }
+}
+
 function removeProjectInstallation(): void {
   p.intro("aaa uninstall --project");
 
@@ -68,19 +91,4 @@ function removeUserInstallation(): void {
   p.outro("User uninstall complete");
 }
 
-function runUninstall(options: UninstallOptions): void {
-  if (options.user !== true && options.project !== true) {
-    p.log.error("Specify --user or --project");
-    process.exit(1);
-  }
-
-  if (options.user === true) {
-    removeUserInstallation();
-  }
-
-  if (options.project === true) {
-    removeProjectInstallation();
-  }
-}
-
-export default runUninstall;
+export default executeUninstall;

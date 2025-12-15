@@ -17,6 +17,68 @@ interface DownloadOptions {
   output?: string;
 }
 
+async function download(
+  urls: Array<string>,
+  options: DownloadOptions,
+): Promise<string> {
+  const outputDirectory =
+    options.dir ?? join(process.cwd(), "docs/research/downloads");
+
+  log.header("\n Download URLs\n");
+
+  for (const url of urls) {
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      throw new DownloadError(
+        `Invalid URL (must start with http/https): ${url}`,
+      );
+    }
+  }
+
+  log.dim(`Downloading ${urls.length} URL${urls.length > 1 ? "s" : ""}...`);
+
+  const spinner = ora("Fetching...").start();
+  const contents: Array<DownloadedContent> = [];
+
+  for (const url of urls) {
+    spinner.text = `Fetching: ${url}`;
+    // eslint-disable-next-line no-await-in-loop
+    const content = await fetchAndConvert(url);
+    contents.push(content);
+  }
+
+  spinner.succeed(
+    `Fetched ${contents.length} URL${contents.length > 1 ? "s" : ""}`,
+  );
+
+  const markdown = formatOutput(contents);
+  const filename = generateFilename(urls, options.output);
+
+  await mkdir(outputDirectory, { recursive: true });
+
+  const outputPath = join(outputDirectory, filename);
+  await writeFile(outputPath, markdown);
+
+  log.success(`Saved to: ${outputPath}`);
+  return outputPath;
+}
+
+async function downloadCommand(
+  urls: Array<string>,
+  options: DownloadOptions,
+): Promise<void> {
+  try {
+    await download(urls, options);
+  } catch (error) {
+    if (error instanceof DownloadError) {
+      log.error(error.message);
+    } else {
+      log.error("Unexpected error");
+      console.error(error);
+    }
+    process.exit(1);
+  }
+}
+
 async function fetchAndConvert(url: string): Promise<DownloadedContent> {
   const response = await fetch(url);
   if (!response.ok) {
@@ -62,66 +124,4 @@ function generateFilename(urls: Array<string>, customName?: string): string {
   return `${formattedTimestamp}-${topic === "" ? "download" : topic}.md`;
 }
 
-async function runDownload(
-  urls: Array<string>,
-  options: DownloadOptions,
-): Promise<string> {
-  const outputDirectory =
-    options.dir ?? join(process.cwd(), "docs/research/downloads");
-
-  log.header("\n Download URLs\n");
-
-  for (const url of urls) {
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      throw new DownloadError(
-        `Invalid URL (must start with http/https): ${url}`,
-      );
-    }
-  }
-
-  log.dim(`Downloading ${urls.length} URL${urls.length > 1 ? "s" : ""}...`);
-
-  const spinner = ora("Fetching...").start();
-  const contents: Array<DownloadedContent> = [];
-
-  for (const url of urls) {
-    spinner.text = `Fetching: ${url}`;
-    // eslint-disable-next-line no-await-in-loop
-    const content = await fetchAndConvert(url);
-    contents.push(content);
-  }
-
-  spinner.succeed(
-    `Fetched ${contents.length} URL${contents.length > 1 ? "s" : ""}`,
-  );
-
-  const markdown = formatOutput(contents);
-  const filename = generateFilename(urls, options.output);
-
-  await mkdir(outputDirectory, { recursive: true });
-
-  const outputPath = join(outputDirectory, filename);
-  await writeFile(outputPath, markdown);
-
-  log.success(`Saved to: ${outputPath}`);
-  return outputPath;
-}
-
-async function runDownloadCli(
-  urls: Array<string>,
-  options: DownloadOptions,
-): Promise<void> {
-  try {
-    await runDownload(urls, options);
-  } catch (error) {
-    if (error instanceof DownloadError) {
-      log.error(error.message);
-    } else {
-      log.error("Unexpected error");
-      console.error(error);
-    }
-    process.exit(1);
-  }
-}
-
-export default runDownloadCli;
+export default downloadCommand;

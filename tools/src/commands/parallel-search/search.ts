@@ -29,7 +29,50 @@ interface ParallelSearchResult {
   results: Array<unknown>;
 }
 
-async function runParallelSearch(
+async function executeParallelSearch(
+  options: ParallelSearchOptions,
+): Promise<void> {
+  try {
+    await performParallelSearch(options);
+  } catch (error: unknown) {
+    if (error instanceof AuthError) {
+      log.error("\nAuthentication failed");
+      log.dim(error.message);
+      log.dim("\nGet your API key at: https://platform.parallel.ai/");
+      log.dim('Then run: export AAA_PARALLEL_API_KEY="your-key-here"\n');
+    } else if (error instanceof RateLimitError) {
+      log.error("\nRate limit exceeded");
+      log.dim(error.message);
+      if (error.resetAt !== undefined) {
+        log.dim(`\nResets at: ${error.resetAt.toLocaleString()}`);
+      }
+      if (error.remaining !== undefined) {
+        log.dim(`Remaining requests: ${error.remaining}`);
+      }
+      log.dim("");
+    } else if (error instanceof NetworkError) {
+      log.error("\nNetwork error");
+      log.dim(error.message);
+      log.dim("\nPlease check your internet connection and try again.\n");
+    } else if (error instanceof ValidationError) {
+      log.error("\nValidation error");
+      log.dim(error.message);
+      log.dim("\nRun with --help to see valid options.\n");
+    } else {
+      const errorObject = error as Error;
+      log.error("\nUnexpected error");
+      log.dim(errorObject.message);
+      if (errorObject.stack !== undefined) {
+        log.dim(`\n${errorObject.stack}`);
+      }
+      log.dim("");
+    }
+
+    process.exit(1);
+  }
+}
+
+async function performParallelSearch(
   options: ParallelSearchOptions,
 ): Promise<ParallelSearchResult> {
   const RESEARCH_DIR = getOutputDir("research/parallel");
@@ -100,48 +143,6 @@ async function runParallelSearch(
   return { jsonPath, mdPath, results };
 }
 
-async function runParallelSearchCli(
-  options: ParallelSearchOptions,
-): Promise<void> {
-  try {
-    await runParallelSearch(options);
-  } catch (error: unknown) {
-    if (error instanceof AuthError) {
-      log.error("\nAuthentication failed");
-      log.dim(error.message);
-      log.dim("\nGet your API key at: https://platform.parallel.ai/");
-      log.dim('Then run: export AAA_PARALLEL_API_KEY="your-key-here"\n');
-    } else if (error instanceof RateLimitError) {
-      log.error("\nRate limit exceeded");
-      log.dim(error.message);
-      if (error.resetAt !== undefined) {
-        log.dim(`\nResets at: ${error.resetAt.toLocaleString()}`);
-      }
-      if (error.remaining !== undefined) {
-        log.dim(`Remaining requests: ${error.remaining}`);
-      }
-      log.dim("");
-    } else if (error instanceof NetworkError) {
-      log.error("\nNetwork error");
-      log.dim(error.message);
-      log.dim("\nPlease check your internet connection and try again.\n");
-    } else if (error instanceof ValidationError) {
-      log.error("\nValidation error");
-      log.dim(error.message);
-      log.dim("\nRun with --help to see valid options.\n");
-    } else {
-      const errorObject = error as Error;
-      log.error("\nUnexpected error");
-      log.dim(errorObject.message);
-      if (errorObject.stack !== undefined) {
-        log.dim(`\n${errorObject.stack}`);
-      }
-      log.dim("");
-    }
-
-    process.exit(1);
-  }
-}
-
 export type { ParallelSearchOptions, ParallelSearchResult };
-export { runParallelSearch, runParallelSearchCli };
+export { performParallelSearch };
+export default executeParallelSearch;

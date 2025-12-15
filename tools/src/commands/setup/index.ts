@@ -61,10 +61,9 @@ async function handleClaudeConfigDirectory(): Promise<void> {
   );
 }
 
-async function runSetup(options: SetupOptions): Promise<void> {
+async function setup(options: SetupOptions): Promise<void> {
   if (options.user !== true && options.project !== true) {
-    p.log.error("Specify --user or --project");
-    process.exit(1);
+    return;
   }
 
   if (options.user === true) {
@@ -74,6 +73,15 @@ async function runSetup(options: SetupOptions): Promise<void> {
   if (options.project === true) {
     await setupProject();
   }
+}
+
+async function setupCommand(options: SetupOptions): Promise<void> {
+  if (options.user !== true && options.project !== true) {
+    p.log.error("Specify --user or --project");
+    process.exit(1);
+  }
+
+  await setup(options);
 }
 
 async function setupProject(): Promise<void> {
@@ -198,4 +206,4 @@ async function setupUser(): Promise<void> {
   p.outro("User setup complete");
 }
 
-export default runSetup;
+export default setupCommand;

@@ -76,6 +76,20 @@ function getContextRoot(): string {
 }
 
 /**
+ * Builds output paths under {contextRoot}/docs/{subpath}
+ *
+ * Always resolves to all-agents/docs/, even when CLI is run from other projects.
+ * This makes all-agents the centralized document repository.
+ *
+ * Examples:
+ * - getOutputDir("research/google") → /path/to/all-agents/docs/research/google
+ * - getOutputDir("planning/tasks") → /path/to/all-agents/docs/planning/tasks
+ */
+function getOutputDirectory(subpath: string): string {
+  return resolve(getContextRoot(), "docs", subpath);
+}
+
+/**
  * Strategy 2: Resolve relative to binary path
  *
  * Uses process.argv[1] (the script/binary being executed) and resolves symlinks.
@@ -169,20 +183,6 @@ function tryResolveFromExec(): null | string {
     return candidate;
   }
   return null;
-}
-
-/**
- * Builds output paths under {contextRoot}/docs/{subpath}
- *
- * Always resolves to all-agents/docs/, even when CLI is run from other projects.
- * This makes all-agents the centralized document repository.
- *
- * Examples:
- * - getOutputDir("research/google") → /path/to/all-agents/docs/research/google
- * - getOutputDir("planning/tasks") → /path/to/all-agents/docs/planning/tasks
- */
-function getOutputDirectory(subpath: string): string {
-  return resolve(getContextRoot(), "docs", subpath);
 }
 
 export { getContextRoot, getOutputDirectory as getOutputDir };

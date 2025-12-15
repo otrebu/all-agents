@@ -19,7 +19,7 @@ function createStory(
   });
 }
 
-function runStoryCreateCli(name: string, options: StoryCreateOptions): void {
+function createStoryCommand(name: string, options: StoryCreateOptions): void {
   try {
     const result = createStory(name, options);
     // Output just the filepath for CLI consumption
@@ -34,5 +34,6 @@ function runStoryCreateCli(name: string, options: StoryCreateOptions): void {
   }
 }
 
-export { createStory, runStoryCreateCli };
+export { createStory };
 export type { StoryCreateOptions };
+export default createStoryCommand;

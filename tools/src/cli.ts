@@ -3,14 +3,14 @@ import { Command, Option } from "@commander-js/extra-typings";
 
 import type { GeminiMode } from "./commands/gemini/search";
 
-import runDownloadCli from "./commands/download/main";
-import { runGeminiResearchCli } from "./commands/gemini/search";
-import { runGitHubSearchCli } from "./commands/github/main";
-import { runParallelSearchCli } from "./commands/parallel-search/search";
-import runSetup from "./commands/setup/index";
-import { runStoryCreateCli } from "./commands/story/index";
-import { runTaskCreateCli } from "./commands/task/index";
-import runUninstall from "./commands/uninstall/index";
+import downloadCommand from "./commands/download/main";
+import geminiResearchCommand from "./commands/gemini/search";
+import ghSearchCommand from "./commands/github/main";
+import parallelSearchCommand from "./commands/parallel-search/search";
+import setupCommand from "./commands/setup/index";
+import createStoryCommand from "./commands/story/index";
+import createTaskCommand from "./commands/task/index";
+import uninstallCommand from "./commands/uninstall/index";
 
 const program = new Command()
   .name("aaa")
@@ -29,14 +29,14 @@ program.addCommand(
       "-d, --dir <path>",
       "Output directory (default: docs/research/downloads)",
     )
-    .action(runDownloadCli),
+    .action(downloadCommand),
 );
 
 program.addCommand(
   new Command("gh-search")
     .description("Search GitHub for real-world code examples")
     .argument("<query>", "Search query")
-    .action(runGitHubSearchCli),
+    .action(ghSearchCommand),
 );
 
 program.addCommand(
@@ -45,7 +45,7 @@ program.addCommand(
     .argument("<query>", "Search query")
     .option("--mode <string>", "Research mode: quick|deep|code", "quick")
     .action(async (query, options) =>
-      runGeminiResearchCli(query, options.mode as GeminiMode),
+      geminiResearchCommand(query, options.mode as GeminiMode),
     ),
 );
 
@@ -73,7 +73,7 @@ program.addCommand(
     )
     .argument("[extraQueries...]", "Additional queries (positional)")
     .action(async (extraQueries, options) =>
-      runParallelSearchCli({
+      parallelSearchCommand({
         maxChars: options.maxChars,
         maxResults: options.maxResults,
         objective: options.objective,
@@ -91,7 +91,7 @@ program.addCommand(
       "--project",
       "Setup current project (symlink context/, create docs/)",
     )
-    .action(runSetup),
+    .action(setupCommand),
 );
 
 program.addCommand(
@@ -99,7 +99,7 @@ program.addCommand(
     .description("Uninstall all-agents for user or project")
     .option("--user", "Remove aaa symlink from ~/.local/bin")
     .option("--project", "Remove context/ symlink from current project")
-    .action(runUninstall),
+    .action(uninstallCommand),
 );
 
 // Task management
@@ -115,7 +115,7 @@ taskCommand.addCommand(
       "-d, --dir <path>",
       "Custom tasks directory (default: docs/planning/tasks)",
     )
-    .action(runTaskCreateCli),
+    .action(createTaskCommand),
 );
 
 program.addCommand(taskCommand);
@@ -133,7 +133,7 @@ storyCommand.addCommand(
       "-d, --dir <path>",
       "Custom stories directory (default: docs/planning/stories)",
     )
-    .action(runStoryCreateCli),
+    .action(createStoryCommand),
 );
 
 program.addCommand(storyCommand);

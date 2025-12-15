@@ -19,7 +19,7 @@ function createTask(
   });
 }
 
-function runTaskCreateCli(name: string, options: TaskCreateOptions): void {
+function createTaskCommand(name: string, options: TaskCreateOptions): void {
   try {
     const result = createTask(name, options);
     // Output just the filepath for CLI consumption
@@ -34,5 +34,6 @@ function runTaskCreateCli(name: string, options: TaskCreateOptions): void {
   }
 }
 
-export { createTask, runTaskCreateCli };
+export { createTask };
 export type { TaskCreateOptions };
+export default createTaskCommand;

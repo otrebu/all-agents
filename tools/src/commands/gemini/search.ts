@@ -129,7 +129,37 @@ Return JSON:
 }`,
 };
 
-async function runGeminiResearch(
+async function executeGeminiSearch(
+  query: string,
+  mode: GeminiMode = "quick",
+): Promise<void> {
+  try {
+    await performGeminiSearch(query, mode);
+  } catch (error: unknown) {
+    if (
+      error !== null &&
+      typeof error === "object" &&
+      "stderr" in error &&
+      typeof error.stderr === "string" &&
+      error.stderr.includes("not authenticated")
+    ) {
+      log.error("Authentication required");
+      log.dim('Run: gemini -p "test" to authenticate with Google');
+    } else {
+      const errorMessage =
+        error !== null &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof error.message === "string"
+          ? error.message
+          : String(error);
+      log.error(errorMessage);
+    }
+    process.exit(1);
+  }
+}
+
+async function performGeminiSearch(
   query: string,
   mode: GeminiMode = "quick",
 ): Promise<GeminiResearchResult> {
@@ -221,35 +251,6 @@ async function runGeminiResearch(
   return { data: responseData, jsonPath, mdPath };
 }
 
-async function runGeminiResearchCli(
-  query: string,
-  mode: GeminiMode = "quick",
-): Promise<void> {
-  try {
-    await runGeminiResearch(query, mode);
-  } catch (error: unknown) {
-    if (
-      error !== null &&
-      typeof error === "object" &&
-      "stderr" in error &&
-      typeof error.stderr === "string" &&
-      error.stderr.includes("not authenticated")
-    ) {
-      log.error("Authentication required");
-      log.dim('Run: gemini -p "test" to authenticate with Google');
-    } else {
-      const errorMessage =
-        error !== null &&
-        typeof error === "object" &&
-        "message" in error &&
-        typeof error.message === "string"
-          ? error.message
-          : String(error);
-      log.error(errorMessage);
-    }
-    process.exit(1);
-  }
-}
-
 export type { GeminiMode, GeminiResearchResult };
-export { runGeminiResearch, runGeminiResearchCli };
+export { performGeminiSearch };
+export default executeGeminiSearch;
