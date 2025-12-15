@@ -1,6 +1,0 @@
----
-depends: []
----
-
-# Frontend Testing
-
