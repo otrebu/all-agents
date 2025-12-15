@@ -3,7 +3,7 @@ import { Command, Option } from "@commander-js/extra-typings";
 
 import type { GeminiMode } from "./commands/gemini/index";
 
-import downloadCommand from "./commands/download/index";
+import downloadCommand from "./commands/download";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
