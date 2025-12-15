@@ -1,6 +1,5 @@
 ---
 tags: [cli]
-depends: // TODO UPDATE the depends list
 ---
 
 # TypeScript + Bun CLI Stack
@@ -10,6 +9,11 @@ CLI tools with Bun runtime: fast startup, native TS, single-file executables.
 # Runtime, Package Manager, Bundler, Test Runner
 
 @context/blocks/tools/bun.md
+@context/blocks/tools/package-json.md
+
+# Environment Variables
+
+@context/foundations/env-variables-typed-native.md
 
 # CLI Tools
 
@@ -38,8 +42,6 @@ Run: `bun test tools/tests/e2e/`
 ## Husky is configured in tools/ folder.
 
 @context/blocks/patterns/husky-from-subdir.md
-
-@context/foundations/env-variables.md
 
 ## Typescript CLI structure
 
