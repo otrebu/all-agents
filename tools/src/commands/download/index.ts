@@ -5,8 +5,6 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import ora from "ora";
 
-import DownloadError from "./types";
-
 interface DownloadedContent {
   text: string;
   url: string;
@@ -15,6 +13,11 @@ interface DownloadedContent {
 interface DownloadOptions {
   dir?: string;
   output?: string;
+}
+
+// Custom Error
+class DownloadError extends Error {
+  override name = "DownloadError";
 }
 
 async function download(

@@ -16,10 +16,28 @@ tools/
 │   ├── cli.ts                    # Entry point (Commander.js)
 │   ├── env.ts                    # Environment config (Zod validation)
 │   ├── commands/
-│   │   ├── <name>/
-│   │   │   ├── index.ts          # runXxxCli() - entry point
-│   │   │   ├── core.ts           # runXxx() - core logic
-│   │   │   └── utils.ts          # Command-specific utilities
+│   │   ├── task.ts               # Simple: single file, inline types
+│   │   ├── story.ts              # Simple: single file, inline types
+│   │   ├── uninstall.ts          # Simple: single file
+│   │   ├── download/             # Complex: folder structure
+│   │   │   └── index.ts          # Types inlined
+│   │   ├── gemini/               # Complex: folder + types.ts (32L)
+│   │   │   ├── index.ts
+│   │   │   └── types.ts
+│   │   ├── github/               # Complex: folder + types.ts + utils
+│   │   │   ├── index.ts
+│   │   │   ├── types.ts          # 108L - separate justified
+│   │   │   ├── github.ts
+│   │   │   ├── ranker.ts
+│   │   │   └── query.ts
+│   │   ├── parallel-search/
+│   │   │   ├── index.ts
+│   │   │   ├── types.ts          # 95L - separate justified
+│   │   │   ├── parallel-client.ts
+│   │   │   └── formatter.ts
+│   │   └── setup/
+│   │       ├── index.ts
+│   │       └── utils.ts
 │   └── utils/
 │       └── paths.ts              # Root resolution, output paths
 ├── lib/                          # Shared utilities
@@ -31,6 +49,26 @@ tools/
     ├── e2e/                      # Command E2E tests
     └── lib/                      # Utility unit tests
 ```
+
+## Command Structure Guidelines
+
+**Simple commands** (≤100 LOC, no utilities, types ≤10L):
+
+- Single `.ts` file in `commands/`
+- Inline all types and errors at top
+- Pattern: `commands/task.ts`, `commands/story.ts`, `commands/uninstall.ts`
+
+**Complex commands** (>100 LOC or has utilities):
+
+- Folder structure: `commands/commandName/`
+- Separate `types.ts` if >30 lines OR >3 interfaces/types
+- Additional modules for utilities/sub-features
+- Examples: `github/`, `parallel-search/` (keep types.ts), `download/` (types inlined)
+
+**Threshold for separate types.ts:**
+
+- > 30 lines of type definitions → separate file
+- Keeps `index.ts` readable, prevents scrolling hell
 
 ## Core Patterns
 

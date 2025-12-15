@@ -9,7 +9,7 @@ import {
   getShellConfigPath,
   getSymlinkTarget,
   isCliInstalled,
-} from "../setup/utils";
+} from "./setup/utils";
 
 interface UninstallOptions {
   project?: boolean;

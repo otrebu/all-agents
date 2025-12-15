@@ -8,9 +8,9 @@ import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
 import setupCommand from "./commands/setup/index";
-import createStoryCommand from "./commands/story/index";
-import createTaskCommand from "./commands/task/index";
-import uninstallCommand from "./commands/uninstall/index";
+import createStoryCommand from "./commands/story";
+import createTaskCommand from "./commands/task";
+import uninstallCommand from "./commands/uninstall";
 
 const program = new Command()
   .name("aaa")

@@ -1,7 +1,17 @@
 import log from "@lib/log";
 import { createNumberedFile, type CreateResult } from "@lib/numbered-files";
 
-import TaskError from "./types";
+// Custom Error
+class TaskError extends Error {
+  override name = "TaskError";
+
+  constructor(
+    message: string,
+    public override cause?: Error,
+  ) {
+    super(message);
+  }
+}
 
 const TASKS_DIR = "docs/planning/tasks";
 

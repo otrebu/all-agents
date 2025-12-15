@@ -1,7 +1,17 @@
 import log from "@lib/log";
 import { createNumberedFile, type CreateResult } from "@lib/numbered-files";
 
-import StoryError from "./types";
+// Custom Error
+class StoryError extends Error {
+  override name = "StoryError";
+
+  constructor(
+    message: string,
+    public override cause?: Error,
+  ) {
+    super(message);
+  }
+}
 
 const STORIES_DIR = "docs/planning/stories";
 
