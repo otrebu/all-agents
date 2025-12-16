@@ -6,6 +6,10 @@ tags: [cli]
 
 CLI tools with Bun runtime: fast startup, native TS, single-file executables.
 
+# TypeScript Execution
+
+@context/foundations/ts-bun.md
+
 # Runtime, Package Manager, Bundler, Test Runner
 
 @context/blocks/tools/bun.md

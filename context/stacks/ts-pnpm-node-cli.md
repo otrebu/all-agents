@@ -1,7 +1,7 @@
 ---
 depends:
   - @context/foundations/node-pnpm.md
-  - @context/foundations/ts-execution-build-first.md
+  - @context/foundations/ts-node-tsc.md
 ---
 
 # TypeScript + pnpm + Node CLI Stack
@@ -12,7 +12,7 @@ CLI tools with traditional Node.js stack: pnpm packages, tsc build, maximum comp
 
 | Layer    | Reference                                                                                                     |
 | -------- | ------------------------------------------------------------------------------------------------------------- |
-| Runtime  | @context/blocks/tools/pnpm.md, @context/blocks/tools/node.md, @context/blocks/tools/typescript-config.md |
+| Runtime  | @context/blocks/tools/pnpm.md, @context/blocks/tools/node.md, @context/blocks/tools/tsconfig-base.md |
 | CLI      | @context/foundations/logging-cli.md                         |
 | Testing  | @context/blocks/principles/testing.md                                                                     |
 | DX       | @context/foundations/code-standards.md, @context/blocks/tools/husky.md                                    |
