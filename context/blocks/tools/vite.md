@@ -54,7 +54,7 @@ export default defineConfig({
 });
 ```
 
-See @context/blocks/tools/typescript.md for tsconfig.json alias setup.
+See @context/blocks/tools/typescript-config.md for tsconfig.json alias setup.
 
 ## Tailwind CSS
 

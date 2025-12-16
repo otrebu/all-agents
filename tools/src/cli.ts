@@ -9,6 +9,7 @@ import ghSearchCommand from "./commands/github/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
 import setupCommand from "./commands/setup/index";
 import createStoryCommand from "./commands/story";
+import runSyncContextCli from "./commands/sync-context";
 import createTaskCommand from "./commands/task";
 import uninstallCommand from "./commands/uninstall";
 
@@ -100,6 +101,14 @@ program.addCommand(
     .option("--user", "Remove aaa symlink from ~/.local/bin")
     .option("--project", "Remove context/ symlink from current project")
     .action(uninstallCommand),
+);
+
+program.addCommand(
+  new Command("sync-context")
+    .description("Sync context folder to target project")
+    .option("-t, --target <dir>", "Target directory (default: cwd)")
+    .option("-w, --watch", "Watch for changes and auto-sync")
+    .action(runSyncContextCli),
 );
 
 // Task management

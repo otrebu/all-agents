@@ -57,6 +57,9 @@ AAA_DEBUG=false         # Enable verbose logging
 The `aaa` binary provides research and search commands:
 
 ```bash
+# Sync context folder to another project
+aaa sync-context --target /path/to/project --watch
+
 # GitHub code search - find real-world examples
 aaa gh-search "react hooks typescript"
 

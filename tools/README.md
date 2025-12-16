@@ -46,6 +46,9 @@ aaa uninstall --project # Remove project integration
 ## Quick Start
 
 ```bash
+# Sync context to another project
+aaa sync-context --target ~/my-project --watch
+
 # Research commands
 aaa download https://example.com/article
 aaa gh-search "react hooks"
@@ -61,6 +64,7 @@ aaa story create "As a user, I want to login"
 
 | Command                      | Description                                                | Output Location                  |
 | ---------------------------- | ---------------------------------------------------------- | -------------------------------- |
+| `sync-context`               | Sync context/ folder to target project (with --watch)      | Target project's context/        |
 | `download <urls...>`         | Fetch URLs, extract text, save as markdown                 | `docs/research/downloads/`       |
 | `gh-search <query>`          | GitHub code search with intent-based ranking               | `docs/research/github/`          |
 | `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)    | `docs/research/gemini/`          |
@@ -71,6 +75,24 @@ aaa story create "As a user, I want to login"
 | `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`) | -                                |
 
 ### Command Examples
+
+#### sync-context
+
+```bash
+# One-time sync to current directory
+aaa sync-context
+
+# Sync to specific directory
+aaa sync-context --target ~/my-project
+
+# Watch mode - auto-sync on changes
+aaa sync-context --watch
+aaa sync-context -t ~/my-project -w
+```
+
+Syncs the `context/` folder from all-agents repo to target directory. Watch mode continuously monitors for changes and re-syncs automatically.
+
+**Note:** Always syncs FROM all-agents TO target (one-way sync).
 
 #### download
 

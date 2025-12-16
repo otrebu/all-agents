@@ -10,7 +10,7 @@ Modern React frontend: Vite build, Tailwind CSS, shadcn/ui components. Supports 
 
 | Layer    | Reference                                                                                                                        |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime  | @context/blocks/tools/pnpm.md, @context/blocks/tools/node.md, @context/blocks/tools/typescript.md                    |
+| Runtime  | @context/blocks/tools/pnpm.md, @context/blocks/tools/node.md, @context/blocks/tools/typescript-config.md, @context/blocks/tools/typescript-config-frontend.md                    |
 | Frontend | @context/blocks/tools/react.md, @context/blocks/tools/vite.md, @context/blocks/tools/tailwind.md                     |
 | UI       | @context/blocks/tools/shadcn.md                                         |
 | Data     | @context/blocks/tools/tanstack-query.md                                                        |

@@ -18,11 +18,11 @@ Atomic documentation structure: blocks → foundations → stacks.
 ```
 context/
 ├── blocks/
-│   ├── tools/          # 31 single-tech docs
+│   ├── tools/          # 37 single-tech docs
 │   ├── principles/     # 8 universal philosophies
 │   └── patterns/       # 11 context-specific techniques
-├── foundations/        # 4 platform combos
-├── stacks/            # 4 app shapes
+├── foundations/        # 6 platform combos + execution strategies
+├── stacks/            # 5 app shapes
 └── workflows/         # 6 dev processes
 ```
 
@@ -32,7 +32,7 @@ context/
 
 Single library/technology docs.
 
-**Runtime:** bun, node, pnpm, typescript
+**Runtime:** bun, node, pnpm, tsx, tsc, tsc-alias, tsc-esm-fix, typescript-config, typescript-config-monorepo, typescript-config-frontend, pnpm-workspaces
 
 **Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
 
@@ -85,25 +85,47 @@ Context-specific techniques.
 
 ## Foundations
 
-Platform choices (runtime + toolchain combos).
+Platform choices (runtime + toolchain combos) and execution strategies.
 
-| File                 | Description                           |
-| -------------------- | ------------------------------------- |
-| bun-runtime.md       | Bun as complete platform              |
-| node-pnpm.md         | Node + pnpm platform                  |
-| typescript-config.md | TypeScript configurations             |
-| code-standards.md    | ESLint + Prettier + Husky integration |
+### Platform Foundations
+
+| File                       | Description                           |
+| -------------------------- | ------------------------------------- |
+| bun-runtime.md             | Bun as complete platform              |
+| node-pnpm.md               | Node + pnpm platform (package.json structure) |
+| node-pnpm-workspaces.md    | Node + pnpm monorepo coordination     |
+| code-standards.md          | ESLint + Prettier + Husky integration |
+
+### Execution Strategies (Pluggable)
+
+| File                            | Description                                |
+| ------------------------------- | ------------------------------------------ |
+| ts-execution-build-first.md     | tsc + tsc-alias + tsc-esm-fix → node       |
+| ts-execution-runtime-direct.md  | tsx direct execution (no build)            |
+
+Execution strategies are **pluggable** - stacks can mix platform + execution choice.
 
 ## Stacks
 
-App shapes built on foundations.
+App shapes built on foundations. Stacks compose platform + execution strategy.
 
-| File                     | Description                  |
-| ------------------------ | ---------------------------- |
-| ts-bun-cli.md            | CLI tools with Bun           |
-| ts-pnpm-node-cli.md      | CLI tools with Node + pnpm   |
-| ts-pnpm-node-rest-api.md | REST API with Fastify + oRPC |
-| ts-vite-react.md         | React frontend with Vite     |
+| File                              | Description                  |
+| --------------------------------- | ---------------------------- |
+| ts-bun-cli.md                     | CLI tools with Bun           |
+| ts-pnpm-node-cli.md               | CLI tools with Node + pnpm   |
+| ts-pnpm-node-rest-api.md          | REST API with Fastify + oRPC |
+| ts-pnpm-node-backend-monorepo.md  | Backend monorepo with workspaces |
+| ts-vite-react.md                  | React frontend with Vite     |
+
+### Stack Composition
+
+Stacks can reference **other stacks** or **foundations**:
+
+- **REST API** can reference **backend-monorepo** stack if building on monorepo
+- **CLI** can reference either **build-first** or **runtime-direct** execution strategy
+- Flat structure preferred - no subdirectories needed
+
+Example: A REST API in a monorepo would reference both the monorepo stack (for structure) and build-first execution (for deployment).
 
 ## Workflows
 

@@ -1,54 +1,32 @@
 import { existsSync, realpathSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
-/**
- * Context Root Resolution Strategy
- *
- * The CLI uses different strategies to find the root directory containing the `context/` folder.
- * This is necessary because the CLI can be invoked from:
- * - Any subdirectory within the project (dev mode from tools/src/)
- * - The project root (compiled binary: ./bin/aaa)
- * - Outside the project entirely (symlinked binary: ~/.local/bin/aaa)
- * - Other projects after `aaa setup --project` (context/ is symlinked)
- *
- * All strategies look for the `context/` directory as the marker for the root.
- * Even when run from other projects, this resolves to all-agents root (where outputs are saved).
- */
-type RootResolutionStrategy = "binary-path" | "cwd-walk-up" | "exec-path";
+type RootResolutionStrategy =
+  | "binary-path"
+  | "cwd-walk-up"
+  | "exec-path"
+  | "symlink";
 
+// Module-level cache for root directory resolution
+// Eliminates repeated filesystem checks after first successful lookup
 let cachedRoot: null | string = null;
 
+// Installed symlink location
+const AAA_SYMLINK = resolve(homedir(), ".local/bin/aaa");
+
 /**
- * Finds the root directory containing the `context/` folder
+ * Resolves the all-agents repository root directory
  *
- * This is the all-agents repository root, even when invoked from other projects.
- * After `aaa setup --project`, other projects have a symlinked context/ pointing
- * back to all-agents, so this always resolves to all-agents root.
+ * Tries four strategies in order until one succeeds:
+ * 1. symlink: Resolves from ~/.local/bin/aaa symlink (most reliable for production)
+ * 2. binary-path: Resolves from process.argv[1] (dev mode, but broken in compiled binaries due to Bun bug #18337)
+ * 3. cwd-walk-up: Walks up from current working directory
+ * 4. exec-path: Resolves from process.execPath (last resort)
  *
- * Why this exists:
- * - CLI can be invoked from anywhere (subdirs, outside project, compiled binary)
- * - Outputs (tasks, stories, research) must go to consistent locations
- * - All outputs saved to all-agents/docs/, making it the centralized doc repo
+ * Result is cached per-process for performance
  *
- * Relationship to getAllAgentsRoot():
- * - getAllAgentsRoot() (setup/utils.ts): Used during installation, validates context/ + tools/
- * - getContextRoot() (this): Used at runtime, only checks for context/
- *
- * Caching:
- * - Result cached after first lookup (per-process)
- * - Subsequent calls return instantly without filesystem checks
- *
- * Strategies (tried in order):
- * 1. cwd-walk-up: Walk up from CWD (most common - works from subdirs)
- * 2. binary-path: Resolve from argv[1] binary path (compiled binary via symlink)
- * 3. exec-path: Resolve from execPath (last resort fallback)
- *
- * Examples:
- * - Dev mode from tools/src/: Strategy 1 walks up to find context/
- * - Compiled from /tmp: Strategy 2 follows symlink to bin/aaa
- * - After setup in other-project/: Strategy 2 resolves to all-agents root
- *
- * @throws {Error} If context/ directory cannot be found by any strategy
+ * @throws {Error} If no strategy can locate context/ directory
  */
 function getContextRoot(): string {
   if (cachedRoot !== null) return cachedRoot;
@@ -57,6 +35,7 @@ function getContextRoot(): string {
     name: RootResolutionStrategy;
     resolve: () => null | string;
   }> = [
+    { name: "symlink", resolve: tryResolveFromSymlink },
     { name: "binary-path", resolve: tryResolveFromBinary },
     { name: "cwd-walk-up", resolve: tryResolveFromCwd },
     { name: "exec-path", resolve: tryResolveFromExec },
@@ -76,37 +55,25 @@ function getContextRoot(): string {
 }
 
 /**
- * Builds output paths under {contextRoot}/docs/{subpath}
+ * Builds output directory paths under docs/
  *
- * Always resolves to all-agents/docs/, even when CLI is run from other projects.
- * This makes all-agents the centralized document repository.
- *
- * Examples:
- * - getOutputDir("research/google") → /path/to/all-agents/docs/research/google
- * - getOutputDir("planning/tasks") → /path/to/all-agents/docs/planning/tasks
+ * All outputs go to {contextRoot}/docs/{subpath}
+ * Example: getOutputDirectory("research/github") → /path/to/all-agents/docs/research/github
  */
 function getOutputDirectory(subpath: string): string {
   return resolve(getContextRoot(), "docs", subpath);
 }
 
 /**
- * Strategy 2: Resolve relative to binary path
+ * Resolves root from binary path (process.argv[1])
  *
- * Uses process.argv[1] (the script/binary being executed) and resolves symlinks.
- * Assumes binary lives in bin/ subdirectory, so parent directory is the root.
+ * Follows symlinks to find the real binary location, then checks if
+ * parent directory contains context/
  *
- * Use cases:
- * - Compiled binary run from elsewhere: `cd /tmp && ~/all-agents/bin/aaa`
- * - Symlinked binary in PATH: `aaa task create` (after setup --user)
- * - Binary path: ~/.local/bin/aaa → resolves symlink → /path/to/all-agents/bin/aaa
+ * Skips Bun virtual filesystem paths (/$bunfs) which aren't resolvable
  *
- * Skips Bun virtual filesystem paths (/$bunfs) which aren't real file paths.
- *
- * Example:
- * - argv[1]: ~/.local/bin/aaa (symlink)
- * - Resolves to: /Users/you/all-agents/bin/aaa
- * - Parent: /Users/you/all-agents/bin → ../ → /Users/you/all-agents/
- * - Checks: context/ ✓
+ * NOTE: This strategy fails for compiled Bun binaries due to hardcoded
+ * argv[1] values (Bun issue #18337). Kept for dev mode compatibility.
  */
 function tryResolveFromBinary(): null | string {
   const binaryPath = process.argv[1];
@@ -118,6 +85,8 @@ function tryResolveFromBinary(): null | string {
     return null;
   }
 
+  // Resolve symlinks to find actual binary location
+  // This handles cases where binary is symlinked to ~/.local/bin/aaa
   const realPath = existsSync(binaryPath)
     ? realpathSync(binaryPath)
     : binaryPath;
@@ -131,27 +100,27 @@ function tryResolveFromBinary(): null | string {
 }
 
 /**
- * Strategy 1: Walk up from current working directory
+ * Walks up directory tree from current working directory
  *
- * Searches up the directory tree (max 10 levels) looking for `context/` folder.
+ * Searches up to 10 levels for all-agents repository root.
+ * Requires BOTH context/ and tools/ directories to distinguish the actual
+ * all-agents repo from projects with synced context/ folders.
  *
- * Use cases:
- * - Dev mode: `bun run dev task create` from tools/src/
- * - Running from any project subdirectory
- * - Tests run from project root or tools/
- *
- * Example:
- * - CWD: /Users/you/all-agents/tools/src/
- * - Walks up to: /Users/you/all-agents/
- * - Finds: context/ ✓
+ * Stops at filesystem root to prevent infinite loops.
  */
 function tryResolveFromCwd(): null | string {
   let searchDirectory = process.cwd();
   for (let index = 0; index < 10; index += 1) {
-    if (existsSync(resolve(searchDirectory, "context"))) {
+    const hasContext = existsSync(resolve(searchDirectory, "context"));
+    const hasTools = existsSync(resolve(searchDirectory, "tools"));
+
+    // Only return if BOTH exist (real repo, not synced copy)
+    if (hasContext && hasTools) {
       return searchDirectory;
     }
+
     const parent = dirname(searchDirectory);
+    // Reached filesystem root
     if (parent === searchDirectory) break;
     searchDirectory = parent;
   }
@@ -159,16 +128,10 @@ function tryResolveFromCwd(): null | string {
 }
 
 /**
- * Strategy 3: Resolve relative to executable path
+ * Resolves from runtime executable path
  *
- * Uses process.execPath (the Node/Bun runtime executable itself).
- * Last resort fallback for compiled binaries run in unusual contexts.
- *
- * Use cases:
- * - Edge cases where argv[1] doesn't point to the binary
- * - Compiled binary with non-standard execution setup
- *
- * Skips Bun virtual filesystem paths (/$bunfs).
+ * Last resort fallback using process.execPath (Node/Bun executable)
+ * Useful for compiled binaries in unusual execution contexts
  */
 function tryResolveFromExec(): null | string {
   const { execPath } = process;
@@ -181,6 +144,37 @@ function tryResolveFromExec(): null | string {
 
   if (existsSync(resolve(candidate, "context"))) {
     return candidate;
+  }
+  return null;
+}
+
+/**
+ * Resolves root from installed symlink
+ *
+ * Checks if ~/.local/bin/aaa symlink exists and follows it to find repo.
+ * This is the most reliable strategy for installed binaries because Bun's
+ * compiled binaries have hardcoded argv[1] values (GitHub issue #18337).
+ *
+ * Validates both context/ and tools/ directories to ensure we found the
+ * actual all-agents repo, not a synced copy.
+ */
+function tryResolveFromSymlink(): null | string {
+  if (!existsSync(AAA_SYMLINK)) return null;
+
+  try {
+    const realBinary = realpathSync(AAA_SYMLINK);
+    const binaryDirectory = dirname(realBinary);
+    const candidate = resolve(binaryDirectory, "..");
+
+    // Validate it's the actual all-agents repo (not a synced copy)
+    if (
+      existsSync(resolve(candidate, "context")) &&
+      existsSync(resolve(candidate, "tools"))
+    ) {
+      return candidate;
+    }
+  } catch {
+    // Symlink exists but can't be resolved
   }
   return null;
 }
