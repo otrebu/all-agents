@@ -32,7 +32,7 @@ context/
 
 Single library/technology docs.
 
-**Runtime:** bun, node, pnpm, tsx, tsc, tsc-alias, tsc-esm-fix, typescript-config, typescript-config-monorepo, typescript-config-frontend, pnpm-workspaces
+**Runtime:** bun, node, pnpm, tsx, tsc, tsc-alias, tsc-esm-fix, tsconfig-base, tsconfig-monorepo-additions, pnpm-workspaces
 
 **Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
 
@@ -93,17 +93,19 @@ Platform choices (runtime + toolchain combos) and execution strategies.
 | -------------------------- | ------------------------------------- |
 | bun-runtime.md             | Bun as complete platform              |
 | node-pnpm.md               | Node + pnpm platform (package.json structure) |
-| node-pnpm-workspaces.md    | Node + pnpm monorepo coordination     |
+| pnpm-monorepo.md           | pnpm monorepo coordination            |
 | code-standards.md          | ESLint + Prettier + Husky integration |
 
-### Execution Strategies (Pluggable)
+### TypeScript Execution Strategies
 
 | File                            | Description                                |
 | ------------------------------- | ------------------------------------------ |
-| ts-execution-build-first.md     | tsc + tsc-alias + tsc-esm-fix → node       |
-| ts-execution-runtime-direct.md  | tsx direct execution (no build)            |
+| ts-node-tsc.md                  | Node via compiled JS (tsc build pipeline)  |
+| ts-node-tsx.md                  | Node via direct execution (tsx runtime)    |
+| ts-bun.md                       | Bun runtime with native TypeScript         |
+| ts-web-vite.md                  | Vite bundler for React/Vue frontend        |
 
-Execution strategies are **pluggable** - stacks can mix platform + execution choice.
+Execution strategies reference base config (`tsconfig-base.md`) and show tool-specific overrides.
 
 ## Stacks
 
@@ -119,13 +121,14 @@ App shapes built on foundations. Stacks compose platform + execution strategy.
 
 ### Stack Composition
 
-Stacks can reference **other stacks** or **foundations**:
+Stacks reference **foundations** (platform + execution strategies):
 
-- **REST API** can reference **backend-monorepo** stack if building on monorepo
-- **CLI** can reference either **build-first** or **runtime-direct** execution strategy
-- Flat structure preferred - no subdirectories needed
+- **CLI stacks** reference either `ts-bun.md`, `ts-node-tsc.md`, or `ts-node-tsx.md`
+- **Frontend stacks** reference `ts-web-vite.md`
+- **Monorepo stacks** reference `pnpm-monorepo.md` + execution strategy
+- Flat structure - no subdirectories
 
-Example: A REST API in a monorepo would reference both the monorepo stack (for structure) and build-first execution (for deployment).
+Example: A backend monorepo would reference `ts-node-tsc.md` (build pipeline) + `tsconfig-monorepo-additions.md`.
 
 ## Workflows
 

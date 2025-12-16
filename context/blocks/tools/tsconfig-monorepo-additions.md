@@ -93,5 +93,5 @@ tsc --build --watch
 
 ## See Also
 
-- @context/foundations/node-pnpm-workspaces.md - Complete monorepo setup
+- @context/foundations/pnpm-monorepo.md - Complete monorepo setup
 - @context/blocks/tools/pnpm-workspaces.md - pnpm workspace configuration

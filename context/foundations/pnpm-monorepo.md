@@ -3,16 +3,23 @@ tags: [platform, monorepo]
 depends:
   - @context/blocks/tools/pnpm.md
   - @context/blocks/tools/pnpm-workspaces.md
-  - @context/blocks/tools/typescript-config-monorepo.md
+  - @context/blocks/tools/tsconfig-base.md
+  - @context/blocks/tools/tsconfig-monorepo-additions.md
 ---
 
-# Node + pnpm Workspaces Platform
+# pnpm Monorepo Coordination
 
-Monorepo coordination with pnpm workspaces + TypeScript project references.
+Monorepo structure and coordination patterns. Execution-agnostic - combines with execution strategy foundations in stacks.
 
-## Integration Glue
+## What This Covers
 
-Shows how pnpm workspaces, TypeScript project references, and package.json structure coordinate in a monorepo.
+Monorepo COORDINATION only:
+- Directory structure (packages/, apps/)
+- workspace:* dependency pattern
+- Project references
+- Build coordination commands
+
+Does NOT cover execution strategy (tsc/tsx/bun) - see execution foundations for that.
 
 ## Directory Structure
 
@@ -67,24 +74,19 @@ Proxies commands to workspaces. NOT published.
 
 ### tsconfig.base.json
 
-Shared options all packages extend:
+Shared options all packages extend. See @context/blocks/tools/tsconfig-base.md for base settings.
+
+Monorepo additions from @context/blocks/tools/tsconfig-monorepo-additions.md:
 
 ```json
 {
+  "extends": "./tsconfig.base.json",  // Base config
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "strict": true,
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true
+    "composite": true,           // Enable project references
+    "declarationMap": true       // Source maps for .d.ts files
   }
 }
 ```
-
-**composite:true** enables project references and incremental builds.
 
 ### Root tsconfig.json
 
@@ -130,8 +132,8 @@ References enforce dependency graph and enable incremental builds.
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc --build",
+    "dev": "<execution-strategy-specific>",
+    "build": "<execution-strategy-specific>",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -142,6 +144,13 @@ References enforce dependency graph and enable incremental builds.
 ```
 
 **workspace:\*** links to local package, converts to version on publish.
+
+**Scripts:** dev/build commands depend on execution strategy:
+- ts-node-tsc: `"build": "tsc --build"`, `"dev": "tsx watch src/index.ts"`
+- ts-node-tsx: `"dev": "tsx watch src/index.ts"` (no build)
+- ts-bun: `"dev": "bun --watch src/index.ts"` (no build)
+
+See execution strategy foundations for specific scripts.
 
 ## Build Coordination
 

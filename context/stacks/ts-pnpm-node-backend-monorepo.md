@@ -6,7 +6,7 @@ depends:
   - @context/blocks/tools/pnpm-workspaces.md
   - @context/blocks/tools/tsconfig-base.md
   - @context/blocks/tools/tsconfig-monorepo-additions.md
-  - @context/foundations/node-pnpm-workspaces.md
+  - @context/foundations/pnpm-monorepo.md
   - @context/foundations/ts-node-tsc.md
   - @context/foundations/code-standards.md
 ---

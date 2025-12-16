@@ -122,4 +122,4 @@ Consumers import: `import foo from "pkg"` or `import bar from "pkg/utils"`.
 
 - **Runtime**: node.md
 - **Package Manager**: pnpm.md
-- **Workspaces**: See node-pnpm-workspaces.md for monorepos
+- **Workspaces**: See pnpm-monorepo.md for monorepos
