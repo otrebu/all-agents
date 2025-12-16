@@ -72,7 +72,7 @@ Follow @context/blocks/tools/storybook.md for component development.
 
 ## Forms
 
-Follow @context/blocks/patterns/forms-validation-react.md for forms.
+Follow @context/foundations/validation-forms-react.md for forms.
 
 ## Data/Routing
 

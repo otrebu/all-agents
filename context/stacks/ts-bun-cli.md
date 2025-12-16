@@ -24,12 +24,12 @@ CLI tools with Bun runtime: fast startup, native TS, single-file executables.
 
 # CLI Patterns
 
-@context/blocks/patterns/logging-cli.md
+@context/foundations/logging-cli.md
 
 # Testing
 
-@context/blocks/patterns/unit-testing.md
-@context/blocks/patterns/cli-e2e-test-with-bun.md
+@context/blocks/principles/unit-testing.md
+@context/foundations/testing-cli-e2e-bun.md
 
 Tests go in `tools/tests/e2e/<command>.test.ts`
 
@@ -41,8 +41,8 @@ Run: `bun test tools/tests/e2e/`
 
 ## Husky is configured in tools/ folder.
 
-@context/blocks/patterns/husky-from-subdir.md
+@context/foundations/husky-from-subdir.md
 
 ## Typescript CLI structure
 
-@context/blocks/patterns/ts-cli-structure.md
+@context/foundations/structure-cli-ts.md

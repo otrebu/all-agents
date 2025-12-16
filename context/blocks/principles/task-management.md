@@ -13,13 +13,13 @@ Create structured task/story files for planning and execution.
 
 ## Creating a Task
 
-1. Draft content per @context/blocks/patterns/task-template.md
+1. Draft content per @context/blocks/principles/task-template.md
 2. Run: `aaa task create <name>`
 3. Write content to returned filepath
 
 ## Creating a Story with Tasks
 
-1. Draft story per @context/blocks/patterns/story-template.md
+1. Draft story per @context/blocks/principles/story-template.md
 2. `aaa story create <name>` → e.g., `001-my-story.md`
 3. For each task:
    - `aaa task create <name>` → e.g., `001-my-task.md`

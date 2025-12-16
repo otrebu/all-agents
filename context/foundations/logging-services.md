@@ -9,7 +9,7 @@ Structured JSON logging for services, APIs, and background workers.
 > **Principles:** See @context/blocks/principles/coding-style.md#logging
 
 **✅ Use for:** Services, APIs, web servers, background workers, daemons
-**❌ Don't use for:** CLI tools → see @context/blocks/patterns/logging-cli.md
+**❌ Don't use for:** CLI tools → see @context/foundations/logging-cli.md
 
 ## Setup (pino)
 

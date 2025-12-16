@@ -13,7 +13,7 @@ CLI tools with traditional Node.js stack: pnpm packages, tsc build, maximum comp
 | Layer    | Reference                                                                                                     |
 | -------- | ------------------------------------------------------------------------------------------------------------- |
 | Runtime  | @context/blocks/tools/pnpm.md, @context/blocks/tools/node.md, @context/blocks/tools/typescript-config.md |
-| CLI      | @context/blocks/patterns/logging-cli.md                         |
+| CLI      | @context/foundations/logging-cli.md                         |
 | Testing  | @context/blocks/principles/testing.md                                                                     |
 | DX       | @context/foundations/code-standards.md, @context/blocks/tools/husky.md                                    |
 | DevOps   | @context/blocks/tools/semantic-release.md                                                                 |
