@@ -4,6 +4,17 @@ npm script naming patterns for projects & monorepos.
 
 ---
 
+## Universal Fields
+
+All projects need:
+- `name`: "@scope/package" or "package"
+- `version`: Semver (e.g., "1.0.0")
+- `type`: "module" (enables ESM import/export)
+- `engines`: Version requirements (e.g., `{ "node": ">=20.19.0" }`)
+- Optional: `description`, `keywords`, `author`, `license`
+
+---
+
 ## Patterns
 
 | Pattern                | Meaning              | Examples                                  |
