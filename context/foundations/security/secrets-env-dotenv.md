@@ -1,7 +1,7 @@
 ---
 depends:
-  - "@blocks/tools/zod.md"
-  - "@blocks/tools/dotenv.md"
+  - "@context/blocks/construct/zod.md"
+  - "@context/blocks/construct/dotenv.md"
 ---
 
 # Typed environment variables

@@ -22,7 +22,7 @@ A feature/change is complete when ALL of these are done:
 
 - Use plan mode to plan
 - Write to `docs/planning/stories/*` or `docs/planning/tasks/*` when plan is approved
-- Follow context/blocks/patterns/task-template.md and context/blocks/patterns/story-template.md for templates
+- Follow @context/blocks/docs/task-template.md and @context/blocks/docs/story-template.md for templates
 - Research external knowledge if needed with `parallel-search` or `gh-search`
 - Think MVP - don't over-plan
 - **Ask for review before proceeding**

@@ -1,8 +1,8 @@
 ---
 depends:
-  - "@blocks/tools/zod.md"
-  - "@blocks/tools/node.md"
-  - "@blocks/tools/bun.md"
+  - "@context/blocks/construct/zod.md"
+  - "@context/blocks/construct/node.md"
+  - "@context/blocks/construct/bun.md"
 ---
 
 # Typed Environment Variables

@@ -1,166 +1,283 @@
 # Context Documentation
 
-Atomic documentation structure: blocks → foundations → stacks.
+SWEBOK-aligned atomic documentation: blocks → foundations → stacks → workflows
 
-## Quick Start
+For full philosophy and naming conventions: @context/blocks/docs/atomic-documentation.md
 
-1. **Pick your stack:** `stacks/`
+---
 
-   - `ts-bun-cli.md` - Bun CLI tools
-   - `ts-pnpm-node-cli.md` - Node + pnpm CLI
-   - `ts-pnpm-node-rest-api.md` - REST API with Node + pnpm
-   - `ts-vite-react.md` - React frontend
+## SWEBOK vs Logical Domains
 
-2. **Browse atomic docs** by layer (below)
+**SWEBOK Domains** = Software engineering **activities** (what you DO)
+
+Cross-cut entire application. Organized by engineering concern.
+
+| Domain | Activity | Examples |
+|--------|----------|----------|
+| **construct** | Build, compile, bundle, package | tsc, vite, docker, package.json |
+| **test** | Verify code | vitest, playwright, coverage |
+| **quality** | Lint, format, analyze | eslint, prettier, dead code detection |
+| **security** | Secure, scan, harden | auth, secrets, vulnerability scans |
+| **scm** | Version, release, publish | git, semantic-release, npm publish |
+| **ops** | Deploy, orchestrate, infra | CI/CD, docker, kubernetes |
+| **observe** | Log, trace, monitor | pino, sentry, prometheus |
+| **docs** | Document, diagram | ADRs, API docs, architecture diagrams |
+
+**Logical Domains** = Application **layers** (what part of the APP)
+
+Vertical slices. Traditional architecture boundaries.
+
+| Domain | Purpose | Contains |
+|--------|---------|----------|
+| **frontend** | UI layer | React, state, routing |
+| **backend** | API/server | REST endpoints, business logic |
+| **database** | Data layer | Schema, migrations, queries |
+
+### Key Difference
+
+**SWEBOK (context/):** "How do I **test**?" → applies to frontend AND backend
+**Logical (docs/):** "What's in **frontend**?" → includes testing, building, security, deployment
+
+**Example: Authentication**
+
+- **SWEBOK view:** security/auth.md, test/auth-tests.md, ops/deploy-auth.md
+- **Logical view:** backend/AUTHENTICATION.md (contains security + testing + deployment)
+
+**This repo:**
+- `context/` = Reusable SWEBOK-organized patterns (cross-project)
+- `docs/` = Project-specific logical-organized documentation (this codebase)
+
+---
 
 ## Structure
 
 ```
 context/
-├── blocks/
-│   ├── tools/          # 37 single-tech docs
-│   ├── principles/     # 8 universal philosophies
-│   └── patterns/       # 11 context-specific techniques
-├── foundations/        # 6 platform combos + execution strategies
-├── stacks/            # 5 app shapes
-└── workflows/         # 6 dev processes
+├── blocks/           # Atomic units by SWEBOK domain
+│   ├── construct/    # 37 build/bundle/package tools
+│   ├── test/         # 3 testing docs
+│   ├── quality/      # 4 quality/style docs
+│   ├── security/     # 1 security doc
+│   ├── scm/          # 3 version control docs
+│   ├── observe/      # 1 observability doc
+│   └── docs/         # 8 documentation/prompting docs
+│
+├── foundations/      # Capabilities by SWEBOK domain
+│   ├── construct/    # 7 build/execution strategies
+│   ├── test/         # 3 testing strategies
+│   ├── quality/      # 1 quality gate
+│   ├── security/     # 2 secrets management
+│   ├── scm/          # 1 commit strategy
+│   └── observe/      # 2 logging strategies
+│
+├── stacks/           # Complete setups by artifact type
+│   ├── cli/          # 2 CLI stacks
+│   └── monorepo/     # 4 monorepo stacks
+│
+└── workflows/        # 7 dev processes
 ```
+
+---
 
 ## Blocks
 
-### Tools (`blocks/tools/`)
+Atomic units organized by **SWEBOK domain**. Single concern, tool-centric.
 
-Single library/technology docs.
+### construct/ (37)
 
-**Runtime:** bun, node, pnpm, tsx, tsc, tsc-alias, tsc-esm-fix, tsconfig-base, tsconfig-monorepo-additions, pnpm-workspaces
+Build, compile, bundle, package.
+
+**Runtimes & Package Managers:** bun, node, pnpm, pnpm-workspaces, tsx, tsc, tsc-alias, tsc-esm-fix
+
+**TypeScript Configs:** tsconfig-base, tsconfig-monorepo-root
+
+**Package.json Patterns:** package-json-base, package-json-app, package-json-cli, package-json-library, package-json-monorepo-root, package-json-react
 
 **Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
 
 **Backend:** fastify, orpc
 
-**Validation:** zod
+**Validation & State:** zod, xstate
 
-**State:** xstate
+**CLI Tools:** commander, chalk, ora, boxen
 
 **Utilities:** date-fns, dotenv
 
-**CLI:** commander, chalk, ora, boxen
+**External Tools:** gemini-cli, gh-search, parallel-search
 
-**DX:** eslint, prettier, husky, vitest, semantic-release
+**Project Structure:** tree-monorepo
 
-**External:** gemini-cli, gh-search, parallel-search
+**Permissions:** claude-code-permissions
 
-### Principles (`blocks/principles/`)
+### test/ (3)
 
-Universal philosophies and approaches.
+Verify code.
 
-| File                             | Description                     |
-| -------------------------------- | ------------------------------- |
-| coding-style.md                  | FP patterns, naming conventions |
-| vocabulary.md                    | Terminology standards           |
-| error-handling.md                | Error handling philosophy       |
-| logging.md                       | Logging principles              |
-| testing.md                       | Testing philosophy & patterns   |
-| prompting.md                     | Context engineering             |
-| optimize-prompt.md               | Prompt optimization             |
-| claude-code-tools-permissions.md | Tool permissions reference      |
+- testing.md - Testing philosophy & patterns
+- unit-testing.md - Unit testing approach
+- storybook.md - Component testing
 
-### Patterns (`blocks/patterns/`)
+### quality/ (4)
 
-Context-specific techniques.
+Lint, format, analyze.
 
-| File                      | Description                        |
-| ------------------------- | ---------------------------------- |
-| api-testing.md            | API test patterns                  |
-| backend-testing.md        | Backend test patterns              |
-| frontend-testing.md       | Frontend test patterns             |
-| cli-e2e-testing.md        | CLI E2E test patterns              |
-| forms-validation-react.md | React form validation              |
-| logging-services.md       | Service logging (pino, structured) |
-| logging-cli.md            | CLI logging (chalk, terminal)      |
-| agent-templates.md        | AI agent patterns                  |
-| task-management.md        | Task management approaches         |
-| task-template.md          | Task file template                 |
-| story-template.md         | Story file template                |
+- coding-style.md - FP patterns, naming conventions
+- error-handling.md - Error handling philosophy
+- eslint.md - Linting
+- prettier.md - Formatting
+
+### security/ (1)
+
+Secure, scan, harden.
+
+- dotenv.md - Environment variables
+
+### scm/ (3)
+
+Version, release, publish.
+
+- husky.md - Git hooks
+- commitlint.md - Commit linting
+- semantic-release.md - Automated releases
+
+### observe/ (1)
+
+Log, trace, monitor.
+
+- logging.md - Logging principles
+
+### docs/ (8)
+
+Document, diagram, prompting.
+
+- atomic-documentation.md - This atomic docs system
+- vocabulary.md - Terminology standards
+- task-management.md - Task approaches
+- task-template.md - Task file template
+- story-template.md - Story file template
+- prompting.md - Context engineering
+- prompting-optimize.md - Prompt optimization
+- prompting-agent-templates.md - AI agent patterns
+
+---
 
 ## Foundations
 
-Platform choices (runtime + toolchain combos) and execution strategies.
+Capabilities organized by **SWEBOK domain**. Capability-centric, composable.
 
-### Platform Foundations
+### construct/ (7)
 
-| File                       | Description                           |
-| -------------------------- | ------------------------------------- |
-| bun-runtime.md             | Bun as complete platform              |
-| node-pnpm.md               | Node + pnpm platform (package.json structure) |
-| pnpm-monorepo.md           | pnpm monorepo coordination            |
-| code-standards.md          | ESLint + Prettier + Husky integration |
+Build, execute, bundle, package.
 
-### TypeScript Execution Strategies
+- exec-bun.md - Bun native TypeScript execution
+- exec-tsx.md - tsx runtime execution
+- transpile-esm-tsc.md - tsc build pipeline
+- bundle-web-vite.md - Vite bundler for web
+- pnpm-monorepo-base.md - pnpm workspace coordination
+- tree-cli.md - CLI project structure
+- validate-forms-react.md - React form validation
 
-| File                            | Description                                |
-| ------------------------------- | ------------------------------------------ |
-| ts-node-tsc.md                  | Node via compiled JS (tsc build pipeline)  |
-| ts-node-tsx.md                  | Node via direct execution (tsx runtime)    |
-| ts-bun.md                       | Bun runtime with native TypeScript         |
-| ts-web-vite.md                  | Vite bundler for React/Vue frontend        |
+### test/ (3)
 
-Execution strategies reference base config (`tsconfig-base.md`) and show tool-specific overrides.
+Testing strategies.
+
+- test-e2e-cli-bun.md - CLI E2E testing with Bun
+- test-e2e-cli-node.md - CLI E2E testing with Node
+- test-integration-api.md - API integration testing
+
+### quality/ (1)
+
+Quality gates.
+
+- gate-standards.md - ESLint + Prettier + Husky integration
+
+### security/ (2)
+
+Secrets management.
+
+- secrets-env.md - Environment variable strategy
+- secrets-env-dotenv.md - dotenv implementation
+
+### scm/ (1)
+
+Version control strategies.
+
+- commit-monorepo-subdir.md - Monorepo commit patterns
+
+### observe/ (2)
+
+Logging strategies.
+
+- log-structured-cli.md - CLI logging (chalk, terminal)
+- log-structured-service.md - Service logging (pino, structured)
+
+---
 
 ## Stacks
 
-App shapes built on foundations. Stacks compose platform + execution strategy.
+Complete project setups organized by **artifact type** (not domain—stacks span domains).
 
-| File                              | Description                  |
-| --------------------------------- | ---------------------------- |
-| ts-bun-cli.md                     | CLI tools with Bun           |
-| ts-pnpm-node-cli.md               | CLI tools with Node + pnpm   |
-| ts-pnpm-node-rest-api.md          | REST API with Fastify + oRPC |
-| ts-pnpm-node-backend-monorepo.md  | Backend monorepo with workspaces |
-| ts-vite-react.md                  | React frontend with Vite     |
+### cli/ (2)
 
-### Stack Composition
+- cli-bun.md - Bun CLI
+- cli-pnpm-tsx.md - Node + pnpm CLI with tsx
 
-Stacks reference **foundations** (platform + execution strategies):
+### monorepo/ (4)
 
-- **CLI stacks** reference either `ts-bun.md`, `ts-node-tsc.md`, or `ts-node-tsx.md`
-- **Frontend stacks** reference `ts-web-vite.md`
-- **Monorepo stacks** reference `pnpm-monorepo.md` + execution strategy
-- Flat structure - no subdirectories
+- monorepo-pnpm-tsc-api.md - API monorepo with tsc
+- monorepo-pnpm-tsc-fullstack.md - Full-stack monorepo
+- monorepo-pnpm-tsc-orpc.md - oRPC monorepo with tsc
+- monorepo-pnpm-tsx-orpc.md - oRPC monorepo with tsx
 
-Example: A backend monorepo would reference `ts-node-tsc.md` (build pipeline) + `tsconfig-monorepo-additions.md`.
+---
 
 ## Workflows
 
-Development processes.
+Development processes (7).
 
-| File                | Description             |
-| ------------------- | ----------------------- |
-| dev-lifecycle.md    | Complete dev workflow   |
-| start-feature.md    | Feature branch creation |
-| commit.md           | Conventional commits    |
-| complete-feature.md | Merge to main           |
-| code-review.md      | Review checklist        |
-| refactoring.md      | Refactoring patterns    |
+- dev-lifecycle.md - Complete development workflow
+- start-feature.md - Feature branch creation
+- commit.md - Conventional commits
+- complete-feature.md - Merge to main
+- code-review.md - Review checklist
+- refactoring.md - Refactoring patterns
+- consistency-checker.md - Consistency validation
 
-## Frontmatter
-
-All files use YAML frontmatter:
-
-```yaml
 ---
-tags: [cli, runtime]          # Optional: existing folder/tech names only
-depends:                       # Optional: dependency paths
-  - @context/blocks/construct/bun.md
-  - @context/foundations/quality/gate-standards.md
----
-```
 
 ## Reference Format
 
 Use `@` prefix for cross-references:
 
-- `@context/blocks/construct/bun.md`
-- `@context/foundations/node-pnpm.md`
-- `@context/stacks/cli/cli-bun.md`
-- `@context/workflows/commit.md`
+```
+@context/blocks/construct/bun.md
+@context/foundations/construct/exec-tsx.md
+@context/stacks/cli/cli-bun.md
+@context/workflows/commit.md
+```
+
+---
+
+## Frontmatter
+
+All files use YAML frontmatter for dependencies and tags:
+
+```yaml
+---
+depends:
+  - "@context/blocks/construct/tsx.md"
+  - "@context/blocks/construct/tsconfig-base.md"
+tags: [core, cli]
+---
+```
+
+**Tags:** Minimal—only cross-cutting concerns not already in folder structure.
+
+---
+
+## Further Reading
+
+- **Full philosophy:** @context/blocks/docs/atomic-documentation.md
+- **SWEBOK v3:** Software Engineering Body of Knowledge (free PDF)
+- **Aspect-Oriented Programming:** Kiczales et al (cross-cutting concerns)
+- **Domain-Driven Design:** Eric Evans (bounded contexts)

@@ -4,21 +4,27 @@ AI and human reference for maintaining atomic documentation structure.
 
 ## Naming Patterns
 
-### Blocks (`blocks/tools/`)
-**Pattern:** Single-technology names
-- Simple, descriptive: `bun.md`, `react.md`, `vite.md`
-- Config blocks: `tsconfig-base.md`, `tsconfig-monorepo-additions.md`
-- Qualifier when needed: `pnpm-workspaces.md` (not just `workspaces.md`)
+### Blocks (SWEBOK Domains)
 
-### Blocks (`blocks/principles/`)
-**Pattern:** Concept names
-- Philosophy: `testing.md`, `error-handling.md`, `logging.md`
-- Process: `prompting.md`, `vocabulary.md`
+Organized by software engineering activity (construct, test, quality, security, scm, observe, docs).
 
-### Blocks (`blocks/patterns/`)
-**Pattern:** What + Where
-- Context-specific: `logging-cli.md`, `logging-services.md`
-- Domain-specific: `forms-validation-react.md`, `api-testing.md`
+**construct/** — Build, bundle, package
+- Single-technology: `bun.md`, `react.md`, `vite.md`
+- Config: `tsconfig-base.md`, `tsconfig-monorepo-root.md`
+- Package patterns: `package-json-cli.md`, `package-json-library.md`
+
+**test/** — Testing philosophy & patterns
+- `testing.md`, `unit-testing.md`, `storybook.md`
+
+**quality/** — Code standards & style
+- `coding-style.md`, `error-handling.md`, `eslint.md`, `prettier.md`
+
+**observe/** — Logging & monitoring
+- `logging.md`
+
+**docs/** — Documentation & prompting
+- `atomic-documentation.md`, `vocabulary.md`, `prompting.md`
+- Templates: `task-template.md`, `story-template.md`
 
 ### Foundations (`foundations/`)
 **Pattern:** Purpose-first naming
