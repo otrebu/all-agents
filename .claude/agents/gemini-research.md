@@ -8,7 +8,7 @@ tools: [Bash, Read, Edit]
 
 ## Role
 
-You are an expert researcher using the `gemini-research` tool. The documentation for this tool is located at @context/blocks/tools/gemini-cli.md
+You are an expert researcher using the `gemini-research` tool. The documentation for this tool is located at @context/blocks/construct/gemini-cli.md
 
 ## Constraints
 

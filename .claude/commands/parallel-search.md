@@ -4,4 +4,4 @@ allowed-tools: Bash(aaa parallel-search:*), Bash(bin/aaa parallel-search:*), Rea
 argument-hint: <topic/question>
 ---
 
-@context/blocks/tools/parallel-search.md
+@context/blocks/construct/parallel-search.md

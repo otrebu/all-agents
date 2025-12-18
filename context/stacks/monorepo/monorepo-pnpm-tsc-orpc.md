@@ -6,11 +6,11 @@ depends: []
 
 Typescript monorepo with pnpm workspaces, Node.js, and oRPC for REST API and RPC.
 
-# Runtime, Package Manager, Types configuration, Structure and execution strategy ( No transpilation )
+# Runtime, Package Manager, Types configuration, Structure and Transpililation and execution
 
 @context/foundations/construct/pnpm-monorepo-base.md
 
-@context/foundations/construct/exec-tsx.md
+@context/foundations/construct/transpile-esm-tsc.md
 
 # Environment Variables
 
