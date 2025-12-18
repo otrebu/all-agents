@@ -21,15 +21,6 @@ aaa <command>
 
 For CLI development (adding commands, architecture, extending): see [tools/CLAUDE.md](tools/CLAUDE.md).
 
-## Coding Style
-
-See @context/blocks/quality/coding-style.md Key points:
-
-- FP-first, avoid classes (except custom errors)
-- Small, focused functions
-- Explicit naming: `timeoutMs`, `priceGBP`, `isValid`
-- CLI logging via `tools/lib/log.ts` (chalk-based)
-
 ## Workflow
 
 ### Definition of Done
