@@ -62,17 +62,17 @@ aaa story create "As a user, I want to login"
 
 ## Commands
 
-| Command                      | Description                                                | Output Location                  |
-| ---------------------------- | ---------------------------------------------------------- | -------------------------------- |
-| `sync-context`               | Sync context/ folder to target project (with --watch)      | Target project's context/        |
-| `download <urls...>`         | Fetch URLs, extract text, save as markdown                 | `docs/research/downloads/`       |
-| `gh-search <query>`          | GitHub code search with intent-based ranking               | `docs/research/github/`          |
-| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)    | `docs/research/gemini/`          |
-| `parallel-search <query>`    | Multi-angle web research with configurable depth           | `docs/research/parallel-search/` |
-| `task create <description>`  | Create auto-numbered task file (NNN-name.md)               | `docs/planning/tasks/`           |
-| `story create <description>` | Create auto-numbered story file (NNN-name.md)              | `docs/planning/stories/`         |
-| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)  | -                                |
-| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`) | -                                |
+| Command                      | Description                                                | Output Location            |
+| ---------------------------- | ---------------------------------------------------------- | -------------------------- |
+| `sync-context`               | Sync context/ folder to target project (with --watch)      | Target project's context/  |
+| `download <urls...>`         | Fetch URLs, extract text, save as markdown                 | `docs/research/downloads/` |
+| `gh-search <query>`          | GitHub code search with intent-based ranking               | `docs/research/github/`    |
+| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)    | `docs/research/google/`    |
+| `parallel-search <query>`    | Multi-angle web research with configurable depth           | `docs/research/parallel/`  |
+| `task create <description>`  | Create auto-numbered task file (NNN-name.md)               | `docs/planning/tasks/`     |
+| `story create <description>` | Create auto-numbered story file (NNN-name.md)              | `docs/planning/stories/`   |
+| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)  | -                          |
+| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`) | -                          |
 
 ### Command Examples
 
@@ -140,22 +140,38 @@ aaa gemini-research "GraphQL vs REST APIs" --mode deep
 aaa gemini-research "implement OAuth2 in Node.js" --mode code
 ```
 
-Output: `docs/research/gemini/YYYYMMDD-HHMMSS-{topic}.md`
+Output: `docs/research/google/YYYYMMDD-HHMMSS-{topic}.md`
 
 #### parallel-search
 
+**Note:** `--objective` is required.
+
 ```bash
-# Basic search
-aaa parallel-search "best practices for API design"
+# Basic search (--objective required)
+aaa parallel-search --objective "best practices for API design"
+
+# With additional queries
+aaa parallel-search --objective "microservices" --queries "patterns" "testing"
 
 # Higher quality (slower, more thorough)
-aaa parallel-search "microservices architecture" --processor pro
+aaa parallel-search --objective "microservices architecture" --processor pro
+
+# Advanced: control result size
+aaa parallel-search --objective "API design" --max-results 20 --max-chars 10000
 ```
+
+**Options:**
+
+- `--objective <string>` - Main search objective (required)
+- `--queries <string...>` - Additional search queries (optional, can also be positional args)
+- `--processor <level>` - Processing quality: `base` or `pro` (default: `pro`)
+- `--max-results <number>` - Max results per search (default: 15)
+- `--max-chars <number>` - Max characters per excerpt (default: 5000)
 
 Output:
 
-- `docs/research/parallel-search/YYYYMMDD-HHMMSS-{topic}.md` (formatted report)
-- `docs/research/parallel-search/raw/YYYYMMDD-HHMMSS-{topic}.json` (raw data)
+- `docs/research/parallel/YYYYMMDD-HHMMSS-{topic}.md` (formatted report)
+- `docs/research/parallel/raw/YYYYMMDD-HHMMSS-{topic}.json` (raw data)
 
 #### task create / story create
 
