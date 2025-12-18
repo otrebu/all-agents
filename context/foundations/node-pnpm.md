@@ -1,8 +1,8 @@
 ---
 tags: [runtime, platform]
 depends:
-  - @context/blocks/tools/node.md
-  - @context/blocks/tools/pnpm.md
+  - @context/blocks/construct/node.md
+  - @context/blocks/construct/pnpm.md
 ---
 
 # Node + pnpm Platform

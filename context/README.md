@@ -151,8 +151,8 @@ All files use YAML frontmatter:
 ---
 tags: [cli, runtime]          # Optional: existing folder/tech names only
 depends:                       # Optional: dependency paths
-  - @context/blocks/tools/bun.md
-  - @context/foundations/code-standards.md
+  - @context/blocks/construct/bun.md
+  - @context/foundations/quality/gate-standards.md
 ---
 ```
 
@@ -160,7 +160,7 @@ depends:                       # Optional: dependency paths
 
 Use `@` prefix for cross-references:
 
-- `@context/blocks/tools/bun.md`
+- `@context/blocks/construct/bun.md`
 - `@context/foundations/node-pnpm.md`
-- `@context/stacks/ts-bun-cli.md`
+- `@context/stacks/cli/cli-bun.md`
 - `@context/workflows/commit.md`

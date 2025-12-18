@@ -74,7 +74,7 @@ Node.js via compiled JavaScript (tsc build pipeline).
 
 ## References
 
-@context/blocks/tools/tsconfig-base.md
+@context/blocks/construct/tsconfig-base.md
 
 ## Tool-Specific TypeScript Config
 
@@ -111,10 +111,10 @@ Extends base config with Node.js ESM build settings:
 ```yaml
 # ts-pnpm-node-backend-monorepo.md
 depends:
-  - @context/foundations/pnpm-monorepo.md      # Coordination
-  - @context/foundations/ts-node-tsc.md        # Execution strategy
-  - @context/blocks/tools/tsconfig-base.md     # Base config
-  - @context/blocks/tools/tsconfig-monorepo-additions.md
+  - @context/foundations/construct/manifest-monorepo-root.md      # Coordination
+  - @context/foundations/construct/transpile-esm-tsc.md        # Execution strategy
+  - @context/blocks/construct/tsconfig-base.md     # Base config
+  - @context/blocks/construct/tsconfig-monorepo-root.md
 ```
 
 **Key insight:** Monorepo coordination + execution strategy = reusable, composable
@@ -217,7 +217,7 @@ pnpm-monorepo-tsc.md           → Should compose, not duplicate
 ```markdown
 # ts-node-tsc.md
 
-References: @context/blocks/tools/tsconfig-base.md
+References: @context/blocks/construct/tsconfig-base.md
 
 Tool-Specific Overrides:  <!-- Only show deltas -->
 {
@@ -256,13 +256,13 @@ When creating/modifying docs:
 ## Reference Format
 
 Always use `@` prefix for cross-references:
-- `@context/blocks/tools/bun.md`
+- `@context/blocks/construct/bun.md`
 - `@context/foundations/node-pnpm.md`
-- `@context/stacks/ts-bun-cli.md`
+- `@context/stacks/cli/cli-bun.md`
 - `@context/workflows/commit.md`
 
 ## Further Reading
 
-- `@context/blocks/principles/atomic-documentation.md` - Full atomic docs philosophy
+- `@context/blocks/docs/atomic-documentation.md` - Full atomic docs philosophy
 - `@context/README.md` - Complete documentation index
 - `/CLAUDE.md` - Repository-level development guide

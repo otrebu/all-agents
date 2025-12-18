@@ -1,6 +1,6 @@
 ---
 depends:
-  - @context/blocks/principles/coding-style.md
+  - @context/blocks/quality/coding-style.md
 ---
 
 # Refactoring Guide
