@@ -358,9 +358,6 @@ async function searchGitHubCode(
   const searchQuery = buildSearchQuery(query, options);
 
   const limit = options.limit ?? 100;
-  let allResults: Array<RawSearchResult> = [];
-  let page = 1;
-  let remaining = limit;
 
   async function fetchPage(
     pageNumber: number,
@@ -392,18 +389,30 @@ async function searchGitHubCode(
     return response.data.items as unknown as Array<RawSearchResult>;
   }
 
-  while (remaining > 0) {
+  async function fetchAllPages(
+    remaining: number,
+    page: number,
+    accumulated: Array<RawSearchResult>,
+  ): Promise<Array<RawSearchResult>> {
+    if (remaining <= 0) {
+      return accumulated;
+    }
+
     const perPage = Math.min(remaining, 100);
 
     try {
-      // eslint-disable-next-line no-await-in-loop -- Sequential pagination required
       const results = await fetchPage(page, perPage);
-      allResults = [...allResults, ...results];
+      const updatedResults = [...accumulated, ...results];
 
-      if (results.length < perPage) break;
+      if (results.length < perPage) {
+        return updatedResults;
+      }
 
-      remaining -= results.length;
-      page += 1;
+      return fetchAllPages(
+        remaining - results.length,
+        page + 1,
+        updatedResults,
+      );
     } catch (error) {
       const octokitError = error as OctokitError;
       if (octokitError.status === 403) {
@@ -424,6 +433,8 @@ async function searchGitHubCode(
       );
     }
   }
+
+  const allResults = await fetchAllPages(limit, 1, []);
 
   // Batch fetch repo details to get star counts (Code Search API doesn't include stars)
   const repoStars = await fetchRepoStars(octokit, allResults);

@@ -1,4 +1,4 @@
-import { getProjectRoot } from "@tools/utils/paths";
+import { getContextRoot } from "@tools/utils/paths";
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 
@@ -19,7 +19,7 @@ function createNumberedFile(
   name: string,
   options: NumberedFileOptions,
 ): CreateResult {
-  const root = getProjectRoot();
+  const root = getContextRoot();
   const pattern = options.pattern ?? DEFAULT_PATTERN;
   const directory = resolveDirectory(
     root,

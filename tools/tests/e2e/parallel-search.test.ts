@@ -2,10 +2,12 @@ import { getOutputDir } from "@tools/utils/paths";
 import { afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { execa } from "execa";
 import { glob } from "glob";
-import { access, readFile, rm } from "node:fs/promises";
+import { rmSync } from "node:fs";
+import { access, readFile } from "node:fs/promises";
 
 const RESEARCH_DIR = getOutputDir("research/parallel");
-const TIMEOUT_MS = 120_000;
+const TEST_TIMEOUT_MS = 120_000;
+const COMMAND_TIMEOUT_MS = TEST_TIMEOUT_MS - 10_000;
 
 function hasParallelApiKey(): boolean {
   return (
@@ -29,32 +31,35 @@ describe("parallel-search E2E", () => {
     }
   });
 
-  afterEach(async () => {
+  // SYNC REQUIRED: Bun bug #19660 - async hooks may not complete
+  afterEach(() => {
     const filesToRemove = [...createdFiles];
     createdFiles.length = 0;
-    await Promise.all(
-      filesToRemove.map(async (file) => {
-        try {
-          await rm(file, { force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
-      }),
-    );
+    for (const file of filesToRemove) {
+      try {
+        rmSync(file, { force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   });
 
   test(
     "completes search and creates valid files",
     async () => {
-      const { exitCode, stdout } = await execa("bun", [
-        "run",
-        "dev",
-        "parallel-search",
-        "--objective",
-        "Compare Bun vs Node.js for CLI tools",
-        "--max-results",
-        "1",
-      ]);
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "parallel-search",
+          "--objective",
+          "Compare Bun vs Node.js for CLI tools",
+          "--max-results",
+          "1",
+        ],
+        { timeout: COMMAND_TIMEOUT_MS },
+      );
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Search completed in");
@@ -100,23 +105,27 @@ describe("parallel-search E2E", () => {
       expect(mdContent).toMatch(/^# /m);
       expect(mdContent.length).toBeGreaterThan(100);
     },
-    TIMEOUT_MS,
+    TEST_TIMEOUT_MS,
   );
 
   test(
     "works with --processor base",
     async () => {
-      const { exitCode, stdout } = await execa("bun", [
-        "run",
-        "dev",
-        "parallel-search",
-        "--objective",
-        "TypeScript monorepo tooling",
-        "--processor",
-        "base",
-        "--max-results",
-        "1",
-      ]);
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "parallel-search",
+          "--objective",
+          "TypeScript monorepo tooling",
+          "--processor",
+          "base",
+          "--max-results",
+          "1",
+        ],
+        { timeout: COMMAND_TIMEOUT_MS },
+      );
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Search completed in");
@@ -157,24 +166,28 @@ describe("parallel-search E2E", () => {
       const mdContent = await readFile(mdFile, "utf8");
       expect(mdContent.length).toBeGreaterThan(500);
     },
-    TIMEOUT_MS,
+    TEST_TIMEOUT_MS,
   );
 
   test(
     "works with multiple --queries",
     async () => {
-      const { exitCode, stdout } = await execa("bun", [
-        "run",
-        "dev",
-        "parallel-search",
-        "--objective",
-        "JavaScript testing migration strategies",
-        "--queries",
-        "Bun test patterns",
-        "Vitest migration from Jest",
-        "--max-results",
-        "1",
-      ]);
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "parallel-search",
+          "--objective",
+          "JavaScript testing migration strategies",
+          "--queries",
+          "Bun test patterns",
+          "Vitest migration from Jest",
+          "--max-results",
+          "1",
+        ],
+        { timeout: COMMAND_TIMEOUT_MS },
+      );
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Search completed in");
@@ -220,24 +233,28 @@ describe("parallel-search E2E", () => {
       const mdContent = await readFile(mdFile, "utf8");
       expect(mdContent.length).toBeGreaterThan(500);
     },
-    TIMEOUT_MS,
+    TEST_TIMEOUT_MS,
   );
 
   test(
     "respects --max-chars option",
     async () => {
       const maxChars = 1000;
-      const { exitCode, stdout } = await execa("bun", [
-        "run",
-        "dev",
-        "parallel-search",
-        "--objective",
-        "Bun runtime performance optimization",
-        "--max-chars",
-        String(maxChars),
-        "--max-results",
-        "1",
-      ]);
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "parallel-search",
+          "--objective",
+          "Bun runtime performance optimization",
+          "--max-chars",
+          String(maxChars),
+          "--max-results",
+          "1",
+        ],
+        { timeout: COMMAND_TIMEOUT_MS },
+      );
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Search completed in");
@@ -277,6 +294,6 @@ describe("parallel-search E2E", () => {
       const mdContent = await readFile(mdFile, "utf8");
       expect(mdContent.length).toBeGreaterThan(100);
     },
-    TIMEOUT_MS,
+    TEST_TIMEOUT_MS,
   );
 });

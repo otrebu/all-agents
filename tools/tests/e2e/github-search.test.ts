@@ -9,7 +9,8 @@ import {
 } from "bun:test";
 import { execa } from "execa";
 import { glob } from "glob";
-import { access, readFile, rm, stat } from "node:fs/promises";
+import { rmSync, statSync } from "node:fs";
+import { access, readFile } from "node:fs/promises";
 
 const RESEARCH_DIR = getOutputDir("research/github");
 const TIMEOUT_MS = 120_000;
@@ -46,38 +47,36 @@ describe("gh-search E2E", () => {
     }
   });
 
-  afterEach(async () => {
+  // SYNC REQUIRED: Bun bug #19660 - async hooks may not complete
+  afterEach(() => {
     const filesToRemove = [...createdFiles];
     createdFiles.length = 0;
-    await Promise.all(
-      filesToRemove.map(async (file) => {
-        try {
-          await rm(file, { force: true });
-        } catch {
-          // Ignore cleanup errors
-        }
-      }),
-    );
+    for (const file of filesToRemove) {
+      try {
+        rmSync(file, { force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   });
 
-  afterAll(async () => {
+  // SYNC REQUIRED: Bun bug #19660 - async hooks may not complete
+  afterAll(() => {
     const allFiles = [
-      ...(await glob(`${RESEARCH_DIR}/raw/*.json`)),
-      ...(await glob(`${RESEARCH_DIR}/*.md`)),
+      ...glob.sync(`${RESEARCH_DIR}/raw/*.json`),
+      ...glob.sync(`${RESEARCH_DIR}/*.md`),
     ];
 
-    await Promise.all(
-      allFiles.map(async (file) => {
-        try {
-          const fileStat = await stat(file);
-          if (fileStat.mtimeMs >= testStartTime) {
-            await rm(file, { force: true });
-          }
-        } catch {
-          // Ignore cleanup errors
+    for (const file of allFiles) {
+      try {
+        const fileStat = statSync(file);
+        if (fileStat.mtimeMs >= testStartTime) {
+          rmSync(file, { force: true });
         }
-      }),
-    );
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   });
 
   test(

@@ -12,4 +12,4 @@ Execute multi-angle web research using Parallel Search API.
 
 ---
 
-Follow @context/knowledge/parallel-search/PARALLEL_SEARCH.md very carefully and strictly.
+Follow @context/blocks/construct/parallel-search.md very carefully and strictly.

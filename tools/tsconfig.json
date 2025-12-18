@@ -9,7 +9,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "verbatimModuleSyntax": true,
-    "outDir": "./dist",
+    "noEmit": true,
     "rootDir": ".",
     "baseUrl": ".",
     "paths": { "@lib/*": ["./lib/*"], "@tools/*": ["./src/*"] },

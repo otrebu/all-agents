@@ -1,4 +1,4 @@
-import { getProjectRoot } from "@tools/utils/paths";
+import { getContextRoot } from "@tools/utils/paths";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
 import {
@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const TOOLS_DIR = join(getProjectRoot(), "tools");
+const TOOLS_DIR = join(getContextRoot(), "tools");
 
 describe("story E2E", () => {
   let temporaryDirectory = "";

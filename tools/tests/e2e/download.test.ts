@@ -1,11 +1,17 @@
-import { getProjectRoot } from "@tools/utils/paths";
+import { getContextRoot } from "@tools/utils/paths";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const TOOLS_DIR = join(getProjectRoot(), "tools");
+const TOOLS_DIR = join(getContextRoot(), "tools");
 
 describe("download E2E", () => {
   let temporaryDirectory = "";
@@ -115,7 +121,6 @@ describe("download E2E", () => {
 
     // Find the created file
     if (existsSync(temporaryDirectory)) {
-      const { readdirSync } = await import("node:fs");
       const files = readdirSync(temporaryDirectory);
       const multiFile = files.find((f) => f.includes("multi"));
       if (multiFile !== undefined) {

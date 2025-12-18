@@ -57,6 +57,9 @@ AAA_DEBUG=false         # Enable verbose logging
 The `aaa` binary provides research and search commands:
 
 ```bash
+# Sync context folder to another project
+aaa sync-context --target /path/to/project --watch
+
 # GitHub code search - find real-world examples
 aaa gh-search "react hooks typescript"
 
@@ -82,22 +85,22 @@ Research outputs are saved to `docs/research/`.
 
 | Command | Description | Documentation |
 |:--------|:------------|:--------------|
-| `/dev:git-commit` | Create conventional commits from diffs | `@context/coding/workflow/COMMIT.md` |
-| `/dev:start-feature` | Create/switch feature branches | `@context/coding/workflow/START_FEATURE.md` |
-| `/dev:complete-feature` | Merge feature branch to main | `@context/coding/workflow/COMPLETE_FEATURE.md` |
-| `/dev:code-review` | AI-assisted code review | `@context/coding/workflow/CODE_REVIEW.md` |
-| `/gh-search <query>` | Search GitHub for code examples | `@context/knowledge/github/GH_SEARCH.md` |
-| `/gemini-research <query>` | Google Search via Gemini CLI | `@context/knowledge/gemini-cli/GEMINI_CLI.md` |
-| `/parallel-search <topic>` | Multi-angle web research | `@context/knowledge/parallel-search/PARALLEL_SEARCH.md` |
+| `/dev:git-commit` | Create conventional commits from diffs | `@workflows/commit.md` |
+| `/dev:start-feature` | Create/switch feature branches | `@workflows/start-feature.md` |
+| `/dev:complete-feature` | Merge feature branch to main | `@workflows/complete-feature.md` |
+| `/dev:code-review` | AI-assisted code review | `@workflows/code-review.md` |
+| `/gh-search <query>` | Search GitHub for code examples | `@context/blocks/tools/gh-search.md` |
+| `/gemini-research <query>` | Google Search via Gemini CLI | `@context/blocks/tools/gemini-cli.md` |
+| `/parallel-search <topic>` | Multi-angle web research | `@context/blocks/tools/parallel-search.md` |
 | `/create-task <name>` | Create numbered task file | — |
 | `/download <urls...>` | Download URLs, extract text, save as markdown | — |
-| `/meta:claude-code:create-command` | Create a new slash command | `@context/meta/PROMPTING.md` |
-| `/meta:claude-code:create-agent` | Create a new sub-agent | `@context/meta/AGENT_TEMPLATES.md` |
+| `/meta:claude-code:create-command` | Create a new slash command | `@context/blocks/principles/prompting.md` |
+| `/meta:claude-code:create-agent` | Create a new sub-agent | `@context/blocks/patterns/agent-templates.md` |
 | `/meta:claude-code:create-skill` | Create a new skill | — |
 | `/meta:claude-code:create-plugin` | Scaffold a plugin structure | — |
-| `/meta:create-cursor-rule` | Create a `.cursorrules` file | `@context/meta/PROMPTING.md` |
-| `/meta:how-to-prompt` | Prompting guidance | `@context/meta/PROMPTING.md` |
-| `/meta:optimize-prompt` | Optimize existing prompts | `@context/meta/OPTIMIZE-PROMPT.md` |
+| `/meta:create-cursor-rule` | Create a `.cursorrules` file | `@context/blocks/principles/prompting.md` |
+| `/meta:how-to-prompt` | Prompting guidance | `@context/blocks/principles/prompting.md` |
+| `/meta:optimize-prompt` | Optimize existing prompts | `@context/blocks/principles/optimize-prompt.md` |
 
 ### Sub-agents
 
@@ -124,8 +127,8 @@ When your project has `context/` symlinked from this repo:
 
 **`.cursorrules` (root-level)**
 ```
-@context/coding/CODING_STYLE.md
-@context/meta/PROMPTING.md
+@context/blocks/principles/coding-style.md
+@context/blocks/principles/prompting.md
 ```
 
 **`.cursor/rules/*.mdc` (modular rules)**
@@ -135,7 +138,7 @@ description: TypeScript coding standards
 globs: ["**/*.ts", "**/*.tsx"]
 ---
 
-Follow guidelines in @context/coding/stacks/
+Follow guidelines in @context/stacks/ and @context/foundations/
 ```
 
 ## Directory Structure
@@ -144,11 +147,15 @@ Follow guidelines in @context/coding/stacks/
 all-agents/
 ├── bin/                   # Compiled binary (gitignored)
 ├── context/               # SHAREABLE (symlink to projects)
-│   ├── knowledge/         # Tool docs (gh-search, gemini, parallel)
-│   ├── coding/            # Coding standards, stacks, workflow
-│   └── meta/              # Prompting standards, templates
+│   ├── blocks/            # Atomic building blocks
+│   │   ├── tools/         # Single-tech docs (bun, node, react, etc.)
+│   │   ├── principles/    # Universal philosophies
+│   │   └── patterns/      # Context-specific techniques
+│   ├── foundations/       # Platform combos + execution strategies
+│   ├── stacks/            # Complete app shapes (CLI, API, frontend)
+│   └── workflows/         # Dev processes (commit, review, etc.)
 ├── docs/                  # PROJECT-LOCAL (not shared)
-│   ├── planning/          # Roadmaps, stories
+│   ├── planning/          # Tasks, stories
 │   └── research/          # Generated research outputs
 ├── tools/                 # CLI source code
 │   ├── src/cli.ts         # Entry point

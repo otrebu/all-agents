@@ -9,7 +9,7 @@ Development reference for Claude Code when working in this repo. For setup, usag
 - **Linting:** ESLint (uba-eslint-config), `no-console` allowed
 - **Testing:** bun:test (E2E)
 
-See @context/coding/stacks/STACK_TS_BUN_CLI.md for full stack patterns.
+See @context/stacks/cli/cli-bun.md for full stack patterns.
 
 ## CLI Tools (`aaa`)
 
@@ -20,15 +20,6 @@ aaa <command>
 ```
 
 For CLI development (adding commands, architecture, extending): see [tools/CLAUDE.md](tools/CLAUDE.md).
-
-## Coding Style
-
-See @context/coding/CODING_STYLE.md. Key points:
-
-- FP-first, avoid classes (except custom errors)
-- Small, focused functions
-- Explicit naming: `timeoutMs`, `priceGBP`, `isValid`
-- CLI logging via `tools/lib/log.ts` (chalk-based)
 
 ## Workflow
 
@@ -52,4 +43,4 @@ Ask before creating feature branches. Use `/dev:start-feature <description>` if 
 
 - No emojis in code/commits unless requested
 - FP-first: avoid `this`, `new`, classes (except errors)
-- Follow @context/coding/workflow/DEV_LIFECYCLE.md when coding
+- Follow @context/workflows/dev-lifecycle.md when coding
