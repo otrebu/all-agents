@@ -1,5 +1,6 @@
 ---
-depends: []
+depends:
+  - "@context/foundations/security/secrets-env-monorepo.md"
 ---
 
 # TypeScript + pnpm workspaces + Node + oRPC REST API and RPC Stack
@@ -14,7 +15,9 @@ Typescript monorepo with pnpm workspaces, Node.js, and oRPC for REST API and RPC
 
 # Environment Variables
 
-@context/foundations/security/secrets-env.md
+@context/foundations/security/secrets-env-monorepo.md
+
+Monorepo uses layered `.env` files: root for shared config, package-level for overrides.
 
 # Code Standards
 

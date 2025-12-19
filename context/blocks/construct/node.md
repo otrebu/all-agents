@@ -75,3 +75,19 @@ package.json example:
   }
 }
 ```
+
+### Multiple Environment Files
+
+Load multiple `.env` files with layering (later files override earlier):
+
+```bash
+node --env-file=.env.base --env-file=.env src/index.js
+```
+
+**Monorepo pattern** (load root + package):
+
+```bash
+node --env-file=../../.env --env-file=.env dist/index.js
+```
+
+Precedence: CLI args > last `--env-file` > first `--env-file`
