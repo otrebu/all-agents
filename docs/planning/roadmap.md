@@ -2,12 +2,14 @@
 
 ## Documentation & Context
 
+- [ ] Complete full stack documentation
+  - [ ] testing
+  - [ ] frontend ( vite, react, storybook, tailwind, tanstack )
 - [ ] Create command to generate atomic docs from prompts
 - [ ] Add log to file documentation (when to use, when not to use, how to do it)
 - [ ] Add unit testing patterns documentation (mocking, when and how)
 - [ ] Add env variables/config documentation (12-factor app, tools to use)
   - Decide: should `@context/foundations/env-variables.md` be foundation or pattern?
-- [ ] Finalize coding-style rewrite (in progress on claude.ai)
 
 ## Monorepo & Tooling
 
