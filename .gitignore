@@ -21,4 +21,8 @@ bin/aaa
 .claude/statsig/
 .claude/todos/
 .claude/plugins/marketplaces/
+.claude/plugins/cache/
+.claude/image-cache/
 docs/research/downloads/
+
+**/*.built.md
