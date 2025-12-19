@@ -19,13 +19,13 @@ nvm ls-remote
 nvm install --lts
 
 # Install specific version
-nvm install 20
+nvm install 24
 
 # Use version
-nvm use 20
+nvm use 24
 
 # Set default
-nvm alias default 20
+nvm alias default 24
 ```
 
 ### LTS Recommendation
