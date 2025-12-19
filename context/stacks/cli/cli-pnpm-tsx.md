@@ -1,6 +1,5 @@
 ---
 depends:
-  - @context/foundations/platform-node-pnpm.md
   - @context/foundations/construct/transpile-esm-tsc.md
 ---
 

@@ -5,7 +5,7 @@
       "repo": "anthropics/claude-code"
     },
     "installLocation": "/Users/Uberto.Rapizzi/dev/all-agents/.claude/plugins/marketplaces/claude-code-plugins",
-    "lastUpdated": "2025-12-18T16:03:51.539Z"
+    "lastUpdated": "2025-12-19T17:30:32.764Z"
   },
   "claude-plugins-official": {
     "source": {
@@ -13,6 +13,6 @@
       "repo": "anthropics/claude-plugins-official"
     },
     "installLocation": "/Users/Uberto.Rapizzi/dev/all-agents/.claude/plugins/marketplaces/claude-plugins-official",
-    "lastUpdated": "2025-12-18T16:31:51.222Z"
+    "lastUpdated": "2025-12-19T17:41:40.897Z"
   }
 }

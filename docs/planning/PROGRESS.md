@@ -22,7 +22,7 @@
   - Foundations: node-pnpm-workspaces, ts-execution-build-first, ts-execution-runtime-direct
   - Stack: ts-pnpm-node-backend-monorepo (~370 lines)
 - **6 updated:**
-  - tsx.md (21→110L), pnpm.md (218→38L), platform-node-pnpm.md (29→126L)
+  - tsx.md (21→110L), pnpm.md (218→38L), node-pnpm.md (29→126L)
   - rest-api & cli stacks (added foundation refs)
   - context/README.md (counts + stack composition pattern)
 

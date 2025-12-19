@@ -3,7 +3,6 @@ depends:
   - @context/blocks/construct/node.md
   - @context/blocks/construct/pnpm.md
   - @context/blocks/construct/tsconfig-base.md
-  - @context/foundations/platform-node-pnpm.md
   - @context/foundations/ts-execution-build-first.md
   - "@context/foundations/security/secrets-env-monorepo-node.md"
 ---

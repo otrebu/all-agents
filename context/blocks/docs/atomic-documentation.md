@@ -27,11 +27,11 @@ prompt = @blocks/construct/tsc.md + @foundations/construct/transpile-esm-tsc.md 
 
 ## Three Layers
 
-| Layer           | Purpose                                                                      |
-| --------------- | ---------------------------------------------------------------------------- |
-| **Blocks**      | Single units of knowledge. The smallest teachable pieces.                    |
-| **Foundations** | Capabilities. How blocks compose to achieve something.                       |
-| **Stacks**      | Complete project setups. Compose foundations into working configurations.    |
+| Layer           | Purpose                                                                   |
+| --------------- | ------------------------------------------------------------------------- |
+| **Blocks**      | Single units of knowledge. The smallest teachable pieces.                 |
+| **Foundations** | Capabilities. How blocks compose to achieve something.                    |
+| **Stacks**      | Complete project setups. Compose foundations into working configurations. |
 
 The metaphor: blocks are raw materials, foundations are capabilities you build, stacks are complete constructions.
 
@@ -43,16 +43,16 @@ All three layers organized by **domains** aligned with SWEBOK knowledge areas fo
 
 Eight domains organize all documentation:
 
-| Domain | SWEBOK Alignment | What It Covers |
-|--------|------------------|----------------|
-| `construct` | Ch 4: Software Construction | Building, transpiling, bundling, packaging artifacts |
-| `test` | Ch 5: Software Testing | Unit, integration, E2E testing, mocking, coverage |
-| `quality` | Ch 12: Software Quality | Linting, formatting, static analysis, code health |
-| `security` | Ch 13: Software Security | Vulnerability scanning, secrets, hardening |
-| `scm` | Ch 8: Software Config Management | Versioning, branching, releasing, publishing |
-| `ops` | Ch 6: Software Engineering Operations | CI/CD pipelines, containers, infrastructure, deployment |
-| `observe` | Ch 6 (sub-area) | Logging, metrics, tracing, error tracking |
-| `docs` | Ch 2/3: Architecture & Design | ADRs, API docs, diagrams, project docs |
+| Domain      | SWEBOK Alignment                      | What It Covers                                          |
+| ----------- | ------------------------------------- | ------------------------------------------------------- |
+| `construct` | Ch 4: Software Construction           | Building, transpiling, bundling, packaging artifacts    |
+| `test`      | Ch 5: Software Testing                | Unit, integration, E2E testing, mocking, coverage       |
+| `quality`   | Ch 12: Software Quality               | Linting, formatting, static analysis, code health       |
+| `security`  | Ch 13: Software Security              | Vulnerability scanning, secrets, hardening              |
+| `scm`       | Ch 8: Software Config Management      | Versioning, branching, releasing, publishing            |
+| `ops`       | Ch 6: Software Engineering Operations | CI/CD pipelines, containers, infrastructure, deployment |
+| `observe`   | Ch 6 (sub-area)                       | Logging, metrics, tracing, error tracking               |
+| `docs`      | Ch 2/3: Architecture & Design         | ADRs, API docs, diagrams, project docs                  |
 
 **Stacks** organize by artifact type (cli, api, library, web, monorepo) not domain, since stacks span multiple domains.
 
@@ -67,30 +67,38 @@ The smallest units of documentation. One concern, self-contained, tool-centric.
 Blocks organized by domain. Examples:
 
 **construct/** — Building code
+
 - `tsc.md`, `tsc-alias.md`, `vite.md`, `bun.md`, `pnpm.md`, `pnpm-workspaces.md`
 - `package-json-base.md`, `package-json-cli.md`, `package-json-library.md`
 - `tsconfig-base.md`, `tsconfig-library.md`, `tsconfig-monorepo-root.md`
 - `docker.md`, `docker-node.md`
 
 **test/** — Verifying code
+
 - `vitest.md`, `bun-test.md`, `playwright.md`, `supertest.md`, `msw.md`
 
 **quality/** — Code health
+
 - `eslint.md`, `eslint-typescript.md`, `prettier.md`, `knip.md`, `publint.md`
 
 **security/** — Securing code
+
 - `pnpm-audit.md`, `renovate.md`, `snyk.md`, `dotenv.md`, `helmet.md`
 
 **scm/** — Version control & release
+
 - `git.md`, `husky.md`, `conventional-commits.md`, `semantic-release.md`, `changesets.md`
 
 **ops/** — Pipelines & infrastructure
+
 - `github-actions.md`, `docker-compose.md`, `kubernetes.md`, `terraform.md`
 
 **observe/** — Monitoring & debugging
+
 - `pino.md`, `opentelemetry.md`, `prometheus.md`, `sentry.md`, `grafana.md`
 
 **docs/** — Documentation
+
 - `adr.md`, `openapi.md`, `typedoc.md`, `mermaid.md`, `readme.md`
 
 Blocks are context-agnostic. They teach one thing without assuming where it will be applied.
@@ -103,37 +111,40 @@ Capabilities—how blocks compose to achieve something. Capability-centric, not 
 
 **Naming:** `foundations/{domain}/{capability}-{qualifier}-{tool}.md`
 
-| Part | Required | Description |
-|------|----------|-------------|
-| **Capability** | Always | Domain-specific verb (see below) |
-| **Qualifier** | When needed | Variant or target (esm, unit, azure, npm) |
-| **Tool** | When alternatives exist | Implementation (tsc, vitest, gha, docker) |
+| Part           | Required                | Description                               |
+| -------------- | ----------------------- | ----------------------------------------- |
+| **Capability** | Always                  | Domain-specific verb (see below)          |
+| **Qualifier**  | When needed             | Variant or target (esm, unit, azure, npm) |
+| **Tool**       | When alternatives exist | Implementation (tsc, vitest, gha, docker) |
 
 **Capability verbs by domain:**
 
-| Domain | Capabilities |
-|--------|-------------|
+| Domain      | Capabilities                                            |
+| ----------- | ------------------------------------------------------- |
 | `construct` | transpile, bundle, exec, package, manifest, types, tree |
-| `test` | test, mock, cover |
-| `quality` | lint, format, analyze, gate |
-| `security` | scan, update, secrets, harden |
-| `scm` | commit, branch, version, release, publish, changelog |
-| `ops` | ci, cd, container, orchestrate, iac, deploy |
-| `observe` | log, trace, metrics, errors, dashboard |
-| `docs` | document, diagram |
+| `test`      | test, mock, cover                                       |
+| `quality`   | lint, format, analyze, gate                             |
+| `security`  | scan, update, secrets, harden                           |
+| `scm`       | commit, branch, version, release, publish, changelog    |
+| `ops`       | ci, cd, container, orchestrate, iac, deploy             |
+| `observe`   | log, trace, metrics, errors, dashboard                  |
+| `docs`      | document, diagram                                       |
 
 **When to include tool suffix:**
 
 Required when multiple tools achieve same capability:
+
 - `transpile-esm-tsc.md` vs `transpile-esm-esbuild.md`
 - `test-unit-vitest.md` vs `test-unit-bun.md`
 - `ci-build-gha.md` vs `ci-build-azure.md`
 
 Not needed when tool IS the capability:
+
 - `exec-tsx.md` (tsx is the only way to "exec via tsx")
 - `exec-bun.md`
 
 Not needed when tool-agnostic:
+
 - `tree-cli.md` (structure doesn't depend on tools)
 - `commit-conventional.md` (convention, not tool)
 
@@ -156,11 +167,13 @@ Not needed when tool-agnostic:
 **docs/** — `document-adr.md`, `document-api-openapi.md`, `diagram-c4.md`, `diagram-mermaid.md`
 
 **Key distinctions:**
+
 - **package** (construct) → create artifact
 - **publish** (scm) → release to registry
 - **deploy** (ops) → run in environment
 
 Foundations contain **glue**—integration knowledge that only exists because of context:
+
 - Configuration bridging components
 - How blocks work together
 - Edge cases and gotchas specific to the combination
@@ -173,36 +186,41 @@ Complete project setups. Compose multiple foundations into working configuration
 
 **Naming:** `stacks/{artifact}/{artifact}-{package-manager}-{key-characteristic}.md`
 
-| Part | Description | Examples |
-|------|-------------|----------|
-| **Artifact** | What you're building | cli, library, api, web, monorepo |
-| **Package manager** | Package manager used | pnpm, npm, bun |
-| **Key characteristic** | Distinguishing feature | tsx, tsc, fullstack, orpc |
+| Part                   | Description            | Examples                         |
+| ---------------------- | ---------------------- | -------------------------------- |
+| **Artifact**           | What you're building   | cli, library, api, web, monorepo |
+| **Package manager**    | Package manager used   | pnpm, npm, bun                   |
+| **Key characteristic** | Distinguishing feature | tsx, tsc, fullstack, orpc        |
 
 **Note:** For Bun projects where Bun is both runtime and package manager, omit redundant package manager: `cli-bun.md` not `cli-bun-bun.md`.
 
 **Examples:**
 
 **stacks/cli/**
+
 - `cli-pnpm-tsx.md` — TypeScript CLI with tsx execution
 - `cli-pnpm-tsc.md` — TypeScript CLI with tsc build
 - `cli-bun.md` — Bun CLI (runtime + package manager)
 
 **stacks/library/**
+
 - `library-pnpm-tsc.md` — ESM library with tsc
 - `library-pnpm-tsc-dual.md` — Dual ESM/CJS library
 - `library-react-pnpm-tsc.md` — React component library
 
 **stacks/api/**
+
 - `api-pnpm-tsx.md` — API with tsx execution
 - `api-pnpm-fastify.md` — Fastify API
 - `api-bun-hono.md` — Bun + Hono API
 
 **stacks/web/**
+
 - `web-pnpm-vite-react.md` — React + Vite frontend
 - `web-pnpm-nextjs.md` — Next.js application
 
 **stacks/monorepo/**
+
 - `monorepo-pnpm-tsc.md` — pnpm workspace monorepo
 - `monorepo-pnpm-tsc-fullstack.md` — Full-stack monorepo
 
@@ -423,19 +441,19 @@ tags: [monorepo]
 
 ## Summary
 
-| Layer           | Purpose                        | Organisation             |
-| --------------- | ------------------------------ | ------------------------ |
-| **Blocks**      | Single units of knowledge      | By domain (8 domains)    |
-| **Foundations** | Capabilities                   | By domain (8 domains)    |
-| **Stacks**      | Complete project setups        | By artifact type         |
+| Layer           | Purpose                   | Organisation          |
+| --------------- | ------------------------- | --------------------- |
+| **Blocks**      | Single units of knowledge | By domain (8 domains) |
+| **Foundations** | Capabilities              | By domain (8 domains) |
+| **Stacks**      | Complete project setups   | By artifact type      |
 
 **Naming conventions:**
 
-| Layer | Pattern | Example |
-|-------|---------|---------|
-| **Blocks** | `blocks/{domain}/{tool}.md` | `blocks/construct/tsc.md` |
+| Layer           | Pattern                                                   | Example                                      |
+| --------------- | --------------------------------------------------------- | -------------------------------------------- |
+| **Blocks**      | `blocks/{domain}/{tool}.md`                               | `blocks/construct/tsc.md`                    |
 | **Foundations** | `foundations/{domain}/{capability}-{qualifier}-{tool}.md` | `foundations/construct/transpile-esm-tsc.md` |
-| **Stacks** | `stacks/{artifact}/{artifact}-{pm}-{characteristic}.md` | `stacks/cli/cli-pnpm-tsx.md` |
+| **Stacks**      | `stacks/{artifact}/{artifact}-{pm}-{characteristic}.md`   | `stacks/cli/cli-pnpm-tsx.md`                 |
 
 **Domains (SWEBOK-aligned):**
 
@@ -443,20 +461,21 @@ construct, test, quality, security, scm, ops, observe, docs
 
 **Capability verbs by domain:**
 
-| Domain | Capabilities |
-|--------|-------------|
+| Domain    | Capabilities                                            |
+| --------- | ------------------------------------------------------- |
 | construct | transpile, bundle, exec, package, manifest, types, tree |
-| test | test, mock, cover |
-| quality | lint, format, analyze, gate |
-| security | scan, update, secrets, harden |
-| scm | commit, branch, version, release, publish, changelog |
-| ops | ci, cd, container, orchestrate, iac, deploy |
-| observe | log, trace, metrics, errors, dashboard |
-| docs | document, diagram |
+| test      | test, mock, cover                                       |
+| quality   | lint, format, analyze, gate                             |
+| security  | scan, update, secrets, harden                           |
+| scm       | commit, branch, version, release, publish, changelog    |
+| ops       | ci, cd, container, orchestrate, iac, deploy             |
+| observe   | log, trace, metrics, errors, dashboard                  |
+| docs      | document, diagram                                       |
 
 **Tags:** Minimal—`core`, `auth`, `database`, `async`, `monorepo`. Context encoded in domain folders & file names.
 
 **Key distinctions:**
+
 - package (construct) → create artifact
 - publish (scm) → release to registry
 - deploy (ops) → run in environment
@@ -469,3 +488,11 @@ construct, test, quality, security, scm, ops, observe, docs
 - Stacks compose foundations from multiple domains
 - `depends` declares dependencies
 - Resolver flattens tree into single prompt
+
+---
+
+## Further Reading
+
+- context/blocks/docs/maintenance.md - Maintenance patterns, decision framework, composition rules
+- SWEBOK v3 - Software Engineering Body of Knowledge (free PDF)
+- Atomic Design - Brad Frost (UI component hierarchy inspiration)
