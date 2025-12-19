@@ -9,7 +9,7 @@ Typescript monorepo with pnpm workspaces, Node.js, and oRPC for REST API and RPC
 
 # Runtime, Package Manager, Types configuration, Structure and Transpililation and execution
 
-@context/foundations/construct/pnpm-monorepo-base.md
+@context/foundations/construct/monorepo-pnpm-base.md
 
 @context/foundations/construct/transpile-esm-tsc.md
 

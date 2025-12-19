@@ -9,7 +9,7 @@ Typescript monorepo with pnpm workspaces, Node.js, and oRPC for REST API and RPC
 
 # Runtime, Package Manager, Types configuration, Structure and execution strategy ( No transpilation )
 
-@context/foundations/construct/pnpm-monorepo-base.md
+@context/foundations/construct/monorepo-pnpm-base.md
 
 @context/foundations/construct/exec-tsx.md
 
@@ -17,7 +17,9 @@ Typescript monorepo with pnpm workspaces, Node.js, and oRPC for REST API and RPC
 
 @context/foundations/security/secrets-env-monorepo-node.md
 
-Monorepo uses layered `.env` files with Node.js `--env-file` flag: root for shared config, package-level for overrides.
+# Typed Environment Variables
+
+@context/foundations/security/secrets-env-typed.md
 
 # Code Standards
 

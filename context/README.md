@@ -146,11 +146,12 @@ Log, trace, monitor.
 
 - logging.md - Logging principles
 
-### docs/ (8)
+### docs/ (9)
 
 Document, diagram, prompting.
 
 - atomic-documentation.md - This atomic docs system
+- maintenance.md - Maintenance patterns for atomic docs
 - vocabulary.md - Terminology standards
 - task-management.md - Task approaches
 - task-template.md - Task file template
@@ -173,7 +174,7 @@ Build, execute, bundle, package.
 - exec-tsx.md - tsx runtime execution
 - transpile-esm-tsc.md - tsc build pipeline
 - bundle-web-vite.md - Vite bundler for web
-- pnpm-monorepo-base.md - pnpm workspace coordination
+- monorepo-pnpm-base.md - pnpm workspace coordination
 - tree-cli.md - CLI project structure
 - validate-forms-react.md - React form validation
 
@@ -236,7 +237,7 @@ Complete project setups organized by **artifact type** (not domain—stacks span
 
 ## Workflows
 
-Development processes (7).
+Development processes (9).
 
 - dev-lifecycle.md - Complete development workflow
 - start-feature.md - Feature branch creation
@@ -245,6 +246,8 @@ Development processes (7).
 - code-review.md - Review checklist
 - refactoring.md - Refactoring patterns
 - consistency-checker.md - Consistency validation
+- manage-atomic-doc.md - Create/update atomic documentation
+- review-atomic-doc.md - Quality gate for atomic docs
 
 ---
 
