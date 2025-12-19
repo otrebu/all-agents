@@ -5,7 +5,7 @@ depends:
   - @context/blocks/construct/tsconfig-base.md
   - @context/foundations/node-pnpm.md
   - @context/foundations/ts-execution-build-first.md
-  - "@context/foundations/security/secrets-env-monorepo.md"
+  - "@context/foundations/security/secrets-env-monorepo-node.md"
 ---
 
 # TypeScript + pnpm + Node REST API Stack

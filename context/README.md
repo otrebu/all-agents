@@ -191,12 +191,15 @@ Quality gates.
 
 - gate-standards.md - ESLint + Prettier + Husky integration
 
-### security/ (2)
+### security/ (5)
 
 Secrets management.
 
-- secrets-env.md - Environment variable strategy
+- secrets-env-typed.md - Type-safe environment configuration
 - secrets-env-dotenv.md - dotenv implementation
+- secrets-env-monorepo.md - Monorepo environment layering patterns
+- secrets-env-monorepo-node.md - Node.js-specific monorepo patterns
+- secrets-env-monorepo-bun.md - Bun-specific monorepo patterns
 
 ### scm/ (1)
 

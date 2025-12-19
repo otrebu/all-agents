@@ -17,7 +17,7 @@ CLI tools with Bun runtime: fast startup, native TS, single-file executables.
 
 # Environment Variables
 
-@context/foundations/security/secrets-env.md
+@context/foundations/security/secrets-env-typed.md
 
 # CLI Tools
 

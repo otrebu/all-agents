@@ -145,7 +145,7 @@ Not needed when tool-agnostic:
 
 **quality/** — `lint-typescript.md`, `format-prettier.md`, `analyze-dead-code.md`, `gate-precommit.md`
 
-**security/** — `scan-deps-audit.md`, `update-deps-renovate.md`, `secrets-env.md`, `harden-api.md`
+**security/** — `scan-deps-audit.md`, `update-deps-renovate.md`, `secrets-env-typed.md`, `harden-api.md`
 
 **scm/** — `commit-conventional.md`, `version-semver.md`, `release-semantic.md`, `publish-npm.md`, `changelog-conventional.md`
 
@@ -219,7 +219,7 @@ construct/ — exec-tsx.md, manifest-cli.md, types-base.md, tree-cli.md
 test/ — test-unit-vitest.md, test-e2e-cli-bun.md
 quality/ — lint-typescript.md, format-prettier.md
 scm/ — commit-conventional.md, publish-npm.md
-security/ — scan-deps-audit.md, secrets-env.md
+security/ — scan-deps-audit.md, secrets-env-typed.md
 ops/ — ci-build-gha.md
 docs/ — document-readme.md
 ```
@@ -287,7 +287,7 @@ documentation/
 │   │   └── format-prettier.md
 │   ├── security/
 │   │   ├── scan-deps-audit.md
-│   │   └── secrets-env.md
+│   │   └── secrets-env-typed.md
 │   ├── scm/
 │   │   ├── commit-conventional.md
 │   │   └── publish-npm.md
