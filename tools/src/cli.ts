@@ -3,6 +3,8 @@ import { Command, Option } from "@commander-js/extra-typings";
 
 import type { GeminiMode } from "./commands/gemini/index";
 
+// eslint-disable-next-line import/extensions
+import packageJson from "../package.json" with { type: "json" };
 import downloadCommand from "./commands/download";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
@@ -16,7 +18,7 @@ import uninstallCommand from "./commands/uninstall";
 const program = new Command()
   .name("aaa")
   .description("All-Agents CLI Toolkit")
-  .version("1.0.0");
+  .version(packageJson.version);
 
 program.addCommand(
   new Command("download")
