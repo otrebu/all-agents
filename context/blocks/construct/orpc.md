@@ -325,6 +325,33 @@ const spec = await generator.generate(router, {
 // Serve at /openapi.json or use with Swagger UI
 ```
 
+### Serving with Swagger/Scalar UI
+
+Use the built-in plugin for automatic API docs:
+
+```typescript
+import { OpenAPIReferencePlugin } from '@orpc/openapi/plugins'
+import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
+
+const handler = new OpenAPIHandler(router, {
+  plugins: [
+    new OpenAPIReferencePlugin({
+      docsProvider: 'swagger',  // or 'scalar' (default)
+      schemaConverters: [new ZodToJsonSchemaConverter()],
+      specGenerateOptions: {
+        info: { title: 'My API', version: '1.0.0' },
+      },
+      // docsPath: '/',           // default
+      // specPath: '/spec.json',  // default
+    }),
+  ],
+})
+```
+
+Serves:
+- **UI**: `/` (Swagger or Scalar)
+- **Spec**: `/spec.json`
+
 ## Type Utilities
 
 ```typescript
