@@ -101,7 +101,7 @@ Build, compile, bundle, package.
 
 **CLI Tools:** commander, chalk, ora, boxen
 
-**Utilities:** date-fns, dotenv
+**Utilities:** date-fns, dotenv, fast-xml-parser
 
 **External Tools:** gemini-cli, gh-search, parallel-search
 
@@ -166,15 +166,16 @@ Document, diagram, prompting.
 
 Capabilities organized by **SWEBOK domain**. Capability-centric, composable.
 
-### construct/ (7)
+### construct/ (8)
 
-Build, execute, bundle, package.
+Build, execute, bundle, package, parse.
 
 - exec-bun.md - Bun native TypeScript execution
 - exec-tsx.md - tsx runtime execution
 - transpile-esm-tsc.md - tsc build pipeline
 - bundle-web-vite.md - Vite bundler for web
 - monorepo-pnpm-base.md - pnpm workspace coordination
+- parse-xml-zod.md - XML parsing with Zod validation
 - tree-cli.md - CLI project structure
 - validate-forms-react.md - React form validation
 
