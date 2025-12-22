@@ -11,8 +11,6 @@ Creates or switches to feature branches following the `feature/<slug>` naming co
 
 ## Process
 
-### 1. Check Current Branch
-
 ### 1. Parse Feature Description
 
 Extract 2-4 key words that capture the essence of the feature from the description.
@@ -37,15 +35,21 @@ Before creating or switching branches, verify current git status:
 
 ```bash
 git status
-```
-
-Ensure working directory is clean or changes are properly handled.
-
-```bash
 git branch --show-current
 ```
 
-Is it already a feature branch? If so ask the user if they want to branch off from here or go back to main branch first.
+**If uncommitted changes exist:**
+
+By default, bring changes along to the new branch (they follow automatically).
+
+⚠️ **Always inform the user what's being carried over:**
+```
+Uncommitted changes will follow to new branch:
+ M path/to/modified-file.ts
+?? path/to/new-file.md
+```
+
+**If on a feature branch:** Ask if user wants to branch from here or return to main first.
 
 ### 3. Check Branch Existence
 
