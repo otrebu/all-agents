@@ -6,7 +6,7 @@ For repo-level info, see [/CLAUDE.md](/CLAUDE.md).
 
 ## Stack
 
-@context/stacks/cli/cli-bun.md
+MUST READ: @context/stacks/cli/cli-bun.md
 
 ## Directory Structure
 
