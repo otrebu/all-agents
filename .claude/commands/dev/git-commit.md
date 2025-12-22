@@ -1,8 +1,17 @@
 ---
-name: git-commit
-description: Create conventional commits from staged/unstaged changes. Use when user asks to commit, create commits, commit changes, commit all, make commits, separate commits, commit everything, stage and commit, commit these changes, save and push, commit this work, or requests push after committing. Handles single or multiple commits, staging, message generation from diffs, and push operations.
-allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git push:*)
+allowed-tools: Bash(git status), Bash(git diff:*), Bash(git add:*), Bash(git commit -m:*)
+argument-hint: [all|<files>]
+description: Create conventional commit
 model: haiku
 ---
 
-@context/workflows/commit.md
+## Context
+
+- Status: !`git status --short`
+- Diff: !`git diff HEAD`
+
+## Task
+
+Follow @context/workflows/commit.md
+
+If `$ARGUMENTS` empty → ask: all changes or specific files?

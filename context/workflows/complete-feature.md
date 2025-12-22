@@ -27,7 +27,22 @@ Run `git status`:
 FEATURE_BRANCH=$(git branch --show-current)
 ```
 
-### 4. Switch to Main
+### 4. Squash Commits
+
+Review commits to summarize, then squash:
+
+```bash
+git log --oneline main..HEAD  # see what you're squashing
+git reset --soft main         # keeps changes staged, removes commits
+git commit -m "feat(scope): summary" -m "- change 1
+- change 2"
+```
+
+**Commit message format:**
+- Title: conventional commit summarizing the feature
+- Body: bullet list of key changes from squashed commits
+
+### 5. Switch to Main
 
 Determine main branch (`git branch --list main master`), then:
 
@@ -35,27 +50,27 @@ Determine main branch (`git branch --list main master`), then:
 git checkout main  # or master
 ```
 
-### 5. Pull Latest
+### 6. Pull Latest
 
 ```bash
 git pull origin main  # or master
 ```
 
-### 6. Merge Feature Branch
+### 7. Fast-Forward Merge
 
 ```bash
-git merge $FEATURE_BRANCH
+git merge --ff-only $FEATURE_BRANCH
 ```
 
-Conflicts? List files via `git status`, wait for user resolution: `git add .` + `git commit`
+If FF fails (main moved ahead), rebase feature branch on main first.
 
-### 7. Push
+### 8. Push
 
 ```bash
 git push origin main  # or master
 ```
 
-### 8. Delete Feature Branch?
+### 9. Delete Feature Branch?
 
 Ask user:
 
@@ -71,7 +86,7 @@ git branch -d $FEATURE_BRANCH
 git push origin --delete $FEATURE_BRANCH
 ```
 
-### 9. Confirm Completion
+### 10. Confirm Completion
 
 Output:
 
@@ -81,10 +96,11 @@ Output:
 
 ## Constraints
 
+- Squash commits before merging for clean history
+- Use `--ff-only` to ensure linear history
 - Pull main before merge
 - Verify clean working dir before branch switch
 - Never force push to main
-- User resolves conflicts
 - Always ask before deleting branches
 
 ## Example
@@ -92,7 +108,9 @@ Output:
 User: "Finish user-auth feature"
 
 1. On `feature/user-auth`, `git status` clean
-2. `git checkout main && git pull origin main`
-3. `git merge feature/user-auth && git push origin main`
-4. Ask: Delete branch? → User confirms
-5. Output: "Feature 'user-auth' merged to main, pushed, branch deleted"
+2. `git log --oneline main..HEAD` → 3 commits
+3. `git reset --soft main && git commit -m "feat(auth): add user auth" -m "- login/logout\n- session handling"`
+4. `git checkout main && git pull origin main`
+5. `git merge --ff-only feature/user-auth && git push origin main`
+6. Ask: Delete branch? → User confirms
+7. Output: "Feature 'user-auth' merged to main, pushed, branch deleted"

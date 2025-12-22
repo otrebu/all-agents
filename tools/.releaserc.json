@@ -6,6 +6,10 @@
     "@semantic-release/changelog",
     ["@semantic-release/npm", { "npmPublish": false }],
     [
+      "@semantic-release/exec",
+      { "prepareCmd": "bunx prettier --write CHANGELOG.md package.json" }
+    ],
+    [
       "@semantic-release/git",
       {
         "assets": ["package.json", "CHANGELOG.md"],
