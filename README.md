@@ -94,6 +94,7 @@ Research outputs are saved to `docs/research/`.
 | `/parallel-search <topic>` | Multi-angle web research | `@context/blocks/tools/parallel-search.md` |
 | `/create-task <name>` | Create numbered task file | — |
 | `/download <urls...>` | Download URLs, extract text, save as markdown | — |
+| `/context:atomic-doc` | Create/update atomic docs (blocks, foundations, stacks) | `@context/blocks/docs/atomic-documentation.md` |
 | `/meta:claude-code:create-command` | Create a new slash command | `@context/blocks/principles/prompting.md` |
 | `/meta:claude-code:create-agent` | Create a new sub-agent | `@context/blocks/patterns/agent-templates.md` |
 | `/meta:claude-code:create-skill` | Create a new skill | — |
