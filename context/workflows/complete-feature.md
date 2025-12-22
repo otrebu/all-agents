@@ -102,6 +102,7 @@ Output:
 - Verify clean working dir before branch switch
 - Never force push to main
 - Always ask before deleting branches
+- **DO NOT add AI signatures/co-author footers to commits**
 
 ## Example
 
