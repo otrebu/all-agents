@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -214,5 +215,34 @@ describe("task E2E", () => {
 
     const files = readdirSync(temporaryDirectory).sort();
     expect(files).toEqual(["001-task-a.md", "002-task-b.md", "003-task-c.md"]);
+  });
+
+  test("create: file contains template with task name", async () => {
+    const { stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "my-feature",
+        "--dir",
+        temporaryDirectory,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    const filepath = stdout.trim();
+    const content = readFileSync(filepath, "utf8");
+
+    // Verify template sections exist
+    expect(content).toContain("## Task: my-feature");
+    expect(content).toContain("### Goal");
+    expect(content).toContain("### Context");
+    expect(content).toContain("### Plan");
+    expect(content).toContain("### Acceptance Criteria");
+    expect(content).toContain("### Test Plan");
+    expect(content).toContain("### Scope");
+    expect(content).toContain("### Notes");
   });
 });

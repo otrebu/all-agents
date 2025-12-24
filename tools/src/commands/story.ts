@@ -19,19 +19,9 @@ interface StoryCreateOptions {
   dir?: string;
 }
 
-function createStory(
-  name: string,
-  options: StoryCreateOptions = {},
-): CreateResult {
-  return createNumberedFile(name, {
-    customDirectory: options.dir,
-    defaultDir: STORIES_DIR,
-  });
-}
-
 function createStoryCommand(name: string, options: StoryCreateOptions): void {
   try {
-    const result = createStory(name, options);
+    const result = generateStoryFile(name, options);
     // Output just the filepath for CLI consumption
     log.plain(result.filepath);
   } catch (error: unknown) {
@@ -44,6 +34,40 @@ function createStoryCommand(name: string, options: StoryCreateOptions): void {
   }
 }
 
-export { createStory };
+function generateStoryFile(
+  name: string,
+  options: StoryCreateOptions = {},
+): CreateResult {
+  return createNumberedFile(name, {
+    customDirectory: options.dir,
+    defaultDir: STORIES_DIR,
+    template: renderStoryTemplate(name),
+  });
+}
+
+function renderStoryTemplate(name: string): string {
+  return `## Story: ${name}
+
+### Narrative
+As a [persona], I want [capability] so that [benefit].
+
+### Persona
+[Who is this user? What do they care about?]
+
+### Context
+[Why now? Business driver, user feedback]
+
+### Acceptance Criteria
+- [ ] [User-visible outcome]
+
+### Tasks
+- [ ] [Link to tasks when created]
+
+### Notes
+[Optional: mockups, user research, risks]
+`;
+}
+
+export { generateStoryFile as createStory };
 export type { StoryCreateOptions };
 export default createStoryCommand;

@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -231,5 +232,33 @@ describe("story E2E", () => {
       "002-story-b.md",
       "003-story-c.md",
     ]);
+  });
+
+  test("create: file contains template with story name", async () => {
+    const { stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "story",
+        "create",
+        "user-auth",
+        "--dir",
+        temporaryDirectory,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    const filepath = stdout.trim();
+    const content = readFileSync(filepath, "utf8");
+
+    // Verify template sections exist
+    expect(content).toContain("## Story: user-auth");
+    expect(content).toContain("### Narrative");
+    expect(content).toContain("### Persona");
+    expect(content).toContain("### Context");
+    expect(content).toContain("### Acceptance Criteria");
+    expect(content).toContain("### Tasks");
+    expect(content).toContain("### Notes");
   });
 });

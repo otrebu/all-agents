@@ -13,6 +13,7 @@ interface NumberedFileOptions {
   customDirectory?: string;
   defaultDir: string;
   pattern?: RegExp;
+  template?: string;
 }
 
 function createNumberedFile(
@@ -36,8 +37,8 @@ function createNumberedFile(
   const filename = `${number}-${name}.md`;
   const filepath = resolve(directory, filename);
 
-  // Create empty file
-  writeFileSync(filepath, "");
+  // Create file with optional template
+  writeFileSync(filepath, options.template ?? "");
 
   return { filepath, number };
 }

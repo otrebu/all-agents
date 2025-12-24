@@ -55,7 +55,7 @@ Vertical slices. Traditional architecture boundaries.
 context/
 ├── blocks/           # Atomic units by SWEBOK domain
 │   ├── construct/    # 37 build/bundle/package tools
-│   ├── test/         # 3 testing docs
+│   ├── test/         # 4 testing docs
 │   ├── quality/      # 4 quality/style docs
 │   ├── security/     # 1 security doc
 │   ├── scm/          # 3 version control docs
@@ -109,13 +109,14 @@ Build, compile, bundle, package.
 
 **Permissions:** claude-code-permissions
 
-### test/ (3)
+### test/ (4)
 
 Verify code.
 
 - testing.md - Testing philosophy & patterns
 - unit-testing.md - Unit testing approach
 - storybook.md - Component testing
+- eval-test-doc.md - AI agent evaluation testing
 
 ### quality/ (4)
 

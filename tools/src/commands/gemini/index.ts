@@ -5,7 +5,7 @@ import { saveResearchOutput } from "@lib/research";
 import { debug, env } from "@tools/env";
 import { getOutputDir } from "@tools/utils/paths";
 import { execa } from "execa";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import ora from "ora";
 
 import type { GeminiResponse } from "./types";
@@ -146,17 +146,61 @@ async function executeGeminiSearch(
       log.error("Authentication required");
       log.dim('Run: gemini -p "test" to authenticate with Google');
     } else {
-      const errorMessage =
-        error !== null &&
-        typeof error === "object" &&
-        "message" in error &&
-        typeof error.message === "string"
-          ? error.message
-          : String(error);
+      const errorMessage = await extractErrorMessage(error);
       log.error(errorMessage);
     }
     process.exit(1);
   }
+}
+
+async function extractErrorMessage(error: unknown): Promise<string> {
+  if (error === null || typeof error !== "object") {
+    return "Unknown error";
+  }
+
+  const errorObject = error as Record<string, unknown>;
+  const stderr =
+    typeof errorObject.stderr === "string" ? errorObject.stderr : "";
+
+  // Try to extract error log file path
+  const logPathMatch = /Full report available at: (?<path>[^\n]+\.json)/.exec(
+    stderr,
+  );
+  const logPath = logPathMatch?.groups?.path ?? null;
+  if (logPath !== null && logPath.length > 0) {
+    try {
+      const logContent = await readFile(logPath, "utf8");
+      const logData = JSON.parse(logContent) as {
+        error?: { message?: string };
+      };
+      const message = logData.error?.message ?? null;
+      if (message !== null && message.length > 0) {
+        return message;
+      }
+    } catch {
+      // Continue to fallback options
+    }
+  }
+
+  // Fallback to other error sources
+  if (stderr.includes("[object Object]")) {
+    return "Gemini API error (check quota or authentication)";
+  }
+
+  const trimmedStderr = stderr.trim();
+  if (trimmedStderr) {
+    return trimmedStderr.split("\n").pop() ?? trimmedStderr;
+  }
+
+  if (typeof errorObject.shortMessage === "string") {
+    return errorObject.shortMessage;
+  }
+
+  if (typeof errorObject.message === "string") {
+    return errorObject.message;
+  }
+
+  return "Unknown error";
 }
 
 async function performGeminiSearch(
@@ -178,13 +222,18 @@ async function performGeminiSearch(
   const spinner = ora(`Searching (${mode} mode): ${query}`).start();
 
   // Execute Gemini CLI
-  const { stdout } = await execa({
-    env: {
-      // Ensure PATH includes npm bin
-      PATH: env.PATH,
-    },
-    preferLocal: true,
-  })`gemini -p "${prompt}" --output-format json`;
+  let stdout = "";
+  try {
+    const result = await execa({
+      env: { PATH: env.PATH },
+      preferLocal: true,
+    })`gemini -p "${prompt}" --output-format json`;
+    ({ stdout } = result);
+  } catch (execError: unknown) {
+    spinner.fail("Gemini API call failed");
+    const errorMessage = await extractErrorMessage(execError);
+    throw new Error(errorMessage);
+  }
 
   // Parse response to validate JSON and extract content
   let responseData: GeminiResponse | null = null;
