@@ -72,7 +72,9 @@ context/
 │
 ├── stacks/           # Complete setups by artifact type
 │   ├── cli/          # 2 CLI stacks
-│   └── monorepo/     # 4 monorepo stacks
+│   ├── monorepo/     # 4 monorepo stacks
+│   ├── web/          # 2 web app stacks
+│   └── library/      # 1 library stack
 │
 └── workflows/        # 7 dev processes
 ```
@@ -243,6 +245,15 @@ Complete project setups organized by **artifact type** (not domain—stacks span
 - monorepo-pnpm-tsc-fullstack.md - Full-stack monorepo
 - monorepo-pnpm-tsc-orpc.md - oRPC monorepo with tsc
 - monorepo-pnpm-tsx-orpc.md - oRPC monorepo with tsx
+
+### web/ (2)
+
+- web-pnpm-vite-react.md - CSR React SPA with Vite
+- web-pnpm-tanstack-start.md - SSR React with TanStack Start
+
+### library/ (1)
+
+- library-react-pnpm-vite.md - React component library with Vite
 
 ---
 

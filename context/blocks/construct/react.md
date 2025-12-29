@@ -80,4 +80,4 @@ Follow @context/blocks/construct/tanstack-query.md for data/routing.
 
 ## State Management and complex interactions
 
-Follow @context/blocks/construct/xstate.md.
+Follow @context/blocks/construct/xstate.md
