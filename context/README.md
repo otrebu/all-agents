@@ -54,19 +54,19 @@ Vertical slices. Traditional architecture boundaries.
 ```
 context/
 ├── blocks/           # Atomic units by SWEBOK domain
-│   ├── construct/    # 37 build/bundle/package tools
+│   ├── construct/    # 40 build/bundle/package tools
 │   ├── test/         # 4 testing docs
 │   ├── quality/      # 4 quality/style docs
-│   ├── security/     # 1 security doc
+│   ├── security/     # 2 security docs
 │   ├── scm/          # 3 version control docs
 │   ├── observe/      # 1 observability doc
 │   └── docs/         # 8 documentation/prompting docs
 │
 ├── foundations/      # Capabilities by SWEBOK domain
-│   ├── construct/    # 7 build/execution strategies
+│   ├── construct/    # 9 build/execution strategies
 │   ├── test/         # 3 testing strategies
 │   ├── quality/      # 1 quality gate
-│   ├── security/     # 2 secrets management
+│   ├── security/     # 8 auth + secrets management
 │   ├── scm/          # 1 commit strategy
 │   └── observe/      # 2 logging strategies
 │
@@ -83,7 +83,7 @@ context/
 
 Atomic units organized by **SWEBOK domain**. Single concern, tool-centric.
 
-### construct/ (37)
+### construct/ (38)
 
 Build, compile, bundle, package.
 
@@ -97,7 +97,7 @@ Build, compile, bundle, package.
 
 **Backend:** fastify, orpc
 
-**Validation & State:** zod, xstate
+**Validation & State:** zod, react-hook-form, xstate, xstate-store, immer
 
 **CLI Tools:** commander, chalk, ora, boxen
 
@@ -129,11 +129,12 @@ Lint, format, analyze.
 - eslint.md - Linting
 - prettier.md - Formatting
 
-### security/ (1)
+### security/ (2)
 
 Secure, scan, harden.
 
 - dotenv.md - Environment variables
+- better-auth.md - TypeScript auth library
 
 ### scm/ (3)
 
@@ -169,9 +170,9 @@ Document, diagram, prompting.
 
 Capabilities organized by **SWEBOK domain**. Capability-centric, composable.
 
-### construct/ (8)
+### construct/ (9)
 
-Build, execute, bundle, package, parse.
+Build, execute, bundle, package, parse, patterns.
 
 - exec-bun.md - Bun native TypeScript execution
 - exec-tsx.md - tsx runtime execution
@@ -181,6 +182,7 @@ Build, execute, bundle, package, parse.
 - parse-xml-zod.md - XML parsing with Zod validation
 - tree-cli.md - CLI project structure
 - validate-forms-react.md - React form validation
+- patterns-react.md - React hooks, context, and state management patterns
 
 ### test/ (5)
 
@@ -198,15 +200,18 @@ Quality gates.
 
 - gate-standards.md - ESLint + Prettier + Husky integration
 
-### security/ (5)
+### security/ (8)
 
-Secrets management.
+Auth and secrets management.
 
 - secrets-env-typed.md - Type-safe environment configuration
 - secrets-env-dotenv.md - dotenv implementation
 - secrets-env-monorepo.md - Monorepo environment layering patterns
 - secrets-env-monorepo-node.md - Node.js-specific monorepo patterns
 - secrets-env-monorepo-bun.md - Bun-specific monorepo patterns
+- auth-better-auth.md - Better Auth React integration
+- auth-session-react.md - Session handling patterns
+- auth-protected-routes.md - Route protection patterns
 
 ### scm/ (1)
 
