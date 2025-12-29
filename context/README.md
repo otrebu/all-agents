@@ -109,12 +109,14 @@ Build, compile, bundle, package.
 
 **Permissions:** claude-code-permissions
 
-### test/ (4)
+### test/ (6)
 
 Verify code.
 
 - testing.md - Testing philosophy & patterns
 - unit-testing.md - Unit testing approach
+- vitest.md - Vitest test runner
+- react-testing-library.md - RTL component testing
 - storybook.md - Component testing
 - eval-test-doc.md - AI agent evaluation testing
 
@@ -180,10 +182,12 @@ Build, execute, bundle, package, parse.
 - tree-cli.md - CLI project structure
 - validate-forms-react.md - React form validation
 
-### test/ (3)
+### test/ (5)
 
 Testing strategies.
 
+- test-unit-vitest.md - Unit testing with Vitest
+- test-component-vitest-rtl.md - Component testing with Vitest + RTL
 - test-e2e-cli-bun.md - CLI E2E testing with Bun
 - test-e2e-cli-node.md - CLI E2E testing with Node
 - test-integration-api.md - API integration testing
