@@ -91,9 +91,9 @@ Build, compile, bundle, package.
 
 **Runtimes & Package Managers:** bun, node, pnpm, pnpm-workspaces, tsx, tsc, tsc-alias, tsc-esm-fix
 
-**TypeScript Configs:** tsconfig-base, tsconfig-monorepo-root
+**TypeScript Configs:** tsconfig-base, tsconfig-web, tsconfig-monorepo-root
 
-**Package.json Patterns:** package-json-base, package-json-app, package-json-cli, package-json-library, package-json-monorepo-root, package-json-react
+**Package.json Patterns:** package-json-base, package-json-app, package-json-web, package-json-cli, package-json-library, package-json-monorepo-root, package-json-react
 
 **Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
 
@@ -119,10 +119,10 @@ Verify code.
 - unit-testing.md - Unit testing approach
 - vitest.md - Vitest test runner
 - react-testing-library.md - RTL component testing
-- storybook.md - Component testing
+- storybook.md - Component testing + a11y
 - eval-test-doc.md - AI agent evaluation testing
 
-### quality/ (4)
+### quality/ (5)
 
 Lint, format, analyze.
 
@@ -130,6 +130,7 @@ Lint, format, analyze.
 - error-handling.md - Error handling philosophy
 - eslint.md - Linting
 - prettier.md - Formatting
+- accessibility.md - WCAG 2.1 AA compliance
 
 ### security/ (2)
 
@@ -172,7 +173,7 @@ Document, diagram, prompting.
 
 Capabilities organized by **SWEBOK domain**. Capability-centric, composable.
 
-### construct/ (9)
+### construct/ (11)
 
 Build, execute, bundle, package, parse, patterns.
 
@@ -185,6 +186,8 @@ Build, execute, bundle, package, parse, patterns.
 - tree-cli.md - CLI project structure
 - validate-forms-react.md - React form validation
 - patterns-react.md - React hooks, context, and state management patterns
+- error-handling-react.md - React error boundaries
+- code-splitting.md - React lazy loading patterns
 
 ### test/ (5)
 
@@ -202,11 +205,12 @@ Quality gates.
 
 - gate-standards.md - ESLint + Prettier + Husky integration
 
-### security/ (8)
+### security/ (9)
 
 Auth and secrets management.
 
-- secrets-env-typed.md - Type-safe environment configuration
+- secrets-env-typed.md - Type-safe environment configuration (backend)
+- secrets-env-vite.md - Type-safe environment configuration (Vite/frontend)
 - secrets-env-dotenv.md - dotenv implementation
 - secrets-env-monorepo.md - Monorepo environment layering patterns
 - secrets-env-monorepo-node.md - Node.js-specific monorepo patterns

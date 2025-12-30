@@ -5,6 +5,7 @@ depends:
   - "@context/blocks/construct/react-hook-form.md"
   - "@context/blocks/construct/zod.md"
   - "@context/blocks/construct/tanstack-router.md"
+  - "@context/foundations/security/secrets-env-vite.md"
 ---
 
 # Better Auth React Integration
@@ -23,9 +24,10 @@ Connect Better Auth to React with useSession, forms, and social auth.
 ```typescript
 // src/lib/auth-client.ts
 import { createAuthClient } from "better-auth/react";
+import { config } from "../config";
 
 export const authClient = createAuthClient({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: config.apiUrl,
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;
