@@ -33,20 +33,13 @@ npx chromatic --project-token=<token>
 
 ## Storybook Integration
 
+Add to `.storybook/main.ts` addons array (see @context/blocks/test/storybook.md for full config):
+
 ```typescript
-// .storybook/main.ts
-import type { StorybookConfig } from "@storybook/react-vite";
-
-const config: StorybookConfig = {
-  stories: ["../src/**/*.stories.@(ts|tsx)"],
-  addons: [
-    "@storybook/addon-essentials",
-    "@chromatic-com/storybook", // visual tests addon
-  ],
-  framework: "@storybook/react-vite",
-};
-
-export default config;
+addons: [
+  "@storybook/addon-essentials",
+  "@chromatic-com/storybook", // visual tests addon
+],
 ```
 
 ---
@@ -77,6 +70,17 @@ jobs:
 ```
 
 Add `CHROMATIC_PROJECT_TOKEN` to repo secrets.
+
+### TurboSnap (Cost Optimization)
+
+Only test stories affected by code changes:
+
+```yaml
+- uses: chromaui/action@latest
+  with:
+    projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+    onlyChanged: true # TurboSnap - only test affected stories
+```
 
 ---
 
@@ -131,10 +135,21 @@ export const Animated: Story = {
 ### Ignore Dynamic Content
 
 ```typescript
+// Use data-chromatic="ignore" for truly dynamic content
 export const WithDate: Story = {
+  render: () => (
+    <div>
+      <span data-chromatic="ignore">{new Date().toLocaleDateString()}</span>
+      <MyComponent />
+    </div>
+  ),
+};
+
+// diffThreshold for minor pixel variations (anti-aliasing, fonts)
+export const WithSubpixelVariation: Story = {
   parameters: {
     chromatic: {
-      diffThreshold: 0.2, // tolerate small differences
+      diffThreshold: 0.2,
     },
   },
 };

@@ -209,6 +209,8 @@ export function paginatedResponse<T>(
 
 ## Request Assertions
 
+> **Note:** MSW discourages request assertions - prefer testing behavior over implementation details. Use sparingly.
+
 ```typescript
 import { http, HttpResponse } from "msw";
 
@@ -246,30 +248,6 @@ http.get("/api/users", ({ request }) => {
 
   return HttpResponse.json([createUser(), createUser()]);
 });
-```
-
----
-
-## Integration with Vitest
-
-```typescript
-// vitest.config.ts
-export default defineConfig({
-  test: {
-    setupFiles: ["./src/mocks/setup.ts"],
-    environment: "jsdom",
-  },
-});
-```
-
-```typescript
-// src/mocks/setup.ts
-import { beforeAll, afterEach, afterAll } from "vitest";
-import { server } from "./server";
-
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 ```
 
 ---

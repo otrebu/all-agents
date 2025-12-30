@@ -12,7 +12,7 @@ E2E browser automation with auto-waiting, cross-browser support, and powerful de
 # install (dev)
 @playwright/test
 
-# init project
+# install browsers
 npx playwright install
 ```
 
@@ -67,7 +67,7 @@ page.getByText(/welcome/i); // regex
 page.getByTestId("submit-btn");
 
 // 5. CSS (last resort)
-page.locator(".card >> button");
+page.locator(".card").locator("button");
 ```
 
 ## Assertions (Web-First)

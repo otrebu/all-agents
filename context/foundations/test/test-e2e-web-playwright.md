@@ -233,6 +233,8 @@ test("button states", async ({ page }) => {
 
 Update snapshots: `npx playwright test --update-snapshots`
 
+For visual regression at scale: @context/foundations/test/test-visual-chromatic.md
+
 ---
 
 ## CI Integration
@@ -255,6 +257,25 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
+```
+
+### CI with Sharding (Parallel Runs)
+
+```yaml
+# .github/workflows/e2e.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 ```
 
 ---

@@ -20,7 +20,7 @@ npx msw init ./public --save
 
 ```typescript
 // src/mocks/handlers.ts
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, delay } from "msw";
 
 export const handlers = [
   // GET
