@@ -7,12 +7,6 @@ depends:
 
 Catch unintended UI changes by comparing Storybook snapshots across commits.
 
-## References
-
-@context/blocks/test/storybook.md
-
----
-
 ## Setup
 
 ```bash
@@ -222,14 +216,14 @@ src/
 
 ## When to Use
 
-| Scenario               | Chromatic | Alternative       |
-| ---------------------- | --------- | ----------------- |
-| Component library      | Yes       | -                 |
-| Design system          | Yes       | -                 |
-| UI consistency         | Yes       | -                 |
-| Functional testing     | No        | Vitest + RTL      |
-| E2E user flows         | No        | Playwright        |
-| API testing            | No        | MSW + Vitest      |
+| Scenario           | Chromatic | Alternative  |
+| ------------------ | --------- | ------------ |
+| Component library  | Yes       | -            |
+| Design system      | Yes       | -            |
+| UI consistency     | Yes       | -            |
+| Functional testing | No        | Vitest + RTL |
+| E2E user flows     | No        | Playwright   |
+| API testing        | No        | MSW + Vitest |
 
 ## When NOT to Use
 

@@ -6,16 +6,18 @@ tags: [web, spa]
 
 Single-page applications with client-side rendering, TanStack Router, and modern React patterns.
 
-# Runtime & Build
+# Build
 
 @context/blocks/construct/pnpm.md
 @context/blocks/construct/node.md
-@context/blocks/construct/vite.md
+@context/foundations/construct/bundle-web-vite.md
+@context/foundations/construct/code-splitting.md
 
 # Framework
 
 @context/blocks/construct/react.md
 @context/foundations/construct/patterns-react.md
+@context/foundations/construct/error-handling-react.md
 
 # Routing
 
@@ -34,14 +36,33 @@ Single-page applications with client-side rendering, TanStack Router, and modern
 
 @context/blocks/construct/tailwind.md
 @context/blocks/construct/shadcn.md
+@context/foundations/construct/patterns-design-tokens-tailwind.md
+
+# Data
+
+@context/blocks/construct/tanstack-table.md
 
 # Testing
 
 @context/foundations/test/test-component-vitest-rtl.md
+@context/foundations/test/test-e2e-web-playwright.md
+@context/foundations/test/mock-api-msw.md
 
-# Code Standards
+# Observability
+
+@context/foundations/observe/errors-sentry-react.md
+@context/foundations/observe/metrics-web-vitals.md
+
+# Security
+
+@context/foundations/security/auth-session-better-auth.md
+@context/foundations/security/auth-routes-react.md
+@context/foundations/security/auth-forms-better-auth.md
+
+# Quality
 
 @context/foundations/quality/gate-standards.md
+@context/blocks/quality/accessibility.md
 
 ## When to Use
 

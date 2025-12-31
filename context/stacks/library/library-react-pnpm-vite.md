@@ -6,31 +6,40 @@ tags: [library, react]
 
 Publishable React component libraries using Vite's library mode.
 
-# Runtime & Build
+# Build
 
 @context/blocks/construct/pnpm.md
 @context/blocks/construct/node.md
-@context/blocks/construct/vite.md
+@context/foundations/construct/bundle-web-vite.md
+@context/blocks/construct/vite-plugin-dts.md
 
 # Framework
 
 @context/blocks/construct/react.md
+@context/foundations/construct/patterns-react.md
 
 # Styling
 
 @context/blocks/construct/tailwind.md
+@context/foundations/construct/patterns-design-tokens-tailwind.md
 
 # Testing
 
 @context/foundations/test/test-component-vitest-rtl.md
+@context/foundations/test/test-visual-chromatic.md
 
 # Documentation
 
 @context/blocks/test/storybook.md
 
-# Code Standards
+# Publishing
+
+@context/foundations/scm/publish-npm.md
+
+# Quality
 
 @context/foundations/quality/gate-standards.md
+@context/blocks/quality/accessibility.md
 
 ## Vite Library Mode
 

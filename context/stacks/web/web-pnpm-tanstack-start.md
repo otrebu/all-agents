@@ -6,16 +6,19 @@ tags: [web, ssr]
 
 Full-stack React meta-framework with server-side rendering, server functions, and type-safe routing.
 
-# Runtime & Build
+# Build
 
 @context/blocks/construct/pnpm.md
 @context/blocks/construct/node.md
-@context/blocks/construct/vite.md
+@context/foundations/construct/bundle-web-vite.md
+@context/foundations/construct/code-splitting.md
 
 # Framework
 
 @context/blocks/construct/tanstack-start.md
 @context/blocks/construct/react.md
+@context/foundations/construct/patterns-react.md
+@context/foundations/construct/error-handling-react.md
 
 # Routing
 
@@ -41,13 +44,25 @@ Full-stack React meta-framework with server-side rendering, server functions, an
 @context/blocks/construct/tailwind.md
 @context/blocks/construct/shadcn.md
 
+# Data
+
+@context/blocks/construct/tanstack-table.md
+
 # Testing
 
 @context/foundations/test/test-component-vitest-rtl.md
+@context/foundations/test/test-e2e-web-playwright.md
+@context/foundations/test/mock-api-msw.md
 
-# Code Standards
+# Observability
+
+@context/foundations/observe/errors-sentry-react.md
+@context/foundations/observe/metrics-web-vitals.md
+
+# Quality
 
 @context/foundations/quality/gate-standards.md
+@context/blocks/quality/accessibility.md
 
 ## When to Use
 
