@@ -10,11 +10,11 @@ depends: ["@context/blocks/test/testing.md"]
 
 ```typescript
 test.each([
-  { input: "user@example.com", expected: true, case: "valid email" },
-  { input: "no-at-sign", expected: false, case: "missing @" },
-  { input: "@example.com", expected: false, case: "missing local" },
-  { input: "user@", expected: false, case: "missing domain" },
-])("email validation: $case", ({ input, expected }) => {
+  { input: "user@example.com", expected: true, description: "valid email" },
+  { input: "no-at-sign", expected: false, description: "missing @" },
+  { input: "@example.com", expected: false, description: "missing local" },
+  { input: "user@", expected: false, description: "missing domain" },
+])("email validation: $description", ({ input, expected }) => {
   expect(isValidEmail(input)).toBe(expected);
 });
 ```
@@ -23,10 +23,13 @@ test.each([
 
 ```typescript
 test("should create user and send welcome email", async () => {
-  vi.mocked(emailService.send).mockResolvedValue({ id: "msg-123" });
+  // Arrange: mock dependency
+  emailService.send = mock(() => Promise.resolve({ id: "msg-123" }));
 
+  // Act
   const user = await createUser({ email: "new@example.com" });
 
+  // Assert
   expect(user.id).toBeDefined();
   expect(emailService.send).toHaveBeenCalledWith({
     to: "new@example.com",
@@ -35,7 +38,7 @@ test("should create user and send welcome email", async () => {
 });
 
 test("should rollback user creation if email fails", async () => {
-  vi.mocked(emailService.send).mockRejectedValue(new Error("SMTP down"));
+  emailService.send = mock(() => Promise.reject(new Error("SMTP down")));
 
   await expect(createUser({ email: "new@example.com" })).rejects.toThrow(
     "SMTP down"

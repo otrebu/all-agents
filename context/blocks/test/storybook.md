@@ -1,10 +1,11 @@
 ---
-depends: []
+depends:
+  - "@context/blocks/quality/accessibility.md"
 ---
 
 # Storybook
 
-Build UI components in isolation.
+Build UI components in isolation. Test accessibility with a11y addon.
 
 ## Setup
 
@@ -55,3 +56,21 @@ pnpm build-storybook  # Static build
 - Cover all variants/states
 - Use `args` for props
 - Add `tags: ["autodocs"]` for auto-generated docs
+
+## Accessibility Testing
+
+Install addon: `@storybook/addon-a11y`
+
+```typescript
+// .storybook/main.ts
+const config: StorybookConfig = {
+  addons: [
+    "@storybook/addon-a11y",
+    // ... other addons
+  ],
+};
+```
+
+The a11y panel shows WCAG violations per story. Fix violations before shipping.
+
+For a11y rules: @context/blocks/quality/accessibility.md

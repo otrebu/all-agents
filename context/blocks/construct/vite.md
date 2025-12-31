@@ -37,24 +37,24 @@ export default defineConfig({
 
 ## Path Aliases
 
-Must match tsconfig.json paths:
+Use `vite-tsconfig-paths` to auto-sync from tsconfig.json (single source of truth):
+
+```bash
+pnpm add -D vite-tsconfig-paths
+```
 
 ```typescript
 import { defineConfig } from "vite";
-import path from "path";
+import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@components": path.resolve(__dirname, "./src/components"),
-      "@utils": path.resolve(__dirname, "./src/utils"),
-    },
-  },
+  plugins: [tsconfigPaths()],
 });
 ```
 
-See @context/blocks/construct/tsconfig-base.md for tsconfig.json alias setup.
+Define aliases in tsconfig.json only — Vite picks them up automatically.
+
+See @context/blocks/construct/tsconfig-base.md for tsconfig.json paths setup.
 
 ## Tailwind CSS
 

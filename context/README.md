@@ -54,25 +54,27 @@ Vertical slices. Traditional architecture boundaries.
 ```
 context/
 ├── blocks/           # Atomic units by SWEBOK domain
-│   ├── construct/    # 37 build/bundle/package tools
+│   ├── construct/    # 40 build/bundle/package tools
 │   ├── test/         # 4 testing docs
 │   ├── quality/      # 4 quality/style docs
-│   ├── security/     # 1 security doc
+│   ├── security/     # 2 security docs
 │   ├── scm/          # 3 version control docs
 │   ├── observe/      # 1 observability doc
 │   └── docs/         # 8 documentation/prompting docs
 │
 ├── foundations/      # Capabilities by SWEBOK domain
-│   ├── construct/    # 7 build/execution strategies
+│   ├── construct/    # 9 build/execution strategies
 │   ├── test/         # 3 testing strategies
 │   ├── quality/      # 1 quality gate
-│   ├── security/     # 2 secrets management
+│   ├── security/     # 8 auth + secrets management
 │   ├── scm/          # 1 commit strategy
 │   └── observe/      # 2 logging strategies
 │
 ├── stacks/           # Complete setups by artifact type
 │   ├── cli/          # 2 CLI stacks
-│   └── monorepo/     # 4 monorepo stacks
+│   ├── monorepo/     # 4 monorepo stacks
+│   ├── web/          # 2 web app stacks
+│   └── library/      # 1 library stack
 │
 └── workflows/        # 7 dev processes
 ```
@@ -83,21 +85,21 @@ context/
 
 Atomic units organized by **SWEBOK domain**. Single concern, tool-centric.
 
-### construct/ (37)
+### construct/ (38)
 
 Build, compile, bundle, package.
 
 **Runtimes & Package Managers:** bun, node, pnpm, pnpm-workspaces, tsx, tsc, tsc-alias, tsc-esm-fix
 
-**TypeScript Configs:** tsconfig-base, tsconfig-monorepo-root
+**TypeScript Configs:** tsconfig-base, tsconfig-web, tsconfig-monorepo-root
 
-**Package.json Patterns:** package-json-base, package-json-app, package-json-cli, package-json-library, package-json-monorepo-root, package-json-react
+**Package.json Patterns:** package-json-base, package-json-app, package-json-web, package-json-cli, package-json-library, package-json-monorepo-root, package-json-react
 
 **Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
 
 **Backend:** fastify, orpc
 
-**Validation & State:** zod, xstate
+**Validation & State:** zod, react-hook-form, xstate, xstate-store, immer
 
 **CLI Tools:** commander, chalk, ora, boxen
 
@@ -109,16 +111,18 @@ Build, compile, bundle, package.
 
 **Permissions:** claude-code-permissions
 
-### test/ (4)
+### test/ (6)
 
 Verify code.
 
 - testing.md - Testing philosophy & patterns
 - unit-testing.md - Unit testing approach
-- storybook.md - Component testing
+- vitest.md - Vitest test runner
+- react-testing-library.md - RTL component testing
+- storybook.md - Component testing + a11y
 - eval-test-doc.md - AI agent evaluation testing
 
-### quality/ (4)
+### quality/ (5)
 
 Lint, format, analyze.
 
@@ -126,12 +130,14 @@ Lint, format, analyze.
 - error-handling.md - Error handling philosophy
 - eslint.md - Linting
 - prettier.md - Formatting
+- accessibility.md - WCAG 2.1 AA compliance
 
-### security/ (1)
+### security/ (2)
 
 Secure, scan, harden.
 
 - dotenv.md - Environment variables
+- better-auth.md - TypeScript auth library
 
 ### scm/ (3)
 
@@ -141,11 +147,13 @@ Version, release, publish.
 - commitlint.md - Commit linting
 - semantic-release.md - Automated releases
 
-### observe/ (1)
+### observe/ (3)
 
 Log, trace, monitor.
 
 - logging.md - Logging principles
+- sentry.md - Error tracking and performance monitoring
+- web-vitals.md - Core Web Vitals measurement
 
 ### docs/ (9)
 
@@ -167,9 +175,9 @@ Document, diagram, prompting.
 
 Capabilities organized by **SWEBOK domain**. Capability-centric, composable.
 
-### construct/ (8)
+### construct/ (11)
 
-Build, execute, bundle, package, parse.
+Build, execute, bundle, package, parse, patterns.
 
 - exec-bun.md - Bun native TypeScript execution
 - exec-tsx.md - tsx runtime execution
@@ -179,11 +187,16 @@ Build, execute, bundle, package, parse.
 - parse-xml-zod.md - XML parsing with Zod validation
 - tree-cli.md - CLI project structure
 - validate-forms-react.md - React form validation
+- patterns-react.md - React hooks, context, and state management patterns
+- error-handling-react.md - React error boundaries
+- code-splitting.md - React lazy loading patterns
 
-### test/ (3)
+### test/ (5)
 
 Testing strategies.
 
+- test-unit-vitest.md - Unit testing with Vitest
+- test-component-vitest-rtl.md - Component testing with Vitest + RTL
 - test-e2e-cli-bun.md - CLI E2E testing with Bun
 - test-e2e-cli-node.md - CLI E2E testing with Node
 - test-integration-api.md - API integration testing
@@ -194,15 +207,19 @@ Quality gates.
 
 - gate-standards.md - ESLint + Prettier + Husky integration
 
-### security/ (5)
+### security/ (9)
 
-Secrets management.
+Auth and secrets management.
 
-- secrets-env-typed.md - Type-safe environment configuration
+- secrets-env-typed.md - Type-safe environment configuration (backend)
+- secrets-env-vite.md - Type-safe environment configuration (Vite/frontend)
 - secrets-env-dotenv.md - dotenv implementation
 - secrets-env-monorepo.md - Monorepo environment layering patterns
 - secrets-env-monorepo-node.md - Node.js-specific monorepo patterns
 - secrets-env-monorepo-bun.md - Bun-specific monorepo patterns
+- auth-better-auth.md - Better Auth React integration
+- auth-session-react.md - Session handling patterns
+- auth-protected-routes.md - Route protection patterns
 
 ### scm/ (1)
 
@@ -210,12 +227,14 @@ Version control strategies.
 
 - commit-monorepo-subdir.md - Monorepo commit patterns
 
-### observe/ (2)
+### observe/ (4)
 
-Logging strategies.
+Logging, metrics, and error strategies.
 
 - log-structured-cli.md - CLI logging (chalk, terminal)
 - log-structured-service.md - Service logging (pino, structured)
+- metrics-web-vitals.md - Web Vitals reporting (analytics, Sentry)
+- errors-sentry-react.md - Sentry React integration
 
 ---
 
@@ -234,6 +253,15 @@ Complete project setups organized by **artifact type** (not domain—stacks span
 - monorepo-pnpm-tsc-fullstack.md - Full-stack monorepo
 - monorepo-pnpm-tsc-orpc.md - oRPC monorepo with tsc
 - monorepo-pnpm-tsx-orpc.md - oRPC monorepo with tsx
+
+### web/ (2)
+
+- web-pnpm-vite-react.md - CSR React SPA with Vite
+- web-pnpm-tanstack-start.md - SSR React with TanStack Start
+
+### library/ (1)
+
+- library-react-pnpm-vite.md - React component library with Vite
 
 ---
 

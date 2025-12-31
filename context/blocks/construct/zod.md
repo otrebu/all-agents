@@ -60,12 +60,12 @@ z.string().optional().default("");
 z.string().nullable();
 
 // Transformations
-z.string().transform((s) => s.toLowerCase());
-z.string().transform((s) => parseInt(s, 10));
+z.string().transform((str) => str.toLowerCase());
+z.string().transform((str) => parseInt(str, 10));
 
 // Refinement (custom validation)
-z.string().refine((s) => s.length > 0, "Required");
-z.number().refine((n) => n % 2 === 0, "Must be even");
+z.string().refine((str) => str.length > 0, "Required");
+z.number().refine((num) => num % 2 === 0, "Must be even");
 
 // Coercion (auto-convert types)
 z.coerce.number(); // "42" → 42

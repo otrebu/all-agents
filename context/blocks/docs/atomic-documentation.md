@@ -121,10 +121,10 @@ Capabilities—how blocks compose to achieve something. Capability-centric, not 
 
 | Domain      | Capabilities                                            |
 | ----------- | ------------------------------------------------------- |
-| `construct` | transpile, bundle, exec, package, manifest, types, tree |
-| `test`      | test, mock, cover                                       |
-| `quality`   | lint, format, analyze, gate                             |
-| `security`  | scan, update, secrets, harden                           |
+| `construct` | transpile, bundle, exec, package, manifest, types, tree, patterns |
+| `test`      | test, mock, cover                                                 |
+| `quality`   | lint, format, analyze, gate                                       |
+| `security`  | scan, update, secrets, harden, auth                               |
 | `scm`       | commit, branch, version, release, publish, changelog    |
 | `ops`       | ci, cd, container, orchestrate, iac, deploy             |
 | `observe`   | log, trace, metrics, errors, dashboard                  |
@@ -150,13 +150,13 @@ Not needed when tool-agnostic:
 
 **Examples by domain:**
 
-**construct/** — `transpile-esm-tsc.md`, `bundle-web-vite.md`, `exec-tsx.md`, `package-container-docker.md`, `manifest-cli.md`, `types-base.md`, `tree-monorepo.md`
+**construct/** — `transpile-esm-tsc.md`, `bundle-web-vite.md`, `exec-tsx.md`, `package-container-docker.md`, `manifest-cli.md`, `types-base.md`, `tree-monorepo.md`, `patterns-react.md`
 
 **test/** — `test-unit-vitest.md`, `test-e2e-cli-bun.md`, `mock-api-msw.md`, `cover-vitest.md`
 
 **quality/** — `lint-typescript.md`, `format-prettier.md`, `analyze-dead-code.md`, `gate-precommit.md`
 
-**security/** — `scan-deps-audit.md`, `update-deps-renovate.md`, `secrets-env-typed.md`, `harden-api.md`
+**security/** — `scan-deps-audit.md`, `update-deps-renovate.md`, `secrets-env-typed.md`, `harden-api.md`, `auth-react-better-auth.md`
 
 **scm/** — `commit-conventional.md`, `version-semver.md`, `release-semantic.md`, `publish-npm.md`, `changelog-conventional.md`
 
@@ -241,6 +241,48 @@ security/ — scan-deps-audit.md, secrets-env-typed.md
 ops/ — ci-build-gha.md
 docs/ — document-readme.md
 ```
+
+---
+
+## Progressive Loading in Monorepos
+
+For larger monorepos with diverse tech stacks, consider splitting documentation progressively:
+
+**Root CLAUDE.md** → references coordination stack (cross-cutting)
+**Package CLAUDE.md** → references package-specific stack (tech-specific)
+
+**When to use:**
+
+- **Start flat**: For scaffolding/new projects, one root CLAUDE.md that knows it all is fine
+- **Split later**: As project grows with diverse tech (React + API + CLI), progressively split
+- **Stay flat**: Small monorepos or uniform tech can stay flat forever
+
+**Example progressive structure:**
+
+```
+monorepo/
+├── CLAUDE.md              # → @context/stacks/monorepo/monorepo-pnpm-coordination.md
+└── packages/
+    ├── api/CLAUDE.md      # → @context/stacks/api/api-pnpm-fastify.md
+    ├── ui/CLAUDE.md       # → @context/stacks/web/web-pnpm-vite-react.md
+    └── shared/CLAUDE.md   # → @context/stacks/shared/shared-pnpm-utils.md
+```
+
+When working in `packages/api/`:
+- Claude loads root + api docs only
+- No UI/React docs loaded
+
+**Key principle:** Coordination stack = cross-cutting (CI, quality, secrets). Package stacks = tech-specific patterns.
+
+**Available package stacks:**
+
+| Folder   | Stack                        | Use For                     |
+| -------- | ---------------------------- | --------------------------- |
+| api/     | `api-pnpm-fastify.md`        | REST APIs with Fastify+Zod  |
+| cli/     | `cli-bun.md`, `cli-pnpm-tsx` | CLI tools                   |
+| web/     | `web-pnpm-vite-react.md`     | React frontends             |
+| library/ | `library-pnpm-tsc.md`        | Publishable ESM libraries   |
+| shared/  | `shared-pnpm-utils.md`       | Internal utility packages   |
 
 ---
 
@@ -463,10 +505,10 @@ construct, test, quality, security, scm, ops, observe, docs
 
 | Domain    | Capabilities                                            |
 | --------- | ------------------------------------------------------- |
-| construct | transpile, bundle, exec, package, manifest, types, tree |
-| test      | test, mock, cover                                       |
-| quality   | lint, format, analyze, gate                             |
-| security  | scan, update, secrets, harden                           |
+| construct | transpile, bundle, exec, package, manifest, types, tree, patterns |
+| test      | test, mock, cover                                                 |
+| quality   | lint, format, analyze, gate                                       |
+| security  | scan, update, secrets, harden, auth                               |
 | scm       | commit, branch, version, release, publish, changelog    |
 | ops       | ci, cd, container, orchestrate, iac, deploy             |
 | observe   | log, trace, metrics, errors, dashboard                  |
