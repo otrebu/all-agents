@@ -46,10 +46,17 @@ program.addCommand(
       20,
     )
     .option("-o, --output <file>", "Output file (default: stdout)")
+    .option(
+      "-s, --skip <number>",
+      "Skip N most recent conversations",
+      (v) => Number.parseInt(v, 10),
+      0,
+    )
     .action(async (options) =>
       extractConversationsCommand({
         limit: options.limit,
         output: options.output,
+        skip: options.skip,
       }),
     ),
 );

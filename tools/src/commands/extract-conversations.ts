@@ -33,6 +33,7 @@ interface Message {
 interface Options {
   limit: number;
   output?: string;
+  skip: number;
 }
 
 // Claude uses kebab-case with dots converted to dashes
@@ -68,7 +69,7 @@ function extractContent(content: unknown): string {
 
 // Entry point - orchestrates the extraction flow
 async function extractConversations(options: Options): Promise<void> {
-  const files = await getConversationFiles(options.limit);
+  const files = await getConversationFiles(options.limit, options.skip);
   log.info(`Found ${files.length} conversations`);
 
   const conversations = await Promise.all(
@@ -195,6 +196,7 @@ function formatReport(conversations: Array<Conversation>): string {
 // Get conversation files from both local and global directories
 async function getConversationFiles(
   limit: number,
+  skip = 0,
 ): Promise<Array<ConversationFile>> {
   const cwd = process.cwd();
   const projectName = buildProjectName(cwd);
@@ -217,7 +219,7 @@ async function getConversationFiles(
   }
 
   allFiles.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
-  return allFiles.slice(0, limit);
+  return allFiles.slice(skip, skip + limit);
 }
 
 // List JSONL files in a directory with their modification times
