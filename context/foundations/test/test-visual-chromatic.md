@@ -38,7 +38,7 @@ Add to `.storybook/main.ts` addons array (see @context/blocks/test/storybook.md 
 ```typescript
 addons: [
   "@storybook/addon-essentials",
-  "@chromatic-com/storybook", // visual tests addon
+  "@chromatic-com/storybook",
 ],
 ```
 
@@ -79,7 +79,7 @@ Only test stories affected by code changes:
 - uses: chromaui/action@latest
   with:
     projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-    onlyChanged: true # TurboSnap - only test affected stories
+    onlyChanged: true
 ```
 
 ---
@@ -93,7 +93,7 @@ Only test stories affected by code changes:
 const preview: Preview = {
   parameters: {
     chromatic: {
-      disableSnapshot: true, // off by default
+      disableSnapshot: true,
     },
   },
 };
@@ -126,7 +126,7 @@ export const Responsive: Story = {
 export const Animated: Story = {
   parameters: {
     chromatic: {
-      delay: 500, // wait for animation
+      delay: 500,
     },
   },
 };
@@ -164,7 +164,7 @@ Combine variants into one story for fewer snapshots:
 ```typescript
 export const AllVariants: Story = {
   render: () => (
-    <div style={{ display: "flex", gap: 16 }}>
+    <div style={{ display: "flex", gap: "16px" }}>
       <Button variant="primary">Primary</Button>
       <Button variant="secondary">Secondary</Button>
       <Button variant="ghost">Ghost</Button>

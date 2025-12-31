@@ -120,18 +120,18 @@ export function useTheme() {
     const root = document.documentElement;
     const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
 
-    function apply() {
+    function applyThemeClass() {
       const isDark =
         theme === "dark" || (theme === "system" && systemDark.matches);
       root.classList.toggle("dark", isDark);
     }
 
-    apply();
+    applyThemeClass();
     localStorage.setItem("theme", theme);
 
     if (theme === "system") {
-      systemDark.addEventListener("change", apply);
-      return () => systemDark.removeEventListener("change", apply);
+      systemDark.addEventListener("change", applyThemeClass);
+      return () => systemDark.removeEventListener("change", applyThemeClass);
     }
   }, [theme]);
 
@@ -141,6 +141,8 @@ export function useTheme() {
 
 ```tsx
 // components/ThemeToggle.tsx
+import { type Theme, useTheme } from "../hooks/useTheme";
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 

@@ -13,16 +13,16 @@ Type-safe form handling with schema validation.
 ```typescript
 import { useForm } from "react-hook-form";
 
-type FormData = { email: string; password: string };
+type LoginFormData = { email: string; password: string };
 
 function LoginForm() {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>();
+  } = useForm<LoginFormData>();
 
-  const onSubmit = (data: FormData) => console.log(data);
+  const onSubmit = (credentials: LoginFormData) => console.log(credentials);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -47,24 +47,24 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-const schema = z.object({
+const LoginFormSchema = z.object({
   email: z.string().email("Invalid email"),
   password: z.string().min(8, "Min 8 characters"),
 });
 
-type FormData = z.infer<typeof schema>;
+type LoginFormData = z.infer<typeof LoginFormSchema>;
 
 function LoginForm() {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(LoginFormSchema),
   });
 
-  const onSubmit = async (data: FormData) => {
-    await api.login(data);
+  const onSubmit = async (credentials: LoginFormData) => {
+    await api.login(credentials);
   };
 
   return (
@@ -105,13 +105,11 @@ const {
 ## Validation Modes
 
 ```typescript
-useForm({
-  mode: "onSubmit", // Default - validate on submit
-  mode: "onChange", // Validate on every change
-  mode: "onBlur", // Validate on blur
-  mode: "onTouched", // Validate on first blur, then onChange
-  mode: "all", // Validate on blur + change
-});
+useForm({ mode: "onSubmit" });   // Default - validate on submit
+useForm({ mode: "onChange" });   // Validate on every change
+useForm({ mode: "onBlur" });     // Validate on blur
+useForm({ mode: "onTouched" });  // Validate on first blur, then onChange
+useForm({ mode: "all" });        // Validate on blur + change
 ```
 
 ---

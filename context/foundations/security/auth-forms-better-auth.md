@@ -243,7 +243,14 @@ function SignOutButton() {
 ## Error Codes
 
 ```typescript
-const errorMessages: Record<string, string> = {
+type AuthErrorCode =
+  | "INVALID_CREDENTIALS"
+  | "USER_NOT_FOUND"
+  | "EMAIL_ALREADY_IN_USE"
+  | "WEAK_PASSWORD"
+  | "RATE_LIMITED";
+
+const errorMessages: Record<AuthErrorCode, string> = {
   INVALID_CREDENTIALS: "Email or password is incorrect",
   USER_NOT_FOUND: "No account with this email",
   EMAIL_ALREADY_IN_USE: "Account already exists",
@@ -251,8 +258,12 @@ const errorMessages: Record<string, string> = {
   RATE_LIMITED: "Too many attempts, try again later",
 };
 
-function getMessage(code: string) {
-  return errorMessages[code] || "An error occurred";
+function isAuthErrorCode(code: string): code is AuthErrorCode {
+  return code in errorMessages;
+}
+
+function getMessage(code: string): string {
+  return isAuthErrorCode(code) ? errorMessages[code] : "An error occurred";
 }
 ```
 

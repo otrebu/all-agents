@@ -126,7 +126,6 @@ export const dashboardRoute = createRoute({
 ## Return URL Pattern
 
 ```typescript
-// Login page reads redirect param
 function LoginPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -146,7 +145,9 @@ function LoginPage() {
 ## Role-Based Access
 
 ```typescript
-function RequireRole({ role, children }: { role: string; children: ReactNode }) {
+type UserRole = "admin" | "editor" | "viewer";
+
+function RequireRole({ role, children }: { role: UserRole; children: ReactNode }) {
   const { data: session, isPending } = useSession();
 
   if (isPending) return <LoadingSpinner />;

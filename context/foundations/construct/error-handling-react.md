@@ -38,9 +38,9 @@ Functional wrapper for error boundaries (no class components needed).
 ### Basic Usage
 
 ```tsx
-import { ErrorBoundary } from "react-error-boundary";
+import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 
-function ErrorFallback({ error, resetErrorBoundary }) {
+function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <div role="alert">
       <p>Something went wrong:</p>
@@ -157,7 +157,8 @@ function Button() {
       await riskyOperation();
     } catch (error) {
       // Handle locally or re-throw to boundary
-      showToast(error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      showToast(message);
     }
   };
 
@@ -180,7 +181,7 @@ const { data, error, isError } = useQuery({
 ### Manual Async
 
 ```tsx
-const [, setError] = useState();
+const [, setError] = useState<Error | null>(null);
 
 useEffect(() => {
   async function load() {

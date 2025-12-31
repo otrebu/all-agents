@@ -31,18 +31,18 @@ const [count, setCount] = useState(0);
 
 // Effects
 useEffect(() => {
-  // Side effect
+  const subscription = api.subscribeToUser(userId);
   return () => {
-    /* cleanup */
+    subscription.unsubscribe();
   };
-}, [dependency]);
+}, [userId]);
 
 // Refs
 const inputRef = useRef<HTMLInputElement>(null);
 
 // Memoization
-const memoized = useMemo(() => expensiveCalc(a, b), [a, b]);
-const callback = useCallback((x) => doThing(x), []);
+const totalPrice = useMemo(() => calculateOrderTotal(items, taxRate), [items, taxRate]);
+const handleItemSelect = useCallback((itemId: string) => selectItem(itemId), []);
 ```
 
 ## Context

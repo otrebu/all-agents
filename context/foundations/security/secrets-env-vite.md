@@ -29,11 +29,11 @@ const configSchema = z.object({
   apiUrl: z.string().url(),
   enableAnalytics: z
     .string()
-    .transform((v) => v === "true" || v === "1")
+    .transform((value) => value === "true" || value === "1")
     .default("false"),
 });
 
-const parsed = configSchema.safeParse({
+const configParseResult = configSchema.safeParse({
   isDev: import.meta.env.DEV,
   isProd: import.meta.env.PROD,
   mode: import.meta.env.MODE,
@@ -42,12 +42,12 @@ const parsed = configSchema.safeParse({
   enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS,
 });
 
-if (!parsed.success) {
-  console.error("Invalid environment variables:", parsed.error.flatten().fieldErrors);
+if (!configParseResult.success) {
+  console.error("Invalid environment variables:", configParseResult.error.flatten().fieldErrors);
   throw new Error("Invalid environment configuration");
 }
 
-export const config = parsed.data;
+export const config = configParseResult.data;
 export type Config = z.infer<typeof configSchema>;
 ```
 
@@ -96,9 +96,9 @@ interface ImportMeta {
 import { config } from "./config";
 
 // Fully typed, validated at app startup
-console.log(config.apiUrl);        // string
-console.log(config.isDev);         // boolean
-console.log(config.enableAnalytics); // boolean
+console.log(config.apiUrl);
+console.log(config.isDev);
+console.log(config.enableAnalytics);
 ```
 
 ## Key Points

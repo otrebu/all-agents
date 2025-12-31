@@ -10,11 +10,11 @@ depends: ["@context/blocks/test/testing.md"]
 
 ```typescript
 test.each([
-  { input: "user@example.com", expected: true, case: "valid email" },
-  { input: "no-at-sign", expected: false, case: "missing @" },
-  { input: "@example.com", expected: false, case: "missing local" },
-  { input: "user@", expected: false, case: "missing domain" },
-])("email validation: $case", ({ input, expected }) => {
+  { input: "user@example.com", expected: true, description: "valid email" },
+  { input: "no-at-sign", expected: false, description: "missing @" },
+  { input: "@example.com", expected: false, description: "missing local" },
+  { input: "user@", expected: false, description: "missing domain" },
+])("email validation: $description", ({ input, expected }) => {
   expect(isValidEmail(input)).toBe(expected);
 });
 ```

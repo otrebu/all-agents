@@ -48,8 +48,8 @@ export const userHandlers = [
   }),
 
   http.post("/api/users", async ({ request }) => {
-    const body = await request.json();
-    return HttpResponse.json(createUser(body), { status: 201 });
+    const userData = await request.json();
+    return HttpResponse.json(createUser(userData), { status: 201 });
   }),
 
   http.delete("/api/users/:id", () => {
@@ -180,8 +180,8 @@ export function errorResponse(message: string, status = 500) {
   return HttpResponse.json({ error: message }, { status });
 }
 
-export async function delayedResponse<T>(data: T, ms = 1000) {
-  await delay(ms);
+export async function delayedResponse<T>(data: T, delayMs = 1000) {
+  await delay(delayMs);
   return HttpResponse.json(data);
 }
 
@@ -215,18 +215,18 @@ export function paginatedResponse<T>(
 import { http, HttpResponse } from "msw";
 
 test("sends correct request body", async () => {
-  let capturedBody: unknown;
+  let capturedUserData: unknown;
 
   server.use(
     http.post("/api/users", async ({ request }) => {
-      capturedBody = await request.json();
+      capturedUserData = await request.json();
       return HttpResponse.json({ id: "1" }, { status: 201 });
     })
   );
 
   await createUser({ name: "John", email: "john@example.com" });
 
-  expect(capturedBody).toEqual({
+  expect(capturedUserData).toEqual({
     name: "John",
     email: "john@example.com",
   });

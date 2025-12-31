@@ -141,13 +141,8 @@ test("submits form with valid data", async () => {
 test("displays data after loading", async () => {
   render(<UserProfile userId="1" />);
 
-  // Loading state
   expect(screen.getByText(/loading/i)).toBeInTheDocument();
-
-  // Data appears (findBy waits)
   expect(await screen.findByText("John Doe")).toBeInTheDocument();
-
-  // Loading gone
   expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
 });
 ```

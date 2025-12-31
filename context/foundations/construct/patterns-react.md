@@ -48,8 +48,8 @@ setCount(count + 1);
 setCount(count + 1); // Both use same count value
 
 // GOOD - functional update when depending on prev state
-setCount((c) => c + 1);
-setCount((c) => c + 1); // Properly increments twice
+setCount((prevCount) => prevCount + 1);
+setCount((prevCount) => prevCount + 1); // Properly increments twice
 setIsOpen((open) => !open); // Toggle pattern
 ```
 
@@ -79,8 +79,8 @@ setUser(
 
 // Arrays - spread patterns
 setItems([...items, newItem]); // Add
-setItems(items.filter((i) => i.id !== id)); // Remove
-setItems(items.map((i) => (i.id === id ? { ...i, done: true } : i))); // Update
+setItems(items.filter((item) => item.id !== id)); // Remove
+setItems(items.map((item) => (item.id === id ? { ...item, done: true } : item))); // Update
 ```
 
 > **When to use Immer:** 3+ levels of nesting, multiple updates in one operation, or complex array manipulations. For shallow state, spread is faster and has zero dependencies.
@@ -105,7 +105,7 @@ useEffect(() => {
 ```typescript
 useEffect(() => {
   const socket = new WebSocket("wss://api.example.com");
-  socket.onmessage = (e) => setMessages((prev) => [...prev, e.data]);
+  socket.onmessage = (event) => setMessages((prev) => [...prev, event.data]);
 
   return () => socket.close();
 }, []);
@@ -137,13 +137,14 @@ useEffect(() => {
 
 // Cancelled flag pattern (race condition prevention)
 useEffect(() => {
-  let cancelled = false;
+  let isCancelled = false;
   async function fetchData() {
-    const result = await fetch(url);
-    if (!cancelled) setData(result);
+    const response = await fetch(url);
+    const result = await response.json();
+    if (!isCancelled) setData(result);
   }
   fetchData();
-  return () => { cancelled = true; };
+  return () => { isCancelled = true; };
 }, [url]);
 ```
 
@@ -163,7 +164,7 @@ const fullName = firstName + " " + lastName;
 // BAD - data fetching in useEffect
 useEffect(() => {
   fetch("/api/user")
-    .then((r) => r.json())
+    .then((response) => response.json())
     .then(setUser);
 }, []);
 
@@ -186,7 +187,7 @@ const { data: user, isLoading, error } = useQuery({
 const StateContext = createContext<State | undefined>(undefined);
 const DispatchContext = createContext<Dispatch | undefined>(undefined);
 
-function Provider({ children }) {
+function Provider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial);
 
   return (
@@ -204,8 +205,8 @@ function Provider({ children }) {
 ### Memoize Context Values
 
 ```typescript
-function Provider({ children }) {
-  const [user, setUser] = useState(null);
+function Provider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
 
   // BAD - new object every render
   // return <Context.Provider value={{ user, setUser }}>

@@ -48,12 +48,15 @@ function AuthLoading({ children }: { children: React.ReactNode }) {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 
+const STALE_TIME_MS = 5 * 60 * 1000;
+const REFETCH_INTERVAL_MS = 60 * 1000;
+
 function useSessionQuery() {
   return useQuery({
     queryKey: ["session"],
     queryFn: () => authClient.getSession(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 60 * 1000, // Refetch every minute
+    staleTime: STALE_TIME_MS,
+    refetchInterval: REFETCH_INTERVAL_MS,
   });
 }
 
@@ -82,7 +85,7 @@ function SessionsManager() {
 
   const revoke = async (token: string) => {
     await authClient.revokeSession({ token });
-    setSessions((s) => s.filter((sess) => sess.token !== token));
+    setSessions((sessions) => sessions.filter((sess) => sess.token !== token));
   };
 
   return (
@@ -185,8 +188,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be within AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be within AuthProvider");
+  return context;
 }
 ```

@@ -141,7 +141,7 @@ const postsRoute = createRoute({
 
 function PostsList() {
   const { posts } = postsRoute.useLoaderData();
-  return posts.map((p) => <Post key={p.id} {...p} />);
+  return posts.map((post) => <Post key={post.id} {...post} />);
 }
 ```
 

@@ -24,7 +24,7 @@ const baseState = {
 };
 
 const nextState = produce(baseState, (draft) => {
-  draft.user.settings.theme = "light"; // Mutate the draft
+  draft.user.settings.theme = "light";
   draft.items.push(4);
 });
 
@@ -48,19 +48,15 @@ const newItems = addItem(items, { id: 1, name: "New" });
 
 ```typescript
 produce(items, (draft) => {
-  // Add
   draft.push(newItem);
 
-  // Update
-  const index = draft.findIndex((i) => i.id === id);
+  const index = draft.findIndex((item) => item.id === id);
   if (index !== -1) draft[index].done = true;
 
-  // Remove
-  const idx = draft.findIndex((i) => i.id === id);
-  if (idx !== -1) draft.splice(idx, 1);
+  const removeIndex = draft.findIndex((item) => item.id === id);
+  if (removeIndex !== -1) draft.splice(removeIndex, 1);
 
-  // Filter (return new array)
-  return draft.filter((i) => !i.done);
+  return draft.filter((item) => !item.done);
 });
 ```
 

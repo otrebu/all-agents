@@ -54,7 +54,8 @@ export const handlers = [
 
   // Delay
   http.get("/api/slow", async () => {
-    await delay(2000);
+    const delayMs = 2000;
+    await delay(delayMs);
     return HttpResponse.json({ data: "slow" });
   }),
 ];

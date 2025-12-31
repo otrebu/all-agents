@@ -66,20 +66,16 @@ describe("Calculator", () => {
 ## Mocking
 
 ```typescript
-// Mock function
 const mockFn = vi.fn();
-const mockImpl = vi.fn((x) => x * 2);
+const mockImpl = vi.fn((value) => value * 2);
 const mockAsync = vi.fn().mockResolvedValue({ data: "test" });
 
-// Spy on existing
 vi.spyOn(obj, "method").mockReturnValue(42);
 
-// Mock module (hoisted)
 vi.mock("./api", () => ({
   fetchUser: vi.fn().mockResolvedValue({ id: 1 }),
 }));
 
-// Assertions
 expect(mockFn).toHaveBeenCalled();
 expect(mockFn).toHaveBeenCalledWith("arg");
 expect(mockFn).toHaveBeenCalledTimes(2);
@@ -88,14 +84,12 @@ expect(mockFn).toHaveBeenCalledTimes(2);
 ## Async & Timers
 
 ```typescript
-// Async
 await expect(fetchData()).resolves.toBe(value);
 await expect(fetchData()).rejects.toThrow("error");
 
-// Fake timers
 vi.useFakeTimers();
 vi.advanceTimersByTime(1000);
-vi.useRealTimers(); // restore
+vi.useRealTimers();
 ```
 
 ## Coverage

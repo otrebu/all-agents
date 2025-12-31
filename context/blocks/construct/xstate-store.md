@@ -50,19 +50,15 @@ function Counter() {
 ## Store API
 
 ```typescript
-// Get current snapshot
 const snapshot = store.getSnapshot();
 console.log(snapshot.context.count);
 
-// Send events
 store.send({ type: "increment", by: 5 });
 
-// Subscribe to changes
 const unsubscribe = store.subscribe((snapshot) => {
   console.log(snapshot.context);
 });
 
-// Inspect (debugging)
 store.inspect((event) => {
   if (event.type === "@xstate.event") {
     console.log(event.event);
@@ -83,7 +79,6 @@ const store = createStore({
   },
 });
 
-// Subscribe to emitted events
 store.on("fetchStarted", () => {
   console.log("Fetch started!");
 });
@@ -99,7 +94,7 @@ const store = createStoreWithProducer(produce, {
   context: { items: [] as string[] },
   on: {
     addItem: (context, event: { item: string }) => {
-      context.items.push(event.item); // Direct mutation with Immer
+      context.items.push(event.item);
     },
   },
 });
