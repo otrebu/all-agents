@@ -244,6 +244,48 @@ docs/ — document-readme.md
 
 ---
 
+## Progressive Loading in Monorepos
+
+For larger monorepos with diverse tech stacks, consider splitting documentation progressively:
+
+**Root CLAUDE.md** → references coordination stack (cross-cutting)
+**Package CLAUDE.md** → references package-specific stack (tech-specific)
+
+**When to use:**
+
+- **Start flat**: For scaffolding/new projects, one root CLAUDE.md that knows it all is fine
+- **Split later**: As project grows with diverse tech (React + API + CLI), progressively split
+- **Stay flat**: Small monorepos or uniform tech can stay flat forever
+
+**Example progressive structure:**
+
+```
+monorepo/
+├── CLAUDE.md              # → @context/stacks/monorepo/monorepo-pnpm-coordination.md
+└── packages/
+    ├── api/CLAUDE.md      # → @context/stacks/api/api-pnpm-fastify.md
+    ├── ui/CLAUDE.md       # → @context/stacks/web/web-pnpm-vite-react.md
+    └── shared/CLAUDE.md   # → @context/stacks/shared/shared-pnpm-utils.md
+```
+
+When working in `packages/api/`:
+- Claude loads root + api docs only
+- No UI/React docs loaded
+
+**Key principle:** Coordination stack = cross-cutting (CI, quality, secrets). Package stacks = tech-specific patterns.
+
+**Available package stacks:**
+
+| Folder   | Stack                        | Use For                     |
+| -------- | ---------------------------- | --------------------------- |
+| api/     | `api-pnpm-fastify.md`        | REST APIs with Fastify+Zod  |
+| cli/     | `cli-bun.md`, `cli-pnpm-tsx` | CLI tools                   |
+| web/     | `web-pnpm-vite-react.md`     | React frontends             |
+| library/ | `library-pnpm-tsc.md`        | Publishable ESM libraries   |
+| shared/  | `shared-pnpm-utils.md`       | Internal utility packages   |
+
+---
+
 ## Folder Structure
 
 ```

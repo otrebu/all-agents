@@ -92,6 +92,12 @@ Organized by artifact type (cli/, monorepo/, etc.).
   - `monorepo-pnpm-tsx-orpc.md` = pnpm monorepo with tsx runtime, oRPC framework
   - `monorepo-pnpm-tsc-fullstack.md` = Full-stack monorepo setup
 
+### Monorepo Progressive Loading (Optional)
+
+For larger monorepos with diverse tech, consider splitting into coordination + package stacks. Start flat for scaffolding, split as you grow.
+
+See: @context/blocks/docs/atomic-documentation.md → "Progressive Loading in Monorepos"
+
 ## When to Split
 
 ### DO Split When:
