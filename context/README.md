@@ -54,29 +54,31 @@ Vertical slices. Traditional architecture boundaries.
 ```
 context/
 ├── blocks/           # Atomic units by SWEBOK domain
-│   ├── construct/    # 40 build/bundle/package tools
-│   ├── test/         # 4 testing docs
-│   ├── quality/      # 4 quality/style docs
-│   ├── security/     # 2 security docs
-│   ├── scm/          # 3 version control docs
-│   ├── observe/      # 1 observability doc
-│   └── docs/         # 8 documentation/prompting docs
+│   ├── construct/    # build/bundle/package tools
+│   ├── test/         # testing
+│   ├── quality/      # lint/format/style
+│   ├── security/     # auth/secrets
+│   ├── scm/          # version control
+│   ├── observe/      # logging/monitoring
+│   └── docs/         # documentation/prompting
 │
 ├── foundations/      # Capabilities by SWEBOK domain
-│   ├── construct/    # 9 build/execution strategies
-│   ├── test/         # 3 testing strategies
-│   ├── quality/      # 1 quality gate
-│   ├── security/     # 8 auth + secrets management
-│   ├── scm/          # 1 commit strategy
-│   └── observe/      # 2 logging strategies
+│   ├── construct/    # build/execution strategies
+│   ├── test/         # testing strategies
+│   ├── quality/      # quality gates
+│   ├── security/     # auth + secrets management
+│   ├── scm/          # commit strategies
+│   └── observe/      # logging strategies
 │
 ├── stacks/           # Complete setups by artifact type
-│   ├── cli/          # 2 CLI stacks
-│   ├── monorepo/     # 4 monorepo stacks
-│   ├── web/          # 2 web app stacks
-│   └── library/      # 1 library stack
+│   ├── cli/          # CLI apps
+│   ├── api/          # API services
+│   ├── web/          # web apps
+│   ├── library/      # libraries
+│   ├── shared/       # shared packages
+│   └── monorepo/     # monorepo coordination
 │
-└── workflows/        # 7 dev processes
+└── workflows/        # dev processes
 ```
 
 ---
@@ -85,7 +87,7 @@ context/
 
 Atomic units organized by **SWEBOK domain**. Single concern, tool-centric.
 
-### construct/ (38)
+### construct/
 
 Build, compile, bundle, package.
 
@@ -111,7 +113,7 @@ Build, compile, bundle, package.
 
 **Permissions:** claude-code-permissions
 
-### test/ (6)
+### test/
 
 Verify code.
 
@@ -122,7 +124,7 @@ Verify code.
 - storybook.md - Component testing + a11y
 - eval-test-doc.md - AI agent evaluation testing
 
-### quality/ (5)
+### quality/
 
 Lint, format, analyze.
 
@@ -132,14 +134,14 @@ Lint, format, analyze.
 - prettier.md - Formatting
 - accessibility.md - WCAG 2.1 AA compliance
 
-### security/ (2)
+### security/
 
 Secure, scan, harden.
 
 - dotenv.md - Environment variables
 - better-auth.md - TypeScript auth library
 
-### scm/ (3)
+### scm/
 
 Version, release, publish.
 
@@ -147,7 +149,7 @@ Version, release, publish.
 - commitlint.md - Commit linting
 - semantic-release.md - Automated releases
 
-### observe/ (3)
+### observe/
 
 Log, trace, monitor.
 
@@ -155,7 +157,7 @@ Log, trace, monitor.
 - sentry.md - Error tracking and performance monitoring
 - web-vitals.md - Core Web Vitals measurement
 
-### docs/ (9)
+### docs/
 
 Document, diagram, prompting.
 
@@ -175,7 +177,7 @@ Document, diagram, prompting.
 
 Capabilities organized by **SWEBOK domain**. Capability-centric, composable.
 
-### construct/ (11)
+### construct/
 
 Build, execute, bundle, package, parse, patterns.
 
@@ -191,7 +193,7 @@ Build, execute, bundle, package, parse, patterns.
 - error-handling-react.md - React error boundaries
 - code-splitting.md - React lazy loading patterns
 
-### test/ (5)
+### test/
 
 Testing strategies.
 
@@ -201,13 +203,13 @@ Testing strategies.
 - test-e2e-cli-node.md - CLI E2E testing with Node
 - test-integration-api.md - API integration testing
 
-### quality/ (1)
+### quality/
 
 Quality gates.
 
 - gate-standards.md - ESLint + Prettier + Husky integration
 
-### security/ (9)
+### security/
 
 Auth and secrets management.
 
@@ -221,13 +223,13 @@ Auth and secrets management.
 - auth-session-react.md - Session handling patterns
 - auth-protected-routes.md - Route protection patterns
 
-### scm/ (1)
+### scm/
 
 Version control strategies.
 
 - commit-monorepo-subdir.md - Monorepo commit patterns
 
-### observe/ (4)
+### observe/
 
 Logging, metrics, and error strategies.
 
@@ -242,32 +244,44 @@ Logging, metrics, and error strategies.
 
 Complete project setups organized by **artifact type** (not domain—stacks span domains).
 
-### cli/ (2)
+### cli/
 
 - cli-bun.md - Bun CLI
 - cli-pnpm-tsx.md - Node + pnpm CLI with tsx
 
-### monorepo/ (4)
+### api/
 
+- api-pnpm-tsx-fastify.md - Fastify API with tsx
+
+### web/
+
+- web-pnpm-vite-react.md - CSR React SPA with Vite
+- web-pnpm-tanstack-start.md - SSR React with TanStack Start
+
+### library/
+
+- library-pnpm-tsc.md - TypeScript library with tsc
+- library-react-pnpm-vite.md - React component library with Vite
+
+### shared/
+
+- shared-pnpm-tsc.md - Shared package with tsc
+- shared-pnpm-tsx.md - Shared package with tsx
+- shared-react-pnpm-vite.md - Shared React package with Vite
+
+### monorepo/
+
+- monorepo-pnpm-coordination.md - pnpm workspace coordination
 - monorepo-pnpm-tsc-api.md - API monorepo with tsc
 - monorepo-pnpm-tsc-fullstack.md - Full-stack monorepo
 - monorepo-pnpm-tsc-orpc.md - oRPC monorepo with tsc
 - monorepo-pnpm-tsx-orpc.md - oRPC monorepo with tsx
 
-### web/ (2)
-
-- web-pnpm-vite-react.md - CSR React SPA with Vite
-- web-pnpm-tanstack-start.md - SSR React with TanStack Start
-
-### library/ (1)
-
-- library-react-pnpm-vite.md - React component library with Vite
-
 ---
 
 ## Workflows
 
-Development processes (9).
+Development processes.
 
 - dev-lifecycle.md - Complete development workflow
 - start-feature.md - Feature branch creation
