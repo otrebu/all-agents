@@ -147,11 +147,13 @@ Version, release, publish.
 - commitlint.md - Commit linting
 - semantic-release.md - Automated releases
 
-### observe/ (1)
+### observe/ (3)
 
 Log, trace, monitor.
 
 - logging.md - Logging principles
+- sentry.md - Error tracking and performance monitoring
+- web-vitals.md - Core Web Vitals measurement
 
 ### docs/ (9)
 
@@ -225,12 +227,14 @@ Version control strategies.
 
 - commit-monorepo-subdir.md - Monorepo commit patterns
 
-### observe/ (2)
+### observe/ (4)
 
-Logging strategies.
+Logging, metrics, and error strategies.
 
 - log-structured-cli.md - CLI logging (chalk, terminal)
 - log-structured-service.md - Service logging (pino, structured)
+- metrics-web-vitals.md - Web Vitals reporting (analytics, Sentry)
+- errors-sentry-react.md - Sentry React integration
 
 ---
 
