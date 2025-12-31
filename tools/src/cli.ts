@@ -6,6 +6,7 @@ import type { GeminiMode } from "./commands/gemini/index";
 // eslint-disable-next-line import/extensions
 import packageJson from "../package.json" with { type: "json" };
 import downloadCommand from "./commands/download";
+import extractConversationsCommand from "./commands/extract-conversations";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
@@ -33,6 +34,24 @@ program.addCommand(
       "Output directory (default: docs/research/downloads)",
     )
     .action(downloadCommand),
+);
+
+program.addCommand(
+  new Command("extract-conversations")
+    .description("Extract Claude Code conversation history as markdown")
+    .option(
+      "-l, --limit <number>",
+      "Number of recent conversations",
+      (v) => Number.parseInt(v, 10),
+      20,
+    )
+    .option("-o, --output <file>", "Output file (default: stdout)")
+    .action(async (options) =>
+      extractConversationsCommand({
+        limit: options.limit,
+        output: options.output,
+      }),
+    ),
 );
 
 program.addCommand(

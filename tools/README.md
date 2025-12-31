@@ -66,6 +66,7 @@ aaa story create "As a user, I want to login"
 | ---------------------------- | ---------------------------------------------------------- | -------------------------- |
 | `sync-context`               | Sync context/ folder to target project (with --watch)      | Target project's context/  |
 | `download <urls...>`         | Fetch URLs, extract text, save as markdown                 | `docs/research/downloads/` |
+| `extract-conversations`      | Extract Claude Code conversation history as markdown       | stdout or file             |
 | `gh-search <query>`          | GitHub code search with intent-based ranking               | `docs/research/github/`    |
 | `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)    | `docs/research/google/`    |
 | `parallel-search <query>`    | Multi-angle web research with configurable depth           | `docs/research/parallel/`  |
@@ -111,6 +112,53 @@ aaa download https://example.com/article -d "special/folder"
 ```
 
 Output: `docs/research/downloads/YYYYMMDD-HHMMSS-{topic}.md`
+
+#### extract-conversations
+
+Extract Claude Code conversation history from the current project as readable markdown.
+
+```bash
+# Extract last 20 conversations (default) to stdout
+aaa extract-conversations
+
+# Extract last 5 conversations
+aaa extract-conversations --limit 5
+
+# Save to file
+aaa extract-conversations --limit 10 -o conversations.md
+```
+
+**Features:**
+
+- Extracts from both local (`.claude/projects/`) and global (`~/.claude/projects/`) directories
+- Includes AI thinking blocks (`<thinking>...</thinking>`)
+- Includes tool calls (`<tool_use>`) and results (`<tool_result>`)
+- Shows timestamps for each message
+- Sorted by most recent first
+
+**Output format:**
+
+```markdown
+## Session: 25345590
+
+**Started:** 2025-12-31 14:44
+**Branch:** main
+**Summary:** Feature implementation
+
+### 👤 User (14:44:26)
+
+User message here...
+
+### 🤖 Assistant (14:44:33)
+
+<thinking>
+AI reasoning...
+</thinking>
+
+### 🤖 Assistant (14:44:36)
+
+Response text...
+```
 
 #### gh-search
 
@@ -302,13 +350,14 @@ tools/
 │   ├── env.ts              # Environment configuration
 │   ├── commands/           # Command implementations
 │   │   ├── download/
+│   │   ├── extract-conversations.ts
 │   │   ├── github/
 │   │   ├── gemini/
 │   │   ├── parallel-search/
 │   │   ├── setup/
-│   │   ├── story/
-│   │   ├── task/
-│   │   └── uninstall/
+│   │   ├── story.ts
+│   │   ├── task.ts
+│   │   └── uninstall.ts
 │   └── utils/
 │       └── paths.ts        # Path resolution
 ├── lib/                    # Shared utilities
