@@ -7,6 +7,7 @@ Shared AI configuration and research tools for Claude Code and Cursor. One setup
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
 - [CLI Tools](#cli-tools)
+- [Atomic Documentation](#atomic-documentation)
 - [Using with Claude Code](#using-with-claude-code)
 - [Using with Cursor](#using-with-cursor)
 - [Directory Structure](#directory-structure)
@@ -14,6 +15,7 @@ Shared AI configuration and research tools for Claude Code and Cursor. One setup
 - [Configuration](#configuration)
 - [Uninstall](#uninstall)
 - [Troubleshooting](#troubleshooting)
+- [Roadmap](#roadmap)
 
 ## Prerequisites
 
@@ -137,6 +139,22 @@ Generate a complete guide for the API stack:
 ```bash
 at-ref compile context/stacks/api/rest-fastify.md -o dist/api-guide.md
 ```
+
+## Atomic Documentation
+
+Documentation that composes like code. Three layers:
+
+| Layer           | Purpose                                   |
+| --------------- | ----------------------------------------- |
+| **Blocks**      | Single units of knowledge (tool-centric)  |
+| **Foundations** | Capabilities (how blocks compose)         |
+| **Stacks**      | Complete project setups                   |
+
+**Example:** `tools/CLAUDE.md` references `@context/stacks/cli/cli-bun.md` for CLI development context.
+
+**Why compile?** Atomic docs are intentionally granular—a stack references foundations, which reference blocks. Rather than following dozens of links, compile resolves everything into a single file. Use `at-ref compile` from CLI or right-click → "Compile with at-ref" in VS Code.
+
+See [Reference Management](#reference-management-at-ref) for setup. Full spec: **[context/blocks/docs/atomic-documentation.md](context/blocks/docs/atomic-documentation.md)**
 
 ## Using with Claude Code
 
@@ -309,6 +327,10 @@ Set `CLAUDE_CONFIG_DIR` environment variable to point to all-agents root directo
 
 **API commands fail silently**
 Check `tools/.env` exists with required keys. Run with `AAA_DEBUG=true` for verbose output.
+
+## Roadmap
+
+See **[docs/planning/roadmap.md](docs/planning/roadmap.md)** for project vision, implementation status, and planned features.
 
 ## License
 
