@@ -26,3 +26,7 @@ Monorepo uses layered `.env` files with Node.js `--env-file` flag: root for shar
 # REST API and RPC
 
 @context/blocks/construct/orpc.md
+
+# Database
+
+@context/foundations/construct/data-persist-prisma.md

@@ -25,3 +25,32 @@ Type-safe REST APIs with Fastify + Zod + OpenAPI.
 ## observe/ - Logging
 
 @context/foundations/observe/log-structured-service.md
+
+## construct/ - Database
+
+@context/foundations/construct/data-persist-prisma.md
+
+### Fastify-Prisma Plugin
+
+```typescript
+// src/plugins/prisma.ts
+import { FastifyPluginAsync } from "fastify";
+import fp from "fastify-plugin";
+import { prisma } from "@/db/client";
+
+declare module "fastify" {
+  interface FastifyInstance {
+    prisma: typeof prisma;
+  }
+}
+
+const prismaPlugin: FastifyPluginAsync = async (app) => {
+  app.decorate("prisma", prisma);
+
+  app.addHook("onClose", async () => {
+    await prisma.$disconnect();
+  });
+};
+
+export default fp(prismaPlugin, { name: "prisma" });
+```

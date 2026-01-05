@@ -99,7 +99,7 @@ Build, compile, bundle, package.
 
 **Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
 
-**Backend:** fastify, orpc, prisma
+**Backend:** fastify, orpc, prisma, postgres
 
 **Validation & State:** zod, react-hook-form, xstate, xstate-store, immer
 
@@ -192,6 +192,7 @@ Build, execute, bundle, package, parse, patterns.
 - patterns-react.md - React hooks, context, and state management patterns
 - error-handling-react.md - React error boundaries
 - code-splitting.md - React lazy loading patterns
+- data-persist-prisma.md - Database persistence with Prisma + PostgreSQL
 
 ### test/
 
@@ -202,6 +203,7 @@ Testing strategies.
 - test-e2e-cli-bun.md - CLI E2E testing with Bun
 - test-e2e-cli-node.md - CLI E2E testing with Node
 - test-integration-api.md - API integration testing
+- test-integration-db.md - Database integration testing (ORM-agnostic)
 
 ### quality/
 
