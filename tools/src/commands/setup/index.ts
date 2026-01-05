@@ -2,14 +2,19 @@ import * as p from "@clack/prompts";
 import log from "@lib/log";
 import { execSync } from "node:child_process";
 import {
+  appendFileSync,
   cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   symlinkSync,
+  unlinkSync,
 } from "node:fs";
 import { resolve } from "node:path";
 
+import { syncContext } from "../sync-context";
 import {
   AAA_SYMLINK,
   getAllAgentsRoot,
@@ -107,20 +112,103 @@ async function setupProject(): Promise<void> {
   // Step 2: CLAUDE_CONFIG_DIR
   await handleClaudeConfigDirectory();
 
-  // Step 3: Symlink context/
+  // Step 3: Setup context/
   const contextTarget = resolve(root, "context");
   const contextLink = resolve(cwd, "context");
+  const gitignorePath = resolve(cwd, ".gitignore");
 
-  const existingTarget = getSymlinkTarget(contextLink);
-  if (existingTarget === contextTarget) {
-    log.info("context/ symlink already exists");
-  } else if (existsSync(contextLink)) {
-    log.error("context/ already exists (not a symlink to all-agents)");
-    log.info(`Remove it first: rm -rf "${contextLink}"`);
-    process.exit(1);
+  // Check existing state
+  const existingSymlinkTarget = getSymlinkTarget(contextLink);
+  const isExistingSymlink = existingSymlinkTarget === contextTarget;
+  const isExistingDirectory =
+    existsSync(contextLink) &&
+    existingSymlinkTarget === null &&
+    lstatSync(contextLink).isDirectory();
+
+  // Determine default based on existing state (sync if already has synced copy)
+  let defaultMethod: "symlink" | "sync" = "symlink";
+  if (isExistingDirectory) {
+    defaultMethod = "sync";
+  }
+
+  const contextMethod = await p.select({
+    initialValue: defaultMethod,
+    message: "How do you want to link context/?",
+    options: [
+      {
+        hint: "Real-time updates, may not work with Claude Code/Cursor",
+        label: "Symlink",
+        value: "symlink",
+      },
+      {
+        hint: "Manual updates via aaa sync-context",
+        label: "Sync copy (recommended)",
+        value: "sync",
+      },
+    ],
+  });
+
+  if (p.isCancel(contextMethod)) {
+    p.cancel("Setup cancelled");
+    process.exit(0);
+  }
+
+  if (contextMethod === "symlink") {
+    // Handle switch from sync to symlink
+    if (isExistingDirectory) {
+      const shouldSwitch = await p.confirm({
+        initialValue: false,
+        message: "context/ exists as directory. Remove and create symlink?",
+      });
+      if (p.isCancel(shouldSwitch) || !shouldSwitch) {
+        log.info("Keeping existing context/ directory");
+      } else {
+        execSync(`rm -rf "${contextLink}"`);
+        symlinkSync(contextTarget, contextLink);
+        log.success(`Symlink: context/ -> ${contextTarget}`);
+      }
+    } else if (isExistingSymlink) {
+      log.info("context/ symlink already exists");
+    } else {
+      symlinkSync(contextTarget, contextLink);
+      log.success(`Symlink: context/ -> ${contextTarget}`);
+    }
+
+    // Always warn about symlink compatibility
+    log.warn("Symlinks may not work correctly with Claude Code or Cursor.");
+    log.info("If you have issues, re-run setup and choose 'Sync copy'.");
   } else {
-    symlinkSync(contextTarget, contextLink);
-    log.success(`Symlink: context/ -> ${contextTarget}`);
+    // Sync mode
+    // Handle switch from symlink to sync
+    if (isExistingSymlink) {
+      unlinkSync(contextLink);
+      log.info("Removed existing symlink");
+    }
+
+    // Add to .gitignore if not present
+    let gitignoreContent = "";
+    if (existsSync(gitignorePath)) {
+      gitignoreContent = readFileSync(gitignorePath, "utf8");
+    }
+
+    if (gitignoreContent.includes("context/")) {
+      log.info("context/ already in .gitignore");
+    } else {
+      log.info("Adding context/ to your .gitignore...");
+      const addition = "\n# Synced from all-agents\ncontext/\n";
+      appendFileSync(gitignorePath, addition);
+      log.success("Added context/ to .gitignore");
+    }
+
+    // Run first sync
+    await syncContext(cwd);
+    log.success("Synced context/");
+
+    // Show guidance
+    p.note(
+      `To keep context/ updated:\n  aaa sync-context          # one-time sync\n  aaa sync-context --watch  # auto-sync while editing all-agents`,
+      "Sync usage",
+    );
   }
 
   // Step 4: Copy docs templates

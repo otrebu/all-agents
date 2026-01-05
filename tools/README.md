@@ -33,8 +33,17 @@ aaa setup --project
 
 This will:
 
-- Set up `CLAUDE_CONFIG_DIR` to use all-agents globally
-- Configure Claude Code to use shared commands, skills, and agents
+1. Set up `CLAUDE_CONFIG_DIR` to use all-agents globally
+2. Ask how to link `context/`:
+   - **Symlink**: Real-time updates, but may not work with Claude Code/Cursor
+   - **Sync copy** (recommended): Manual updates via `aaa sync-context`
+3. Copy docs templates
+
+If you choose sync mode:
+
+- `context/` is added to `.gitignore` automatically
+- First sync runs immediately
+- Use `aaa sync-context --watch` while working on all-agents for auto-updates
 
 ### Uninstall
 

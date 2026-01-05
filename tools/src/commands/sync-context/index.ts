@@ -73,4 +73,5 @@ async function syncContext(targetDirectory: string): Promise<void> {
   await execa("rsync", ["-a", "--delete", source, destination]);
 }
 
+export { syncContext };
 export default runSyncContextCli;

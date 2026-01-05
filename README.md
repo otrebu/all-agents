@@ -1,6 +1,26 @@
 # all-agents
 
-Bridging Cursor and Claude Code AI configuration, making prompts work across local and cloud-based AI agents.
+Shared AI configuration and research tools for Claude Code and Cursor. One setup, consistent workflows across all your projects.
+
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [CLI Tools](#cli-tools)
+- [Using with Claude Code](#using-with-claude-code)
+- [Using with Cursor](#using-with-cursor)
+- [Directory Structure](#directory-structure)
+- [Development](#development)
+- [Configuration](#configuration)
+- [Uninstall](#uninstall)
+- [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+- [Bun](https://bun.sh) (required)
+- [Claude Code](https://claude.ai/download) (Required for full agent/skill functionality. While the CLI tools work standalone, the core value comes from integrating with Claude Code's user config)
+- [gh CLI](https://cli.github.com) (optional, for GitHub search)
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli) (optional, for Gemini research)
 
 ## Setup
 
@@ -9,13 +29,14 @@ Bridging Cursor and Claude Code AI configuration, making prompts work across loc
 Use this repo as your global Claude Code configuration:
 
 ```bash
-git clone <repo> ~/dev/all-agents
+git clone https://github.com/otrebu/all-agents ~/dev/all-agents
 cd ~/dev/all-agents/tools
 bun install
 bun run dev setup --user
 ```
 
 The setup wizard will:
+
 - Build the CLI binary (`bin/aaa`)
 - Create symlink at `~/.local/bin/aaa`
 - Check PATH includes `~/.local/bin`
@@ -35,22 +56,13 @@ aaa setup --project
 ```
 
 This will:
+
 - Check if CLI is installed (warns if not)
 - Check/prompt for `CLAUDE_CONFIG_DIR`
 - Symlink `context/` → all-agents shared docs
 - Create `docs/planning/` and `docs/research/` directories
 
 **Result:** Project gets shared standards via `context/`, keeps local planning/research in `docs/`.
-
-### Environment Variables
-
-Copy `.env.example` to `.env`:
-
-```bash
-AAA_PARALLEL_API_KEY=   # Required for parallel-search (https://platform.parallel.ai/)
-AAA_GITHUB_TOKEN=       # Optional, uses gh CLI by default
-AAA_DEBUG=false         # Enable verbose logging
-```
 
 ## CLI Tools
 
@@ -82,52 +94,113 @@ aaa extract-conversations [-l limit] [-o file]
 
 Research outputs are saved to `docs/research/`.
 
+## Reference Management (at-ref)
+
+We use `at-ref` to manage documentation links and compile modular docs into single files. This project relies on `@reference` paths (e.g., `@context/blocks/...`) which `at-ref` handles.
+
+### 1. VS Code Extension
+
+Install the `at-ref` extension (search for `otrebu.at-ref` in marketplace) to enable:
+
+- **Validation**: Real-time red squiggles for broken `@reference` paths.
+- **Navigation**: Cmd/Ctrl+Click to follow references.
+- **Compilation**: Right-click a file -> "Compile with at-ref" to generate a standalone version.
+
+### 2. CLI Tool
+
+Install the CLI globally to validate references across many files:
+
+```bash
+npm install -g @otrebu/at-ref
+# or
+pnpm add -g @otrebu/at-ref
+```
+
+Verify all references in your project:
+
+```bash
+at-ref check
+```
+
+### 3. Compilation Strategy
+
+Compilation resolves all `@reference` links into actual content, creating a single, portable markdown file.
+
+**When to compile:**
+
+- **Stacks** (`context/stacks/`) and **Foundations** (`context/foundations/`): These are high-level entry points composed of many blocks. Compiling them creates a complete manual for that specific stack.
+- **Blocks** (`context/blocks/`): Usually self-contained or low-level. Rarely need compilation.
+
+**Example:**
+Generate a complete guide for the API stack:
+
+```bash
+at-ref compile context/stacks/api/rest-fastify.md -o dist/api-guide.md
+```
+
 ## Using with Claude Code
 
-### Slash Commands
+Claude Code extends with three mechanisms:
 
-| Command | Description | Stability |
-|:--------|:------------|:----------|
-| `/dev:git-commit` | Create conventional commits | stable |
-| `/dev:git-multiple-commits` | Create multiple commits | stable |
-| `/dev:start-feature` | Create/switch feature branches | stable |
-| `/dev:complete-feature` | Merge feature to main | stable |
-| `/dev:code-review` | AI-assisted code review | beta |
-| `/dev:consistency-check` | Check consistency docs/code/refs | beta |
-| `/gh-search` | Search GitHub for code examples | experimental |
-| `/gemini-research` | Google Search via Gemini | experimental |
-| `/parallel-search` | Multi-angle web research | beta |
-| `/create-task` | Create numbered task file | beta |
-| `/download` | Download URLs to markdown | beta |
-| `/context:atomic-doc` | Create/update atomic docs | beta |
-| `/context:plan-multi-agent` | Plan docs with Opus agents | experimental |
-| `/meta:claude-code:create-skill` | Create a new skill | beta |
-| `/meta:claude-code:create-command` | Create a slash command | beta |
-| `/meta:claude-code:create-agent` | Create a sub-agent | beta |
-| `/meta:claude-code:create-plugin` | Scaffold a plugin | beta |
-| `/meta:create-cursor-rule` | Create .cursorrules file | experimental |
-| `/meta:how-to-prompt` | Prompting guidance | stable |
-| `/meta:optimize-prompt` | Optimize prompts | stable |
+- **Slash Commands** (`/name`) - Type in chat to trigger. Example: `/dev:git-commit`
+- **Skills** - Auto-detected from your request. Example: "what did I work on today?" triggers `dev-work-summary`
+- **Sub-agents** - Background workers spawned by skills. Rarely invoked directly.
 
-### Sub-agents
+**Stability:** `stable` = battle-tested | `beta` = works, may evolve | `experimental` = may break
 
-| Agent | Description | Stability |
-|:------|:------------|:----------|
-| `gemini-research` | Web research via Gemini CLI | experimental |
-| `parallel-search` | Multi-angle web research | beta |
-| `conversation-friction-analyzer` | Extract friction from conversations | experimental |
-| `friction-pattern-abstractor` | Abstract patterns from friction data | experimental |
-| `coding-style-reviewer` | Review code against style guidelines | experimental |
+<details>
+<summary><strong>Slash Commands</strong> (21 commands)</summary>
 
-### Skills
+| Command                            | Description                                 | Stability    |
+| :--------------------------------- | :------------------------------------------ | :----------- |
+| `/dev:git-commit`                  | Create conventional commits                 | stable       |
+| `/dev:git-multiple-commits`        | Create multiple commits                     | stable       |
+| `/dev:start-feature`               | Create/switch feature branches              | stable       |
+| `/dev:complete-feature`            | Merge feature to main                       | stable       |
+| `/dev:code-review`                 | AI-assisted code review                     | beta         |
+| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         |
+| `/gh-search`                       | Search GitHub for code examples             | experimental |
+| `/gemini-research`                 | Google Search via Gemini                    | experimental |
+| `/parallel-search`                 | Multi-angle web research                    | beta         |
+| `/create-task`                     | Create numbered task file                   | beta         |
+| `/download`                        | Download URLs to markdown                   | beta         |
+| `/context:atomic-doc`              | Create/update atomic docs                   | beta         |
+| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental |
+| `/meta:claude-code:create-skill`   | Create a new skill                          | beta         |
+| `/meta:claude-code:create-command` | Create a slash command                      | beta         |
+| `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         |
+| `/meta:claude-code:create-plugin`  | Scaffold a plugin                           | beta         |
+| `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental |
+| `/meta:how-to-prompt`              | Prompting guidance                          | stable       |
+| `/meta:optimize-prompt`            | Optimize prompts                            | stable       |
 
-| Skill | Description | Stability |
-|:------|:------------|:----------|
-| `dev-work-summary` | Scan ~/dev for today's git work | beta |
-| `brainwriting` | Structured brainstorming | beta |
-| `task-create` | Create task files | beta |
-| `analyze-friction` | Orchestrate friction analysis | experimental |
-| `eval-test-skill` | Git branch cleanup | experimental |
+</details>
+
+<details>
+<summary><strong>Sub-agents</strong> (5 agents)</summary>
+
+| Agent                            | Description                                       | Stability    |
+| :------------------------------- | :------------------------------------------------ | :----------- |
+| `gemini-research`                | Web research via Gemini CLI                       | experimental |
+| `parallel-search`                | Multi-angle web research                          | beta         |
+| `conversation-friction-analyzer` | Stage 1: Extract raw friction points from chats   | experimental |
+| `friction-pattern-abstractor`    | Stage 2: Group similar problems, find root causes | experimental |
+| `coding-style-reviewer`          | Review code against style guidelines              | experimental |
+
+</details>
+
+<details>
+<summary><strong>Skills</strong> (5 skills)</summary>
+
+| Skill              | Description                                    | Stability    |
+| :----------------- | :--------------------------------------------- | :----------- |
+| `dev-work-summary` | Scan ~/dev for today's git work                | beta         |
+| `brainwriting`     | 5 parallel idea explorations, then synthesize  | beta         |
+| `task-create`      | Create task files                              | beta         |
+| `analyze-friction` | 3-stage workflow: extract → abstract → approve | experimental |
+| `eval-test-skill`  | List and delete branches merged to main        | experimental |
+
+</details>
 
 ## Using with Cursor
 
@@ -138,12 +211,14 @@ Generate `.cursorrules` files using the `/meta:create-cursor-rule` command. The 
 When your project has `context/` symlinked from this repo:
 
 **`.cursorrules` (root-level)**
+
 ```
 @context/blocks/principles/coding-style.md
 @context/blocks/principles/prompting.md
 ```
 
 **`.cursor/rules/*.mdc` (modular rules)**
+
 ```markdown
 ---
 description: TypeScript coding standards
@@ -201,6 +276,39 @@ bun run lint:fix      # Auto-fix
 - `gh-search`: GitHub token via `gh auth login` or `GITHUB_TOKEN`
 - `parallel-search`: `AAA_PARALLEL_API_KEY` env var
 - `gemini-research`: Skipped by default (set `GEMINI_TEST_ENABLED=1` to run)
+
+## Configuration
+
+Environment variables (create `tools/.env` from `.env.example`):
+
+| Variable               | Required            | Description                              |
+| ---------------------- | ------------------- | ---------------------------------------- |
+| `AAA_PARALLEL_API_KEY` | For parallel-search | [Get key](https://platform.parallel.ai/) |
+| `AAA_GITHUB_TOKEN`     | No                  | Falls back to `gh auth`                  |
+| `AAA_DEBUG`            | No                  | Enable verbose logging                   |
+
+## Uninstall
+
+```bash
+aaa uninstall --user    # Remove global installation
+aaa uninstall --project # Remove project integration
+```
+
+Or manually: remove `~/.local/bin/aaa` symlink and unset `CLAUDE_CONFIG_DIR`.
+
+## Troubleshooting
+
+**`command not found: aaa`**
+Add `~/.local/bin` to PATH. For zsh: `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc` then restart terminal.
+
+**`command not found: bun`**
+Install Bun: `curl -fsSL https://bun.sh/install | bash`
+
+**Commands work in terminal but not in Claude Code**
+Set `CLAUDE_CONFIG_DIR` environment variable to point to all-agents root directory.
+
+**API commands fail silently**
+Check `tools/.env` exists with required keys. Run with `AAA_DEBUG=true` for verbose output.
 
 ## License
 
