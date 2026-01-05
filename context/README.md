@@ -99,7 +99,7 @@ Build, compile, bundle, package.
 
 **Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
 
-**Backend:** fastify, orpc
+**Backend:** fastify, orpc, prisma
 
 **Validation & State:** zod, react-hook-form, xstate, xstate-store, immer
 
