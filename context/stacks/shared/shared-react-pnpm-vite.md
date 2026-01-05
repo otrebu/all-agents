@@ -15,12 +15,10 @@ Internal React component packages using Vite's library mode.
 
 # Framework
 
-@context/blocks/construct/react.md
 @context/foundations/construct/patterns-react.md
 
 # Styling
 
-@context/blocks/construct/tailwind.md
 @context/foundations/construct/patterns-design-tokens-tailwind.md
 
 # Testing

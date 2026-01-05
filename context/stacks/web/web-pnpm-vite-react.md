@@ -15,13 +15,8 @@ Single-page applications with client-side rendering, TanStack Router, and modern
 
 # Framework
 
-@context/blocks/construct/react.md
 @context/foundations/construct/patterns-react.md
 @context/foundations/construct/error-handling-react.md
-
-# Routing
-
-@context/blocks/construct/tanstack-router.md
 
 # Server State
 
@@ -34,9 +29,8 @@ Single-page applications with client-side rendering, TanStack Router, and modern
 
 # Styling
 
-@context/blocks/construct/tailwind.md
-@context/blocks/construct/shadcn.md
 @context/foundations/construct/patterns-design-tokens-tailwind.md
+@context/blocks/construct/shadcn.md
 
 # Data
 

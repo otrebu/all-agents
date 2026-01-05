@@ -16,23 +16,18 @@ Full-stack React meta-framework with server-side rendering, server functions, an
 # Framework
 
 @context/blocks/construct/tanstack-start.md
-@context/blocks/construct/react.md
 @context/foundations/construct/patterns-react.md
 @context/foundations/construct/error-handling-react.md
-
-# Routing
-
-@context/blocks/construct/tanstack-router.md
 
 # Server State
 
 @context/blocks/construct/tanstack-query.md
 
-# Auth
+# Security
 
-@context/blocks/security/better-auth.md
-@context/foundations/security/auth-forms-better-auth.md
+@context/foundations/security/auth-session-better-auth.md
 @context/foundations/security/auth-routes-react.md
+@context/foundations/security/auth-forms-better-auth.md
 
 # Forms
 
@@ -41,7 +36,7 @@ Full-stack React meta-framework with server-side rendering, server functions, an
 
 # Styling
 
-@context/blocks/construct/tailwind.md
+@context/foundations/construct/patterns-design-tokens-tailwind.md
 @context/blocks/construct/shadcn.md
 
 # Data
