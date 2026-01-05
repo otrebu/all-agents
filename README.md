@@ -75,6 +75,9 @@ aaa story create my-story
 
 # Download URLs and convert to markdown
 aaa download <urls...> [-o name] [-d dir]
+
+# Extract Claude Code conversation history
+aaa extract-conversations [-l limit] [-o file]
 ```
 
 Research outputs are saved to `docs/research/`.
@@ -83,40 +86,48 @@ Research outputs are saved to `docs/research/`.
 
 ### Slash Commands
 
-| Command | Description | Documentation |
-|:--------|:------------|:--------------|
-| `/dev:git-commit` | Create conventional commits from diffs | `@workflows/commit.md` |
-| `/dev:start-feature` | Create/switch feature branches | `@workflows/start-feature.md` |
-| `/dev:complete-feature` | Merge feature branch to main | `@workflows/complete-feature.md` |
-| `/dev:code-review` | AI-assisted code review | `@workflows/code-review.md` |
-| `/gh-search <query>` | Search GitHub for code examples | `@context/blocks/tools/gh-search.md` |
-| `/gemini-research <query>` | Google Search via Gemini CLI | `@context/blocks/tools/gemini-cli.md` |
-| `/parallel-search <topic>` | Multi-angle web research | `@context/blocks/tools/parallel-search.md` |
-| `/create-task <name>` | Create numbered task file | — |
-| `/download <urls...>` | Download URLs, extract text, save as markdown | — |
-| `/context:atomic-doc` | Create/update atomic docs (blocks, foundations, stacks) | `@context/blocks/docs/atomic-documentation.md` |
-| `/meta:claude-code:create-command` | Create a new slash command | `@context/blocks/principles/prompting.md` |
-| `/meta:claude-code:create-agent` | Create a new sub-agent | `@context/blocks/patterns/agent-templates.md` |
-| `/meta:claude-code:create-skill` | Create a new skill | — |
-| `/meta:claude-code:create-plugin` | Scaffold a plugin structure | — |
-| `/meta:create-cursor-rule` | Create a `.cursorrules` file | `@context/blocks/principles/prompting.md` |
-| `/meta:how-to-prompt` | Prompting guidance | `@context/blocks/principles/prompting.md` |
-| `/meta:optimize-prompt` | Optimize existing prompts | `@context/blocks/principles/optimize-prompt.md` |
+| Command | Description | Stability |
+|:--------|:------------|:----------|
+| `/dev:git-commit` | Create conventional commits | stable |
+| `/dev:git-multiple-commits` | Create multiple commits | stable |
+| `/dev:start-feature` | Create/switch feature branches | stable |
+| `/dev:complete-feature` | Merge feature to main | stable |
+| `/dev:code-review` | AI-assisted code review | beta |
+| `/dev:consistency-check` | Check consistency docs/code/refs | beta |
+| `/gh-search` | Search GitHub for code examples | experimental |
+| `/gemini-research` | Google Search via Gemini | experimental |
+| `/parallel-search` | Multi-angle web research | beta |
+| `/create-task` | Create numbered task file | beta |
+| `/download` | Download URLs to markdown | beta |
+| `/context:atomic-doc` | Create/update atomic docs | beta |
+| `/context:plan-multi-agent` | Plan docs with Opus agents | experimental |
+| `/meta:claude-code:create-skill` | Create a new skill | beta |
+| `/meta:claude-code:create-command` | Create a slash command | beta |
+| `/meta:claude-code:create-agent` | Create a sub-agent | beta |
+| `/meta:claude-code:create-plugin` | Scaffold a plugin | beta |
+| `/meta:create-cursor-rule` | Create .cursorrules file | experimental |
+| `/meta:how-to-prompt` | Prompting guidance | stable |
+| `/meta:optimize-prompt` | Optimize prompts | stable |
 
 ### Sub-agents
 
-| Agent | Description |
-|:------|:------------|
-| `gemini-research` | Web research via Gemini CLI with Google Search grounding |
-| `parallel-search` | Multi-angle web research using Parallel Search API |
+| Agent | Description | Stability |
+|:------|:------------|:----------|
+| `gemini-research` | Web research via Gemini CLI | experimental |
+| `parallel-search` | Multi-angle web research | beta |
+| `conversation-friction-analyzer` | Extract friction from conversations | experimental |
+| `friction-pattern-abstractor` | Abstract patterns from friction data | experimental |
+| `coding-style-reviewer` | Review code against style guidelines | experimental |
 
 ### Skills
 
-| Skill | Description |
-|:------|:------------|
-| `dev-work-summary` | Scan ~/dev for git repos and report today's work |
-| `brainwriting` | Facilitate structured brainstorming using parallel sub-agents |
-| `task-create` | Create structured task files for planning dev work |
+| Skill | Description | Stability |
+|:------|:------------|:----------|
+| `dev-work-summary` | Scan ~/dev for today's git work | beta |
+| `brainwriting` | Structured brainstorming | beta |
+| `task-create` | Create task files | beta |
+| `analyze-friction` | Orchestrate friction analysis | experimental |
+| `eval-test-skill` | Git branch cleanup | experimental |
 
 ## Using with Cursor
 
