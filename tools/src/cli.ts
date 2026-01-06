@@ -152,6 +152,14 @@ taskCommand.addCommand(
       "-d, --dir <path>",
       "Custom tasks directory (default: docs/planning/tasks)",
     )
+    .option(
+      "-s, --story <number>",
+      "Link task to story by number (e.g., 001 or 1)",
+    )
+    .option(
+      "--stories-directory <path>",
+      "Custom stories directory for story lookup (testing only)",
+    )
     .action(createTaskCommand),
 );
 

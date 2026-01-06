@@ -307,6 +307,7 @@ flowchart TD
 | CLI     | `aaa task create`  | Create task files     | ✅ stable |
 | CLI     | `aaa story create` | Create story files    | ✅ stable |
 | Skill   | `task-create`      | Task creation skill   | ✅ stable |
+| Skill   | `story-create`     | Story creation skill  | ✅ stable |
 | Command | `/create-task`     | Task creation command | ✅ stable |
 
 ### 3. Setup Code Repository
@@ -433,7 +434,7 @@ flowchart TD
 - Manual doc workflow
 - Release automation
 - Semantic versioning + commits
-- Task/story creation (skill + command)
+- Task/story creation (skills: `task-create`, `story-create` + command)
 
 #### ⏯️ BETA/EXPERIMENTAL (16 items)
 
@@ -484,7 +485,7 @@ flowchart TD
 | `aaa setup`                 | Claude Code config             | -                                       |
 | `aaa sync-context`          | Sync context to projects       | -                                       |
 | `aaa task create`           | Create task planning files     | `/create-task` cmd, `task-create` skill |
-| `aaa story create`          | Create story planning files    | -                                       |
+| `aaa story create`          | Create story planning files    | `story-create` skill                    |
 | `aaa uninstall`             | Remove CLI/project integration | -                                       |
 
 ### Commands (20)
@@ -494,12 +495,13 @@ flowchart TD
 - `/meta:*` - create-skill, create-plugin, create-agent, create-command, how-to-prompt, optimize-prompt
 - Research: `/gh-search`, `/gemini-research`, `/parallel-search`, `/download`
 
-### Skills (5)
+### Skills (6)
 
 - `analyze-friction` - Conversation friction analysis (compound engineering)
 - `brainwriting` - Ideation
 - `dev-work-summary` - Git activity summary (compound engineering)
 - `eval-test-skill` - Branch cleanup (misnamed)
+- `story-create` - Story creation + task linking
 - `task-create` - Planning files
 
 ### Agents (5)

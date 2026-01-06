@@ -1,5 +1,8 @@
 import log from "@lib/log";
 import { createNumberedFile, type CreateResult } from "@lib/numbered-files";
+import { getContextRoot } from "@tools/utils/paths";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 // Custom Error
 class TaskError extends Error {
@@ -14,9 +17,19 @@ class TaskError extends Error {
 }
 
 const TASKS_DIR = "docs/planning/tasks";
+const STORIES_DIR = "docs/planning/stories";
+
+interface StoryInfo {
+  filename: string;
+  name: string;
+  number: string;
+}
 
 interface TaskCreateOptions {
   dir?: string;
+  // For testing: override stories directory lookup
+  storiesDirectory?: string;
+  story?: string;
 }
 
 function createTaskCommand(name: string, options: TaskCreateOptions): void {
@@ -34,21 +47,75 @@ function createTaskCommand(name: string, options: TaskCreateOptions): void {
   }
 }
 
+function findStoryFile(
+  storyNumber: string,
+  customStoriesDirectory?: string,
+): StoryInfo {
+  const storiesDirectory =
+    customStoriesDirectory ?? join(getContextRoot(), STORIES_DIR);
+
+  // Normalize story number to 3-digit format
+  const normalizedNumber = storyNumber.replace(/^0+/, "").padStart(3, "0");
+
+  let files: Array<string> = [];
+  try {
+    files = readdirSync(storiesDirectory);
+  } catch {
+    throw new TaskError(
+      `Stories directory not found: ${storiesDirectory}. Create a story first with 'aaa story create'.`,
+    );
+  }
+
+  // Find files matching the pattern NNN-*.md
+  const pattern = new RegExp(`^${normalizedNumber}-(.+)\\.md$`);
+  const matches = files.filter((file) => pattern.test(file));
+
+  if (matches.length === 0) {
+    throw new TaskError(
+      `Story ${normalizedNumber} not found in ${storiesDirectory}. Available stories: ${files.filter((f) => /^\d{3}-.+\.md$/.test(f)).join(", ") || "none"}`,
+    );
+  }
+
+  if (matches.length > 1) {
+    throw new TaskError(
+      `Multiple stories found for ${normalizedNumber}: ${matches.join(", ")}. This should not happen.`,
+    );
+  }
+
+  // We've verified matches.length === 1 above, so this is safe
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const filename = matches[0]!;
+  const nameMatch = pattern.exec(filename);
+  const storyName = nameMatch?.[1] ?? "";
+
+  return { filename, name: storyName, number: normalizedNumber };
+}
+
 function generateTaskFile(
   name: string,
   options: TaskCreateOptions = {},
 ): CreateResult {
+  const storyInfo =
+    options.story === undefined
+      ? undefined
+      : findStoryFile(options.story, options.storiesDirectory);
+
   return createNumberedFile(name, {
     customDirectory: options.dir,
     defaultDir: TASKS_DIR,
-    template: renderTaskTemplate(name),
+    template: renderTaskTemplate(name, storyInfo),
   });
 }
 
-function renderTaskTemplate(name: string): string {
+function renderTaskTemplate(name: string, storyInfo?: StoryInfo): string {
+  const storyLink =
+    storyInfo === undefined
+      ? ""
+      : `**Story:** [${storyInfo.name}](../stories/${storyInfo.filename})\n\n`;
+
   return `## Task: ${name}
 
-### Goal
+${storyLink}### Goal
 [One sentence: what should be true when this is done?]
 
 ### Context

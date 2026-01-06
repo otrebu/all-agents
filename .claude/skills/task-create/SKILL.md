@@ -5,62 +5,15 @@ description: Create structured task files for planning dev work. Use when user a
 
 # Task Create
 
-Create numbered task files following project conventions.
+Create task files using the `aaa` CLI.
 
 ## Workflow
 
-**IMPORTANT:** Use the `aaa` binary directly, NOT `bun --cwd tools run dev`.
+1. Run: `aaa task create <name>` (optionally with `--story NNN`)
+2. Write content using template
+3. If linked to story, update story's Tasks section
 
-1. **Create file**: `aaa task create <kebab-name>` → returns filepath
-2. **Write content** using template below
-3. **Link to story** if applicable (add `**Story:**` header)
+## References
 
-## Template
-
-```markdown
-## Task: [Short descriptive name]
-
-**Story:** [story-name](../stories/NNN-story-name.md) *(optional)*
-
-### Goal
-[One sentence: what should be true when this is done?]
-
-### Context
-[Why this matters. Current state, trigger, constraints, dependencies]
-
-### Plan
-1. [First concrete action]
-2. [Second action]
-3. [Continue as needed]
-
-### Acceptance Criteria
-- [ ] [Specific, testable outcome]
-- [ ] [Another outcome]
-
-### Test Plan
-- [ ] [What tests to add/run]
-- [ ] [Manual verification if needed]
-
-### Scope
-- **In:** [What this includes]
-- **Out:** [What this explicitly excludes]
-
-### Notes
-[Optional: Technical considerations, risks, edge cases]
-```
-
-## Required Sections
-
-| Section | Purpose |
-|---------|---------|
-| Goal | One sentence outcome - "what's true when done?" |
-| Context | The why: problem, trigger, constraints |
-| Plan | Numbered concrete actions |
-| Acceptance Criteria | Checkboxes for verification |
-| Test Plan | What tests to add/update/run |
-| Scope | Explicit In/Out boundaries |
-
-## File Location
-
-- Default: `docs/planning/tasks/NNN-name.md`
-- Custom: `aaa task create <name> --dir <path>`
+- **CLI & workflow:** @context/blocks/docs/task-management.md
+- **Template:** @context/blocks/docs/task-template.md

@@ -246,3 +246,193 @@ describe("task E2E", () => {
     expect(content).toContain("### Notes");
   });
 });
+
+describe("task --story E2E", () => {
+  let temporaryDirectory = "";
+  let storiesDirectory = "";
+  let tasksDirectory = "";
+
+  beforeEach(() => {
+    // Create unique temp directory for each test
+    temporaryDirectory = join(
+      tmpdir(),
+      `task-story-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    storiesDirectory = join(temporaryDirectory, "docs", "planning", "stories");
+    tasksDirectory = join(temporaryDirectory, "docs", "planning", "tasks");
+    mkdirSync(storiesDirectory, { recursive: true });
+    mkdirSync(tasksDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("create --help shows --story option", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "task", "create", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--story");
+    expect(stdout).toContain("Link task to story");
+  });
+
+  test("create with --story links to existing story", async () => {
+    // Create a story file first
+    writeFileSync(
+      join(storiesDirectory, "001-user-authentication.md"),
+      "## Story: user-authentication",
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "implement-auth-api",
+        "--dir",
+        tasksDirectory,
+        "--story",
+        "001",
+        "--stories-directory",
+        storiesDirectory,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("001-implement-auth-api.md");
+
+    const filepath = stdout.trim();
+    const content = readFileSync(filepath, "utf8");
+
+    expect(content).toContain("## Task: implement-auth-api");
+    expect(content).toContain(
+      "**Story:** [user-authentication](../stories/001-user-authentication.md)",
+    );
+  });
+
+  test("create with --story accepts number without leading zeros", async () => {
+    writeFileSync(
+      join(storiesDirectory, "003-my-feature.md"),
+      "## Story: my-feature",
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "feature-task",
+        "--dir",
+        tasksDirectory,
+        "--story",
+        "3",
+        "--stories-directory",
+        storiesDirectory,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+
+    const filepath = stdout.trim();
+    const content = readFileSync(filepath, "utf8");
+
+    expect(content).toContain(
+      "**Story:** [my-feature](../stories/003-my-feature.md)",
+    );
+  });
+
+  test("create with --story short flag -s works", async () => {
+    writeFileSync(
+      join(storiesDirectory, "002-another-story.md"),
+      "## Story: another-story",
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "short-flag-task",
+        "--dir",
+        tasksDirectory,
+        "-s",
+        "002",
+        "--stories-directory",
+        storiesDirectory,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+
+    const filepath = stdout.trim();
+    const content = readFileSync(filepath, "utf8");
+
+    expect(content).toContain(
+      "**Story:** [another-story](../stories/002-another-story.md)",
+    );
+  });
+
+  test("create with non-existent story shows error", async () => {
+    // No story files exist in the stories directory
+
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "orphan-task",
+        "--dir",
+        tasksDirectory,
+        "--story",
+        "999",
+        "--stories-directory",
+        storiesDirectory,
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("999");
+    expect(stderr).toContain("not found");
+  });
+
+  test("create without --story has no story link", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "standalone-task",
+        "--dir",
+        tasksDirectory,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+
+    const filepath = stdout.trim();
+    const content = readFileSync(filepath, "utf8");
+
+    expect(content).toContain("## Task: standalone-task");
+    expect(content).not.toContain("**Story:**");
+  });
+});

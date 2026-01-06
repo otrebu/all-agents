@@ -208,13 +208,14 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Skills</strong> (5 skills)</summary>
+<summary><strong>Skills</strong> (6 skills)</summary>
 
 | Skill              | Description                                    | Stability    |
 | :----------------- | :--------------------------------------------- | :----------- |
 | `dev-work-summary` | Scan ~/dev for today's git work                | beta         |
 | `brainwriting`     | 5 parallel idea explorations, then synthesize  | beta         |
 | `task-create`      | Create task files                              | beta         |
+| `story-create`     | Create story files, prompt for linked tasks    | beta         |
 | `analyze-friction` | 3-stage workflow: extract → abstract → approve | experimental |
 | `eval-test-skill`  | List and delete branches merged to main        | experimental |
 

@@ -11,31 +11,68 @@ Create structured task/story files for planning and execution.
 - **Tasks:** Concrete work items (features, bugs, refactors)
 - **Stories:** User-facing value → spawns related tasks
 
-## Creating a Task
+## CLI Commands
 
-1. Draft content per @context/blocks/docs/task-template.md
-2. Run: `aaa task create <name>`
-3. Write content to returned filepath
+### Create Task
 
-## Creating a Story with Tasks
+```bash
+aaa task create <name>
+```
 
-1. Draft story per @context/blocks/docs/story-template.md
-2. `aaa story create <name>` → e.g., `001-my-story.md`
-3. For each task:
-   - `aaa task create <name>` → e.g., `001-my-task.md`
-   - Add task link to story's Tasks section
-   - Add story link to task header
-4. Write all files
+**Options:**
+- `-d, --dir <path>` — Custom directory (default: `docs/planning/tasks`)
+- `-s, --story <number>` — Link to story (e.g., `001` or `1`)
+
+**Examples:**
+```bash
+aaa task create implement-auth
+# → docs/planning/tasks/001-implement-auth.md
+
+aaa task create auth-api --story 001
+# → docs/planning/tasks/002-auth-api.md (with Story: link)
+
+aaa task create setup-ci -d backend/tasks
+# → backend/tasks/001-setup-ci.md
+```
+
+### Create Story
+
+```bash
+aaa story create <name>
+```
+
+**Options:**
+- `-d, --dir <path>` — Custom directory (default: `docs/planning/stories`)
+
+**Examples:**
+```bash
+aaa story create user-authentication
+# → docs/planning/stories/001-user-authentication.md
+```
+
+## Story-First Workflow
+
+1. **Create story:** `aaa story create user-authentication` → `001-user-authentication.md`
+2. **Create linked tasks:**
+   ```bash
+   aaa task create auth-api --story 001
+   aaa task create auth-frontend --story 001
+   aaa task create auth-tests --story 001
+   ```
+3. **Update story's Tasks section** with links to created tasks
+
+## Templates
+
+- **Task:** @context/blocks/docs/task-template.md
+- **Story:** @context/blocks/docs/story-template.md
 
 ## Linking Convention
 
 ```markdown
 # In story (Tasks section):
-
 - [ ] [001-auth-api](../tasks/001-auth-api.md)
 
 # In task (header):
-
 **Story:** [001-user-auth](../stories/001-user-auth.md)
 ```
 

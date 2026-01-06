@@ -71,18 +71,18 @@ aaa story create "As a user, I want to login"
 
 ## Commands
 
-| Command                      | Description                                                | Output Location            |
-| ---------------------------- | ---------------------------------------------------------- | -------------------------- |
-| `sync-context`               | Sync context/ folder to target project (with --watch)      | Target project's context/  |
-| `download <urls...>`         | Fetch URLs, extract text, save as markdown                 | `docs/research/downloads/` |
-| `extract-conversations`      | Extract Claude Code conversation history as markdown       | stdout or file             |
-| `gh-search <query>`          | GitHub code search with intent-based ranking               | `docs/research/github/`    |
-| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)    | `docs/research/google/`    |
-| `parallel-search <query>`    | Multi-angle web research with configurable depth           | `docs/research/parallel/`  |
-| `task create <description>`  | Create auto-numbered task file (NNN-name.md)               | `docs/planning/tasks/`     |
-| `story create <description>` | Create auto-numbered story file (NNN-name.md)              | `docs/planning/stories/`   |
-| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)  | -                          |
-| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`) | -                          |
+| Command                      | Description                                                                | Output Location            |
+| ---------------------------- | -------------------------------------------------------------------------- | -------------------------- |
+| `sync-context`               | Sync context/ folder to target project (with --watch)                      | Target project's context/  |
+| `download <urls...>`         | Fetch URLs, extract text, save as markdown                                 | `docs/research/downloads/` |
+| `extract-conversations`      | Extract Claude Code conversation history as markdown                       | stdout or file             |
+| `gh-search <query>`          | GitHub code search with intent-based ranking                               | `docs/research/github/`    |
+| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)                    | `docs/research/google/`    |
+| `parallel-search <query>`    | Multi-angle web research with configurable depth                           | `docs/research/parallel/`  |
+| `task create <description>`  | Create auto-numbered task file (NNN-name.md), with optional `--story` link | `docs/planning/tasks/`     |
+| `story create <description>` | Create auto-numbered story file (NNN-name.md)                              | `docs/planning/stories/`   |
+| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                  | -                          |
+| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                 | -                          |
 
 ### Command Examples
 
@@ -237,6 +237,14 @@ Output:
 aaa task create "Implement user authentication"
 # → docs/planning/tasks/001-implement-user-authentication.md
 
+# Create task linked to story
+aaa task create "Implement auth API" --story 001
+# → docs/planning/tasks/002-implement-auth-api.md (with Story: link to 001-*.md)
+
+# Short flag also works
+aaa task create "Add login form" -s 1
+# → docs/planning/tasks/003-add-login-form.md (with Story: link)
+
 # Create story
 aaa story create "As a user, I want to reset my password"
 # → docs/planning/stories/001-as-a-user-i-want-to-reset-my-password.md
@@ -247,6 +255,11 @@ aaa task create "Setup CI/CD pipeline" -d "backend/tasks"
 ```
 
 Files are auto-numbered incrementally (001, 002, 003...).
+
+**Options:**
+
+- `-d, --dir <path>` - Custom tasks directory (default: `docs/planning/tasks`)
+- `-s, --story <number>` - Link task to story by number (e.g., `001` or `1`)
 
 ## Configuration
 
