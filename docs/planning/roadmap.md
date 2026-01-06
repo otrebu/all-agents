@@ -22,6 +22,48 @@
 | 14  | Version Code         | Semantic + AI changelog          | semantic-release             | ✅ stable  |
 | 15  | Compound Engineering | Learn from AI feedback loops     | friction analysis            | ⏯️ beta    |
 
+### Priorities
+
+| Priority | Phase(s) | Focus | Rationale |
+|----------|----------|-------|-----------|
+| **P0** | 15 | Compound Engineering | Self-improving docs - reduces re-prompting, catches gaps |
+| **P1** | 4, 9, 11 | Dev Workflow | Tests written, docs updated, commits regular |
+| **P2** | 12 | Review Code | Catch what slips through workflow |
+| **P3** | 6 | Refactoring | Later, when maintaining larger codebases |
+
+```mermaid
+flowchart TD
+    subgraph P0["🔄 P0: Compound Engineering"]
+        FA[Friction Analysis] --> PAT[Pattern Extraction]
+        PAT --> APPLY[Apply to Docs]
+        CSV[Code Style Validator] --> APPLY
+    end
+
+    subgraph P1["✅ P1: Dev Workflow"]
+        TEST[Tests Written]
+        DOC[Docs Updated]
+        COMMIT[Regular Commits]
+    end
+
+    subgraph P2["👁️ P2: Review Code"]
+        REV[2-Dim Review]
+        MULTI[Multi-Agent]
+        SEC[Security]
+    end
+
+    subgraph P3["🔧 P3: Refactoring"]
+        PATTERNS[Patterns]
+        DEBT[Tech Debt]
+    end
+
+    P0 --> P1
+    P1 --> P2
+    P2 --> P3
+
+    APPLY -.->|improves| P1
+    APPLY -.->|improves| P2
+```
+
 ### Vision Details
 
 #### 1. Plan Feature
@@ -70,7 +112,7 @@
 | -    | -                            | Project scaffolding | ❌ missing |
 | -    | -                            | CLAUDE.md template  | ❌ missing |
 
-#### 4. Write Code
+#### 4. Write Code `P1`
 
 **Vision:** Consistent code, following best practices. Implement Low/High Level Plans.
 
@@ -90,7 +132,7 @@
 | ---- | ---- | ---------- |
 | -    | -    | ❌ missing |
 
-#### 6. Refactor Code
+#### 6. Refactor Code `P3`
 
 **Vision:** ❓ (needs research/definition)
 
@@ -114,7 +156,7 @@
 | ---- | ---- | ---------- |
 | -    | -    | ❌ missing |
 
-#### 9. Test Code
+#### 9. Test Code `P1`
 
 **Vision:**
 
@@ -141,7 +183,7 @@
 | -      | -          | spawn-eslint-fixers | ❌ missing |
 | -      | -          | Security scanning   | ❌ missing |
 
-#### 11. Document Code
+#### 11. Document Code `P1`
 
 **Vision:** Part of general instructions. Perhaps subagent for end-of-implementation with good prompting to catch discrepancies.
 
@@ -152,7 +194,7 @@
 | Command  | `/dev:consistency-check` | Discrepancy checker   | ⏯️ beta    |
 | -        | -                        | Doc writer agent      | ❌ missing |
 
-#### 12. Review Code
+#### 12. Review Code `P2`
 
 **Vision:**
 
@@ -189,7 +231,7 @@
 | Command | `/dev:git-multiple-commits` | Multiple commits     | ✅ stable  |
 | -       | -                           | AI changelog         | ❌ missing |
 
-#### 15. Compound Engineering
+#### 15. Compound Engineering `P0`
 
 **Vision:** Learn from continuous AI feedback loops. Extract insights from coding sessions, identify friction patterns, compound improvements to prompts/docs/workflows over time.
 
@@ -204,6 +246,7 @@
 | -     | -                                | Metrics/insights dashboard    | ❌ missing |
 | -     | -                                | CLAUDE.md auto-improvement    | ❌ missing |
 | -     | -                                | Prompt effectiveness tracking | ❌ missing |
+| -     | -                                | Code example validator (coding-style.md) | ❌ missing |
 
 ---
 
