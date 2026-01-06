@@ -10,7 +10,7 @@
 | 2   | Plan Code            | Deep research + planning         | CLI + agents + plugins       | ⏯️ mixed   |
 | 3   | Setup Repo           | Scaffold + CLAUDE.md             | `aaa setup`                  | ⚠️ partial |
 | 4   | Write Code           | Consistent code, implement plans | `feature-dev` plugin         | ⏯️ plugin  |
-| 5   | Fix Code             | Iterative loop until success     | -                            | ❌ missing |
+| 5   | Fix Code             | Iterative loop until success     | `aaa ralph`                  | ✅ stable  |
 | 6   | Refactor Code        | TBD                              | `refactoring.md` placeholder | ❌ missing |
 | 7   | Maintain Code        | Tech debt payback                | -                            | ❌ missing |
 | 8   | Infrastructure       | IaC support                      | -                            | ❌ missing |
@@ -128,9 +128,15 @@ flowchart TD
 
 **Vision:** Iterable loop with verification. Until it errors, keep trying.
 
-| Type | Name | Status     |
-| ---- | ---- | ---------- |
-| -    | -    | ❌ missing |
+| Type | Name         | Vision Item                 | Status    |
+| ---- | ------------ | --------------------------- | --------- |
+| CLI  | `aaa ralph`  | PRD-driven iterative Claude | ✅ stable |
+
+**Ralph** - PRD-driven iterative development harness:
+- `aaa ralph init` - Interactive wizard to create PRD
+- `aaa ralph run` - Iterate Claude through features (default: 5)
+- `--unlimited` - Run until all features complete
+- `--interactive` - Human approval after each iteration
 
 #### 6. Refactor Code `P3`
 
@@ -328,10 +334,11 @@ flowchart TD
 
 ### 5. Fix Code
 
-| Item                       | Status | Implementation | Notes                                  |
-| -------------------------- | ------ | -------------- | -------------------------------------- |
-| Iterative fix loop         | ❌     | -              | Vision: "until it errors, keep trying" |
-| Auto-fix with verification | ❌     | -              | Not implemented                        |
+| Item                       | Status    | Implementation | Notes                                  |
+| -------------------------- | --------- | -------------- | -------------------------------------- |
+| PRD-driven iterative loop  | ✅ stable | `aaa ralph`    | Init wizard + run modes                |
+| Iterative fix loop         | ✅ stable | `aaa ralph`    | `--unlimited` mode                     |
+| Human-in-the-loop          | ✅ stable | `aaa ralph`    | `--interactive` mode                   |
 
 ### 6. Refactor Code
 
@@ -424,11 +431,12 @@ flowchart TD
 
 ### Summary by Status
 
-#### ✅ STABLE (9 items)
+#### ✅ STABLE (10 items)
 
 - `aaa setup`
 - `aaa extract-conversations`
 - `aaa task create` / `aaa story create`
+- `aaa ralph` - PRD-driven iterative Claude harness
 - Coding standards docs
 - ESLint pre-commit
 - Manual doc workflow
@@ -443,12 +451,11 @@ flowchart TD
 - atomic-doc, consistency-check, code-review, pr-review-toolkit
 - analyze-friction, friction-analyzer, friction-abstractor, dev-work-summary
 
-#### ❌ MISSING (20 items)
+#### ❌ MISSING (18 items)
 
 - Research multi-agent orchestration
 - DeepWiki MCP integration
 - Project scaffolding + CLAUDE.md template
-- Iterative fix loop
 - Refactoring workflow
 - Tech debt tracking
 - IaC support
@@ -486,6 +493,7 @@ flowchart TD
 | `aaa sync-context`          | Sync context to projects       | -                                       |
 | `aaa task create`           | Create task planning files     | `/create-task` cmd, `task-create` skill |
 | `aaa story create`          | Create story planning files    | `story-create` skill                    |
+| `aaa ralph`                 | PRD-driven iterative Claude    | -                                       |
 | `aaa uninstall`             | Remove CLI/project integration | -                                       |
 
 ### Commands (20)

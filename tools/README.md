@@ -83,6 +83,8 @@ aaa story create "As a user, I want to login"
 | `story create <description>` | Create auto-numbered story file (NNN-name.md)                              | `docs/planning/stories/`   |
 | `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                  | -                          |
 | `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                 | -                          |
+| `ralph init`                 | Create PRD interactively (wizard)                                          | `docs/planning/prd.json`   |
+| `ralph run`                  | Run Claude iteratively through PRD features                                | `docs/planning/`           |
 
 ### Command Examples
 
@@ -260,6 +262,45 @@ Files are auto-numbered incrementally (001, 002, 003...).
 
 - `-d, --dir <path>` - Custom tasks directory (default: `docs/planning/tasks`)
 - `-s, --story <number>` - Link task to story by number (e.g., `001` or `1`)
+
+#### ralph
+
+PRD-driven iterative Claude harness. Implements features from a Product Requirements Document one at a time.
+
+```bash
+# Create a new PRD interactively
+aaa ralph init
+
+# Run 5 iterations (default)
+aaa ralph run
+
+# Run specific number of iterations
+aaa ralph run --iterations 10
+
+# Single iteration
+aaa ralph run --once
+
+# Run until all features complete
+aaa ralph run --unlimited
+
+# Human approval after each iteration
+aaa ralph run --interactive
+
+# Custom PRD/progress paths
+aaa ralph run --prd ./my-prd.json --progress ./my-progress.md
+```
+
+**Run Modes:**
+
+| Flag            | Behavior                                 |
+| --------------- | ---------------------------------------- |
+| (default)       | Run 5 iterations, then stop              |
+| `--iterations`  | Run N iterations, then stop              |
+| `--once`        | Run 1 iteration only                     |
+| `--unlimited`   | Loop until `<complete/>` signal          |
+| `--interactive` | Prompt for approval after each iteration |
+
+**Combinations:** `--unlimited --interactive` = Human-in-the-loop until done
 
 ## Configuration
 

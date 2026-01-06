@@ -90,6 +90,12 @@ aaa story create my-story
 # Download URLs and convert to markdown
 aaa download <urls...> [-o name] [-d dir]
 
+# PRD-driven iterative Claude (Ralph)
+aaa ralph init                    # Create PRD interactively
+aaa ralph run                     # Run 5 iterations (default)
+aaa ralph run --unlimited         # Run until complete
+aaa ralph run --interactive       # Human approval each iteration
+
 # Extract Claude Code conversation history
 aaa extract-conversations [-l limit] [-o file]
 ```
