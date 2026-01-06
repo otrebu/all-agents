@@ -254,6 +254,7 @@ Complete project setups organized by **artifact type** (not domain—stacks span
 ### api/
 
 - api-pnpm-tsx-fastify.md - Fastify API with tsx
+- api-pnpm-tsx-orpc.md - oRPC API with tsx (RPC + REST + OpenAPI)
 
 ### web/
 
