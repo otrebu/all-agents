@@ -85,6 +85,7 @@ export type RunMode = "fixed" | "interactive" | "unlimited";
  * Options for ralph run command
  */
 export interface RunOptions {
+  dangerousMode: boolean;
   iterationCount: number;
   mode: RunMode;
   prdPath: string;

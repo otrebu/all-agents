@@ -2,9 +2,8 @@ import * as p from "@clack/prompts";
 import log from "@lib/log";
 import { execa } from "execa";
 import { readFileSync } from "node:fs";
-import ora from "ora";
 
-import { buildPrompt, isCompleteSignal } from "./prompt";
+import { buildPrompt } from "./prompt";
 import {
   ClaudeError,
   type IterationResult,
@@ -20,14 +19,37 @@ const CLAUDE_TIMEOUT_MS = 600_000;
 /**
  * Execute a single Claude iteration
  */
-async function executeClaude(prompt: string): Promise<string> {
+async function executeClaude(
+  prompt: string,
+  isDangerousMode: boolean,
+): Promise<string> {
+  // --print (-p) = print and exit, prompt is positional argument at end
+  const args = isDangerousMode
+    ? [
+        "--dangerously-skip-permissions",
+        "--print",
+        "--output-format",
+        "text",
+        prompt,
+      ]
+    : [
+        "--permission-mode",
+        "acceptEdits",
+        "--print",
+        "--output-format",
+        "text",
+        prompt,
+      ];
+
   try {
-    const result = await execa(
-      "claude",
-      ["--permission-mode", "acceptEdits", prompt],
-      { stdio: "pipe", timeout: CLAUDE_TIMEOUT_MS },
-    );
-    return result.stdout;
+    // Use inherit for all stdio so Claude can use the terminal
+    await execa("claude", args, {
+      stdio: "inherit",
+      timeout: CLAUDE_TIMEOUT_MS,
+    });
+    // With inherit, stdout is not captured
+    // Completion detection checks PRD file instead
+    return "";
   } catch (error) {
     const execaError = error as { exitCode?: number; message?: string };
     throw new ClaudeError(
@@ -55,6 +77,18 @@ async function executeRalphRun(options: RunOptions): Promise<void> {
       log.error(`Unexpected error: ${error.message}`);
     }
     process.exit(1);
+  }
+}
+
+/**
+ * Check if all features in PRD are done
+ */
+function isPRDComplete(prdPath: string): boolean {
+  try {
+    const prd = loadPRD(prdPath);
+    return prd.features.every((f) => f.status === "done");
+  } catch {
+    return false;
   }
 }
 
@@ -137,7 +171,7 @@ async function promptInteractiveAction(
  */
 async function runFixedLoop(options: RunOptions): Promise<void> {
   for (let index = 1; index <= options.iterationCount; index += 1) {
-    const spinner = ora(`Iteration ${index}/${options.iterationCount}`).start();
+    log.header(`\n--- Iteration ${index}/${options.iterationCount} ---\n`);
 
     try {
       // Await in loop is intentional - iterations must run sequentially
@@ -145,17 +179,18 @@ async function runFixedLoop(options: RunOptions): Promise<void> {
       const result = await runSingleIteration(
         options.prdPath,
         options.progressPath,
+        options.dangerousMode,
       );
 
       if (result.completed) {
-        spinner.succeed(`Iteration ${index}: PRD complete!`);
-        log.success("\nAll features implemented.");
+        log.success(`\nIteration ${index}: PRD complete!`);
+        log.success("All features implemented.");
         return;
       }
 
-      spinner.succeed(`Iteration ${index} complete`);
+      log.success(`\nIteration ${index} complete`);
     } catch (error) {
-      spinner.fail(`Iteration ${index} failed`);
+      log.error(`\nIteration ${index} failed`);
       throw error;
     }
   }
@@ -174,7 +209,7 @@ async function runInteractiveLoop(options: RunOptions): Promise<void> {
     iteration += 1;
     const iterationLabel =
       maxIterations > 0 ? `${iteration}/${maxIterations}` : `${iteration}`;
-    const spinner = ora(`Iteration ${iterationLabel}`).start();
+    log.header(`\n--- Iteration ${iterationLabel} ---\n`);
 
     try {
       // Await in loop is intentional - iterations must run sequentially
@@ -182,17 +217,18 @@ async function runInteractiveLoop(options: RunOptions): Promise<void> {
       const result = await runSingleIteration(
         options.prdPath,
         options.progressPath,
+        options.dangerousMode,
       );
 
       if (result.completed) {
-        spinner.succeed(`Iteration ${iteration}: PRD complete!`);
-        log.success("\nAll features implemented.");
+        log.success(`\nIteration ${iteration}: PRD complete!`);
+        log.success("All features implemented.");
         return;
       }
 
-      spinner.succeed(`Iteration ${iteration} complete`);
+      log.success(`\nIteration ${iteration} complete`);
     } catch (error) {
-      spinner.fail(`Iteration ${iteration} failed`);
+      log.error(`\nIteration ${iteration} failed`);
       throw error;
     }
 
@@ -221,6 +257,9 @@ async function runRalph(options: RunOptions): Promise<void> {
   log.dim(`PRD: ${options.prdPath}`);
   log.dim(`Progress: ${options.progressPath}`);
   log.dim(`Mode: ${options.mode}`);
+  if (options.dangerousMode) {
+    log.warn("Dangerous mode: skipping all permission prompts");
+  }
   if (options.mode === "fixed") {
     log.dim(`Iterations: ${options.iterationCount}`);
   }
@@ -250,13 +289,15 @@ async function runRalph(options: RunOptions): Promise<void> {
 async function runSingleIteration(
   prdPath: string,
   progressPath: string,
+  isDangerousMode: boolean,
 ): Promise<IterationResult> {
   const prd = loadPRD(prdPath);
   const prompt = buildPrompt(prdPath, progressPath, prd);
 
-  const output = await executeClaude(prompt);
+  await executeClaude(prompt, isDangerousMode);
 
-  if (isCompleteSignal(output)) {
+  // Check if PRD is complete after Claude finishes
+  if (isPRDComplete(prdPath)) {
     return { completed: true };
   }
 
@@ -264,7 +305,7 @@ async function runSingleIteration(
 }
 
 /**
- * Run the iteration loop until <complete/> signal
+ * Run the iteration loop until PRD is complete
  */
 async function runUnlimitedLoop(options: RunOptions): Promise<void> {
   let iteration = 0;
@@ -272,7 +313,7 @@ async function runUnlimitedLoop(options: RunOptions): Promise<void> {
 
   while (!isComplete) {
     iteration += 1;
-    const spinner = ora(`Iteration ${iteration}`).start();
+    log.header(`\n--- Iteration ${iteration} ---\n`);
 
     try {
       // Await in loop is intentional - iterations must run sequentially
@@ -280,17 +321,18 @@ async function runUnlimitedLoop(options: RunOptions): Promise<void> {
       const result = await runSingleIteration(
         options.prdPath,
         options.progressPath,
+        options.dangerousMode,
       );
 
       if (result.completed) {
-        spinner.succeed(`Iteration ${iteration}: PRD complete!`);
-        log.success("\nAll features implemented.");
+        log.success(`\nIteration ${iteration}: PRD complete!`);
+        log.success("All features implemented.");
         isComplete = true;
       } else {
-        spinner.succeed(`Iteration ${iteration} complete`);
+        log.success(`\nIteration ${iteration} complete`);
       }
     } catch (error) {
-      spinner.fail(`Iteration ${iteration} failed`);
+      log.error(`\nIteration ${iteration} failed`);
       throw error;
     }
   }

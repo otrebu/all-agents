@@ -71,6 +71,7 @@ ralphCommand.addCommand(
     .option("--once", "Run single iteration")
     .option("--unlimited", "Run until <complete/> signal")
     .option("-i, --interactive", "Prompt after each iteration")
+    .option("--dangerous", "Skip all permission prompts (use with caution)")
     .action(async (options) => {
       const mode = resolveRunMode({
         interactive: options.interactive,
@@ -85,6 +86,7 @@ ralphCommand.addCommand(
       });
 
       await executeRalphRun({
+        dangerousMode: options.dangerous === true,
         iterationCount,
         mode,
         prdPath: options.prd,

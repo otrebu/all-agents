@@ -39,6 +39,10 @@ CONSTRAINTS:
 - NEVER mark "done" until ALL testSteps verified
 - If blocked, set status to "blocked" with blockedReason
 
+CRITICAL: After completing ONE feature, STOP IMMEDIATELY.
+Do NOT proceed to the next feature. Do NOT continue working.
+The harness will call you again for the next feature with fresh context.
+
 If all features are "done", output: <complete/>`;
 }
 
