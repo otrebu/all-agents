@@ -2,13 +2,11 @@ import * as p from "@clack/prompts";
 import log from "@lib/log";
 import { execSync } from "node:child_process";
 import {
-  appendFileSync,
   cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
   symlinkSync,
   unlinkSync,
 } from "node:fs";
@@ -115,7 +113,6 @@ async function setupProject(): Promise<void> {
   // Step 3: Setup context/
   const contextTarget = resolve(root, "context");
   const contextLink = resolve(cwd, "context");
-  const gitignorePath = resolve(cwd, ".gitignore");
 
   // Check existing state
   const existingSymlinkTarget = getSymlinkTarget(contextLink);
@@ -183,21 +180,6 @@ async function setupProject(): Promise<void> {
     if (isExistingSymlink) {
       unlinkSync(contextLink);
       log.info("Removed existing symlink");
-    }
-
-    // Add to .gitignore if not present
-    let gitignoreContent = "";
-    if (existsSync(gitignorePath)) {
-      gitignoreContent = readFileSync(gitignorePath, "utf8");
-    }
-
-    if (gitignoreContent.includes("context/")) {
-      log.info("context/ already in .gitignore");
-    } else {
-      log.info("Adding context/ to your .gitignore...");
-      const addition = "\n# Synced from all-agents\ncontext/\n";
-      appendFileSync(gitignorePath, addition);
-      log.success("Added context/ to .gitignore");
     }
 
     // Run first sync
