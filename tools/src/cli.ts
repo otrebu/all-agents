@@ -10,6 +10,7 @@ import extractConversationsCommand from "./commands/extract-conversations";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
+import ralphCommand from "./commands/ralph/index";
 import setupCommand from "./commands/setup/index";
 import createStoryCommand from "./commands/story";
 import runSyncContextCli from "./commands/sync-context";
@@ -182,5 +183,8 @@ storyCommand.addCommand(
 );
 
 program.addCommand(storyCommand);
+
+// Ralph - PRD-driven iterative Claude harness
+program.addCommand(ralphCommand);
 
 program.parse();
