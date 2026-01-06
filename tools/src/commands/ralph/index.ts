@@ -1,97 +1,90 @@
 import { Command } from "@commander-js/extra-typings";
+import { getContextRoot } from "@tools/utils/paths";
+import { execSync } from "node:child_process";
+import { existsSync, writeFileSync } from "node:fs";
+import path from "node:path";
 
-import type { RunMode } from "./types";
-
-import executeRalphInit from "./init";
-import { executeRalphRun } from "./runner";
-
-const DEFAULT_PRD_PATH = "docs/planning/prd.json";
-const DEFAULT_PROGRESS_PATH = "docs/planning/progress.md";
+const DEFAULT_PRD_PATH = "prd.json";
+const DEFAULT_PROGRESS_PATH = "progress.md";
 const DEFAULT_ITERATIONS = 5;
 
-/**
- * Determine iteration count from CLI flags
- */
-function resolveIterationCount(options: {
-  iterations?: number;
-  once?: boolean;
-  unlimited?: boolean;
-}): number {
-  // Zero means no iteration limit
-  if (options.unlimited === true) {
-    return 0;
-  }
-  if (options.once === true) {
-    return 1;
-  }
-  return options.iterations ?? DEFAULT_ITERATIONS;
-}
+// Scripts live in repo, resolved from root (works for both dev and compiled binary)
+const SCRIPTS_DIR = path.join(
+  getContextRoot(),
+  "tools/src/commands/ralph/scripts",
+);
 
-/**
- * Determine run mode from CLI flags.
- * Mode selection follows: unlimited > interactive > fixed (default)
- */
-function resolveRunMode(options: {
-  interactive?: boolean;
-  once?: boolean;
-  unlimited?: boolean;
-}): RunMode {
-  if (options.unlimited === true) {
-    return "unlimited";
-  }
-  if (options.interactive === true) {
-    return "interactive";
-  }
-  return "fixed";
-}
+const PRD_TEMPLATE = `{
+  "name": "My Project",
+  "testCommand": "bun test",
+  "features": [
+    {
+      "id": "feature-1",
+      "description": "First feature to implement",
+      "status": "pending",
+      "testSteps": ["Verify X works", "Check Y behavior"]
+    }
+  ]
+}`;
 
 const ralphCommand = new Command("ralph").description(
   "PRD-driven iterative Claude harness",
 );
 
-// ralph init
+// ralph init - create template PRD
 ralphCommand.addCommand(
   new Command("init")
-    .description("Create a new PRD interactively")
-    .option("--prd <path>", "PRD file path", DEFAULT_PRD_PATH)
-    .action(async (options) => {
-      await executeRalphInit({ prdPath: options.prd });
+    .description("Create a template PRD file")
+    .option("-o, --output <path>", "Output path", DEFAULT_PRD_PATH)
+    .action((options) => {
+      if (existsSync(options.output)) {
+        console.error(`PRD already exists: ${options.output}`);
+        process.exit(1);
+      }
+      writeFileSync(options.output, PRD_TEMPLATE);
+      console.log(`Created ${options.output}`);
     }),
 );
 
-// ralph run
+// ralph run - execute iterations
 ralphCommand.addCommand(
   new Command("run")
     .description("Run iterations to implement PRD features")
+    .argument(
+      "[iterations]",
+      "Number of iterations",
+      String(DEFAULT_ITERATIONS),
+    )
     .option("--prd <path>", "PRD file path", DEFAULT_PRD_PATH)
     .option("--progress <path>", "Progress file path", DEFAULT_PROGRESS_PATH)
-    .option("-n, --iterations <count>", "Number of iterations", (v) =>
-      Number.parseInt(v, 10),
-    )
-    .option("--once", "Run single iteration")
-    .option("--unlimited", "Run until <complete/> signal")
+    .option("--unlimited", "Run until PRD complete")
     .option("-i, --interactive", "Prompt after each iteration")
-    .option("--dangerous", "Skip all permission prompts (use with caution)")
-    .action(async (options) => {
-      const mode = resolveRunMode({
-        interactive: options.interactive,
-        once: options.once,
-        unlimited: options.unlimited,
-      });
+    .option("--dangerous", "Skip all permission prompts")
+    .action((iterations, options) => {
+      // Validate PRD exists
+      if (!existsSync(options.prd)) {
+        console.error(`PRD not found: ${options.prd}`);
+        process.exit(1);
+      }
 
-      const iterationCount = resolveIterationCount({
-        iterations: options.iterations,
-        once: options.once,
-        unlimited: options.unlimited,
-      });
+      // Select script based on mode
+      let script = "ralph.sh";
+      if (options.unlimited) script = "ralph-unlimited.sh";
+      if (options.interactive) script = "ralph-interactive.sh";
 
-      await executeRalphRun({
-        dangerousMode: options.dangerous === true,
-        iterationCount,
-        mode,
-        prdPath: options.prd,
-        progressPath: options.progress,
-      });
+      const scriptPath = path.join(SCRIPTS_DIR, script);
+      const permFlag = options.dangerous
+        ? "--dangerously-skip-permissions"
+        : "--permission-mode acceptEdits";
+
+      try {
+        execSync(
+          `bash "${scriptPath}" "${iterations}" "${options.prd}" "${options.progress}" "${permFlag}"`,
+          { stdio: "inherit" },
+        );
+      } catch {
+        process.exit(1);
+      }
     }),
 );
 

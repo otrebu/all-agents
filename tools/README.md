@@ -83,8 +83,8 @@ aaa story create "As a user, I want to login"
 | `story create <description>` | Create auto-numbered story file (NNN-name.md)                              | `docs/planning/stories/`   |
 | `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                  | -                          |
 | `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                 | -                          |
-| `ralph init`                 | Create PRD interactively (wizard)                                          | `docs/planning/prd.json`   |
-| `ralph run`                  | Run Claude iteratively through PRD features                                | `docs/planning/`           |
+| `ralph init`                 | Create template PRD file                                                   | `prd.json`                 |
+| `ralph run`                  | Run Claude iteratively through PRD features                                | Current directory          |
 
 ### Command Examples
 
@@ -268,39 +268,56 @@ Files are auto-numbered incrementally (001, 002, 003...).
 PRD-driven iterative Claude harness. Implements features from a Product Requirements Document one at a time.
 
 ```bash
-# Create a new PRD interactively
+# Create a template PRD file
 aaa ralph init
+aaa ralph init --output ./my-prd.json
 
 # Run 5 iterations (default)
 aaa ralph run
 
 # Run specific number of iterations
-aaa ralph run --iterations 10
-
-# Single iteration
-aaa ralph run --once
+aaa ralph run 10
 
 # Run until all features complete
 aaa ralph run --unlimited
 
-# Human approval after each iteration
+# Human approval after each iteration (y/n/diff/prd/log)
 aaa ralph run --interactive
 
 # Custom PRD/progress paths
 aaa ralph run --prd ./my-prd.json --progress ./my-progress.md
+
+# Skip permission prompts (use with caution)
+aaa ralph run --dangerous
 ```
 
 **Run Modes:**
 
-| Flag            | Behavior                                 |
-| --------------- | ---------------------------------------- |
-| (default)       | Run 5 iterations, then stop              |
-| `--iterations`  | Run N iterations, then stop              |
-| `--once`        | Run 1 iteration only                     |
-| `--unlimited`   | Loop until `<complete/>` signal          |
-| `--interactive` | Prompt for approval after each iteration |
+| Flag            | Behavior                                             |
+| --------------- | ---------------------------------------------------- |
+| (default)       | Run 5 iterations, then stop                          |
+| `[iterations]`  | Run N iterations (positional arg)                    |
+| `--unlimited`   | Loop until `<complete/>` signal                      |
+| `--interactive` | Prompt after each iteration (y/n/d=diff/p=prd/g=log) |
 
-**Combinations:** `--unlimited --interactive` = Human-in-the-loop until done
+**PRD Format:**
+
+```json
+{
+  "name": "My Project",
+  "testCommand": "bun test",
+  "features": [
+    {
+      "id": "feature-1",
+      "description": "First feature",
+      "status": "pending",
+      "testSteps": ["Verify X works", "Check Y"]
+    }
+  ]
+}
+```
+
+Claude will implement one feature per iteration, update status to `done`, and output `<complete/>` when all features are complete.
 
 ## Configuration
 
@@ -417,6 +434,9 @@ tools/
 │   │   ├── github/
 │   │   ├── gemini/
 │   │   ├── parallel-search/
+│   │   ├── ralph/          # PRD-driven Claude harness
+│   │   │   ├── index.ts    # CLI command
+│   │   │   └── scripts/    # Bash iteration loops
 │   │   ├── setup/
 │   │   ├── story.ts
 │   │   ├── task.ts
