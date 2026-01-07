@@ -99,7 +99,7 @@ echo "$TASKS" >> "$PROMPT_FILE"
 echo "Calling Claude to explode tasks into granular features..."
 
 # Call Claude with tools disabled for pure text output
-claude -p --tools "" - < "$PROMPT_FILE" > "$RESULT_FILE" 2>&1
+claude -p --tools '' - < "$PROMPT_FILE" > "$RESULT_FILE" 2>&1
 
 # Read result
 RESULT=$(cat "$RESULT_FILE")

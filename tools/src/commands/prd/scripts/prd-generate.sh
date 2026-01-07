@@ -63,7 +63,7 @@ echo "Calling Claude..."
 # - --tools "" : Disable tools so Claude just outputs text (key fix!)
 # - File redirect < instead of pipe | (better for large input)
 # - Output to file > (avoids $() capture issues)
-claude -p --tools "" - < "$PROMPT_FILE" > "$RESULT_FILE" 2>&1
+claude -p --tools '' - < "$PROMPT_FILE" > "$RESULT_FILE" 2>&1
 
 # Read result
 RESULT=$(cat "$RESULT_FILE")
