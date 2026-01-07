@@ -10,6 +10,7 @@ import {
   symlinkSync,
   unlinkSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 
 import { syncContext } from "../sync-context";
@@ -273,6 +274,20 @@ async function setupUser(): Promise<void> {
 
   // Step 5: CLAUDE_CONFIG_DIR
   await handleClaudeConfigDirectory();
+
+  // Step 6: Setup statusline
+  const userClaudeDirectory = resolve(homedir(), ".claude");
+  const statuslineSource = resolve(root, ".claude/scripts/statusline.sh");
+  const statuslineDestination = resolve(userClaudeDirectory, "statusline.sh");
+
+  if (!existsSync(userClaudeDirectory)) {
+    mkdirSync(userClaudeDirectory, { recursive: true });
+    log.info("Created ~/.claude");
+  }
+
+  cpSync(statuslineSource, statuslineDestination);
+  execSync(`chmod +x "${statuslineDestination}"`);
+  log.success("Copied statusline.sh to ~/.claude/");
 
   p.outro("User setup complete");
 }
