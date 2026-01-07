@@ -27,7 +27,7 @@ prdCommand.addCommand(
       if (options.dir !== undefined && options.dir !== "") {
         tasksDirectory = options.dir.startsWith("/")
           ? options.dir
-          : join(root, options.dir);
+          : join(process.cwd(), options.dir);
       }
 
       const output = options.output ?? DEFAULT_OUTPUT;
@@ -66,7 +66,7 @@ prdCommand.addCommand(
       if (options.dir !== undefined && options.dir !== "") {
         tasksDirectory = options.dir.startsWith("/")
           ? options.dir
-          : join(root, options.dir);
+          : join(process.cwd(), options.dir);
       }
 
       const output = options.output ?? DEFAULT_OUTPUT;
