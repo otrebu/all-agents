@@ -31,7 +31,7 @@ Output <complete/> ONLY if ALL features have passes: true."
 for ((i=1; i<=ITERATIONS; i++)); do
   echo "--- Iteration $i/$ITERATIONS ---"
 
-  result=$(claude $PERM_FLAG -p "$PROMPT" "@${PRD}" "@${PROGRESS}")
+  result=$(claude $PERM_FLAG -p "$PROMPT" "@${PRD}" "@${PROGRESS}" | tee /dev/stderr)
 
   if [[ "$result" == *"<complete/>"* ]]; then
     echo "PRD complete!"

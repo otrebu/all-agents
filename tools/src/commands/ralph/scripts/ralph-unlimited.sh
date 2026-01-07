@@ -31,7 +31,7 @@ i=1
 while true; do
   echo "--- Iteration $i (unlimited) ---"
 
-  result=$(claude $PERM_FLAG -p "$PROMPT" "@${PRD}" "@${PROGRESS}")
+  result=$(claude $PERM_FLAG -p "$PROMPT" "@${PRD}" "@${PROGRESS}" | tee /dev/stderr)
 
   if [[ "$result" == *"<complete/>"* ]]; then
     echo "PRD complete!"
