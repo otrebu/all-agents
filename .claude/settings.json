@@ -189,7 +189,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "/Users/Uberto.Rapizzi/.claude/statusline-command.sh"
+    "command": "./.claude/scripts/statusline.sh"
   },
   "enabledPlugins": {
     "feature-dev@claude-code-plugins": true,
