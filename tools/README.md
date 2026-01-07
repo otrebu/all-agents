@@ -83,7 +83,8 @@ aaa story create "As a user, I want to login"
 | `story create <description>` | Create auto-numbered story file (NNN-name.md)                              | `docs/planning/stories/`   |
 | `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                  | -                          |
 | `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                 | -                          |
-| `prd generate`               | Generate PRD JSON from task markdown files                                 | `prd.json`                 |
+| `prd generate`               | Generate PRD JSON from task markdown files (1:1 mapping)                   | `prd.json`                 |
+| `prd explode`                | Explode tasks into granular PRD features (1 task → 10-30 features)         | `prd.json`                 |
 | `ralph init`                 | Create template PRD file                                                   | `prd.json`                 |
 | `ralph run`                  | Run Claude iteratively through PRD features                                | Current directory          |
 
@@ -291,6 +292,55 @@ aaa prd generate -d /path/to/tasks -o ./output/prd.json
 
 **Output:** JSON array of features with `id`, `category`, `description`, `steps` (verification actions), and `passes: false`.
 
+#### prd explode
+
+Explode task files into granular PRD features. Based on Anthropic's effective harnesses research, each task should produce 10-30 atomic, independently verifiable features.
+
+```bash
+# Explode tasks from default location (docs/planning/tasks/)
+aaa prd explode
+
+# Custom tasks directory
+aaa prd explode -d /path/to/project/docs/planning/tasks
+
+# Custom output file
+aaa prd explode -o features.json
+```
+
+**Options:**
+
+- `-d, --dir <path>` - Tasks directory (default: `docs/planning/tasks`)
+- `-o, --output <path>` - Output file (default: `prd.json`)
+
+**Output format:**
+
+```json
+[
+  {
+    "id": "003-import-service-01",
+    "sourceTask": "003-import-service",
+    "category": "validation",
+    "description": "Duplicate import with same filename+period is skipped",
+    "steps": [
+      "Import XML file for period 2024-01",
+      "Import same XML file again",
+      "Verify second import returns skipped status",
+      "Verify no duplicate records created"
+    ],
+    "passes": false
+  }
+]
+```
+
+**Key differences from `prd generate`:**
+
+| Aspect      | `prd generate`     | `prd explode`              |
+| ----------- | ------------------ | -------------------------- |
+| Mapping     | 1 task → 1 feature | 1 task → 10-30 features    |
+| Granularity | Task-level         | Atomic, testable behaviors |
+| Lineage     | No tracking        | `sourceTask` field         |
+| Use case    | Quick PRD          | Production agent harness   |
+
 #### ralph
 
 PRD-driven iterative Claude harness. Implements features from a Product Requirements Document one at a time.
@@ -357,8 +407,9 @@ Claude implements one feature per iteration, sets `passes: true` when verified, 
 aaa task create "User authentication"
 aaa task create "Password reset"
 
-# 2. Generate PRD from tasks
-aaa prd generate
+# 2. Generate PRD from tasks (choose one)
+aaa prd generate  # 1:1 mapping (quick)
+aaa prd explode   # 1:N granular features (recommended for production)
 
 # 3. Run Claude through features
 aaa ralph run --interactive
@@ -481,7 +532,7 @@ tools/
 │   │   ├── parallel-search/
 │   │   ├── prd/            # PRD generation from tasks
 │   │   │   ├── index.ts    # CLI command wrapper
-│   │   │   └── scripts/    # prd-generate.sh
+│   │   │   └── scripts/    # prd-generate.sh, prd-explode.sh
 │   │   ├── ralph/          # PRD-driven Claude harness
 │   │   │   ├── index.ts    # CLI command
 │   │   │   └── scripts/    # Bash iteration loops
