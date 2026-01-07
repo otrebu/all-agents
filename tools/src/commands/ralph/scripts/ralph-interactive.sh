@@ -12,17 +12,20 @@ PROMPT="You are implementing features from a PRD.
 
 Read @${PRD} for features and @${PROGRESS} for history.
 
+PRD FORMAT: Array of features with { id, category, description, steps, passes }
+- passes: false = not implemented, true = verified working
+
 WORKFLOW:
-1. Find highest-priority pending feature (or in_progress if any)
-2. Implement ONLY that single feature
-3. Run the testCommand from PRD
-4. Update PRD: set status to 'done' only if tests pass
+1. Find first feature with passes: false
+2. Implement ONLY that single feature based on description
+3. Verify using the steps (these are verification/test steps)
+4. Update PRD: set passes to true only if ALL steps verify
 5. Append to progress file: date, feature id, what changed
 6. Commit: git commit -m 'feat(id): description'
 
 CRITICAL: After completing ONE feature, STOP IMMEDIATELY.
 Do NOT continue to the next feature.
-Output <complete/> ONLY if ALL features have status 'done'."
+Output <complete/> ONLY if ALL features have passes: true."
 
 i=1
 while true; do

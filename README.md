@@ -119,9 +119,9 @@ Install the `at-ref` extension (search for `otrebu.at-ref` in marketplace) to en
 Install the CLI globally to validate references across many files:
 
 ```bash
-npm install -g @otrebu/at-ref
+npm install -g @u-b/at-ref
 # or
-pnpm add -g @otrebu/at-ref
+pnpm add -g @u-b/at-ref
 ```
 
 Verify all references in your project:
@@ -150,11 +150,11 @@ at-ref compile context/stacks/api/rest-fastify.md -o dist/api-guide.md
 
 Documentation that composes like code. Three layers:
 
-| Layer           | Purpose                                   |
-| --------------- | ----------------------------------------- |
-| **Blocks**      | Single units of knowledge (tool-centric)  |
-| **Foundations** | Capabilities (how blocks compose)         |
-| **Stacks**      | Complete project setups                   |
+| Layer           | Purpose                                  |
+| --------------- | ---------------------------------------- |
+| **Blocks**      | Single units of knowledge (tool-centric) |
+| **Foundations** | Capabilities (how blocks compose)        |
+| **Stacks**      | Complete project setups                  |
 
 **Example:** `tools/CLAUDE.md` references `@context/stacks/cli/cli-bun.md` for CLI development context.
 

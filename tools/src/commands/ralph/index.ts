@@ -14,18 +14,18 @@ const SCRIPTS_DIR = path.join(
   "tools/src/commands/ralph/scripts",
 );
 
-const PRD_TEMPLATE = `{
-  "name": "My Project",
-  "testCommand": "bun test",
-  "features": [
-    {
-      "id": "feature-1",
-      "description": "First feature to implement",
-      "status": "pending",
-      "testSteps": ["Verify X works", "Check Y behavior"]
-    }
-  ]
-}`;
+const PRD_TEMPLATE = `[
+  {
+    "id": "001-example-feature",
+    "category": "functional",
+    "description": "First feature to implement - describe what it should do",
+    "steps": [
+      "Verify the feature works as expected",
+      "Check edge case behavior"
+    ],
+    "passes": false
+  }
+]`;
 
 const ralphCommand = new Command("ralph").description(
   "PRD-driven iterative Claude harness",

@@ -83,6 +83,7 @@ aaa story create "As a user, I want to login"
 | `story create <description>` | Create auto-numbered story file (NNN-name.md)                              | `docs/planning/stories/`   |
 | `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                  | -                          |
 | `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                 | -                          |
+| `prd generate`               | Generate PRD JSON from task markdown files                                 | `prd.json`                 |
 | `ralph init`                 | Create template PRD file                                                   | `prd.json`                 |
 | `ralph run`                  | Run Claude iteratively through PRD features                                | Current directory          |
 
@@ -263,6 +264,33 @@ Files are auto-numbered incrementally (001, 002, 003...).
 - `-d, --dir <path>` - Custom tasks directory (default: `docs/planning/tasks`)
 - `-s, --story <number>` - Link task to story by number (e.g., `001` or `1`)
 
+#### prd generate
+
+Generate a PRD (Product Requirements Document) JSON file from task markdown files. Uses Claude to transform task files into Matt Pocock's PRD format for use with `ralph run`.
+
+```bash
+# Generate PRD from default location (docs/planning/tasks/)
+aaa prd generate
+
+# Custom tasks directory
+aaa prd generate -d ./my-project/tasks
+
+# Custom output file
+aaa prd generate -o my-prd.json
+
+# Both custom
+aaa prd generate -d /path/to/tasks -o ./output/prd.json
+```
+
+**Options:**
+
+- `-d, --dir <path>` - Tasks directory (default: `docs/planning/tasks`)
+- `-o, --output <path>` - Output file (default: `prd.json`)
+
+**Task file format:** Standard markdown with `## Task:`, `### Goal`, `### Acceptance Criteria`, `### Test Plan` sections.
+
+**Output:** JSON array of features with `id`, `category`, `description`, `steps` (verification actions), and `passes: false`.
+
 #### ralph
 
 PRD-driven iterative Claude harness. Implements features from a Product Requirements Document one at a time.
@@ -303,21 +331,38 @@ aaa ralph run --dangerous
 **PRD Format:**
 
 ```json
-{
-  "name": "My Project",
-  "testCommand": "bun test",
-  "features": [
-    {
-      "id": "feature-1",
-      "description": "First feature",
-      "status": "pending",
-      "testSteps": ["Verify X works", "Check Y"]
-    }
-  ]
-}
+[
+  {
+    "id": "001-feature-name",
+    "category": "functional",
+    "description": "What this feature should do",
+    "steps": ["Verify X works", "Check Y behavior"],
+    "passes": false
+  }
+]
 ```
 
-Claude will implement one feature per iteration, update status to `done`, and output `<complete/>` when all features are complete.
+- `id`: Feature identifier (from task filename)
+- `category`: functional/backend/frontend/ui/validation/error-handling
+- `description`: What to implement (from Goal + Context)
+- `steps`: Verification actions (from Acceptance Criteria + Test Plan)
+- `passes`: `false` = not implemented, `true` = verified working
+
+Claude implements one feature per iteration, sets `passes: true` when verified, and outputs `<complete/>` when all features pass.
+
+**Workflow:**
+
+```bash
+# 1. Create task files in docs/planning/tasks/
+aaa task create "User authentication"
+aaa task create "Password reset"
+
+# 2. Generate PRD from tasks
+aaa prd generate
+
+# 3. Run Claude through features
+aaa ralph run --interactive
+```
 
 ## Configuration
 
@@ -434,6 +479,9 @@ tools/
 │   │   ├── github/
 │   │   ├── gemini/
 │   │   ├── parallel-search/
+│   │   ├── prd/            # PRD generation from tasks
+│   │   │   ├── index.ts    # CLI command wrapper
+│   │   │   └── scripts/    # prd-generate.sh
 │   │   ├── ralph/          # PRD-driven Claude harness
 │   │   │   ├── index.ts    # CLI command
 │   │   │   └── scripts/    # Bash iteration loops

@@ -128,9 +128,15 @@ flowchart TD
 
 **Vision:** Iterable loop with verification. Until it errors, keep trying.
 
-| Type | Name         | Vision Item                 | Status    |
-| ---- | ------------ | --------------------------- | --------- |
-| CLI  | `aaa ralph`  | PRD-driven iterative Claude | ✅ stable |
+| Type | Name              | Vision Item                 | Status    |
+| ---- | ----------------- | --------------------------- | --------- |
+| CLI  | `aaa prd generate`| Generate PRD from tasks     | ✅ stable |
+| CLI  | `aaa ralph`       | PRD-driven iterative Claude | ✅ stable |
+
+**PRD Generator** - Transform task markdown files into PRD JSON:
+- `aaa prd generate` - Generate PRD from `docs/planning/tasks/*.md`
+- Uses Claude with `--tools ""` for reliable text output
+- Outputs Matt Pocock's format: `{id, category, description, steps, passes}`
 
 **Ralph** - PRD-driven iterative development harness:
 - `aaa ralph init` - Interactive wizard to create PRD
@@ -334,11 +340,12 @@ flowchart TD
 
 ### 5. Fix Code
 
-| Item                       | Status    | Implementation | Notes                                  |
-| -------------------------- | --------- | -------------- | -------------------------------------- |
-| PRD-driven iterative loop  | ✅ stable | `aaa ralph`    | Init wizard + run modes                |
-| Iterative fix loop         | ✅ stable | `aaa ralph`    | `--unlimited` mode                     |
-| Human-in-the-loop          | ✅ stable | `aaa ralph`    | `--interactive` mode                   |
+| Item                       | Status    | Implementation     | Notes                                  |
+| -------------------------- | --------- | ------------------ | -------------------------------------- |
+| PRD generation from tasks  | ✅ stable | `aaa prd generate` | Claude transforms tasks → PRD JSON     |
+| PRD-driven iterative loop  | ✅ stable | `aaa ralph`        | Init wizard + run modes                |
+| Iterative fix loop         | ✅ stable | `aaa ralph`        | `--unlimited` mode                     |
+| Human-in-the-loop          | ✅ stable | `aaa ralph`        | `--interactive` mode                   |
 
 ### 6. Refactor Code
 
@@ -431,11 +438,12 @@ flowchart TD
 
 ### Summary by Status
 
-#### ✅ STABLE (10 items)
+#### ✅ STABLE (11 items)
 
 - `aaa setup`
 - `aaa extract-conversations`
 - `aaa task create` / `aaa story create`
+- `aaa prd generate` - Generate PRD from task files
 - `aaa ralph` - PRD-driven iterative Claude harness
 - Coding standards docs
 - ESLint pre-commit
@@ -489,11 +497,12 @@ flowchart TD
 | `aaa gh-search`             | GitHub code search             | `/gh-search` cmd                        |
 | `aaa gemini-research`       | Gemini CLI research            | `/gemini-research` cmd, agent           |
 | `aaa parallel-search`       | Parallel web search            | `/parallel-search` cmd, agent           |
+| `aaa prd generate`          | Generate PRD from task files   | -                                       |
+| `aaa ralph`                 | PRD-driven iterative Claude    | -                                       |
 | `aaa setup`                 | Claude Code config             | -                                       |
 | `aaa sync-context`          | Sync context to projects       | -                                       |
 | `aaa task create`           | Create task planning files     | `/create-task` cmd, `task-create` skill |
 | `aaa story create`          | Create story planning files    | `story-create` skill                    |
-| `aaa ralph`                 | PRD-driven iterative Claude    | -                                       |
 | `aaa uninstall`             | Remove CLI/project integration | -                                       |
 
 ### Commands (20)
