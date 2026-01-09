@@ -1,6 +1,6 @@
+import { runCommand } from "@lib/spawn";
 import { getContextRoot } from "@tools/utils/paths";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { execa } from "execa";
 import {
   existsSync,
   mkdirSync,
@@ -33,9 +33,8 @@ describe("story E2E", () => {
 
   // Help and basic CLI
   test("story --help shows usage", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "story", "--help"],
+    const { exitCode, stdout } = await runCommand(
+      ["bun", "run", "dev", "story", "--help"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
@@ -43,9 +42,8 @@ describe("story E2E", () => {
   });
 
   test("story create --help shows --dir option", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "story", "create", "--help"],
+    const { exitCode, stdout } = await runCommand(
+      ["bun", "run", "dev", "story", "create", "--help"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
@@ -54,10 +52,9 @@ describe("story E2E", () => {
   });
 
   test("story create requires name argument", async () => {
-    const { exitCode, stderr } = await execa(
-      "bun",
-      ["run", "dev", "story", "create"],
-      { cwd: TOOLS_DIR, reject: false },
+    const { exitCode, stderr } = await runCommand(
+      ["bun", "run", "dev", "story", "create"],
+      { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("missing required argument");
@@ -65,9 +62,9 @@ describe("story E2E", () => {
 
   // Core functionality
   test("create: first story in empty dir is 001", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "story",
@@ -76,7 +73,7 @@ describe("story E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -90,9 +87,9 @@ describe("story E2E", () => {
   test("create: increments from existing story", async () => {
     writeFileSync(join(temporaryDirectory, "001-existing-story.md"), "");
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "story",
@@ -101,7 +98,7 @@ describe("story E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -116,9 +113,9 @@ describe("story E2E", () => {
     writeFileSync(join(temporaryDirectory, "001-first.md"), "");
     writeFileSync(join(temporaryDirectory, "005-fifth.md"), "");
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "story",
@@ -127,7 +124,7 @@ describe("story E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -139,9 +136,9 @@ describe("story E2E", () => {
     writeFileSync(join(temporaryDirectory, "notes.txt"), "");
     writeFileSync(join(temporaryDirectory, "random-file.md"), "");
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "story",
@@ -150,7 +147,7 @@ describe("story E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -165,9 +162,9 @@ describe("story E2E", () => {
       "here",
     );
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "story",
@@ -176,7 +173,7 @@ describe("story E2E", () => {
         "--dir",
         nestedDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -188,9 +185,9 @@ describe("story E2E", () => {
   });
 
   test("create: outputs full filepath to stdout", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "story",
@@ -199,7 +196,7 @@ describe("story E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -208,19 +205,43 @@ describe("story E2E", () => {
   });
 
   test("create: handles multiple sequential creates", async () => {
-    await execa(
-      "bun",
-      ["run", "dev", "story", "create", "story-a", "--dir", temporaryDirectory],
+    await runCommand(
+      [
+        "bun",
+        "run",
+        "dev",
+        "story",
+        "create",
+        "story-a",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR },
     );
-    await execa(
-      "bun",
-      ["run", "dev", "story", "create", "story-b", "--dir", temporaryDirectory],
+    await runCommand(
+      [
+        "bun",
+        "run",
+        "dev",
+        "story",
+        "create",
+        "story-b",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR },
     );
-    const { stdout } = await execa(
-      "bun",
-      ["run", "dev", "story", "create", "story-c", "--dir", temporaryDirectory],
+    const { stdout } = await runCommand(
+      [
+        "bun",
+        "run",
+        "dev",
+        "story",
+        "create",
+        "story-c",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR },
     );
 
@@ -235,9 +256,9 @@ describe("story E2E", () => {
   });
 
   test("create: file contains template with story name", async () => {
-    const { stdout } = await execa(
-      "bun",
+    const { stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "story",

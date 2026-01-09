@@ -1,3 +1,4 @@
+import { runCommand } from "@lib/spawn";
 import { getOutputDir } from "@tools/utils/paths";
 import {
   afterAll,
@@ -7,7 +8,6 @@ import {
   expect,
   test,
 } from "bun:test";
-import { execa } from "execa";
 import { glob } from "glob";
 import { rmSync, statSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
@@ -24,8 +24,8 @@ async function checkGitHubAuth(): Promise<boolean> {
   if (hasEnvToken) return true;
 
   try {
-    await execa`gh auth status`;
-    return true;
+    const { exitCode } = await runCommand(["gh", "auth", "status"]);
+    return exitCode === 0;
   } catch {
     return false;
   }
@@ -83,11 +83,13 @@ describe("gh-search E2E", () => {
     "completes search and creates valid files",
     async () => {
       const query = "useState hook example";
-      const { exitCode, stdout } = await execa(
+      const { exitCode, stdout } = await runCommand([
         "bun",
-        ["run", "dev", "gh-search", query],
-        { reject: false },
-      );
+        "run",
+        "dev",
+        "gh-search",
+        query,
+      ]);
 
       expect(exitCode).toBe(0);
 
@@ -147,11 +149,13 @@ describe("gh-search E2E", () => {
     "handles no results gracefully",
     async () => {
       const query = "a1b2c3d4e5f6789012345678901234567890abcdef";
-      const { exitCode, stdout } = await execa(
+      const { exitCode, stdout } = await runCommand([
         "bun",
-        ["run", "dev", "gh-search", query],
-        { reject: false },
-      );
+        "run",
+        "dev",
+        "gh-search",
+        query,
+      ]);
 
       expect(exitCode).toBe(0);
       const hasNoResults =

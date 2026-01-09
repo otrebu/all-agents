@@ -8,8 +8,7 @@
         "version": "1.0.0",
         "installedAt": "2025-12-03T06:56:03.242Z",
         "lastUpdated": "2025-12-09T13:33:03.103Z",
-        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1",
-        "isLocal": true
+        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1"
       }
     ],
     "frontend-design@claude-code-plugins": [
@@ -19,8 +18,7 @@
         "version": "1.0.0",
         "installedAt": "2025-12-03T06:56:03.242Z",
         "lastUpdated": "2025-12-09T13:33:03.103Z",
-        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1",
-        "isLocal": true
+        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1"
       }
     ],
     "hookify@claude-code-plugins": [
@@ -30,8 +28,17 @@
         "version": "0.1.0",
         "installedAt": "2025-12-03T06:56:03.242Z",
         "lastUpdated": "2025-12-09T13:33:03.103Z",
-        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1",
-        "isLocal": true
+        "gitCommitSha": "4928f2cdcac40e7e684f5102e3818513e70eb8a1"
+      }
+    ],
+    "ralph-wiggum@claude-code-plugins": [
+      {
+        "scope": "user",
+        "installPath": "/Users/Uberto.Rapizzi/dev/all-agents/.claude/plugins/cache/claude-code-plugins/ralph-wiggum/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-01-08T08:09:35.204Z",
+        "lastUpdated": "2026-01-08T08:09:35.204Z",
+        "gitCommitSha": "f4b49e6c8646a0167eb5741360dee910e3853683"
       }
     ]
   }

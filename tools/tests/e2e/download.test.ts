@@ -1,6 +1,6 @@
+import { runCommand } from "@lib/spawn";
 import { getContextRoot } from "@tools/utils/paths";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { execa } from "execa";
 import {
   existsSync,
   mkdirSync,
@@ -31,9 +31,8 @@ describe("download E2E", () => {
   });
 
   test("download --help shows usage", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "download", "--help"],
+    const { exitCode, stdout } = await runCommand(
+      ["bun", "run", "dev", "download", "--help"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
@@ -42,29 +41,27 @@ describe("download E2E", () => {
   });
 
   test("download requires at least one URL", async () => {
-    const { exitCode, stderr } = await execa(
-      "bun",
-      ["run", "dev", "download"],
-      { cwd: TOOLS_DIR, reject: false },
+    const { exitCode, stderr } = await runCommand(
+      ["bun", "run", "dev", "download"],
+      { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("missing required argument");
   });
 
   test("download rejects invalid URL", async () => {
-    const { exitCode, stderr } = await execa(
-      "bun",
-      ["run", "dev", "download", "not-a-url"],
-      { cwd: TOOLS_DIR, reject: false },
+    const { exitCode, stderr } = await runCommand(
+      ["bun", "run", "dev", "download", "not-a-url"],
+      { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Invalid URL");
   });
 
   test("download fetches and saves content", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "download",
@@ -72,7 +69,7 @@ describe("download E2E", () => {
         "-d",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -81,9 +78,9 @@ describe("download E2E", () => {
   });
 
   test("download with custom output name", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "download",
@@ -93,7 +90,7 @@ describe("download E2E", () => {
         "-d",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -101,9 +98,9 @@ describe("download E2E", () => {
   });
 
   test("download multiple URLs concatenates content", async () => {
-    const { exitCode } = await execa(
-      "bun",
+    const { exitCode } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "download",
@@ -114,7 +111,7 @@ describe("download E2E", () => {
         "-d",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);

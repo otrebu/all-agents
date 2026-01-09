@@ -2,9 +2,9 @@
 
 import log from "@lib/log";
 import { saveResearchOutput } from "@lib/research";
+import { runCommand } from "@lib/spawn";
 import { debug, env } from "@tools/env";
 import { getOutputDir } from "@tools/utils/paths";
-import { execa } from "execa";
 import { readFile, writeFile } from "node:fs/promises";
 import ora from "ora";
 
@@ -222,18 +222,20 @@ async function performGeminiSearch(
   const spinner = ora(`Searching (${mode} mode): ${query}`).start();
 
   // Execute Gemini CLI
-  let stdout = "";
-  try {
-    const result = await execa({
-      env: { PATH: env.PATH },
-      preferLocal: true,
-    })`gemini -p "${prompt}" --output-format json`;
-    ({ stdout } = result);
-  } catch (execError: unknown) {
+  const result = await runCommand(
+    ["gemini", "-p", prompt, "--output-format", "json"],
+    { env: { ...process.env, PATH: env.PATH } },
+  );
+
+  if (result.exitCode !== 0) {
     spinner.fail("Gemini API call failed");
-    const errorMessage = await extractErrorMessage(execError);
+    const errorMessage = await extractErrorMessage({
+      message: result.stderr,
+      stderr: result.stderr,
+    });
     throw new Error(errorMessage);
   }
+  const { stdout } = result;
 
   // Parse response to validate JSON and extract content
   let responseData: GeminiResponse | null = null;

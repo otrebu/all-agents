@@ -1,12 +1,14 @@
+/* global Bun */
+
 import { getOutputDir } from "@tools/utils/paths";
 import { afterEach, beforeAll, describe, expect, test } from "bun:test";
-import { execa } from "execa";
 import { glob } from "glob";
 import { rmSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
 
 const RESEARCH_DIR = getOutputDir("research/google");
 const TIMEOUT_MS = 120_000;
+const COMMAND_TIMEOUT_MS = TIMEOUT_MS - 10_000;
 
 describe("gemini-research E2E", () => {
   beforeAll(() => {
@@ -42,11 +44,19 @@ describe("gemini-research E2E", () => {
     "completes research with --mode quick",
     async () => {
       const query = "Bun SQLite performance benchmarks 2024";
-      const { exitCode, stdout } = await execa(
-        "bun",
-        ["run", "dev", "gemini-research", query, "--mode", "quick"],
-        { reject: false, timeout: TIMEOUT_MS - 10_000 },
+      const proc = Bun.spawn(
+        ["bun", "run", "dev", "gemini-research", query, "--mode", "quick"],
+        { stderr: "pipe", stdout: "pipe" },
       );
+
+      const timeoutId = setTimeout(() => {
+        proc.kill();
+      }, COMMAND_TIMEOUT_MS);
+      const [stdout, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      clearTimeout(timeoutId);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Research complete!");
@@ -108,11 +118,19 @@ describe("gemini-research E2E", () => {
     "completes research with --mode deep",
     async () => {
       const query = "TypeScript 5.x decorator metadata";
-      const { exitCode, stdout } = await execa(
-        "bun",
-        ["run", "dev", "gemini-research", query, "--mode", "deep"],
-        { reject: false, timeout: TIMEOUT_MS - 10_000 },
+      const proc = Bun.spawn(
+        ["bun", "run", "dev", "gemini-research", query, "--mode", "deep"],
+        { stderr: "pipe", stdout: "pipe" },
       );
+
+      const timeoutId = setTimeout(() => {
+        proc.kill();
+      }, COMMAND_TIMEOUT_MS);
+      const [stdout, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      clearTimeout(timeoutId);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Research complete!");
@@ -155,11 +173,19 @@ describe("gemini-research E2E", () => {
     "completes research with --mode code",
     async () => {
       const query = "Zod schema inference patterns";
-      const { exitCode, stdout } = await execa(
-        "bun",
-        ["run", "dev", "gemini-research", query, "--mode", "code"],
-        { reject: false, timeout: TIMEOUT_MS - 10_000 },
+      const proc = Bun.spawn(
+        ["bun", "run", "dev", "gemini-research", query, "--mode", "code"],
+        { stderr: "pipe", stdout: "pipe" },
       );
+
+      const timeoutId = setTimeout(() => {
+        proc.kill();
+      }, COMMAND_TIMEOUT_MS);
+      const [stdout, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      clearTimeout(timeoutId);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Research complete!");

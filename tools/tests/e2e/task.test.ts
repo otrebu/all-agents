@@ -1,6 +1,6 @@
+import { runCommand } from "@lib/spawn";
 import { getContextRoot } from "@tools/utils/paths";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { execa } from "execa";
 import {
   existsSync,
   mkdirSync,
@@ -35,9 +35,8 @@ describe("task E2E", () => {
 
   // Help and basic CLI
   test("task --help shows usage", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "task", "--help"],
+    const { exitCode, stdout } = await runCommand(
+      ["bun", "run", "dev", "task", "--help"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
@@ -45,9 +44,8 @@ describe("task E2E", () => {
   });
 
   test("task create --help shows --dir option", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "task", "create", "--help"],
+    const { exitCode, stdout } = await runCommand(
+      ["bun", "run", "dev", "task", "create", "--help"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
@@ -56,10 +54,9 @@ describe("task E2E", () => {
   });
 
   test("task create requires name argument", async () => {
-    const { exitCode, stderr } = await execa(
-      "bun",
-      ["run", "dev", "task", "create"],
-      { cwd: TOOLS_DIR, reject: false },
+    const { exitCode, stderr } = await runCommand(
+      ["bun", "run", "dev", "task", "create"],
+      { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("missing required argument");
@@ -67,9 +64,9 @@ describe("task E2E", () => {
 
   // Core functionality
   test("create: first task in empty dir is 001", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -78,7 +75,7 @@ describe("task E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -94,9 +91,9 @@ describe("task E2E", () => {
     // Pre-create a task file
     writeFileSync(join(temporaryDirectory, "001-existing-task.md"), "");
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -105,7 +102,7 @@ describe("task E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -121,10 +118,18 @@ describe("task E2E", () => {
     writeFileSync(join(temporaryDirectory, "001-first.md"), "");
     writeFileSync(join(temporaryDirectory, "005-fifth.md"), "");
 
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "task", "create", "new-task", "--dir", temporaryDirectory],
-      { cwd: TOOLS_DIR, reject: false },
+    const { exitCode, stdout } = await runCommand(
+      [
+        "bun",
+        "run",
+        "dev",
+        "task",
+        "create",
+        "new-task",
+        "--dir",
+        temporaryDirectory,
+      ],
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -137,9 +142,9 @@ describe("task E2E", () => {
     writeFileSync(join(temporaryDirectory, "notes.txt"), "");
     writeFileSync(join(temporaryDirectory, "random-file.md"), "");
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -148,7 +153,7 @@ describe("task E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -158,10 +163,18 @@ describe("task E2E", () => {
   test("create: creates directory if missing", async () => {
     const nestedDirectory = join(temporaryDirectory, "nested", "tasks", "here");
 
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "task", "create", "nested-task", "--dir", nestedDirectory],
-      { cwd: TOOLS_DIR, reject: false },
+    const { exitCode, stdout } = await runCommand(
+      [
+        "bun",
+        "run",
+        "dev",
+        "task",
+        "create",
+        "nested-task",
+        "--dir",
+        nestedDirectory,
+      ],
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -173,9 +186,9 @@ describe("task E2E", () => {
   });
 
   test("create: outputs full filepath to stdout", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -184,7 +197,7 @@ describe("task E2E", () => {
         "--dir",
         temporaryDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(0);
@@ -195,19 +208,43 @@ describe("task E2E", () => {
 
   test("create: handles multiple sequential creates", async () => {
     // Create three tasks in sequence
-    await execa(
-      "bun",
-      ["run", "dev", "task", "create", "task-a", "--dir", temporaryDirectory],
+    await runCommand(
+      [
+        "bun",
+        "run",
+        "dev",
+        "task",
+        "create",
+        "task-a",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR },
     );
-    await execa(
-      "bun",
-      ["run", "dev", "task", "create", "task-b", "--dir", temporaryDirectory],
+    await runCommand(
+      [
+        "bun",
+        "run",
+        "dev",
+        "task",
+        "create",
+        "task-b",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR },
     );
-    const { stdout } = await execa(
-      "bun",
-      ["run", "dev", "task", "create", "task-c", "--dir", temporaryDirectory],
+    const { stdout } = await runCommand(
+      [
+        "bun",
+        "run",
+        "dev",
+        "task",
+        "create",
+        "task-c",
+        "--dir",
+        temporaryDirectory,
+      ],
       { cwd: TOOLS_DIR },
     );
 
@@ -218,9 +255,9 @@ describe("task E2E", () => {
   });
 
   test("create: file contains template with task name", async () => {
-    const { stdout } = await execa(
-      "bun",
+    const { stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -271,9 +308,8 @@ describe("task --story E2E", () => {
   });
 
   test("create --help shows --story option", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "task", "create", "--help"],
+    const { exitCode, stdout } = await runCommand(
+      ["bun", "run", "dev", "task", "create", "--help"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
@@ -288,9 +324,9 @@ describe("task --story E2E", () => {
       "## Story: user-authentication",
     );
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -324,9 +360,9 @@ describe("task --story E2E", () => {
       "## Story: my-feature",
     );
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -358,9 +394,9 @@ describe("task --story E2E", () => {
       "## Story: another-story",
     );
 
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -389,9 +425,9 @@ describe("task --story E2E", () => {
   test("create with non-existent story shows error", async () => {
     // No story files exist in the stories directory
 
-    const { exitCode, stderr } = await execa(
-      "bun",
+    const { exitCode, stderr } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",
@@ -404,7 +440,7 @@ describe("task --story E2E", () => {
         "--stories-directory",
         storiesDirectory,
       ],
-      { cwd: TOOLS_DIR, reject: false },
+      { cwd: TOOLS_DIR },
     );
 
     expect(exitCode).toBe(1);
@@ -413,9 +449,9 @@ describe("task --story E2E", () => {
   });
 
   test("create without --story has no story link", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
+    const { exitCode, stdout } = await runCommand(
       [
+        "bun",
         "run",
         "dev",
         "task",

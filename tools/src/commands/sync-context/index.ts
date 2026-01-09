@@ -1,7 +1,7 @@
 import log from "@lib/log";
+import { runCommand } from "@lib/spawn";
 import { getContextRoot } from "@tools/utils/paths";
 import { watch } from "chokidar";
-import { execa } from "execa";
 import { resolve } from "node:path";
 
 import SyncContextError from "./types";
@@ -70,7 +70,7 @@ async function syncContext(targetDirectory: string): Promise<void> {
   const source = `${resolve(contextRoot, "context")}/`;
   const destination = `${resolve(targetDirectory, "context")}/`;
 
-  await execa("rsync", ["-a", "--delete", source, destination]);
+  await runCommand(["rsync", "-a", "--delete", source, destination]);
 }
 
 export { syncContext };

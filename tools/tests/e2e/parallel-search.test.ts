@@ -1,6 +1,7 @@
+/* global Bun */
+
 import { getOutputDir } from "@tools/utils/paths";
 import { afterEach, beforeAll, describe, expect, test } from "bun:test";
-import { execa } from "execa";
 import { glob } from "glob";
 import { rmSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
@@ -47,9 +48,9 @@ describe("parallel-search E2E", () => {
   test(
     "completes search and creates valid files",
     async () => {
-      const { exitCode, stdout } = await execa(
-        "bun",
+      const proc = Bun.spawn(
         [
+          "bun",
           "run",
           "dev",
           "parallel-search",
@@ -58,8 +59,17 @@ describe("parallel-search E2E", () => {
           "--max-results",
           "1",
         ],
-        { timeout: COMMAND_TIMEOUT_MS },
+        { stderr: "pipe", stdout: "pipe" },
       );
+
+      const timeoutId = setTimeout(() => {
+        proc.kill();
+      }, COMMAND_TIMEOUT_MS);
+      const [stdout, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      clearTimeout(timeoutId);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Search completed in");
@@ -111,9 +121,9 @@ describe("parallel-search E2E", () => {
   test(
     "works with --processor base",
     async () => {
-      const { exitCode, stdout } = await execa(
-        "bun",
+      const proc = Bun.spawn(
         [
+          "bun",
           "run",
           "dev",
           "parallel-search",
@@ -124,8 +134,17 @@ describe("parallel-search E2E", () => {
           "--max-results",
           "1",
         ],
-        { timeout: COMMAND_TIMEOUT_MS },
+        { stderr: "pipe", stdout: "pipe" },
       );
+
+      const timeoutId = setTimeout(() => {
+        proc.kill();
+      }, COMMAND_TIMEOUT_MS);
+      const [stdout, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      clearTimeout(timeoutId);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Search completed in");
@@ -172,9 +191,9 @@ describe("parallel-search E2E", () => {
   test(
     "works with multiple --queries",
     async () => {
-      const { exitCode, stdout } = await execa(
-        "bun",
+      const proc = Bun.spawn(
         [
+          "bun",
           "run",
           "dev",
           "parallel-search",
@@ -186,8 +205,17 @@ describe("parallel-search E2E", () => {
           "--max-results",
           "1",
         ],
-        { timeout: COMMAND_TIMEOUT_MS },
+        { stderr: "pipe", stdout: "pipe" },
       );
+
+      const timeoutId = setTimeout(() => {
+        proc.kill();
+      }, COMMAND_TIMEOUT_MS);
+      const [stdout, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      clearTimeout(timeoutId);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Search completed in");
@@ -240,9 +268,9 @@ describe("parallel-search E2E", () => {
     "respects --max-chars option",
     async () => {
       const maxChars = 1000;
-      const { exitCode, stdout } = await execa(
-        "bun",
+      const proc = Bun.spawn(
         [
+          "bun",
           "run",
           "dev",
           "parallel-search",
@@ -253,8 +281,17 @@ describe("parallel-search E2E", () => {
           "--max-results",
           "1",
         ],
-        { timeout: COMMAND_TIMEOUT_MS },
+        { stderr: "pipe", stdout: "pipe" },
       );
+
+      const timeoutId = setTimeout(() => {
+        proc.kill();
+      }, COMMAND_TIMEOUT_MS);
+      const [stdout, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      clearTimeout(timeoutId);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Search completed in");

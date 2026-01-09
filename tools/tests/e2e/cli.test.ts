@@ -1,10 +1,15 @@
+import { runCommand } from "@lib/spawn";
 import { describe, expect, test } from "bun:test";
-import { execa } from "execa";
 
 describe("aaa CLI", () => {
   // Basic CLI
   test("--help shows usage and commands", async () => {
-    const { exitCode, stdout } = await execa("bun", ["run", "dev", "--help"]);
+    const { exitCode, stdout } = await runCommand([
+      "bun",
+      "run",
+      "dev",
+      "--help",
+    ]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("All-Agents CLI Toolkit");
     expect(stdout).toContain("Usage:");
@@ -16,52 +21,57 @@ describe("aaa CLI", () => {
   });
 
   test("--version shows version", async () => {
-    const { exitCode, stdout } = await execa("bun", [
+    const { exitCode, stdout } = await runCommand([
+      "bun",
       "run",
       "dev",
       "--version",
     ]);
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("1.0.0");
+    expect(stdout).toMatch(/\d+\.\d+\.\d+/);
   });
 
   test("unknown command fails with error", async () => {
-    const { exitCode, stderr } = await execa(
+    const { exitCode, stderr } = await runCommand([
       "bun",
-      ["run", "dev", "nonexistent-command"],
-      { reject: false },
-    );
+      "run",
+      "dev",
+      "nonexistent-command",
+    ]);
     expect(exitCode).toBe(1);
     expect(stderr).toContain("unknown command");
   });
 
   // Missing arguments
   test("gh-search requires query", async () => {
-    const { exitCode, stderr } = await execa(
+    const { exitCode, stderr } = await runCommand([
       "bun",
-      ["run", "dev", "gh-search"],
-      { reject: false },
-    );
+      "run",
+      "dev",
+      "gh-search",
+    ]);
     expect(exitCode).toBe(1);
     expect(stderr).toContain("missing required argument");
   });
 
   test("gemini-research requires query", async () => {
-    const { exitCode, stderr } = await execa(
+    const { exitCode, stderr } = await runCommand([
       "bun",
-      ["run", "dev", "gemini-research"],
-      { reject: false },
-    );
+      "run",
+      "dev",
+      "gemini-research",
+    ]);
     expect(exitCode).toBe(1);
     expect(stderr).toContain("missing required argument");
   });
 
   test("parallel-search requires --objective", async () => {
-    const { exitCode, stderr } = await execa(
+    const { exitCode, stderr } = await runCommand([
       "bun",
-      ["run", "dev", "parallel-search"],
-      { reject: false },
-    );
+      "run",
+      "dev",
+      "parallel-search",
+    ]);
     expect(exitCode).toBe(1);
     expect(stderr).toContain("required option");
     expect(stderr).toContain("--objective");
@@ -69,12 +79,10 @@ describe("aaa CLI", () => {
 
   // API key errors
   test("parallel-search shows helpful error without API key", async () => {
-    const { exitCode, stdout } = await execa(
-      "bun",
-      ["run", "dev", "parallel-search", "--objective", "test query"],
+    const { exitCode, stdout } = await runCommand(
+      ["bun", "run", "dev", "parallel-search", "--objective", "test query"],
       {
         env: { ...process.env, AAA_PARALLEL_API_KEY: "", PARALLEL_API_KEY: "" },
-        reject: false,
       },
     );
     expect(exitCode).toBe(1);

@@ -4,7 +4,7 @@ depends: []
 
 # E2E CLI Testing
 
-Patterns for testing CLI commands end-to-end using `bun:test` + `execa`.
+Patterns for testing CLI commands end-to-end using `bun:test` + `Bun.runCommand`.
 
 ## Why This Is a Mess
 
@@ -38,7 +38,7 @@ import {
   beforeEach,
   afterEach,
 } from "bun:test";
-import { execa } from "execa";
+import { runCommand } from "@lib/runCommand";
 
 // Bun-native: no equivalent in Node
 // Used for: directory resolution, file matching
@@ -50,12 +50,29 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 ```
 
+## runCommand Helper
+
+Use `@lib/runCommand` for runCommanding subprocesses. It wraps `Bun.runCommand` with an execa-like API:
+
+```typescript
+import { runCommand } from "@lib/runCommand";
+
+// Returns { stdout, stderr, exitCode }
+const { exitCode, stdout, stderr } = await runCommand(
+  ["bun", "run", "src/cli.ts", "--help"],
+  { cwd: "/path/to/project" }
+);
+```
+
+Unlike execa, runCommand **never throws** on non-zero exit codes.
+
 ## Basic Command Tests
 
 ```typescript
 describe("my-cmd CLI", () => {
   test("--help shows usage", async () => {
-    const { exitCode, stdout } = await execa("bun", [
+    const { exitCode, stdout } = await runCommand([
+      "bun",
       "run",
       "src/cli.ts",
       "--help",
@@ -65,11 +82,13 @@ describe("my-cmd CLI", () => {
   });
 
   test("missing arg fails", async () => {
-    const { exitCode, stderr } = await execa(
+    const { exitCode, stderr } = await runCommand([
       "bun",
-      ["run", "src/cli.ts", "my-cmd"],
-      { reject: false } // Don't throw on non-zero exit
-    );
+      "run",
+      "src/cli.ts",
+      "my-cmd",
+    ]);
+    // No { reject: false } needed - runCommand never throws
     expect(exitCode).toBe(1);
     expect(stderr).toContain("missing required argument");
   });
@@ -128,11 +147,18 @@ describe("my-cmd E2E", () => {
   test(
     "creates valid output files",
     async () => {
-      const { exitCode, stdout } = await execa(
-        "bun",
-        ["run", "src/cli.ts", "my-cmd", "query"],
-        { reject: false, timeout: COMMAND_TIMEOUT_MS }
-      );
+      // For timeout support, use Bun.runCommand directly with manual timeout
+      const proc = Bun.runCommand(["bun", "run", "src/cli.ts", "my-cmd", "query"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      const timeoutId = setTimeout(() => proc.kill(), COMMAND_TIMEOUT_MS);
+      const [stdout, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      clearTimeout(timeoutId);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("Done!");
@@ -197,13 +223,9 @@ describe("my-cmd E2E", () => {
 
 ```typescript
 test("shows error without API key", async () => {
-  const { exitCode, stdout } = await execa(
-    "bun",
-    ["run", "src/cli.ts", "my-cmd", "--query", "test"],
-    {
-      env: { ...process.env, MY_API_KEY: "" },
-      reject: false,
-    }
+  const { exitCode, stdout } = await runCommand(
+    ["bun", "run", "src/cli.ts", "my-cmd", "--query", "test"],
+    { env: { ...process.env, MY_API_KEY: "" } }
   );
   expect(exitCode).toBe(1);
   expect(stdout).toContain("API key required");
@@ -220,7 +242,7 @@ import { getProjectRoot } from "@tools/utils/paths.js";
 const PROJECT_ROOT = getProjectRoot();
 
 // Ensures test works regardless of cwd
-await execa("bun", ["run", "src/cli.ts", "my-cmd", "arg"], {
+await runCommand(["bun", "run", "src/cli.ts", "my-cmd", "arg"], {
   cwd: PROJECT_ROOT,
 });
 ```
@@ -229,16 +251,16 @@ Implementation of `getProjectRoot()` is outside the scope of this document — t
 
 ## Patterns Summary
 
-| Pattern                       | Usage                               |
-| ----------------------------- | ----------------------------------- |
-| `{ reject: false }`           | Test expected failures              |
-| `timeout: COMMAND_TIMEOUT_MS` | Long-running commands (with buffer) |
-| `createdFiles` array          | Track files for cleanup             |
-| `Bun.Glob`                    | Native file matching                |
-| `import.meta.dir`             | Bun-native directory path           |
-| `node:fs` sync ops            | Workaround for Bun async hook bugs  |
-| `beforeAll` auth check        | Fail fast with helpful message      |
-| `afterEach` cleanup           | Remove test artifacts               |
+| Pattern                      | Usage                               |
+| ---------------------------- | ----------------------------------- |
+| `runCommand([...])` from @lib     | Run commands with simple API        |
+| `Bun.runCommand` + manual timeout | Long-running commands (with buffer) |
+| `createdFiles` array         | Track files for cleanup             |
+| `Bun.Glob`                   | Native file matching                |
+| `import.meta.dir`            | Bun-native directory path           |
+| `node:fs` sync ops           | Workaround for Bun async hook bugs  |
+| `beforeAll` auth check       | Fail fast with helpful message      |
+| `afterEach` cleanup          | Remove test artifacts               |
 
 ## Alternatives
 
