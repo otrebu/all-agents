@@ -58,6 +58,9 @@ docs/planning/
 
 Flexible scope—place at milestone level (build whole milestone) or story level (build just that story). JSON format for better AI parseability.
 
+**Schema:** `docs/planning/schemas/subtasks.schema.json`
+**Template:** `docs/planning/templates/subtasks.template.json`
+
 ```json
 {
   "subtasks": [
@@ -65,13 +68,33 @@ Flexible scope—place at milestone level (build whole milestone) or story level
       "id": "SUB-001",
       "taskRef": "TASK-001",
       "storyRef": "STORY-001",
-      "description": "Create user authentication endpoint",
+      "title": "Create user authentication endpoint",
+      "description": "Implement POST /api/auth/register with validation and JWT",
       "status": "pending",
-      "acceptanceCriteria": ["Returns JWT on valid credentials", "Returns 401 on invalid"]
+      "priority": 1,
+      "acceptanceCriteria": ["Returns JWT on valid credentials", "Returns 401 on invalid"],
+      "atomicDocs": {
+        "blocks": ["@context/blocks/security/better-auth.md"],
+        "foundations": ["@context/foundations/security/auth-api.md"]
+      },
+      "codeContext": {
+        "readFiles": ["src/routes/index.ts"],
+        "modifyFiles": ["src/routes/auth.ts"]
+      },
+      "dependencies": []
     }
   ]
 }
 ```
+
+**Status values:** `pending` | `in_progress` | `completed` | `blocked` | `skipped`
+
+**Key fields for Ralph workflow:**
+- `atomicDocs` - docs to read during Investigate phase
+- `codeContext` - files to read/modify
+- `acceptanceCriteria` - used in Validate phase
+- `dependencies` - determines selection order
+- `priority` - 1 (highest) to 5 (lowest)
 
 ## 3. Operational Modes
 
@@ -256,9 +279,93 @@ ralph calibrate --force      # skip all approvals
 ralph calibrate --review     # ask for all approvals
 ```
 
-## 6. Open Questions
+### Hooks & Notifications
 
-- [ ] Logging & monitoring details (defer to implementation)
-- [ ] Backpressure details
-- [ ] Calibration mode specifics
-- [ ] Templates for: VISION, ROADMAP, STORY, TASK, subtasks.json (some exist, review later)
+Configurable hooks for human-on-the-loop checkpoints and notifications:
+
+```json
+{
+  "hooks": {
+    "onIterationComplete": {
+      "enabled": true,
+      "actions": ["log", "notify"]
+    },
+    "onMilestoneComplete": {
+      "enabled": true,
+      "actions": ["log", "notify", "pause"]
+    },
+    "onValidationFail": {
+      "enabled": true,
+      "actions": ["log", "notify"],
+      "pauseAfterRetries": 3
+    },
+    "onBlocked": {
+      "enabled": true,
+      "actions": ["notify", "pause"]
+    }
+  },
+  "notifications": {
+    "provider": "pushover",
+    "config": {
+      "userKey": "${PUSHOVER_USER_KEY}",
+      "appToken": "${PUSHOVER_APP_TOKEN}"
+    }
+  }
+}
+```
+
+**Hook events:**
+- `onIterationComplete` - After each subtask completes
+- `onMilestoneComplete` - When all subtasks in a milestone are done
+- `onValidationFail` - When backpressure checks fail
+- `onBlocked` - When a subtask is marked blocked
+
+**Actions:**
+- `log` - Write to progress file
+- `notify` - Send push notification
+- `pause` - Stop autonomous loop, wait for human
+
+**Notification providers (research needed):**
+- Pushover - iOS/Android push notifications
+- ntfy - Open source, self-hostable
+- Slack/Discord webhooks
+- Custom webhook URL
+
+## 6. TODO
+
+### Next Up
+
+- [ ] Review subtasks.json schema together - simplify fields, go through a few at a time
+
+### Research
+
+- [x] Claude Code conversation IDs - see Logging & Monitoring below
+- [ ] Notification provider options (Pushover, ntfy, etc.) - for phone notifications on hook events
+
+### Templates
+
+**All templates complete:**
+- [x] VISION: `context/blocks/docs/vision-template.md`
+- [x] ROADMAP: `context/blocks/docs/roadmap-template.md`
+- [x] subtasks.json schema: `docs/planning/schemas/subtasks.schema.json`
+- [x] subtasks.json example: `docs/planning/templates/subtasks.template.json`
+- Story: `context/blocks/docs/story-template.md` (existing)
+- Task: `context/blocks/docs/task-template.md` (existing)
+
+### Logging & Monitoring
+
+**Iteration logging:**
+- Log iteration outcomes (subtask ID, status, commit hash)
+- Save conversation ID references - each iteration maps to a Claude Code session ID
+
+**Claude Code conversation tracking:**
+- Conversations stored at `~/.claude/projects/<encoded-path>/<session-id>.jsonl`
+- Capture session ID using `--output-format json`:
+  ```bash
+  result=$(claude -p "prompt" --output-format json)
+  session_id=$(echo "$result" | jq -r '.session_id')
+  ```
+- Resume sessions with `--resume <session-id>`
+- Implementation: Modify `ralph.sh` to capture session IDs alongside iteration outcomes
+
+**Optional:** Hooks to track conversation progress mid-iteration
