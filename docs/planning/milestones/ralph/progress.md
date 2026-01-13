@@ -363,3 +363,12 @@
   - filesToRead reading explicitly instructed (line 66): "Read the `filesToRead` array from the subtask - these are files the subtask author identified as relevant"
   - filesToRead field is also shown in the Subtask JSON structure example (lines 51-54)
   - Investigation actions include reading filesToRead, additional context files, taskRef, and understanding acceptance criteria
+
+### 003-ralph-iteration-prompt-08
+- **Status:** PASSED
+- **Changes:** Verified build command in Validate phase of ralph-iteration.md
+- **Details:**
+  - Validate phase is defined at lines 86-116 (Phase 5: Validate)
+  - Build command explicitly included (lines 93-94): `bun run build`
+  - Validation requirements section (lines 106-110) states "Build must succeed without errors"
+  - Error handling section (lines 186-193) includes "Build/Lint/Typecheck failures: Fix the issues and retry"
