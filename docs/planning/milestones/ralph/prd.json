@@ -261,7 +261,7 @@
       "Verify prompt is designed for conversation flow",
       "Verify prompt does not expect single-shot completion"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-09",
