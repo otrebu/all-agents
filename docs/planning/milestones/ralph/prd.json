@@ -141,7 +141,7 @@
       "Capture stdout output",
       "Verify output contains structured summary"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "001-self-improvement-prompt-13",

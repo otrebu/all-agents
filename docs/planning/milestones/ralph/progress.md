@@ -111,3 +111,20 @@
     - `"auto"`: Apply changes automatically (high risk - not recommended)
     - `"never"`: Skip self-improvement analysis entirely and exit
   - Execution instructions (line 209) include step to check config setting
+
+### 001-self-improvement-prompt-12
+- **Status:** PASSED
+- **Changes:** Manual test verified prompt produces valid summary output
+- **Details:**
+  - Created test fixtures at `docs/planning/milestones/ralph/test-fixtures/`
+  - Created `test-subtasks.json` with sessionId pointing to real session log
+  - Created `ralph.config.json` with selfImprovement: "always" setting
+  - Analyzed session log `57fbc6ac-a393-4b76-bf34-1ed628af629f.jsonl` (3 lines, simple PRD transformation task)
+  - Created `sample-output.md` demonstrating expected structured summary format
+  - Verified output contains all required sections:
+    - `# Self-Improvement Analysis` header
+    - `## Session:` with sessionId, Subtask, and Date
+    - `## Findings` with all 4 pattern categories (Tool Misuse, Wasted Reads, Backtracking, Excessive Iterations)
+    - `## Recommendations`
+    - `## Proposed Changes`
+  - Prompt output format (lines 127-160) clearly specifies structured summary

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "test-subtask-001",
+    "title": "Test PRD transformation task",
+    "description": "Transform task files into PRD JSON format",
+    "done": true,
+    "sessionId": "57fbc6ac-a393-4b76-bf34-1ed628af629f",
+    "completedAt": "2026-01-13T22:04:24.524Z"
+  }
+]
