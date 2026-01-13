@@ -345,7 +345,7 @@
       "Verify Orient phase is defined",
       "Verify CLAUDE.md reading is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-03",
