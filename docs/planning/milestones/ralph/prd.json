@@ -285,7 +285,7 @@
       "Verify prompt is explicitly interactive-only",
       "Verify vision-auto.md does not exist"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-11",

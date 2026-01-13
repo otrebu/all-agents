@@ -284,3 +284,16 @@
     - "Some sessions may only cover one or two phases - that's fine" (line 88)
   - Starting the Session explicitly reminds user (line 163): "(You can say 'done' at any point when you feel we've covered enough.)"
   - Exit behavior documented (lines 148-151): summarize, offer to save, note unexplored areas
+
+### 002-vision-interactive-prompt-10
+- **Status:** PASSED
+- **Changes:** Verified no auto mode is supported for vision planning
+- **Details:**
+  - Verified no --auto flag documentation exists for vision:
+    - VISION.md Section 3 (Operational Modes) table shows Vision as "Interactive: ✅ always | Auto: ❌"
+    - CLI command structure (Section 8.2) confirms `ralph plan vision` is "Interactive only"
+  - Prompt is explicitly interactive-only (vision-interactive.md line 5):
+    - "**Important:** This prompt is interactive-only. There is no auto mode for vision planning because defining a product vision requires human insight and decision-making that cannot be automated."
+  - Verified `vision-auto.md` does not exist:
+    - Glob search for `**/vision-auto.md` returned no files
+    - Only `vision-interactive.md` exists at `context/workflows/ralph/planning/`
