@@ -273,7 +273,7 @@
       "Verify prompt allows user-initiated exit",
       "Verify no forced completion pattern"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-10",

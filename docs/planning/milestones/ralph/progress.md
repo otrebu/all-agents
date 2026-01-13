@@ -269,3 +269,18 @@
   - Prompt does NOT expect single-shot completion:
     - Explicitly warns "Don't... Rush through all questions at once" (line 78)
     - Starting the Session (lines 153-165) initiates dialogue, not single response
+
+### 002-vision-interactive-prompt-09
+- **Status:** PASSED
+- **Changes:** Verified user can exit session manually when satisfied in vision-interactive.md
+- **Details:**
+  - Prompt contains "## Session Exit" section (lines 141-151) explicitly allowing user-initiated exit
+  - Exit triggers documented (lines 143-146):
+    - Saying "done", "that's enough", "let's stop here", or similar
+    - Asking to create the VISION.md
+    - Moving on to another topic
+  - No forced completion pattern verified:
+    - "The user controls when to move on" (line 87)
+    - "Some sessions may only cover one or two phases - that's fine" (line 88)
+  - Starting the Session explicitly reminds user (line 163): "(You can say 'done' at any point when you feel we've covered enough.)"
+  - Exit behavior documented (lines 148-151): summarize, offer to save, note unexplored areas
