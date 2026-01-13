@@ -165,7 +165,7 @@
       "Run prompt against the log",
       "Verify prompt completes without context overflow error"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-01",

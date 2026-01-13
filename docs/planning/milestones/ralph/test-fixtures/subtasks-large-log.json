@@ -1,0 +1,11 @@
+[
+  {
+    "id": "large-log-test-001",
+    "title": "Implement comprehensive authentication test suite",
+    "description": "Create full test coverage for all authentication handlers",
+    "done": true,
+    "sessionId": "large-session",
+    "commitHash": "abc123def456",
+    "completedAt": "2026-01-13T12:00:00Z"
+  }
+]
