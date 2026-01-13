@@ -240,3 +240,14 @@
   - VISION.md format includes both sections (lines 120-124):
     - `## What This Product IS` - "Current state, MVP scope, today's reality"
     - `## What This Product WILL BECOME` - "Future vision, where you're heading"
+
+### 002-vision-interactive-prompt-07
+- **Status:** PASSED
+- **Changes:** Verified VISION.md creation/update instructions in vision-interactive.md
+- **Details:**
+  - Prompt specifies output file path explicitly (line 94): `docs/planning/VISION.md`
+  - Instructions for VISION.md creation included in "Output: VISION.md" section (lines 90-139):
+    - Section header at line 90: "## Output: VISION.md"
+    - Asks user about creating the file (line 94): "Would you like me to create `docs/planning/VISION.md` now"
+    - Complete VISION.md format template (lines 96-131) with all required sections
+    - Writing guidelines for creation (lines 133-139): use user's words, keep concise, focus on clarity, mark uncertain areas with [TBD]

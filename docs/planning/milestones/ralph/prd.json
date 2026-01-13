@@ -249,7 +249,7 @@
       "Verify prompt specifies output file path",
       "Verify instructions for VISION.md creation are included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-08",
