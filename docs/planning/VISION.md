@@ -296,7 +296,7 @@ Analyzes agent sessions for inefficiencies.
 | Risk | High - can affect everything since skills/agents reference prompts |
 | Control | Config controls propose-only vs auto-apply (default: propose) |
 
-**TODO:** Define concrete heuristics for self-improvement analysis.
+**Heuristics:** See Section 8.4 for concrete detection patterns.
 
 #### When It Runs
 
@@ -424,3 +424,542 @@ These are implementation artifacts, not design blockers:
 ### Next Step
 
 **Begin implementation planning** - create Stories/Tasks for Ralph CLI in `aaa`.
+
+## 8. Implementation Plan
+
+### 8.1 Prompts Location & Format
+
+**Location:** `context/workflows/ralph/`
+
+```
+context/workflows/ralph/
+├── planning/
+│   ├── vision-interactive.md
+│   ├── roadmap-interactive.md
+│   ├── roadmap-auto.md
+│   ├── stories-interactive.md
+│   ├── stories-auto.md
+│   ├── tasks-interactive.md
+│   ├── tasks-auto.md
+│   └── subtasks-auto.md
+├── building/
+│   └── ralph-iteration.md
+└── calibration/
+    ├── intention-drift.md
+    ├── technical-drift.md
+    └── self-improvement.md
+```
+
+**Format:** Plain markdown with file path references (no templating).
+
+```markdown
+## Required Reading
+- @docs/planning/VISION.md
+- @docs/planning/ROADMAP.md
+
+Read these before proceeding.
+```
+
+**Rationale:**
+- CLI and skills reference same paths (`@context/workflows/ralph/...`)
+- No templating engine needed - Claude reads files directly
+- Self-contained, human-readable prompts
+- Matches `filesToRead` pattern from subtasks.json
+
+### 8.2 CLI Command Structure
+
+**Commands:**
+
+```
+aaa ralph plan <level>     # Planning mode
+aaa ralph build            # Building mode (Ralph iterations)
+aaa ralph calibrate <type> # Calibration mode
+aaa ralph status           # Show current state
+```
+
+**Plan subcommands:**
+
+```bash
+ralph plan vision              # Interactive only
+ralph plan roadmap             # Interactive (default) or --auto
+ralph plan stories             # Interactive (default) or --auto
+ralph plan tasks               # Interactive (default) or --auto
+ralph plan subtasks --auto     # Auto only (always requires --auto)
+```
+
+**Plan options:**
+
+| Option | Description |
+|--------|-------------|
+| `--auto, -a` | Use auto mode (generate from upstream docs) |
+| `--milestone <name>` | Target milestone (e.g., `mvp`) |
+| `--story <id>` | Target story (e.g., `STORY-001`) |
+| `--task <id>` | Target task (e.g., `TASK-001`) |
+| `-p, --print` | Print prompt without executing |
+
+**Build options:**
+
+| Option | Description |
+|--------|-------------|
+| `--subtasks <path>` | Path to subtasks.json (default: auto-discover) |
+| `--max-retries <n>` | Max retries per subtask (default: 0 = unlimited) |
+| `--validate-first` | Run drift check before building |
+| `-i, --interactive` | Pause after each iteration for review |
+| `-p, --print` | Print single iteration prompt, don't execute |
+
+**Calibrate subcommands:**
+
+```bash
+ralph calibrate intention      # Check intention drift
+ralph calibrate technical      # Check technical drift
+ralph calibrate improve        # Analyze for self-improvement
+ralph calibrate all            # Run all checks
+```
+
+**Global options:**
+
+| Option | Description |
+|--------|-------------|
+| `--force` | Skip all approvals (overrides config) |
+| `--review` | Require all approvals (overrides config) |
+
+**Status output:**
+
+```
+Milestone: mvp
+Subtasks:  3/10 completed
+Last:      SUB-003 (2h ago)
+Queue:     SUB-004 "Implement login endpoint"
+Config:    ralph.config.json (found)
+```
+
+### 8.3 Skills as Primary Interface
+
+**Principle:** Skills own the workflow logic. CLI triggers skills.
+
+**Skills to create:**
+
+```
+.claude/skills/
+├── ralph-plan/SKILL.md         # Planning workflows
+├── ralph-build/SKILL.md        # Building mode
+├── ralph-calibrate/SKILL.md    # Calibration checks
+└── ralph-status/SKILL.md       # Status reporting (optional, simple)
+```
+
+**Skill structure:**
+
+```yaml
+---
+name: ralph-plan
+description: Interactive planning for Ralph framework. Use when user wants to
+  plan vision, roadmap, stories, tasks, or generate subtasks.
+---
+
+# Ralph Planning
+
+Based on what level the user wants to plan, read the appropriate prompt:
+
+- Vision: @context/workflows/ralph/planning/vision-interactive.md
+- Roadmap: @context/workflows/ralph/planning/roadmap-interactive.md (or roadmap-auto.md)
+- Stories: @context/workflows/ralph/planning/stories-interactive.md (or stories-auto.md)
+- Tasks: @context/workflows/ralph/planning/tasks-interactive.md (or tasks-auto.md)
+- Subtasks: @context/workflows/ralph/planning/subtasks-auto.md
+
+Follow the instructions in the loaded prompt.
+```
+
+**CLI invokes skills:**
+
+```bash
+# CLI spawns Claude with instruction to use skill
+aaa ralph plan vision
+# → claude -p "Use /ralph-plan skill. Focus on: vision level."
+
+aaa ralph build
+# → claude -p "Use /ralph-build skill."
+```
+
+**Benefits:**
+- Skills are the source of truth for workflow logic
+- CLI is a thin shell entry point
+- Same behavior whether user types `/ralph-plan` in Claude Code or `aaa ralph plan` in terminal
+- Prompts in `context/workflows/ralph/` are reusable building blocks
+
+### 8.4 Self-Improvement Heuristics
+
+The `ralph calibrate improve` command analyzes session logs to detect inefficiencies. Based on research, these are the concrete detection patterns:
+
+#### 1. Tool Misuse
+
+**Pattern:** Using Bash for operations that have dedicated tools.
+
+| Bash Command | Should Use | Detection |
+|--------------|------------|-----------|
+| `cat`, `head`, `tail` | Read tool | Regex match in bash calls |
+| `grep`, `rg` | Grep tool | Regex match |
+| `find`, `ls` | Glob tool | Regex match |
+| `sed`, `awk` | Edit tool | Regex match |
+| `echo >`, heredoc | Write tool | Regex match |
+
+**Metric:** Tool Selection Accuracy = Correct tools / Total tool calls (target: >90%)
+
+#### 2. Excessive Retries
+
+**Pattern:** Same error recurring without strategy change.
+
+| Signal | Threshold | Action |
+|--------|-----------|--------|
+| Consecutive failures | ≥3 | Switch approach |
+| Same error signature | 3+ occurrences | Escalate |
+| Similar fix attempts | >0.8 cosine similarity | Force variation |
+| Max iterations | 15 (agent loops) | Terminate |
+
+**Detection:** Track error signatures and action hashes across iterations.
+
+#### 3. Wasted Reads
+
+**Pattern:** Reading files that don't influence subsequent actions.
+
+| Signal | Detection Method |
+|--------|------------------|
+| Unreferenced reads | File read → no edits/references within N turns |
+| Re-reads | Same file read multiple times without intervening writes |
+| Low relevance | Information density < 0.7 (actionable tokens / total) |
+
+**Metric:** File Read ROI = Tokens used from file / Tokens read (target: >25%)
+
+#### 4. Backtracking
+
+**Pattern:** Edits that cancel each other out.
+
+| Signal | Detection Method |
+|--------|------------------|
+| Content reversal | Hash of file content matches earlier state |
+| Oscillation | Same line edited 3+ times in session |
+| Semantic reversal | Net diff ≈ 0 despite many edits |
+| Churn rate | (Modified + Deleted) / Total changed > 25% |
+
+**Detection:** Track content hashes per line over edit history.
+
+#### 5. Verbose Output
+
+**Pattern:** Explanations disproportionate to task complexity.
+
+| Signal | Threshold |
+|--------|-----------|
+| Signal-to-noise ratio | < 60% actionable content |
+| 3-token rule | Factual answer expected in 1-3 tokens, got 50+ |
+| Over-explanation | >3 sentences for single issue |
+| Structural padding | Excessive bullet points, headers for simple response |
+
+**Metric:** Information Density = Unique facts / Word count
+
+#### 6. Missing Context (Redundant Re-reads)
+
+**Pattern:** Re-retrieving information already in context.
+
+| Signal | Detection Method |
+|--------|------------------|
+| Same-file re-reads | Track file paths; flag duplicates without intervening writes |
+| Semantic duplicates | Query embedding similarity > 0.9 to prior query |
+| Sliding window violation | Re-read within last 10 turns |
+| Query reformulation | Same question asked differently |
+
+**Metric:** Context Utilization = Referenced context / Total context loaded
+
+#### 7. Implementation Anti-Patterns → Atomic Docs
+
+**Pattern:** Repeated implementation mistakes that indicate missing documentation.
+
+| Anti-Pattern | Atomic Doc to Create/Update |
+|--------------|----------------------------|
+| Writing package.json by hand → stale deps | `blocks/construct/package-management.md` |
+| Hardcoding secrets in code | `blocks/security/secrets-management.md` |
+| Missing error handling patterns | `blocks/quality/error-handling.md` |
+| Wrong testing patterns for framework | `blocks/test/{framework}.md` |
+| Incorrect import/export patterns | `blocks/construct/{bundler}.md` |
+
+**Detection:** Track patterns where:
+- Same fix applied across multiple sessions
+- Technical drift corrections repeat
+- Build/lint/test failures share root cause
+
+**Output:** Proposes new or updated atomic docs with:
+- What not to do (anti-pattern)
+- What to do instead (correct pattern)
+- Example code
+
+**Approval:** Controlled by `atomicDocChanges` in ralph.config.json (default: `always`).
+
+#### Implementation Notes
+
+Session logs are at `~/.claude/projects/<encoded-path>/<session-id>.jsonl`. The self-improvement calibration:
+
+1. Parses JSONL for tool calls, errors, and outputs
+2. Applies heuristics above to flag patterns
+3. Aggregates findings into proposed changes
+4. Outputs:
+   - Tasks for prompt/skill improvements
+   - Proposed atomic doc updates (when patterns indicate missing docs)
+5. All changes propose-only by default; requires human approval
+
+### 8.5 Directory Structure (Bash Prototype)
+
+**Approach:** Bash prototype for quick iteration. TypeScript is a thin wrapper.
+
+```
+tools/src/commands/ralph/
+├── index.ts              # Registers "ralph" command, passes args to bash
+└── scripts/
+    ├── ralph.sh          # Entrypoint, dispatches subcommands
+    ├── plan.sh           # ralph plan <level> [--auto]
+    ├── build.sh          # ralph build (iteration loop + progress writing)
+    ├── calibrate.sh      # ralph calibrate <type>
+    └── status.sh         # ralph status
+
+context/workflows/ralph/
+├── planning/             # 8 planning prompts
+├── building/             # ralph-iteration.md
+└── calibration/          # 3 calibration prompts
+
+.claude/skills/
+├── ralph-plan/SKILL.md
+├── ralph-build/SKILL.md
+└── ralph-calibrate/SKILL.md
+```
+
+**TypeScript wrapper** (minimal):
+
+```typescript
+import { Command } from "@commander-js/extra-typings";
+import { execSync } from "child_process";
+
+const ralphCommand = new Command("ralph")
+  .description("Autonomous development framework")
+  .allowUnknownOption()
+  .passThroughOptions()
+  .action((_, cmd) => {
+    const scriptPath = `${__dirname}/scripts/ralph.sh`;
+    execSync(`${scriptPath} ${cmd.args.join(" ")}`, { stdio: "inherit" });
+  });
+
+export default ralphCommand;
+```
+
+**Bash entrypoint** (`ralph.sh`):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMMAND="${1:-help}"
+shift || true
+
+case "$COMMAND" in
+  plan)      source "$SCRIPT_DIR/plan.sh" "$@" ;;
+  build)     source "$SCRIPT_DIR/build.sh" "$@" ;;
+  calibrate) source "$SCRIPT_DIR/calibrate.sh" "$@" ;;
+  status)    source "$SCRIPT_DIR/status.sh" "$@" ;;
+  *)         echo "Usage: ralph <plan|build|calibrate|status>" ;;
+esac
+```
+
+**Rationale:**
+- Bash is fast for prototyping orchestration logic
+- Easy to iterate on prompts and flow
+- TypeScript version can come later once design is validated
+- Each script is self-contained (no over-abstracted libs)
+
+### 8.6 Testing Strategy
+
+**Approach:** Output-based testing. Check file outputs and formats, not internal functions.
+
+#### File Output Tests
+
+| Command | Expected Output | Validation |
+|---------|-----------------|------------|
+| `ralph plan vision` | `VISION.md` created/updated | File exists, has required sections |
+| `ralph plan stories --auto` | `STORY-NNN.md` files | Files created, match template structure |
+| `ralph plan subtasks --auto` | `subtasks.json` | Valid JSON, passes schema validation |
+| `ralph build` | Updated `subtasks.json` + `PROGRESS.md` | `done: true` set, progress entry appended |
+| `ralph status` | stdout | Correct counts, valid format |
+
+#### Schema Validation
+
+```bash
+# Validate subtasks.json against schema
+ajv validate -s docs/planning/schemas/subtasks.schema.json -d subtasks.json
+```
+
+#### Smoke Tests
+
+```bash
+# Each command runs without error
+ralph --help          # exits 0
+ralph plan --help     # exits 0
+ralph status          # exits 0 (even with no subtasks)
+```
+
+#### Integration Tests (Manual)
+
+1. Create fixture milestone with sample task
+2. Run `ralph plan subtasks --auto`
+3. Verify subtasks.json is valid and sensible
+4. Run `ralph build --print` (dry run)
+5. Verify prompt includes correct context
+
+#### Test Location
+
+```
+tools/tests/e2e/ralph.test.ts    # Extend existing E2E tests
+```
+
+**Note:** For bash prototype, focus on E2E tests that verify outputs. Unit tests can come later with TypeScript rewrite.
+
+### 8.7 Implementation Order
+
+**Approach:** Parallel workstreams. Prompts and scripts can be developed simultaneously by different agents.
+
+#### Workstream A: Prompts (can parallelize internally)
+
+| Priority | Prompt | Purpose |
+|----------|--------|---------|
+| P1 | `ralph-iteration.md` | Core build loop |
+| P1 | `subtasks-auto.md` | Generate subtasks from tasks |
+| P2 | `vision-interactive.md` | Vision planning |
+| P2 | `stories-auto.md` | Generate stories |
+| P2 | `tasks-auto.md` | Generate tasks |
+| P3 | Remaining planning prompts | Full planning coverage |
+| P3 | Calibration prompts | Drift detection, self-improvement |
+
+#### Workstream B: Scripts (can parallelize internally)
+
+| Priority | Script | Purpose |
+|----------|--------|---------|
+| P1 | `ralph.sh` | Entrypoint, dispatch |
+| P1 | `build.sh` | Iteration loop |
+| P2 | `plan.sh` | Planning workflows |
+| P2 | `status.sh` | Progress display |
+| P3 | `calibrate.sh` | LLM-as-judge analysis |
+
+#### Workstream C: Skills (after scripts work)
+
+- `ralph-plan/SKILL.md`
+- `ralph-build/SKILL.md`
+- `ralph-calibrate/SKILL.md`
+- `ralph-status/SKILL.md`
+
+#### Integration Points
+
+1. **First integration:** `build.sh` + `ralph-iteration.md` + manual `subtasks.json`
+2. **Second integration:** `plan.sh` + `subtasks-auto.md`
+3. **Full integration:** All scripts + all prompts + skills
+
+### 8.8 Calibration as LLM-as-Judge
+
+**Principle:** Calibration is prompt-based, not code-based. Claude analyzes session logs via prompts.
+
+The self-improvement heuristics (8.4) become **prompt instructions**, not TypeScript logic:
+
+```markdown
+# Self-Improvement Analysis
+
+Read the session log at: {{session_log_path}}
+
+Analyze for these inefficiency patterns:
+1. Tool misuse: Bash used for file ops instead of Read/Edit/Write
+2. Excessive retries: Same error 3+ times without strategy change
+3. Wasted reads: Files read but never referenced
+...
+
+Output:
+- Pattern detected (yes/no)
+- Evidence (specific tool calls)
+- Proposed fix (prompt/doc change)
+```
+
+**Session log path:** Stored in `subtasks.json` as `sessionId`. Full path: `~/.claude/projects/*/{{sessionId}}.jsonl`
+
+**Benefits:**
+- No complex TypeScript needed
+- Prompts can evolve without code changes
+- Same bash + Claude pattern as other commands
+
+### 8.9 Interactive vs Single-Shot Mode
+
+**Two invocation patterns:**
+
+#### Single-Shot (default for `--auto`)
+
+```bash
+# CLI passes prompt directly
+claude -p "$(cat $PROMPT_FILE)" --output-format json
+```
+
+- Used for: auto-generation, build iterations
+- One prompt → one response → done
+
+#### Multi-Turn Interactive (for planning without `--auto`)
+
+```bash
+# CLI launches interactive session with skill
+claude --allowedTools "Read,Write,Edit,Glob,Grep" \
+       -p "Use /ralph-plan skill. Focus on: vision level. Be interactive - ask clarifying questions."
+```
+
+- Used for: `ralph plan vision`, `ralph plan stories` (without `--auto`)
+- Claude asks questions, user responds, iterates until done
+- Session stays open for multi-turn dialogue
+
+**CLI flag behavior:**
+
+| Command | Mode |
+|---------|------|
+| `ralph plan vision` | Multi-turn interactive (always) |
+| `ralph plan stories` | Multi-turn interactive |
+| `ralph plan stories --auto` | Single-shot |
+| `ralph build` | Single-shot per iteration |
+| `ralph calibrate` | Single-shot |
+
+**Pre-build validation (`--validate-first`):**
+
+```bash
+# Single-shot check before build loop
+claude -p "$(cat calibration/intention-drift.md)" --output-format json
+# If validation fails, abort build
+```
+
+### 8.10 Permission Handling
+
+**Principle:** Autonomous iterations run with `--dangerously-skip-permissions`. Human stays on the loop via iteration boundaries, not inline permission prompts.
+
+```bash
+# Build loop invocation
+claude -p "$(cat $PROMPT)" \
+       --dangerously-skip-permissions \
+       --output-format json
+```
+
+**Safety model:**
+- Permissions skipped within iteration (agent can edit files, run commands)
+- Human checkpoint between iterations (`-i/--interactive` flag)
+- Backpressure from validation (build/lint/test must pass)
+- Git provides rollback safety (each iteration = commit)
+
+**When to use:**
+
+| Command | Permission Mode |
+|---------|----------------|
+| `ralph build` | `--dangerously-skip-permissions` (autonomous) |
+| `ralph build -i` | Same, but pauses between iterations |
+| `ralph plan --auto` | `--dangerously-skip-permissions` (single-shot) |
+| `ralph plan` (interactive) | Normal permissions (human in loop) |
+| `ralph calibrate` | `--dangerously-skip-permissions` (analysis only) |
+
+**Risk mitigation:**
+- Each iteration scoped to single subtask
+- Validation gates before commit
+- Progress file provides audit trail
+- Session ID enables debugging
