@@ -519,7 +519,7 @@
       "Verify PROGRESS.md append is instructed",
       "Verify format includes date, subtask ID, problem, changes, files"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-18",
