@@ -189,7 +189,7 @@
       "Verify prompt instructs asking clarifying questions",
       "Verify Socratic questioning pattern is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-03",
