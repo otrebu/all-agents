@@ -223,3 +223,20 @@
     - "What will you explicitly NOT build?"
     - "What would a 'delightful' version of this look like?"
   - VISION.md format includes Key Capabilities section (lines 115-118)
+
+### 002-vision-interactive-prompt-06
+- **Status:** PASSED
+- **Changes:** Verified IS vs WILL BECOME guidance in vision-interactive.md
+- **Details:**
+  - Prompt contains Phase 4: Current State vs Future Vision section (lines 54-66)
+  - **IS (Current State)** explicitly addressed (lines 58-61):
+    - "What can users do with your product today?"
+    - "What's the minimum viable experience?"
+    - "What constraints or limitations exist right now?"
+  - **WILL BECOME (Future Vision)** explicitly addressed (lines 63-66):
+    - "Where do you see this in 6 months? 2 years?"
+    - "What would success look like at scale?"
+    - "What would make you proud to have built this?"
+  - VISION.md format includes both sections (lines 120-124):
+    - `## What This Product IS` - "Current state, MVP scope, today's reality"
+    - `## What This Product WILL BECOME` - "Future vision, where you're heading"

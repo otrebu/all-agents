@@ -237,7 +237,7 @@
       "Verify prompt distinguishes current state from future vision",
       "Verify both IS and WILL BECOME are addressed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-07",
