@@ -390,3 +390,12 @@
   - Typecheck command explicitly included (lines 99-100): `bun run typecheck`
   - Validation requirements section (line 109) states "Type checking must pass"
   - Error handling section (line 190) includes "Build/Lint/Typecheck failures: Fix the issues and retry"
+
+### 003-ralph-iteration-prompt-11
+- **Status:** PASSED
+- **Changes:** Verified test command in Validate phase of ralph-iteration.md
+- **Details:**
+  - Validate phase is defined at lines 86-116 (Phase 5: Validate)
+  - Test command explicitly included (lines 102-103): `bun test`
+  - Validation requirements section (line 110) states "Relevant tests must pass"
+  - Error handling section (line 191) includes "Test failures: Analyze, fix, and rerun tests"
