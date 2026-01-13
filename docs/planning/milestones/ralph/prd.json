@@ -213,7 +213,7 @@
       "Verify prompt asks about target users and their needs",
       "Verify Jobs To Be Done methodology is referenced"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-05",
