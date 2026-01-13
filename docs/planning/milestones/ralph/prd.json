@@ -615,7 +615,7 @@
       "Verify prompt references Story documents",
       "Verify Story context is included in analysis"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-05",

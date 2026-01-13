@@ -609,3 +609,19 @@
     - Lines 212-217: Validation table includes "Full chain including Vision"
     - Lines 237-241: Output format includes Vision in Planning Chain section
   - All three verification steps passed
+
+### 004-intention-drift-prompt-04
+- **Status:** PASSED
+- **Changes:** Verified Story to code chain analysis in intention-drift.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 342 lines, readable
+  - Verification step 2 (Verify prompt references Story documents): ✓
+    - Line 36: `3. **Story** - The user-centric "what/who/why" (via Task's storyRef field → docs/planning/milestones/<milestone>/stories/STORY-NNN.md)`
+    - Line 317: `c. Read the Task's storyRef to find parent Story (if exists)`
+  - Verification step 3 (Verify Story context is included in analysis): ✓
+    - Lines 80-92: Example 3 shows Story context in drift analysis
+    - Lines 168-186: Example 3 full drift judgment using Story context
+    - Line 216: Validation table shows "Subtask + Task + Story" chain
+    - Line 239: Output format includes Story in Planning Chain section
+    - Line 289: Task file format includes Story reference
+  - All three verification steps passed
