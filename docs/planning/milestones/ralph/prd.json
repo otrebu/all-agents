@@ -321,7 +321,7 @@
       "Provide initial input",
       "Verify AI continues conversation with follow-up questions"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-01",
