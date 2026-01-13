@@ -32,3 +32,13 @@
   - Example shows Bash with `cat` and `echo >` for file operations (lines 42-45)
   - "Why inefficient" explanation instructs flagging this pattern (lines 47-48)
   - Acceptable variation documented (using Bash with pipes for data transformation)
+
+### 001-self-improvement-prompt-04
+- **Status:** PASSED
+- **Changes:** Verified wasted reads pattern detection in self-improvement.md
+- **Details:**
+  - Prompt contains "Wasted Reads" section (lines 55-72) with detection criteria
+  - "Files read but never used in subsequent actions or reasoning" clearly defined
+  - Example shows reading 3 files but only using 1 (lines 58-65)
+  - "Why inefficient" explanation documents token waste (lines 67-68)
+  - Acceptable variations documented (architecture exploration, existence checks, investigation phases)

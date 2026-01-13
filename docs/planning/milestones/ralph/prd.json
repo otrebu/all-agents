@@ -45,7 +45,7 @@
       "Verify prompt includes example of unused file reads",
       "Verify prompt instructs flagging this as inefficiency"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "001-self-improvement-prompt-05",
