@@ -485,7 +485,7 @@
       "Read prompt content",
       "Verify completedAt field update is specified"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-15",

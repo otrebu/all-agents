@@ -418,3 +418,12 @@
   - JSON example at line 155 shows `"done": true`
   - Line 163 explicitly states: "`done`: Set to `true`"
   - Required fields list at lines 162-166 includes done field documentation
+
+### 003-ralph-iteration-prompt-14
+- **Status:** PASSED
+- **Changes:** Verified completedAt timestamp instruction in ralph-iteration.md
+- **Details:**
+  - Phase 7: Update Tracking section (lines 143-184) instructs updating subtasks.json
+  - JSON example at line 156 shows `"completedAt": "2024-01-15T10:30:00Z"`
+  - Line 164 explicitly states: "`completedAt`: ISO 8601 timestamp of completion"
+  - Required fields list at lines 162-166 documents completedAt field
