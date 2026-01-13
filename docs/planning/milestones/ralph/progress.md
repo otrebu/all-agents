@@ -321,3 +321,11 @@
   - Orient phase defined at lines 9-24 in ralph-iteration.md
   - CLAUDE.md reading explicitly instructed (line 15): "@CLAUDE.md - Understand project conventions, stack, and development workflow"
   - Orient checklist includes "Read CLAUDE.md for project context" (line 21)
+
+### 003-ralph-iteration-prompt-03
+- **Status:** PASSED
+- **Changes:** Verified git status reading instruction in Orient phase
+- **Details:**
+  - Git status check instructed (line 16): "**Git status** - Run `git status` to understand current branch and uncommitted changes"
+  - Orient checklist includes git context (line 22): "- [ ] Check git status for branch and changes"
+  - Orient phase (lines 9-24) explicitly includes git status as part of context gathering
