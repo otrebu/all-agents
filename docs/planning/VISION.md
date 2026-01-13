@@ -24,7 +24,7 @@ VISION (singular)
 | **Vision** | What the app IS and WILL BECOME. Evolves as milestones complete. |
 | **Roadmap** | Living doc referencing milestones. Trims as milestones complete. |
 | **Milestone** | Outcome-based bucket (e.g., "MVP", "Beta"). Bigger than Epic. Contains Stories and/or orphan Tasks. |
-| **Story** | User-centric "what, for whom, why" (JTBD). 1:1 with Milestone. Has unique ID (e.g., `STORY-001`). |
+| **Story** | User-centric "what, for whom, why" (JTBD). Belongs to exactly one Milestone. Has unique ID (e.g., `STORY-001`). |
 | **Task** | Technical "how". References parent Story (optional). Has unique ID (e.g., `TASK-001`). |
 | **Subtask** | Atomic implementation unit. Always has Task parent. Stored in `subtasks.json`. |
 
@@ -68,7 +68,6 @@ Flexible scope—place at milestone level (build whole milestone) or story level
     {
       "id": "SUB-001",
       "taskRef": "TASK-001",
-      "storyRef": "STORY-001",
       "title": "Create user authentication endpoint",
       "description": "Implement POST /api/auth/register with validation and JWT",
       "done": false,
@@ -154,7 +153,7 @@ Each level needs two prompt types (except edges):
 | Tasks | `tasks-interactive` | `tasks-auto` |
 | Subtasks | - | `subtasks-auto` |
 
-**TODO:** Draft all 9 prompts (start with `vision-interactive`).
+**TODO:** Draft all 14 prompts (8 planning, 2 building, 3 calibration, 1 hook).
 
 #### Subtask Sizing
 
@@ -163,13 +162,25 @@ Subtasks must fit entire cycle in one context window:
 
 #### Pre-Build Validation (Optional)
 
-Optional drift check before building. Useful when auto-generating subtasks from stories/tasks.
+Optional alignment check before building. Useful when auto-generating subtasks from stories/tasks.
 
 ```bash
-ralph build --validate-first   # run drift check before building
+ralph build --validate-first   # run alignment check before building
 ```
 
-**Mechanism:** Simple prompt with Story + Task + Subtask content. LLM judges if subtask aligns with parent intent.
+**Mechanism:** `pre-build-validation.md` prompt reads:
+- Subtask definition (title, description, acceptance criteria)
+- Parent Task (if exists)
+- Parent Story (if exists)
+
+LLM judges: Does subtask faithfully implement parent intent? Not too broad, not too narrow, no scope creep?
+
+**Output:**
+```json
+{"aligned": true}
+// or
+{"aligned": false, "reason": "Subtask adds OAuth support but Task only mentions basic auth"}
+```
 
 **Graceful degradation:** Validates only what exists. Partial chains (e.g., Task → Subtask without Story) still validated at available levels.
 
@@ -215,19 +226,30 @@ Each **Ralph Iteration**:
 13. Tests pass (related tests)
 14. Subtask acceptance criteria met
 
-Agent retries implementation until validation passes. Max iterations configurable via CLI (default: unlimited).
+Agent retries implementation until validation passes. Session failure (validation fail, stuck loop, crash) = one iteration consumed.
 
 ```bash
-ralph build --max-retries 3   # stop after 3 failed attempts
-ralph build                   # unlimited retries (default)
+ralph build --max-iterations 3   # stop after 3 failed iterations per subtask
+ralph build                      # unlimited iterations (default)
 ```
+
+**When max iterations exceeded:** Triggers `onMaxRetriesExceeded` hook. Default action: `pause` (halt build, wait for human).
 
 **Commit & Update**:
 15. Commit with message referencing subtask ID
 16. Update subtasks.json: set `done: true`, add `completedAt`, `commitHash`, `sessionId`
 17. Append entry to progress file
 
-**Progress file format** (markdown, append-only):
+**Progress file:** `PROGRESS.md` lives adjacent to `subtasks.json` (same folder).
+
+```
+docs/planning/milestones/mvp/
+├── subtasks.json
+├── PROGRESS.md      # ← same folder
+└── stories/
+```
+
+**Format** (markdown, append-only):
 ```markdown
 # Progress
 
@@ -369,7 +391,28 @@ ralph calibrate --review     # ask for all approvals
 
 ### Hooks & Notifications
 
-Hooks enable human-on-the-loop checkpoints via `ralph.config.json`. Events: `onIterationComplete`, `onMilestoneComplete`, `onValidationFail`, `onMaxRetriesExceeded`. Actions: `log`, `notify`, `pause`. Notification providers TBD (Pushover, ntfy, webhooks).
+Hooks enable human-on-the-loop checkpoints via `ralph.config.json`.
+
+**Events:**
+- `onIterationComplete` - After each subtask attempt
+- `onMilestoneComplete` - When all subtasks in milestone done
+- `onValidationFail` - When build/lint/test fails
+- `onMaxRetriesExceeded` - When retry limit hit
+
+**Actions:**
+- `log` - Write to iteration diary
+- `notify` - Send push notification
+- `pause` - Stop and wait for human
+
+**Notification provider:** ntfy (default)
+
+**Iteration diary:** Machine-readable log at `logs/iterations.jsonl`. Populated by Claude Code hook after each iteration. Includes LLM-generated summary (via haiku) of what happened.
+
+```json
+{"subtaskId": "SUB-001", "sessionId": "abc123", "status": "completed", "summary": "Implemented JWT auth. Hit CORS issue, fixed with middleware.", "toolCalls": 42, "filesChanged": ["src/auth.ts"]}
+```
+
+**Status command** reads diary for recent activity, success rate, tool call stats.
 
 ## 6. Logging & Monitoring
 
@@ -410,8 +453,8 @@ All core concepts, flows, and architecture are defined:
 
 These are implementation artifacts, not design blockers:
 
-1. **Draft 9 planning prompts** (see Prompts table in Planning Mode)
-   - Start with `vision-interactive` and `subtasks-auto`
+1. **Draft 14 prompts** (8 planning, 2 building, 3 calibration, 1 hook)
+   - Start with `ralph-iteration.md` and `subtasks-auto.md`
 
 2. **Define self-improvement heuristics** (Calibration Mode)
    - Concrete patterns for detecting tool misuse, wasted tokens, etc.
@@ -443,14 +486,19 @@ context/workflows/ralph/
 │   ├── tasks-auto.md
 │   └── subtasks-auto.md
 ├── building/
-│   └── ralph-iteration.md
-└── calibration/
-    ├── intention-drift.md
-    ├── technical-drift.md
-    └── self-improvement.md
+│   ├── ralph-iteration.md
+│   └── pre-build-validation.md
+├── calibration/
+│   ├── intention-drift.md
+│   ├── technical-drift.md
+│   └── self-improvement.md
+└── hooks/
+    └── iteration-summary.md
 ```
 
-**Format:** Plain markdown with file path references (no templating).
+**Format:** Plain markdown with file path references.
+
+**Templating note:** Planning/building/calibration prompts use `@path` references resolved by Claude Code - no preprocessing needed. Hook prompts (like `iteration-summary.md`) use `{{VAR}}` placeholders substituted by bash before calling Claude - these are programmatic, not interactive.
 
 ```markdown
 ## Required Reading
@@ -502,8 +550,9 @@ ralph plan subtasks --auto     # Auto only (always requires --auto)
 | Option | Description |
 |--------|-------------|
 | `--subtasks <path>` | Path to subtasks.json (default: auto-discover) |
-| `--max-retries <n>` | Max retries per subtask (default: 0 = unlimited) |
-| `--validate-first` | Run drift check before building |
+| `--max-iterations <n>` | Max iterations per subtask (default: 0 = unlimited) |
+| `--calibrate-every <n>` | Run calibration after N iterations (default: from config) |
+| `--validate-first` | Run alignment check before building |
 | `-i, --interactive` | Pause after each iteration for review |
 | `-p, --print` | Print single iteration prompt, don't execute |
 
@@ -533,9 +582,16 @@ Queue:     SUB-004 "Implement login endpoint"
 Config:    ralph.config.json (found)
 ```
 
-### 8.3 Skills as Primary Interface
+### 8.3 Prompts, Skills, and CLI
 
-**Principle:** Skills own the workflow logic. CLI triggers skills.
+**Principle:** Prompts are source of truth. CLI and skills are peer entry points to the same prompts.
+
+**Two entry points, same prompts:**
+
+| Entry | How it works |
+|-------|--------------|
+| CLI | `claude -p "$(cat prompt.md)" --options` - uses prompt directly |
+| Skill | `/ralph-plan` in interactive session - skill loads same prompt |
 
 **Skills to create:**
 
@@ -544,47 +600,40 @@ Config:    ralph.config.json (found)
 ├── ralph-plan/SKILL.md         # Planning workflows
 ├── ralph-build/SKILL.md        # Building mode
 ├── ralph-calibrate/SKILL.md    # Calibration checks
-└── ralph-status/SKILL.md       # Status reporting (optional, simple)
+└── ralph-status/SKILL.md       # Status reporting
 ```
 
 **Skill structure:**
 
-```yaml
----
-name: ralph-plan
-description: Interactive planning for Ralph framework. Use when user wants to
-  plan vision, roadmap, stories, tasks, or generate subtasks.
----
-
+```markdown
 # Ralph Planning
 
-Based on what level the user wants to plan, read the appropriate prompt:
+Based on what level the user wants to plan, read and follow the appropriate prompt:
 
 - Vision: @context/workflows/ralph/planning/vision-interactive.md
 - Roadmap: @context/workflows/ralph/planning/roadmap-interactive.md (or roadmap-auto.md)
 - Stories: @context/workflows/ralph/planning/stories-interactive.md (or stories-auto.md)
 - Tasks: @context/workflows/ralph/planning/tasks-interactive.md (or tasks-auto.md)
 - Subtasks: @context/workflows/ralph/planning/subtasks-auto.md
-
-Follow the instructions in the loaded prompt.
 ```
 
-**CLI invokes skills:**
+**CLI invokes prompts directly:**
 
 ```bash
-# CLI spawns Claude with instruction to use skill
+# CLI uses prompt file directly, not skills
 aaa ralph plan vision
-# → claude -p "Use /ralph-plan skill. Focus on: vision level."
+# → claude -p "$(cat context/workflows/ralph/planning/vision-interactive.md)"
 
 aaa ralph build
-# → claude -p "Use /ralph-build skill."
+# → claude -p "$(cat context/workflows/ralph/building/ralph-iteration.md)" \
+#          --dangerously-skip-permissions --output-format json
 ```
 
 **Benefits:**
-- Skills are the source of truth for workflow logic
-- CLI is a thin shell entry point
-- Same behavior whether user types `/ralph-plan` in Claude Code or `aaa ralph plan` in terminal
-- Prompts in `context/workflows/ralph/` are reusable building blocks
+- Prompts are single source of truth
+- CLI and skills are true peers
+- No indirection layer - CLI doesn't "call" skills
+- Easy to test prompts in isolation
 
 ### 8.4 Self-Improvement Heuristics
 
@@ -613,9 +662,8 @@ The `ralph calibrate improve` command analyzes session logs to detect inefficien
 | Consecutive failures | ≥3 | Switch approach |
 | Same error signature | 3+ occurrences | Escalate |
 | Similar fix attempts | >0.8 cosine similarity | Force variation |
-| Max iterations | 15 (agent loops) | Terminate |
 
-**Detection:** Track error signatures and action hashes across iterations.
+**Detection:** Track error signatures and action hashes across iterations. Max iterations per subtask controlled via `--max-iterations` flag (see Building Mode).
 
 #### 3. Wasted Reads
 
@@ -822,17 +870,32 @@ tools/tests/e2e/ralph.test.ts    # Extend existing E2E tests
 
 **Approach:** Parallel workstreams. Prompts and scripts can be developed simultaneously by different agents.
 
+#### P0: Prerequisites
+
+Before starting workstreams, ensure these are in place:
+
+| Item | Purpose |
+|------|---------|
+| `jq` available | JSON parsing in bash scripts |
+| `ralph.config.json` template | Default config with all options |
+| `subtasks.json` update utility | Bash function to read/modify/write JSON |
+| `logs/` directory convention | Where iteration diary lives |
+
 #### Workstream A: Prompts (can parallelize internally)
 
 | Priority | Prompt | Purpose |
 |----------|--------|---------|
 | P1 | `ralph-iteration.md` | Core build loop |
-| P1 | `subtasks-auto.md` | Generate subtasks from tasks |
+| P1 | `iteration-summary.md` | Hook: summarize session for diary |
+| P1 | `pre-build-validation.md` | Alignment check before build |
+| P2 | `tasks-auto.md` | Generate tasks (needed before subtasks) |
+| P2 | `subtasks-auto.md` | Generate subtasks from tasks |
 | P2 | `vision-interactive.md` | Vision planning |
 | P2 | `stories-auto.md` | Generate stories |
-| P2 | `tasks-auto.md` | Generate tasks |
 | P3 | Remaining planning prompts | Full planning coverage |
 | P3 | Calibration prompts | Drift detection, self-improvement |
+
+**Note:** `subtasks-auto.md` requires tasks to exist. For P1 testing, create manual `subtasks.json`.
 
 #### Workstream B: Scripts (can parallelize internally)
 
@@ -840,6 +903,7 @@ tools/tests/e2e/ralph.test.ts    # Extend existing E2E tests
 |----------|--------|---------|
 | P1 | `ralph.sh` | Entrypoint, dispatch |
 | P1 | `build.sh` | Iteration loop |
+| P1 | `post-iteration-hook.sh` | Diary entry + notifications |
 | P2 | `plan.sh` | Planning workflows |
 | P2 | `status.sh` | Progress display |
 | P3 | `calibrate.sh` | LLM-as-judge analysis |
@@ -853,9 +917,13 @@ tools/tests/e2e/ralph.test.ts    # Extend existing E2E tests
 
 #### Integration Points
 
-1. **First integration:** `build.sh` + `ralph-iteration.md` + manual `subtasks.json`
-2. **Second integration:** `plan.sh` + `subtasks-auto.md`
-3. **Full integration:** All scripts + all prompts + skills
+1. **First integration:** `build.sh` + `ralph-iteration.md` + `post-iteration-hook.sh` + manual `subtasks.json`
+   - Validates: Core loop works end-to-end with diary
+2. **Second integration:** `plan.sh` + `tasks-auto.md` + `subtasks-auto.md`
+   - Validates: Can generate work queue from task definitions
+3. **Third integration:** `status.sh` + remaining planning prompts
+   - Validates: Full planning-to-building pipeline
+4. **Full integration:** All scripts + all prompts + skills + calibration
 
 ### 8.8 Calibration as LLM-as-Judge
 
@@ -904,12 +972,12 @@ claude -p "$(cat $PROMPT_FILE)" --output-format json
 #### Multi-Turn Interactive (for planning without `--auto`)
 
 ```bash
-# CLI launches interactive session with skill
-claude --allowedTools "Read,Write,Edit,Glob,Grep" \
-       -p "Use /ralph-plan skill. Focus on: vision level. Be interactive - ask clarifying questions."
+# CLI launches interactive session with prompt
+claude -p "$(cat context/workflows/ralph/planning/vision-interactive.md)"
 ```
 
 - Used for: `ralph plan vision`, `ralph plan stories` (without `--auto`)
+- Full tool access (no restrictions)
 - Claude asks questions, user responds, iterates until done
 - Session stays open for multi-turn dialogue
 
@@ -927,9 +995,11 @@ claude --allowedTools "Read,Write,Edit,Glob,Grep" \
 
 ```bash
 # Single-shot check before build loop
-claude -p "$(cat calibration/intention-drift.md)" --output-format json
+claude -p "$(cat building/pre-build-validation.md)" --output-format json
 # If validation fails, abort build
 ```
+
+**Pre-build validation prompt** checks subtask alignment with parent chain before implementation starts. Different from intention-drift (which checks commits after implementation).
 
 ### 8.10 Permission Handling
 
@@ -963,3 +1033,103 @@ claude -p "$(cat $PROMPT)" \
 - Validation gates before commit
 - Progress file provides audit trail
 - Session ID enables debugging
+
+### 8.11 Hooks & Notifications Implementation
+
+**Config structure:**
+
+```json
+{
+  "hooks": {
+    "onIterationComplete": ["log", "notify"],
+    "onMilestoneComplete": ["notify"],
+    "onValidationFail": ["log"],
+    "onMaxRetriesExceeded": ["notify", "pause"]
+  },
+  "notifications": {
+    "provider": "ntfy",
+    "topic": "ralph-builds"
+  }
+}
+```
+
+**Iteration diary mechanism:**
+
+Claude Code hook (not the iteration agent) captures session data:
+
+```bash
+# .claude/hooks/post-session.sh (or similar)
+# Triggered after each ralph iteration session ends
+
+SESSION_JSONL="$1"  # Path to session JSONL
+
+# Parse JSONL for structured data (no LLM needed)
+# Extract: tool calls, errors, files changed
+# Append to logs/iterations.jsonl
+```
+
+**Diary schema:** `docs/planning/schemas/iteration-diary.schema.json`
+
+```json
+{
+  "timestamp": "2026-01-13T10:30:00Z",
+  "subtaskId": "SUB-001",
+  "sessionId": "abc123",
+  "status": "completed|failed|retrying",
+  "summary": "Implemented JWT auth endpoint. Hit CORS issue, fixed by adding middleware. Tests passing.",
+  "toolCalls": 42,
+  "errors": 0,
+  "filesChanged": ["src/auth.ts", "src/auth.test.ts"],
+  "duration": "4m32s"
+}
+```
+
+**Template:** `docs/planning/templates/iteration-diary.template.json`
+
+**What comes from where:**
+- `summary` → haiku generates from session JSONL
+- `toolCalls`, `errors`, `filesChanged` → parsed from session JSONL
+- `timestamp`, `duration` → computed by hook script
+- `subtaskId`, `sessionId`, `status` → passed to hook from build.sh
+
+**Summary generation:** Claude Code hook spawns haiku to generate summary.
+
+**Prompt location:** `context/workflows/ralph/hooks/iteration-summary.md`
+
+**Prompt template:**
+```markdown
+Summarize this Claude Code session in 1-2 sentences.
+
+Focus on:
+- What was accomplished
+- Any obstacles/errors encountered
+- Final outcome (success/failure/partial)
+
+Session log:
+{{SESSION_JSONL_CONTENT}}
+
+Subtask being worked on:
+{{SUBTASK_TITLE}}: {{SUBTASK_DESCRIPTION}}
+
+Output JSON:
+{"summary": "..."}
+```
+
+**ntfy integration:**
+
+```bash
+# In build.sh, after iteration completes
+if [[ " ${HOOKS[onIterationComplete]} " =~ " notify " ]]; then
+  curl -d "SUB-001 completed" "ntfy.sh/${NTFY_TOPIC}"
+fi
+```
+
+**Status command reads diary:**
+
+```bash
+ralph status
+# Output includes:
+# Last 5 iterations: SUB-001 ✓, SUB-002 ✓, SUB-003 ✗ (retrying)
+# Success rate: 87% (last 24h)
+# Avg tool calls: 38/iteration
+```
