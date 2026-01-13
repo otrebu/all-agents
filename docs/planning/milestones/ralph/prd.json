@@ -81,7 +81,7 @@
       "Verify prompt instructs producing summary to stdout",
       "Verify summary format is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "001-self-improvement-prompt-08",

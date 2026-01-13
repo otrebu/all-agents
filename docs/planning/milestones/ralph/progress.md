@@ -62,3 +62,11 @@
   - Example shows repeated TypeError fixes (obj.x → obj?.x, obj.y → obj?.y) across attempts 1-5 (lines 93-104)
   - "Why inefficient" explanation instructs flagging: "treating symptoms instead of root cause. After 2-3 similar errors, it should step back" (lines 105-106)
   - Acceptable variations documented (different errors, progressive debugging, TDD cycles)
+
+### 001-self-improvement-prompt-07
+- **Status:** PASSED
+- **Changes:** Verified output format with summary in stdout in self-improvement.md
+- **Details:**
+  - Prompt contains "## Output Format" section (lines 127-189) with full specification
+  - "### 1. Summary to stdout" subsection (lines 129-160) instructs producing summary to stdout
+  - Summary format is documented with markdown example including: Session info, Findings (by category), Recommendations, and Proposed Changes reference
