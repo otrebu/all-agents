@@ -699,7 +699,7 @@
       "Verify graceful degradation instructions",
       "Verify prompt validates what exists in chain"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-12",

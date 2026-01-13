@@ -735,3 +735,22 @@
       - Corrective Action with 3 options
       - Acceptance Criteria checklist
   - All three verification steps passed
+
+### 004-intention-drift-prompt-11
+- **Status:** PASSED
+- **Changes:** Verified graceful degradation for partial chains (missing Story/Task) in intention-drift.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 342 lines, readable
+  - Verification step 2 (Verify graceful degradation instructions): ✓
+    - Lines 208-223: "## Graceful Degradation" section exists with explicit handling
+    - Lines 212-217: Table showing 4 validation levels based on available chain:
+      - Subtask only → Just acceptance criteria
+      - Subtask + Task → Task description + Subtask criteria
+      - Subtask + Task + Story → Full chain from user need to implementation
+      - Full chain including Vision → Complete intention alignment
+    - Lines 219-223: Instructions for handling missing parents with example note
+  - Verification step 3 (Verify prompt validates what exists in chain): ✓
+    - Line 39: "**Note:** Not all chains are complete. Tasks may be orphans (no Story parent). Validate what exists."
+    - Lines 212-217: Validation table maps available chain to appropriate validation scope
+    - Lines 219-223: Explicit handling with note: "If a parent is missing: Note it in the summary but don't fail"
+  - All three verification steps passed
