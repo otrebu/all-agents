@@ -70,3 +70,11 @@
   - Prompt contains "## Output Format" section (lines 127-189) with full specification
   - "### 1. Summary to stdout" subsection (lines 129-160) instructs producing summary to stdout
   - Summary format is documented with markdown example including: Session info, Findings (by category), Recommendations, and Proposed Changes reference
+
+### 001-self-improvement-prompt-08
+- **Status:** PASSED
+- **Changes:** Enhanced task file format documentation with explicit valid targets
+- **Details:**
+  - Prompt contains "### 2. Task Files for Proposed Improvements" section (lines 162-194) instructing task file creation
+  - Task file format is fully documented with template including: Task title, Source, Created, Problem, Proposed Change, Target File, Risk Level, Acceptance Criteria
+  - Added explicit valid targets list (lines 183-187) including: CLAUDE.md, context/workflows/ralph/**/*.md, .claude/skills/**/*.md, docs/**/*.md

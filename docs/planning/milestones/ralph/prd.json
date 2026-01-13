@@ -93,7 +93,7 @@
       "Verify task file format is documented",
       "Verify task files target prompts/docs/CLAUDE.md as applicable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "001-self-improvement-prompt-09",

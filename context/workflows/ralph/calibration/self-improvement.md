@@ -180,6 +180,12 @@ Create task files for each recommended change:
 ### Target File
 <path to file that should be modified>
 
+Valid targets include:
+- `CLAUDE.md` - For general agent behavior improvements
+- `context/workflows/ralph/**/*.md` - For Ralph-specific prompt improvements
+- `.claude/skills/**/*.md` - For skill-specific improvements
+- `docs/**/*.md` - For documentation improvements
+
 ### Risk Level
 <low/medium/high - high if affects core prompts>
 
