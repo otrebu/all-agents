@@ -696,3 +696,21 @@
     - Line 119: "Check the subtasks.json queue. If something 'missing' is listed as a future subtask, it's not drift—it's planned work."
     - Line 320: Execution instructions include "Apply the 'Don't Jump Ahead' guard" as step f
   - All three verification steps passed
+
+### 004-intention-drift-prompt-09
+- **Status:** PASSED
+- **Changes:** Verified stdout output format in intention-drift.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 342 lines, readable
+  - Verification step 2 (Verify stdout output format is specified): ✓
+    - Line 227: `### 1. Summary to stdout` section header
+    - Lines 229-268: Complete markdown template for stdout output
+  - Verification step 3 (Verify summary structure is documented): ✓
+    - Lines 229-268 provide the complete summary structure:
+      - `# Intention Drift Analysis` header
+      - `## Subtask:` with title, commit, date
+      - `## Planning Chain` with Vision, Story, Task, Subtask references
+      - `## Analysis` with drift detection result
+      - Conditional sections for drift/no-drift cases
+      - `## Recommendation` section
+  - All three verification steps passed
