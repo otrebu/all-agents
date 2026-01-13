@@ -381,3 +381,12 @@
   - Lint command explicitly included (lines 96-98): `bun run lint`
   - Validation requirements section (line 108) states "Lint must pass (or only have pre-existing warnings)"
   - Error handling section (line 190) includes "Build/Lint/Typecheck failures: Fix the issues and retry"
+
+### 003-ralph-iteration-prompt-10
+- **Status:** PASSED
+- **Changes:** Verified typecheck command in Validate phase of ralph-iteration.md
+- **Details:**
+  - Validate phase is defined at lines 86-116 (Phase 5: Validate)
+  - Typecheck command explicitly included (lines 99-100): `bun run typecheck`
+  - Validation requirements section (line 109) states "Type checking must pass"
+  - Error handling section (line 190) includes "Build/Lint/Typecheck failures: Fix the issues and retry"
