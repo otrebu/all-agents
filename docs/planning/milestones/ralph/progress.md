@@ -52,3 +52,13 @@
   - Example shows function rename then revert: `foo` → `bar` → `foo` (lines 77-82)
   - "Why inefficient" explanation documents wasted edits and tokens (lines 84-85)
   - Acceptable variations documented (reverting after test failure, iterative refinement)
+
+### 001-self-improvement-prompt-06
+- **Status:** PASSED
+- **Changes:** Verified excessive iterations pattern detection in self-improvement.md
+- **Details:**
+  - Prompt contains "Excessive Iterations on Same Error" section (lines 90-111) with detection criteria
+  - Detection criteria defined: "Repeatedly attempting the same fix for an error without changing approach"
+  - Example shows repeated TypeError fixes (obj.x → obj?.x, obj.y → obj?.y) across attempts 1-5 (lines 93-104)
+  - "Why inefficient" explanation instructs flagging: "treating symptoms instead of root cause. After 2-3 similar errors, it should step back" (lines 105-106)
+  - Acceptable variations documented (different errors, progressive debugging, TDD cycles)
