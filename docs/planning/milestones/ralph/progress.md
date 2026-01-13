@@ -427,3 +427,12 @@
   - JSON example at line 156 shows `"completedAt": "2024-01-15T10:30:00Z"`
   - Line 164 explicitly states: "`completedAt`: ISO 8601 timestamp of completion"
   - Required fields list at lines 162-166 documents completedAt field
+
+### 003-ralph-iteration-prompt-15
+- **Status:** PASSED
+- **Changes:** Verified commitHash instruction in ralph-iteration.md
+- **Details:**
+  - Phase 7: Update Tracking section (lines 143-184) instructs updating subtasks.json
+  - JSON example at line 157 shows `"commitHash": "abc123def456"`
+  - Line 165 explicitly states: "`commitHash`: Git commit hash from the commit phase"
+  - Required fields list at lines 162-166 documents commitHash field
