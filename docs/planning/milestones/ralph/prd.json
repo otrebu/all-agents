@@ -225,7 +225,7 @@
       "Verify prompt explores key capabilities",
       "Verify feature discovery questions are included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-06",

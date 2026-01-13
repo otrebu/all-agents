@@ -210,3 +210,16 @@
     - Social: "How do they want to be perceived?"
   - Includes alternative exploration and context questions
   - VISION.md format includes Jobs To Be Done section (lines 107-110)
+
+### 002-vision-interactive-prompt-05
+- **Status:** PASSED
+- **Changes:** Verified key capabilities and features coverage in vision-interactive.md
+- **Details:**
+  - Prompt contains Phase 3: Key Capabilities section (lines 42-52)
+  - Key question: "If your product could only do three things, what would they be?" (line 46)
+  - Feature discovery questions included as capability probes (lines 48-52):
+    - "Which of these is absolutely essential on day one?"
+    - "What makes your approach different from existing solutions?"
+    - "What will you explicitly NOT build?"
+    - "What would a 'delightful' version of this look like?"
+  - VISION.md format includes Key Capabilities section (lines 115-118)
