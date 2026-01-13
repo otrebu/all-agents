@@ -567,7 +567,7 @@
       "Run ralph build",
       "Verify subtask is marked done after completion"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-01",

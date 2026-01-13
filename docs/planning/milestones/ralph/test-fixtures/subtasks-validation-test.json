@@ -1,0 +1,13 @@
+[
+  {
+    "id": "validation-test-001",
+    "title": "Create a validation test marker file",
+    "description": "Create a simple file to validate the ralph build iteration loop works end-to-end",
+    "acceptanceCriteria": [
+      "File docs/planning/milestones/ralph/test-fixtures/validation-marker.txt exists",
+      "File contains the text 'Ralph build validation complete'"
+    ],
+    "filesToRead": [],
+    "done": false
+  }
+]

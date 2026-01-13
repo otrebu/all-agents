@@ -142,9 +142,26 @@ ralphCommand.addCommand(
         return;
       }
 
-      // Non-print mode: would execute Claude (not yet implemented)
-      console.log("ralph build execution mode not yet implemented");
-      console.log("Use --print to see the prompt that would be used");
+      // Execution mode: run the build script
+      const scriptPath = path.join(SCRIPTS_DIR, "build.sh");
+      const subtasksPath = path.resolve(options.subtasks);
+      const interactive = options.interactive ? "true" : "false";
+      const permFlag = "--dangerously-skip-permissions";
+
+      // Validate subtasks file exists
+      if (!existsSync(subtasksPath)) {
+        console.error(`Subtasks file not found: ${subtasksPath}`);
+        process.exit(1);
+      }
+
+      try {
+        execSync(
+          `bash "${scriptPath}" "${subtasksPath}" "${options.maxIterations}" "${interactive}" "${permFlag}"`,
+          { stdio: "inherit" },
+        );
+      } catch {
+        process.exit(1);
+      }
     }),
 );
 
