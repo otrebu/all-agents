@@ -297,3 +297,19 @@
   - Verified `vision-auto.md` does not exist:
     - Glob search for `**/vision-auto.md` returned no files
     - Only `vision-interactive.md` exists at `context/workflows/ralph/planning/`
+
+### 003-ralph-iteration-prompt-01
+- **Status:** PASSED
+- **Changes:** Created `context/workflows/ralph/building/ralph-iteration.md` prompt file
+- **Details:**
+  - Created directory structure `context/workflows/ralph/building/`
+  - Created comprehensive ralph-iteration prompt with 7 phases:
+    1. Orient: Read CLAUDE.md, git status, PROGRESS.md, subtasks.json
+    2. Select: Judgment-based subtask selection (not rigid sequential)
+    3. Investigate: Read filesToRead from subtask, understand context
+    4. Implement: Execute the implementation
+    5. Validate: Run build, lint, typecheck, tests
+    6. Commit: Create commit with subtask ID reference
+    7. Update Tracking: Update subtasks.json (done, completedAt, commitHash, sessionId) and PROGRESS.md
+  - File verified at `context/workflows/ralph/building/ralph-iteration.md` (211 lines)
+  - Contains @path references (not templating syntax)
