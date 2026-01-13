@@ -1,11 +1,12 @@
 import { Command } from "@commander-js/extra-typings";
 import { getContextRoot } from "@tools/utils/paths";
 import { execSync } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const DEFAULT_PRD_PATH = "prd.json";
 const DEFAULT_PROGRESS_PATH = "progress.md";
+const DEFAULT_SUBTASKS_PATH = "subtasks.json";
 const DEFAULT_ITERATIONS = 5;
 
 // Scripts live in repo, resolved from root (works for both dev and compiled binary)
@@ -85,6 +86,65 @@ ralphCommand.addCommand(
       } catch {
         process.exit(1);
       }
+    }),
+);
+
+// ralph build - execute subtask iteration loop
+ralphCommand.addCommand(
+  new Command("build")
+    .description("Run subtask iteration loop using ralph-iteration.md prompt")
+    .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("-p, --print", "Print prompt without executing Claude")
+    .option("-i, --interactive", "Pause between iterations")
+    .option("--max-iterations <n>", "Max retry attempts per subtask", "3")
+    .option("--validate-first", "Run pre-build validation before building")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      const promptPath = path.join(
+        contextRoot,
+        "context/workflows/ralph/building/ralph-iteration.md",
+      );
+
+      // Read the prompt file
+      if (!existsSync(promptPath)) {
+        console.error(`Prompt not found: ${promptPath}`);
+        process.exit(1);
+      }
+      const promptContent = readFileSync(promptPath, "utf8");
+
+      // Read context files that would be included
+      const claudeMdPath = path.join(contextRoot, "CLAUDE.md");
+      const progressMdPath = path.join(contextRoot, "docs/planning/PROGRESS.md");
+
+      const claudeMdContent = existsSync(claudeMdPath)
+        ? readFileSync(claudeMdPath, "utf8")
+        : "# CLAUDE.md not found";
+      const progressMdContent = existsSync(progressMdPath)
+        ? readFileSync(progressMdPath, "utf8")
+        : "# PROGRESS.md not found";
+
+      // For --print mode, output the prompt with context
+      if (options.print) {
+        console.log("=== Ralph Build Prompt ===\n");
+        console.log("--- Prompt (ralph-iteration.md) ---");
+        console.log(promptContent);
+        console.log("\n--- Context: CLAUDE.md ---");
+        console.log(claudeMdContent);
+        console.log("\n--- Context: PROGRESS.md ---");
+        console.log(progressMdContent);
+        console.log(`\n--- Subtasks file: ${options.subtasks} ---`);
+        if (existsSync(options.subtasks)) {
+          console.log(readFileSync(options.subtasks, "utf8"));
+        } else {
+          console.log(`(File not found: ${options.subtasks})`);
+        }
+        console.log("\n=== End of Prompt ===");
+        return;
+      }
+
+      // Non-print mode: would execute Claude (not yet implemented)
+      console.log("ralph build execution mode not yet implemented");
+      console.log("Use --print to see the prompt that would be used");
     }),
 );
 

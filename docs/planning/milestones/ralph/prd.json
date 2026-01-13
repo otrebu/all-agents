@@ -555,7 +555,7 @@
       "Verify prompt content is output",
       "Verify context files are included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-21",

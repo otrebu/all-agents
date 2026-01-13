@@ -533,3 +533,20 @@
     - `@CLAUDE.md` → exists at project root `/home/otrebu/dev/all-agents/CLAUDE.md`
     - `@docs/planning/PROGRESS.md` → exists at `/home/otrebu/dev/all-agents/docs/planning/PROGRESS.md`
   - All three verification steps passed
+
+### 003-ralph-iteration-prompt-20
+- **Status:** PASSED
+- **Changes:** Implemented `aaa ralph build --print` command for viewing prompt with context
+- **Details:**
+  - Added `build` subcommand to `tools/src/commands/ralph/index.ts`
+  - Implemented `-p/--print` flag that outputs prompt without executing Claude
+  - Command outputs:
+    1. Ralph-iteration.md prompt content
+    2. Context: CLAUDE.md content
+    3. Context: PROGRESS.md content
+    4. Subtasks file content (or "not found" message)
+  - Verification steps all passed:
+    - `aaa ralph build --print` command runs successfully
+    - Prompt content (ralph-iteration.md) is output
+    - Context files (CLAUDE.md, PROGRESS.md, subtasks.json) are included in output
+  - Additional options added for future use: `--subtasks`, `-i/--interactive`, `--max-iterations`, `--validate-first`
