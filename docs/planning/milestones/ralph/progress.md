@@ -78,3 +78,12 @@
   - Prompt contains "### 2. Task Files for Proposed Improvements" section (lines 162-194) instructing task file creation
   - Task file format is fully documented with template including: Task title, Source, Created, Problem, Proposed Change, Target File, Risk Level, Acceptance Criteria
   - Added explicit valid targets list (lines 183-187) including: CLAUDE.md, context/workflows/ralph/**/*.md, .claude/skills/**/*.md, docs/**/*.md
+
+### 001-self-improvement-prompt-09
+- **Status:** PASSED
+- **Changes:** Verified chunking instructions for large session logs exist in self-improvement.md
+- **Details:**
+  - Prompt contains "## Large Log Handling (Chunking)" section (lines 113-125)
+  - Chunking strategy documented: "Read the log in chunks of ~50 messages at a time" (line 117)
+  - Processing incrementally instructed: "Process them incrementally" with 4-step process (lines 115-121)
+  - Context limits handled: Section addresses logs "too large to process completely" with strategies for prioritizing recent messages, sampling from phases, and noting partial analysis (lines 122-125)
