@@ -177,7 +177,7 @@
       "Verify vision-interactive.md file exists",
       "Verify file is readable and contains prompt content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-02",
