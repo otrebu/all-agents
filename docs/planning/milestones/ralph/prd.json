@@ -201,7 +201,7 @@
       "Verify prompt asks about what problem is being solved",
       "Verify product purpose exploration is included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-04",
