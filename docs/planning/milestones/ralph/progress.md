@@ -642,3 +642,20 @@
     - Lines 237-240: Output format includes Task in Planning Chain section
     - Lines 287-288: Task file format includes Task reference
   - All three verification steps passed
+
+### 004-intention-drift-prompt-06
+- **Status:** PASSED
+- **Changes:** Verified Subtask to code chain analysis in intention-drift.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 342 lines, readable
+  - Verification step 2 (Verify prompt references subtask definition): ✓
+    - Line 34: `1. **Subtask** - The atomic implementation unit (from subtasks.json)`
+    - Lines 10-20: Complete subtask JSON structure with all fields (id, taskRef, title, description, done, completedAt, commitHash, sessionId)
+    - Line 313: `Read subtasks.json to find completed subtasks with commitHash`
+  - Verification step 3 (Verify Subtask acceptance criteria are checked): ✓
+    - Lines 61-71: "Scope Shortfall" pattern explicitly references subtask acceptance criteria
+    - Lines 65-70: Example shows acceptance criteria in analysis (what was specified vs implemented)
+    - Line 214: Validation table shows "Subtask only | Just acceptance criteria"
+    - Lines 126-128, 147-149: Examples 1 and 2 show acceptance criteria being verified
+    - Line 307: Task file template includes "Acceptance criteria from original subtask are met"
+  - All three verification steps passed

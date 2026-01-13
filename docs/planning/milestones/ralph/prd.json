@@ -639,7 +639,7 @@
       "Verify prompt references subtask definition",
       "Verify Subtask acceptance criteria are checked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-07",
