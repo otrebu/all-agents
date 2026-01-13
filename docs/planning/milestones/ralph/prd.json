@@ -405,7 +405,7 @@
       "Verify Investigate phase is defined",
       "Verify filesToRead field is referenced"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-08",

@@ -354,3 +354,12 @@
   - Judgment-based selection documented (line 32): "Use judgment to select the most appropriate next subtask"
   - Explicitly states not rigid sequential (line 38): "This is judgment-based selection, not rigid sequential processing. The agent should consider context and dependencies when choosing which subtask to tackle next."
   - Selection criteria include: dependencies met, logical ordering, respecting dependsOn field, fallback to first incomplete
+
+### 003-ralph-iteration-prompt-07
+- **Status:** PASSED
+- **Changes:** Verified filesToRead reading instruction in Investigate phase
+- **Details:**
+  - Investigate phase is defined at lines 61-74 (Phase 3: Investigate)
+  - filesToRead reading explicitly instructed (line 66): "Read the `filesToRead` array from the subtask - these are files the subtask author identified as relevant"
+  - filesToRead field is also shown in the Subtask JSON structure example (lines 51-54)
+  - Investigation actions include reading filesToRead, additional context files, taskRef, and understanding acceptance criteria
