@@ -87,7 +87,7 @@ Flexible scope—place at milestone level (build whole milestone) or story level
 **Key fields:**
 - `done` - boolean, agent sets to `true` after successful implementation
 - `acceptanceCriteria` - plain English descriptions of how to verify completion
-- `filesToRead` - docs and code to read before implementing (supports glob patterns)
+- `filesToRead` - docs and code to read before implementing (supports glob patterns - agent uses Glob tool to expand)
 
 **Completion fields** (required when `done: true`):
 - `completedAt` - timestamp
@@ -209,7 +209,7 @@ Each **Ralph Iteration**:
 4. Read subtasks.json → the queue
 
 **Select** (pick work):
-5. Choose next subtask → agent decides based on context
+5. Choose next subtask → agent uses judgment based on progress and dependencies (not rigid sequential)
 
 **Investigate** (prepare & verify):
 6. Read `filesToRead` → docs and code referenced in subtask
@@ -219,21 +219,21 @@ Each **Ralph Iteration**:
 8. Follow subtask acceptance criteria
 9. Follow best practices from docs
 
-**Validate** (backpressure):
+**Validate** (backpressure - commands from CLAUDE.md):
 10. Build passes
 11. Lint passes
 12. Type check passes
 13. Tests pass (related tests)
 14. Subtask acceptance criteria met
 
-Agent retries implementation until validation passes. Session failure (validation fail, stuck loop, crash) = one iteration consumed.
+**No internal retries:** One iteration = one Claude session. If validation fails, that iteration is consumed. Next iteration starts fresh (memoryless).
 
 ```bash
-ralph build --max-iterations 3   # stop after 3 failed iterations per subtask
+ralph build --max-iterations 3   # stop after 3 iterations per subtask
 ralph build                      # unlimited iterations (default)
 ```
 
-**When max iterations exceeded:** Triggers `onMaxRetriesExceeded` hook. Default action: `pause` (halt build, wait for human).
+**When max iterations exceeded:** Triggers `onMaxIterationsExceeded` hook. Default action: `pause`.
 
 **Commit & Update**:
 15. Commit with message referencing subtask ID
@@ -290,9 +290,9 @@ Detects when code diverges from intended behavior.
 |--------|--------|
 | Reads | Git diffs via `commitHash` from subtasks.json |
 | Context | Full chain: Vision → Story → Task → Subtask → code changes |
-| Method | Subagent per file (manages context), judges alignment |
+| Method | LLM-as-judge with few-shot examples of drift vs acceptable |
 | Guard | Vision includes "don't jump ahead" - won't flag future planned work |
-| Output | Tasks to correct divergence |
+| Output | Task files to correct divergence |
 
 **2. Technical Drift**
 
@@ -302,9 +302,9 @@ Detects when code violates technical standards/docs.
 |--------|--------|
 | Reads | Git diffs via `commitHash` + docs from `filesToRead` |
 | Context | Subtask's referenced docs, or passed inline in interactive mode |
-| Method | Compare changes against doc standards |
-| Escape hatch | `// HUMAN APPROVED: reason and context` - marks intentional deviation |
-| Output | Tasks to fix violations |
+| Method | LLM-as-judge comparing changes against doc standards |
+| Escape hatch | `// HUMAN APPROVED: reason` - prompt instruction to ignore these |
+| Output | Task files to fix violations |
 
 **3. Self-Improvement**
 
@@ -318,7 +318,7 @@ Analyzes agent sessions for inefficiencies.
 | Risk | High - can affect everything since skills/agents reference prompts |
 | Control | Config controls propose-only vs auto-apply (default: propose) |
 
-**Heuristics:** See Section 8.4 for concrete detection patterns.
+**Approach:** LLM-as-judge with good prompt and context. See Section 8.4.
 
 #### When It Runs
 
@@ -328,11 +328,13 @@ Analyzes agent sessions for inefficiencies.
 
 #### Output Flow
 
-Always creates Tasks → Subtasks (never direct fixes):
+Calibration prompts output task markdown directly:
 
 ```
-Drift detected → Create Task → Human review (per config) → Break to Subtasks → Append to subtasks.json
+Analysis → Summary in stdout → Task files created → pause hook → User reviews
 ```
+
+User then decides: run `ralph plan subtasks` to add tasks to queue, or continue without.
 
 #### Configuration
 
@@ -394,15 +396,15 @@ ralph calibrate --review     # ask for all approvals
 Hooks enable human-on-the-loop checkpoints via `ralph.config.json`.
 
 **Events:**
-- `onIterationComplete` - After each subtask attempt
-- `onMilestoneComplete` - When all subtasks in milestone done
+- `onIterationComplete` - After each subtask attempt (success or fail)
+- `onMilestoneComplete` - When all subtasks `done: true` (checked after each iteration)
 - `onValidationFail` - When build/lint/test fails
-- `onMaxRetriesExceeded` - When retry limit hit
+- `onMaxIterationsExceeded` - When iteration limit hit for a subtask
 
 **Actions:**
 - `log` - Write to iteration diary
 - `notify` - Send push notification
-- `pause` - Stop and wait for human
+- `pause` - Exit build loop, show what triggered pause (e.g., new tasks created), give user options to continue or review
 
 **Notification provider:** ntfy (default)
 
@@ -426,7 +428,7 @@ result=$(claude -p "prompt" --output-format json)
 session_id=$(echo "$result" | jq -r '.session_id')
 ```
 
-**Resume sessions:** `claude --resume <session-id>`
+**Session resume:** Not used in Ralph flow (memoryless principle). Session IDs stored for debugging/calibration only.
 
 ## 7. Status & Next Steps
 
@@ -549,7 +551,7 @@ ralph plan subtasks --auto     # Auto only (always requires --auto)
 
 | Option | Description |
 |--------|-------------|
-| `--subtasks <path>` | Path to subtasks.json (default: auto-discover) |
+| `--subtasks <path>` | Path to subtasks.json (default: `./subtasks.json`) |
 | `--max-iterations <n>` | Max iterations per subtask (default: 0 = unlimited) |
 | `--calibrate-every <n>` | Run calibration after N iterations (default: from config) |
 | `--validate-first` | Run alignment check before building |
@@ -635,122 +637,26 @@ aaa ralph build
 - No indirection layer - CLI doesn't "call" skills
 - Easy to test prompts in isolation
 
-### 8.4 Self-Improvement Heuristics
+### 8.4 Self-Improvement (LLM-as-Judge)
 
-The `ralph calibrate improve` command analyzes session logs to detect inefficiencies. Based on research, these are the concrete detection patterns:
+The `ralph calibrate improve` command analyzes session logs to detect inefficiencies using LLM judgment (not coded heuristics).
 
-#### 1. Tool Misuse
+**Approach:** Pure prompt-based analysis. Claude reads session logs and identifies patterns like:
+- Tool misuse (Bash for file ops instead of Read/Edit/Write)
+- Wasted reads (files read but never used)
+- Backtracking (edits that cancel each other)
+- Excessive iterations on same error
+- Missing documentation patterns
 
-**Pattern:** Using Bash for operations that have dedicated tools.
+**Session logs:** `~/.claude/projects/<encoded-path>/<session-id>.jsonl`
 
-| Bash Command | Should Use | Detection |
-|--------------|------------|-----------|
-| `cat`, `head`, `tail` | Read tool | Regex match in bash calls |
-| `grep`, `rg` | Grep tool | Regex match |
-| `find`, `ls` | Glob tool | Regex match |
-| `sed`, `awk` | Edit tool | Regex match |
-| `echo >`, heredoc | Write tool | Regex match |
+**Large logs:** Prompt instructs Claude to chunk and process incrementally if needed.
 
-**Metric:** Tool Selection Accuracy = Correct tools / Total tool calls (target: >90%)
+**Output:**
+- Summary of findings in stdout
+- Task files for proposed improvements (prompts, docs, CLAUDE.md)
 
-#### 2. Excessive Retries
-
-**Pattern:** Same error recurring without strategy change.
-
-| Signal | Threshold | Action |
-|--------|-----------|--------|
-| Consecutive failures | ≥3 | Switch approach |
-| Same error signature | 3+ occurrences | Escalate |
-| Similar fix attempts | >0.8 cosine similarity | Force variation |
-
-**Detection:** Track error signatures and action hashes across iterations. Max iterations per subtask controlled via `--max-iterations` flag (see Building Mode).
-
-#### 3. Wasted Reads
-
-**Pattern:** Reading files that don't influence subsequent actions.
-
-| Signal | Detection Method |
-|--------|------------------|
-| Unreferenced reads | File read → no edits/references within N turns |
-| Re-reads | Same file read multiple times without intervening writes |
-| Low relevance | Information density < 0.7 (actionable tokens / total) |
-
-**Metric:** File Read ROI = Tokens used from file / Tokens read (target: >25%)
-
-#### 4. Backtracking
-
-**Pattern:** Edits that cancel each other out.
-
-| Signal | Detection Method |
-|--------|------------------|
-| Content reversal | Hash of file content matches earlier state |
-| Oscillation | Same line edited 3+ times in session |
-| Semantic reversal | Net diff ≈ 0 despite many edits |
-| Churn rate | (Modified + Deleted) / Total changed > 25% |
-
-**Detection:** Track content hashes per line over edit history.
-
-#### 5. Verbose Output
-
-**Pattern:** Explanations disproportionate to task complexity.
-
-| Signal | Threshold |
-|--------|-----------|
-| Signal-to-noise ratio | < 60% actionable content |
-| 3-token rule | Factual answer expected in 1-3 tokens, got 50+ |
-| Over-explanation | >3 sentences for single issue |
-| Structural padding | Excessive bullet points, headers for simple response |
-
-**Metric:** Information Density = Unique facts / Word count
-
-#### 6. Missing Context (Redundant Re-reads)
-
-**Pattern:** Re-retrieving information already in context.
-
-| Signal | Detection Method |
-|--------|------------------|
-| Same-file re-reads | Track file paths; flag duplicates without intervening writes |
-| Semantic duplicates | Query embedding similarity > 0.9 to prior query |
-| Sliding window violation | Re-read within last 10 turns |
-| Query reformulation | Same question asked differently |
-
-**Metric:** Context Utilization = Referenced context / Total context loaded
-
-#### 7. Implementation Anti-Patterns → Atomic Docs
-
-**Pattern:** Repeated implementation mistakes that indicate missing documentation.
-
-| Anti-Pattern | Atomic Doc to Create/Update |
-|--------------|----------------------------|
-| Writing package.json by hand → stale deps | `blocks/construct/package-management.md` |
-| Hardcoding secrets in code | `blocks/security/secrets-management.md` |
-| Missing error handling patterns | `blocks/quality/error-handling.md` |
-| Wrong testing patterns for framework | `blocks/test/{framework}.md` |
-| Incorrect import/export patterns | `blocks/construct/{bundler}.md` |
-
-**Detection:** Track patterns where:
-- Same fix applied across multiple sessions
-- Technical drift corrections repeat
-- Build/lint/test failures share root cause
-
-**Output:** Proposes new or updated atomic docs with:
-- What not to do (anti-pattern)
-- What to do instead (correct pattern)
-- Example code
-
-**Approval:** Controlled by `atomicDocChanges` in ralph.config.json (default: `always`).
-
-#### Implementation Notes
-
-Session logs are at `~/.claude/projects/<encoded-path>/<session-id>.jsonl`. The self-improvement calibration:
-
-1. Parses JSONL for tool calls, errors, and outputs
-2. Applies heuristics above to flag patterns
-3. Aggregates findings into proposed changes
-4. Outputs:
-   - Tasks for prompt/skill improvements
-   - Proposed atomic doc updates (when patterns indicate missing docs)
-5. All changes propose-only by default; requires human approval
+**Approval:** Controlled by `selfImprovement` in ralph.config.json (default: `always`).
 
 ### 8.5 Directory Structure (Bash Prototype)
 
@@ -850,9 +756,11 @@ ralph plan --help     # exits 0
 ralph status          # exits 0 (even with no subtasks)
 ```
 
-#### Integration Tests (Manual)
+#### Integration Tests (Dummy Run)
 
-1. Create fixture milestone with sample task
+No fixtures - test against real planning structure:
+
+1. Create test milestone with sample task
 2. Run `ralph plan subtasks --auto`
 3. Verify subtasks.json is valid and sensible
 4. Run `ralph build --print` (dry run)
@@ -927,31 +835,18 @@ Before starting workstreams, ensure these are in place:
 
 ### 8.8 Calibration as LLM-as-Judge
 
-**Principle:** Calibration is prompt-based, not code-based. Claude analyzes session logs via prompts.
+**Principle:** All calibration is prompt-based, not code-based. Claude analyzes inputs (diffs, session logs) via well-crafted prompts.
 
-The self-improvement heuristics (8.4) become **prompt instructions**, not TypeScript logic:
+**Key prompt elements:**
+- Few-shot examples (drift vs acceptable variation)
+- Clear criteria for judgment
+- Instruction to chunk large inputs if needed
+- Output: summary in stdout + task files if issues found
 
-```markdown
-# Self-Improvement Analysis
-
-Read the session log at: {{session_log_path}}
-
-Analyze for these inefficiency patterns:
-1. Tool misuse: Bash used for file ops instead of Read/Edit/Write
-2. Excessive retries: Same error 3+ times without strategy change
-3. Wasted reads: Files read but never referenced
-...
-
-Output:
-- Pattern detected (yes/no)
-- Evidence (specific tool calls)
-- Proposed fix (prompt/doc change)
-```
-
-**Session log path:** Stored in `subtasks.json` as `sessionId`. Full path: `~/.claude/projects/*/{{sessionId}}.jsonl`
+**Session log path:** `~/.claude/projects/<encoded-path>/<sessionId>.jsonl`
 
 **Benefits:**
-- No complex TypeScript needed
+- No complex TypeScript or heuristic code
 - Prompts can evolve without code changes
 - Same bash + Claude pattern as other commands
 
@@ -972,14 +867,14 @@ claude -p "$(cat $PROMPT_FILE)" --output-format json
 #### Multi-Turn Interactive (for planning without `--auto`)
 
 ```bash
-# CLI launches interactive session with prompt
+# CLI launches interactive Claude Code session with prompt as initial context
 claude -p "$(cat context/workflows/ralph/planning/vision-interactive.md)"
 ```
 
 - Used for: `ralph plan vision`, `ralph plan stories` (without `--auto`)
 - Full tool access (no restrictions)
-- Claude asks questions, user responds, iterates until done
-- Session stays open for multi-turn dialogue
+- Claude asks questions, user responds, iterates
+- User exits session manually when satisfied (Ctrl+C or `/exit`)
 
 **CLI flag behavior:**
 
@@ -1044,7 +939,7 @@ claude -p "$(cat $PROMPT)" \
     "onIterationComplete": ["log", "notify"],
     "onMilestoneComplete": ["notify"],
     "onValidationFail": ["log"],
-    "onMaxRetriesExceeded": ["notify", "pause"]
+    "onMaxIterationsExceeded": ["notify", "pause"]
   },
   "notifications": {
     "provider": "ntfy",
