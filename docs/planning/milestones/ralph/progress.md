@@ -23,3 +23,12 @@
   - Prompt references sessionId field in subtask JSON structure
   - Prompt specifies JSONL path: `~/.claude/projects/<encoded-path>/<sessionId>.jsonl`
   - Execution instructions detail the complete workflow for reading session logs
+
+### 001-self-improvement-prompt-03
+- **Status:** PASSED
+- **Changes:** Verified tool misuse pattern detection in self-improvement.md
+- **Details:**
+  - Prompt contains "Tool Misuse" section (lines 38-54) with detection criteria
+  - Example shows Bash with `cat` and `echo >` for file operations (lines 42-45)
+  - "Why inefficient" explanation instructs flagging this pattern (lines 47-48)
+  - Acceptable variation documented (using Bash with pipes for data transformation)
