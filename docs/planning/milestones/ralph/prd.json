@@ -603,7 +603,7 @@
       "Verify prompt references Vision document",
       "Verify chain from Vision to code is traced"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-04",
