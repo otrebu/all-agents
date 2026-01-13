@@ -381,7 +381,7 @@
       "Verify subtasks.json reading is instructed",
       "Verify queue state is checked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-06",

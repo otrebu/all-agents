@@ -337,3 +337,11 @@
   - PROGRESS.md reading instructed (line 17): "@docs/planning/PROGRESS.md - Review recent work and context from previous iterations"
   - Orient checklist includes progress context (line 23): "- [ ] Read PROGRESS.md for recent iteration history"
   - Progress context is gathered as part of Phase 1: Orient (lines 9-24)
+
+### 003-ralph-iteration-prompt-05
+- **Status:** PASSED
+- **Changes:** Verified subtasks.json reading instruction in Orient phase
+- **Details:**
+  - Subtasks.json reading instructed (line 18): "**Subtasks file** - Read the subtasks.json file specified via `--subtasks` flag to understand the queue state"
+  - Orient checklist includes queue state check (line 24): "- [ ] Read subtasks.json to see pending/completed work"
+  - Queue state verification is explicit: "understand the queue state" and "see pending/completed work"
