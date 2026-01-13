@@ -486,3 +486,23 @@
     - Line 11: "Help them discover answers rather than providing them"
     - Line 12: "Challenge vague statements with 'what specifically...' or 'can you give an example...'"
   - The prompt is structurally complete for producing the expected interactive behavior
+
+### 002-vision-interactive-prompt-12
+- **Status:** PASSED
+- **Changes:** Created sample VISION.md output demonstrating all required sections
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/vision-sample-output.md`
+  - Sample VISION.md demonstrates the exact format from vision-interactive.md (lines 96-131)
+  - Verified all required sections present:
+    1. `# Product Vision: <Product Name>` - Header with product name
+    2. `## The Problem` - Problem statement
+    3. `## Target Users` - User description
+    4. `### Jobs To Be Done` - With Functional, Emotional, Social subsections
+    5. `## The Solution` - High-level approach
+    6. `## Key Capabilities` - Numbered list of 3 core capabilities
+    7. `## What This Product IS` - Current state/MVP scope
+    8. `## What This Product WILL BECOME` - Future vision
+    9. `## What This Product IS NOT` - Explicit scope boundaries
+    10. `## Success Criteria` - Measurable success indicators
+  - Sample uses realistic content for a fictional "TaskFlow" product
+  - Format matches template specified in vision-interactive.md exactly
