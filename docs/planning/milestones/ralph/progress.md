@@ -87,3 +87,15 @@
   - Chunking strategy documented: "Read the log in chunks of ~50 messages at a time" (line 117)
   - Processing incrementally instructed: "Process them incrementally" with 4-step process (lines 115-121)
   - Context limits handled: Section addresses logs "too large to process completely" with strategies for prioritizing recent messages, sampling from phases, and noting partial analysis (lines 122-125)
+
+### 001-self-improvement-prompt-10
+- **Status:** PASSED
+- **Changes:** Verified few-shot examples exist distinguishing inefficiencies from acceptable patterns
+- **Details:**
+  - Prompt contains 4 few-shot examples (exceeds "at least 2" requirement):
+    1. Tool Misuse (lines 38-53): Shows Bash with cat/echo vs acceptable pipe usage
+    2. Wasted Reads (lines 55-72): Shows unused file reads vs acceptable exploration
+    3. Backtracking (lines 74-88): Shows reversing edits vs acceptable test-driven reversion
+    4. Excessive Iterations (lines 90-111): Shows symptom-fixing loops vs acceptable progressive debugging
+  - Each pattern has explicit "Inefficiency Example" with JSON code blocks
+  - Each pattern has "Acceptable Variation" section explaining when similar patterns are OK

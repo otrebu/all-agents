@@ -117,7 +117,7 @@
       "Verify examples show clear inefficiency cases",
       "Verify examples show acceptable variation cases"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "001-self-improvement-prompt-11",
