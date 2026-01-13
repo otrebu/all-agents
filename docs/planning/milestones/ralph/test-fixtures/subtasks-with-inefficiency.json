@@ -1,0 +1,10 @@
+[
+  {
+    "id": "test-inefficiency-001",
+    "title": "Update package version",
+    "description": "Read config and update version number",
+    "done": true,
+    "sessionId": "session-with-inefficiency",
+    "completedAt": "2026-01-13T23:00:00.000Z"
+  }
+]

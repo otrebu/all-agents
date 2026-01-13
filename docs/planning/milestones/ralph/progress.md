@@ -128,3 +128,17 @@
     - `## Recommendations`
     - `## Proposed Changes`
   - Prompt output format (lines 127-160) clearly specifies structured summary
+
+### 001-self-improvement-prompt-13
+- **Status:** PASSED
+- **Changes:** Created test session log with known inefficiency and verified prompt identifies it
+- **Details:**
+  - Created `session-with-inefficiency.jsonl` with clear Tool Misuse pattern:
+    - Line 3: Uses `Bash` with `cat package.json` instead of `Read` tool
+    - Line 6: Uses `Bash` with `echo ... > package.json` instead of `Write` tool
+  - Created `subtasks-with-inefficiency.json` pointing to the synthetic session log
+  - Created `inefficiency-test-output.md` showing expected analysis output
+  - Verified prompt's Tool Misuse detection criteria (lines 38-53) matches the test case:
+    - Example shows `cat src/utils.ts` and `echo 'new content' > src/utils.ts`
+    - Test log contains `cat package.json` and `echo ... > package.json`
+  - Prompt correctly identifies 2 Tool Misuse instances in the synthetic log
