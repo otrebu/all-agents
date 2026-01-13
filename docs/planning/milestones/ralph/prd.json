@@ -543,7 +543,7 @@
       "Verify no parsing errors",
       "Verify @path references are recognized"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-20",
