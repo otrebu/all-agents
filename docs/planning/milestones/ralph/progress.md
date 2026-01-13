@@ -345,3 +345,12 @@
   - Subtasks.json reading instructed (line 18): "**Subtasks file** - Read the subtasks.json file specified via `--subtasks` flag to understand the queue state"
   - Orient checklist includes queue state check (line 24): "- [ ] Read subtasks.json to see pending/completed work"
   - Queue state verification is explicit: "understand the queue state" and "see pending/completed work"
+
+### 003-ralph-iteration-prompt-06
+- **Status:** PASSED
+- **Changes:** Verified judgment-based subtask selection in Select phase
+- **Details:**
+  - Select phase is defined at lines 26-59 (Phase 2: Select)
+  - Judgment-based selection documented (line 32): "Use judgment to select the most appropriate next subtask"
+  - Explicitly states not rigid sequential (line 38): "This is judgment-based selection, not rigid sequential processing. The agent should consider context and dependencies when choosing which subtask to tackle next."
+  - Selection criteria include: dependencies met, logical ordering, respecting dependsOn field, fallback to first incomplete

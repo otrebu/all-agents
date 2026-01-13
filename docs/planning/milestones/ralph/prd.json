@@ -393,7 +393,7 @@
       "Verify Select phase is defined",
       "Verify judgment-based selection (not rigid sequential)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-07",
