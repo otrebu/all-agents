@@ -44,9 +44,10 @@ docs/planning/
   └── milestones/
         ├── mvp/
         │     ├── stories/
-        │     │     └── auth/
+        │     │     └── STORY-001-auth/
         │     │           └── subtasks.json (optional, story-scoped)
         │     ├── tasks/
+        │     │     └── TASK-001-logging.md
         │     └── subtasks.json (optional, milestone-scoped)
         ├── beta/
         │     └── stories/
@@ -100,27 +101,77 @@ Flexible scope—place at milestone level (build whole milestone) or story level
 
 Human-guided with AI assistance. No code written. Spans: Vision → Roadmap → Milestone → Stories → Tasks → subtasks.json generation.
 
-**Level-by-level breakdown:**
+#### Entry Points
 
-| Level | Who | How |
-|-------|-----|-----|
-| Vision → Roadmap → Stories | Human describes, AI generates structured files | Interactive mode, templates/prompts |
-| Stories → Tasks | Flexible: automatic (AI breaks down stories + tech docs), semi-automatic, or step-by-step | Different prompts/modes available |
-| Tasks → Subtasks | Always AI | Automatic generation |
+Can enter planning at any level in the hierarchy:
 
-**Human can refine at any moment.**
+```
+VISION ─────► entry point (interactive only)
+    │
+ROADMAP ────► entry point
+    │
+Milestone ──► created manually (folder like "mvp")
+    │
+Stories ────► entry point
+    │
+Tasks ──────► entry point
+    │
+Subtasks ───► never enter here (always generated)
+```
 
-**Gap Analysis modes:**
-- Automatic: AI reads specs + codebase → produces Tasks
-- Semi-automatic: Human guides which areas to analyze
-- Step-by-step: Human reviews each gap before Task creation
+#### Interfaces
 
-**Subtask sizing:** Must fit entire cycle in one context window:
+Two interfaces, same underlying prompts:
+
+1. **Skill/Agent** - interactive Claude Code session (`/ralph plan`, `/ralph story`, etc.)
+2. **CLI** - `aaa ralph <cmd>` with `--interactive` or `-p` (print) mode
+
+#### Automation Levels
+
+| Level | Interactive | Auto | Auto reads... |
+|-------|-------------|------|---------------|
+| Vision | ✅ always | ❌ | - |
+| Roadmap | ✅ | ⚠️ risky | Vision |
+| Stories | ✅ | ✅ | Vision + Roadmap |
+| Tasks | ✅ | ✅ | Stories + codebase |
+| Subtasks | ❌ | ✅ always | Tasks + codebase |
+
+**Interactive mode**: AI asks questions, guides human thinking, generates artifact collaboratively.
+
+**Auto mode**: AI reads upstream docs + codebase, generates best guess. Human reviews output.
+
+#### Prompts
+
+Each level needs two prompt types (except edges):
+- **Interactive prompt** - Socratic guidance, asks clarifying questions
+- **Auto prompt** - Reads context, generates artifact
+
+| Level | Interactive Prompt | Auto Prompt |
+|-------|-------------------|-------------|
+| Vision | `vision-interactive` | - |
+| Roadmap | `roadmap-interactive` | `roadmap-auto` |
+| Stories | `stories-interactive` | `stories-auto` |
+| Tasks | `tasks-interactive` | `tasks-auto` |
+| Subtasks | - | `subtasks-auto` |
+
+**TODO:** Draft all 9 prompts (start with `vision-interactive`).
+
+#### Subtask Sizing
+
+Subtasks must fit entire cycle in one context window:
 - Init + context gathering + implementation + test + commit
 
-**Pre-Building validation:** Drift check at subtask level before execution to verify alignment across full chain (Vision → Roadmap → Stories → Tasks → Subtasks).
+#### Pre-Build Validation (Optional)
 
-**Graceful degradation:** Drift check validates only what exists. Partial chains (e.g., Task → Subtask without Story) still get validated at available levels.
+Optional drift check before building. Useful when auto-generating subtasks from stories/tasks.
+
+```bash
+ralph build --validate-first   # run drift check before building
+```
+
+**Mechanism:** Simple prompt with Story + Task + Subtask content. LLM judges if subtask aligns with parent intent.
+
+**Graceful degradation:** Validates only what exists. Partial chains (e.g., Task → Subtask without Story) still validated at available levels.
 
 ### Building Mode (Ralph Iterations)
 
@@ -164,7 +215,12 @@ Each **Ralph Iteration**:
 13. Tests pass (related tests)
 14. Subtask acceptance criteria met
 
-Agent retries implementation until validation passes (up to max iterations).
+Agent retries implementation until validation passes. Max iterations configurable via CLI (default: unlimited).
+
+```bash
+ralph build --max-retries 3   # stop after 3 failed attempts
+ralph build                   # unlimited retries (default)
+```
 
 **Commit & Update**:
 15. Commit with message referencing subtask ID
@@ -193,39 +249,75 @@ Agent retries implementation until validation passes (up to max iterations).
 
 Governance layer running as **separate loop** (not inline with Ralph Iterations).
 
-**Three calibration types:**
+#### Interfaces
 
-1. **Intention Drift**
-   - Detection: Read code vs Story acceptance criteria
-   - Method: LLM judges alignment
-   - Output: Tasks to correct divergence
+Same as Planning - both available, kept DRY:
 
-2. **Technical Drift**
-   - Detection: Compare code vs atomic docs
-   - Method: LLM judges compliance
-   - Output: Tasks to fix violations
+1. **Skill/Agent** - interactive Claude Code session (`/ralph calibrate`)
+2. **CLI** - `aaa ralph calibrate` calls Claude Code with same prompt
 
-3. **Self-Improvement**
-   - Detection: Read full AI conversation logs from sessions
-   - Method: LLM with custom prompt identifies failures/inefficiencies
-   - Output: Can modify prompts, AGENTS.md, CLAUDE.md, create/update commands, skills, sub-agents
-   - Can **propose** atomic doc changes (higher risk, never auto-applied)
-   - **Requires human review** (flag) to avoid garbage
-   - Atomic doc changes always require human review (even with `--auto-proceed`)
+CLI can call itself for end-to-end runs or one-off steps.
 
-**When it runs:**
+#### Three Calibration Types
+
+**1. Intention Drift**
+
+Detects when code diverges from intended behavior.
+
+| Aspect | Detail |
+|--------|--------|
+| Reads | Git diffs via `commitHash` from subtasks.json |
+| Context | Full chain: Vision → Story → Task → Subtask → code changes |
+| Method | Subagent per file (manages context), judges alignment |
+| Guard | Vision includes "don't jump ahead" - won't flag future planned work |
+| Output | Tasks to correct divergence |
+
+**2. Technical Drift**
+
+Detects when code violates technical standards/docs.
+
+| Aspect | Detail |
+|--------|--------|
+| Reads | Git diffs via `commitHash` + docs from `filesToRead` |
+| Context | Subtask's referenced docs, or passed inline in interactive mode |
+| Method | Compare changes against doc standards |
+| Escape hatch | `// HUMAN APPROVED: reason and context` - marks intentional deviation |
+| Output | Tasks to fix violations |
+
+**3. Self-Improvement**
+
+Analyzes agent sessions for inefficiencies.
+
+| Aspect | Detail |
+|--------|--------|
+| Reads | Conversation logs via `sessionId` from subtasks.json |
+| Analyzes | Tool misuse, retries, wasted tokens, repeated patterns, wrong paths |
+| Output | Proposes changes to prompts, skills, agents, CLAUDE.md, AGENTS.md |
+| Risk | High - can affect everything since skills/agents reference prompts |
+| Control | Config controls propose-only vs auto-apply (default: propose) |
+
+**TODO:** Define concrete heuristics for self-improvement analysis.
+
+#### When It Runs
+
 - After N iterations (configurable: `--calibrate-every N`)
 - After Milestone completion (unless recently ran)
 - On-demand: `ralph calibrate`
 
-**Output flow:**
+#### Output Flow
+
+Always creates Tasks → Subtasks (never direct fixes):
+
 ```
-Drift detected → Create Task → Human review (optional) → Break to Subtasks → Append to subtasks.json
+Drift detected → Create Task → Human review (per config) → Break to Subtasks → Append to subtasks.json
 ```
 
-**Configuration:** via `ralph.config.json` (see Approval System below)
+#### Configuration
 
-**Separate loop benefits:**
+Via `ralph.config.json` (see Approval System below).
+
+#### Separate Loop Benefits
+
 - Can run standalone without active Ralph loop
 - Can run in parallel
 - Flexible scheduling
@@ -277,78 +369,9 @@ ralph calibrate --review     # ask for all approvals
 
 ### Hooks & Notifications
 
-Configurable hooks for human-on-the-loop checkpoints and notifications:
+Hooks enable human-on-the-loop checkpoints via `ralph.config.json`. Events: `onIterationComplete`, `onMilestoneComplete`, `onValidationFail`, `onMaxRetriesExceeded`. Actions: `log`, `notify`, `pause`. Notification providers TBD (Pushover, ntfy, webhooks).
 
-```json
-{
-  "hooks": {
-    "onIterationComplete": {
-      "enabled": true,
-      "actions": ["log", "notify"]
-    },
-    "onMilestoneComplete": {
-      "enabled": true,
-      "actions": ["log", "notify", "pause"]
-    },
-    "onValidationFail": {
-      "enabled": true,
-      "actions": ["log", "notify"],
-      "pauseAfterRetries": 3
-    },
-    "onMaxRetriesExceeded": {
-      "enabled": true,
-      "actions": ["notify", "pause"]
-    }
-  },
-  "notifications": {
-    "provider": "pushover",
-    "config": {
-      "userKey": "${PUSHOVER_USER_KEY}",
-      "appToken": "${PUSHOVER_APP_TOKEN}"
-    }
-  }
-}
-```
-
-**Hook events:**
-- `onIterationComplete` - After each subtask completes
-- `onMilestoneComplete` - When all subtasks in a milestone are done
-- `onValidationFail` - When backpressure checks fail
-- `onMaxRetriesExceeded` - When agent exhausts retry attempts
-
-**Actions:**
-- `log` - Write to progress file
-- `notify` - Send push notification
-- `pause` - Stop autonomous loop, wait for human
-
-**Notification providers (research needed):**
-- Pushover - iOS/Android push notifications
-- ntfy - Open source, self-hostable
-- Slack/Discord webhooks
-- Custom webhook URL
-
-## 6. TODO
-
-### Next Up
-
-- [x] Review subtasks.json schema together - simplified from 17+ fields to 10
-
-### Research
-
-- [x] Claude Code conversation IDs - see Logging & Monitoring below
-- [ ] Notification provider options (Pushover, ntfy, etc.) - for phone notifications on hook events
-
-### Templates
-
-**All templates complete:**
-- [x] VISION: `context/blocks/docs/vision-template.md`
-- [x] ROADMAP: `context/blocks/docs/roadmap-template.md`
-- [x] subtasks.json schema: `docs/planning/schemas/subtasks.schema.json`
-- [x] subtasks.json example: `docs/planning/templates/subtasks.template.json`
-- Story: `context/blocks/docs/story-template.md` (existing)
-- Task: `context/blocks/docs/task-template.md` (existing)
-
-### Logging & Monitoring
+## 6. Logging & Monitoring
 
 **Iteration logging:**
 - Each completed subtask stores `sessionId` linking to the Claude Code conversation
@@ -361,3 +384,43 @@ session_id=$(echo "$result" | jq -r '.session_id')
 ```
 
 **Resume sessions:** `claude --resume <session-id>`
+
+## 7. Status & Next Steps
+
+### Current Status
+
+**Framework design: COMPLETE** ✅
+
+All core concepts, flows, and architecture are defined:
+
+| Component | Status |
+|-----------|--------|
+| Vocabulary & Hierarchy | ✅ Complete |
+| Folder Structure | ✅ Complete |
+| Subtasks Schema | ✅ Complete (`docs/planning/schemas/subtasks.schema.json`) |
+| Story Template | ✅ Complete (`context/blocks/docs/story-template.md`) |
+| Task Template | ✅ Complete (`context/blocks/docs/task-template.md`) |
+| Planning Mode | ✅ Complete (entry points, interfaces, automation levels) |
+| Building Mode | ✅ Complete (Ralph iteration loop, validation, retries) |
+| Calibration Mode | ✅ Complete (3 types, interfaces, output flow) |
+| Approval System | ✅ Complete (`ralph.config.json` structure) |
+| Logging & Monitoring | ✅ Complete (session IDs, progress file) |
+
+### Implementation TODOs
+
+These are implementation artifacts, not design blockers:
+
+1. **Draft 9 planning prompts** (see Prompts table in Planning Mode)
+   - Start with `vision-interactive` and `subtasks-auto`
+
+2. **Define self-improvement heuristics** (Calibration Mode)
+   - Concrete patterns for detecting tool misuse, wasted tokens, etc.
+
+3. **Implement `aaa ralph` CLI** commands:
+   - `ralph plan` - planning mode entry
+   - `ralph build` - building mode (Ralph iterations)
+   - `ralph calibrate` - calibration mode
+
+### Next Step
+
+**Begin implementation planning** - create Stories/Tasks for Ralph CLI in `aaa`.

@@ -27,6 +27,7 @@
       ],
       "completedAt": "2026-01-11T09:45:00Z",
       "commitHash": "a1b2c3d",
+      "commitMessage": "feat(auth): add user registration endpoint [SUB-001]",
       "sessionId": "abc123-def456-ghi789"
     },
     {

@@ -11,7 +11,7 @@ A single template for all dev tasks. Context speaks for itself - no type taxonom
 ```markdown
 ## Task: [Short descriptive name]
 
-**Story:** [story-name](../stories/001-story-name.md) *(optional)*
+**Story:** [STORY-001-auth](../stories/STORY-001-auth.md) *(optional)*
 
 ### Goal
 [One sentence: what should be true when this is done?]

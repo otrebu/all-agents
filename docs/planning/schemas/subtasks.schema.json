@@ -103,6 +103,10 @@
           "pattern": "^[a-f0-9]{7,40}$",
           "description": "Git commit hash that completed this subtask"
         },
+        "commitMessage": {
+          "type": "string",
+          "description": "Git commit message - helps calibration trace intent"
+        },
         "sessionId": {
           "type": "string",
           "description": "Claude Code session ID that completed this subtask. Maps to ~/.claude/projects/<path>/<session-id>.jsonl"

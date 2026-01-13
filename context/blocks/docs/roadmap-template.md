@@ -29,11 +29,11 @@ A living document that references milestones and tracks progress toward the Visi
 **Target:** [Optional: target date or release window]
 
 **Stories:**
-- [ ] [001-story-name](./milestones/mvp/stories/001-story-name.md)
-- [ ] [002-story-name](./milestones/mvp/stories/002-story-name.md)
+- [ ] [STORY-001-auth](./milestones/mvp/stories/STORY-001-auth.md)
+- [ ] [STORY-002-profile](./milestones/mvp/stories/STORY-002-profile.md)
 
 **Orphan Tasks:** *(tech-only, no user story)*
-- [ ] [001-task-name](./milestones/mvp/tasks/001-task-name.md)
+- [ ] [TASK-001-logging](./milestones/mvp/tasks/TASK-001-logging.md)
 
 **Progress:** [X/Y stories complete, Z tasks remaining]
 
@@ -46,7 +46,7 @@ A living document that references milestones and tracks progress toward the Visi
 **Target:** [Optional]
 
 **Stories:**
-- [ ] [001-story-name](./milestones/beta/stories/001-story-name.md)
+- [ ] [STORY-003-notifications](./milestones/beta/stories/STORY-003-notifications.md)
 
 **Progress:** [X/Y stories complete]
 
@@ -135,7 +135,7 @@ The Roadmap is a **living document** that stays focused on active work:
 
 **Milestone to Stories:**
 ```markdown
-- [ ] [001-auth](./milestones/mvp/stories/001-auth.md)
+- [ ] [STORY-001-auth](./milestones/mvp/stories/STORY-001-auth.md)
 ```
 
 ---
