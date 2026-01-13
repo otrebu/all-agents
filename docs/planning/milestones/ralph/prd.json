@@ -462,7 +462,7 @@
       "Verify Commit phase is defined",
       "Verify subtask ID must be in commit message"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-13",

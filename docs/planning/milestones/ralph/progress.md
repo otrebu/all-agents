@@ -399,3 +399,12 @@
   - Test command explicitly included (lines 102-103): `bun test`
   - Validation requirements section (line 110) states "Relevant tests must pass"
   - Error handling section (line 191) includes "Test failures: Analyze, fix, and rerun tests"
+
+### 003-ralph-iteration-prompt-12
+- **Status:** PASSED
+- **Changes:** Verified commit with subtask ID reference in Commit phase of ralph-iteration.md
+- **Details:**
+  - Commit phase is defined at lines 118-141 (Phase 6: Commit)
+  - Commit message format explicitly includes subtask ID (lines 122-129)
+  - Line 131 states: "The subtask ID **must** appear in the commit message for traceability."
+  - Example commit message (lines 133-141) shows subtask ID in both subject and footer
