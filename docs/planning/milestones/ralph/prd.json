@@ -663,7 +663,7 @@
       "Verify instruction to not flag planned future work",
       "Verify guard against premature flagging"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-09",

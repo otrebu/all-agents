@@ -680,3 +680,19 @@
       - Missing Link (lines 94-110): Definition, example, drift explanation, acceptable variation
     - Each few-shot example includes explicit "Judgment" with reasoning (lines 140-143, 162-166, 183-186, 202-206)
   - All three verification steps passed
+
+### 004-intention-drift-prompt-08
+- **Status:** PASSED
+- **Changes:** Verified "Don't Jump Ahead" guard in intention-drift.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 342 lines, readable
+  - Verification step 2 (Verify instruction to not flag planned future work): ✓
+    - Lines 112-119: "## Don't Jump Ahead Guard" section exists
+    - Lines 114-117 explicitly state what NOT to flag:
+      - "Work planned for future subtasks"
+      - "Features documented in ROADMAP but not yet started"
+      - "Scope that's explicitly deferred in Task/Story docs"
+  - Verification step 3 (Verify guard against premature flagging): ✓
+    - Line 119: "Check the subtasks.json queue. If something 'missing' is listed as a future subtask, it's not drift—it's planned work."
+    - Line 320: Execution instructions include "Apply the 'Don't Jump Ahead' guard" as step f
+  - All three verification steps passed
