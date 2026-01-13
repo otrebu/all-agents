@@ -625,3 +625,20 @@
     - Line 239: Output format includes Story in Planning Chain section
     - Line 289: Task file format includes Story reference
   - All three verification steps passed
+
+### 004-intention-drift-prompt-05
+- **Status:** PASSED
+- **Changes:** Verified Task to code chain analysis in intention-drift.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 342 lines, readable
+  - Verification step 2 (Verify prompt references Task documents): ✓
+    - Line 35: `2. **Task** - The technical "how" (via taskRef field → docs/planning/milestones/<milestone>/tasks/TASK-NNN.md)`
+    - Line 316: `b. Read the subtask's taskRef to find parent Task`
+  - Verification step 3 (Verify Task context is included in analysis): ✓
+    - Lines 31-39: Planning chain includes Task
+    - Lines 80-92: Example 3 shows Task context in drift analysis ("Task: Implement JWT-based authentication")
+    - Lines 168-186: Example 3 judgment references Task ("Task explicitly specifies JWT")
+    - Lines 215-217: Validation table shows "Subtask + Task" and "Subtask + Task + Story" chains
+    - Lines 237-240: Output format includes Task in Planning Chain section
+    - Lines 287-288: Task file format includes Task reference
+  - All three verification steps passed

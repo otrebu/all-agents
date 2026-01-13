@@ -627,7 +627,7 @@
       "Verify prompt references Task documents",
       "Verify Task context is included in analysis"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-06",
