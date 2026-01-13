@@ -329,3 +329,11 @@
   - Git status check instructed (line 16): "**Git status** - Run `git status` to understand current branch and uncommitted changes"
   - Orient checklist includes git context (line 22): "- [ ] Check git status for branch and changes"
   - Orient phase (lines 9-24) explicitly includes git status as part of context gathering
+
+### 003-ralph-iteration-prompt-04
+- **Status:** PASSED
+- **Changes:** Verified PROGRESS.md reading instruction in Orient phase
+- **Details:**
+  - PROGRESS.md reading instructed (line 17): "@docs/planning/PROGRESS.md - Review recent work and context from previous iterations"
+  - Orient checklist includes progress context (line 23): "- [ ] Read PROGRESS.md for recent iteration history"
+  - Progress context is gathered as part of Phase 1: Orient (lines 9-24)

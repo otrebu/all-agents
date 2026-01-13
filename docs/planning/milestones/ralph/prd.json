@@ -369,7 +369,7 @@
       "Verify PROGRESS.md reading is instructed",
       "Verify progress context is gathered"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-05",
