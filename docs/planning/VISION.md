@@ -70,31 +70,29 @@ Flexible scope—place at milestone level (build whole milestone) or story level
       "storyRef": "STORY-001",
       "title": "Create user authentication endpoint",
       "description": "Implement POST /api/auth/register with validation and JWT",
-      "status": "pending",
-      "priority": 1,
-      "acceptanceCriteria": ["Returns JWT on valid credentials", "Returns 401 on invalid"],
-      "atomicDocs": {
-        "blocks": ["@context/blocks/security/better-auth.md"],
-        "foundations": ["@context/foundations/security/auth-api.md"]
-      },
-      "codeContext": {
-        "readFiles": ["src/routes/index.ts"],
-        "modifyFiles": ["src/routes/auth.ts"]
-      },
-      "dependencies": []
+      "done": false,
+      "acceptanceCriteria": [
+        "POST to /api/auth/register with valid email/password returns JWT",
+        "Invalid credentials return 401"
+      ],
+      "filesToRead": [
+        "@context/blocks/security/better-auth.md",
+        "src/routes/index.ts"
+      ]
     }
   ]
 }
 ```
 
-**Status values:** `pending` | `in_progress` | `completed` | `blocked` | `skipped`
+**Key fields:**
+- `done` - boolean, agent sets to `true` after successful implementation
+- `acceptanceCriteria` - plain English descriptions of how to verify completion
+- `filesToRead` - docs and code to read before implementing (supports glob patterns)
 
-**Key fields for Ralph workflow:**
-- `atomicDocs` - docs to read during Investigate phase
-- `codeContext` - files to read/modify
-- `acceptanceCriteria` - used in Validate phase
-- `dependencies` - determines selection order
-- `priority` - 1 (highest) to 5 (lowest)
+**Completion fields** (required when `done: true`):
+- `completedAt` - timestamp
+- `commitHash` - git commit hash
+- `sessionId` - Claude Code session ID for debugging
 
 ## 3. Operational Modes
 
@@ -152,12 +150,12 @@ Each **Ralph Iteration**:
 5. Choose next subtask → agent decides based on context
 
 **Investigate** (prepare & verify):
-6. Fetch atomic docs → referenced in subtask definition
-7. Read relevant code → verify subtask not already implemented
+6. Read `filesToRead` → docs and code referenced in subtask
+7. Verify subtask not already implemented
 
 **Implement** (write code):
 8. Follow subtask acceptance criteria
-9. Follow atomic docs best practices
+9. Follow best practices from docs
 
 **Validate** (backpressure):
 10. Build passes
@@ -170,7 +168,7 @@ Agent retries implementation until validation passes (up to max iterations).
 
 **Commit & Update**:
 15. Commit with message referencing subtask ID
-16. Update subtasks.json status → `completed`
+16. Update subtasks.json: set `done: true`, add `completedAt`, `commitHash`, `sessionId`
 17. Append entry to progress file
 
 **Progress file format** (markdown, append-only):
@@ -232,16 +230,14 @@ Drift detected → Create Task → Human review (optional) → Break to Subtasks
 - Can run in parallel
 - Flexible scheduling
 
-## 4. Technical Documentation (Atomic Docs)
+## 4. Technical Documentation
 
-Three layers:
-- **Blocks** - frequently referenced
-- **Foundations** - frequently referenced
-- **Stacks** - larger scope, less frequent
+Three layers in `@context/`:
+- **Blocks** - frequently referenced patterns and tools
+- **Foundations** - integration guides and common implementations
+- **Stacks** - larger scope, full stack configurations
 
-Subtasks should include lookup to relevant atomic docs for context before implementation.
-
-**TBD:** When does atomic doc lookup happen? During Task creation, Subtask creation, or both?
+Subtasks reference relevant docs via `filesToRead` field. Agent reads these during Investigate phase before implementing.
 
 ## 5. Approval System
 
@@ -299,7 +295,7 @@ Configurable hooks for human-on-the-loop checkpoints and notifications:
       "actions": ["log", "notify"],
       "pauseAfterRetries": 3
     },
-    "onBlocked": {
+    "onMaxRetriesExceeded": {
       "enabled": true,
       "actions": ["notify", "pause"]
     }
@@ -318,7 +314,7 @@ Configurable hooks for human-on-the-loop checkpoints and notifications:
 - `onIterationComplete` - After each subtask completes
 - `onMilestoneComplete` - When all subtasks in a milestone are done
 - `onValidationFail` - When backpressure checks fail
-- `onBlocked` - When a subtask is marked blocked
+- `onMaxRetriesExceeded` - When agent exhausts retry attempts
 
 **Actions:**
 - `log` - Write to progress file
@@ -335,7 +331,7 @@ Configurable hooks for human-on-the-loop checkpoints and notifications:
 
 ### Next Up
 
-- [ ] Review subtasks.json schema together - simplify fields, go through a few at a time
+- [x] Review subtasks.json schema together - simplified from 17+ fields to 10
 
 ### Research
 
@@ -355,17 +351,13 @@ Configurable hooks for human-on-the-loop checkpoints and notifications:
 ### Logging & Monitoring
 
 **Iteration logging:**
-- Log iteration outcomes (subtask ID, status, commit hash)
-- Save conversation ID references - each iteration maps to a Claude Code session ID
-
-**Claude Code conversation tracking:**
+- Each completed subtask stores `sessionId` linking to the Claude Code conversation
 - Conversations stored at `~/.claude/projects/<encoded-path>/<session-id>.jsonl`
-- Capture session ID using `--output-format json`:
-  ```bash
-  result=$(claude -p "prompt" --output-format json)
-  session_id=$(echo "$result" | jq -r '.session_id')
-  ```
-- Resume sessions with `--resume <session-id>`
-- Implementation: Modify `ralph.sh` to capture session IDs alongside iteration outcomes
 
-**Optional:** Hooks to track conversation progress mid-iteration
+**Capturing session ID:**
+```bash
+result=$(claude -p "prompt" --output-format json)
+session_id=$(echo "$result" | jq -r '.session_id')
+```
+
+**Resume sessions:** `claude --resume <session-id>`

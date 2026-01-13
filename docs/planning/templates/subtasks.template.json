@@ -2,9 +2,7 @@
   "$schema": "../schemas/subtasks.schema.json",
   "metadata": {
     "scope": "milestone",
-    "milestoneRef": "mvp",
-    "createdAt": "2026-01-10T10:00:00Z",
-    "updatedAt": "2026-01-12T14:30:00Z"
+    "milestoneRef": "mvp"
   },
   "subtasks": [
     {
@@ -13,45 +11,23 @@
       "storyRef": "STORY-001",
       "title": "Create user registration endpoint",
       "description": "Implement POST /api/auth/register endpoint that accepts email and password, validates input, hashes password with bcrypt, stores user in database, and returns JWT token.",
-      "status": "completed",
-      "priority": 1,
+      "done": true,
       "acceptanceCriteria": [
-        "POST /api/auth/register accepts { email, password }",
-        "Email validated for format and uniqueness",
-        "Password hashed with bcrypt before storage",
-        "Returns JWT token on success",
-        "Returns 400 with validation errors for invalid input",
-        "Returns 409 if email already exists"
+        "POST to /api/auth/register with valid email/password returns JWT",
+        "Invalid email format returns 400",
+        "Duplicate email returns 409",
+        "Password is hashed in database (not plaintext)"
       ],
-      "atomicDocs": {
-        "blocks": [
-          "@context/blocks/construct/fastify.md",
-          "@context/blocks/security/better-auth.md"
-        ],
-        "foundations": [
-          "@context/foundations/security/auth-api-better-auth.md"
-        ]
-      },
-      "codeContext": {
-        "readFiles": [
-          "src/routes/index.ts",
-          "src/db/schema.ts"
-        ],
-        "modifyFiles": [
-          "src/routes/auth.ts",
-          "src/services/auth.service.ts"
-        ]
-      },
-      "testContext": {
-        "testFiles": [
-          "tests/routes/auth.test.ts"
-        ],
-        "testCommand": "bun test auth"
-      },
-      "dependencies": [],
+      "filesToRead": [
+        "@context/blocks/construct/fastify.md",
+        "@context/blocks/security/better-auth.md",
+        "@context/foundations/security/auth-api-better-auth.md",
+        "src/routes/index.ts",
+        "src/db/schema.ts"
+      ],
       "completedAt": "2026-01-11T09:45:00Z",
       "commitHash": "a1b2c3d",
-      "iterationId": "ralph-2026-01-11-001"
+      "sessionId": "abc123-def456-ghi789"
     },
     {
       "id": "SUB-002",
@@ -59,259 +35,37 @@
       "storyRef": "STORY-001",
       "title": "Create user login endpoint",
       "description": "Implement POST /api/auth/login endpoint that authenticates user credentials and returns JWT token with refresh token.",
-      "status": "completed",
-      "priority": 1,
+      "done": false,
       "acceptanceCriteria": [
-        "POST /api/auth/login accepts { email, password }",
-        "Returns JWT access token (15min expiry) on valid credentials",
-        "Returns refresh token (7 day expiry) in httpOnly cookie",
-        "Returns 401 on invalid credentials",
-        "Rate limited to 5 attempts per minute per IP"
+        "Valid credentials return access token and refresh token cookie",
+        "Invalid password returns 401",
+        "6th login attempt within 1 minute returns 429"
       ],
-      "atomicDocs": {
-        "blocks": [
-          "@context/blocks/construct/fastify.md",
-          "@context/blocks/security/better-auth.md"
-        ]
-      },
-      "codeContext": {
-        "readFiles": [
-          "src/routes/auth.ts",
-          "src/services/auth.service.ts"
-        ],
-        "modifyFiles": [
-          "src/routes/auth.ts",
-          "src/services/auth.service.ts"
-        ]
-      },
-      "testContext": {
-        "testPatterns": ["auth.login"]
-      },
-      "dependencies": ["SUB-001"],
-      "completedAt": "2026-01-11T14:20:00Z",
-      "commitHash": "d4e5f6g",
-      "iterationId": "ralph-2026-01-11-002"
+      "filesToRead": [
+        "@context/blocks/construct/fastify.md",
+        "@context/blocks/security/better-auth.md",
+        "src/routes/auth.ts",
+        "src/services/auth.service.ts"
+      ]
     },
     {
       "id": "SUB-003",
-      "taskRef": "TASK-001",
-      "storyRef": "STORY-001",
-      "title": "Implement JWT token refresh",
-      "description": "Add POST /api/auth/refresh endpoint that accepts refresh token and returns new access token. Implement refresh token rotation for security.",
-      "status": "in_progress",
-      "priority": 1,
-      "acceptanceCriteria": [
-        "POST /api/auth/refresh reads refresh token from httpOnly cookie",
-        "Returns new access token on valid refresh token",
-        "Rotates refresh token (old token invalidated)",
-        "Returns 401 if refresh token expired or invalid",
-        "Maintains refresh token family for reuse detection"
-      ],
-      "atomicDocs": {
-        "blocks": [
-          "@context/blocks/security/better-auth.md"
-        ],
-        "foundations": [
-          "@context/foundations/security/auth-api-better-auth.md"
-        ]
-      },
-      "codeContext": {
-        "readFiles": [
-          "src/routes/auth.ts",
-          "src/services/auth.service.ts",
-          "src/db/schema.ts"
-        ],
-        "modifyFiles": [
-          "src/routes/auth.ts",
-          "src/services/auth.service.ts",
-          "src/db/schema.ts"
-        ]
-      },
-      "testContext": {
-        "testPatterns": ["auth.refresh"]
-      },
-      "dependencies": ["SUB-002"]
-    },
-    {
-      "id": "SUB-004",
       "taskRef": "TASK-002",
-      "storyRef": "STORY-001",
-      "title": "Add auth middleware",
-      "description": "Create Fastify middleware that validates JWT from Authorization header and attaches user context to request.",
-      "status": "pending",
-      "priority": 2,
-      "acceptanceCriteria": [
-        "Middleware validates Bearer token from Authorization header",
-        "Attaches decoded user to request.user",
-        "Returns 401 if token missing or invalid",
-        "Returns 401 if token expired",
-        "Works with Fastify's onRequest hook"
-      ],
-      "atomicDocs": {
-        "blocks": [
-          "@context/blocks/construct/fastify.md"
-        ]
-      },
-      "codeContext": {
-        "readFiles": [
-          "src/routes/index.ts",
-          "src/services/auth.service.ts"
-        ],
-        "modifyFiles": [
-          "src/middleware/auth.ts"
-        ]
-      },
-      "testContext": {
-        "testFiles": [
-          "tests/middleware/auth.test.ts"
-        ]
-      },
-      "dependencies": ["SUB-001"]
-    },
-    {
-      "id": "SUB-005",
-      "taskRef": "TASK-003",
-      "storyRef": "STORY-002",
-      "title": "Create product listing endpoint",
-      "description": "Implement GET /api/products endpoint with pagination, filtering by category, and sorting options.",
-      "status": "pending",
-      "priority": 2,
-      "acceptanceCriteria": [
-        "GET /api/products returns paginated list",
-        "Supports ?page and ?limit query params (default 20 items)",
-        "Supports ?category filter",
-        "Supports ?sort=price:asc|price:desc|name:asc|name:desc",
-        "Returns total count for pagination UI"
-      ],
-      "atomicDocs": {
-        "blocks": [
-          "@context/blocks/construct/fastify.md",
-          "@context/blocks/construct/prisma.md"
-        ],
-        "foundations": [
-          "@context/foundations/construct/patterns-api-pagination.md"
-        ]
-      },
-      "codeContext": {
-        "readFiles": [
-          "src/db/schema.ts",
-          "src/routes/index.ts"
-        ],
-        "modifyFiles": [
-          "src/routes/products.ts",
-          "src/services/product.service.ts"
-        ]
-      },
-      "testContext": {
-        "testPatterns": ["products.list"]
-      },
-      "dependencies": []
-    },
-    {
-      "id": "SUB-006",
-      "taskRef": "TASK-004",
       "storyRef": null,
       "title": "Add structured logging",
       "description": "Integrate pino logger with structured JSON output, request ID tracking, and environment-appropriate log levels.",
-      "status": "blocked",
-      "priority": 3,
+      "done": false,
       "acceptanceCriteria": [
-        "All routes log request/response with timing",
-        "Request ID propagated through all logs",
-        "Log level configurable via LOG_LEVEL env var",
-        "Pretty printing in development, JSON in production",
-        "Sensitive fields redacted (password, tokens)"
+        "Request to any route produces log entry with request ID and timing",
+        "LOG_LEVEL=debug shows more output than LOG_LEVEL=error",
+        "Passwords and tokens don't appear in log output"
       ],
-      "atomicDocs": {
-        "blocks": [
-          "@context/blocks/observe/logging.md"
-        ],
-        "foundations": [
-          "@context/foundations/observe/log-structured-pino.md"
-        ]
-      },
-      "codeContext": {
-        "readFiles": [
-          "src/index.ts",
-          "src/config.ts"
-        ],
-        "modifyFiles": [
-          "src/logger.ts",
-          "src/index.ts"
-        ]
-      },
-      "testContext": {
-        "testPatterns": ["logger"]
-      },
-      "dependencies": [],
-      "blockedReason": "Waiting for decision on log aggregation service (Datadog vs CloudWatch). See discussion in #infra-decisions."
-    },
-    {
-      "id": "SUB-007",
-      "taskRef": "TASK-005",
-      "storyRef": null,
-      "title": "Update deprecated crypto API",
-      "description": "Replace deprecated Node.js crypto.createCipher with crypto.createCipheriv for encryption utilities.",
-      "status": "skipped",
-      "priority": 4,
-      "acceptanceCriteria": [
-        "Replace createCipher with createCipheriv",
-        "Use random IV for each encryption",
-        "Maintain backward compatibility for existing encrypted data",
-        "No deprecation warnings in test output"
-      ],
-      "atomicDocs": {
-        "blocks": [
-          "@context/blocks/construct/node.md"
-        ]
-      },
-      "codeContext": {
-        "readFiles": [
-          "src/utils/crypto.ts"
-        ],
-        "modifyFiles": [
-          "src/utils/crypto.ts"
-        ]
-      },
-      "dependencies": [],
-      "skipReason": "Determined during investigation that we don't use crypto.createCipher anywhere. Subtask was created based on outdated audit."
-    },
-    {
-      "id": "SUB-008",
-      "taskRef": "TASK-002",
-      "storyRef": "STORY-001",
-      "title": "Add role-based authorization",
-      "description": "Extend auth middleware to support role-based access control with @requireRole decorator pattern.",
-      "status": "pending",
-      "priority": 3,
-      "acceptanceCriteria": [
-        "Support user roles: admin, user, guest",
-        "requireRole('admin') decorator/middleware for route protection",
-        "Returns 403 Forbidden when role insufficient",
-        "Role stored in JWT claims",
-        "Role changes require new token (no dynamic lookup)"
-      ],
-      "atomicDocs": {
-        "blocks": [
-          "@context/blocks/security/better-auth.md"
-        ]
-      },
-      "codeContext": {
-        "readFiles": [
-          "src/middleware/auth.ts",
-          "src/db/schema.ts"
-        ],
-        "modifyFiles": [
-          "src/middleware/auth.ts",
-          "src/middleware/rbac.ts",
-          "src/services/auth.service.ts"
-        ]
-      },
-      "testContext": {
-        "testPatterns": ["auth.rbac", "middleware.rbac"]
-      },
-      "dependencies": ["SUB-004"],
-      "notes": "Consider using Fastify's built-in decorators pattern. See Fastify docs on decorateRequest."
+      "filesToRead": [
+        "@context/blocks/observe/logging.md",
+        "@context/foundations/observe/log-structured-pino.md",
+        "src/index.ts",
+        "src/config.ts"
+      ]
     }
   ]
 }

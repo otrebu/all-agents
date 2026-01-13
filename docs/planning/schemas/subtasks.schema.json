@@ -25,18 +25,15 @@
         },
         "storyRef": {
           "type": "string",
-          "description": "Reference to parent story if scope is 'story'"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When this queue was created"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last modification time"
+          "pattern": "^STORY-[0-9]{3,}$",
+          "description": "Reference to parent story. Required when scope is 'story'."
         }
+      },
+      "if": {
+        "properties": { "scope": { "const": "story" } }
+      },
+      "then": {
+        "required": ["storyRef"]
       }
     },
     "subtasks": {
@@ -50,7 +47,7 @@
   "$defs": {
     "subtask": {
       "type": "object",
-      "required": ["id", "taskRef", "title", "description", "status", "acceptanceCriteria"],
+      "required": ["id", "taskRef", "title", "description", "done", "acceptanceCriteria"],
       "properties": {
         "id": {
           "type": "string",
@@ -76,17 +73,10 @@
           "type": "string",
           "description": "Detailed description of what needs to be implemented"
         },
-        "status": {
-          "type": "string",
-          "enum": ["pending", "in_progress", "completed", "blocked", "skipped"],
-          "description": "Current status of the subtask"
-        },
-        "priority": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 5,
-          "default": 3,
-          "description": "Priority level (1=highest, 5=lowest). Agents select lower numbers first."
+        "done": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the subtask has been completed. Agent sets to true after successful implementation and commit."
         },
         "acceptanceCriteria": {
           "type": "array",
@@ -94,101 +84,14 @@
           "items": {
             "type": "string"
           },
-          "description": "Specific, testable criteria that define completion. Used in Validate phase."
+          "description": "Plain English descriptions of how to verify the subtask is complete. Used in Validate phase."
         },
-        "atomicDocs": {
-          "type": "object",
-          "description": "References to atomic documentation the agent should read during Investigate phase",
-          "properties": {
-            "blocks": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Block references (e.g., '@context/blocks/construct/bun.md')"
-            },
-            "foundations": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Foundation references (e.g., '@context/foundations/test/test-unit-vitest.md')"
-            },
-            "stacks": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Stack references (e.g., '@context/stacks/cli/cli-bun.md')"
-            }
-          }
-        },
-        "codeContext": {
-          "type": "object",
-          "description": "Code locations the agent should read during Investigate phase",
-          "properties": {
-            "readFiles": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Files to read for context (relative paths from repo root)"
-            },
-            "readPatterns": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Glob patterns for files to read (e.g., 'src/auth/**/*.ts')"
-            },
-            "modifyFiles": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Expected files to modify (helps agent verify scope)"
-            }
-          }
-        },
-        "testContext": {
-          "type": "object",
-          "description": "Testing requirements for the Validate phase",
-          "properties": {
-            "testFiles": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Specific test files to run"
-            },
-            "testPatterns": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Test patterns to run (e.g., 'auth.*')"
-            },
-            "testCommand": {
-              "type": "string",
-              "description": "Custom test command if different from default"
-            }
-          }
-        },
-        "dependencies": {
+        "filesToRead": {
           "type": "array",
           "items": {
-            "type": "string",
-            "pattern": "^SUB-[0-9]{3,}$"
+            "type": "string"
           },
-          "description": "Subtask IDs that must be completed before this one can start"
-        },
-        "blockedReason": {
-          "type": "string",
-          "description": "Explanation when status is 'blocked'. Required if blocked."
-        },
-        "skipReason": {
-          "type": "string",
-          "description": "Explanation when status is 'skipped'. Required if skipped."
+          "description": "Files and docs to read before implementing. Can include doc paths (@context/...), code files (src/...), or glob patterns (src/**/*.ts)."
         },
         "completedAt": {
           "type": "string",
@@ -200,41 +103,17 @@
           "pattern": "^[a-f0-9]{7,40}$",
           "description": "Git commit hash that completed this subtask"
         },
-        "iterationId": {
+        "sessionId": {
           "type": "string",
-          "description": "Identifier of the Ralph iteration that completed this subtask"
-        },
-        "notes": {
-          "type": "string",
-          "description": "Optional notes for the implementing agent or reviewers"
+          "description": "Claude Code session ID that completed this subtask. Maps to ~/.claude/projects/<path>/<session-id>.jsonl"
         }
       },
-      "allOf": [
-        {
-          "if": {
-            "properties": { "status": { "const": "blocked" } }
-          },
-          "then": {
-            "required": ["blockedReason"]
-          }
-        },
-        {
-          "if": {
-            "properties": { "status": { "const": "skipped" } }
-          },
-          "then": {
-            "required": ["skipReason"]
-          }
-        },
-        {
-          "if": {
-            "properties": { "status": { "const": "completed" } }
-          },
-          "then": {
-            "required": ["completedAt", "commitHash"]
-          }
-        }
-      ]
+      "if": {
+        "properties": { "done": { "const": true } }
+      },
+      "then": {
+        "required": ["completedAt", "commitHash"]
+      }
     }
   }
 }
