@@ -408,3 +408,13 @@
   - Commit message format explicitly includes subtask ID (lines 122-129)
   - Line 131 states: "The subtask ID **must** appear in the commit message for traceability."
   - Example commit message (lines 133-141) shows subtask ID in both subject and footer
+
+### 003-ralph-iteration-prompt-13
+- **Status:** PASSED
+- **Changes:** Verified subtasks.json update with done: true instruction in ralph-iteration.md
+- **Details:**
+  - Phase 7: Update Tracking section (lines 143-184) instructs updating subtasks.json
+  - Section "#### 1. Update subtasks.json" at lines 147-166 provides explicit instructions
+  - JSON example at line 155 shows `"done": true`
+  - Line 163 explicitly states: "`done`: Set to `true`"
+  - Required fields list at lines 162-166 includes done field documentation

@@ -474,7 +474,7 @@
       "Verify subtasks.json update is instructed",
       "Verify done: true field update is specified"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-14",
