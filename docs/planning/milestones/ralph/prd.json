@@ -651,7 +651,7 @@
       "Verify few-shot examples are included",
       "Verify criteria for judging drift are defined"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-08",

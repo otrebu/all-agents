@@ -659,3 +659,24 @@
     - Lines 126-128, 147-149: Examples 1 and 2 show acceptance criteria being verified
     - Line 307: Task file template includes "Acceptance criteria from original subtask are met"
   - All three verification steps passed
+
+### 004-intention-drift-prompt-07
+- **Status:** PASSED
+- **Changes:** Verified LLM-as-judge criteria with few-shot examples in intention-drift.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 342 lines, readable
+  - Verification step 2 (Verify few-shot examples are included): ✓
+    - Lines 121-206: "## Few-Shot Examples" section contains 4 examples
+    - Example 1 (lines 123-143): Clear Drift - Scope Creep (flag this)
+    - Example 2 (lines 145-166): Acceptable Variation - No Drift (don't flag)
+    - Example 3 (lines 168-186): Clear Drift - Direction Change (flag this)
+    - Example 4 (lines 188-206): Acceptable Variation - No Drift (don't flag)
+  - Verification step 3 (Verify criteria for judging drift are defined): ✓
+    - Line 3: Explicitly states "You are an LLM-as-judge analyzing completed Ralph subtasks"
+    - Lines 43-110: Four drift patterns defined with clear criteria:
+      - Scope Creep (lines 45-58): Definition, example, drift explanation, acceptable variation
+      - Scope Shortfall (lines 60-75): Definition, example, drift explanation, acceptable variation
+      - Direction Change (lines 77-92): Definition, example, drift explanation, acceptable variation
+      - Missing Link (lines 94-110): Definition, example, drift explanation, acceptable variation
+    - Each few-shot example includes explicit "Judgment" with reasoning (lines 140-143, 162-166, 183-186, 202-206)
+  - All three verification steps passed
