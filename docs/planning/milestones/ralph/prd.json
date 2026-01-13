@@ -129,7 +129,7 @@
       "Verify prompt respects selfImprovement: always setting",
       "Verify behavior differs based on config value"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "001-self-improvement-prompt-12",

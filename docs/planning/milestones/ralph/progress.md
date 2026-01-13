@@ -99,3 +99,15 @@
     4. Excessive Iterations (lines 90-111): Shows symptom-fixing loops vs acceptable progressive debugging
   - Each pattern has explicit "Inefficiency Example" with JSON code blocks
   - Each pattern has "Acceptable Variation" section explaining when similar patterns are OK
+
+### 001-self-improvement-prompt-11
+- **Status:** PASSED
+- **Changes:** Verified selfImprovement config setting integration in self-improvement.md
+- **Details:**
+  - Prompt references ralph.config.json (line 27): "Check `ralph.config.json` for the `selfImprovement` setting"
+  - Prompt respects selfImprovement: always setting (line 28): documented as "(default): Requires user approval before applying changes"
+  - Behavior differs based on config value (lines 28-32): Three distinct behaviors documented:
+    - `"always"`: Requires user approval before applying changes
+    - `"auto"`: Apply changes automatically (high risk - not recommended)
+    - `"never"`: Skip self-improvement analysis entirely and exit
+  - Execution instructions (line 209) include step to check config setting
