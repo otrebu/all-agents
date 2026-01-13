@@ -531,7 +531,7 @@
       "Verify @path syntax is used for file references",
       "Verify no {{VAR}} templating syntax exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-19",
