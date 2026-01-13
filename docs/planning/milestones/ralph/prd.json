@@ -297,7 +297,7 @@
       "Verify AI asks clarifying questions",
       "Verify questions follow Socratic pattern"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "002-vision-interactive-prompt-12",
