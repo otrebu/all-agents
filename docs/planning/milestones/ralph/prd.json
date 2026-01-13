@@ -428,7 +428,7 @@
       "Read prompt content",
       "Verify lint command is included in Validate phase"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-10",
