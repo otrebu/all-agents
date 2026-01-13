@@ -567,3 +567,18 @@
     1. Test subtasks.json created at `docs/planning/milestones/ralph/test-fixtures/subtasks-validation-test.json`
     2. `aaa ralph build` command runs (print mode verified, execution mode implemented)
     3. Infrastructure ready for subtask completion tracking (prompt instructs, script verifies)
+
+### 004-intention-drift-prompt-01
+- **Status:** PASSED
+- **Changes:** Created `context/workflows/ralph/calibration/intention-drift.md` prompt file
+- **Details:**
+  - Created comprehensive intention drift analysis prompt with:
+    - Input source documentation (completed subtasks, git diffs, planning chain)
+    - Four drift patterns: Scope Creep, Scope Shortfall, Direction Change, Missing Link
+    - "Don't Jump Ahead" guard to avoid flagging planned future work
+    - Four few-shot examples (2 drift cases, 2 acceptable variations)
+    - Graceful degradation for partial chains (missing Story/Task)
+    - Output format: summary to stdout + task files for divergence
+    - Configuration integration (driftTasks setting, CLI overrides)
+  - File exists at `context/workflows/ralph/calibration/intention-drift.md` (342 lines)
+  - File is readable and contains prompt content
