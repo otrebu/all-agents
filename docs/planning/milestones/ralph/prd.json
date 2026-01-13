@@ -21,7 +21,7 @@
       "Verify prompt references sessionId field",
       "Verify prompt instructs reading JSONL from ~/.claude/projects/<encoded-path>/<sessionId>.jsonl"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "001-self-improvement-prompt-03",
