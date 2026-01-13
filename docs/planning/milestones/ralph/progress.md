@@ -436,3 +436,12 @@
   - JSON example at line 157 shows `"commitHash": "abc123def456"`
   - Line 165 explicitly states: "`commitHash`: Git commit hash from the commit phase"
   - Required fields list at lines 162-166 documents commitHash field
+
+### 003-ralph-iteration-prompt-16
+- **Status:** PASSED
+- **Changes:** Verified sessionId instruction in ralph-iteration.md
+- **Details:**
+  - Phase 7: Update Tracking section (lines 143-184) instructs updating subtasks.json
+  - JSON example at line 158 shows `"sessionId": "<current-session-id>"`
+  - Line 166 explicitly states: "`sessionId`: The current Claude session ID (for self-improvement analysis)"
+  - Line 209 explains purpose: "The sessionId is recorded so session logs can be analyzed later for inefficiencies"

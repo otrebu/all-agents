@@ -507,7 +507,7 @@
       "Read prompt content",
       "Verify sessionId field update is specified"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "003-ralph-iteration-prompt-17",
