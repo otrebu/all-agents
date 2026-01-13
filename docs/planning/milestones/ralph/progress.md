@@ -582,3 +582,15 @@
     - Configuration integration (driftTasks setting, CLI overrides)
   - File exists at `context/workflows/ralph/calibration/intention-drift.md` (342 lines)
   - File is readable and contains prompt content
+
+### 004-intention-drift-prompt-02
+- **Status:** PASSED
+- **Changes:** Verified git diff reading via commitHash from completed subtasks in intention-drift.md
+- **Details:**
+  - Prompt references commitHash field (line 18): Shows `"commitHash": "abc123def456"` in example JSON structure
+  - "### 2. Git Diffs" section (lines 24-29) explicitly instructs reading git diffs using commitHash:
+    - `git show <commitHash> --stat`
+    - `git diff <commitHash>^..<commitHash>`
+  - Execution instructions (line 313) specify: "Read `subtasks.json` to find completed subtasks with `commitHash`"
+  - Execution instructions (line 315) detail: "Read the git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`"
+  - All three verification steps passed
