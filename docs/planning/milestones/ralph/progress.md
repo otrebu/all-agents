@@ -714,3 +714,24 @@
       - Conditional sections for drift/no-drift cases
       - `## Recommendation` section
   - All three verification steps passed
+
+### 004-intention-drift-prompt-10
+- **Status:** PASSED
+- **Changes:** Verified task file creation for divergence in intention-drift.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 342 lines, readable
+  - Verification step 2 (Verify task file creation is instructed for divergence): ✓
+    - Lines 270-273: "### 2. Task Files for Divergence" section header with instruction "When drift is detected, create a task file"
+    - Line 323: Execution instructions include "Create task files for any detected drift in `docs/planning/tasks/`"
+  - Verification step 3 (Verify task file format is documented): ✓
+    - Line 274: File path format documented: `docs/planning/tasks/drift-<subtask-id>-<date>.md`
+    - Lines 276-309: Complete task file template including:
+      - Task header with subtask-id
+      - Source, Created, Commit fields
+      - Problem section
+      - Planning Chain Reference (Subtask, Task, Story)
+      - Drift Type
+      - Evidence section
+      - Corrective Action with 3 options
+      - Acceptance Criteria checklist
+  - All three verification steps passed

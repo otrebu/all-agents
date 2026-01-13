@@ -687,7 +687,7 @@
       "Verify task file creation is instructed for divergence",
       "Verify task file format is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-11",
