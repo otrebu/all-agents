@@ -57,7 +57,7 @@
       "Verify prompt includes example of edits that undo previous edits",
       "Verify prompt instructs flagging this as inefficiency"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "001-self-improvement-prompt-06",

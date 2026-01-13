@@ -42,3 +42,13 @@
   - Example shows reading 3 files but only using 1 (lines 58-65)
   - "Why inefficient" explanation documents token waste (lines 67-68)
   - Acceptable variations documented (architecture exploration, existence checks, investigation phases)
+
+### 001-self-improvement-prompt-05
+- **Status:** PASSED
+- **Changes:** Verified backtracking pattern detection in self-improvement.md
+- **Details:**
+  - Prompt contains "Backtracking" section (lines 74-89) with detection criteria
+  - "Edits that cancel each other out within the same session" clearly defined
+  - Example shows function rename then revert: `foo` → `bar` → `foo` (lines 77-82)
+  - "Why inefficient" explanation documents wasted edits and tokens (lines 84-85)
+  - Acceptable variations documented (reverting after test failure, iterative refinement)
