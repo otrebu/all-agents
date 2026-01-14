@@ -2892,7 +2892,7 @@
       "Verify status.sh invocation is configured",
       "Verify script path is correct"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "017-ralph-status-skill-03",

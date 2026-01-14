@@ -3846,3 +3846,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - File is readable with standard permissions (-rw-rw-r--)
     - Contains 1866 bytes of well-formatted markdown content
     - Follows same structure as other ralph skills (ralph-build, ralph-calibrate, ralph-plan)
+
+## 2026-01-14: 017-ralph-status-skill-02 - Skill properly invokes status.sh script
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified existing implementation (no code changes needed)
+- **Details:**
+  - Verification step 1 (Read SKILL.md content): ✓
+    - SKILL.md at `.claude/skills/ralph-status/SKILL.md` contains proper content
+    - File includes "Execution" section with script invocation instructions
+  - Verification step 2 (Verify status.sh invocation is configured): ✓
+    - Execution section documents: `tools/src/commands/ralph/scripts/status.sh [subtasks-path]`
+    - Script handles: missing subtasks file, empty queue, missing diary, JSON parsing fallbacks
+  - Verification step 3 (Verify script path is correct): ✓
+    - Documented path: `tools/src/commands/ralph/scripts/status.sh`
+    - Actual script exists at that path (verified via file system check)
+    - Script is functional with proper implementation (439 lines of bash)
