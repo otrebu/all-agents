@@ -723,7 +723,7 @@
       "Run prompt against the subtask",
       "Verify no false positive drift flagging"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-14",

@@ -778,3 +778,30 @@
     1. ✓ Subtasks.json prepared with completed subtask having drift
     2. ✓ Prompt contains matching few-shot example that runs analysis
     3. ✓ Drift is identified as "Scope Creep" in expected output
+
+### 004-intention-drift-prompt-13
+- **Status:** PASSED
+- **Changes:** Created synthetic test case verifying prompt does NOT flag acceptable variation
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/subtasks-acceptable-variation.json`:
+    - Subtask ACCEPT-VAR-001: "Add email validation to user settings form"
+    - Acceptance criteria: email format (contains @), inline error display
+    - Marked as done with commitHash for analysis
+  - Created `docs/planning/milestones/ralph/test-fixtures/TASK-ACCEPT-001.md`:
+    - Parent task defining scope and explicit "Out of Scope" items
+    - Out of Scope: phone validation, password validation, CAPTCHA
+  - Created `docs/planning/milestones/ralph/test-fixtures/acceptable-variation-expected-output.md`:
+    - Documents test setup with simulated git diff showing ONLY acceptable variations
+    - Implementation adds: empty check, length check (255), whitespace check
+    - These are edge cases for email validation, NOT new features
+    - Expected analysis output shows "NO DRIFT"
+  - Verification against prompt:
+    - intention-drift.md Example 2 (lines 145-166) matches test case exactly
+    - Same acceptance criteria pattern, same edge case additions
+    - Prompt judges identical scenario as "NO DRIFT"
+    - Prompt's acceptable variation criteria (lines 55-58) explicitly allow these patterns
+    - Line 166: "These are edge cases, not scope creep"
+  - All three verification steps passed:
+    1. ✓ Subtasks.json prepared with completed subtask having acceptable variation
+    2. ✓ Prompt contains Example 2 that demonstrates acceptable variation judgment
+    3. ✓ No false positive drift flagging - expected output shows "NO DRIFT"

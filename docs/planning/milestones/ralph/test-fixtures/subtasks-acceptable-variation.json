@@ -1,0 +1,17 @@
+[
+  {
+    "id": "ACCEPT-VAR-001",
+    "taskRef": "TASK-ACCEPT-001",
+    "title": "Add email validation to user settings form",
+    "description": "Implement client-side email validation for the user settings page. Display inline error if email format is invalid.",
+    "acceptanceCriteria": [
+      "Email must be valid format (contains @)",
+      "Show inline error message if email is invalid"
+    ],
+    "filesToRead": [],
+    "done": true,
+    "completedAt": "2026-01-14T10:00:00Z",
+    "commitHash": "acceptable-var-commit",
+    "sessionId": "acceptable-var-session"
+  }
+]
