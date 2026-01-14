@@ -1913,7 +1913,7 @@
       "Verify @context/workflows/ralph/calibration/ references exist",
       "Verify @path syntax is used correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-09",

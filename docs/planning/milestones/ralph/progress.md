@@ -2481,3 +2481,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Run /ralph-calibrate intention - Routing in place (verified in 012-ralph-calibrate-skill-03)
     2. ✓ Verify intention-drift.md prompt is loaded - @path reference correctly resolves to existing file
     3. ✓ Verify prompt content is followed - Follow directive instructs Claude to execute prompt workflow
+
+### 012-ralph-calibrate-skill-08
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified skill references prompts via @path syntax
+- **Details:**
+  - SKILL.md contains 4 @context/workflows/ralph/calibration/ references with correct @path syntax:
+    1. Line 18: `Follow: @context/workflows/ralph/calibration/intention-drift.md`
+    2. Line 32: `Follow: @context/workflows/ralph/calibration/self-improvement.md`
+    3. Line 114: `- **Intention drift prompt:** @context/workflows/ralph/calibration/intention-drift.md`
+    4. Line 115: `- **Self-improvement prompt:** @context/workflows/ralph/calibration/self-improvement.md`
+  - Both referenced files exist:
+    - context/workflows/ralph/calibration/intention-drift.md ✓
+    - context/workflows/ralph/calibration/self-improvement.md ✓
+  - @path syntax uses correct format (`@context/...` without leading slash)
+  - All verification steps pass:
+    1. ✓ Read SKILL.md content - File readable at .claude/skills/ralph-calibrate/SKILL.md
+    2. ✓ Verify @context/workflows/ralph/calibration/ references exist - 4 references found
+    3. ✓ Verify @path syntax is used correctly - All use correct `@context/...` format
