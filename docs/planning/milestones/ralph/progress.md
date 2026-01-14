@@ -1430,3 +1430,20 @@
     - Lines 135-141: Validation checklist ensures alignment with VISION.md
   - All three verification steps passed
 
+### 007-roadmap-auto-prompt-03
+- **Status:** PASSED
+- **Changes:** Verified ROADMAP.md output with milestone references in roadmap-auto.md prompt
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 161 lines, readable
+  - Verification step 2 (Verify ROADMAP.md output is specified): ✓
+    - Line 13: `Generate a \`docs/planning/ROADMAP.md\` file that translates the product vision into actionable milestones`
+    - Lines 45-98: Complete "## Output: ROADMAP.md" section with full markdown template
+    - Line 149: Execution step 5 says `Create the file at \`docs/planning/ROADMAP.md\``
+    - Lines 155-159: Post-creation summary format with milestone list
+  - Verification step 3 (Verify milestone generation is instructed): ✓
+    - Lines 37-44: "## Milestone Structure" section defines what each milestone should include
+    - Lines 60-87: Milestone format template with `### N. <milestone-slug>: <Outcome Title>` pattern
+    - Lines 100-122: "## Generation Guidelines" with number of milestones, MVP first milestone, and subsequent milestone guidance
+    - Line 147: Execution step 3 says "Define milestones that bridge that gap progressively"
+  - All three verification steps passed
+

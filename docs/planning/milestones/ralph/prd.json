@@ -1132,7 +1132,7 @@
       "Verify ROADMAP.md output is specified",
       "Verify milestone generation is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "007-roadmap-auto-prompt-04",
