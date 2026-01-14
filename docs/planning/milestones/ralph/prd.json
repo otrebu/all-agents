@@ -3912,7 +3912,7 @@
       "Verify milestone info appears in conversation",
       "Verify stories align with milestone"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-01",

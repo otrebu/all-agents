@@ -5230,3 +5230,26 @@ The prompt includes:
     - `### Notes` optional section present
   - Verified `003-interactive-vision-planning.md` matches same schema structure
   - Story template reference: `@context/blocks/docs/story-template.md` (line 143)
+
+
+## 2026-01-14: 022-stories-interactive-prompt-15
+
+### What changed
+- Created validation test fixture documenting milestone context verification
+
+### Verification:
+- Step 1 (Run with specific milestone): ✓
+  - CLI: `aaa ralph plan stories --milestone ralph`
+  - Skill: `/ralph-plan stories ralph`
+  - Prompt mechanism at lines 12-26 handles milestone parameter, finds in ROADMAP.md by slug
+- Step 2 (Verify milestone info appears in conversation): ✓
+  - Opening prompt (lines 243-252) references milestone name and ROADMAP.md deliverables
+  - For ralph milestone: quotes Core Building Loop, ralph-iteration.md, build.sh, Session ID capture
+  - Required Reading (lines 5-10) reads @docs/planning/VISION.md and @docs/planning/ROADMAP.md
+  - Phase 1: Milestone Context (lines 39-50) grounds conversation in milestone deliverables
+- Step 3 (Verify stories align with milestone): ✓
+  - 9 story files in docs/planning/milestones/ralph/stories/
+  - Story 001 (Autonomous Code Implementation) directly implements ralph milestone core deliverables
+  - Story 007 (Progress Visibility Status) implements status.sh from ralph milestone
+  - Supporting stories identified through interactive dialogue for complete feature vision
+- Validation fixture: `docs/planning/milestones/ralph/test-fixtures/validation-022-stories-interactive-prompt-15.md`
