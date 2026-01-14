@@ -1826,3 +1826,18 @@
   3. ✓ Verified config not found message: `Config: Not found` displayed correctly
 - The config detection logic in status.sh (lines 331-335) correctly detects when ralph.config.json is absent
 - Output shows dim text "Not found" as expected when config file does not exist
+
+## 2026-01-14: 009-ralph-build-skill-01 - Skill file exists
+
+**Status: VERIFIED ✓**
+
+- Created `.claude/skills/ralph-build/SKILL.md` with:
+  - YAML frontmatter with name and description
+  - Reference to `@context/workflows/ralph/building/ralph-iteration.md`
+  - Documentation for all options: `--subtasks`, `-i/--interactive`, `-p/--print`, `--validate-first`, `--max-iterations`
+  - Workflow sections for each operation mode
+  - CLI equivalent reference
+- Verification steps completed:
+  1. ✓ Created directory `.claude/skills/ralph-build/`
+  2. ✓ Created SKILL.md file with proper structure
+  3. ✓ Verified file is readable (successfully read back full content)
