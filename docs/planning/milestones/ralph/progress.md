@@ -5446,3 +5446,27 @@ The prompt includes:
 - Step 2 (Verify story parameter handling): ✓
   - `aaa ralph plan tasks` without `--story` shows error with usage
   - `aaa ralph plan tasks --story STORY-001` correctly starts session with story context
+
+## 2026-01-14: 023-tasks-interactive-prompt-11
+
+**Feature:** Invocable via skill: /ralph plan tasks
+
+**Changes:**
+- Updated `.claude/skills/ralph-plan/SKILL.md` to add `tasks` subcommand support
+- Added tasks routing section in Execution Instructions (lines 76-108)
+- Added `tasks` to Subcommands table (line 129)
+- Added Tasks Planning documentation section (lines 220-250)
+- Added tasks prompt reference (line 268)
+- Updated CLI Equivalent section to include tasks command (line 260)
+- Updated frontmatter description to include tasks
+
+**Verification:**
+- Step 1 (Verify skill documentation): ✓
+  - Subcommands table includes `tasks` with description
+  - Full Tasks Planning section documents invocation and behavior
+  - References included for tasks-interactive.md prompt
+- Step 2 (Verify tasks routing): ✓
+  - Execution Instructions include `tasks` argument handling
+  - Routes to `@context/workflows/ralph/planning/tasks-interactive.md`
+  - Handles story ID parameter requirement
+  - Opening message template follows tasks-interactive.md pattern

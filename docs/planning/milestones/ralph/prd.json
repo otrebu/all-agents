@@ -4042,7 +4042,7 @@
       "Verify skill documentation",
       "Verify tasks routing"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-12",

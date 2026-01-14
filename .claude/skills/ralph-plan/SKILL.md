@@ -1,11 +1,11 @@
 ---
 name: ralph-plan
-description: Interactive vision planning using Socratic method. Use when user asks to "ralph plan vision", "plan a vision", "ralph plan roadmap", "ralph plan stories", or needs to define product vision/roadmap/stories through guided dialogue.
+description: Interactive vision planning using Socratic method. Use when user asks to "ralph plan vision", "plan a vision", "ralph plan roadmap", "ralph plan stories", "ralph plan tasks", or needs to define product vision/roadmap/stories/tasks through guided dialogue.
 ---
 
 # Ralph Plan
 
-Interactive planning tools for defining product vision, roadmap, and user stories.
+Interactive planning tools for defining product vision, roadmap, user stories, and tasks.
 
 ## Execution Instructions
 
@@ -73,6 +73,40 @@ I've reviewed the roadmap - this milestone focuses on: [list key deliverables fr
 
 Then follow the full workflow in: @context/workflows/ralph/planning/stories-interactive.md
 
+### If argument is `tasks` (with required story ID):
+
+**START THE TASKS PLANNING SESSION IMMEDIATELY.** First read the story file, then follow the tasks-interactive prompt. Do NOT just show documentation.
+
+1. A story ID must be provided as the second argument (e.g., `/ralph-plan tasks STORY-001-auth`)
+2. If no story ID is provided, ask the user which story to create tasks for and list available stories
+3. Find the story file in `docs/planning/milestones/*/stories/<story-id>.md`
+4. If the story is not found, list available stories and ask for clarification
+5. Read the story file to understand the user outcomes
+6. Explore the codebase to understand existing patterns relevant to the story
+7. Begin the session with:
+
+---
+
+"Let's create technical tasks for story **[story-id]**.
+
+I've read the story - it focuses on: [brief summary of narrative and key acceptance criteria].
+
+Let me also explore the codebase to understand existing patterns..."
+
+[Read relevant files/directories based on the story context]
+
+"Based on the story and the codebase, here's what I see:
+- [relevant existing code/patterns]
+- [dependencies/integrations involved]
+
+**To start:** Looking at the acceptance criteria, which capability should we tackle first? What's your thinking on the technical approach?
+
+(You can say 'done' at any point when you feel we've covered enough, or ask me to save a task when we've defined it well.)"
+
+---
+
+Then follow the full workflow in: @context/workflows/ralph/planning/tasks-interactive.md
+
 ### If no argument or unknown argument:
 
 Show the usage documentation below.
@@ -92,6 +126,7 @@ Show the usage documentation below.
 | `vision` | Start interactive vision planning session |
 | `roadmap` | Start interactive roadmap planning session |
 | `stories` | Start interactive stories planning session for a milestone |
+| `tasks` | Start interactive tasks planning session for a story |
 
 ## Vision Planning
 
@@ -182,6 +217,38 @@ Start an interactive Socratic dialogue to help create user stories for a specifi
 - You control the pace and can exit anytime by saying "done"
 - Can save stories incrementally during the session
 
+## Tasks Planning
+
+Start an interactive Socratic dialogue to help create technical tasks from an existing story.
+
+### Invocation
+
+```
+/ralph-plan tasks <story-id>
+```
+
+### What Happens
+
+1. Reads the specified story file to understand user outcomes
+2. Explores the codebase to understand existing patterns relevant to the story
+3. Begins a multi-turn conversation using Socratic method
+4. Guides you through exploring:
+   - Technical approach options and tradeoffs
+   - Implementation details and file locations
+   - Scope boundaries for each task
+   - Acceptance criteria and testing strategy
+   - Concrete implementation steps
+5. Creates task files in `docs/planning/tasks/`
+
+### Important Notes
+
+- Requires a story ID to be provided
+- Tasks are linked to their parent story for traceability
+- Focus is on technical implementation, not user outcomes
+- You control the pace and can exit anytime by saying "done"
+- Can save tasks incrementally during the session
+- References specific files and patterns from the codebase
+
 ## CLI Equivalent
 
 This skill provides the same functionality as:
@@ -190,6 +257,7 @@ This skill provides the same functionality as:
 aaa ralph plan vision
 aaa ralph plan roadmap
 aaa ralph plan stories --milestone <name>
+aaa ralph plan tasks --story <story-id>
 ```
 
 ## References
@@ -197,3 +265,4 @@ aaa ralph plan stories --milestone <name>
 - **Vision prompt:** @context/workflows/ralph/planning/vision-interactive.md
 - **Roadmap prompt:** @context/workflows/ralph/planning/roadmap-interactive.md
 - **Stories prompt:** @context/workflows/ralph/planning/stories-interactive.md
+- **Tasks prompt:** @context/workflows/ralph/planning/tasks-interactive.md
