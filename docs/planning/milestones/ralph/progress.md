@@ -3930,3 +3930,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - ralph-status skill appears in available skills list with description:
       "Display Ralph build status and progress. Use when user asks for 'ralph status', 'build status', 'queue status', or wants to see subtask progress and iteration statistics."
     - Skill is properly registered and discoverable via YAML frontmatter
+
+## 2026-01-14: 017-ralph-status-skill-07 - Test /ralph status invocation
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified existing implementation (no code changes needed)
+- **Details:**
+  - Verification step 1 (Run /ralph status in Claude Code): ✓
+    - Invoked skill via `/ralph-status` command
+    - Skill was recognized and loaded correctly
+  - Verification step 2 (Verify execution completes): ✓
+    - Script `tools/src/commands/ralph/scripts/status.sh` executed successfully
+    - Exit code 0, no errors
+  - Verification step 3 (Verify output is displayed): ✓
+    - Output displayed with three sections:
+      - Configuration: Shows config status (Not found in test)
+      - Subtasks Queue: Shows subtasks file status
+      - Iteration Stats: Shows iterations (4), success rate (25.0%), avg tool calls (17.5)
+    - Output is properly formatted with box drawing characters and color codes
