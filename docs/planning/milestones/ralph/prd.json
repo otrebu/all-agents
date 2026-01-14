@@ -3266,7 +3266,7 @@
       "Run hook",
       "Verify HTTP POST is sent to ntfy.sh"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-15",

@@ -628,6 +628,103 @@ write_diary_entry() {
   echo "$entry"
 }
 
+# Get ntfy topic from config
+get_ntfy_topic() {
+  read_hook_config "ntfy.topic" ""
+}
+
+# Get ntfy server from config (default: https://ntfy.sh)
+get_ntfy_server() {
+  read_hook_config "ntfy.server" "https://ntfy.sh"
+}
+
+# Execute notify action - sends HTTP POST to ntfy.sh
+execute_notify_action() {
+  local entry_json="$1"
+
+  local topic
+  topic=$(get_ntfy_topic)
+
+  if [ -z "$topic" ]; then
+    echo "Warning: ntfy topic not configured in ralph.config.json (ntfy.topic)" >&2
+    return 1
+  fi
+
+  local server
+  server=$(get_ntfy_server)
+
+  # Extract fields for notification
+  local subtask_id status summary
+
+  if command -v jq &> /dev/null; then
+    subtask_id=$(echo "$entry_json" | jq -r '.subtaskId // ""')
+    status=$(echo "$entry_json" | jq -r '.status // ""')
+    summary=$(echo "$entry_json" | jq -r '.summary // ""')
+  elif command -v node &> /dev/null; then
+    subtask_id=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).subtaskId || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    status=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).status || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    summary=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).summary || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+  else
+    subtask_id="$SUBTASK_ID"
+    status="$STATUS"
+    summary="Iteration complete"
+  fi
+
+  # Build notification title and message
+  local title="Ralph: $subtask_id ($status)"
+  local message="$summary"
+
+  # Determine priority based on status
+  local priority="default"
+  case "$status" in
+    completed)
+      priority="default"
+      ;;
+    failed)
+      priority="high"
+      ;;
+    retrying)
+      priority="low"
+      ;;
+  esac
+
+  # Send HTTP POST to ntfy.sh
+  local ntfy_url="${server}/${topic}"
+
+  echo "Sending notification to ntfy.sh..." >&2
+  echo "  Topic: $topic" >&2
+  echo "  Server: $server" >&2
+
+  if command -v curl &> /dev/null; then
+    curl -s -X POST "$ntfy_url" \
+      -H "Title: $title" \
+      -H "Priority: $priority" \
+      -H "Tags: robot,$([ "$status" = "completed" ] && echo "white_check_mark" || echo "warning")" \
+      -d "$message" >/dev/null 2>&1 && {
+      echo "Notification sent successfully" >&2
+      return 0
+    } || {
+      echo "Warning: Failed to send notification to ntfy.sh" >&2
+      return 1
+    }
+  elif command -v wget &> /dev/null; then
+    wget -q --method=POST "$ntfy_url" \
+      --header="Title: $title" \
+      --header="Priority: $priority" \
+      --header="Tags: robot,$([ "$status" = "completed" ] && echo "white_check_mark" || echo "warning")" \
+      --body-data="$message" -O /dev/null 2>&1 && {
+      echo "Notification sent successfully" >&2
+      return 0
+    } || {
+      echo "Warning: Failed to send notification to ntfy.sh" >&2
+      return 1
+    }
+  else
+    echo "Warning: Neither curl nor wget available for HTTP requests" >&2
+    return 1
+  fi
+}
+
 # Execute configured actions
 execute_actions() {
   local entry_json="$1"
@@ -637,7 +734,12 @@ execute_actions() {
     execute_log_action "$entry_json"
   fi
 
-  # Note: notify and pause actions will be implemented in subsequent features
+  # Execute notify action if enabled
+  if is_action_enabled "notify"; then
+    execute_notify_action "$entry_json"
+  fi
+
+  # Note: pause action will be implemented in subsequent features
 }
 
 # Main execution

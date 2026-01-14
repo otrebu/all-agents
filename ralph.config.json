@@ -5,7 +5,7 @@
       "enabled": true,
       "model": "haiku",
       "diaryPath": "logs/iterations.jsonl",
-      "actions": ["log"]
+      "actions": ["log", "notify"]
     }
   },
   "ntfy": {

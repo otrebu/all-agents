@@ -4462,3 +4462,25 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Step 1 (Configure log action in config): ✓ Added `"actions": ["log"]` to ralph.config.json
     - Step 2 (Run hook): ✓ Script executes log action when enabled
     - Step 3 (Verify output to stdout/logs): ✓ Formatted log output includes all iteration details
+
+### 019-post-iteration-hook-14
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Implemented notify action that sends HTTP POST to ntfy.sh
+- **Details:**
+  - Added `get_ntfy_topic()` function (lines 631-633) to read ntfy topic from ralph.config.json (`ntfy.topic`)
+  - Added `get_ntfy_server()` function (lines 636-638) to read ntfy server URL (default: `https://ntfy.sh`)
+  - Added `execute_notify_action()` function (lines 641-725) that:
+    - Reads topic and server configuration from ralph.config.json
+    - Extracts subtask ID, status, and summary from entry JSON
+    - Constructs notification title as "Ralph: <subtask-id> (<status>)"
+    - Sets priority based on status: completed=default, failed=high, retrying=low
+    - Adds emoji tags: robot + white_check_mark (completed) or warning (failed/retrying)
+    - Sends HTTP POST to `<server>/<topic>` with curl (with wget fallback)
+    - Logs notification status to stderr
+  - Updated `execute_actions()` to call `execute_notify_action()` when "notify" is in actions array
+  - Updated ralph.config.json to include "notify" in actions array: `["log", "notify"]`
+  - Verification:
+    - Step 1 (Configure notify action with topic): ✓ ralph.config.json has `ntfy.topic: "test-topic"` and `actions: ["log", "notify"]`
+    - Step 2 (Run hook): ✓ Script executes, reads config, constructs correct curl command
+    - Step 3 (Verify HTTP POST is sent to ntfy.sh): ✓ Curl command correctly constructed as `curl -s -X POST https://ntfy.sh/test-topic -H "Title: ..." -H "Priority: ..." -d "..."`
