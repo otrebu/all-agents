@@ -1,19 +1,21 @@
 #!/bin/bash
 # Ralph Build: Subtask iteration loop using ralph-iteration.md prompt
-# Usage: build.sh <subtasks-path> <max-iterations> [interactive] [perm-flag]
+# Usage: build.sh <subtasks-path> <max-iterations> [interactive] [validate-first] [perm-flag]
 
 set -e
 
 SUBTASKS_PATH=$1
 MAX_ITERATIONS=${2:-3}
 INTERACTIVE=${3:-false}
-PERM_FLAG=${4:---dangerously-skip-permissions}
+VALIDATE_FIRST=${4:-false}
+PERM_FLAG=${5:---dangerously-skip-permissions}
 
 # Get the repo root (relative to this script location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 
 PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/ralph-iteration.md"
+VALIDATION_PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/pre-build-validation.md"
 
 if [ ! -f "$PROMPT_PATH" ]; then
   echo "Error: Prompt file not found: $PROMPT_PATH"
@@ -44,6 +46,68 @@ get_next_subtask_id() {
     echo ""
   fi
 }
+
+# Run pre-build validation if requested
+run_pre_build_validation() {
+  echo "=== Running Pre-Build Validation ==="
+
+  if [ ! -f "$VALIDATION_PROMPT_PATH" ]; then
+    echo "Error: Pre-build validation prompt not found: $VALIDATION_PROMPT_PATH"
+    exit 1
+  fi
+
+  # Get the next subtask to validate
+  local subtask_id
+  subtask_id=$(get_next_subtask_id)
+
+  if [ -z "$subtask_id" ]; then
+    echo "No pending subtasks to validate"
+    return 0
+  fi
+
+  echo "Validating subtask: $subtask_id"
+
+  # Build validation prompt with subtask context
+  local VALIDATION_PROMPT="Execute pre-build validation check.
+
+Follow the instructions in @${VALIDATION_PROMPT_PATH}
+
+Subtasks file: @${SUBTASKS_PATH}
+Subtask to validate: ${subtask_id}
+
+Context files:
+@${REPO_ROOT}/CLAUDE.md
+@${REPO_ROOT}/docs/planning/PROGRESS.md
+
+Output JSON with format: {\"aligned\": true/false, \"reason\": \"...\" (if aligned is false)}"
+
+  # Run Claude for validation (capture output for result check)
+  local validation_output
+  validation_output=$(claude $PERM_FLAG --output-format json -p "$VALIDATION_PROMPT" 2>&1) || {
+    echo "Pre-build validation failed to execute"
+    echo "$validation_output"
+    exit 1
+  }
+
+  echo "Validation output:"
+  echo "$validation_output"
+
+  # Check validation result - look for aligned: false in the output
+  if echo "$validation_output" | grep -q '"aligned"[[:space:]]*:[[:space:]]*false'; then
+    echo ""
+    echo "Pre-build validation FAILED: Subtask is not aligned"
+    echo "Please review the validation output and fix alignment issues before building."
+    exit 1
+  fi
+
+  echo ""
+  echo "Pre-build validation PASSED: Subtask is aligned"
+  echo ""
+}
+
+if [ "$VALIDATE_FIRST" = "true" ]; then
+  run_pre_build_validation
+fi
 
 # Track retry attempts per subtask
 declare -A SUBTASK_ATTEMPTS

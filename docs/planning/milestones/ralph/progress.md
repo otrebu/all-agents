@@ -918,3 +918,23 @@
     1. ✓ Run aaa ralph build --max-iterations 2 - option accepted, shown in help output
     2. ✓ Trigger failing subtask - associative array tracks attempts per subtask ID
     3. ✓ Verify loop stops after 2 attempts - tested with bash simulation, exits at attempt 3 when max is 2
+
+### 005-build-sh-06
+- **Status:** PASSED
+- **Changes:** Implemented `--validate-first` flag for pre-build validation
+- **Details:**
+  - Added `validateFirst` option handling in `tools/src/commands/ralph/index.ts` (line 149)
+  - Added `VALIDATE_FIRST` parameter to build.sh script (line 10)
+  - Added `VALIDATION_PROMPT_PATH` variable pointing to `context/workflows/ralph/building/pre-build-validation.md` (line 18)
+  - Implemented `run_pre_build_validation()` function in build.sh (lines 50-106):
+    - Checks for validation prompt file existence
+    - Gets next subtask ID to validate
+    - Builds validation prompt with subtask context
+    - Invokes Claude with `--output-format json` flag
+    - Checks validation output for `"aligned": false` to determine failure
+    - Outputs "Pre-build validation PASSED/FAILED" messages
+  - Validation runs BEFORE the build iteration loop when flag is set (lines 108-110)
+  - All three verification steps passed:
+    1. ✓ Run aaa ralph build --validate-first - command accepted (shown in --help output)
+    2. ✓ Verify pre-build validation executes before build loop - "=== Running Pre-Build Validation ===" appears before any iteration
+    3. ✓ Verify validation result is checked - script exits with error if validation fails (or prompt not found)

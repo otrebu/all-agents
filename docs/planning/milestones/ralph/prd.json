@@ -807,7 +807,7 @@
       "Verify pre-build validation executes before build loop",
       "Verify validation result is checked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-07",

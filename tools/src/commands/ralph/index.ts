@@ -146,6 +146,7 @@ ralphCommand.addCommand(
       const scriptPath = path.join(SCRIPTS_DIR, "build.sh");
       const subtasksPath = path.resolve(options.subtasks);
       const interactive = options.interactive ? "true" : "false";
+      const validateFirst = options.validateFirst ? "true" : "false";
       const permFlag = "--dangerously-skip-permissions";
 
       // Validate subtasks file exists
@@ -156,7 +157,7 @@ ralphCommand.addCommand(
 
       try {
         execSync(
-          `bash "${scriptPath}" "${subtasksPath}" "${options.maxIterations}" "${interactive}" "${permFlag}"`,
+          `bash "${scriptPath}" "${subtasksPath}" "${options.maxIterations}" "${interactive}" "${validateFirst}" "${permFlag}"`,
           { stdio: "inherit" },
         );
       } catch {
