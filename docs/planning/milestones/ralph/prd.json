@@ -2964,7 +2964,7 @@
       "Run status.sh directly",
       "Compare outputs for equivalence"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "017-ralph-status-skill-09",

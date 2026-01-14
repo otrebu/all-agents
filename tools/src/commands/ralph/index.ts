@@ -222,6 +222,24 @@ ralphCommand.addCommand(
     }),
 );
 
+// ralph status - display build status
+ralphCommand.addCommand(
+  new Command("status")
+    .description("Display current build status and progress")
+    .argument("[subtasks-path]", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .action((subtasksPath) => {
+      const scriptPath = path.join(SCRIPTS_DIR, "status.sh");
+
+      try {
+        execSync(`bash "${scriptPath}" "${subtasksPath}"`, {
+          stdio: "inherit",
+        });
+      } catch {
+        process.exit(1);
+      }
+    }),
+);
+
 // ralph calibrate - run calibration checks
 ralphCommand.addCommand(
   new Command("calibrate")
