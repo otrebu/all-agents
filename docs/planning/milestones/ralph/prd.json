@@ -4549,7 +4549,7 @@
       "Verify improve subcommand documentation",
       "Verify purpose is explained"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "027-calibrate-improve-skill-04",

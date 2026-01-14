@@ -6027,3 +6027,21 @@ All verification steps pass - the skill is properly configured and available.
 - The `@path` syntax (using `@` prefix) is correctly used throughout
 
 All verification steps pass - the skill correctly references self-improvement.md using @path syntax.
+
+
+## 2026-01-14: 027-calibrate-improve-skill-03 verified
+
+**Feature:** Skill documentation explains improve subcommand
+
+**Verification:**
+1. **Read skill content** - Read `.claude/skills/ralph-calibrate/SKILL.md`
+2. **Verify improve subcommand documentation** - Found in multiple locations:
+   - Lines 44-57: Execution instructions for `improve` argument with prerequisites and workflow
+   - Line 107: Subcommands table entry: `| improve | Analyze session logs for agent inefficiencies |`
+3. **Verify purpose is explained** - Found at lines 151-165:
+   - Section header: "## Self-Improvement Analysis"
+   - Purpose statement: "Analyzes Ralph agent session logs for inefficiencies to propose improvements to prompts, skills, and documentation"
+   - "What It Checks" subsection detailing 4 specific patterns: Tool Misuse, Wasted Reads, Backtracking, Excessive Iterations
+   - "Output" subsection explaining results format (summary to stdout + task files)
+
+All verification steps pass - the skill documentation thoroughly explains the improve subcommand and its purpose.
