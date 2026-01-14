@@ -4199,7 +4199,7 @@
       "Verify server field exists",
       "Verify default is https://ntfy.sh"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-09",

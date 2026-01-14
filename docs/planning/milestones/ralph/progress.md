@@ -5652,3 +5652,12 @@ The prompt includes:
 - Section includes `_description` field explaining purpose: "Configuration for ntfy push notifications (used when 'notify' action is triggered)"
 - `topic` field contains placeholder value `"YOUR_TOPIC_HERE"` (line 18)
 - User must replace this placeholder with their actual ntfy topic name before use
+
+## 2026-01-14: 024-ralph-config-template-08
+**Feature:** ntfy configuration with server default
+
+**What changed:**
+- Verified `ntfy` section exists in `docs/planning/templates/ralph.config.template.json` (lines 15-19)
+- Verified `server` field exists at line 17: `"server": "https://ntfy.sh"`
+- Default value is correctly set to `https://ntfy.sh` (the official ntfy.sh public server)
+- Users can override this to use a self-hosted ntfy server if desired
