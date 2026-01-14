@@ -2388,7 +2388,7 @@
       "Verify story parameter is primary input",
       "Verify Vision is NOT directly read"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-17",

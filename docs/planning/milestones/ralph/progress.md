@@ -3125,3 +3125,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - File confirmed at `/home/otrebu/dev/all-agents/context/workflows/ralph/planning/tasks-auto.md`
     - Glob pattern `**/tasks-auto.md` returned the file path
     - File is in the correct directory alongside: vision-interactive.md, roadmap-auto.md, stories-auto.md
+
+### 014-tasks-auto-prompt-16
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt reads parent story via parameter (not Vision directly)
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (295 lines)
+  - Verification step 2 (Verify story parameter is primary input): ✓ Confirmed:
+    - Lines 5-29 define "## Story Parameter" section
+    - Line 7: "**Input:** Story ID as the first argument to this prompt"
+    - Line 33: "**Parent Story**: Read the story file at `docs/planning/milestones/*/stories/<story-id>.md`"
+    - Lines 24-28: Parameter handling instructions for story ID parsing
+  - Verification step 3 (Verify Vision is NOT directly read): ✓ Confirmed:
+    - No `@docs/planning/VISION.md` reference in the prompt
+    - No instructions to read Vision document directly
+    - Line 86 mentions VISION.md only as policy context ("VISION.md allows orphan Tasks...")
+    - Primary input is explicitly the story parameter, not Vision
