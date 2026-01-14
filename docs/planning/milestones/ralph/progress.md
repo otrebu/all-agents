@@ -5775,3 +5775,15 @@ The prompt includes:
 - Verified `aaa ralph --help` includes status command in the commands list
 - Status command shows as: `status [subtasks-path]` with description "Display current build status and progress"
 - No code changes needed - feature was already correctly implemented
+
+## 2026-01-14: 025-ralph-status-cli-07
+**Feature:** Test aaa ralph status invocation
+
+**What changed:**
+- Verified `aaa ralph status` command runs successfully
+- Command execution completes without errors
+- Output is properly displayed showing:
+  - Configuration status (config not found)
+  - Subtasks queue information
+  - Iteration statistics (6 iterations, 0.0% success rate, 0.0 avg tool calls)
+- No code changes needed - feature was already correctly implemented
