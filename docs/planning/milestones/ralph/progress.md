@@ -3774,3 +3774,34 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 103: "Don't skip phases - each builds on the previous"
     - All five question phases must be traversed before output phase
   - All three verification steps passed
+
+### 016-roadmap-interactive-prompt-13
+- **Status:** PASSED
+- **Changes:** Verified output matches roadmap schema structure
+- **Details:**
+  - Created test fixture: `docs/planning/milestones/ralph/test-fixtures/validation-016-roadmap-interactive-prompt-13.md`
+  - Verification step 1 (Complete interactive session): ✓
+    - `docs/planning/ROADMAP.md` exists (generated on 2026-01-14)
+    - Previous features validated the interactive session workflow
+  - Verification step 2 (Verify ROADMAP.md is created): ✓
+    - File exists at `docs/planning/ROADMAP.md` (113 lines)
+    - Header shows generation date and VISION.md link
+  - Verification step 3 (Verify structure matches schema): ✓
+    - Schema source: `context/workflows/ralph/planning/roadmap-interactive.md` lines 118-176
+    - All required sections present:
+      - `# Product Roadmap` header (line 1)
+      - `> Generated from [VISION.md]...` (line 3)
+      - `## Overview` section (lines 5-7)
+      - `## Milestones` section with 4 milestones (lines 9-95)
+      - Milestone format: `### N. [slug](path): Title` (lines 11, 33, 55, 77)
+      - Each milestone has: Outcome, Why this X, Key deliverables, Success criteria, Dependencies
+      - `---` separators between milestones
+      - `## Future Considerations` section (lines 97-105)
+      - `## Notes` section (lines 107-113)
+    - Validation checklist (prompt lines 198-208) satisfied:
+      - Every VISION.md capability covered by milestones
+      - Milestones ordered by dependency
+      - Each milestone delivers standalone value
+      - Success criteria are measurable
+    - Milestone naming convention compliant (outcome-based: ralph, planning-automation, calibration, full-integration)
+  - All three verification steps passed
