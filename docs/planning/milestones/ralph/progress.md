@@ -938,3 +938,22 @@
     1. ✓ Run aaa ralph build --validate-first - command accepted (shown in --help output)
     2. ✓ Verify pre-build validation executes before build loop - "=== Running Pre-Build Validation ===" appears before any iteration
     3. ✓ Verify validation result is checked - script exits with error if validation fails (or prompt not found)
+
+### 005-build-sh-07
+- **Status:** PASSED
+- **Changes:** Implemented session ID capture from Claude output in build.sh
+- **Details:**
+  - Modified build.sh to use `--output-format json` when invoking Claude (line 165)
+  - Claude output is now captured in `CLAUDE_OUTPUT` variable for processing
+  - Added session_id extraction using jq (lines 174-179):
+    - Uses `jq -r '.session_id // empty'` to extract session_id from JSON output
+    - Handles cases where jq is not available or session_id is missing
+  - Added `RALPH_SESSION_ID` environment variable export for hooks (lines 181-187):
+    - Exports `RALPH_SESSION_ID` when session_id is successfully extracted
+    - Displays "Session ID captured: <id>" message on success
+    - Shows informative note when session_id cannot be extracted
+  - Session ID is now available for downstream hooks to access
+  - All three verification steps passed:
+    1. ✓ Run build iteration - script runs Claude with `--output-format json` and captures output
+    2. ✓ Verify session_id is extracted from JSON output - jq extracts session_id field from Claude's JSON response
+    3. ✓ Verify session_id is available for hooks - exported as `RALPH_SESSION_ID` environment variable

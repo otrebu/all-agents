@@ -160,12 +160,31 @@ After completing ONE subtask:
 3. Create the commit
 4. STOP - do not continue to the next subtask"
 
-  # Run Claude with the prompt
+  # Run Claude with the prompt (capture JSON output for session_id extraction)
   echo "Invoking Claude..."
-  claude $PERM_FLAG -p "$PROMPT" || {
+  CLAUDE_OUTPUT=$(claude $PERM_FLAG --output-format json -p "$PROMPT" 2>&1) || {
     echo "Claude invocation failed on iteration $iteration"
+    echo "$CLAUDE_OUTPUT"
     exit 1
   }
+
+  # Display the output (Claude's response is in the result field for JSON output)
+  echo "$CLAUDE_OUTPUT"
+
+  # Extract session_id from Claude's JSON output
+  SESSION_ID=""
+  if command -v jq &> /dev/null; then
+    # Try to extract session_id from the JSON output
+    SESSION_ID=$(echo "$CLAUDE_OUTPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+  fi
+
+  # Export session_id for hooks
+  if [ -n "$SESSION_ID" ]; then
+    export RALPH_SESSION_ID="$SESSION_ID"
+    echo "Session ID captured: $SESSION_ID"
+  else
+    echo "Note: Could not extract session_id from Claude output"
+  fi
 
   # Interactive mode: pause for user confirmation
   if [ "$INTERACTIVE" = "true" ]; then

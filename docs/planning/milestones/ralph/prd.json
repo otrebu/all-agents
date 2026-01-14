@@ -819,7 +819,7 @@
       "Verify session_id is extracted from JSON output",
       "Verify session_id is available for hooks"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-08",
