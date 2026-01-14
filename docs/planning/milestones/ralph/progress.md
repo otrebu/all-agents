@@ -4860,3 +4860,23 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Only @ts-ignore mentioned (TypeScript directive example, not file reference)
   - Runtime inputs (subtasks.json, ralph.config.json, project files) are expected inputs, not prompt dependencies
   - The prompt can be copied and used independently without any other prompt files
+
+## 2026-01-14: 021-technical-drift-prompt-10
+
+### What changed
+- Verified existing technical-drift.md prompt structure supports batch invocation for `ralph calibrate all`
+- No modifications needed - the prompt was already compatible
+
+### Verification:
+- Step 1 (Verify prompt structure supports batch invocation): ✓
+  - Prompt is self-contained with no external prompt dependencies
+  - Has clear "Execution Instructions" section (lines 386-401) that can be followed independently
+  - Reads input from standard locations (subtasks.json, ralph.config.json)
+  - Produces structured output that can be combined with other calibration check outputs
+  - Same structural pattern as intention-drift.md and self-improvement.md prompts
+- Step 2 (Verify output format compatible with all mode): ✓
+  - Output format (lines 307-384) produces structured markdown summary
+  - Summary includes clear sections: Subtask info, Project Standards Checked, Analysis, Issues Found, Summary counts, Recommendation
+  - "Drift Detected: Yes/No" section provides clear status for aggregation
+  - Task files go to standard location `docs/planning/tasks/` like other calibration checks
+  - ralph-calibrate SKILL.md's "all" mode (lines 59-87) expects exactly this format for combining results

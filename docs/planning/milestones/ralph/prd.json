@@ -3698,7 +3698,7 @@
       "Verify prompt structure supports batch invocation",
       "Verify output format compatible with all mode"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-11",
