@@ -4693,7 +4693,7 @@
       "Request exit mid-session",
       "Verify graceful session end"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-07",

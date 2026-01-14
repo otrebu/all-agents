@@ -6248,3 +6248,14 @@ All verification steps pass.
   - docs/planning/VISION.md exists in the project (33KB, containing full vision document)
   - CLI correctly invokes Claude with the prompt via `--append-system-prompt`
   - Claude follows prompt instructions during interactive session to create/update the file
+
+### 028-ralph-plan-vision-cli-06
+- **Status:** PASSED
+- **Description:** User can exit session manually when satisfied
+- **Verification:**
+  - vision-interactive.md contains "## Session Exit" section (lines 141-152)
+  - Prompt instructs Claude to recognize exit phrases: "done", "that's enough", "let's stop here"
+  - Prompt includes graceful exit behavior: summarize covered topics, offer to save VISION.md
+  - Opening message explicitly tells user: "(You can say 'done' at any point when you feel we've covered enough.)"
+  - CLI uses `stdio: 'inherit'` enabling full terminal control for user to Ctrl+C if needed
+  - Claude session is truly interactive, user can exit at any time
