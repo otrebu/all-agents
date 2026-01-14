@@ -5703,3 +5703,16 @@ The prompt includes:
 - Verified copied config parses correctly as valid JSON
 - Confirmed all expected fields are accessible after copy: hooks section, ntfy.topic, selfImprovement.mode
 - Template is production-ready: users just need to replace `YOUR_TOPIC_HERE` with their ntfy topic name
+
+## 2026-01-14: 024-ralph-config-template-13
+**Feature:** All hook types from story are represented
+
+**What changed:**
+- Verified `docs/planning/templates/ralph.config.template.json` contains all 4 hook types from story 006-hooks-and-notifications
+- Cross-referenced with task 024 acceptance criteria (lines 20-24 of task file)
+- All hooks present in template (lines 6-13):
+  1. `onIterationComplete` - default: `["log"]` ✅
+  2. `onMilestoneComplete` - default: `["log", "notify"]` ✅
+  3. `onValidationFail` - default: `["log", "notify"]` ✅
+  4. `onMaxIterationsExceeded` - default: `["log", "notify", "pause"]` ✅
+- No missing hooks - template is complete and matches story requirements exactly

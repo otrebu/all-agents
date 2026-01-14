@@ -4259,7 +4259,7 @@
       "Verify all 4 hook types present",
       "Verify no missing hooks"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-01",
