@@ -3640,7 +3640,7 @@
       "Verify acceptable variation examples exist",
       "Verify contrast with violations is clear"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-06",
