@@ -879,3 +879,25 @@
     1. ✓ Run aaa ralph build -i with test subtasks - command accepts flag correctly
     2. ✓ Verify pause occurs after first iteration - `read -p` command triggers after Claude invocation
     3. ✓ Verify user prompt for continue appears - exact prompt: "Continue to next iteration? (y/n): "
+
+### 005-build-sh-04
+- **Status:** PASSED
+- **Changes:** Verified `aaa ralph build -p` (print mode) outputs prompt without executing Claude
+- **Details:**
+  - Command accepts `-p, --print` flag (defined in index.ts line 97)
+  - Print mode implementation (index.ts lines 127-143):
+    - Outputs "=== Ralph Build Prompt ===" header
+    - Outputs ralph-iteration.md prompt content
+    - Outputs CLAUDE.md context
+    - Outputs PROGRESS.md context
+    - Outputs subtasks file content (or "not found" message)
+    - Outputs "=== End of Prompt ===" footer
+    - Returns early with `return;` statement (line 142) before execution logic
+  - Claude is NOT invoked because:
+    - The `return;` statement exits before `execSync` call (which invokes build.sh/Claude)
+    - No "Invoking Claude..." message appears in output
+    - Command completes immediately without hanging
+  - All three verification steps passed:
+    1. ✓ Run aaa ralph build -p - command executes successfully
+    2. ✓ Verify prompt content is output to stdout - outputs prompt, CLAUDE.md, PROGRESS.md, subtasks info
+    3. ✓ Verify Claude is NOT invoked - early return prevents execution, no Claude invocation message

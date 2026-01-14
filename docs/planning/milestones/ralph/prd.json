@@ -783,7 +783,7 @@
       "Verify prompt content is output to stdout",
       "Verify Claude is NOT invoked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-05",
