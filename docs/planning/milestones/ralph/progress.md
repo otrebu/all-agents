@@ -5142,3 +5142,24 @@ The prompt includes:
   - Running `aaa ralph plan stories` without `--milestone` shows error and usage
   - Running `aaa ralph plan stories --milestone <name>` passes milestone to Claude
   - Milestone is displayed in session startup output
+
+## 2026-01-14: 022-stories-interactive-prompt-11
+
+### What changed
+- Added `stories` subcommand routing to ralph-plan skill (SKILL.md)
+- Updated skill description to include "ralph plan stories" trigger
+- Added complete execution instructions for stories subcommand with milestone parameter handling
+- Added Stories Planning section with invocation, workflow, and notes
+- Updated subcommands table to include stories
+- Added CLI equivalent for `aaa ralph plan stories --milestone <name>`
+- Added reference to stories-interactive.md prompt
+
+### Verification:
+- Step 1 (Verify skill documentation): ✓
+  - `stories` subcommand documented in Subcommands table
+  - Complete "Stories Planning" section with invocation, workflow description, and notes
+  - Reference to `@context/workflows/ralph/planning/stories-interactive.md` included
+- Step 2 (Verify stories routing): ✓
+  - `### If argument is 'stories'` execution section routes to stories-interactive.md
+  - Handles optional milestone name parameter
+  - Session opening prompt matches stories-interactive.md format

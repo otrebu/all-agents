@@ -3864,7 +3864,7 @@
       "Verify skill documentation",
       "Verify stories routing"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-12",
