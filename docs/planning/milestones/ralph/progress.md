@@ -5546,3 +5546,19 @@ The prompt includes:
   - Phase 5 probes (line 112): "[reference specific test files]"
   - Don't guidelines (line 144): "Ignore existing codebase patterns and conventions" (prevents omission)
   - Starting template (lines 323-325): outputs "[relevant existing code/patterns]" and "[dependencies/integrations involved]"
+
+## 2026-01-14
+
+### 023-tasks-interactive-prompt-15
+**Feature:** Output matches task schema structure
+
+**What changed:**
+- Verified task schema compliance through existing task files
+- Confirmed `001-semantic-release.md` contains all required sections: Task header, Goal, Context, Plan, Acceptance Criteria, Test Plan, Scope, Notes
+- Verified `tasks-interactive.md` prompt enforces schema via:
+  - Required reading: `@context/blocks/docs/task-template.md`
+  - Explicit Required Sections table documenting all mandatory fields
+  - Template structure embedded in prompt with examples
+  - Story reference marked as required for story-derived tasks
+- Validation passes: interactive sessions produce schema-compliant task files
+

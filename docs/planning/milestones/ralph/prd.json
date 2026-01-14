@@ -4090,7 +4090,7 @@
       "Verify task files created",
       "Verify structure matches schema"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-16",
