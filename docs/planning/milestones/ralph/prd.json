@@ -3000,7 +3000,7 @@
       "Verify {{VAR}} syntax is used",
       "Verify not @path syntax"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "018-iteration-summary-prompt-03",

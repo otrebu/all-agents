@@ -4001,3 +4001,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Navigated to prompts/ - directory exists
     2. ✓ Verified iteration-summary.md file exists (2713 bytes)
     3. ✓ Verified file is readable - content verified
+
+## 2026-01-14: 018-iteration-summary-prompt-02 - Uses {{VAR}} placeholders
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Validation only - prompt already uses correct {{VAR}} syntax
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read `prompts/iteration-summary.md` (86 lines)
+  - Verification step 2 (Verify {{VAR}} syntax is used): ✓
+    - `{{SESSION_JSONL_PATH}}` - line 8, 15
+    - `{{SUBTASK_ID}}` - lines 9, 15, 25
+    - `{{SUBTASK_TITLE}}` - line 10
+    - `{{STATUS}}` - line 11
+  - Verification step 3 (Verify not @path syntax): ✓
+    - Prompt uses `{{VAR}}` placeholder syntax for bash substitution
+    - Does NOT use `@path` syntax for variable placeholders
+    - This is intentional: iteration-summary.md is a hook template processed by bash before being passed to Claude
