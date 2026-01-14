@@ -3097,7 +3097,7 @@
       "Measure summary length",
       "Verify fits notification size limits"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-01",

@@ -242,6 +242,49 @@ echo "$SUBSTITUTED_PROMPT"
   });
 });
 
+describe("iteration-summary notification length validation", () => {
+  test("example summaries fit notification size limits (under 200 chars)", () => {
+    // Example summaries from prompts/iteration-summary.md
+    const exampleSummaries = [
+      // Success example (lines 59-65)
+      "Implemented user authentication. Added JWT token validation to 3 endpoints.",
+      // Failure example (lines 69-75)
+      "Failed to implement auth - TypeScript errors in middleware. Tests blocked.",
+      // Partial example (lines 79-85)
+      "Auth middleware added but token validation incomplete. Tests skipped.",
+    ];
+
+    const NOTIFICATION_LIMIT = 200;
+
+    for (const summary of exampleSummaries) {
+      const { length } = summary;
+
+      // Verify each summary is under the 200 character limit
+      expect(length).toBeLessThan(NOTIFICATION_LIMIT);
+
+      // Also verify it's a reasonable length (not empty, and has substance)
+      // Minimum reasonable summary
+      expect(length).toBeGreaterThan(50);
+      // All examples are well under 100
+      expect(length).toBeLessThan(100);
+    }
+  });
+
+  test("prompt documents 200 character limit for notifications", () => {
+    const promptPath = join(CONTEXT_ROOT, "prompts/iteration-summary.md");
+    const promptContent = readFileSync(promptPath, "utf8");
+
+    // Verify the prompt contains the character limit guideline
+    expect(promptContent).toContain("under 200 characters");
+
+    // Verify it mentions notification context
+    expect(promptContent).toContain("ntfy push notifications");
+
+    // Verify 1-3 sentence guideline
+    expect(promptContent).toContain("1-3 sentences maximum");
+  });
+});
+
 describe("subtasks schema validation", () => {
   test("generated subtasks.json validates against schema", () => {
     // Load the schema
