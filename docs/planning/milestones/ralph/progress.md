@@ -5670,3 +5670,17 @@ The prompt includes:
 - Parsed template using Bun/JavaScript: `JSON.parse()` completed without errors
 - Confirmed all root-level keys are present: `$schema`, `_description`, `hooks`, `ntfy`, `actions`, `selfImprovement`
 - No syntax errors detected - template can be copied and used directly after customization
+
+## 2026-01-14: 024-ralph-config-template-10
+**Feature:** Field descriptions explain purpose of each setting
+
+**What changed:**
+- Verified `docs/planning/templates/ralph.config.template.json` contains comprehensive description fields
+- Root `_description`: Explains overall config purpose and usage instructions
+- `hooks._description`: Explains what hooks are (arrays of actions for specific events)
+- Individual hook descriptions (`onIterationComplete_description`, etc.): Explain each hook's trigger condition
+- `ntfy._description`: Explains ntfy push notification configuration
+- `actions._description`: Explains available actions section
+- Individual action values explain what each action does (log, notify, pause)
+- `selfImprovement._description`: Explains the approval mode setting
+- All descriptions are meaningful and help users understand configuration options

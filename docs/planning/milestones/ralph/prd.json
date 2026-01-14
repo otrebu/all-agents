@@ -4223,7 +4223,7 @@
       "Verify description fields exist",
       "Verify descriptions are meaningful"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-11",
