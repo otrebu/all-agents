@@ -1853,7 +1853,7 @@
       "Verify intention subcommand is documented",
       "Type /ralph-calibrate intention and verify it works"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-04",
