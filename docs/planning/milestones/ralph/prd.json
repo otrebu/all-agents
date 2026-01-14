@@ -2880,7 +2880,7 @@
       "Verify SKILL.md file exists",
       "Verify file is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "017-ralph-status-skill-02",
