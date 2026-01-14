@@ -4609,7 +4609,7 @@
       "Verify self-improvement.md content is used",
       "Verify prompt is followed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "027-calibrate-improve-skill-09",

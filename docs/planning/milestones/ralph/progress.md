@@ -6131,3 +6131,28 @@ The skill correctly:
 - Produced expected output when no subtasks.json was found
 
 All verification steps pass.
+
+## 2026-01-14: 027-calibrate-improve-skill-08 verified
+
+**Feature:** Prompt is correctly referenced and loaded
+
+**Changes Made:**
+No code changes required - this is a validation test that verifies the prompt reference and loading.
+
+**Verification:**
+1. **Run /ralph-calibrate improve** - Skill invocation initiates the improve workflow
+2. **Verify self-improvement.md content is used** - Confirmed via analysis:
+   - SKILL.md contains `@context/workflows/ralph/calibration/self-improvement.md` reference in 3 locations:
+     - Line 63: "If prerequisites are met, follow: @context/workflows/ralph/calibration/self-improvement.md"
+     - Line 81: In `all` subcommand Step 3
+     - Line 218: In References section
+   - The self-improvement.md file exists at the correct path with complete content
+3. **Verify prompt is followed** - The self-improvement.md prompt structure is complete:
+   - Input Sources section (Session Logs + Configuration)
+   - 4 Inefficiency Patterns (Tool Misuse, Wasted Reads, Backtracking, Excessive Iterations)
+   - Large Log Handling section for chunking
+   - Output Format with stdout summary + task file templates
+   - Execution Instructions with 5 sequential steps
+   - Important Notes section
+
+All verification steps pass - the skill correctly references and would load the self-improvement.md prompt content.
