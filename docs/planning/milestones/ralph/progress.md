@@ -2694,3 +2694,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Read prompt content - file read successfully
     2. ✓ Verify milestone parameter handling is documented - "Milestone Parameter" section with usage, examples, and 4-step handling
     3. ✓ Verify parameter usage is clear - explicit usage syntax, bash examples with comments, error handling documented
+
+### 013-stories-auto-prompt-05
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Added proper @path reference to story template and explicit compliance instructions in stories-auto.md
+- **Details:**
+  - Updated "Story Template Format" section (lines 59-65):
+    - Added `@context/blocks/docs/story-template.md` as proper @path reference (line 63)
+    - Added explicit compliance instruction: "Generated stories MUST comply exactly with the template above" (line 65)
+  - Updated "Validation Checklist" section (lines 179-190):
+    - Added template reference: "verify compliance with @context/blocks/docs/story-template.md" (line 181)
+    - Added new checklist item: "Story format matches the template exactly (section names, order, structure)" (line 185)
+  - All three verification steps passed:
+    1. ✓ Read prompt content - file read successfully (214 lines)
+    2. ✓ Verify output format matches context/blocks/docs/story-template.md - @path reference at line 63, story structure at lines 78-103 matches template
+    3. ✓ Verify template compliance is instructed - explicit compliance at line 65, validation checklist references at lines 181 and 185

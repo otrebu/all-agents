@@ -2056,7 +2056,7 @@
       "Verify output format matches context/blocks/docs/story-template.md",
       "Verify template compliance is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-06",

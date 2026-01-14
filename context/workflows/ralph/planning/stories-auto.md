@@ -58,9 +58,11 @@ From VISION.md, understand:
 
 ## Story Template Format
 
-**Required format per @context/blocks/docs/story-template.md:**
+Read and follow the story template:
 
-Each story file MUST contain these sections:
+@context/blocks/docs/story-template.md
+
+**IMPORTANT:** Generated stories MUST comply exactly with the template above. Each story file MUST contain these sections:
 
 ### Required Sections
 
@@ -176,10 +178,11 @@ Each story should:
 
 ## Validation Checklist
 
-Before finalizing stories, verify:
+Before finalizing stories, verify compliance with @context/blocks/docs/story-template.md:
 
 - [ ] Every key deliverable from the milestone has at least one story
 - [ ] Each story has ALL required sections (Narrative, Persona, Context, AC, Tasks)
+- [ ] Story format matches the template exactly (section names, order, structure)
 - [ ] Narrative follows JTBD format exactly
 - [ ] Personas are specific, not generic "user"
 - [ ] Acceptance criteria are user-visible, not technical
