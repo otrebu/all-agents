@@ -843,7 +843,7 @@
       "Run build with --max-iterations 1 on failing subtask",
       "Verify hook is triggered after limit exceeded"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-10",

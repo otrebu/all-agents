@@ -16,6 +16,87 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 
 PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/ralph-iteration.md"
 VALIDATION_PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/pre-build-validation.md"
+CONFIG_PATH="$REPO_ROOT/ralph.config.json"
+
+# Read hook configuration from ralph.config.json
+read_hook_config() {
+  local hook_name="$1"
+  local default_actions="$2"
+
+  if [ ! -f "$CONFIG_PATH" ]; then
+    echo "$default_actions"
+    return
+  fi
+
+  if command -v jq &> /dev/null; then
+    local actions
+    actions=$(jq -r ".hooks.$hook_name.actions // empty" "$CONFIG_PATH" 2>/dev/null)
+    if [ -n "$actions" ] && [ "$actions" != "null" ]; then
+      echo "$actions"
+    else
+      echo "$default_actions"
+    fi
+  else
+    echo "$default_actions"
+  fi
+}
+
+# Execute hook actions based on configuration
+execute_hook() {
+  local hook_name="$1"
+  local context="$2"
+  local default_actions="$3"
+
+  echo "=== Triggering hook: $hook_name ==="
+
+  local actions
+  actions=$(read_hook_config "$hook_name" "$default_actions")
+
+  # Parse actions array and execute each action
+  if command -v jq &> /dev/null && [ -f "$CONFIG_PATH" ]; then
+    # Get actions as newline-separated list
+    local action_list
+    action_list=$(jq -r ".hooks.$hook_name.actions // [\"log\"] | .[]" "$CONFIG_PATH" 2>/dev/null)
+
+    if [ -z "$action_list" ]; then
+      action_list="log"
+    fi
+
+    while IFS= read -r action; do
+      case "$action" in
+        log)
+          echo "[Hook:$hook_name] $context"
+          ;;
+        notify)
+          # Read ntfy configuration and send notification
+          local ntfy_topic
+          local ntfy_server
+          ntfy_topic=$(jq -r '.ntfy.topic // empty' "$CONFIG_PATH" 2>/dev/null)
+          ntfy_server=$(jq -r '.ntfy.server // "https://ntfy.sh"' "$CONFIG_PATH" 2>/dev/null)
+
+          if [ -n "$ntfy_topic" ] && [ "$ntfy_topic" != "your-ntfy-topic" ]; then
+            echo "[Hook:$hook_name] Sending notification to $ntfy_server/$ntfy_topic"
+            curl -s -X POST "$ntfy_server/$ntfy_topic" \
+              -H "Title: Ralph Build: $hook_name" \
+              -d "$context" 2>/dev/null || echo "[Hook:$hook_name] Notification failed"
+          else
+            echo "[Hook:$hook_name] notify action: ntfy topic not configured"
+          fi
+          ;;
+        pause)
+          echo "[Hook:$hook_name] Pausing for user intervention..."
+          read -p "Press Enter to continue or Ctrl+C to abort: "
+          ;;
+        *)
+          echo "[Hook:$hook_name] Unknown action: $action"
+          ;;
+      esac
+    done <<< "$action_list"
+  else
+    # Fallback: just log if jq not available
+    echo "[Hook:$hook_name] $context"
+  fi
+}
 
 if [ ! -f "$PROMPT_PATH" ]; then
   echo "Error: Prompt file not found: $PROMPT_PATH"
@@ -138,6 +219,12 @@ while true; do
   if [ "$attempts" -gt "$MAX_ITERATIONS" ]; then
     echo "Error: Max iterations ($MAX_ITERATIONS) exceeded for subtask: $current_subtask"
     echo "Subtask failed after $MAX_ITERATIONS attempts"
+
+    # Trigger onMaxIterationsExceeded hook
+    execute_hook "onMaxIterationsExceeded" \
+      "Subtask '$current_subtask' failed after $MAX_ITERATIONS attempts" \
+      '["log", "notify", "pause"]'
+
     exit 1
   fi
 

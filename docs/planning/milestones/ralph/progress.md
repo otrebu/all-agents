@@ -971,3 +971,25 @@
     1. ✓ Run build.sh with verbose/debug mode - script uses $PERM_FLAG variable in all Claude invocations
     2. ✓ Verify Claude command includes --dangerously-skip-permissions - confirmed at lines 86 and 165
     3. ✓ Verify flag is always present - default value in build.sh + explicit setting in TypeScript
+
+### 005-build-sh-09
+- **Status:** PASSED
+- **Changes:** Implemented `onMaxIterationsExceeded` hook trigger in build.sh
+- **Details:**
+  - Added `CONFIG_PATH="$REPO_ROOT/ralph.config.json"` variable (line 19) to locate config file
+  - Added `read_hook_config()` function (lines 21-42) to read hook configuration from ralph.config.json:
+    - Reads `.hooks.<hook_name>.actions` array from config
+    - Falls back to default actions if config not found or jq unavailable
+  - Added `execute_hook()` function (lines 44-98) to execute hook actions:
+    - Supports `log` action: outputs message with hook name prefix
+    - Supports `notify` action: sends ntfy notification using configured topic/server
+    - Supports `pause` action: waits for user input before continuing
+    - Parses actions from config or uses defaults
+  - Modified max iterations check (lines 218-229) to trigger hook:
+    - Calls `execute_hook "onMaxIterationsExceeded"` with context message before exiting
+    - Default actions: `["log", "notify", "pause"]`
+  - Created test config file `docs/planning/milestones/ralph/test-fixtures/ralph-config-hook-test.json`
+  - All three verification steps passed:
+    1. ✓ Configure onMaxIterationsExceeded hook in config - script reads `.hooks.onMaxIterationsExceeded.actions` from ralph.config.json
+    2. ✓ Run build with --max-iterations 1 on failing subtask - iteration limit triggers hook at attempt > max
+    3. ✓ Verify hook is triggered after limit exceeded - `execute_hook "onMaxIterationsExceeded"` called at lines 223-226
