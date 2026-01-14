@@ -1625,3 +1625,18 @@
     - Step 2 (Verify next subtask ID is shown): ✓ Shows `Next up: test-003`
     - Step 3 (Verify next subtask title is displayed): ✓ Shows `Next subtask to implement` below the ID
   - All three verification steps passed
+
+### 008-status-sh-05
+- **Status:** PASSED
+- **Changes:** Verified config status display in status.sh
+- **Details:**
+  - Feature was already implemented in status.sh (lines 320-328)
+  - Script checks for `ralph.config.json` at repo root using `$CONFIG_PATH`
+  - When config present: displays "Config: Found (ralph.config.json)" in green
+  - When config absent: displays "Config: Not found" (dimmed)
+  - Verification:
+    - Step 1 (Run status.sh with ralph.config.json present): ✓ Created temp config, ran script
+    - Step 2 (Verify config found message): ✓ Shows "Config: Found (ralph.config.json)" in green
+    - Step 3 (Run status.sh without config): ✓ Removed temp config, ran script
+    - Step 4 (Verify config not found message): ✓ Shows "Config: Not found" (dimmed)
+  - All four verification steps passed
