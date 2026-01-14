@@ -1510,3 +1510,18 @@
     - Used correctly as primary input for roadmap generation
   - All three verification steps passed
 
+
+### 007-roadmap-auto-prompt-08
+- **Status:** PASSED
+- **Changes:** Verified milestone generation instructions with outcome-based naming in roadmap-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - File at `context/workflows/ralph/planning/roadmap-auto.md` is 163 lines, readable
+  - Verification step 2 (Verify milestone naming convention documented): ✓
+    - "Milestone Naming Convention" section at lines 24-35
+    - Contains comparison table showing Good (Outcome-based) vs Bad (Release-based) examples
+    - Examples: `core-auth` vs `v1.0`, `user-onboarding` vs `phase-1`, `real-time-collab` vs `sprint-5`
+  - Verification step 3 (Verify outcome-based approach specified): ✓
+    - Line 26: "**Per VISION.md Section 2 (Folder Structure):** Milestones use outcome-based names, not release-based names"
+    - Line 35: "Milestones should describe what users can DO, not when it ships"
+  - All three verification steps passed
