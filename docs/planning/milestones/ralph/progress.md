@@ -3329,3 +3329,15 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lines 113-119: "### Subtasks Schema Structure" example JSON shows `"description": "Add Zod schema for CreateUserInput with email and password validation in src/schemas/user.ts"` field
     - Line 223: Validation checklist includes `description` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
     - Line 202: "### What Makes a Good Subtask" states "Description specifies exact files to create/modify"
+
+### 015-subtasks-auto-prompt-09
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified each subtask has done field required in output
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify done field is required in output): ✓ Multiple locations confirm done is required:
+    - Line 94: Required Fields table shows `| `done` | boolean | Always `false` for new subtasks |`
+    - Lines 113-120: "### Subtasks Schema Structure" example JSON shows `"done": false,` field
+    - Line 223: Validation checklist includes `done` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
+    - Schema (subtasks.schema.json line 50): `"required": ["id", "taskRef", "title", "description", "done", "acceptanceCriteria"]`
