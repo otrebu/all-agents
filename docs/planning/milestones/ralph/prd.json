@@ -1167,7 +1167,7 @@
       "Verify context/workflows/ralph/planning/roadmap-auto.md exists",
       "Verify path matches specification"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "007-roadmap-auto-prompt-07",
