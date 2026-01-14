@@ -5725,3 +5725,13 @@ The prompt includes:
 - Verified command is recognized with `aaa ralph status --help` returning proper usage info
 - Status command already implemented in `tools/src/commands/ralph/index.ts` (lines 277-293)
 - Command invokes `status.sh` script with optional subtasks-path argument (default: subtasks.json)
+
+## 2026-01-14: 025-ralph-status-cli-02
+**Feature:** Command invokes status.sh script with proper path resolution
+
+**What changed:**
+- Verified `aaa ralph status` successfully invokes status.sh script
+- Tested path resolution via `SCRIPTS_DIR` which uses `getContextRoot()` for correct resolution
+- Script path is constructed as `path.join(SCRIPTS_DIR, "status.sh")` in index.ts line 283
+- Command works correctly from project root and subdirectories
+- Status output displays properly formatted build status information

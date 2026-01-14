@@ -4283,7 +4283,7 @@
       "Verify status.sh is invoked",
       "Verify path resolution is correct"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-03",
