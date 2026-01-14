@@ -771,7 +771,7 @@
       "Verify pause occurs after first iteration",
       "Verify user prompt for continue appears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-04",

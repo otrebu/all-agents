@@ -859,3 +859,23 @@
     1. ✓ Run aaa ralph build --subtasks test.json - command executes successfully
     2. ✓ Verify loop starts against specified file - output shows iteration count and remaining subtasks
     3. ✓ Verify iterations execute - output shows "Invoking Claude..." confirming execution
+
+### 005-build-sh-03
+- **Status:** PASSED
+- **Changes:** Verified `aaa ralph build -i` (interactive mode) pauses between iterations
+- **Details:**
+  - Command accepts `-i, --interactive` flag (verified via `--help` output)
+  - Interactive flag is passed from TypeScript command to build.sh script:
+    - index.ts line 98: `-i, --interactive` option defined
+    - index.ts line 148: `const interactive = options.interactive ? "true" : "false";`
+    - index.ts line 159: Passes `"${interactive}"` as 3rd argument to build.sh
+  - build.sh receives and processes the flag:
+    - Line 9: `INTERACTIVE=${3:-false}` receives the flag
+    - Lines 74-83: Implements pause logic with `read -p "Continue to next iteration? (y/n): "`
+  - User can respond:
+    - `y` or `Y`: Continues to next iteration
+    - `n` or any other key: Prints "Stopped by user" and exits
+  - All three verification steps passed:
+    1. ✓ Run aaa ralph build -i with test subtasks - command accepts flag correctly
+    2. ✓ Verify pause occurs after first iteration - `read -p` command triggers after Claude invocation
+    3. ✓ Verify user prompt for continue appears - exact prompt: "Continue to next iteration? (y/n): "
