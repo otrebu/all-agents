@@ -5089,3 +5089,23 @@ The prompt includes:
   - Line 136: "Some sessions may only define one or two stories - that's fine"
   - Line 252: "(You can say 'done' at any point when you feel we've covered enough...)"
   - Session Pacing section emphasizes user control and natural conversation flow
+
+## 2026-01-14: 022-stories-interactive-prompt-08
+
+### What changed
+- Verified generated stories follow schema format from VISION.md in stories-interactive.md
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read `context/workflows/ralph/planning/stories-interactive.md`
+- Step 2 (Verify output format matches story schema): ✓ 
+  - Line 143: References `@context/blocks/docs/story-template.md` as authoritative template
+  - Lines 156-181: Complete "Story File Format" example with proper markdown structure
+  - Format matches VISION.md section 2 conventions for story files
+- Step 3 (Verify all required sections included): ✓ Required Sections table (lines 147-155) documents:
+  - Narrative (Yes): JTBD format - As a [persona], I want [capability] so that [benefit]
+  - Persona (Yes): Who benefits, their context and motivations  
+  - Context (Yes): Business driver, why this matters now
+  - Acceptance Criteria (Yes): User-visible outcomes (not technical)
+  - Tasks (Yes): Placeholder for child tasks (generated later)
+  - Notes (No): Supporting material - mockups, research, risks
+- All sections match the authoritative story-template.md which defines the schema
