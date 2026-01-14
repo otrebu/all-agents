@@ -3676,7 +3676,7 @@
       "Verify task file creation is instructed",
       "Verify task file format is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-09",

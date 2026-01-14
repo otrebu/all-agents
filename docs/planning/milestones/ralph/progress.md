@@ -4822,3 +4822,18 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Step 1 (Read prompt content): ✓ Read technical-drift.md (420 lines)
 - Step 2 (Verify stdout output is specified): ✓ Line 309: "### 1. Summary to stdout" explicitly specifies stdout output
 - Step 3 (Verify summary format is documented): ✓ Lines 310-350 contain complete markdown template with all required sections
+
+## 2026-01-14: 021-technical-drift-prompt-08
+
+### What changed
+- Verified existing technical-drift.md prompt already contains complete task file output format documentation
+- Section "### 2. Task Files for Technical Issues" exists at lines 352-384
+- Documents file path format: `docs/planning/tasks/tech-<subtask-id>-<date>.md`
+- Includes complete template with: Task header, Source metadata, Problem description, Issues list (with severity, files, evidence, fix), and Acceptance Criteria
+- Line 354 instructs: "When technical drift is detected, create a task file"
+- Line 401 in Execution Instructions: "Create task files for any detected technical drift in `docs/planning/tasks/`"
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read technical-drift.md (420 lines)
+- Step 2 (Verify task file creation is instructed): ✓ Lines 354-355 explicitly instruct creating task files when drift detected
+- Step 3 (Verify task file format is documented): ✓ Lines 356-384 contain complete task file template with path, headers, and all required sections
