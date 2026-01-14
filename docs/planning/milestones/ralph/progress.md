@@ -4066,3 +4066,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Verification step 3 (Verify finding extraction is instructed): ✓
     - Line 81 in Instructions: "Identify 2-4 key findings from the work done"
     - Examples show diverse key findings for success, failure, and partial cases
+
+## 2026-01-14: 018-iteration-summary-prompt-06 - Summary suitable for ntfy push notifications
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Validation only - prompt already documents ntfy notification suitability
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read `prompts/iteration-summary.md` (86 lines)
+  - Verification step 2 (Verify length constraints are documented): ✓
+    - Line 3: "This summary will be used for notifications (ntfy push notifications)"
+    - Line 34: "**Length constraints for notifications:**"
+    - Line 35: "Summary should be 1-3 sentences maximum"
+    - Line 36: "Total summary text should be under 200 characters when possible"
+  - Verification step 3 (Verify 1-3 sentences guideline exists): ✓
+    - Line 35: "Summary should be 1-3 sentences maximum"
+    - Line 85: "Keep the summary actionable and scannable - this will appear in mobile notifications"
