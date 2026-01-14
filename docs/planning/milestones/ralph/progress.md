@@ -1135,3 +1135,21 @@
     2. ✓ Verify pre-build-validation.md file exists - confirmed via glob
     3. ✓ Verify file is readable - content successfully read
 
+### 006-pre-build-validation-prompt-02
+- **Status:** PASSED
+- **Changes:** Verified prompt reads subtask definition (title, description, acceptance criteria)
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify subtask title is read): ✓
+    - Line 15: Example JSON shows `"title": "Implement user registration endpoint"`
+    - Line 31: Explicitly instructs `- \`title\`: What is the subtask trying to accomplish?`
+  - Verification step 3 (Verify subtask description is read): ✓
+    - Line 16: Example JSON shows `"description": "Create POST /api/auth/register..."`
+    - Line 32: Explicitly instructs `- \`description\`: Detailed explanation of the work`
+  - Verification step 4 (Verify acceptance criteria are read): ✓
+    - Lines 17-21: Example JSON shows `acceptanceCriteria` array with 3 items
+    - Line 33: Explicitly instructs `- \`acceptanceCriteria\`: Specific requirements that define "done"`
+  - Section "### 1. Subtask Definition" (lines 7-33) documents complete subtask reading workflow
+  - Execution step 1 (line 315): "Read the subtask from subtasks.json"
+  - All four verification steps passed
+

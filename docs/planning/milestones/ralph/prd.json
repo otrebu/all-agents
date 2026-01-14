@@ -940,7 +940,7 @@
       "Verify subtask description is read",
       "Verify acceptance criteria are read"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-03",
