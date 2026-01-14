@@ -3142,3 +3142,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - No instructions to read Vision document directly
     - Line 86 mentions VISION.md only as policy context ("VISION.md allows orphan Tasks...")
     - Primary input is explicitly the story parameter, not Vision
+
+### 014-tasks-auto-prompt-17
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt includes codebase analysis instructions
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (295 lines)
+  - Verification step 2 (Search for codebase/code analysis instructions): ✓ Found:
+    - Lines 36-50: "## Codebase Analysis" section with instructions to use Glob/Grep, read files, identify dependencies, note conventions
+    - Lines 236-256: "## Codebase Integration" section explaining how to use analysis results
+    - Line 275: "Analyze the codebase for relevant patterns and context" in Execution steps
+  - Verification step 3 (Verify code reading is documented): ✓ Confirmed:
+    - Line 40: "Explore relevant directories - Use Glob/Grep to understand existing patterns"
+    - Line 41: "Read related files - Understand current implementations"
+    - Line 42: "Identify dependencies - What existing code will tasks interact with?"
+    - Line 43: "Note conventions - File naming, code style, existing patterns"
