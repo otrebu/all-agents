@@ -2762,7 +2762,7 @@
       "Verify multi-turn pattern is used",
       "Verify no single-shot completion expected"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-06",
