@@ -1084,7 +1084,7 @@
       "Run pre-build validation",
       "Verify output is {\"aligned\": false, \"reason\": \"...\"}"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-15",

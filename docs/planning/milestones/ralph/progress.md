@@ -1349,3 +1349,27 @@
     2. ✓ Validation infrastructure exists and can be run via `aaa ralph build --validate-first`
     3. ✓ Expected output is `{"aligned": true}` based on prompt's Example 1
 
+### 006-pre-build-validation-prompt-14
+- **Status:** PASSED
+- **Changes:** Created test fixtures to validate scope-creep subtask returns aligned: false with reason
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/subtasks-scope-creep-test.json`:
+    - Subtask SCOPE-CREEP-001: "Add form validation"
+    - 4 acceptance criteria: email, phone, password, username validation
+    - taskRef points to TASK-SCOPE-CREEP-001
+  - Created `docs/planning/milestones/ralph/test-fixtures/TASK-SCOPE-CREEP-001.md`:
+    - Defines email validation scope ONLY
+    - Explicit out-of-scope: phone, password, username validation
+    - Clear scope boundary for testing
+  - Created `docs/planning/milestones/ralph/test-fixtures/validation-006-pre-build-validation-prompt-14.md`:
+    - Documents scope creep analysis showing 3 out-of-scope features
+    - Shows expected output: `{"aligned": false, "reason": "...", "issue_type": "scope_creep", "suggestion": "..."}`
+  - Verified against prompt's Example 2 (lines 207-231) which shows identical case:
+    - Same subtask title pattern: "Add form validation"
+    - Same acceptance criteria pattern (email, phone, password, username)
+    - Same expected output format with `aligned: false` and `issue_type: scope_creep`
+  - All three verification steps passed:
+    1. ✓ Prepared subtask with scope creep vs parent Task
+    2. ✓ Pre-build validation can be run via `aaa ralph build --validate-first`
+    3. ✓ Expected output is `{"aligned": false, "reason": "..."}` based on prompt's Example 2
+
