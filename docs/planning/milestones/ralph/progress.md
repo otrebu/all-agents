@@ -833,3 +833,17 @@
     1. ✓ Prepared subtasks.json with subtask lacking Story reference
     2. ✓ Prompt can run against the subtask (graceful degradation built-in)
     3. ✓ Prompt completes without error (expected output documented)
+
+## 2026-01-14
+
+### 005-build-sh-01
+- **Status:** PASSED
+- **Changes:** Verified build.sh script exists at correct location with executable permissions
+- **Details:**
+  - Script exists at `tools/src/commands/ralph/scripts/build.sh`
+  - File has executable permissions (rwxrwxr-x)
+  - Script implements the subtask iteration loop using ralph-iteration.md prompt
+  - All three verification steps passed:
+    1. ✓ Navigate to tools/src/commands/ralph/scripts/ - correct path
+    2. ✓ Verify build.sh file exists - confirmed (2444 bytes)
+    3. ✓ Verify file is executable - confirmed (rwxrwxr-x permissions)

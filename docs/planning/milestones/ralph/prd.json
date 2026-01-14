@@ -747,7 +747,7 @@
       "Verify build.sh file exists",
       "Verify file is executable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-02",
