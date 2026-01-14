@@ -1264,7 +1264,7 @@
       "Verify next subtask ID is shown",
       "Verify next subtask title is displayed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "008-status-sh-05",

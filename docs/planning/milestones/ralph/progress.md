@@ -1612,3 +1612,16 @@
     - Step 2 (Verify last completed subtask ID is shown): ✓ Shows `Last done: 002`
     - Step 3 (Verify completion timestamp is displayed): ✓ Shows `(2024-01-16 14:45)` formatted timestamp
   - All three verification steps passed
+
+### 008-status-sh-04
+- **Status:** PASSED
+- **Changes:** Verified next subtask in queue display in status.sh
+- **Details:**
+  - Feature was already implemented in 008-status-sh-01 but needed verification
+  - Script uses `get_next_subtask()` function (lines 201-227) to find first pending subtask
+  - Output displays: `Next up: <id>` followed by `<title>` on next line (truncated to 50 chars if needed)
+  - Verification:
+    - Step 1 (Run status.sh with pending subtasks): ✓ Executed with test file containing pending subtasks (test-003, test-004)
+    - Step 2 (Verify next subtask ID is shown): ✓ Shows `Next up: test-003`
+    - Step 3 (Verify next subtask title is displayed): ✓ Shows `Next subtask to implement` below the ID
+  - All three verification steps passed
