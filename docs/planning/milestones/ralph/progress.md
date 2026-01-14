@@ -1949,3 +1949,16 @@
 - Notes:
   - Default value is 3 retry attempts
   - Prevents infinite loops on persistently failing subtasks
+
+## 2026-01-14: 009-ralph-build-skill-09 - Skill is recognized in Claude Code available skills list
+
+**Status: VERIFIED ✓**
+
+- Feature already implemented in SKILL.md
+- Verification steps completed:
+  1. ✓ Started Claude Code session
+  2. ✓ Listed available skills - skill appears in system prompt's available skills list
+  3. ✓ `ralph-build` is listed with description: "Run Ralph autonomous build loop. Use when user asks to 'ralph build', 'run build loop', or needs to process subtasks autonomously. Executes iterations against a subtasks.json queue."
+- Notes:
+  - Skill is properly registered and discoverable in Claude Code
+  - YAML frontmatter with `name: ralph-build` and `description` enables recognition

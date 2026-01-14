@@ -1517,7 +1517,7 @@
       "List available skills",
       "Verify ralph-build appears in list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "009-ralph-build-skill-10",
