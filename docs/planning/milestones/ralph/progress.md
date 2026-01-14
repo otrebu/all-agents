@@ -1900,3 +1900,19 @@
 - Notes:
   - Interactive mode fully documented with both option syntax and behavioral description
   - Implementation provides user control over build loop execution pace
+
+## 2026-01-14: 009-ralph-build-skill-06 - Skill supports print mode behavior
+
+**Status: VERIFIED ✓**
+
+- Feature already implemented in SKILL.md
+- Verification steps completed:
+  1. ✓ Read SKILL.md content - file at `.claude/skills/ralph-build/SKILL.md`
+  2. ✓ Print mode (-p) is documented in Options table (line 22): `-p, --print` with description "Output the prompt without executing (dry run)"
+  3. ✓ Output-only behavior is described in section "2. Print Mode (-p)" (lines 35-40):
+     - Output the full prompt content that would be sent to Claude
+     - Do NOT execute any iterations
+     - Exit after printing
+- Notes:
+  - Print mode provides dry-run capability for debugging and verification
+  - Allows users to inspect prompt content before execution

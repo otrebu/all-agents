@@ -1481,7 +1481,7 @@
       "Verify print mode (-p) is documented",
       "Verify output-only behavior is described"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "009-ralph-build-skill-07",
