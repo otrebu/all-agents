@@ -4403,7 +4403,7 @@
       "Verify self-improvement.md content is used",
       "Verify prompt is passed to Claude"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-03",

@@ -5834,3 +5834,15 @@ The prompt includes:
 - The command is recognized and executes the `run_improve_check` function in calibrate.sh
 - The function invokes the self-improvement.md prompt via Claude
 - No code changes needed - feature was already correctly implemented
+
+## 2026-01-14: 026-calibrate-improve-cli-02
+**Feature:** Command invokes self-improvement.md prompt
+
+**What changed:**
+- Verified that `aaa ralph calibrate improve` correctly invokes the self-improvement.md prompt
+- The `run_improve_check()` function in `tools/src/commands/ralph/scripts/calibrate.sh` (lines 259-301):
+  1. Checks if self-improvement.md prompt exists at `context/workflows/ralph/calibration/self-improvement.md`
+  2. Builds a prompt with `Follow the instructions in @${SELF_IMPROVEMENT_PROMPT}` which includes the prompt file content via Claude Code's @ file reference syntax
+  3. Invokes `claude --dangerously-skip-permissions -p "$PROMPT"` to pass the prompt to Claude
+- The prompt content is correctly included and all verification steps pass
+- No code changes needed - feature was already correctly implemented
