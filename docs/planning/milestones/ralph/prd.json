@@ -1625,7 +1625,7 @@
       "Verify force flag bypasses approval",
       "Verify check runs immediately"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-09",

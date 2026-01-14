@@ -2120,3 +2120,19 @@
     - No config file → defaults to "auto"
     - Missing driftTasks key → defaults to "auto"
     - Config values "auto" and "always" correctly read
+
+### 010-calibrate-sh-08
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified script works with --force override
+- **Details:**
+  - The `--force` flag is already implemented in calibrate.sh:
+    1. Documented in script header (line 12): `--force - Skip approval even if config says "always"`
+    2. Parsed in option loop (lines 21, 25-27): Sets `FORCE_FLAG=true`
+    3. Used in `get_approval_mode()` function (lines 130-131): Returns "force" when flag is set
+    4. Prompt instructions (line 207): `If 'force': Create drift task files without asking`
+  - Verification tests performed:
+    1. ✓ Run ralph calibrate intention --force - Command parses flag correctly (bash -x shows FORCE_FLAG=true)
+    2. ✓ Verify force flag bypasses approval - `get_approval_mode()` returns "force" regardless of config
+    3. ✓ Verify check runs immediately - Approval mode "force" instructs Claude to create files without prompting
+  - The feature was already complete from previous implementation work
