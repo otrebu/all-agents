@@ -5392,3 +5392,29 @@ The prompt includes:
     - Line 144: Don't section prohibits ignoring "existing codebase patterns and conventions"
     - Lines 319-326: Starting session template explores existing patterns
   - Full tool access section (lines 300-308) confirms access to read files and explore codebase
+
+### 023-tasks-interactive-prompt-08
+- **Status:** PASSED
+- **Date:** 2026-01-14
+- **Changes:** Verified generated tasks follow schema format from task-template.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - File at `context/workflows/ralph/planning/tasks-interactive.md` is 332 lines, readable
+  - Verification step 2 (Verify output format matches task schema): ✓
+    - Line 8: References `@context/blocks/docs/task-template.md` in Required Reading
+    - Line 157: References task template again in Task Template section
+    - Lines 176-209: Contains complete "Task File Structure" matching the schema format
+    - Template includes all sections: Story, Goal, Context, Plan, Acceptance Criteria, Test Plan, Scope, Notes
+  - Verification step 3 (Verify all required sections included): ✓
+    - Lines 159-172: "Required Sections" table documenting each section's requirement status
+    - Story: Yes* (required in this context to maintain parent-child relationship)
+    - Goal: Yes (mandatory one sentence outcome)
+    - Context: Yes (the why: problem, trigger, constraints)
+    - Plan: Yes (numbered steps with concrete actions)
+    - Acceptance Criteria: Yes (testable checkboxes)
+    - Test Plan: Yes (what tests to add/run)
+    - Scope: Yes (explicit In/Out boundaries)
+    - Notes: No (optional catch-all)
+    - Line 172: Explicit note "*Story Requirement: The Story reference is required here to maintain the parent-child relationship and traceability chain (Story -> Task)."
+  - Lines 211-234: "Technical How Descriptions" section ensures Plan section has implementation details
+  - All three verification steps passed

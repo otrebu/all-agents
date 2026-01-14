@@ -4008,7 +4008,7 @@
       "Verify output format matches task schema",
       "Verify all required sections included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-09",
