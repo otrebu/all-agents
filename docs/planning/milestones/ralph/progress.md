@@ -847,3 +847,15 @@
     1. ✓ Navigate to tools/src/commands/ralph/scripts/ - correct path
     2. ✓ Verify build.sh file exists - confirmed (2444 bytes)
     3. ✓ Verify file is executable - confirmed (rwxrwxr-x permissions)
+
+### 005-build-sh-02
+- **Status:** PASSED
+- **Changes:** Verified `aaa ralph build --subtasks <path>` runs iteration loop
+- **Details:**
+  - Command `aaa ralph build --subtasks <path>` correctly accepts subtasks file path
+  - Iteration loop starts and displays: "=== Build Iteration 1/1 (X subtasks remaining) ==="
+  - Script invokes Claude with the ralph-iteration.md prompt and subtasks context
+  - All three verification steps passed:
+    1. ✓ Run aaa ralph build --subtasks test.json - command executes successfully
+    2. ✓ Verify loop starts against specified file - output shows iteration count and remaining subtasks
+    3. ✓ Verify iterations execute - output shows "Invoking Claude..." confirming execution

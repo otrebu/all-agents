@@ -759,7 +759,7 @@
       "Verify loop starts against specified file",
       "Verify iterations execute"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-03",
