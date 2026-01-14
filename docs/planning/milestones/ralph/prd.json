@@ -952,7 +952,7 @@
       "Verify taskRef lookup is instructed",
       "Verify parent Task content is read when available"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-04",

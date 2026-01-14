@@ -1153,3 +1153,17 @@
   - Execution step 1 (line 315): "Read the subtask from subtasks.json"
   - All four verification steps passed
 
+### 006-pre-build-validation-prompt-03
+- **Status:** PASSED
+- **Changes:** Verified prompt reads parent Task if exists via taskRef
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify taskRef lookup is instructed): ✓
+    - Lines 35-47: Section "### 2. Parent Task (via taskRef)" explicitly documents lookup
+    - Line 37: "If the subtask has a `taskRef` field, read the parent Task file"
+    - Lines 39-41: Shows path format `docs/planning/milestones/<milestone>/tasks/TASK-NNN.md`
+  - Verification step 3 (Verify parent Task content is read when available): ✓
+    - Lines 43-47: Documents what Task provides (scope boundaries, technical approach, dependencies, related subtasks)
+    - Line 316: Execution step 2 says "Read the parent Task via `taskRef` (if exists)"
+  - All three verification steps passed
+
