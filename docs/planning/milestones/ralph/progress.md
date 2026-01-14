@@ -3245,3 +3245,24 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Verification step 3 (Verify parent task lookup is instructed): ✓ Lines 31-36 "Required Reading" section:
     - "Parent Task: Read the task file at `docs/planning/tasks/<task-id>*.md`"
     - Additional instructions to read parent story if referenced
+
+### 015-subtasks-auto-prompt-03
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified existing prompt contains deep codebase analysis instructions
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md
+  - Verification step 2 (Verify deep codebase analysis instructions exist): ✓ Lines 37-76 contain:
+    - "## Deep Codebase Analysis" section header (line 37)
+    - "CRITICAL: Before generating subtasks, you MUST perform deep codebase analysis" (line 39)
+    - Subsection "### 1. Existing Implementation Patterns" (lines 41-48) with Glob/Grep/Read instructions
+    - Subsection "### 2. Analysis Questions to Answer" (lines 50-57) covering files to create/modify, patterns, dependencies, tests
+    - Example deep analysis workflow for CLI command task (lines 68-76)
+  - Verification step 3 (Verify implementation approach is derived from code): ✓ Lines 59-66 "### 3. Derive Implementation Approach from Code":
+    - "The subtasks you generate must be informed by what you learn"
+    - Reference specific files that exist
+    - Follow naming conventions found in the codebase
+    - Match existing test patterns
+    - Use established error handling patterns
+    - Follow the project's file organization
+  - Line 274 in Execution section also references: "**Deep codebase analysis** - Explore relevant code and patterns"
