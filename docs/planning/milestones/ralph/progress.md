@@ -2100,3 +2100,23 @@
     - `subtasks-drift-test.json`: Contains subtask with scope creep scenario
     - `TASK-DRIFT-001.md`: Parent task with explicit "Out of Scope" items
     - `drift-test-expected-output.md`: Documents expected drift detection and task file creation
+
+### 010-calibrate-sh-07
+- **Status:** PASSED
+- **Changes:** Verified script respects ralph.config.json approval settings
+- **Details:**
+  - Script reads `driftTasks` setting from `ralph.config.json` via `get_approval_mode()` function (lines 122-137)
+  - Uses `json_query()` helper (lines 56-96) to read config with jq or Node.js fallback
+  - Default value is "auto" when config file or setting is missing
+  - Approval mode is passed to Claude prompt (lines 204-207) with behavior instructions:
+    - `"auto"`: Create drift task files automatically
+    - `"always"` or `"review"`: Show findings and ask for approval before creating task files
+    - `"force"`: Create drift task files without asking
+  - Verification tests performed:
+    1. ✓ Set approval config in ralph.config.json - Created config with `{"driftTasks": "always"}`
+    2. ✓ Run ralph calibrate intention - Script outputs "Approval mode: always"
+    3. ✓ Verify approval flow matches config - Approval mode correctly read and passed to prompt
+  - Additional tests verified:
+    - No config file → defaults to "auto"
+    - Missing driftTasks key → defaults to "auto"
+    - Config values "auto" and "always" correctly read

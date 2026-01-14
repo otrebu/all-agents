@@ -1613,7 +1613,7 @@
       "Run ralph calibrate intention",
       "Verify approval flow matches config"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-08",
