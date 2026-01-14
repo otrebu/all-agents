@@ -2366,7 +2366,7 @@
       "Verify unique ID generation is instructed",
       "Verify ID format is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-15",

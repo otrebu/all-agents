@@ -126,15 +126,57 @@ This structure matches @context/blocks/docs/task-template.md exactly:
 [Optional: Technical considerations, risks, edge cases, investigation findings, rollback plan - whatever's relevant to THIS task]
 ```
 
+## Task ID Generation
+
+Each task MUST have a unique ID. The ID serves as both the task identifier and the filename prefix.
+
+### ID Format
+
+```
+TASK-<NNN>
+```
+
+Where:
+- `TASK-` is the literal prefix (required)
+- `<NNN>` is a zero-padded sequence number (001, 002, 003...)
+
+**Examples:**
+- `TASK-001`
+- `TASK-002`
+- `TASK-015`
+
+### Generating Unique IDs
+
+To generate the next unique ID:
+
+1. **Scan existing tasks** - Read all files in `docs/planning/tasks/`
+2. **Extract existing IDs** - Parse `TASK-NNN` from filenames
+3. **Find highest number** - Determine the maximum NNN value
+4. **Increment** - New ID is max + 1, zero-padded to 3 digits
+
+**Example:**
+```
+Existing: TASK-001, TASK-002, TASK-005
+Next ID:  TASK-006
+```
+
+If no tasks exist, start with `TASK-001`.
+
+### ID Uniqueness Rules
+
+- IDs are **globally unique** across all tasks (not per-story)
+- Once assigned, an ID is never reused (even if task is deleted)
+- Sequential numbering helps track creation order
+
 ## File Naming Convention
 
-Task files should be named:
+Task files should be named using the task ID plus a slug:
 ```
 TASK-<NNN>-<slug>.md
 ```
 
 Where:
-- `<NNN>` is a zero-padded sequence number (001, 002, 003...)
+- `TASK-<NNN>` is the unique task ID (as generated above)
 - `<slug>` is a kebab-case description of the task
 
 **Examples:**

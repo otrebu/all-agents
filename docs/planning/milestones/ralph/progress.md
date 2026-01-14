@@ -3099,3 +3099,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 86: Added explicit note explaining the requirement: "While VISION.md allows orphan Tasks for tech-only work (no parent Story), this prompt generates tasks FROM stories. Therefore, the Story reference is **required** here"
     - Line 97: Updated template from "*(optional)*" to "*(required - links to parent story)*"
   - Verification step 3 (Verify parent relationship is maintained): ✓ Confirmed at lines 57, 77, 86, 97, 185, 226, 231, 237 - all establish and maintain the parent-child (Story → Task) relationship per VISION.md constraints
+
+### 014-tasks-auto-prompt-14
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Added unique ID generation instructions and ID format documentation to tasks-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (now 295 lines)
+  - Verification step 2 (Verify unique ID generation is instructed): ✓ Added "### Generating Unique IDs" section (lines 148-163) with:
+    - 4-step process: scan existing tasks, extract IDs, find highest number, increment
+    - Example showing: Existing TASK-001, TASK-002, TASK-005 → Next ID: TASK-006
+    - Starting rule: If no tasks exist, start with TASK-001
+  - Verification step 3 (Verify ID format is documented): ✓ Added "### ID Format" section (lines 133-146) with:
+    - Format definition: `TASK-<NNN>` where TASK- is literal prefix, NNN is zero-padded sequence
+    - Examples: TASK-001, TASK-002, TASK-015
+    - "### ID Uniqueness Rules" section (lines 165-169) documenting global uniqueness and no-reuse policy
+  - Added "## Task ID Generation" parent section (lines 129-169) containing all new documentation
