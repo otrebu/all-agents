@@ -3188,3 +3188,26 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Bad vs Good examples showing vague steps vs technical implementation details
     - Explicit list of what to include: specific file paths, function/class names, data types/interfaces, patterns to follow, library usage
     - Examples show Zod schemas, function signatures, test file paths, and pattern references
+
+### 014-tasks-auto-prompt-20
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Manual validation completed - prompt produces valid task structure
+- **Details:**
+  - Verification step 1 (Copy prompt content): ✓ Read tasks-auto.md (320 lines)
+  - Verification step 2 (Execute with Claude manually): ✓ Executed prompt against story 005-self-improvement-analysis
+    - Read parent story for context
+    - Followed task-template.md structure
+    - Generated test task file: TASK-006-test-prompt-validation.md
+  - Verification step 3 (Verify output is valid task markdown): ✓ Validated output contains:
+    - `## Task:` header with descriptive name
+    - `**Story:**` with valid markdown link to parent story
+    - `### Goal` section with one-sentence outcome
+    - `### Context` section with why/trigger/dependencies
+    - `### Plan` section with numbered concrete steps (1-4)
+    - `### Acceptance Criteria` section with checkboxes
+    - `### Test Plan` section with checkboxes
+    - `### Scope` section with In/Out boundaries
+    - `### Notes` section
+  - All 9 required sections present and match task-template.md exactly
+  - Test artifact cleaned up after validation

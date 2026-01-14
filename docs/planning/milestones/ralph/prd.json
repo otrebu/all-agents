@@ -2436,7 +2436,7 @@
       "Execute with Claude manually",
       "Verify output is valid task markdown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-01",
