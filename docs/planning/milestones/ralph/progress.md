@@ -6201,3 +6201,20 @@ All verification steps pass - skill and CLI outputs are functionally equivalent.
   - Verification steps verified:
     - `aaa ralph plan --help` shows vision subcommand in Commands list
     - `aaa ralph plan vision --help` displays proper command-specific help with description
+
+## 2026-01-14: 028-ralph-plan-vision-cli-02 verified
+
+**Feature:** Command invokes vision-interactive.md prompt
+
+**Changes Made:**
+- Refactored `invokeClaude` helper function in `tools/src/commands/ralph/index.ts`
+- Fixed prompt passing: now reads vision-interactive.md content and passes it to Claude via `--append-system-prompt`
+- Previous implementation used `claude --print` which only printed without invoking Claude
+- New implementation starts a proper interactive Claude session with the prompt as system prompt
+
+**Verification:**
+1. **Run aaa ralph plan vision** - Command executes successfully and shows startup message
+2. **Verify vision-interactive.md content is used** - Claude outputs the opening message from the prompt: "Let's work on clarifying your product vision..."
+3. **Verify prompt is passed to Claude** - Claude follows the Socratic method instructions and asks the opening question as specified in the prompt
+
+All verification steps pass.

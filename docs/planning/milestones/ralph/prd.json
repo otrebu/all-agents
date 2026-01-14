@@ -4645,7 +4645,7 @@
       "Verify vision-interactive.md content is used",
       "Verify prompt is passed to Claude"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-03",

@@ -1,7 +1,8 @@
 import { Command } from "@commander-js/extra-typings";
 import { getContextRoot } from "@tools/utils/paths";
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const DEFAULT_PRD_PATH = "prd.json";
@@ -174,7 +175,7 @@ const planCommand = new Command("plan").description(
   "Interactive planning tools for vision, roadmap, stories, and tasks",
 );
 
-// Helper to invoke Claude with a prompt file
+// Helper to invoke Claude with a prompt file for interactive session
 function invokeClaude(
   promptPath: string,
   sessionName: string,
@@ -185,6 +186,9 @@ function invokeClaude(
     process.exit(1);
   }
 
+  // Read the prompt content from the file
+  const promptContent = readFileSync(promptPath, "utf8");
+
   console.log(`Starting ${sessionName} planning session...`);
   console.log(`Prompt: ${promptPath}`);
   if (extraContext !== undefined && extraContext !== "") {
@@ -192,16 +196,35 @@ function invokeClaude(
   }
   console.log();
 
-  // Build Claude command
-  let claudeCmd = `claude --print "${promptPath}"`;
+  // Build full prompt with optional extra context
+  let fullPrompt = promptContent;
   if (extraContext !== undefined && extraContext !== "") {
-    claudeCmd = `claude --print "${promptPath}" -p "${extraContext}"`;
+    fullPrompt = `${extraContext}\n\n${promptContent}`;
   }
 
+  // Write prompt to a temporary file to pass to Claude
+  // This avoids shell escaping issues with long prompts containing quotes/special chars
+  const temporaryPromptPath = path.join(
+    os.tmpdir(),
+    `ralph-${sessionName}-prompt.md`,
+  );
+  writeFileSync(temporaryPromptPath, fullPrompt);
+
+  // Invoke Claude interactively with the prompt as an initial message
+  // Use --append-system-prompt to inject the workflow instructions
+  // and pass a brief user prompt to start the session
   try {
-    execSync(claudeCmd, { stdio: "inherit" });
-  } catch {
-    process.exit(1);
+    execSync(
+      `claude --append-system-prompt "$(cat '${temporaryPromptPath}')" "Please begin the ${sessionName} planning session following the instructions provided."`,
+      { stdio: "inherit" },
+    );
+  } finally {
+    // Clean up temp file
+    try {
+      unlinkSync(temporaryPromptPath);
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 }
 
