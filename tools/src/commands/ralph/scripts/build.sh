@@ -18,6 +18,56 @@ PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/ralph-iteration.md"
 VALIDATION_PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/pre-build-validation.md"
 CONFIG_PATH="$REPO_ROOT/ralph.config.json"
 
+# JSON query helper - uses jq if available, falls back to Node.js
+json_query() {
+  local file="$1"
+  local query="$2"
+  local default="$3"
+
+  if command -v jq &> /dev/null; then
+    local result
+    result=$(jq -r "$query" "$file" 2>/dev/null)
+    if [ -n "$result" ] && [ "$result" != "null" ]; then
+      echo "$result"
+    else
+      echo "$default"
+    fi
+  elif command -v node &> /dev/null; then
+    # Node.js fallback for JSON parsing
+    local result
+    result=$(node -e "
+      const fs = require('fs');
+      try {
+        const data = JSON.parse(fs.readFileSync('$file', 'utf8'));
+        const query = '$query';
+        // Parse simple jq-like queries: .hooks.hookName.actions, .ntfy.topic, etc.
+        const parts = query.replace(/^\\./, '').split('.');
+        let val = data;
+        for (const part of parts) {
+          if (val === undefined || val === null) break;
+          // Handle jq's // empty or // default syntax
+          const [key, fallback] = part.split(' // ');
+          val = val[key];
+        }
+        if (val !== undefined && val !== null) {
+          if (Array.isArray(val)) {
+            console.log(JSON.stringify(val));
+          } else {
+            console.log(val);
+          }
+        } else {
+          console.log('$default');
+        }
+      } catch (e) {
+        console.log('$default');
+      }
+    " 2>/dev/null)
+    echo "$result"
+  else
+    echo "$default"
+  fi
+}
+
 # Read hook configuration from ralph.config.json
 read_hook_config() {
   local hook_name="$1"
@@ -28,16 +78,42 @@ read_hook_config() {
     return
   fi
 
-  if command -v jq &> /dev/null; then
-    local actions
-    actions=$(jq -r ".hooks.$hook_name.actions // empty" "$CONFIG_PATH" 2>/dev/null)
-    if [ -n "$actions" ] && [ "$actions" != "null" ]; then
-      echo "$actions"
-    else
-      echo "$default_actions"
-    fi
+  local actions
+  actions=$(json_query "$CONFIG_PATH" ".hooks.$hook_name.actions" "")
+  if [ -n "$actions" ] && [ "$actions" != "null" ] && [ "$actions" != "" ]; then
+    echo "$actions"
   else
     echo "$default_actions"
+  fi
+}
+
+# Parse JSON array to newline-separated list
+parse_json_array() {
+  local json_array="$1"
+  local default="$2"
+
+  # If it looks like a JSON array, parse it
+  if [[ "$json_array" == \[* ]]; then
+    if command -v jq &> /dev/null; then
+      echo "$json_array" | jq -r '.[]' 2>/dev/null
+    elif command -v node &> /dev/null; then
+      node -e "
+        try {
+          const arr = JSON.parse('$json_array');
+          if (Array.isArray(arr)) arr.forEach(a => console.log(a));
+          else console.log('$default');
+        } catch(e) { console.log('$default'); }
+      " 2>/dev/null
+    else
+      echo "$default"
+    fi
+  else
+    # Not a JSON array, return as-is or default
+    if [ -n "$json_array" ] && [ "$json_array" != "null" ]; then
+      echo "$json_array"
+    else
+      echo "$default"
+    fi
   fi
 }
 
@@ -49,53 +125,49 @@ execute_hook() {
 
   echo "=== Triggering hook: $hook_name ==="
 
-  local actions
-  actions=$(read_hook_config "$hook_name" "$default_actions")
+  # Get actions from config
+  local actions_json
+  actions_json=$(read_hook_config "$hook_name" "$default_actions")
 
-  # Parse actions array and execute each action
-  if command -v jq &> /dev/null && [ -f "$CONFIG_PATH" ]; then
-    # Get actions as newline-separated list
-    local action_list
-    action_list=$(jq -r ".hooks.$hook_name.actions // [\"log\"] | .[]" "$CONFIG_PATH" 2>/dev/null)
+  # Parse actions to newline-separated list
+  local action_list
+  action_list=$(parse_json_array "$actions_json" "log")
 
-    if [ -z "$action_list" ]; then
-      action_list="log"
-    fi
-
-    while IFS= read -r action; do
-      case "$action" in
-        log)
-          echo "[Hook:$hook_name] $context"
-          ;;
-        notify)
-          # Read ntfy configuration and send notification
-          local ntfy_topic
-          local ntfy_server
-          ntfy_topic=$(jq -r '.ntfy.topic // empty' "$CONFIG_PATH" 2>/dev/null)
-          ntfy_server=$(jq -r '.ntfy.server // "https://ntfy.sh"' "$CONFIG_PATH" 2>/dev/null)
-
-          if [ -n "$ntfy_topic" ] && [ "$ntfy_topic" != "your-ntfy-topic" ]; then
-            echo "[Hook:$hook_name] Sending notification to $ntfy_server/$ntfy_topic"
-            curl -s -X POST "$ntfy_server/$ntfy_topic" \
-              -H "Title: Ralph Build: $hook_name" \
-              -d "$context" 2>/dev/null || echo "[Hook:$hook_name] Notification failed"
-          else
-            echo "[Hook:$hook_name] notify action: ntfy topic not configured"
-          fi
-          ;;
-        pause)
-          echo "[Hook:$hook_name] Pausing for user intervention..."
-          read -p "Press Enter to continue or Ctrl+C to abort: "
-          ;;
-        *)
-          echo "[Hook:$hook_name] Unknown action: $action"
-          ;;
-      esac
-    done <<< "$action_list"
-  else
-    # Fallback: just log if jq not available
-    echo "[Hook:$hook_name] $context"
+  if [ -z "$action_list" ]; then
+    action_list="log"
   fi
+
+  # Execute each action
+  while IFS= read -r action; do
+    case "$action" in
+      log)
+        echo "[Hook:$hook_name] $context"
+        ;;
+      notify)
+        # Read ntfy configuration and send notification
+        local ntfy_topic
+        local ntfy_server
+        ntfy_topic=$(json_query "$CONFIG_PATH" ".ntfy.topic" "")
+        ntfy_server=$(json_query "$CONFIG_PATH" ".ntfy.server" "https://ntfy.sh")
+
+        if [ -n "$ntfy_topic" ] && [ "$ntfy_topic" != "your-ntfy-topic" ] && [ "$ntfy_topic" != "" ]; then
+          echo "[Hook:$hook_name] Sending notification to $ntfy_server/$ntfy_topic"
+          curl -s -X POST "$ntfy_server/$ntfy_topic" \
+            -H "Title: Ralph Build: $hook_name" \
+            -d "$context" 2>/dev/null || echo "[Hook:$hook_name] Notification failed"
+        else
+          echo "[Hook:$hook_name] notify action: ntfy topic not configured"
+        fi
+        ;;
+      pause)
+        echo "[Hook:$hook_name] Pausing for user intervention..."
+        read -p "Press Enter to continue or Ctrl+C to abort: "
+        ;;
+      *)
+        echo "[Hook:$hook_name] Unknown action: $action"
+        ;;
+    esac
+  done <<< "$action_list"
 }
 
 if [ ! -f "$PROMPT_PATH" ]; then

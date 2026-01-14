@@ -993,3 +993,26 @@
     1. ✓ Configure onMaxIterationsExceeded hook in config - script reads `.hooks.onMaxIterationsExceeded.actions` from ralph.config.json
     2. ✓ Run build with --max-iterations 1 on failing subtask - iteration limit triggers hook at attempt > max
     3. ✓ Verify hook is triggered after limit exceeded - `execute_hook "onMaxIterationsExceeded"` called at lines 223-226
+
+### 005-build-sh-10
+- **Status:** PASSED
+- **Changes:** Enhanced build.sh to read ralph.config.json for hook configuration with Node.js fallback
+- **Details:**
+  - Added `json_query()` helper function (lines 21-68) for JSON parsing:
+    - Uses jq if available for JSON queries
+    - Falls back to Node.js if jq not available
+    - Handles simple jq-like queries (`.hooks.hookName.actions`, `.ntfy.topic`, etc.)
+    - Returns default value if query fails or returns null
+  - Added `parse_json_array()` helper function (lines 90-117):
+    - Converts JSON array strings to newline-separated lists
+    - Supports both jq and Node.js for parsing
+    - Used by execute_hook to iterate over action lists
+  - Updated `read_hook_config()` to use `json_query()` (lines 71-88)
+  - Updated `execute_hook()` to use `json_query()` for ntfy config (lines 150-151)
+  - Config file location: `ralph.config.json` in repo root (line 19)
+  - Test config file: `docs/planning/milestones/ralph/test-fixtures/ralph-config-hook-test.json`
+  - All three verification steps passed:
+    1. ✓ Create ralph.config.json with hook config - test config exists with hooks and ntfy settings
+    2. ✓ Run build.sh - script reads config using json_query with Node.js fallback when jq unavailable
+    3. ✓ Verify config is read and hooks are configured - tested reading onMaxIterationsExceeded.actions, ntfy.topic, ntfy.server
+

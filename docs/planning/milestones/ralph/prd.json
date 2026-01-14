@@ -855,7 +855,7 @@
       "Run build.sh",
       "Verify config is read and hooks are configured"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-11",
