@@ -2619,7 +2619,7 @@
     "steps": [
       "Verify context/workflows/ralph/planning/subtasks-auto.md exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-17",

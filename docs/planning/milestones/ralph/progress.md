@@ -3425,3 +3425,12 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - "Generate subtasks for each task"
     - "Combine into a single subtasks.json with appropriate metadata"
   - Lines 246-254 show milestone-level metadata structure with `"scope": "milestone"` and `"milestoneRef": "<name>"`
+
+### 015-subtasks-auto-prompt-16
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** None required - prompt file already exists at correct path
+- **Details:**
+  - Verification step 1 (Verify file exists): ✓ File exists at `context/workflows/ralph/planning/subtasks-auto.md`
+  - File is readable and contains 294 lines of prompt content
+  - Glob search for `**/subtasks-auto.md` confirms single file at expected path
