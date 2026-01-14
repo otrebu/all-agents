@@ -4066,7 +4066,7 @@
       "Observe question flow",
       "Verify technical exploration precedes output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-14",
