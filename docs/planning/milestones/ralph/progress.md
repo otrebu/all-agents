@@ -4253,3 +4253,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Diary entry contains: `"subtaskId":"test-subtask-123"`
     - subtaskId correctly matches the first argument passed to the script
     - Field is populated via jq with `--arg subtaskId "$SUBTASK_ID"` in write_diary_entry function (line 250)
+
+## 2026-01-14: 019-post-iteration-hook-04 - Script writes iteration diary entry with sessionId
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified diary entry includes sessionId field
+- **Details:**
+  - Verification step 1 (Run post-iteration-hook.sh): ✓
+    - Created integration test that simulates diary entry construction
+    - Both jq path (line 265) and fallback path (line 276) include sessionId
+  - Verification step 2 (Read logs/iterations.jsonl): ✓
+    - Test wrote entry to /tmp/test-iterations.jsonl
+    - Entry is valid JSONL format
+  - Verification step 3 (Verify sessionId field is present): ✓
+    - Diary entry contains: `"sessionId":"session-verify-abc123"`
+    - sessionId correctly matches the third argument passed to the script
+    - Field is populated via jq with `--arg sessionId "$SESSION_ID"` in write_diary_entry function (line 251)
+    - Also included in fallback manual JSON construction (line 276)
