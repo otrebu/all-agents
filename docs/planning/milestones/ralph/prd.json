@@ -3746,7 +3746,7 @@
       "Verify stories-interactive.md file exists",
       "Verify file is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-02",

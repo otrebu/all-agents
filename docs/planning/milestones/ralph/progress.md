@@ -4951,3 +4951,24 @@ The validation documents the expected task file output when violations are detec
   - Specific fixes (types to add, files to create, patterns to follow)
   - Severity ratings for prioritization
   - Checklist acceptance criteria for tracking completion
+
+## 2026-01-14: 022-stories-interactive-prompt-01
+
+### What changed
+- Created `context/workflows/ralph/planning/stories-interactive.md` - an interactive, multi-turn conversation prompt for creating user stories
+
+### File Details
+The prompt includes:
+- **Required Reading**: References to @docs/planning/VISION.md and @docs/planning/ROADMAP.md
+- **Milestone Parameter Handling**: Accepts milestone name as argument, validates against roadmap
+- **JTBD Methodology**: Jobs To Be Done framework integrated throughout conversation flow
+- **Six Conversation Phases**: Milestone Context, JTBD Exploration, Scope Clarification, Priority Assessment, Tradeoff Exploration, Acceptance Criteria
+- **Story Template**: References @context/blocks/docs/story-template.md with required sections
+- **Session Exit Handling**: User can exit at any time with "done" or similar
+- **CLI/Skill Invocation**: Documented `aaa ralph plan stories --milestone <name>` and `/ralph plan stories`
+- **Full Tool Access**: No tool restrictions during interactive session
+
+### Verification:
+- Step 1 (Navigate to directory): ✓ Directory exists at `context/workflows/ralph/planning/`
+- Step 2 (Verify file exists): ✓ File created with 8017 bytes
+- Step 3 (Verify file is readable): ✓ File contains comprehensive interactive stories planning prompt content
