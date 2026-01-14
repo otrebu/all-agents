@@ -2940,7 +2940,7 @@
       "List available skills",
       "Verify ralph-status appears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "017-ralph-status-skill-07",

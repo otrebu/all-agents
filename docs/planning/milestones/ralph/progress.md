@@ -3914,3 +3914,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Example 2: Advanced usage `/ralph-status docs/planning/milestones/ralph/subtasks.json` for specific subtasks file
     - Examples cover the two main use cases (default path vs custom path)
     - Both examples include descriptive headers explaining the use case
+
+## 2026-01-14: 017-ralph-status-skill-06 - Skill is discovered by Claude Code
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified existing implementation (no code changes needed)
+- **Details:**
+  - Verification step 1 (Start Claude Code): ✓
+    - Running in active Claude Code session
+  - Verification step 2 (List available skills): ✓
+    - Skills are automatically discovered from `.claude/skills/` directory
+    - The Skill tool description includes all registered skills
+  - Verification step 3 (Verify ralph-status appears): ✓
+    - ralph-status skill appears in available skills list with description:
+      "Display Ralph build status and progress. Use when user asks for 'ralph status', 'build status', 'queue status', or wants to see subtask progress and iteration statistics."
+    - Skill is properly registered and discoverable via YAML frontmatter
