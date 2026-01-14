@@ -2675,3 +2675,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 169: `Read @docs/planning/ROADMAP.md completely` in Execution steps
   - The Roadmap document is used to extract milestone outcome, key deliverables, and success criteria (lines 26-30)
   - Both verification steps passed
+
+### 013-stories-auto-prompt-04
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Enhanced milestone parameter handling documentation in stories-auto.md
+- **Details:**
+  - Added comprehensive "Milestone Parameter" section (lines 12-41):
+    - **Input format:** "Milestone name as the first argument to this prompt"
+    - **Usage syntax:** `stories-auto.md <milestone-name>`
+    - **Examples:** Three bash examples with comments (mvp, core-foundation, enterprise-ready)
+    - **Parameter handling instructions:** 4-step process covering:
+      1. How parameter is received (as argument)
+      2. Missing argument behavior (stop and ask user)
+      3. Finding matching milestone in ROADMAP.md by slug
+      4. Error handling when milestone not found (report error, list available)
+  - All three verification steps passed:
+    1. ✓ Read prompt content - file read successfully
+    2. ✓ Verify milestone parameter handling is documented - "Milestone Parameter" section with usage, examples, and 4-step handling
+    3. ✓ Verify parameter usage is clear - explicit usage syntax, bash examples with comments, error handling documented

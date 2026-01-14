@@ -11,9 +11,32 @@ Read both documents completely before generating stories.
 
 ## Milestone Parameter
 
-**Input:** Milestone name (e.g., `mvp`, `core-foundation`, `enterprise-ready`)
+**Input:** Milestone name as the first argument to this prompt.
 
-The milestone name is provided as input to this prompt. Find the matching milestone in ROADMAP.md and generate stories ONLY for that milestone.
+**Usage:**
+```
+stories-auto.md <milestone-name>
+```
+
+**Examples:**
+```bash
+# Generate stories for the MVP milestone
+stories-auto.md mvp
+
+# Generate stories for core-foundation milestone
+stories-auto.md core-foundation
+
+# Generate stories for enterprise-ready milestone
+stories-auto.md enterprise-ready
+```
+
+**Parameter Handling:**
+1. The milestone name is provided as the argument when invoking this prompt
+2. If no argument is provided, stop and ask: "Which milestone should I generate stories for? Please provide the milestone name (e.g., `mvp`, `core-foundation`)."
+3. Find the matching milestone in ROADMAP.md by its slug (the folder name format)
+4. If the milestone is not found in ROADMAP.md, report an error and list available milestones
+
+Generate stories ONLY for the specified milestone.
 
 **Important:** Each story belongs to exactly ONE milestone. Do not create stories that span multiple milestones.
 

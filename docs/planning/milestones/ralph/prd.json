@@ -2044,7 +2044,7 @@
       "Verify milestone parameter handling is documented",
       "Verify parameter usage is clear"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-05",
