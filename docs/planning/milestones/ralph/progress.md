@@ -4808,3 +4808,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Step 1 (Read prompt content): ✓ Read technical-drift.md
 - Step 2 (Verify escape hatch pattern is documented): ✓ Lines 172-189 document `// HUMAN APPROVED` pattern with format examples
 - Step 3 (Verify instruction to ignore approved exceptions): ✓ Line 174 explicitly states code with HUMAN APPROVED should be "ignored" during analysis
+
+## 2026-01-14: 021-technical-drift-prompt-07
+
+### What changed
+- Verified existing "Output format: summary to stdout" section in technical-drift.md
+- The section already exists at lines 307-350 with:
+  - Section header "### 1. Summary to stdout" (line 309)
+  - Complete markdown template documenting the summary format
+  - Sections for: Subtask info, Project Standards Checked, Analysis, Issues Found, Summary (with severity counts), Recommendation
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read technical-drift.md (420 lines)
+- Step 2 (Verify stdout output is specified): ✓ Line 309: "### 1. Summary to stdout" explicitly specifies stdout output
+- Step 3 (Verify summary format is documented): ✓ Lines 310-350 contain complete markdown template with all required sections

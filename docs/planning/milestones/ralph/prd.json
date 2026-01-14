@@ -3664,7 +3664,7 @@
       "Verify stdout output is specified",
       "Verify summary format is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-08",
