@@ -5801,3 +5801,13 @@ The prompt includes:
   - Context root is passed to status.sh (line 297)
   - status.sh uses context root for all file lookups (config, diary, subtasks)
 - No code changes needed - feature was already correctly implemented
+
+## 2026-01-14: 025-ralph-status-cli-09
+**Feature:** Output matches direct status.sh execution
+
+**What changed:**
+- Verified `aaa ralph status` output matches direct `status.sh` execution exactly
+- Tested with no subtasks file: both show "No subtasks file found" message identically
+- Tested with test-fixtures/subtasks.json: both show milestone, progress bar, completion status identically
+- CLI uses `stdio: "inherit"` in `execSync()` to pass through stdout correctly
+- No code changes needed - feature was already correctly implemented

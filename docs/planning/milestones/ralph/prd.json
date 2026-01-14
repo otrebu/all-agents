@@ -4367,7 +4367,7 @@
       "Run status.sh directly",
       "Compare outputs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-10",
