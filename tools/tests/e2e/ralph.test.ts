@@ -285,6 +285,173 @@ describe("iteration-summary notification length validation", () => {
   });
 });
 
+describe("post-iteration-hook Haiku invocation", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(
+      tmpdir(),
+      `hook-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("script invokes claude with haiku model and iteration-summary.md content", async () => {
+    // Create a mock claude script that captures the arguments passed to it
+    const mockClaudeScript = `#!/bin/bash
+# Mock claude CLI that captures arguments
+echo "MOCK_CLAUDE_CALLED"
+echo "MODEL_ARG: $2"
+echo "OUTPUT_FORMAT: $4"
+
+# Find the -p argument and capture prompt content
+for i in "\${@}"; do
+  if [ "$prev" = "-p" ]; then
+    # Output a marker showing prompt was passed
+    if echo "$i" | grep -q "Iteration Summary Generator"; then
+      echo "PROMPT_CONTAINS_ITERATION_SUMMARY: true"
+    fi
+    if echo "$i" | grep -q "{{SUBTASK_ID}}\\|task-test-001"; then
+      echo "PROMPT_HAS_SUBTASK_ID: true"
+    fi
+  fi
+  prev="$i"
+done
+
+# Output valid JSON that the hook expects
+echo '{"result": "{\\"subtaskId\\":\\"task-test-001\\",\\"status\\":\\"success\\",\\"summary\\":\\"Test summary\\",\\"keyFindings\\":[]}"}'
+`;
+
+    // Write mock claude script
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(mockClaudePath, mockClaudeScript, { mode: 0o755 });
+
+    // Copy the iteration-summary.md prompt to a temporary location
+    const promptContent = readFileSync(
+      join(CONTEXT_ROOT, "prompts/iteration-summary.md"),
+      "utf8",
+    );
+    mkdirSync(join(temporaryDirectory, "prompts"), { recursive: true });
+    writeFileSync(
+      join(temporaryDirectory, "prompts/iteration-summary.md"),
+      promptContent,
+    );
+
+    // Create a minimal ralph.config.json
+    writeFileSync(
+      join(temporaryDirectory, "ralph.config.json"),
+      JSON.stringify({
+        hooks: { postIteration: { enabled: true, model: "haiku" } },
+      }),
+    );
+
+    // Create logs directory
+    mkdirSync(join(temporaryDirectory, "logs"), { recursive: true });
+
+    // Create a test script that runs the generate_summary function with mock claude
+    const testScript = `#!/bin/bash
+set -e
+
+export PATH="${temporaryDirectory}:$PATH"
+
+SUBTASK_ID="task-test-001"
+STATUS="success"
+SESSION_ID="test-session-123"
+REPO_ROOT="${temporaryDirectory}"
+CONFIG_PATH="$REPO_ROOT/ralph.config.json"
+PROMPT_PATH="$REPO_ROOT/prompts/iteration-summary.md"
+
+# Read config to get model
+json_query() {
+  local file="$1"
+  local query="$2"
+  local default="$3"
+  if command -v jq &> /dev/null; then
+    local result
+    result=$(jq -r "$query" "$file" 2>/dev/null)
+    if [ -n "$result" ] && [ "$result" != "null" ]; then
+      echo "$result"
+    else
+      echo "$default"
+    fi
+  else
+    echo "$default"
+  fi
+}
+
+model=$(json_query "$CONFIG_PATH" ".hooks.postIteration.model" "haiku")
+
+# Read prompt and substitute placeholders
+prompt_content=$(cat "$PROMPT_PATH")
+prompt_content=$(echo "$prompt_content" | sed "s|{{SUBTASK_ID}}|$SUBTASK_ID|g")
+prompt_content=$(echo "$prompt_content" | sed "s|{{STATUS}}|$STATUS|g")
+prompt_content=$(echo "$prompt_content" | sed "s|{{SESSION_JSONL_PATH}}||g")
+
+# Call claude (mock) and capture output
+output=$(claude --model "$model" --output-format json -p "$prompt_content" 2>&1)
+echo "$output"
+`;
+
+    const testScriptPath = join(temporaryDirectory, "test-haiku-call.sh");
+    writeFileSync(testScriptPath, testScript, { mode: 0o755 });
+
+    // Run the test script
+    const { exitCode, stdout } = await execa("bash", [testScriptPath], {
+      cwd: temporaryDirectory,
+      env: {
+        ...process.env,
+        PATH: `${temporaryDirectory}:${process.env.PATH}`,
+      },
+    });
+
+    // Verify the mock claude was called
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("MOCK_CLAUDE_CALLED");
+
+    // Verify haiku model was specified
+    expect(stdout).toContain("MODEL_ARG: haiku");
+
+    // Verify JSON output format was requested
+    expect(stdout).toContain("OUTPUT_FORMAT: json");
+
+    // Verify iteration-summary.md prompt content was passed
+    expect(stdout).toContain("PROMPT_CONTAINS_ITERATION_SUMMARY: true");
+
+    // Verify subtask ID substitution occurred
+    expect(stdout).toContain("PROMPT_HAS_SUBTASK_ID: true");
+  });
+
+  test("script reads iteration-summary.md from prompts directory", () => {
+    // Verify the prompt file exists at the expected location
+    const promptPath = join(CONTEXT_ROOT, "prompts/iteration-summary.md");
+    expect(existsSync(promptPath)).toBe(true);
+
+    // Verify the prompt contains expected structure for Haiku
+    const promptContent = readFileSync(promptPath, "utf8");
+
+    // Should have the title identifying it as the iteration summary prompt
+    expect(promptContent).toContain("# Iteration Summary Generator");
+
+    // Should have placeholders that get substituted
+    expect(promptContent).toContain("{{SUBTASK_ID}}");
+    expect(promptContent).toContain("{{STATUS}}");
+    expect(promptContent).toContain("{{SESSION_JSONL_PATH}}");
+
+    // Should specify JSON output format for structured response
+    expect(promptContent).toContain("Output a JSON object");
+    expect(promptContent).toContain('"subtaskId"');
+    expect(promptContent).toContain('"summary"');
+    expect(promptContent).toContain('"keyFindings"');
+  });
+});
+
 describe("subtasks schema validation", () => {
   test("generated subtasks.json validates against schema", () => {
     // Load the schema

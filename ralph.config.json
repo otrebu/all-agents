@@ -1,0 +1,14 @@
+{
+  "selfImprovement": "always",
+  "hooks": {
+    "postIteration": {
+      "enabled": true,
+      "model": "haiku",
+      "diaryPath": "/tmp/test-iterations.jsonl"
+    }
+  },
+  "ntfy": {
+    "topic": "test-topic",
+    "server": "https://ntfy.sh"
+  }
+}

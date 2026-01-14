@@ -22,7 +22,7 @@ for f in "$TASKS_DIR"/[0-9][0-9][0-9]-*.md; do
 $(cat "$f")
 
 "
-  ((count++))
+  ((count++)) || true
 done
 
 if [ $count -eq 0 ]; then
@@ -122,27 +122,56 @@ if [ -z "$JSON" ]; then
   JSON=$(echo "$RESULT" | grep -oE '\[.*\]')
 fi
 
-# Validate JSON array
-if ! echo "$JSON" | jq -e 'type == "array"' >/dev/null 2>&1; then
-  echo "Error: Invalid JSON output"
+# Validate and process JSON using node
+JSON_FILE=$(mktemp)
+echo "$JSON" > "$JSON_FILE"
+
+PROCESSED=$(node -e "
+const fs = require('fs');
+const json = fs.readFileSync('$JSON_FILE', 'utf8');
+try {
+  const arr = JSON.parse(json);
+  if (!Array.isArray(arr)) {
+    console.error('Error: Not a JSON array');
+    process.exit(1);
+  }
+  // Fix passes if not boolean
+  const fixed = arr.map(item => ({
+    ...item,
+    passes: typeof item.passes === 'boolean' ? item.passes : false
+  }));
+  // Output stats to stderr, JSON to stdout
+  const bySource = {};
+  fixed.forEach(f => {
+    bySource[f.sourceTask] = (bySource[f.sourceTask] || 0) + 1;
+  });
+  console.error('');
+  console.error('Features per task:');
+  Object.entries(bySource).sort().forEach(([k, v]) => {
+    console.error(k + ': ' + v + ' features');
+  });
+  console.log(JSON.stringify(fixed, null, 2));
+} catch (e) {
+  console.error('Error: Invalid JSON - ' + e.message);
+  process.exit(1);
+}
+" 2>&1)
+NODE_EXIT=$?
+
+rm -f "$JSON_FILE"
+
+if [ $NODE_EXIT -ne 0 ]; then
+  echo "$PROCESSED"
   echo "Raw output (first 1000 chars):"
   echo "$RESULT" | head -c 1000
   exit 1
 fi
 
-# Fix passes if not boolean
-JSON=$(echo "$JSON" | jq '[.[] | if (.passes|type)!="boolean" then .passes=false else . end]')
+# Write output (filter out stderr lines that start with Features/newline)
+echo "$PROCESSED" | grep -v "^Features per task:" | grep -v "^$" | grep -v ": [0-9]* features$" > "$OUTPUT"
+TOTAL=$(node -e "const d=require('fs').readFileSync('$OUTPUT','utf8');console.log(JSON.parse(d).length)")
 
-# Ensure all required fields exist
-JSON=$(echo "$JSON" | jq '[.[] | . + {passes: (if .passes then .passes else false end)}]')
-
-# Count features per source task
-echo ""
-echo "Features per task:"
-echo "$JSON" | jq -r 'group_by(.sourceTask) | .[] | "\(.[0].sourceTask): \(length) features"'
-
-# Write output
-echo "$JSON" | jq '.' > "$OUTPUT"
-TOTAL=$(echo "$JSON" | jq length)
+# Show stats (already printed to stderr above)
+echo "$PROCESSED" | grep -E "(^Features per task:|: [0-9]+ features$|^$)" | head -50
 echo ""
 echo "Generated: $OUTPUT ($TOTAL total features from $count tasks)"

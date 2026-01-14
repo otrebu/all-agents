@@ -21,7 +21,7 @@ for f in "$TASKS_DIR"/[0-9][0-9][0-9]-*.md; do
 $(cat "$f")
 
 "
-  ((count++))
+  ((count++)) || true
 done
 
 if [ $count -eq 0 ]; then
@@ -87,17 +87,47 @@ if [ -z "$JSON" ]; then
   JSON=$(echo "$RESULT" | grep -oE '\[.*\]')
 fi
 
-# Validate JSON array
-if ! echo "$JSON" | jq -e 'type == "array"' >/dev/null 2>&1; then
-  echo "Error: Invalid JSON output"
+# Validate and process JSON using node (jq fallback if available)
+JSON_FILE=$(mktemp)
+echo "$JSON" > "$JSON_FILE"
+
+PROCESSED=$(node -e "
+const fs = require('fs');
+const json = fs.readFileSync('$JSON_FILE', 'utf8');
+try {
+  const arr = JSON.parse(json);
+  if (!Array.isArray(arr)) {
+    console.error('Error: Not a JSON array');
+    process.exit(1);
+  }
+  // Fix passes if array (merge into steps, set to false)
+  const fixed = arr.map(item => {
+    if (Array.isArray(item.passes)) {
+      item.steps = [...(item.steps || []), ...item.passes];
+      item.passes = false;
+    } else if (typeof item.passes !== 'boolean') {
+      item.passes = false;
+    }
+    return item;
+  });
+  console.log(JSON.stringify(fixed, null, 2));
+} catch (e) {
+  console.error('Error: Invalid JSON - ' + e.message);
+  process.exit(1);
+}
+" 2>&1)
+NODE_EXIT=$?
+
+rm -f "$JSON_FILE"
+
+if [ $NODE_EXIT -ne 0 ]; then
+  echo "$PROCESSED"
   echo "Raw output (first 500 chars):"
   echo "$RESULT" | head -c 500
   exit 1
 fi
 
-# Fix passes if array (merge into steps, set to false)
-JSON=$(echo "$JSON" | jq '[.[] | if (.passes|type)=="array" then .steps=(.steps+.passes)|.passes=false elif (.passes|type)!="boolean" then .passes=false else . end]')
-
 # Write output
-echo "$JSON" | jq '.' > "$OUTPUT"
-echo "Generated: $OUTPUT ($(echo "$JSON" | jq length) features)"
+echo "$PROCESSED" > "$OUTPUT"
+FEATURE_COUNT=$(echo "$PROCESSED" | node -e "const d=require('fs').readFileSync(0,'utf8');console.log(JSON.parse(d).length)")
+echo "Generated: $OUTPUT ($FEATURE_COUNT features)"

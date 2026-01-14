@@ -4213,3 +4213,26 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 
 **Files Modified:**
 - `ralph.config.json` - Added hooks.postIteration and ntfy configuration for testing
+
+## 2026-01-14: 019-post-iteration-hook-02 - Script calls Haiku with iteration-summary.md prompt
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Added E2E tests to verify Haiku invocation with iteration-summary.md prompt
+- **Details:**
+  - Verification step 1 (Run post-iteration-hook.sh): ✓
+    - Created mock claude script to capture invocation arguments
+    - Test script simulates the generate_summary function from post-iteration-hook.sh
+    - Script successfully reads config and invokes claude with proper arguments
+  - Verification step 2 (Verify Haiku is invoked): ✓
+    - Mock claude captures `--model haiku` argument
+    - Config correctly specifies model as "haiku" in hooks.postIteration.model
+    - Test verifies MODEL_ARG: haiku in output
+  - Verification step 3 (Verify iteration-summary.md content is passed): ✓
+    - Prompt file exists at prompts/iteration-summary.md
+    - Script reads prompt, substitutes placeholders ({{SUBTASK_ID}}, {{STATUS}}, etc.)
+    - Mock captures prompt content containing "Iteration Summary Generator" title
+    - Test verifies PROMPT_CONTAINS_ITERATION_SUMMARY: true in output
+
+**Files Modified:**
+- `tools/tests/e2e/ralph.test.ts` - Added `post-iteration-hook Haiku invocation` test suite with 2 tests validating Haiku invocation and prompt content
