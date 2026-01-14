@@ -2203,3 +2203,23 @@
     1. ✓ Create valid subtasks.json with completed subtasks - Used subtasks-drift-test.json with completed subtask
     2. ✓ Run ralph calibrate intention - Command executed via aaa CLI
     3. ✓ Verify completion without error - Exit code 0, full analysis output displayed
+
+### 010-calibrate-sh-13
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified ralph calibrate intention shows helpful error when subtasks.json is missing
+- **Details:**
+  - Tested script with non-existent subtasks.json path:
+    - Command: `SUBTASKS_PATH="/tmp/nonexistent/subtasks.json" tools/src/commands/ralph/scripts/calibrate.sh intention`
+    - Output: "Error: Subtasks file not found: /tmp/nonexistent/subtasks.json"
+    - Guidance: "Please create a subtasks.json file or specify the path with SUBTASKS_PATH environment variable."
+    - Exit code: 1 (correct error status)
+  - Error handling implemented in calibrate.sh lines 172-176 (run_intention_check function):
+    - Checks `[ ! -f "$SUBTASKS_PATH" ]` before proceeding
+    - Shows the exact path that was not found
+    - Provides helpful guidance on how to fix the issue
+    - Exits with code 1 to indicate error
+  - All three verification steps passed:
+    1. ✓ Remove subtasks.json (tested with non-existent path)
+    2. ✓ Run ralph calibrate intention - Command executed
+    3. ✓ Verify helpful error message about missing file - Message shows path and guidance

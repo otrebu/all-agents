@@ -1685,7 +1685,7 @@
       "Run ralph calibrate intention",
       "Verify helpful error message about missing file"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-14",
