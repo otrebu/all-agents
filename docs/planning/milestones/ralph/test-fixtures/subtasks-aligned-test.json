@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ALIGNED-001",
+    "taskRef": "TASK-ALIGNED-001",
+    "title": "Add email format validation",
+    "description": "Implement client-side email format validation for the registration form. Validate that the email contains an @ symbol and has a valid domain format.",
+    "acceptanceCriteria": [
+      "Email must contain @ symbol",
+      "Email must have valid domain format (contains . after @)",
+      "Invalid email shows inline error message below the input field"
+    ],
+    "filesToRead": [
+      "src/components/RegistrationForm.tsx",
+      "src/utils/validation.ts"
+    ],
+    "done": false
+  }
+]

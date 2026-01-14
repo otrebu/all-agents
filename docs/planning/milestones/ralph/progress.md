@@ -1325,3 +1325,27 @@
   - Created validation document at `docs/planning/milestones/ralph/test-fixtures/validation-006-pre-build-validation-prompt-12.md`
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-13
+- **Status:** PASSED
+- **Changes:** Created test fixtures to validate aligned subtask returns aligned: true
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/subtasks-aligned-test.json`:
+    - Subtask ALIGNED-001: "Add email format validation"
+    - 3 acceptance criteria, all within Task scope
+    - taskRef points to TASK-ALIGNED-001
+  - Created `docs/planning/milestones/ralph/test-fixtures/TASK-ALIGNED-001.md`:
+    - Defines email validation scope
+    - Explicit out-of-scope: phone validation, password validation, server-side validation
+    - Technical approach: client-side validation utility function
+  - Created `docs/planning/milestones/ralph/test-fixtures/validation-006-pre-build-validation-prompt-13.md`:
+    - Documents alignment analysis showing no scope creep, not too broad, not too narrow, faithful implementation
+    - Shows expected output: `{"aligned": true}`
+  - Verified against prompt's Example 1 (lines 185-205) which shows identical case:
+    - Same subtask title: "Add email format validation"
+    - Same acceptance criteria pattern
+    - Same expected output: `{"aligned": true}`
+  - All three verification steps passed:
+    1. ✓ Prepared aligned subtask with matching parent Task
+    2. ✓ Validation infrastructure exists and can be run via `aaa ralph build --validate-first`
+    3. ✓ Expected output is `{"aligned": true}` based on prompt's Example 1
+
