@@ -5621,3 +5621,12 @@ The prompt includes:
 - Template line 10 contains: `"onValidationFail": ["log", "notify"]`
 - Default value is correctly set to `["log", "notify"]` (log to diary + send push notification)
 - Hook description provided on line 11: "Actions to execute when pre-build validation fails (scope creep, misalignment, etc.)"
+
+## 2026-01-14: 024-ralph-config-template-05
+**Feature:** onMaxIterationsExceeded hook defined with default: log, notify, pause
+
+**What changed:**
+- Verified `onMaxIterationsExceeded` hook exists in `docs/planning/templates/ralph.config.template.json`
+- Template line 12 contains: `"onMaxIterationsExceeded": ["log", "notify", "pause"]`
+- Default value is correctly set to `["log", "notify", "pause"]` (log to diary + send notification + pause for user intervention)
+- Hook description provided on line 13: "Actions to execute when a subtask exceeds the retry limit without completing"

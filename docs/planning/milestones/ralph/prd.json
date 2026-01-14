@@ -4162,7 +4162,7 @@
       "Verify onMaxIterationsExceeded key exists",
       "Verify default value is [\"log\", \"notify\", \"pause\"]"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-06",
