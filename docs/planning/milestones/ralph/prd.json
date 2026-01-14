@@ -3972,7 +3972,7 @@
       "Verify multi-turn pattern is used",
       "Verify iterative refinement is supported"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-06",

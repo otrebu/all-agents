@@ -5342,3 +5342,20 @@ The prompt includes:
   - Line 85: "What's the simplest implementation vs. the most robust?" explores two alternatives
   - Line 141: "Assume you know the technical approach - explore options" emphasizes exploration
   - Don't section (line 142): "Skip the tradeoff discussion - it's essential for good tasks"
+
+### 023-tasks-interactive-prompt-05
+- **Status:** PASSED
+- **Changes:** Verified multi-turn conversation flow support in tasks-interactive.md
+- **Details:**
+  - Prompt explicitly states "interactive, multi-turn conversation" (line 3)
+  - Multi-turn pattern used throughout:
+    - "Ask one or two questions at a time, then wait for response" (line 132)
+    - "This is a dialogue, not an interview" (line 147)
+    - "Let the conversation develop naturally" (line 148)
+    - "The user controls when to move on" (line 149)
+  - Iterative refinement is supported:
+    - "Offer to revisit earlier tasks if new insights emerge" (line 137)
+    - "Iterate on task definitions as understanding deepens" (line 151)
+    - "Adapt your questions based on their answers" (line 135)
+    - "Summarize what you've learned before moving to the next task" (line 134)
+  - Session pacing guidelines (lines 146-151) establish multi-turn conversational flow
