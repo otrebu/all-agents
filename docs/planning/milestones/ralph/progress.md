@@ -1778,3 +1778,29 @@
     - Step 2 (Run status.sh): ✓ Script executed successfully
     - Step 3 (Verify script handles missing diary gracefully): ✓ Shows descriptive message, no errors
   - All three verification steps passed
+
+### 008-status-sh-14
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Validated stats calculation with various diary entries
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/iterations-diverse.jsonl` with 10 diverse entries:
+    - Mixed success patterns: `status: "success"` and `success: true`
+    - Mixed failure entries: `status: "failure"`
+    - Variable toolCalls values: 5, 8, 10, 12, 15, 18, 20, 25, 30, 35
+  - Expected calculations:
+    - Total iterations: 10
+    - Success count: 7 (6 with `status: "success"` + 1 with `success: true`)
+    - Success rate: 70.0%
+    - Total tool calls: 178
+    - Average tool calls: 17.8
+  - Ran status.sh with diverse diary file
+  - Actual output matched expectations:
+    - `Iterations: 10` ✓
+    - `Success rate: 70.0%` ✓ (displayed in yellow, correct 50-80% range)
+    - `Avg tool calls: 17.8` ✓
+  - Created validation record: `docs/planning/milestones/ralph/test-fixtures/validation-008-status-sh-14.md`
+  - All three verification steps passed:
+    1. ✓ Created diary with diverse entries
+    2. ✓ Ran status.sh
+    3. ✓ Verified success rate and tool calls calculate correctly
