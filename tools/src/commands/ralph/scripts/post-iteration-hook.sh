@@ -186,6 +186,77 @@ count_tool_calls() {
   echo "$count"
 }
 
+# Get list of files changed in the current iteration
+# Uses git diff to find recently modified tracked files
+get_files_changed() {
+  # Get files that have been modified or added in the working tree
+  # Use git diff with staged and unstaged changes
+  local changed_files=""
+
+  # Get list of changed files (staged + unstaged)
+  if command -v git &> /dev/null && [ -d "$REPO_ROOT/.git" ]; then
+    # Get staged files
+    local staged
+    staged=$(cd "$REPO_ROOT" && git diff --cached --name-only 2>/dev/null | head -50)
+
+    # Get unstaged modified files
+    local unstaged
+    unstaged=$(cd "$REPO_ROOT" && git diff --name-only 2>/dev/null | head -50)
+
+    # Combine and deduplicate
+    changed_files=$(echo -e "$staged\n$unstaged" | sort -u | grep -v '^$' | head -50)
+  fi
+
+  # If no git changes found, try to extract from session log
+  if [ -z "$changed_files" ]; then
+    local session_jsonl_path
+    session_jsonl_path=$(get_session_jsonl_path)
+
+    if [ -n "$session_jsonl_path" ] && [ -f "$session_jsonl_path" ]; then
+      # Extract file paths from Write and Edit tool calls in the session log
+      changed_files=$(grep -oP '"file_path"\s*:\s*"[^"]+"|"path"\s*:\s*"[^"]+"' "$session_jsonl_path" 2>/dev/null | \
+        sed 's/"file_path"\s*:\s*"//;s/"path"\s*:\s*"//;s/"$//' | \
+        sort -u | head -50)
+    fi
+  fi
+
+  echo "$changed_files"
+}
+
+# Format files changed as JSON array
+format_files_changed_json() {
+  local files_changed
+  files_changed=$(get_files_changed)
+
+  if [ -z "$files_changed" ]; then
+    echo "[]"
+    return
+  fi
+
+  if command -v jq &> /dev/null; then
+    # Use jq to properly format as JSON array
+    echo "$files_changed" | jq -R -s 'split("\n") | map(select(length > 0))'
+  else
+    # Manual JSON array construction
+    local json_array="["
+    local first=true
+    while IFS= read -r file; do
+      if [ -n "$file" ]; then
+        if [ "$first" = true ]; then
+          first=false
+        else
+          json_array+=","
+        fi
+        # Escape quotes in file path
+        file=$(echo "$file" | sed 's/"/\\"/g')
+        json_array+="\"$file\""
+      fi
+    done <<< "$files_changed"
+    json_array+="]"
+    echo "$json_array"
+  fi
+}
+
 # Generate summary using Haiku
 generate_summary() {
   local session_jsonl_path
@@ -279,6 +350,10 @@ write_diary_entry() {
   local tool_calls
   tool_calls=$(count_tool_calls)
 
+  # Get files changed
+  local files_changed_json
+  files_changed_json=$(format_files_changed_json)
+
   # Build diary entry JSON
   local timestamp
   timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -297,6 +372,7 @@ write_diary_entry() {
       --argjson keyFindings "$key_findings" \
       --argjson errors "[]" \
       --argjson toolCalls "$tool_calls" \
+      --argjson filesChanged "$files_changed_json" \
       '{
         subtaskId: $subtaskId,
         sessionId: $sessionId,
@@ -308,11 +384,12 @@ write_diary_entry() {
         iterationNum: $iterationNum,
         keyFindings: $keyFindings,
         errors: $errors,
-        toolCalls: $toolCalls
+        toolCalls: $toolCalls,
+        filesChanged: $filesChanged
       }')
   else
     # Fallback: construct JSON manually
-    entry='{"subtaskId":"'"$SUBTASK_ID"'","sessionId":"'"$SESSION_ID"'","status":"'"$STATUS"'","summary":"'"$summary"'","timestamp":"'"$timestamp"'","milestone":"'"$MILESTONE"'","taskRef":"'"$TASK_REF"'","iterationNum":'"$ITERATION_NUM"',"keyFindings":'"$key_findings"',"errors":[],"toolCalls":'"$tool_calls"'}'
+    entry='{"subtaskId":"'"$SUBTASK_ID"'","sessionId":"'"$SESSION_ID"'","status":"'"$STATUS"'","summary":"'"$summary"'","timestamp":"'"$timestamp"'","milestone":"'"$MILESTONE"'","taskRef":"'"$TASK_REF"'","iterationNum":'"$ITERATION_NUM"',"keyFindings":'"$key_findings"',"errors":[],"toolCalls":'"$tool_calls"',"filesChanged":'"$files_changed_json"'}'
   fi
 
   # Append to diary file

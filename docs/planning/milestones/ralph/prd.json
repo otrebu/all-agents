@@ -3217,7 +3217,7 @@
       "Read logs/iterations.jsonl",
       "Verify filesChanged field is array of strings"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-11",

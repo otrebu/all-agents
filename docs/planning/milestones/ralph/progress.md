@@ -4367,3 +4367,30 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Verification step 3 (Verify toolCalls field is integer): ✓
     - Test entry shows `"toolCalls":16`
     - Node verification confirms: `typeof data.toolCalls === 'number'` and `Number.isInteger(data.toolCalls) === true`
+
+### 019-post-iteration-hook-10
+- **Status:** PASSED
+- **Changes:** Added filesChanged array to iteration diary entry in post-iteration-hook.sh
+- **Details:**
+  - Added `get_files_changed()` function (lines 189-224) that:
+    - Uses git diff to find staged and unstaged file changes in the repo
+    - Falls back to parsing session JSONL for file_path entries from Write/Edit tool calls
+    - Limits to 50 files maximum to prevent excessive output
+    - Handles case when git is not available gracefully
+  - Added `format_files_changed_json()` function (lines 226-258) that:
+    - Formats the file list as a proper JSON array of strings
+    - Uses jq when available for reliable JSON formatting
+    - Falls back to manual bash JSON construction when jq unavailable
+    - Properly escapes quotes in file paths
+  - Updated `write_diary_entry()` function to:
+    - Call `format_files_changed_json()` to get files changed array (lines 353-355)
+    - Include filesChanged in jq JSON construction (line 375, 388)
+    - Include filesChanged in fallback manual JSON (line 392)
+  - Verification step 1 (Run post-iteration-hook.sh): ✓
+    - Script functions work correctly with current git changes
+  - Verification step 2 (Read logs/iterations.jsonl): ✓
+    - Diary entry includes filesChanged field
+  - Verification step 3 (Verify filesChanged field is array of strings): ✓
+    - Test output: `["tools/src/commands/ralph/scripts/post-iteration-hook.sh"]`
+    - Both jq and manual fallback produce valid JSON arrays
+
