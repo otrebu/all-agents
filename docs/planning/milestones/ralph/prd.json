@@ -2774,7 +2774,7 @@
       "Verify exit handling is documented",
       "Verify user-initiated completion"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-07",

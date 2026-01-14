@@ -3650,3 +3650,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lines 98-103 (Don't): "Don't rush through all questions at once"
     - Structure requires back-and-forth dialogue across multiple phases
   - All three verification steps passed
+
+### 016-roadmap-interactive-prompt-06
+- **Status:** PASSED
+- **Changes:** Verified user can exit session when satisfied in roadmap-interactive.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read context/workflows/ralph/planning/roadmap-interactive.md (243 lines)
+  - Verification step 2 (Verify exit handling is documented): ✓
+    - Lines 210-221: Dedicated "Session Exit" section
+    - Lines 212-215: User can exit by saying "done", "that's enough", "let's stop here", asking to create ROADMAP.md, or moving to another topic
+    - Lines 217-221: Exit behavior includes summarizing milestones, offering to save progress, noting unexplored areas
+  - Verification step 3 (Verify user-initiated completion): ✓
+    - Line 212: "The user can exit this session at any time"
+    - Line 240: "(You can say 'done' at any point when you feel we've covered enough.)"
+    - Session is explicitly user-controlled, not agent-driven to completion
+  - All three verification steps passed
