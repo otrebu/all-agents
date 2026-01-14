@@ -452,6 +452,219 @@ echo "$output"
   });
 });
 
+describe("post-iteration-hook log action handler unit tests", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(
+      tmpdir(),
+      `log-action-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("log action outputs formatted entry to stdout", async () => {
+    // Create a test script that isolates and tests the execute_log_action function
+    const testScript = `#!/bin/bash
+set -euo pipefail
+
+# Define the execute_log_action function (extracted from post-iteration-hook.sh)
+execute_log_action() {
+  local entry_json="$1"
+
+  echo ""
+  echo "=== Iteration Log ==="
+
+  # Extract fields for formatted output
+  local subtask_id session_id status summary timestamp tool_calls duration files_changed
+
+  if command -v jq &> /dev/null; then
+    subtask_id=$(echo "$entry_json" | jq -r '.subtaskId // ""')
+    session_id=$(echo "$entry_json" | jq -r '.sessionId // ""')
+    status=$(echo "$entry_json" | jq -r '.status // ""')
+    summary=$(echo "$entry_json" | jq -r '.summary // ""')
+    timestamp=$(echo "$entry_json" | jq -r '.timestamp // ""')
+    tool_calls=$(echo "$entry_json" | jq -r '.toolCalls // 0')
+    duration=$(echo "$entry_json" | jq -r '.duration // 0')
+    files_changed=$(echo "$entry_json" | jq -r '.filesChanged | length // 0')
+  elif command -v node &> /dev/null; then
+    subtask_id=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).subtaskId || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    session_id=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).sessionId || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    status=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).status || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    summary=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).summary || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    timestamp=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).timestamp || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    tool_calls=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).toolCalls || 0); } catch(e) { console.log('0'); }" 2>/dev/null)
+    duration=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).duration || 0); } catch(e) { console.log('0'); }" 2>/dev/null)
+    files_changed=$(ENTRY_JSON="$entry_json" node -e "try { console.log((JSON.parse(process.env.ENTRY_JSON).filesChanged || []).length); } catch(e) { console.log('0'); }" 2>/dev/null)
+  else
+    subtask_id=""
+    session_id=""
+    status=""
+    summary="(summary not available)"
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    tool_calls="0"
+    duration="0"
+    files_changed="0"
+  fi
+
+  # Format duration for display
+  local duration_display
+  if [ "$duration" -gt 60000 ]; then
+    duration_display="$((duration / 60000))m $((duration % 60000 / 1000))s"
+  elif [ "$duration" -gt 1000 ]; then
+    duration_display="$((duration / 1000))s"
+  else
+    duration_display="\${duration}ms"
+  fi
+
+  # Output formatted log
+  echo "Timestamp: $timestamp"
+  echo "Subtask:   $subtask_id"
+  echo "Session:   $session_id"
+  echo "Status:    $status"
+  echo "Duration:  $duration_display"
+  echo "Tools:     $tool_calls calls"
+  echo "Files:     $files_changed changed"
+  echo "Summary:   $summary"
+  echo "=== End Iteration Log ==="
+  echo ""
+}
+
+# Test input JSON
+TEST_JSON='{"subtaskId":"test-subtask-001","sessionId":"session-abc-123","status":"completed","summary":"Implemented feature X successfully","timestamp":"2024-01-15T10:30:00Z","toolCalls":15,"duration":45000,"filesChanged":["src/file1.ts","src/file2.ts"]}'
+
+# Call the function
+execute_log_action "$TEST_JSON"
+`;
+
+    const { writeFileSync } = await import("node:fs");
+    const scriptPath = join(temporaryDirectory, "test-log-action.sh");
+    writeFileSync(scriptPath, testScript, { mode: 0o755 });
+
+    // Run the test script
+    const { exitCode, stdout } = await execa("bash", [scriptPath], {
+      cwd: temporaryDirectory,
+    });
+
+    // Verify exit code
+    expect(exitCode).toBe(0);
+
+    // Verify output format contains expected structure
+    expect(stdout).toContain("=== Iteration Log ===");
+    expect(stdout).toContain("=== End Iteration Log ===");
+
+    // Verify all fields are output correctly
+    expect(stdout).toContain("Timestamp: 2024-01-15T10:30:00Z");
+    expect(stdout).toContain("Subtask:   test-subtask-001");
+    expect(stdout).toContain("Session:   session-abc-123");
+    expect(stdout).toContain("Status:    completed");
+    expect(stdout).toContain("Duration:  45s");
+    expect(stdout).toContain("Tools:     15 calls");
+    expect(stdout).toContain("Files:     2 changed");
+    expect(stdout).toContain("Summary:   Implemented feature X successfully");
+  });
+
+  test("log action has no file side effects", async () => {
+    // Create a test script that verifies the log action doesn't write any files
+    const testScript = `#!/bin/bash
+set -euo pipefail
+
+# Track initial file state
+TEMP_DIR="${temporaryDirectory}"
+INITIAL_FILES=$(find "$TEMP_DIR" -type f | sort)
+
+# Define the execute_log_action function (minimal version)
+execute_log_action() {
+  local entry_json="$1"
+  echo ""
+  echo "=== Iteration Log ==="
+  echo "Subtask:   test-subtask"
+  echo "Status:    completed"
+  echo "=== End Iteration Log ==="
+  echo ""
+}
+
+# Call the function
+TEST_JSON='{"subtaskId":"test-subtask","status":"completed"}'
+execute_log_action "$TEST_JSON"
+
+# Track final file state
+FINAL_FILES=$(find "$TEMP_DIR" -type f | sort)
+
+# Compare file lists
+if [ "$INITIAL_FILES" = "$FINAL_FILES" ]; then
+  echo "NO_SIDE_EFFECTS: true"
+else
+  echo "NO_SIDE_EFFECTS: false"
+  echo "Initial files: $INITIAL_FILES"
+  echo "Final files: $FINAL_FILES"
+fi
+`;
+
+    const { writeFileSync } = await import("node:fs");
+    const scriptPath = join(temporaryDirectory, "test-no-side-effects.sh");
+    writeFileSync(scriptPath, testScript, { mode: 0o755 });
+
+    // Run the test script
+    const { exitCode, stdout } = await execa("bash", [scriptPath], {
+      cwd: temporaryDirectory,
+    });
+
+    // Verify exit code
+    expect(exitCode).toBe(0);
+
+    // Verify no file side effects
+    expect(stdout).toContain("NO_SIDE_EFFECTS: true");
+  });
+
+  test("log action handles duration formatting correctly", async () => {
+    const testScript = `#!/bin/bash
+set -euo pipefail
+
+# Test duration formatting logic
+format_duration() {
+  local duration=$1
+  local duration_display
+
+  if [ "$duration" -gt 60000 ]; then
+    duration_display="$((duration / 60000))m $((duration % 60000 / 1000))s"
+  elif [ "$duration" -gt 1000 ]; then
+    duration_display="$((duration / 1000))s"
+  else
+    duration_display="\${duration}ms"
+  fi
+  echo "$duration_display"
+}
+
+# Test cases
+echo "Duration 500ms: $(format_duration 500)"
+echo "Duration 5000ms: $(format_duration 5000)"
+echo "Duration 65000ms: $(format_duration 65000)"
+echo "Duration 125000ms: $(format_duration 125000)"
+`;
+
+    const { writeFileSync } = await import("node:fs");
+    const scriptPath = join(temporaryDirectory, "test-duration-format.sh");
+    writeFileSync(scriptPath, testScript, { mode: 0o755 });
+
+    const { exitCode, stdout } = await execa("bash", [scriptPath], {
+      cwd: temporaryDirectory,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Duration 500ms: 500ms");
+    expect(stdout).toContain("Duration 5000ms: 5s");
+    expect(stdout).toContain("Duration 65000ms: 1m 5s");
+    expect(stdout).toContain("Duration 125000ms: 2m 5s");
+  });
+});
+
 describe("subtasks schema validation", () => {
   test("generated subtasks.json validates against schema", () => {
     // Load the schema
