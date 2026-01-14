@@ -3397,3 +3397,18 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - "4. **Test** - Run tests and fix issues"
     - "5. **Commit** - Make a clean commit"
     - Line 148: "All of this must fit in one context window."
+
+### 015-subtasks-auto-prompt-14
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** None required - prompt already documents taskRef field linking subtasks to parent tasks
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify taskRef is linked to parent task ID): ✓ Multiple references:
+    - Line 91: Required field documentation - `| taskRef | string | Parent task reference: TASK-NNN pattern |`
+    - Line 116: Example JSON shows `"taskRef": "TASK-001"` linking subtask to parent task
+    - Lines 223-225: Validation checklist confirms taskRef is required and must match input task ID
+  - Verification step 3 (Verify parent relationship is maintained): ✓ Parent relationship maintained through:
+    - Line 33: Instructions to read parent task from `docs/planning/tasks/<task-id>*.md`
+    - Line 225: Validation requirement that "taskRef matches the input task ID"
+    - Line 102: Optional storyRef field maintains grandparent story relationship

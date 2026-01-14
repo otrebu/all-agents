@@ -2597,7 +2597,7 @@
       "Verify taskRef is linked to parent task ID",
       "Verify parent relationship is maintained"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-15",
