@@ -4114,7 +4114,7 @@
       "Verify ralph.config.template.json exists",
       "Verify file is valid JSON"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-02",

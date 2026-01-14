@@ -1,0 +1,30 @@
+{
+  "$schema": "../schemas/ralph-config.schema.json",
+  "_description": "Configuration for Ralph autonomous build system. Copy to project root as ralph.config.json and customize.",
+  "hooks": {
+    "_description": "Hook configuration - arrays of actions to execute on specific events",
+    "onIterationComplete": ["log"],
+    "onIterationComplete_description": "Actions to execute after each build iteration completes (success or failure)",
+    "onMilestoneComplete": ["log", "notify"],
+    "onMilestoneComplete_description": "Actions to execute when all subtasks in a milestone are done",
+    "onValidationFail": ["log", "notify"],
+    "onValidationFail_description": "Actions to execute when pre-build validation fails (scope creep, misalignment, etc.)",
+    "onMaxIterationsExceeded": ["log", "notify", "pause"],
+    "onMaxIterationsExceeded_description": "Actions to execute when a subtask exceeds the retry limit without completing"
+  },
+  "ntfy": {
+    "_description": "Configuration for ntfy push notifications (used when 'notify' action is triggered)",
+    "server": "https://ntfy.sh",
+    "topic": "YOUR_TOPIC_HERE"
+  },
+  "actions": {
+    "_description": "Available actions that can be used in hook arrays",
+    "log": "Write event to logs/iterations.jsonl diary file",
+    "notify": "Send push notification via ntfy to configured topic",
+    "pause": "Pause the build loop and wait for user intervention"
+  },
+  "selfImprovement": {
+    "_description": "How to handle self-improvement suggestions from calibration. 'always' requires approval, 'auto' applies changes automatically",
+    "mode": "always"
+  }
+}

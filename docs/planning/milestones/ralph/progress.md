@@ -5578,3 +5578,19 @@ The prompt includes:
   - Tasks must address story acceptance criteria
   - Skill routing (SKILL.md lines 79-83) enforces story reading before session
 - Validation test uses sample story `001-autonomous-code-implementation.md` to verify end-to-end flow
+
+
+## 2026-01-14: 024-ralph-config-template-01
+**Feature:** Template created at docs/planning/templates/ralph.config.template.json
+
+**What changed:**
+- Created `docs/planning/templates/ralph.config.template.json` with full Ralph configuration structure
+- Includes all 4 hook types:
+  - `onIterationComplete`: `["log"]`
+  - `onMilestoneComplete`: `["log", "notify"]`
+  - `onValidationFail`: `["log", "notify"]`
+  - `onMaxIterationsExceeded`: `["log", "notify", "pause"]`
+- Includes ntfy configuration with `server: "https://ntfy.sh"` and `topic: "YOUR_TOPIC_HERE"` placeholder
+- Includes description fields for all settings
+- Includes selfImprovement configuration (mode: "always")
+- JSON syntax validated successfully
