@@ -2334,3 +2334,15 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Listed available skills in system prompt
   - Confirmed `ralph-plan` appears in available skills list with description: "Interactive vision planning using Socratic method. Use when user asks to 'ralph plan vision', 'plan a vision', or needs to define product vision through guided dialogue."
   - Skill is discoverable and registered correctly
+
+### 011-ralph-plan-skill-07
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Updated skill to start vision planning session immediately when invoked with `vision` argument
+- **Details:**
+  - Added "Execution Instructions" section to SKILL.md
+  - When argument is `vision`, skill now instructs Claude to immediately start the session with the opening Socratic question
+  - Opening message includes: "What problem are you trying to solve, and for whom?"
+  - References @context/workflows/ralph/planning/vision-interactive.md for full workflow
+  - Tested invocation: `/ralph-plan vision` successfully starts interactive vision planning session
+  - Socratic opening question is presented to the user

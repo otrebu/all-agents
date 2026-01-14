@@ -1793,7 +1793,7 @@
       "Verify vision planning session starts",
       "Verify Socratic questions are asked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "011-ralph-plan-skill-08",
