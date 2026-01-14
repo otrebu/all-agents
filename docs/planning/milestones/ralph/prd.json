@@ -4211,7 +4211,7 @@
       "Parse as JSON",
       "Verify no syntax errors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-10",
