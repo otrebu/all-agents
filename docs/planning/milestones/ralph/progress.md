@@ -3966,3 +3966,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Outputs are identical by design since they use the same underlying script
     - Added `aaa ralph status [subtasks-path]` CLI command in `tools/src/commands/ralph/index.ts`
     - CLI command invokes the same script, ensuring output equivalence across all interfaces
+
+## 2026-01-14: 017-ralph-status-skill-09 - Skill help/description displays correctly
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Validation only - skill already has correct format
+- **Details:**
+  - Verification step 1 (Request skill help in Claude Code): ✓
+    - Skill appears in Claude Code's available skills list
+    - Listed as: `ralph-status: Display Ralph build status and progress...`
+  - Verification step 2 (Verify description is shown): ✓
+    - YAML frontmatter contains `name: ralph-status` and `description:` fields
+    - Description text: "Display Ralph build status and progress. Use when user asks for 'ralph status', 'build status', 'queue status', or wants to see subtask progress and iteration statistics."
+  - Verification step 3 (Verify format is readable): ✓
+    - Description is clear and explains both purpose and trigger phrases
+    - Format follows standard skill documentation conventions
+    - Matches other skills in the repository (.claude/skills/*/SKILL.md)

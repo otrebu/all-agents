@@ -2976,7 +2976,7 @@
       "Verify description is shown",
       "Verify format is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "018-iteration-summary-prompt-01",
