@@ -3515,3 +3515,25 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Each field in the table has a Description column with meaningful text
     - Schema at docs/planning/schemas/subtasks.schema.json confirms these 7 as required (line 50)
   - All three verification steps passed
+
+### 015-subtasks-auto-prompt-22
+- **Status:** PASSED
+- **Changes:** Created manual test demonstrating valid subtasks.json generation
+- **Details:**
+  - Verification step 1 (Copy prompt content): ✓ 
+    - Read context/workflows/ralph/planning/subtasks-auto.md (309 lines)
+  - Verification step 2 (Execute with Claude manually): ✓
+    - Used TASK-001 (semantic-release) as test input
+    - Followed prompt instructions for deep codebase analysis
+    - Generated 4 properly-sized subtasks following prompt guidelines
+    - Created test output file: docs/planning/milestones/ralph/test-fixtures/subtasks-auto-test-output.json
+  - Verification step 3 (Verify output is valid JSON matching schema): ✓
+    - JSON parsing: Valid
+    - Has `subtasks` array: true
+    - All 7 required fields present (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)
+    - ID patterns valid: SUB-001 through SUB-004 match ^SUB-[0-9]{3,}$
+    - taskRef patterns valid: TASK-001 matches ^TASK-[0-9]{3,}$
+    - Metadata with scope and milestoneRef present
+    - Schema reference included
+  - Created documentation: docs/planning/milestones/ralph/test-fixtures/subtasks-auto-test-output.md
+  - All three verification steps passed
