@@ -2765,3 +2765,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 184: Validation Checklist requires "Each story has ALL required sections (Narrative, Persona, Context, AC, Tasks)"
     - Line 188: Validation Checklist explicitly states "Acceptance criteria are user-visible, not technical"
   - Both verification steps passed
+
+### 013-stories-auto-prompt-10
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified Tasks section is required in stories-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 214 lines, readable
+  - Verification step 2 (Verify Tasks section is required in output): ✓
+    - Line 75: `| Tasks | Yes | Placeholder links to child tasks (to be generated later) |` in Required Sections table
+    - Lines 97-99: Tasks section included in Story File Structure template: `### Tasks\n<!-- Tasks will be generated separately via tasks-auto.md -->\n- [ ] Tasks to be defined`
+    - Line 185: Validation Checklist requires "Each story has ALL required sections (Narrative, Persona, Context, AC, Tasks)"
+    - story-template.md line 45 also confirms: `| Tasks | Yes | Links to child tasks that implement this story |`
+  - Both verification steps passed
