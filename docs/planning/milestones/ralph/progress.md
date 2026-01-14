@@ -1598,3 +1598,17 @@
     - Step 3 (Verify total count is displayed): ✓ Shows "2" (total count) in "1/2" format
     - Step 4 (Verify format shows done/total ratio): ✓ Format is "done/total (percentage%)"
   - All four verification steps passed
+
+### 008-status-sh-03
+- **Status:** PASSED
+- **Changes:** Verified last completed subtask with timestamp display in status.sh
+- **Details:**
+  - Feature was already implemented in 008-status-sh-01 but needed verification
+  - Script uses `get_last_completed()` function (lines 166-198) to find last completed subtask
+  - Output displays: `Last done: <id> (<formatted timestamp>)`
+  - Timestamp is formatted via `format_timestamp()` function (lines 294-311)
+  - Verification:
+    - Step 1 (Run status.sh with completed subtasks): ✓ Executed with test file containing completed subtasks
+    - Step 2 (Verify last completed subtask ID is shown): ✓ Shows `Last done: 002`
+    - Step 3 (Verify completion timestamp is displayed): ✓ Shows `(2024-01-16 14:45)` formatted timestamp
+  - All three verification steps passed
