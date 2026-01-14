@@ -5927,3 +5927,16 @@ The prompt includes:
 - The prompt explicitly instructs Claude to create task files at `docs/planning/tasks/self-improve-YYYY-MM-DD-N.md`
 - The self-improvement.md prompt defines the complete task file structure (lines 162-194)
 - The tasks directory already exists at `docs/planning/tasks/`
+
+## 2026-01-14: 026-calibrate-improve-cli-08 verified
+
+**Feature:** Command parses arguments correctly
+
+**Verification:**
+- Tested `aaa ralph calibrate --help` - shows all options and subcommands
+- Tested `aaa ralph calibrate improve --help` - shows help for improve subcommand
+- Tested `aaa ralph calibrate invalid-subcommand` - correctly shows error and exits with code 1
+- Tested `aaa ralph calibrate` (no args) - shows usage help with all options
+
+All argument parsing and help display work correctly.
+

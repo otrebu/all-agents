@@ -4476,7 +4476,7 @@
       "Verify argument parsing works",
       "Verify help shows options"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-09",
