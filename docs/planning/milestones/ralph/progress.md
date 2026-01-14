@@ -1656,3 +1656,19 @@
     - Step 2 (Run status.sh): ✓ Executed script with test data
     - Step 3 (Verify diary data is read and displayed): ✓ Shows "Iterations: 3", "Success rate: 66.7%", "Avg tool calls: 15.0"
   - All three verification steps passed
+
+### 008-status-sh-07
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Fixed success rate color coding in status.sh
+- **Details:**
+  - The `get_diary_stats()` function already calculated success rate correctly
+  - Fixed bug in color comparison logic (lines 420-431) where float success rate couldn't be compared using `-ge`
+  - Changed from direct comparison `"${success_rate%\%}" -ge 80` to converting to integer first using `printf "%.0f"`
+  - Added `rate_num` and `rate_int` intermediate variables for cleaner comparison
+  - Color coding thresholds: ≥80% green, ≥50% yellow, <50% red
+  - Verification:
+    - Step 1 (Create diary with mixed success/failure entries): ✓ Created iterations.jsonl with varied entries
+    - Step 2 (Run status.sh): ✓ Executed script against test data
+    - Step 3 (Verify success rate percentage is calculated and shown): ✓ Shows "Success rate: 75.0%" with correct yellow color for mid-range values
+  - All three verification steps passed

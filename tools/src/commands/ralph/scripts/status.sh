@@ -418,10 +418,12 @@ else
   else
     echo -e "  Iterations: ${BLUE}$total_iterations${NC}"
     if [ "$success_rate" != "N/A" ]; then
-      # Color code success rate
-      if [ "${success_rate%\%}" -ge 80 ] 2>/dev/null; then
+      # Color code success rate - convert to integer for comparison
+      rate_num="${success_rate%\%}"
+      rate_int=$(printf "%.0f" "$rate_num" 2>/dev/null || echo "0")
+      if [ "$rate_int" -ge 80 ] 2>/dev/null; then
         echo -e "  Success rate: ${GREEN}$success_rate${NC}"
-      elif [ "${success_rate%\%}" -ge 50 ] 2>/dev/null; then
+      elif [ "$rate_int" -ge 50 ] 2>/dev/null; then
         echo -e "  Success rate: ${YELLOW}$success_rate${NC}"
       else
         echo -e "  Success rate: ${RED}$success_rate${NC}"
