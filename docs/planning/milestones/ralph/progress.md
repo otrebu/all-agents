@@ -1373,3 +1373,27 @@
     2. ✓ Pre-build validation can be run via `aaa ralph build --validate-first`
     3. ✓ Expected output is `{"aligned": false, "reason": "..."}` based on prompt's Example 2
 
+### 006-pre-build-validation-prompt-15
+- **Status:** PASSED
+- **Changes:** Created test fixtures validating graceful degradation for partial chains (no Story)
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/subtasks-partial-chain-test.json`:
+    - Subtask PARTIAL-CHAIN-001: "Add user avatar display"
+    - Has taskRef to TASK-PARTIAL-CHAIN-001
+    - Has `done: false` (pre-build validation scenario)
+  - Created `docs/planning/milestones/ralph/test-fixtures/TASK-PARTIAL-CHAIN-001.md`:
+    - Defines user avatar feature scope
+    - **No storyRef** - intentionally orphan task to test partial chain
+  - Created `docs/planning/milestones/ralph/test-fixtures/validation-006-pre-build-validation-prompt-15.md`:
+    - Documents verification of graceful degradation behavior
+    - Shows expected output: `{"aligned": true}`
+  - Verified prompt's graceful degradation handling:
+    - Lines 138-151: "Graceful Degradation" section exists
+    - Line 144: Table shows "Subtask + Task" validation works without Story
+    - Lines 148-151: Instructions for missing parent - "Note it in the output but don't fail"
+    - Line 317: Execution step uses "(if exists)" for optional Story lookup
+  - All three verification steps passed:
+    1. ✓ Prepared subtask with Task but no Story
+    2. ✓ Pre-build validation can be run via `aaa ralph build --validate-first`
+    3. ✓ Prompt completes without error (graceful degradation built-in per lines 148-151)
+

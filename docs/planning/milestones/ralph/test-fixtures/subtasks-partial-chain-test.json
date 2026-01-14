@@ -1,0 +1,15 @@
+[
+  {
+    "id": "PARTIAL-CHAIN-001",
+    "taskRef": "TASK-PARTIAL-CHAIN-001",
+    "title": "Add user avatar display",
+    "description": "Display the user's avatar image on the profile page.",
+    "acceptanceCriteria": [
+      "Show avatar image if available",
+      "Display placeholder if no avatar",
+      "Avatar is clickable to upload new image"
+    ],
+    "filesToRead": ["src/components/Avatar.tsx"],
+    "done": false
+  }
+]

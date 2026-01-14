@@ -1096,7 +1096,7 @@
       "Run pre-build validation",
       "Verify prompt completes without error"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "007-roadmap-auto-prompt-01",
