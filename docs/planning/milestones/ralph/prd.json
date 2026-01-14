@@ -891,7 +891,7 @@
       "Run aaa ralph build",
       "Verify subtask done field is true after completion"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-14",

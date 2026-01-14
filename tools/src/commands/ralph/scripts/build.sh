@@ -185,6 +185,15 @@ count_remaining() {
   # Use jq to count subtasks with done: false
   if command -v jq &> /dev/null; then
     jq '[.[] | select(.done == false or .done == null)] | length' "$SUBTASKS_PATH"
+  elif command -v node &> /dev/null; then
+    node -e "
+      const fs = require('fs');
+      try {
+        const data = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const incomplete = data.filter(s => !s.done);
+        console.log(incomplete.length);
+      } catch (e) { console.log('0'); }
+    " 2>/dev/null
   else
     # Fallback: rough grep count
     grep -c '"done": *false' "$SUBTASKS_PATH" 2>/dev/null || echo "0"
@@ -195,6 +204,17 @@ count_remaining() {
 get_next_subtask_id() {
   if command -v jq &> /dev/null; then
     jq -r '[.[] | select(.done == false or .done == null)] | .[0].id // ""' "$SUBTASKS_PATH"
+  elif command -v node &> /dev/null; then
+    node -e "
+      const fs = require('fs');
+      try {
+        const data = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const incomplete = data.filter(s => !s.done);
+        if (incomplete.length > 0 && incomplete[0].id) {
+          console.log(incomplete[0].id);
+        }
+      } catch (e) { }
+    " 2>/dev/null
   else
     echo ""
   fi
