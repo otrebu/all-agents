@@ -3061,7 +3061,7 @@
       "Verify subtaskId input is documented",
       "Verify optional context fields are documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "018-iteration-summary-prompt-08",

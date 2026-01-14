@@ -4,11 +4,22 @@ You are generating a concise iteration summary for the Ralph build system. This 
 
 ## Input
 
-You will receive:
-- **Session JSONL Path:** `{{SESSION_JSONL_PATH}}` - Path to the Claude session JSONL file containing the iteration transcript
-- **Subtask ID:** `{{SUBTASK_ID}}` - The ID of the subtask that was processed
-- **Subtask Title:** `{{SUBTASK_TITLE}}` - (Optional) The title of the subtask
+### Required Inputs
+
+These inputs must be provided for the summary to be generated:
+
+- **Subtask ID:** `{{SUBTASK_ID}}` - The ID of the subtask that was processed (e.g., "task-015-04")
 - **Status:** `{{STATUS}}` - The iteration status: "success", "failure", or "partial"
+- **Session JSONL Path:** `{{SESSION_JSONL_PATH}}` - Path to the Claude session JSONL file containing the iteration transcript
+
+### Optional Context Fields
+
+These inputs provide additional context when available:
+
+- **Subtask Title:** `{{SUBTASK_TITLE}}` - Human-readable title of the subtask (defaults to subtaskId if not provided)
+- **Milestone:** `{{MILESTONE}}` - Name of the parent milestone (e.g., "authentication-mvp")
+- **Task Reference:** `{{TASK_REF}}` - Reference to the parent task file (e.g., "docs/planning/tasks/015-auth.md")
+- **Iteration Number:** `{{ITERATION_NUM}}` - Current iteration attempt number (e.g., 1, 2, 3)
 
 ## Task
 

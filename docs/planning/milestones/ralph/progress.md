@@ -4083,3 +4083,24 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Verification step 3 (Verify 1-3 sentences guideline exists): ✓
     - Line 35: "Summary should be 1-3 sentences maximum"
     - Line 85: "Keep the summary actionable and scannable - this will appear in mobile notifications"
+
+## 2026-01-14: 018-iteration-summary-prompt-07 - document required input format
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Enhanced Input section with explicit Required Inputs and Optional Context Fields subsections
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read `prompts/iteration-summary.md`
+  - Verification step 2 (Verify session JSONL path input is documented): ✓
+    - Line 13: `{{SESSION_JSONL_PATH}}` documented under "Required Inputs" section
+    - Clear description: "Path to the Claude session JSONL file containing the iteration transcript"
+  - Verification step 3 (Verify subtaskId input is documented): ✓
+    - Line 11: `{{SUBTASK_ID}}` documented under "Required Inputs" section
+    - Clear description with example: "The ID of the subtask that was processed (e.g., 'task-015-04')"
+  - Verification step 4 (Verify optional context fields are documented): ✓
+    - Lines 15-22: New "Optional Context Fields" section added with 4 optional placeholders:
+      - `{{SUBTASK_TITLE}}` - Human-readable title (defaults to subtaskId)
+      - `{{MILESTONE}}` - Parent milestone name
+      - `{{TASK_REF}}` - Reference to parent task file
+      - `{{ITERATION_NUM}}` - Current iteration attempt number
