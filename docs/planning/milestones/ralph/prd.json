@@ -867,7 +867,7 @@
       "Verify exit code is 0",
       "Verify help text is displayed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-12",

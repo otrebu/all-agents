@@ -1016,3 +1016,18 @@
     2. ✓ Run build.sh - script reads config using json_query with Node.js fallback when jq unavailable
     3. ✓ Verify config is read and hooks are configured - tested reading onMaxIterationsExceeded.actions, ntfy.topic, ntfy.server
 
+### 005-build-sh-11
+- **Status:** PASSED
+- **Changes:** Validated smoke test: `aaa ralph build --help` exits 0
+- **Details:**
+  - Ran `aaa ralph build --help` command
+  - Verified exit code is 0 (success)
+  - Verified help text is displayed with:
+    - Usage: `aaa ralph build [options]`
+    - Description: "Run subtask iteration loop using ralph-iteration.md prompt"
+    - All options: `--subtasks`, `-p/--print`, `-i/--interactive`, `--max-iterations`, `--validate-first`, `-h/--help`
+  - All three verification steps passed:
+    1. ✓ Run aaa ralph build --help - command executed successfully
+    2. ✓ Verify exit code is 0 - confirmed
+    3. ✓ Verify help text is displayed - shows usage, description, and all options
+
