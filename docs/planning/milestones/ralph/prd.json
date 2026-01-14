@@ -903,7 +903,7 @@
       "Verify pause prompt appears after each iteration",
       "Verify continue/abort options work"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-15",

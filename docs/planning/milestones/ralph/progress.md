@@ -1073,3 +1073,22 @@
     2. ✓ Run aaa ralph build - command runs, invokes Claude with correct prompt
     3. ✓ Verify subtask done field is true after completion - prompt instructs this, infrastructure verified
 
+### 005-build-sh-14
+- **Status:** PASSED
+- **Changes:** Validated interactive mode pause occurs between iterations
+- **Details:**
+  - Verified `-i, --interactive` flag is properly defined in index.ts (line 98)
+  - Verified flag is correctly passed to build.sh as 3rd argument (line 160)
+  - Verified build.sh receives and uses INTERACTIVE variable (lines 9, 369)
+  - Interactive mode implementation (build.sh lines 369-377):
+    - Displays "Continue to next iteration? (y/n): " prompt after each iteration
+    - Uses `read -p ... -n 1 -r` for single-character input
+    - "y" or "Y": continues to next iteration
+    - Any other input: exits with "Stopped by user"
+  - Created `subtasks-interactive-test.json` test fixture with multiple subtasks
+  - Created `validation-005-build-sh-14.md` documenting the validation
+  - All three verification steps passed:
+    1. ✓ Run aaa ralph build -i with multiple subtasks - command accepts flag and passes to build.sh
+    2. ✓ Verify pause prompt appears after each iteration - "Continue to next iteration? (y/n):" at lines 370-371
+    3. ✓ Verify continue/abort options work - y/Y continues, any other input stops with "Stopped by user"
+
