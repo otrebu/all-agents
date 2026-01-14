@@ -3758,7 +3758,7 @@
       "Verify JTBD methodology is referenced",
       "Verify job-focused questions are included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-03",

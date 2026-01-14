@@ -4972,3 +4972,23 @@ The prompt includes:
 - Step 1 (Navigate to directory): ✓ Directory exists at `context/workflows/ralph/planning/`
 - Step 2 (Verify file exists): ✓ File created with 8017 bytes
 - Step 3 (Verify file is readable): ✓ File contains comprehensive interactive stories planning prompt content
+
+## 2026-01-14: 022-stories-interactive-prompt-02
+
+### What changed
+- Verified JTBD (Jobs To Be Done) methodology is thoroughly integrated in stories-interactive.md
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read `context/workflows/ralph/planning/stories-interactive.md`
+- Step 2 (Verify JTBD methodology is referenced): ✓ JTBD explicitly referenced in:
+  - Line 29: Role definition includes "Jobs To Be Done (JTBD) thinking"
+  - Lines 52-64: Phase 2 is entirely dedicated to "Jobs To Be Done Exploration"
+  - Line 129: Warns not to "Skip the JTBD exploration - it's essential for good stories"
+  - Line 149: Story template uses JTBD format "As a [persona], I want [capability] so that [benefit]"
+- Step 3 (Verify job-focused questions are included): ✓ Job-focused questions present:
+  - Line 56: Key question "what job are they trying to get done?"
+  - Line 59: "What is the functional job - the task they're trying to accomplish?"
+  - Line 60: "What is the emotional job - how do they want to feel while doing it?"
+  - Line 61: "What is the social job - how do they want to be perceived by others?"
+  - Line 62: "In what context or situation does this need arise?"
+  - Line 63: "What alternatives exist today? What's frustrating about them?"
