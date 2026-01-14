@@ -1577,7 +1577,7 @@
       "Verify Claude is invoked with intention-drift.md content",
       "Verify prompt is passed correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-05",

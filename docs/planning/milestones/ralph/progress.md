@@ -2039,3 +2039,20 @@
       - `git show <commitHash> --stat`
       - `git diff <commitHash>^..<commitHash>`
   - Git commands verified working with actual commit hashes in the repository
+
+## 2026-01-14
+
+### 010-calibrate-sh-04
+- **Status:** PASSED
+- **Changes:** Verified script invokes intention-drift.md prompt via Claude
+- **Details:**
+  - Verification steps completed:
+    1. ✓ Ran `ralph calibrate intention` via bash debug mode
+    2. ✓ Claude is invoked with intention-drift.md content (prompt includes `@<path>/intention-drift.md`)
+    3. ✓ Prompt is passed correctly via `claude $PERM_FLAG -p "$PROMPT"` (line 214)
+  - Implementation verified:
+    - `run_intention_check()` function builds prompt referencing `@${INTENTION_DRIFT_PROMPT}`
+    - Prompt instructs Claude to "Follow the instructions in @/path/to/intention-drift.md"
+    - Claude is invoked with `--dangerously-skip-permissions` and `-p` flags
+    - Full prompt includes context files: CLAUDE.md, PROGRESS.md, VISION.md
+    - Approval mode is included in prompt based on config/CLI flags
