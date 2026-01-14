@@ -15,7 +15,16 @@ When this skill is invoked, check the ARGUMENTS provided:
 
 Run intention drift analysis to verify completed subtasks align with planning chain (Vision → Story → Task → Subtask).
 
-Follow: @context/workflows/ralph/calibration/intention-drift.md
+**Prerequisites check first:**
+1. Look for `subtasks.json` in the project root
+2. If not found, output a helpful message and exit gracefully:
+   > "No subtasks.json found. Nothing to analyze for intention drift.
+   >
+   > To run intention drift analysis, create a subtasks.json file with completed subtasks that have commitHash values."
+3. If found but no completed subtasks have `commitHash`, output:
+   > "No completed subtasks with commitHash found. Nothing to analyze."
+
+If prerequisites are met, follow: @context/workflows/ralph/calibration/intention-drift.md
 
 ### If argument is `technical`:
 
@@ -29,7 +38,16 @@ Run technical quality analysis to check code quality patterns.
 
 Run self-improvement analysis to identify agent inefficiencies from session logs.
 
-Follow: @context/workflows/ralph/calibration/self-improvement.md
+**Prerequisites check first:**
+1. Look for `subtasks.json` in the project root
+2. If not found, output a helpful message and exit gracefully:
+   > "No subtasks.json found. Nothing to analyze for self-improvement.
+   >
+   > To run self-improvement analysis, create a subtasks.json file with completed subtasks that have sessionId values."
+3. If found but no completed subtasks have `sessionId`, output:
+   > "No completed subtasks with sessionId found. Nothing to analyze."
+
+If prerequisites are met, follow: @context/workflows/ralph/calibration/self-improvement.md
 
 ### If argument is `all`:
 
@@ -39,7 +57,7 @@ Run all calibration checks in sequence:
 2. **Technical drift** - Check code quality (when available)
 3. **Self-improvement** - Check agent efficiency
 
-Execute each check and combine results into a unified summary.
+Execute each check following the same prerequisite checks as individual subcommands. If subtasks.json is missing, output a helpful message and skip checks that require it. Combine results into a unified summary.
 
 ### If no argument or unknown argument:
 
