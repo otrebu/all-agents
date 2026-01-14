@@ -1985,3 +1985,25 @@
   - SKILL.md lines 69-75: Explicit "CLI Equivalent" section documents `aaa ralph build [options]`
   - Architectural difference: CLI spawns separate Claude processes; skill runs in existing session
   - Functional outputs (commits, tracking files) are identical since same prompt governs behavior
+
+## 2026-01-14
+
+### 010-calibrate-sh-01
+- **Status:** PASSED
+- **Changes:** Created `calibrate.sh` script at `tools/src/commands/ralph/scripts/calibrate.sh`
+- **Details:**
+  - Created comprehensive calibration script with:
+    - Support for `intention`, `technical`, `improve`, and `all` subcommands
+    - Integration with `intention-drift.md` prompt for intention drift checking
+    - Integration with `self-improvement.md` prompt for improve checking
+    - Placeholder for `technical-drift.md` (prompt not yet created)
+    - Configuration reading from `ralph.config.json` (driftTasks, selfImprovement settings)
+    - CLI overrides: `--force` (skip approval) and `--review` (require approval)
+    - Graceful error handling for missing subtasks.json
+    - Help command with usage examples
+  - Added `calibrate` command to `tools/src/commands/ralph/index.ts`
+  - Script is executable (`-rwxrwxr-x` permissions)
+  - Verified all steps:
+    1. ✓ Navigate to `tools/src/commands/ralph/scripts/`
+    2. ✓ `calibrate.sh` file exists (8852 bytes)
+    3. ✓ File is executable (verified with `ls -la`)

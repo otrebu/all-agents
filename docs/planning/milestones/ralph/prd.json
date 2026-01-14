@@ -1541,7 +1541,7 @@
       "Verify calibrate.sh file exists",
       "Verify file is executable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-02",
