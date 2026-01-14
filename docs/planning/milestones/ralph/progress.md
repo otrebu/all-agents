@@ -3230,3 +3230,18 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - ID generation using SUB-NNN pattern with global uniqueness
     - Milestone-level generation support with --milestone flag
     - Validation checklist for generated subtasks
+
+### 015-subtasks-auto-prompt-02
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified existing prompt handles task ID parameter and parent task lookup
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md
+  - Verification step 2 (Verify task ID parameter handling exists): ✓ Lines 5-29 "Task Parameter" section includes:
+    - Input specification: "Task ID as the first argument to this prompt"
+    - Usage examples with `subtasks-auto.md <task-id>`
+    - Parameter handling: find task file in `docs/planning/tasks/<task-id>*.md`
+    - Error handling if no argument provided or task not found
+  - Verification step 3 (Verify parent task lookup is instructed): ✓ Lines 31-36 "Required Reading" section:
+    - "Parent Task: Read the task file at `docs/planning/tasks/<task-id>*.md`"
+    - Additional instructions to read parent story if referenced

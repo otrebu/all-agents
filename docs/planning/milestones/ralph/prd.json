@@ -2460,7 +2460,7 @@
       "Verify task ID parameter handling exists",
       "Verify parent task lookup is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-03",
