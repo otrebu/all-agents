@@ -2241,7 +2241,7 @@
       "Verify codebase analysis instructions exist",
       "Verify code reading is part of the process"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-04",
