@@ -334,7 +334,14 @@ Self-improvement mode: ${self_improve_setting}
 - If 'always': Create task files only, require user approval before applying changes
 - If 'auto': Apply changes directly to target files (CLAUDE.md, prompts, skills) without creating task files
 
-Analyze session logs from completed subtasks for inefficiencies and output a summary to stdout.
+IMPORTANT: You MUST output a readable markdown summary to stdout following the format in the self-improvement.md prompt.
+The summary should include:
+- Session ID and subtask title
+- Findings organized by inefficiency type (Tool Misuse, Wasted Reads, Backtracking, Excessive Iterations)
+- Recommendations for improvements
+- Reference to any task files created (in 'always' mode) or changes applied (in 'auto' mode)
+
+Analyze session logs from completed subtasks for inefficiencies.
 Handle improvements based on the mode above."
 
   echo "Invoking Claude for self-improvement analysis..."

@@ -5893,3 +5893,20 @@ The prompt includes:
 - context/workflows/ralph/calibration/self-improvement.md
 - tools/src/commands/ralph/scripts/calibrate.sh
 
+
+## 2026-01-14: 026-calibrate-improve-cli-06
+**Feature:** Command outputs summary to stdout
+
+**What changed:**
+- Updated `tools/src/commands/ralph/scripts/calibrate.sh` to enhance the prompt passed to Claude
+- Added explicit instruction requiring markdown summary output to stdout
+- The prompt now specifies the required summary structure:
+  - Session ID and subtask title
+  - Findings organized by inefficiency type (Tool Misuse, Wasted Reads, Backtracking, Excessive Iterations)
+  - Recommendations for improvements
+  - Reference to task files created or changes applied
+- Verified with test subtasks file - command produces readable markdown summary including:
+  - Session header with ID and subtask name
+  - Findings section for each inefficiency type
+  - Recommendations section
+  - All verification steps pass
