@@ -3279,7 +3279,7 @@
       "Verify trigger reason is displayed",
       "Verify continue/abort options appear"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-16",

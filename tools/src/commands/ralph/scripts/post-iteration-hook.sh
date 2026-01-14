@@ -725,6 +725,113 @@ execute_notify_action() {
   fi
 }
 
+# Get the trigger reason for pause action
+# Checks config for pause conditions and returns the matching reason
+get_pause_trigger_reason() {
+  local entry_json="$1"
+
+  # Extract status from entry
+  local status
+  if command -v jq &> /dev/null; then
+    status=$(echo "$entry_json" | jq -r '.status // ""')
+  elif command -v node &> /dev/null; then
+    status=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).status || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+  else
+    status="$STATUS"
+  fi
+
+  # Check for configured pause conditions
+  local pause_on_failure pause_on_success pause_always
+  pause_on_failure=$(read_hook_config "hooks.postIteration.pauseOnFailure" "false")
+  pause_on_success=$(read_hook_config "hooks.postIteration.pauseOnSuccess" "false")
+  pause_always=$(read_hook_config "hooks.postIteration.pauseAlways" "false")
+
+  # Determine trigger reason
+  if [ "$pause_always" = "true" ]; then
+    echo "Pause action configured (pauseAlways: true)"
+    return 0
+  fi
+
+  if [ "$status" = "failed" ] && [ "$pause_on_failure" = "true" ]; then
+    echo "Iteration failed - pause requested (pauseOnFailure: true)"
+    return 0
+  fi
+
+  if [ "$status" = "completed" ] && [ "$pause_on_success" = "true" ]; then
+    echo "Iteration completed - pause requested (pauseOnSuccess: true)"
+    return 0
+  fi
+
+  # Default: pause action is in actions list
+  echo "Pause action triggered by configuration"
+  return 0
+}
+
+# Execute pause action - shows trigger reason and offers continue/abort
+execute_pause_action() {
+  local entry_json="$1"
+
+  # Extract fields for display
+  local subtask_id status summary
+  if command -v jq &> /dev/null; then
+    subtask_id=$(echo "$entry_json" | jq -r '.subtaskId // ""')
+    status=$(echo "$entry_json" | jq -r '.status // ""')
+    summary=$(echo "$entry_json" | jq -r '.summary // ""')
+  elif command -v node &> /dev/null; then
+    subtask_id=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).subtaskId || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    status=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).status || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    summary=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).summary || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+  else
+    subtask_id="$SUBTASK_ID"
+    status="$STATUS"
+    summary="(summary not available)"
+  fi
+
+  # Get the trigger reason
+  local trigger_reason
+  trigger_reason=$(get_pause_trigger_reason "$entry_json")
+
+  echo ""
+  echo "╔════════════════════════════════════════════════════════════════╗"
+  echo "║                      ITERATION PAUSED                          ║"
+  echo "╠════════════════════════════════════════════════════════════════╣"
+  echo "║ Subtask: $subtask_id"
+  echo "║ Status:  $status"
+  echo "║ Summary: $summary"
+  echo "╠════════════════════════════════════════════════════════════════╣"
+  echo "║ Trigger: $trigger_reason"
+  echo "╠════════════════════════════════════════════════════════════════╣"
+  echo "║ Options:                                                       ║"
+  echo "║   [c] Continue to next iteration                               ║"
+  echo "║   [a] Abort build loop                                         ║"
+  echo "╚════════════════════════════════════════════════════════════════╝"
+  echo ""
+
+  # Check if we're in a terminal (interactive mode)
+  if [ -t 0 ]; then
+    while true; do
+      read -r -p "Enter choice [c/a]: " choice
+      case "$choice" in
+        c|C|continue)
+          echo "Continuing to next iteration..."
+          return 0
+          ;;
+        a|A|abort)
+          echo "Aborting build loop..."
+          exit 130  # 130 = terminated by Ctrl+C convention
+          ;;
+        *)
+          echo "Invalid choice. Please enter 'c' to continue or 'a' to abort."
+          ;;
+      esac
+    done
+  else
+    # Non-interactive mode: log the pause but don't block
+    echo "Non-interactive mode: pause logged but continuing automatically"
+    return 0
+  fi
+}
+
 # Execute configured actions
 execute_actions() {
   local entry_json="$1"
@@ -739,7 +846,10 @@ execute_actions() {
     execute_notify_action "$entry_json"
   fi
 
-  # Note: pause action will be implemented in subsequent features
+  # Execute pause action if enabled
+  if is_action_enabled "pause"; then
+    execute_pause_action "$entry_json"
+  fi
 }
 
 # Main execution

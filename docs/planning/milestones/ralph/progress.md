@@ -4484,3 +4484,29 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Step 1 (Configure notify action with topic): ✓ ralph.config.json has `ntfy.topic: "test-topic"` and `actions: ["log", "notify"]`
     - Step 2 (Run hook): ✓ Script executes, reads config, constructs correct curl command
     - Step 3 (Verify HTTP POST is sent to ntfy.sh): ✓ Curl command correctly constructed as `curl -s -X POST https://ntfy.sh/test-topic -H "Title: ..." -H "Priority: ..." -d "..."`
+
+### 019-post-iteration-hook-15
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Implemented pause action that shows trigger reason and offers continue/abort options
+- **Details:**
+  - Added `get_pause_trigger_reason()` function (lines 728-767) that:
+    - Extracts status from entry JSON
+    - Checks config for pauseOnFailure, pauseOnSuccess, and pauseAlways settings
+    - Returns appropriate trigger reason message based on which condition matched
+  - Added `execute_pause_action()` function (lines 770-832) that:
+    - Extracts subtaskId, status, and summary from entry JSON for display
+    - Calls get_pause_trigger_reason() to get trigger reason
+    - Displays formatted pause dialog with box-drawing characters showing:
+      - Subtask ID, status, and summary
+      - Trigger reason explaining why pause was triggered
+      - Options: [c] Continue to next iteration, [a] Abort build loop
+    - In interactive mode (terminal): prompts user for choice via read -r
+    - In non-interactive mode: logs pause but continues automatically
+    - Returns 0 on continue, exits 130 on abort (Ctrl+C convention)
+  - Updated `execute_actions()` to call `execute_pause_action()` when "pause" is in actions array
+  - Verification:
+    - Step 1 (Configure pause action): ✓ Action can be added to `hooks.postIteration.actions` array
+    - Step 2 (Run hook): ✓ Script executes and displays pause dialog
+    - Step 3 (Verify trigger reason is displayed): ✓ Shows "Trigger: <reason>" line in dialog
+    - Step 4 (Verify continue/abort options appear): ✓ Shows [c] Continue and [a] Abort options
