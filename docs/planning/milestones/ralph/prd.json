@@ -4054,7 +4054,7 @@
       "Verify session starts correctly",
       "Verify story context is used"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-13",

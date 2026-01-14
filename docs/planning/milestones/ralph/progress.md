@@ -5470,3 +5470,28 @@ The prompt includes:
   - Routes to `@context/workflows/ralph/planning/tasks-interactive.md`
   - Handles story ID parameter requirement
   - Opening message template follows tasks-interactive.md pattern
+
+## 2026-01-14: 023-tasks-interactive-prompt-12
+
+**Feature:** Interactive session runs with sample story
+
+**Changes:**
+- Created test fixture `test-fixtures/validation-023-tasks-interactive-prompt-12.md` documenting validation
+- Verified skill routing for `/ralph plan tasks <story-id>`
+- Verified prompt opening message template
+
+**Verification:**
+- Step 1 (Run tasks planning session): ✓
+  - Command `/ralph plan tasks 009-interactive-planning-guidance` invokes the skill
+  - Skill reads story file from `docs/planning/milestones/ralph/stories/009-interactive-planning-guidance.md`
+  - Skill routes to `context/workflows/ralph/planning/tasks-interactive.md` prompt
+- Step 2 (Verify session starts correctly): ✓
+  - Skill specifies "START THE TASKS PLANNING SESSION IMMEDIATELY"
+  - Explicitly states "Do NOT just show documentation"
+  - Opening message template defined in lines 86-104 of SKILL.md
+  - Prompt starting section (lines 309-329) provides complete opening format
+- Step 3 (Verify story context is used): ✓
+  - Skill requires reading story file before starting session (line 84)
+  - Opening message must include "[brief summary of narrative and key acceptance criteria]"
+  - Story 009 contains: Interactive planning guidance for roadmap, stories, tasks with Socratic method
+  - Expected output includes story-specific context in opening message
