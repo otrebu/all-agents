@@ -2809,7 +2809,7 @@
       "Verify CLI command documentation",
       "Verify roadmap subcommand exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-10",

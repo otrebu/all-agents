@@ -169,6 +169,59 @@ ralphCommand.addCommand(
     }),
 );
 
+// ralph plan - interactive planning commands
+ralphCommand.addCommand(
+  new Command("plan")
+    .description("Interactive planning tools for vision and roadmap")
+    .argument("[subcommand]", "Planning type: vision or roadmap")
+    .action((subcommand) => {
+      const contextRoot = getContextRoot();
+
+      if (subcommand === undefined || subcommand === "") {
+        console.log("Usage: aaa ralph plan <subcommand>\n");
+        console.log("Subcommands:");
+        console.log("  vision     Start interactive vision planning session");
+        console.log("  roadmap    Start interactive roadmap planning session");
+        console.log(
+          "\nThese commands invoke Claude with the appropriate prompt",
+        );
+        console.log(
+          "for interactive planning. Sessions are multi-turn conversations.",
+        );
+        process.exit(0);
+      }
+
+      // Map subcommand to prompt file
+      const promptMap: Record<string, string> = {
+        roadmap: "context/workflows/ralph/planning/roadmap-interactive.md",
+        vision: "context/workflows/ralph/planning/vision-interactive.md",
+      };
+
+      const promptRelativePath = promptMap[subcommand];
+      if (promptRelativePath === undefined) {
+        console.error(`Error: Unknown subcommand: ${subcommand}`);
+        console.log(`Valid subcommands: ${Object.keys(promptMap).join(", ")}`);
+        process.exit(1);
+      }
+
+      const promptPath = path.join(contextRoot, promptRelativePath);
+      if (!existsSync(promptPath)) {
+        console.error(`Prompt not found: ${promptPath}`);
+        process.exit(1);
+      }
+
+      console.log(`Starting ${subcommand} planning session...`);
+      console.log(`Prompt: ${promptPath}\n`);
+
+      // Invoke Claude with the prompt file
+      try {
+        execSync(`claude --print "${promptPath}"`, { stdio: "inherit" });
+      } catch {
+        process.exit(1);
+      }
+    }),
+);
+
 // ralph calibrate - run calibration checks
 ralphCommand.addCommand(
   new Command("calibrate")
