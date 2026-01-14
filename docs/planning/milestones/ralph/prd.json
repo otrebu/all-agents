@@ -3960,7 +3960,7 @@
       "Verify tradeoff questions exist",
       "Verify alternatives are discussed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-05",
