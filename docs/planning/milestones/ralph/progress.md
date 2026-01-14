@@ -754,3 +754,27 @@
     - Lines 212-217: Validation table maps available chain to appropriate validation scope
     - Lines 219-223: Explicit handling with note: "If a parent is missing: Note it in the summary but don't fail"
   - All three verification steps passed
+
+### 004-intention-drift-prompt-12
+- **Status:** PASSED
+- **Changes:** Created synthetic drift test case and verified prompt identifies drift correctly
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/subtasks-drift-test.json`:
+    - Subtask DRIFT-TEST-001: "Add email validation to registration form"
+    - Acceptance criteria: email format (contains @), inline error display
+    - Marked as done with commitHash for analysis
+  - Created `docs/planning/milestones/ralph/test-fixtures/TASK-DRIFT-001.md`:
+    - Parent task defining scope and explicit "Out of Scope" items
+    - Out of Scope: phone validation, password strength, CAPTCHA
+  - Created `docs/planning/milestones/ralph/test-fixtures/drift-test-expected-output.md`:
+    - Documents test setup with simulated git diff showing scope creep
+    - Drift: code includes phone validation + password strength (not in subtask)
+    - Expected analysis output identifies drift type as "Scope Creep"
+  - Verification against prompt:
+    - intention-drift.md Example 1 (lines 123-143) matches test case exactly
+    - Same subtask title, same acceptance criteria, same drift pattern
+    - Prompt judges identical scenario as "DRIFT - Scope Creep"
+  - All three verification steps passed:
+    1. ✓ Subtasks.json prepared with completed subtask having drift
+    2. ✓ Prompt contains matching few-shot example that runs analysis
+    3. ✓ Drift is identified as "Scope Creep" in expected output

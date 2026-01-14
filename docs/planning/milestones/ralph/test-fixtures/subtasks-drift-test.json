@@ -1,0 +1,17 @@
+[
+  {
+    "id": "DRIFT-TEST-001",
+    "taskRef": "TASK-DRIFT-001",
+    "title": "Add email validation to registration form",
+    "description": "Implement client-side email validation for the registration form. Show inline error if email format is invalid.",
+    "acceptanceCriteria": [
+      "Email must be valid format (contains @)",
+      "Show inline error message if email is invalid"
+    ],
+    "filesToRead": [],
+    "done": true,
+    "completedAt": "2026-01-13T14:00:00Z",
+    "commitHash": "drift-test-commit",
+    "sessionId": "drift-test-session"
+  }
+]

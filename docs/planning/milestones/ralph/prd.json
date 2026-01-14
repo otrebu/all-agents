@@ -711,7 +711,7 @@
       "Run prompt against the subtask",
       "Verify drift is identified in output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "004-intention-drift-prompt-13",
