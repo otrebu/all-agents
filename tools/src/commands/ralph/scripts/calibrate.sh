@@ -341,6 +341,20 @@ The summary should include:
 - Recommendations for improvements
 - Reference to any task files created (in 'always' mode) or changes applied (in 'auto' mode)
 
+TASK FILE CREATION (when mode is 'always' and inefficiencies are found):
+When you find inefficiencies that warrant improvement, create task files at:
+  docs/planning/tasks/self-improve-YYYY-MM-DD-N.md
+where YYYY-MM-DD is today's date and N is a sequential number (01, 02, etc).
+
+Each task file should follow the format in self-improvement.md:
+- Task title describing the improvement
+- Source (session ID that revealed the inefficiency)
+- Problem description
+- Proposed change (specific change to make)
+- Target file (CLAUDE.md, prompts, skills)
+- Risk level (low/medium/high)
+- Acceptance criteria
+
 Analyze session logs from completed subtasks for inefficiencies.
 Handle improvements based on the mode above."
 

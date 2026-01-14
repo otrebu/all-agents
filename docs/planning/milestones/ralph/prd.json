@@ -4464,7 +4464,7 @@
       "Verify task files are created",
       "Verify files contain proposals"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-08",

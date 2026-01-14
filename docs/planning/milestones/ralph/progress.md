@@ -5910,3 +5910,20 @@ The prompt includes:
   - Findings section for each inefficiency type
   - Recommendations section
   - All verification steps pass
+
+## 2026-01-14: 026-calibrate-improve-cli-07
+**Feature:** Command generates proposed task files when applicable
+
+**What changed:**
+- Updated `tools/src/commands/ralph/scripts/calibrate.sh` to add explicit task file creation instructions in the prompt
+- Added detailed instructions specifying:
+  - Task file path format: `docs/planning/tasks/self-improve-YYYY-MM-DD-N.md`
+  - Required content structure (title, source, problem, proposed change, target file, risk level, acceptance criteria)
+  - When to create task files (when mode is 'always' and inefficiencies are found)
+- The `self-improvement.md` prompt already contained the task file format, but the calibrate.sh prompt now reinforces these instructions
+- Task files will be created in `docs/planning/tasks/` directory when inefficiencies are detected and mode is 'always'
+
+**Verification:**
+- The prompt explicitly instructs Claude to create task files at `docs/planning/tasks/self-improve-YYYY-MM-DD-N.md`
+- The self-improvement.md prompt defines the complete task file structure (lines 162-194)
+- The tasks directory already exists at `docs/planning/tasks/`
