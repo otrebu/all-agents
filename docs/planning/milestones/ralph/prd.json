@@ -2319,7 +2319,7 @@
       "Read prompt content",
       "Verify Scope section is required in output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-11",

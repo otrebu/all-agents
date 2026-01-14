@@ -3049,3 +3049,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lines 115-117: Task File Structure template includes "### Test Plan" section with checkbox format
     - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
   - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
+
+### 014-tasks-auto-prompt-10
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt requires Scope section in each task
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (251 lines)
+  - Verification step 2 (Verify Scope section is required in output): ✓ Found at:
+    - Line 83: Required Sections table shows "Scope | Yes | Explicit boundaries - prevents creep"
+    - Lines 119-121: Task File Structure template includes "### Scope" section with In/Out format
+    - Line 182: Guidelines state "Scope explicitly excludes adjacent work"
+    - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
+  - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
