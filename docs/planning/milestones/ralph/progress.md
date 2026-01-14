@@ -3666,3 +3666,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 240: "(You can say 'done' at any point when you feel we've covered enough.)"
     - Session is explicitly user-controlled, not agent-driven to completion
   - All three verification steps passed
+
+### 016-roadmap-interactive-prompt-07
+- **Status:** PASSED
+- **Changes:** Verified generated roadmap follows schema format in roadmap-interactive.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read context/workflows/ralph/planning/roadmap-interactive.md (243 lines)
+  - Verification step 2 (Verify output format matches ROADMAP.md conventions): ✓
+    - Lines 118-176: Complete "ROADMAP.md Format" section with template
+    - Template matches format in roadmap-auto.md and existing docs/planning/ROADMAP.md
+    - Format includes: Header with Vision link and date, Overview, Milestones (with Outcome, Why this first, Key deliverables, Success criteria, Dependencies), Future Considerations, Notes
+    - Line 122: Convention references milestone folders at docs/planning/milestones/<slug>/
+  - Verification step 3 (Verify schema compliance is instructed): ✓
+    - Lines 178-185: "Writing Guidelines" specify conventions (user's words, concise, outcome-based names, no dates)
+    - Lines 187-196: "Milestone Naming Convention" table (Good vs Bad naming)
+    - Lines 198-208: "Validation Checklist" with 7 explicit compliance checks before finalizing
+  - All three verification steps passed

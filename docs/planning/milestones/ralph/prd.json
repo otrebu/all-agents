@@ -2786,7 +2786,7 @@
       "Verify output format matches ROADMAP.md conventions",
       "Verify schema compliance is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-08",
