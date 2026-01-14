@@ -2079,7 +2079,7 @@
       "Read prompt content",
       "Verify Persona section is required in output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-08",
