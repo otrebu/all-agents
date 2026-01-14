@@ -1933,3 +1933,19 @@
 - Notes:
   - Pre-build validation provides alignment check before executing subtasks
   - Prevents wasted iterations on misaligned or problematic subtasks
+
+## 2026-01-14: 009-ralph-build-skill-08 - Skill documents --max-iterations option
+
+**Status: VERIFIED ✓**
+
+- Feature already implemented in SKILL.md
+- Verification steps completed:
+  1. ✓ Read SKILL.md content - file at `.claude/skills/ralph-build/SKILL.md`
+  2. ✓ `--max-iterations` option is documented in Options table (line 24): `--max-iterations <n>` with description "Maximum retry attempts per subtask (default: 3)"
+  3. ✓ Retry limit behavior is described in section "6. Max Iterations (--max-iterations)" (lines 62-68):
+     - Track retry count per subtask
+     - Stop after `max-iterations` failures on the same subtask
+     - Report the failure and suggest next steps
+- Notes:
+  - Default value is 3 retry attempts
+  - Prevents infinite loops on persistently failing subtasks
