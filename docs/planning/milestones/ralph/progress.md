@@ -6074,3 +6074,19 @@ Updated `.claude/skills/ralph-calibrate/SKILL.md` to explicitly document selfImp
 3. **Verify propose-only mode** - Skill explicitly documents `"always"` = "Propose-only mode" and "does NOT apply changes directly"
 
 All verification steps pass.
+
+
+## 2026-01-14: 027-calibrate-improve-skill-05 verified
+
+**Feature:** Skill respects selfImprovement config (auto-apply)
+
+**Verification:**
+1. **Set selfImprovement: auto in config** - User action; config documented in skill
+2. **Run /ralph-calibrate improve** - Skill dispatches to self-improvement.md
+3. **Verify auto-apply mode** - Found in `.claude/skills/ralph-calibrate/SKILL.md`:
+   - Line 60: `**"auto"**: Auto-apply mode. Applies changes directly to target files (CLAUDE.md, prompts, skills) without creating task files. Use with caution.`
+   - Lines 172-176: Configuration table shows `| "auto" | Auto-apply | Applies changes directly to target files |`
+   - Line 182: `**In auto-apply mode ("auto"):** Changes applied directly to target files (CLAUDE.md, prompts, skills)`
+   - Also in self-improvement.md lines 215-218: `**"auto"**: Apply changes directly to the target files (CLAUDE.md, prompts, skills) without creating task files. Output what was changed in the summary.`
+
+All verification steps pass - the skill correctly documents and instructs auto-apply behavior when selfImprovement is set to "auto".

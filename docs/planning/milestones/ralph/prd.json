@@ -4573,7 +4573,7 @@
       "Run /ralph-calibrate improve",
       "Verify auto-apply mode"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "027-calibrate-improve-skill-06",
