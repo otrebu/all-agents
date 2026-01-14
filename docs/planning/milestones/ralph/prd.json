@@ -3842,7 +3842,7 @@
       "Verify no tool restrictions documented",
       "Verify full capabilities available"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-10",
