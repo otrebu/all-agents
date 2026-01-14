@@ -2904,7 +2904,7 @@
       "Type /ralph status",
       "Verify skill executes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "017-ralph-status-skill-04",

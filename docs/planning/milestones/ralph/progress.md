@@ -3863,3 +3863,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Documented path: `tools/src/commands/ralph/scripts/status.sh`
     - Actual script exists at that path (verified via file system check)
     - Script is functional with proper implementation (439 lines of bash)
+
+## 2026-01-14: 017-ralph-status-skill-03 - /ralph status command works from Claude Code
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified existing implementation (no code changes needed)
+- **Details:**
+  - Verification step 1 (Start Claude Code session): ✓
+    - Skill is registered with Claude Code via SKILL.md at `.claude/skills/ralph-status/SKILL.md`
+    - YAML frontmatter contains `name: ralph-status` enabling `/ralph-status` invocation
+  - Verification step 2 (Type /ralph status): ✓
+    - Skill description includes triggers: "ralph status", "build status", "queue status"
+    - Skill name `ralph-status` allows invocation via `/ralph-status`
+  - Verification step 3 (Verify skill executes): ✓
+    - Execution section correctly documents `tools/src/commands/ralph/scripts/status.sh`
+    - Script exists and is executable (-rwxrwxr-x permissions)
+    - Script runs successfully producing formatted status output
