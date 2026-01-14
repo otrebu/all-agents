@@ -1661,7 +1661,7 @@
       "Verify exit code is 0",
       "Verify usage information is displayed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-12",

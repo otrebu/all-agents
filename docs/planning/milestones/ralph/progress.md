@@ -2168,3 +2168,17 @@
     2. ✓ Run ralph calibrate intention - Shows error and helpful guidance
     3. ✓ Verify helpful error message is shown - Both error and guidance messages displayed
   - Script exits with code 1 to indicate failure, allowing callers to handle the error appropriately
+
+### 010-calibrate-sh-11
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified ralph calibrate --help exits 0 and shows usage
+- **Details:**
+  - The --help flag is already fully implemented in calibrate.sh:
+    1. Commander help option (`-h, --help`) defined at CLI level in tools/src/commands/ralph/calibrate.ts
+    2. Bash script also handles `--help|-h|help` at line 321 with `show_help` function
+  - Verification tests performed:
+    1. ✓ Run ralph calibrate --help - Command executes successfully
+    2. ✓ Verify exit code is 0 - Exit code confirmed as 0
+    3. ✓ Verify usage information is displayed - Shows subcommands (intention, technical, improve, all) and options (--force, --review, -h/--help)
+  - The feature was already complete from previous implementation work
