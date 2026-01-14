@@ -3012,7 +3012,7 @@
       "Verify subtaskId is in output format",
       "Verify field extraction is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "018-iteration-summary-prompt-04",
