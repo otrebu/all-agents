@@ -5427,3 +5427,22 @@ The prompt includes:
 - Read tasks-interactive.md prompt content
 - Verified "Full Tool Access" section (lines 300-308) documents no restrictions
 - Confirmed full capabilities listed: Read files, Search codebase, Create/edit task files, Navigate file system, Use Glob/Grep
+
+## 2026-01-14: 023-tasks-interactive-prompt-10
+
+**Feature:** Invocable via CLI: aaa ralph plan tasks --story <id>
+
+**Changes:**
+- Updated `tools/src/commands/ralph/index.ts` to add `tasks` subcommand to `ralph plan`
+- Added `--story <id>` option for tasks planning
+- Validates `--story` is required when `tasks` subcommand is used
+- Routes to `context/workflows/ralph/planning/tasks-interactive.md` prompt
+- Passes story ID as context to Claude
+
+**Verification:**
+- Step 1 (Verify CLI command documentation): ✓
+  - `aaa ralph plan` now shows `tasks` subcommand in help
+  - Help text includes `--story <id>` option documentation
+- Step 2 (Verify story parameter handling): ✓
+  - `aaa ralph plan tasks` without `--story` shows error with usage
+  - `aaa ralph plan tasks --story STORY-001` correctly starts session with story context

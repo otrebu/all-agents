@@ -4031,7 +4031,7 @@
       "Verify CLI command documentation",
       "Verify story parameter handling"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-11",
