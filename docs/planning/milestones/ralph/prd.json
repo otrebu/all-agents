@@ -4621,7 +4621,7 @@
       "Run aaa ralph calibrate improve",
       "Compare outputs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-01",

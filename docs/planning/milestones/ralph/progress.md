@@ -6156,3 +6156,35 @@ No code changes required - this is a validation test that verifies the prompt re
    - Important Notes section
 
 All verification steps pass - the skill correctly references and would load the self-improvement.md prompt content.
+
+## 2026-01-14: 027-calibrate-improve-skill-09 verified
+
+**Feature:** Output matches CLI command behavior
+
+**Changes Made:**
+No code changes required - this is a validation test verifying output equivalence.
+
+**Verification:**
+1. **Run /ralph-calibrate improve** - Skill follows SKILL.md instructions which specify:
+   - Check for `subtasks.json` (missing → "No subtasks.json found. Nothing to analyze for self-improvement.")
+   - Check for completed subtasks with `sessionId` (missing → "No completed subtasks with sessionId found. Nothing to analyze.")
+   - Follow self-improvement.md prompt when prerequisites met
+
+2. **Run aaa ralph calibrate improve** - CLI outputs:
+   - Missing subtasks.json → "Error: Subtasks file not found... Please create a subtasks.json file..."
+   - Empty subtasks → "No completed subtasks with sessionId found. Nothing to analyze."
+   - With valid data → Invokes Claude with self-improvement.md prompt
+
+3. **Compare outputs** - Both implementations:
+   - Reference the same self-improvement.md prompt at `context/workflows/ralph/calibration/self-improvement.md`
+   - Handle same prerequisite checks (missing subtasks.json, no sessionId)
+   - Respect same configuration settings (`selfImprovement.mode`: always/auto/never)
+   - Produce functionally equivalent output messages for all scenarios
+
+The skill SKILL.md and CLI calibrate.sh both:
+- Check prerequisites in same order
+- Use same prompt file
+- Handle same edge cases
+- Produce semantically equivalent outputs
+
+All verification steps pass - skill and CLI outputs are functionally equivalent.
