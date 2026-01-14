@@ -1744,3 +1744,20 @@
     1. ✓ Created subtasks.json with multiple entries (test fixture exists)
     2. ✓ Ran status.sh - script executed successfully
     3. ✓ Verified all counts and data display correctly - milestone, progress, last done, next up all correct
+
+### 008-status-sh-12
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Validated empty subtasks.json handling (no code changes needed)
+- **Details:**
+  - Created empty subtasks.json array: `[]`
+  - Ran `bash tools/src/commands/ralph/scripts/status.sh /tmp/ralph-test-empty/subtasks.json`
+  - Script handles empty state gracefully:
+    - Shows "No subtasks defined (empty queue)" in dimmed text
+    - No progress bar or stats shown when empty
+    - Exit code is 0 (no errors thrown)
+  - Verification:
+    - Step 1 (Create empty subtasks.json array): ✓ Created file with content `[]`
+    - Step 2 (Run status.sh): ✓ Script executed successfully  
+    - Step 3 (Verify empty state is handled gracefully): ✓ Shows descriptive empty state message
+  - All three verification steps passed

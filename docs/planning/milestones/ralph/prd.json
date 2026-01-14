@@ -1361,7 +1361,7 @@
       "Run status.sh",
       "Verify empty state is handled gracefully"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "008-status-sh-13",
