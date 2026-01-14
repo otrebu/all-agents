@@ -2726,7 +2726,7 @@
       "Verify scope-related questions are included",
       "Verify Socratic pattern for scope exploration"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-03",
