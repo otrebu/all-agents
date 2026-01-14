@@ -1120,7 +1120,7 @@
       "Verify @docs/planning/VISION.md reference exists",
       "Verify Vision is primary input"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "007-roadmap-auto-prompt-03",
