@@ -3936,7 +3936,7 @@
       "Verify story decomposition guidance exists",
       "Verify technical focus is emphasized"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-03",
