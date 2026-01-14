@@ -2845,3 +2845,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lines 33-38: Parameter Handling instructions for argument processing
     - Line 39: Explicit instruction "Generate stories ONLY for the specified milestone."
   - Both verification steps passed
+
+### 013-stories-auto-prompt-16
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt output matches story template
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File read successfully (214 lines)
+  - Verification step 2 (Compare output format with story-template.md): ✓
+    - Story template defines structure: Story header → Narrative → Persona → Context → Acceptance Criteria → Tasks → Notes
+    - stories-auto.md (lines 80-103) defines identical structure
+    - Both use `## Story: [name]` header format
+    - Both use JTBD Narrative format: "As a [persona], I want [capability] so that [benefit]"
+    - Required sections table (lines 69-76) matches template's Section Guide (lines 39-46)
+  - Verification step 3 (Verify alignment): ✓
+    - Prompt explicitly references template: `@context/blocks/docs/story-template.md` (line 63)
+    - Prompt enforces compliance: "IMPORTANT: Generated stories MUST comply exactly with the template above" (line 65)
+    - Validation checklist (lines 179-190) includes template compliance verification
+    - Minor differences are intentional auto-generation placeholders (e.g., Tasks section placeholder)
+  - All three verification steps passed

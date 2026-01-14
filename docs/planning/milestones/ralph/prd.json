@@ -2181,7 +2181,7 @@
       "Compare output format with story-template.md",
       "Verify alignment"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-17",
