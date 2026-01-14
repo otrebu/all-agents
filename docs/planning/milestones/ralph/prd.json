@@ -976,7 +976,7 @@
       "Verify JSON output format is specified",
       "Verify aligned: true case is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-06",

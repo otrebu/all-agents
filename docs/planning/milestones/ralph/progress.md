@@ -1181,3 +1181,17 @@
     - Line 317: Execution step 3 says "Read the parent Story via Task's `storyRef` (if exists)"
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-05
+- **Status:** PASSED
+- **Changes:** Verified JSON output format with aligned: true for valid subtasks in pre-build-validation.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify JSON output format is specified): ✓
+    - Lines 153-182: "## Output Format" section exists
+    - Line 155: "**Important:** Output ONLY valid JSON. No markdown, no explanation, just the JSON object."
+    - Lines 161-163: Shows `{"aligned": true}` JSON format specification
+  - Verification step 3 (Verify aligned: true case is documented): ✓
+    - Lines 157-163: "### Aligned Subtask" section explicitly documents the true case
+    - Lines 185-206: Example 1 demonstrates aligned: true case with full context and reasoning
+  - All three verification steps passed
+
