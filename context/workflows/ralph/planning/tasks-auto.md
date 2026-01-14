@@ -85,6 +85,8 @@ The task template defines these sections (matching @context/blocks/docs/task-tem
 
 **Note:** Since this prompt generates tasks FROM stories, the Story link SHOULD always be included to maintain traceability, even though the template marks it as optional.
 
+**Note:** The Notes section MUST always be included in generated tasks (even if content is minimal) to provide a consistent structure and capture any relevant technical considerations, risks, or edge cases.
+
 ### Task File Structure
 
 This structure matches @context/blocks/docs/task-template.md exactly:
@@ -215,7 +217,7 @@ Use information from codebase analysis to:
 Before finalizing tasks, verify:
 
 - [ ] Each story acceptance criterion is covered by at least one task
-- [ ] Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)
+- [ ] Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope, Notes)
 - [ ] Task format matches the template exactly (section names, order, structure)
 - [ ] Goals are one sentence and outcome-focused
 - [ ] Plans have numbered, concrete steps

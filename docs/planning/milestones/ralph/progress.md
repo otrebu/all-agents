@@ -3062,3 +3062,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 182: Guidelines state "Scope explicitly excludes adjacent work"
     - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
   - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
+
+### 014-tasks-auto-prompt-11
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Updated tasks-auto.md to require Notes section in generated task output
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md
+  - Verification step 2 (Verify Notes section is required in output): ✓ Implemented by:
+    - Line 84: Required Sections table shows "Notes | No | Catch-all for extras..."
+    - Line 88: Added note stating "The Notes section MUST always be included in generated tasks"
+    - Lines 123-124: Task File Structure template includes "### Notes" section
+    - Line 220: Updated Validation Checklist to include Notes: "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope, Notes)"
+  - While Notes content is optional per template, the section itself is now required in output
