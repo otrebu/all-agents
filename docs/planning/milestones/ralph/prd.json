@@ -4705,7 +4705,7 @@
       "Verify exit code is 0",
       "Verify help is displayed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-08",

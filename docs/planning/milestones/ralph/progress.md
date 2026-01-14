@@ -6259,3 +6259,11 @@ All verification steps pass.
   - Opening message explicitly tells user: "(You can say 'done' at any point when you feel we've covered enough.)"
   - CLI uses `stdio: 'inherit'` enabling full terminal control for user to Ctrl+C if needed
   - Claude session is truly interactive, user can exit at any time
+
+### 028-ralph-plan-vision-cli-07
+- **Status:** PASSED
+- **Description:** Command responds to --help
+- **Verification:**
+  - `aaa ralph plan vision --help` runs successfully (exit code 0)
+  - Help text displays: Usage, description ("Start interactive vision planning session using Socratic method"), and Options (-h, --help)
+  - All verification steps pass - command responds correctly to --help flag
