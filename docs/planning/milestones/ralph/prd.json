@@ -3181,7 +3181,7 @@
       "Read logs/iterations.jsonl",
       "Verify timestamp field is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-08",
