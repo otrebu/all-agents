@@ -6,9 +6,17 @@ set -e
 
 SUBTASKS_PATH=${1:-subtasks.json}
 
-# Get the repo root (relative to this script location)
+# Get the repo root - try git first, fall back to subtasks directory, then script location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+
+# Determine project root based on subtasks location or git root
+if [ -d "$(dirname "$SUBTASKS_PATH")/.git" ] || git rev-parse --show-toplevel &>/dev/null 2>&1; then
+  REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+else
+  # Use directory containing subtasks.json as project root
+  SUBTASKS_DIR="$(cd "$(dirname "$SUBTASKS_PATH")" 2>/dev/null && pwd || pwd)"
+  REPO_ROOT="$SUBTASKS_DIR"
+fi
 
 CONFIG_PATH="$REPO_ROOT/ralph.config.json"
 DIARY_PATH="$REPO_ROOT/logs/iterations.jsonl"

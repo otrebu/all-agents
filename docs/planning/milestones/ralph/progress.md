@@ -1640,3 +1640,19 @@
     - Step 3 (Run status.sh without config): ✓ Removed temp config, ran script
     - Step 4 (Verify config not found message): ✓ Shows "Config: Not found" (dimmed)
   - All four verification steps passed
+
+### 008-status-sh-06
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Fixed status.sh to find iteration diary relative to project root
+- **Details:**
+  - Updated REPO_ROOT calculation in status.sh (lines 9-18) to use git root or subtasks directory
+  - Previously REPO_ROOT was hardcoded relative to script location, which failed when running from different project directories
+  - Script now tries: git root first, then directory containing subtasks.json, then falls back to pwd
+  - The `get_diary_stats()` function (lines 235-296) was already implemented to parse JSONL and calculate stats
+  - Output displays: Iterations count, Success rate (color-coded), Average tool calls
+  - Verification:
+    - Step 1 (Create logs/iterations.jsonl with entries): ✓ Created test file with 3 entries (2 success, 1 failure)
+    - Step 2 (Run status.sh): ✓ Executed script with test data
+    - Step 3 (Verify diary data is read and displayed): ✓ Shows "Iterations: 3", "Success rate: 66.7%", "Avg tool calls: 15.0"
+  - All three verification steps passed
