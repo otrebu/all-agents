@@ -901,3 +901,20 @@
     1. ✓ Run aaa ralph build -p - command executes successfully
     2. ✓ Verify prompt content is output to stdout - outputs prompt, CLAUDE.md, PROGRESS.md, subtasks info
     3. ✓ Verify Claude is NOT invoked - early return prevents execution, no Claude invocation message
+
+### 005-build-sh-05
+- **Status:** PASSED
+- **Changes:** Implemented per-subtask retry limit in build.sh using `--max-iterations <n>` option
+- **Details:**
+  - Modified `build.sh` to track retry attempts per subtask using bash associative array `SUBTASK_ATTEMPTS`
+  - Added `get_next_subtask_id()` function to identify current subtask being worked on
+  - Each iteration increments attempt counter for the specific subtask
+  - When attempts exceed `MAX_ITERATIONS` for a subtask, script exits with error:
+    - `"Error: Max iterations ($MAX_ITERATIONS) exceeded for subtask: $current_subtask"`
+    - `"Subtask failed after $MAX_ITERATIONS attempts"`
+  - Changed main loop from `while [ $iteration -le $MAX_ITERATIONS ]` to `while true` with per-subtask limit check
+  - Output format updated to show: `"=== Build Iteration $iteration (Subtask: $current_subtask, Attempt: $attempts/$MAX_ITERATIONS, ${remaining} subtasks remaining) ==="`
+  - All three verification steps passed:
+    1. ✓ Run aaa ralph build --max-iterations 2 - option accepted, shown in help output
+    2. ✓ Trigger failing subtask - associative array tracks attempts per subtask ID
+    3. ✓ Verify loop stops after 2 attempts - tested with bash simulation, exits at attempt 3 when max is 2

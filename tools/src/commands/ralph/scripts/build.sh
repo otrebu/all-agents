@@ -36,8 +36,20 @@ count_remaining() {
   fi
 }
 
+# Get first incomplete subtask ID
+get_next_subtask_id() {
+  if command -v jq &> /dev/null; then
+    jq -r '[.[] | select(.done == false or .done == null)] | .[0].id // ""' "$SUBTASKS_PATH"
+  else
+    echo ""
+  fi
+}
+
+# Track retry attempts per subtask
+declare -A SUBTASK_ATTEMPTS
+
 iteration=1
-while [ $iteration -le $MAX_ITERATIONS ]; do
+while true; do
   remaining=$(count_remaining)
 
   if [ "$remaining" -eq 0 ]; then
@@ -45,7 +57,27 @@ while [ $iteration -le $MAX_ITERATIONS ]; do
     exit 0
   fi
 
-  echo "=== Build Iteration $iteration/$MAX_ITERATIONS (${remaining} subtasks remaining) ==="
+  # Get the next subtask to work on
+  current_subtask=$(get_next_subtask_id)
+
+  if [ -z "$current_subtask" ]; then
+    echo "Error: Could not determine next subtask"
+    exit 1
+  fi
+
+  # Track attempts for this specific subtask
+  attempts=${SUBTASK_ATTEMPTS[$current_subtask]:-0}
+  ((attempts++))
+  SUBTASK_ATTEMPTS[$current_subtask]=$attempts
+
+  # Check if we've exceeded max iterations for this subtask
+  if [ "$attempts" -gt "$MAX_ITERATIONS" ]; then
+    echo "Error: Max iterations ($MAX_ITERATIONS) exceeded for subtask: $current_subtask"
+    echo "Subtask failed after $MAX_ITERATIONS attempts"
+    exit 1
+  fi
+
+  echo "=== Build Iteration $iteration (Subtask: $current_subtask, Attempt: $attempts/$MAX_ITERATIONS, ${remaining} subtasks remaining) ==="
 
   # Build the prompt including context files
   PROMPT="Execute one iteration of the Ralph build loop.
@@ -82,12 +114,12 @@ After completing ONE subtask:
     fi
   fi
 
+  # Check if subtask was completed (count changed)
+  new_remaining=$(count_remaining)
+  if [ "$new_remaining" -lt "$remaining" ]; then
+    # Subtask was completed, reset doesn't apply
+    echo "Subtask $current_subtask completed successfully"
+  fi
+
   ((iteration++))
 done
-
-echo "Reached max iterations ($MAX_ITERATIONS)"
-remaining=$(count_remaining)
-if [ "$remaining" -gt 0 ]; then
-  echo "Warning: ${remaining} subtasks still incomplete"
-  exit 1
-fi

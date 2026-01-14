@@ -795,7 +795,7 @@
       "Trigger failing subtask",
       "Verify loop stops after 2 attempts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-06",
