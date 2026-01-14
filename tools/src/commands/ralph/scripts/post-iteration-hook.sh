@@ -16,7 +16,7 @@
 #   task-ref      - Reference to the parent task file
 #   iteration-num - Current iteration attempt number
 
-set -e
+set -euo pipefail
 
 # Normalize status to enum: completed, failed, retrying
 # Accepts both new enum values and legacy values for backwards compatibility

@@ -3291,7 +3291,7 @@
       "Verify shebang is correct",
       "Verify set -euo pipefail is used"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-17",
