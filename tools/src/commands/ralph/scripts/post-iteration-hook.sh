@@ -257,6 +257,81 @@ format_files_changed_json() {
   fi
 }
 
+# Calculate iteration duration in milliseconds from session JSONL
+# Returns duration based on first and last timestamps in session log
+calculate_duration_ms() {
+  local session_jsonl_path
+  session_jsonl_path=$(get_session_jsonl_path)
+
+  if [ -z "$session_jsonl_path" ] || [ ! -f "$session_jsonl_path" ]; then
+    echo "0"
+    return
+  fi
+
+  # Extract first and last timestamps from session log
+  local first_timestamp last_timestamp
+
+  if command -v jq &> /dev/null; then
+    first_timestamp=$(head -1 "$session_jsonl_path" | jq -r '.timestamp // empty' 2>/dev/null)
+    last_timestamp=$(tail -1 "$session_jsonl_path" | jq -r '.timestamp // empty' 2>/dev/null)
+  else
+    # Fallback: extract timestamp with grep/sed
+    first_timestamp=$(head -1 "$session_jsonl_path" | grep -oP '"timestamp"\s*:\s*"\K[^"]+' 2>/dev/null | head -1)
+    last_timestamp=$(tail -1 "$session_jsonl_path" | grep -oP '"timestamp"\s*:\s*"\K[^"]+' 2>/dev/null | head -1)
+  fi
+
+  if [ -z "$first_timestamp" ] || [ -z "$last_timestamp" ]; then
+    echo "0"
+    return
+  fi
+
+  # Convert ISO timestamps to milliseconds and calculate duration
+  local start_ms end_ms duration_ms
+
+  if command -v node &> /dev/null; then
+    duration_ms=$(node -e "
+      try {
+        const start = new Date('$first_timestamp').getTime();
+        const end = new Date('$last_timestamp').getTime();
+        const duration = end - start;
+        console.log(Number.isInteger(duration) && duration >= 0 ? duration : 0);
+      } catch(e) { console.log(0); }
+    " 2>/dev/null)
+  elif command -v python3 &> /dev/null; then
+    duration_ms=$(python3 -c "
+from datetime import datetime
+try:
+    fmt = '%Y-%m-%dT%H:%M:%S.%fZ'
+    fmt_no_ms = '%Y-%m-%dT%H:%M:%SZ'
+    try:
+        start = datetime.strptime('$first_timestamp', fmt)
+    except:
+        start = datetime.strptime('$first_timestamp', fmt_no_ms)
+    try:
+        end = datetime.strptime('$last_timestamp', fmt)
+    except:
+        end = datetime.strptime('$last_timestamp', fmt_no_ms)
+    print(int((end - start).total_seconds() * 1000))
+except Exception as e:
+    print(0)
+" 2>/dev/null)
+  else
+    # Last resort: use date command (less precise, seconds only)
+    # Convert ISO to epoch seconds
+    start_ms=$(date -d "$first_timestamp" +%s 2>/dev/null || echo "0")
+    end_ms=$(date -d "$last_timestamp" +%s 2>/dev/null || echo "0")
+    if [ "$start_ms" != "0" ] && [ "$end_ms" != "0" ]; then
+      duration_ms=$(( (end_ms - start_ms) * 1000 ))
+    else
+      duration_ms=0
+    fi
+    echo "$duration_ms"
+    return
+  fi
+
+  echo "${duration_ms:-0}"
+}
+
 # Generate summary using Haiku
 generate_summary() {
   local session_jsonl_path
@@ -354,6 +429,10 @@ write_diary_entry() {
   local files_changed_json
   files_changed_json=$(format_files_changed_json)
 
+  # Calculate iteration duration in milliseconds
+  local duration_ms
+  duration_ms=$(calculate_duration_ms)
+
   # Build diary entry JSON
   local timestamp
   timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -373,6 +452,7 @@ write_diary_entry() {
       --argjson errors "[]" \
       --argjson toolCalls "$tool_calls" \
       --argjson filesChanged "$files_changed_json" \
+      --argjson duration "$duration_ms" \
       '{
         subtaskId: $subtaskId,
         sessionId: $sessionId,
@@ -385,11 +465,12 @@ write_diary_entry() {
         keyFindings: $keyFindings,
         errors: $errors,
         toolCalls: $toolCalls,
-        filesChanged: $filesChanged
+        filesChanged: $filesChanged,
+        duration: $duration
       }')
   else
     # Fallback: construct JSON manually
-    entry='{"subtaskId":"'"$SUBTASK_ID"'","sessionId":"'"$SESSION_ID"'","status":"'"$STATUS"'","summary":"'"$summary"'","timestamp":"'"$timestamp"'","milestone":"'"$MILESTONE"'","taskRef":"'"$TASK_REF"'","iterationNum":'"$ITERATION_NUM"',"keyFindings":'"$key_findings"',"errors":[],"toolCalls":'"$tool_calls"',"filesChanged":'"$files_changed_json"'}'
+    entry='{"subtaskId":"'"$SUBTASK_ID"'","sessionId":"'"$SESSION_ID"'","status":"'"$STATUS"'","summary":"'"$summary"'","timestamp":"'"$timestamp"'","milestone":"'"$MILESTONE"'","taskRef":"'"$TASK_REF"'","iterationNum":'"$ITERATION_NUM"',"keyFindings":'"$key_findings"',"errors":[],"toolCalls":'"$tool_calls"',"filesChanged":'"$files_changed_json"',"duration":'"$duration_ms"'}'
   fi
 
   # Append to diary file

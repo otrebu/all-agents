@@ -3229,7 +3229,7 @@
       "Read logs/iterations.jsonl",
       "Verify duration field is integer (ms)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-12",

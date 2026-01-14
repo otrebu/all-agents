@@ -4394,3 +4394,25 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Test output: `["tools/src/commands/ralph/scripts/post-iteration-hook.sh"]`
     - Both jq and manual fallback produce valid JSON arrays
 
+
+### 019-post-iteration-hook-11
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Added duration field (milliseconds) to iteration diary entry in post-iteration-hook.sh
+- **Details:**
+  - Added `calculate_duration_ms()` function (lines 260-324) that:
+    - Extracts first and last timestamps from session JSONL file
+    - Uses Node.js (preferred) for precise millisecond timestamp parsing
+    - Falls back to Python3 or date command for timestamp conversion
+    - Returns duration as integer milliseconds (0 if unavailable)
+  - Updated `write_diary_entry()` function to:
+    - Call `calculate_duration_ms()` to get iteration duration (line 434)
+    - Include duration in jq JSON construction (line 453, 467)
+    - Include duration in fallback manual JSON (line 472)
+  - Verification step 1 (Run post-iteration-hook.sh): ✓
+    - Script runs successfully with session ID
+  - Verification step 2 (Read logs/iterations.jsonl): ✓
+    - Diary entry contains: `"duration":8521`
+  - Verification step 3 (Verify duration field is integer (ms)): ✓
+    - Node verification confirms: `typeof data.duration === 'number'` and `Number.isInteger(data.duration) === true`
+    - Value represents iteration duration calculated from session log timestamps
