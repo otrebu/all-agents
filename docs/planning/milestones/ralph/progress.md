@@ -3368,3 +3368,12 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Prompt Line 204: "What Makes a Good Subtask" states "filesToRead provides context without overwhelming"
     - Prompt Line 229: Validation checklist states "filesToRead contains relevant context files"
   - Fixed: Schema docs/planning/schemas/subtasks.schema.json line 50 now includes `filesToRead` in required array: `"required": ["id", "taskRef", "title", "description", "done", "acceptanceCriteria", "filesToRead"]`
+
+### 015-subtasks-auto-prompt-12
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** None required - prompt already implements single-shot execution pattern
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify single-shot pattern is used): ✓ Line 3 explicitly states: "This is a **single-shot, auto-generation prompt** - you will read the task, analyze the codebase deeply, and produce a subtasks.json file without human interaction."
+  - Verification step 3 (Verify no multi-turn expected): ✓ Line 3 says "without human interaction" and the entire Execution section (lines 270-278) is a single execution flow with no interaction points or user prompts during execution
