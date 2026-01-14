@@ -5735,3 +5735,14 @@ The prompt includes:
 - Script path is constructed as `path.join(SCRIPTS_DIR, "status.sh")` in index.ts line 283
 - Command works correctly from project root and subdirectories
 - Status output displays properly formatted build status information
+
+## 2026-01-14: 025-ralph-status-cli-03
+**Feature:** Works from any subdirectory within a project
+
+**What changed:**
+- Updated `tools/src/commands/ralph/index.ts` status command to resolve subtasks path relative to project root
+- CLI now checks if subtasks file exists at relative path, falls back to context root if not found
+- Added context root parameter passing from CLI to status.sh script
+- Updated `tools/src/commands/ralph/scripts/status.sh` to accept optional context-root argument
+- Script prioritizes: 1) context-root arg, 2) git root, 3) subtasks directory
+- Tested from multiple subdirectories (tools/, docs/planning/, nested dirs) - all correctly find project-root subtasks.json

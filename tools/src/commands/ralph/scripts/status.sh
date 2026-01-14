@@ -1,16 +1,19 @@
 #!/bin/bash
 # Ralph Status: Display current build progress and statistics
-# Usage: status.sh [subtasks-path]
+# Usage: status.sh [subtasks-path] [context-root]
 
 set -e
 
 SUBTASKS_PATH=${1:-subtasks.json}
+CONTEXT_ROOT=${2:-""}
 
-# Get the repo root - try git first, fall back to subtasks directory, then script location
+# Get the repo root - prefer context-root arg, then git, then subtasks directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Determine project root based on subtasks location or git root
-if [ -d "$(dirname "$SUBTASKS_PATH")/.git" ] || git rev-parse --show-toplevel &>/dev/null 2>&1; then
+# Determine project root
+if [ -n "$CONTEXT_ROOT" ] && [ -d "$CONTEXT_ROOT" ]; then
+  REPO_ROOT="$CONTEXT_ROOT"
+elif [ -d "$(dirname "$SUBTASKS_PATH")/.git" ] || git rev-parse --show-toplevel &>/dev/null 2>&1; then
   REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 else
   # Use directory containing subtasks.json as project root

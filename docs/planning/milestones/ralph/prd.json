@@ -4295,7 +4295,7 @@
       "Run aaa ralph status",
       "Verify command works correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-04",

@@ -281,11 +281,22 @@ ralphCommand.addCommand(
     .argument("[subtasks-path]", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .action((subtasksPath) => {
       const scriptPath = path.join(SCRIPTS_DIR, "status.sh");
+      const contextRoot = getContextRoot();
+
+      // Resolve subtasks path: if relative and not found at cwd, try relative to context root
+      let resolvedSubtasksPath = subtasksPath;
+      if (!path.isAbsolute(subtasksPath) && !existsSync(subtasksPath)) {
+        const rootRelativePath = path.join(contextRoot, subtasksPath);
+        if (existsSync(rootRelativePath)) {
+          resolvedSubtasksPath = rootRelativePath;
+        }
+      }
 
       try {
-        execSync(`bash "${scriptPath}" "${subtasksPath}"`, {
-          stdio: "inherit",
-        });
+        execSync(
+          `bash "${scriptPath}" "${resolvedSubtasksPath}" "${contextRoot}"`,
+          { stdio: "inherit" },
+        );
       } catch {
         process.exit(1);
       }
