@@ -5253,3 +5253,23 @@ The prompt includes:
   - Story 007 (Progress Visibility Status) implements status.sh from ralph milestone
   - Supporting stories identified through interactive dialogue for complete feature vision
 - Validation fixture: `docs/planning/milestones/ralph/test-fixtures/validation-022-stories-interactive-prompt-15.md`
+
+
+## 2026-01-14: 023-tasks-interactive-prompt-01
+
+### What changed
+- Created tasks-interactive.md prompt file at context/workflows/ralph/planning/tasks-interactive.md
+
+### Verification:
+- Step 1 (Navigate to context/workflows/ralph/planning/): ✓
+  - Directory exists and contains other planning prompts
+- Step 2 (Verify tasks-interactive.md file exists): ✓
+  - File created with 332 lines of prompt content
+  - Located at: context/workflows/ralph/planning/tasks-interactive.md
+- Step 3 (Verify file is readable): ✓
+  - File is valid markdown with proper structure
+  - Contains interactive multi-turn conversation prompt for task planning
+  - Includes story decomposition, technical approach exploration, tradeoff discussion
+  - References @context/blocks/docs/task-template.md
+  - Documents CLI invocation: `aaa ralph plan tasks --story <id>`
+  - Documents skill invocation: `/ralph plan tasks <story-id>`

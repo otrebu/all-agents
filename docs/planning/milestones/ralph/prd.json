@@ -3924,7 +3924,7 @@
       "Verify tasks-interactive.md file exists",
       "Verify file is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-02",
