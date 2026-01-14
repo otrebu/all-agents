@@ -3984,7 +3984,7 @@
       "Verify exit handling is documented",
       "Verify no forced completion"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-07",

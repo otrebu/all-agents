@@ -5359,3 +5359,16 @@ The prompt includes:
     - "Adapt your questions based on their answers" (line 135)
     - "Summarize what you've learned before moving to the next task" (line 134)
   - Session pacing guidelines (lines 146-151) establish multi-turn conversational flow
+
+### 023-tasks-interactive-prompt-06
+- **Status:** PASSED
+- **Changes:** Verified user can exit session when satisfied in tasks-interactive.md
+- **Details:**
+  - Exit handling is well documented in "Session Exit" section (lines 275-286):
+    - User can exit at any time by saying "done", "that's enough", "let's stop here", etc.
+    - When exiting: summarize tasks, offer to save unsaved tasks, note unexplored areas, suggest next steps
+  - No forced completion - user controls the session:
+    - Line 149: "The user controls when to move on"
+    - Line 150: "Some sessions may only define one or two tasks - that's fine"
+    - Line 329: Explicitly tells user "(You can say 'done' at any point when you feel we've covered enough...)"
+  - User-initiated exit is the primary session termination mechanism
