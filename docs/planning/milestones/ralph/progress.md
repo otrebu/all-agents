@@ -2710,3 +2710,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Read prompt content - file read successfully (214 lines)
     2. ✓ Verify output format matches context/blocks/docs/story-template.md - @path reference at line 63, story structure at lines 78-103 matches template
     3. ✓ Verify template compliance is instructed - explicit compliance at line 65, validation checklist references at lines 181 and 185
+
+### 013-stories-auto-prompt-06
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified Narrative section with JTBD format is required in stories-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 214 lines, readable
+  - Verification step 2 (Verify Narrative section is required in output): ✓
+    - Line 71: `| Narrative | Yes | JTBD format: As a [persona], I want [capability] so that [benefit] |` in Required Sections table
+    - Lines 83-84: Narrative included in Story File Structure template
+  - Verification step 3 (Verify JTBD format is referenced): ✓
+    - Lines 105-123: Full "## JTBD (Jobs To Be Done) Methodology" section with:
+      - Format definition: "As a [persona], I want [capability] so that [benefit]."
+      - Guidelines for persona, capability, and benefit
+      - Good vs bad examples table
+  - All three verification steps passed

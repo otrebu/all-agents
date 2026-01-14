@@ -2068,7 +2068,7 @@
       "Verify Narrative section is required in output",
       "Verify JTBD format is referenced"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-07",
