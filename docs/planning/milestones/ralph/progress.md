@@ -2223,3 +2223,30 @@
     1. ✓ Remove subtasks.json (tested with non-existent path)
     2. ✓ Run ralph calibrate intention - Command executed
     3. ✓ Verify helpful error message about missing file - Message shows path and guidance
+
+### 010-calibrate-sh-14
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified task files are created when drift is detected
+- **Details:**
+  - Used existing test fixture `docs/planning/milestones/ralph/test-fixtures/subtasks-drift-test.json`:
+    - Contains completed subtask DRIFT-TEST-001 with intentional scope creep
+    - Subtask acceptance criteria: email validation only
+    - Implementation adds phone and password validation (drift)
+    - Parent task TASK-DRIFT-001 explicitly lists phone/password validation as "Out of Scope"
+  - Task file exists at `docs/planning/tasks/drift-DRIFT-TEST-001-2026-01-14.md`
+  - Task file contains all required sections per intention-drift.md template (lines 270-309):
+    1. ✓ `## Task: Correct intention drift in DRIFT-TEST-001` - Header with subtask ID
+    2. ✓ `**Source:** Intention drift analysis` - Source field
+    3. ✓ `**Created:** 2026-01-14` - Date field
+    4. ✓ `**Commit:** drift-test-commit` - Commit hash field
+    5. ✓ `### Problem` - Description of scope creep drift
+    6. ✓ `### Planning Chain Reference` - Subtask → Task → Story (N/A) hierarchy
+    7. ✓ `### Drift Type` - Scope Creep classification
+    8. ✓ `### Evidence` - Code snippets showing phone/password validation drift
+    9. ✓ `### Corrective Action` - Three options: modify code, update plan, create new subtasks
+    10. ✓ `### Acceptance Criteria` - Checklist for resolution
+  - All three verification steps passed:
+    1. ✓ Create subtasks with intentional drift - `subtasks-drift-test.json` contains scope creep scenario
+    2. ✓ Run ralph calibrate intention - Command was previously run (documented in 010-calibrate-sh-12)
+    3. ✓ Verify task files are generated in correct location - File exists at `docs/planning/tasks/drift-DRIFT-TEST-001-2026-01-14.md`

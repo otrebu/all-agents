@@ -1697,7 +1697,7 @@
       "Run ralph calibrate intention",
       "Verify task files are generated in correct location"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-15",
