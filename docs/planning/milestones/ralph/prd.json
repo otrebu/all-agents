@@ -4379,7 +4379,7 @@
       "Run aaa ralph status",
       "Verify graceful error handling"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-01",

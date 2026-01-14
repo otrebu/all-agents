@@ -5811,3 +5811,16 @@ The prompt includes:
 - Tested with test-fixtures/subtasks.json: both show milestone, progress bar, completion status identically
 - CLI uses `stdio: "inherit"` in `execSync()` to pass through stdout correctly
 - No code changes needed - feature was already correctly implemented
+
+## 2026-01-14: 025-ralph-status-cli-10
+**Feature:** Error handling when status.sh fails
+
+**What changed:**
+- Updated `tools/src/commands/ralph/index.ts` ralph status command catch block (lines 300-310)
+- Previously: silently exited with code 1 (`catch { process.exit(1); }`)
+- Now: displays helpful error message with:
+  - Clear error header: "Error: Failed to get Ralph build status"
+  - Exit code if available from the error
+  - Troubleshooting hints for common issues (subtasks.json, ralph.config.json, iterations.jsonl)
+- Tested with forced script failure - error handling displays correctly
+- Verification: When status.sh exits with error, user sees actionable troubleshooting steps

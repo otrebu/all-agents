@@ -297,7 +297,15 @@ ralphCommand.addCommand(
           `bash "${scriptPath}" "${resolvedSubtasksPath}" "${contextRoot}"`,
           { stdio: "inherit" },
         );
-      } catch {
+      } catch (error) {
+        const execError = error as { message?: string; status?: number };
+        console.error("\nError: Failed to get Ralph build status");
+        if (execError.status !== undefined && execError.status !== 0) {
+          console.error(`  Exit code: ${execError.status}`);
+        }
+        console.error(
+          "\nTroubleshooting:\n  - Ensure subtasks.json exists and is valid JSON\n  - Verify ralph.config.json is valid if present\n  - Check logs/iterations.jsonl format if present",
+        );
         process.exit(1);
       }
     }),
