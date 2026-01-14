@@ -3412,3 +3412,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 33: Instructions to read parent task from `docs/planning/tasks/<task-id>*.md`
     - Line 225: Validation requirement that "taskRef matches the input task ID"
     - Line 102: Optional storyRef field maintains grandparent story relationship
+
+### 015-subtasks-auto-prompt-15
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** None required - prompt already implements milestone-level generation
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify milestone parameter handling exists): ✓ Lines 236-239 document `--milestone <milestone-name>` parameter with usage example
+  - Verification step 3 (Verify all tasks in milestone are processed): ✓ Lines 241-244 describe behavior:
+    - "Find all tasks in `docs/planning/tasks/` that reference stories in the milestone"
+    - "Generate subtasks for each task"
+    - "Combine into a single subtasks.json with appropriate metadata"
+  - Lines 246-254 show milestone-level metadata structure with `"scope": "milestone"` and `"milestoneRef": "<name>"`
