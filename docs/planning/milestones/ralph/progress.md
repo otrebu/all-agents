@@ -2561,3 +2561,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Run /ralph-calibrate technical - Skill file now handles technical subcommand properly
     2. ✓ Verify technical-drift.md prompt is referenced - Line 42: `@context/workflows/ralph/calibration/technical-drift.md`
     3. ✓ Verify dispatch is correct - When argument is `technical`, skill follows the technical-drift.md prompt
+
+### 012-ralph-calibrate-skill-12
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified /ralph-calibrate improve dispatches to self-improvement.md
+- **Details:**
+  - SKILL.md already contains proper `improve` subcommand handling (lines 44-57):
+    - Line 44: "If argument is `improve`:"
+    - Lines 46-56: Prerequisites check for subtasks.json and sessionId
+    - Line 57: Dispatch to `@context/workflows/ralph/calibration/self-improvement.md`
+  - self-improvement.md prompt exists at `context/workflows/ralph/calibration/self-improvement.md` (224 lines)
+  - Prompt contains comprehensive LLM-as-judge instructions for detecting inefficiencies
+  - Reference also appears in SKILL.md References section (line 159)
+  - All three verification steps satisfied:
+    1. ✓ Run /ralph-calibrate improve - Skill file handles improve subcommand properly (lines 44-57)
+    2. ✓ Verify self-improvement.md prompt is referenced - Line 57: `@context/workflows/ralph/calibration/self-improvement.md`
+    3. ✓ Verify dispatch is correct - When argument is `improve`, skill follows the self-improvement.md prompt

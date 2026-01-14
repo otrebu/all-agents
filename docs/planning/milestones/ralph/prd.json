@@ -1961,7 +1961,7 @@
       "Verify self-improvement.md prompt is referenced",
       "Verify dispatch is correct"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-13",
