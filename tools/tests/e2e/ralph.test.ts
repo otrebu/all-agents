@@ -120,6 +120,128 @@ describe("ralph E2E", () => {
   });
 });
 
+describe("iteration-summary prompt placeholder substitution", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(
+      tmpdir(),
+      `placeholder-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("placeholder substitution works in bash context", async () => {
+    // Read the iteration-summary.md prompt template
+    const promptPath = join(CONTEXT_ROOT, "prompts/iteration-summary.md");
+
+    // Define test values for substitution (simple values without special sed characters)
+    const testValues = {
+      ITERATION_NUM: "2",
+      MILESTONE: "test-milestone",
+      SESSION_JSONL_PATH: "tmp-test-session.jsonl",
+      STATUS: "success",
+      SUBTASK_ID: "task-test-001",
+      SUBTASK_TITLE: "Test Subtask Title",
+      TASK_REF: "docs-planning-tasks-test.md",
+    };
+
+    // Create a bash script that performs the placeholder substitution using sed with | delimiter
+    const scriptContent = `#!/bin/bash
+set -e
+
+# Read the prompt template
+PROMPT_TEMPLATE=$(cat "${promptPath}")
+
+# Substitute placeholders using sed with | delimiter
+SUBSTITUTED_PROMPT="$PROMPT_TEMPLATE"
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{SUBTASK_ID}}|${testValues.SUBTASK_ID}|g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{STATUS}}|${testValues.STATUS}|g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{SESSION_JSONL_PATH}}|${testValues.SESSION_JSONL_PATH}|g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{SUBTASK_TITLE}}|${testValues.SUBTASK_TITLE}|g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{MILESTONE}}|${testValues.MILESTONE}|g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{TASK_REF}}|${testValues.TASK_REF}|g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{ITERATION_NUM}}|${testValues.ITERATION_NUM}|g")
+
+# Output the substituted prompt
+echo "$SUBSTITUTED_PROMPT"
+`;
+
+    // Write the test script
+    const scriptPath = join(temporaryDirectory, "substitute.sh");
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
+
+    // Run the script
+    const { exitCode, stdout } = await execa("bash", [scriptPath], {
+      cwd: temporaryDirectory,
+    });
+
+    // Verify the script ran successfully
+    expect(exitCode).toBe(0);
+
+    // Verify all placeholders were replaced correctly
+    for (const [key, value] of Object.entries(testValues)) {
+      // Verify the substituted value appears in the output
+      expect(stdout).toContain(value);
+      // Verify no unsubstituted placeholders remain (for required fields)
+      if (["SESSION_JSONL_PATH", "STATUS", "SUBTASK_ID"].includes(key)) {
+        // These appear multiple times in the template, verify substitution happened
+        expect(stdout).not.toContain(`\`{{${key}}}\``);
+      }
+    }
+
+    // Verify specific substitution in the JSON output format section
+    expect(stdout).toContain(`"subtaskId": "${testValues.SUBTASK_ID}"`);
+  });
+
+  test("placeholder substitution handles paths with slashes", async () => {
+    const promptPath = join(CONTEXT_ROOT, "prompts/iteration-summary.md");
+
+    // Test values with paths containing slashes - use # delimiter in sed
+    const testValues = {
+      SESSION_JSONL_PATH: "/home/user/.claude/projects/test-path/session.jsonl",
+      STATUS: "success",
+      SUBTASK_ID: "task-015-04",
+    };
+
+    // Create a bash script using sed with # as delimiter to handle slashes in paths
+    const scriptContent = `#!/bin/bash
+set -e
+
+# Read the prompt template
+PROMPT_TEMPLATE=$(cat "${promptPath}")
+
+# Substitute placeholders using sed with # delimiter (handles / in paths)
+SUBSTITUTED_PROMPT="$PROMPT_TEMPLATE"
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s#{{SUBTASK_ID}}#${testValues.SUBTASK_ID}#g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s#{{STATUS}}#${testValues.STATUS}#g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s#{{SESSION_JSONL_PATH}}#${testValues.SESSION_JSONL_PATH}#g")
+
+echo "$SUBSTITUTED_PROMPT"
+`;
+
+    const scriptPath = join(temporaryDirectory, "substitute-paths.sh");
+    const { writeFileSync: writeFile } = await import("node:fs");
+    writeFile(scriptPath, scriptContent, { mode: 0o755 });
+
+    const { exitCode, stdout } = await execa("bash", [scriptPath], {
+      cwd: temporaryDirectory,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(testValues.SUBTASK_ID);
+    expect(stdout).toContain(testValues.SESSION_JSONL_PATH);
+    expect(stdout).toContain(`"subtaskId": "${testValues.SUBTASK_ID}"`);
+  });
+});
+
 describe("subtasks schema validation", () => {
   test("generated subtasks.json validates against schema", () => {
     // Load the schema

@@ -3085,7 +3085,7 @@
       "Run script",
       "Verify placeholders are replaced correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "018-iteration-summary-prompt-10",

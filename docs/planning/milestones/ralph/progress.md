@@ -4135,3 +4135,28 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - `docs/planning/milestones/ralph/test-fixtures/test-iteration-summary-haiku.sh`
 
 **Note:** Direct Claude CLI invocation not possible from within Claude session. Test script and fixtures prepared for manual verification.
+
+## 2026-01-14: 018-iteration-summary-prompt-09 - Placeholder substitution works in bash context
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Added E2E tests validating placeholder substitution in bash context
+- **Details:**
+  - Verification step 1 (Create bash script with placeholder substitution): ✓
+    - Added test `placeholder substitution works in bash context` in `tools/tests/e2e/ralph.test.ts`
+    - Test creates bash script dynamically with sed-based substitution
+    - Uses `|` delimiter in sed to avoid escaping issues
+    - Substitutes all 7 placeholders: SUBTASK_ID, STATUS, SESSION_JSONL_PATH, SUBTASK_TITLE, MILESTONE, TASK_REF, ITERATION_NUM
+  - Verification step 2 (Run script): ✓
+    - Test executes the generated bash script via `execa("bash", [scriptPath])`
+    - Script reads `prompts/iteration-summary.md` template
+    - Script performs sed substitutions and outputs result
+  - Verification step 3 (Verify placeholders are replaced correctly): ✓
+    - Test verifies all placeholder values appear in output
+    - Test verifies no unsubstituted `{{PLACEHOLDER}}` markers remain for required fields
+    - Test verifies JSON output section contains substituted subtaskId
+    - Added second test `placeholder substitution handles paths with slashes` using `#` delimiter
+    - Both tests pass successfully
+
+**Files Modified:**
+- `tools/tests/e2e/ralph.test.ts` - Added `iteration-summary prompt placeholder substitution` test suite with 2 tests
