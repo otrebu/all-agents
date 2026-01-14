@@ -4681,7 +4681,7 @@
       "Complete session",
       "Verify VISION.md is created/updated"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-06",

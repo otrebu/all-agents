@@ -6237,3 +6237,14 @@ All verification steps pass.
   - `aaa ralph plan vision --help` runs successfully
   - Help text displays: Usage, description, and options
   - Purpose is clear: "Start interactive vision planning session using Socratic method"
+
+### 028-ralph-plan-vision-cli-05
+- **Status:** PASSED
+- **Description:** Session creates/updates docs/planning/VISION.md
+- **Verification:**
+  - vision-interactive.md prompt contains explicit instructions to create VISION.md (lines 90-139)
+  - Prompt offers: "Would you like me to create `docs/planning/VISION.md` now?" (line 94)
+  - VISION.md format is fully documented in the prompt with all required sections
+  - docs/planning/VISION.md exists in the project (33KB, containing full vision document)
+  - CLI correctly invokes Claude with the prompt via `--append-system-prompt`
+  - Claude follows prompt instructions during interactive session to create/update the file
