@@ -2205,7 +2205,7 @@
       "Execute with Claude manually",
       "Verify output is valid story markdown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-01",
