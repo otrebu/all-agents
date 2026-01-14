@@ -3375,7 +3375,7 @@
       "Verify iteration-diary.schema.json exists",
       "Verify file is readable JSON"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-02",
@@ -3387,7 +3387,7 @@
       "Verify subtaskId in required array",
       "Verify subtaskId type is string"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-03",
@@ -3399,7 +3399,7 @@
       "Verify sessionId in required array",
       "Verify sessionId type is string"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-04",
@@ -3411,7 +3411,7 @@
       "Verify status in required array",
       "Verify status has enum constraint"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-05",
@@ -3423,7 +3423,7 @@
       "Verify summary in required array",
       "Verify summary type is string"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-06",
@@ -3435,7 +3435,7 @@
       "Verify timestamp in required array",
       "Verify timestamp type is string with format"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-07",
@@ -3448,7 +3448,7 @@
       "Verify errors type is array",
       "Verify errors not in required array"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-08",
@@ -3460,7 +3460,7 @@
       "Verify toolCalls field exists",
       "Verify toolCalls type is integer"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-09",
@@ -3472,7 +3472,7 @@
       "Verify filesChanged field exists",
       "Verify filesChanged type is array of strings"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-10",
@@ -3484,7 +3484,7 @@
       "Verify duration field exists",
       "Verify duration type is integer"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-11",
@@ -3496,7 +3496,7 @@
       "Verify status enum values",
       "Verify exactly 3 values: completed, failed, retrying"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-12",
@@ -3508,7 +3508,7 @@
       "Verify description property on each field",
       "Verify descriptions are meaningful"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-13",
@@ -3520,7 +3520,7 @@
       "Verify format constraints on relevant fields",
       "Verify timestamp format is specified"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-14",
@@ -3532,7 +3532,7 @@
       "Verify iteration-diary.template.json exists",
       "Verify template is valid JSON"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-15",
@@ -3544,7 +3544,7 @@
       "Validate against JSON Schema meta-schema",
       "Verify no syntax errors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-16",
@@ -3556,7 +3556,7 @@
       "Run through JSON Schema validator",
       "Verify validation passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-17",
@@ -3568,7 +3568,7 @@
       "Run through validator",
       "Verify validation fails"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-18",
@@ -3580,7 +3580,7 @@
       "Run through validator",
       "Verify validation fails"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-01",

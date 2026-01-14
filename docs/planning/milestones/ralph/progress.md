@@ -4705,3 +4705,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Test: "hook pause action respects pauseOnFailure config" - verifies config-driven pause triggers
 - Tests located in tools/tests/e2e/ralph.test.ts in "post-iteration-hook pause behavior integration test" describe block
 
+
+
+## 2026-01-14: 020-iteration-diary-schema
+
+### What changed
+- Created iteration-diary.schema.json at docs/planning/schemas/
+- Created iteration-diary.template.json at docs/planning/templates/
+- Schema defines required fields: subtaskId, sessionId, status, summary, timestamp
+- Schema defines optional fields: errors, toolCalls, filesChanged, duration, milestone, taskRef, iterationNum, keyFindings
+- Status field is enum: completed | failed | retrying
+- All fields include meaningful descriptions
+- Timestamp field has date-time format constraint
+- Template provides example diary entry for reference

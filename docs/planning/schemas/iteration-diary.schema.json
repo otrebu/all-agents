@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "iteration-diary.schema.json",
+  "title": "Iteration Diary Entry",
+  "description": "Schema for iteration diary entries in logs/iterations.jsonl - tracks Ralph iteration outcomes for status reporting and calibration",
+  "type": "object",
+  "required": ["subtaskId", "sessionId", "status", "summary", "timestamp"],
+  "properties": {
+    "subtaskId": {
+      "type": "string",
+      "description": "ID of the subtask this iteration worked on (e.g., 'SUB-001')"
+    },
+    "sessionId": {
+      "type": "string",
+      "description": "Claude Code session ID. Maps to ~/.claude/projects/<path>/<session-id>.jsonl for log analysis"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "failed", "retrying"],
+      "description": "Outcome of this iteration: completed (success), failed (gave up), retrying (will retry)"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Brief summary of what happened in this iteration"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when this iteration completed"
+    },
+    "milestone": {
+      "type": "string",
+      "description": "Name of the milestone this subtask belongs to"
+    },
+    "taskRef": {
+      "type": "string",
+      "description": "Reference to parent task (e.g., 'TASK-001')"
+    },
+    "iterationNum": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Which iteration attempt this was (1 = first try)"
+    },
+    "keyFindings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Key findings or insights from this iteration"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Error messages encountered during this iteration"
+    },
+    "toolCalls": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of tool calls made during this iteration"
+    },
+    "filesChanged": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of files modified during this iteration"
+    },
+    "duration": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Duration of the iteration in seconds"
+    }
+  }
+}
