@@ -4355,7 +4355,7 @@
       "Run from subdirectory",
       "Verify consistent behavior"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-09",

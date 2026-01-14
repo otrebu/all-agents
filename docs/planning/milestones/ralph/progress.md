@@ -5787,3 +5787,17 @@ The prompt includes:
   - Subtasks queue information
   - Iteration statistics (6 iterations, 0.0% success rate, 0.0 avg tool calls)
 - No code changes needed - feature was already correctly implemented
+
+## 2026-01-14: 025-ralph-status-cli-08
+**Feature:** Test from different working directories
+
+**What changed:**
+- Verified `aaa ralph status` works consistently from any directory within the project
+- Tested from project root (`/home/otrebu/dev/all-agents/`) - works correctly
+- Tested from subdirectory (`tools/src/`) - works correctly
+- Tested from deep subdirectory (`docs/planning/milestones/`) - works correctly
+- All tests show identical behavior:
+  - Config lookup uses project root via `getContextRoot()` (line 284 in index.ts)
+  - Context root is passed to status.sh (line 297)
+  - status.sh uses context root for all file lookups (config, diary, subtasks)
+- No code changes needed - feature was already correctly implemented
