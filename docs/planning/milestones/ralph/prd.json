@@ -1757,7 +1757,7 @@
       "Verify @context/workflows/ralph/planning/vision-interactive.md reference",
       "Verify vision subcommand routing"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "011-ralph-plan-skill-05",
