@@ -4126,7 +4126,7 @@
       "Verify onIterationComplete key exists",
       "Verify default value is [\"log\"]"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-03",

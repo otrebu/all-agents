@@ -5594,3 +5594,12 @@ The prompt includes:
 - Includes description fields for all settings
 - Includes selfImprovement configuration (mode: "always")
 - JSON syntax validated successfully
+
+## 2026-01-14: 024-ralph-config-template-02
+**Feature:** onIterationComplete hook defined with default: log
+
+**What changed:**
+- Verified `onIterationComplete` hook exists in `docs/planning/templates/ralph.config.template.json`
+- Template line 6 contains: `"onIterationComplete": ["log"]`
+- Default value is correctly set to `["log"]` (single action: log to diary)
+- Hook description provided on line 7: "Actions to execute after each build iteration completes"
