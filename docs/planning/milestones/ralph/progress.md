@@ -1211,3 +1211,21 @@
     - Examples 2-5 (lines 207-311) all demonstrate `aligned: false` output with required `reason` field
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-07
+- **Status:** PASSED
+- **Changes:** Verified graceful degradation for partial chains in pre-build-validation.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify partial chain handling is documented): ✓
+    - Lines 138-151: "## Graceful Degradation" section exists
+    - Lines 142-146: Table showing 3 validation levels based on available chain:
+      - Subtask only → Validate: well-defined, not too broad, not too narrow
+      - Subtask + Task → Above + alignment with Task scope and approach
+      - Subtask + Task + Story → Above + alignment with user need
+  - Verification step 3 (Verify prompt validates what exists): ✓
+    - Lines 148-151: "When a parent is missing:" instructions explicitly state:
+      - "Note it in the output but don't fail"
+      - "Validate what exists in the chain"
+      - "The subtask can still be aligned if it's well-defined"
+  - All three verification steps passed
+

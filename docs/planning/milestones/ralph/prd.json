@@ -1000,7 +1000,7 @@
       "Verify partial chain handling is documented",
       "Verify prompt validates what exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-08",
