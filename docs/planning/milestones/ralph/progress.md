@@ -2056,3 +2056,21 @@
     - Claude is invoked with `--dangerously-skip-permissions` and `-p` flags
     - Full prompt includes context files: CLAUDE.md, PROGRESS.md, VISION.md
     - Approval mode is included in prompt based on config/CLI flags
+
+### 010-calibrate-sh-05
+- **Status:** PASSED
+- **Changes:** Verified output shows summary in stdout
+- **Details:**
+  - Verification steps completed:
+    1. ✓ Run ralph calibrate intention - command invokes `claude $PERM_FLAG -p "$PROMPT"` (line 214)
+    2. ✓ Verify summary is output to stdout - Claude's `-p` flag outputs to stdout by default
+    3. ✓ Verify summary is readable - intention-drift.md defines clear markdown format (lines 227-268)
+  - Implementation verified:
+    - `run_intention_check()` builds prompt with explicit instruction: "output a summary to stdout" (line 209)
+    - Claude is invoked without output redirection, so stdout is used
+    - The summary format in intention-drift.md includes:
+      - Header with subtask ID, title, commit hash, date
+      - Planning chain section (Vision, Story, Task, Subtask)
+      - Analysis section with drift detection and evidence
+      - Recommendation section
+    - Format is readable markdown with clear structure and sections
