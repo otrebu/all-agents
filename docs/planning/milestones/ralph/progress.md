@@ -4756,3 +4756,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Step 1 (Read prompt content): ✓ Read technical-drift.md
 - Step 2 (Verify filesToRead reference exists): ✓ Added section 3 with explicit `filesToRead` array reference and JSON example
 - Step 3 (Verify documentation reading is instructed): ✓ Section explicitly instructs reading `.md` files for documentation standards
+
+## 2026-01-14: 021-technical-drift-prompt-04
+
+### What changed
+- Verified existing technical-drift.md prompt already includes few-shot examples of violations
+- Found 2 violation examples in the "Few-Shot Examples" section (lines 172-261):
+  1. Example 1 (lines 174-195): "Clear Drift (Flag This)" - Missing Tests violation
+     - Context: "Add user service to fetch user data" with project standard requiring test files
+     - Git diff showing service code without corresponding test file
+     - Judgment: DRIFT - Missing Tests
+  2. Example 3 (lines 222-239): "Clear Drift (Flag This)" - Type Safety Issues violation
+     - Context: "Implement API endpoint" with strict TypeScript standard
+     - Git diff showing multiple `any` types
+     - Judgment: DRIFT - Type Safety Issues
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read technical-drift.md (375 lines)
+- Step 2 (Verify violation examples exist): ✓ Found Examples 1 and 3 with "Clear Drift (Flag This)" labels
+- Step 3 (Verify examples are clear and specific): ✓ Each example includes subtask context, project standard, git diff, and explicit judgment with reasoning
