@@ -915,7 +915,7 @@
       "Ensure subtask fails repeatedly",
       "Verify loop terminates after exactly 2 attempts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-01",

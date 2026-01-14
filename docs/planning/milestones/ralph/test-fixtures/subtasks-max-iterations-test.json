@@ -1,0 +1,14 @@
+[
+  {
+    "id": "max-iter-test-001",
+    "taskRef": null,
+    "title": "Intentionally failing subtask for max iterations test",
+    "description": "This subtask is designed to always fail to test the max iterations limit. The acceptance criteria is impossible to meet.",
+    "done": false,
+    "filesToRead": [],
+    "acceptanceCriteria": [
+      "This criteria can never be met - intentionally impossible",
+      "Used for testing --max-iterations behavior"
+    ]
+  }
+]
