@@ -3880,3 +3880,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Execution section correctly documents `tools/src/commands/ralph/scripts/status.sh`
     - Script exists and is executable (-rwxrwxr-x permissions)
     - Script runs successfully producing formatted status output
+
+## 2026-01-14: 017-ralph-status-skill-04 - Skill description clearly explains what it does
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified existing implementation (no code changes needed)
+- **Details:**
+  - Verification step 1 (Read SKILL.md content): ✓
+    - SKILL.md at `.claude/skills/ralph-status/SKILL.md` read successfully
+  - Verification step 2 (Verify description exists): ✓
+    - YAML frontmatter contains description field on line 3
+    - Description: "Display Ralph build status and progress. Use when user asks for 'ralph status', 'build status', 'queue status', or wants to see subtask progress and iteration statistics."
+  - Verification step 3 (Verify description is clear and accurate): ✓
+    - Description clearly states the skill displays build status and progress
+    - Lists specific triggers: "ralph status", "build status", "queue status"
+    - Mentions key outputs: subtask progress and iteration statistics
+    - Additional documentation in "What It Shows" section (lines 24-36) provides detailed breakdown of outputs
