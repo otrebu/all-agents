@@ -879,7 +879,7 @@
       "Verify stdout contains prompt content",
       "Verify no Claude process is spawned"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-13",

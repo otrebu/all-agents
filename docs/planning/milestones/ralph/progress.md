@@ -1031,3 +1031,23 @@
     2. ✓ Verify exit code is 0 - confirmed
     3. ✓ Verify help text is displayed - shows usage, description, and all options
 
+### 005-build-sh-12
+- **Status:** PASSED
+- **Changes:** Validated print mode outputs prompt without running Claude
+- **Details:**
+  - Ran `aaa ralph build -p` command
+  - Verified stdout contains prompt content:
+    - "=== Ralph Build Prompt ===" start marker present
+    - "=== End of Prompt ===" end marker present
+    - ralph-iteration.md prompt content displayed
+    - CLAUDE.md context included
+    - PROGRESS.md context included
+  - Verified no Claude process is spawned:
+    - No "Invoking Claude..." message in output
+    - No session ID captured (which would indicate Claude ran)
+  - Exit code is 0 (success)
+  - All three verification steps passed:
+    1. ✓ Run aaa ralph build -p - command executed successfully
+    2. ✓ Verify stdout contains prompt content - full prompt with context files displayed
+    3. ✓ Verify no Claude process is spawned - confirmed by absence of invocation messages
+
