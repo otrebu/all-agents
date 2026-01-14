@@ -1036,7 +1036,7 @@
       "Verify too narrow detection is included",
       "Verify criteria for too narrow defined"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-11",

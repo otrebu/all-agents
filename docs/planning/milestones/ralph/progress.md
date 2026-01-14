@@ -1266,3 +1266,21 @@
     - Lines 233-262: Example 3 demonstrates too broad detection with full JSON output
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-10
+- **Status:** PASSED
+- **Changes:** Verified too narrow subtask detection in pre-build-validation.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify too narrow detection is included): ✓
+    - Lines 102-117: Section "### 3. Too Narrow" explicitly includes too narrow detection
+    - Line 104: Definition: "The subtask is so small it doesn't add meaningful value independently."
+  - Verification step 3 (Verify criteria for too narrow defined): ✓
+    - Lines 106-109: "**Check for:**" lists specific detection criteria:
+      - Single-line changes that should be part of a larger subtask
+      - Changes that can't be tested in isolation
+      - Work that makes no sense without another subtask completing first
+    - Lines 111-115: Example of too narrow provided ("Add import statement for JWT library")
+    - Line 117: Clear criteria: "A subtask should produce a testable, meaningful change."
+    - Lines 264-284: Example 4 demonstrates too narrow detection with full JSON output
+  - All three verification steps passed
+
