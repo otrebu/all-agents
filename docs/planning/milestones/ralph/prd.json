@@ -3734,7 +3734,7 @@
       "Verify task files are created",
       "Verify task files contain actionable content"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-01",

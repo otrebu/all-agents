@@ -4930,3 +4930,24 @@ The validation demonstrates that code marked with `// HUMAN APPROVED` is correct
   - Approved code blocks are skipped with documented reasons
   - Non-approved code (`processModernPayment`) still analyzed
   - Summary shows "Code sections with HUMAN APPROVED: 3 (skipped)"
+
+## 2026-01-14: 021-technical-drift-prompt-13
+
+### What changed
+- Created validation test fixture `validation-021-technical-drift-prompt-13.md` demonstrating that the technical-drift.md prompt produces actionable task files for violations
+
+### Test Case Details
+The validation documents the expected task file output when violations are detected:
+- **Task file location**: `docs/planning/tasks/tech-<subtask-id>-<date>.md` (per prompt line 356)
+- **Task file structure**: Header with subtask reference, Source, Created, Commit fields
+- **Issues section**: Each issue has Severity, Files affected, Evidence, and Fix fields
+- **Acceptance criteria**: Checklist for tracking resolution
+
+### Verification:
+- Step 1 (Run prompt with violations present): ✓ Uses existing `subtasks-technical-drift-test.json` fixture with 4 known violations (type safety, missing tests, missing error handling, documentation gaps)
+- Step 2 (Verify task files are created): ✓ Validation documents expected task file at `docs/planning/tasks/tech-TECH-DRIFT-001-2026-01-14.md` with complete structure matching prompt lines 352-384
+- Step 3 (Verify task files contain actionable content): ✓ Expected task file content includes:
+  - Specific evidence (actual code snippets from diff)
+  - Specific fixes (types to add, files to create, patterns to follow)
+  - Severity ratings for prioritization
+  - Checklist acceptance criteria for tracking completion
