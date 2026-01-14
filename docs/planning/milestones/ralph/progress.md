@@ -2358,3 +2358,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - When skill is invoked with `vision` argument, it instructs to follow the full workflow in the referenced prompt
   - Reference also appears in the References section (line 87) for documentation
   - Previous features (011-07) confirm invocation successfully starts the planning session
+
+### 011-ralph-plan-skill-09
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified skill appears in Claude Code available skills list (duplicate validation test)
+- **Details:**
+  - Listed available skills in Claude Code session (visible in system prompt)
+  - Searched for `ralph-plan` in the available skills list
+  - Confirmed skill is discoverable with description: "Interactive vision planning using Socratic method. Use when user asks to 'ralph plan vision', 'plan a vision', or needs to define product vision through guided dialogue."
+  - This is a duplicate of feature 011-ralph-plan-skill-06 which also validates skill discoverability
+  - All three verification steps pass:
+    1. ✓ List skills in Claude Code - Skills visible in system prompt
+    2. ✓ Search for ralph-plan - Skill found in available skills list
+    3. ✓ Verify skill is discoverable - Skill appears with proper name and description

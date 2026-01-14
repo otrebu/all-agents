@@ -1817,7 +1817,7 @@
       "Search for ralph-plan",
       "Verify skill is discoverable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-01",
