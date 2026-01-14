@@ -126,7 +126,7 @@ get_diary_path() {
 # Determine session JSONL path from session ID
 get_session_jsonl_path() {
   # Claude stores sessions at ~/.claude/projects/<encoded-path>/<sessionId>.jsonl
-  # The encoded path is the base64-encoded project path
+  # The encoded path can be base64-encoded or a dash-separated path format
   local encoded_path
   encoded_path=$(echo -n "$REPO_ROOT" | base64 -w 0 2>/dev/null || echo -n "$REPO_ROOT" | base64)
 
@@ -134,21 +134,56 @@ get_session_jsonl_path() {
 
   if [ -f "$session_path" ]; then
     echo "$session_path"
-  else
-    # Try alternative path encoding (sometimes it uses different encoding)
-    # Also check common locations
-    for check_path in \
-      "$HOME/.claude/projects/${SESSION_ID}.jsonl" \
-      "$HOME/.claude/sessions/${SESSION_ID}.jsonl"; do
-      if [ -f "$check_path" ]; then
-        echo "$check_path"
-        return
-      fi
-    done
-
-    # If we can't find it, return empty and handle gracefully
-    echo ""
+    return
   fi
+
+  # Try alternative path encoding: dash-separated (e.g., -home-otrebu-dev-all-agents)
+  local dash_encoded_path
+  dash_encoded_path=$(echo "$REPO_ROOT" | sed 's|/|-|g')
+  local dash_session_path="$HOME/.claude/projects/$dash_encoded_path/${SESSION_ID}.jsonl"
+
+  if [ -f "$dash_session_path" ]; then
+    echo "$dash_session_path"
+    return
+  fi
+
+  # Also check common locations
+  for check_path in \
+    "$HOME/.claude/projects/${SESSION_ID}.jsonl" \
+    "$HOME/.claude/sessions/${SESSION_ID}.jsonl"; do
+    if [ -f "$check_path" ]; then
+      echo "$check_path"
+      return
+    fi
+  done
+
+  # Last resort: search in ~/.claude/projects for the session ID
+  local found_path
+  found_path=$(find "$HOME/.claude/projects" -name "${SESSION_ID}.jsonl" -type f 2>/dev/null | head -1)
+  if [ -n "$found_path" ] && [ -f "$found_path" ]; then
+    echo "$found_path"
+    return
+  fi
+
+  # If we can't find it, return empty and handle gracefully
+  echo ""
+}
+
+# Count tool calls from session JSONL
+# Tool calls are entries with "type":"tool_use"
+count_tool_calls() {
+  local session_jsonl_path
+  session_jsonl_path=$(get_session_jsonl_path)
+
+  if [ -z "$session_jsonl_path" ] || [ ! -f "$session_jsonl_path" ]; then
+    echo "0"
+    return
+  fi
+
+  # Count lines containing "type":"tool_use"
+  local count
+  count=$(grep -c '"type":"tool_use"' "$session_jsonl_path" 2>/dev/null || echo "0")
+  echo "$count"
 }
 
 # Generate summary using Haiku
@@ -240,6 +275,10 @@ write_diary_entry() {
     " 2>/dev/null)
   fi
 
+  # Count tool calls from session log
+  local tool_calls
+  tool_calls=$(count_tool_calls)
+
   # Build diary entry JSON
   local timestamp
   timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -257,7 +296,7 @@ write_diary_entry() {
       --argjson iterationNum "$ITERATION_NUM" \
       --argjson keyFindings "$key_findings" \
       --argjson errors "[]" \
-      --argjson toolCalls "0" \
+      --argjson toolCalls "$tool_calls" \
       '{
         subtaskId: $subtaskId,
         sessionId: $sessionId,
@@ -273,7 +312,7 @@ write_diary_entry() {
       }')
   else
     # Fallback: construct JSON manually
-    entry='{"subtaskId":"'"$SUBTASK_ID"'","sessionId":"'"$SESSION_ID"'","status":"'"$STATUS"'","summary":"'"$summary"'","timestamp":"'"$timestamp"'","milestone":"'"$MILESTONE"'","taskRef":"'"$TASK_REF"'","iterationNum":'"$ITERATION_NUM"',"keyFindings":'"$key_findings"',"errors":[],"toolCalls":0}'
+    entry='{"subtaskId":"'"$SUBTASK_ID"'","sessionId":"'"$SESSION_ID"'","status":"'"$STATUS"'","summary":"'"$summary"'","timestamp":"'"$timestamp"'","milestone":"'"$MILESTONE"'","taskRef":"'"$TASK_REF"'","iterationNum":'"$ITERATION_NUM"',"keyFindings":'"$key_findings"',"errors":[],"toolCalls":'"$tool_calls"'}'
   fi
 
   # Append to diary file

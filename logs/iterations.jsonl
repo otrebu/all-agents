@@ -4,3 +4,6 @@
 {"status":"failure","toolCalls":10}
 
 {"subtaskId":"test-019-05","sessionId":"session-abc","status":"success","summary":"Test summary for 019-05","timestamp":"2026-01-14T06:19:34Z","milestone":"ralph","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0}
+{"subtaskId":"test-errors-019-08","sessionId":"session-error-test","status":"failure","summary":"","timestamp":"2026-01-14T06:26:02Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0}
+
+{"subtaskId":"test-019-toolcalls","sessionId":"010e9074-d269-484e-84e9-0a04dcd8c71d","status":"success","summary":"Testing toolCalls field implementation","timestamp":"2026-01-14T06:35:08Z","milestone":"ralph","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":16}

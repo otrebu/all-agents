@@ -3205,7 +3205,7 @@
       "Read logs/iterations.jsonl",
       "Verify toolCalls field is integer"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-10",

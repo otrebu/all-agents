@@ -4343,3 +4343,27 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - errors field is properly typed as JSON array
     - Field initialized as empty array via jq at line 259 `--argjson errors "[]"` and line 271 `errors: $errors`
     - Also included in fallback manual JSON construction at line 276: `"errors":[]`
+
+### 019-post-iteration-hook-09
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Implemented toolCalls count extraction from session JSONL in post-iteration-hook.sh
+- **Details:**
+  - Added `count_tool_calls()` function (lines 172-186) that:
+    - Calls `get_session_jsonl_path()` to find the session log
+    - Uses grep to count entries with `"type":"tool_use"` which represents tool calls
+    - Returns "0" gracefully if session log not found
+  - Updated `get_session_jsonl_path()` function (lines 126-170) with:
+    - Added dash-separated path format support (e.g., -home-otrebu-dev-all-agents)
+    - Added fallback search using find command for more robust session discovery
+  - Modified `write_diary_entry()` function to:
+    - Call `count_tool_calls()` to get actual tool call count (line 262)
+    - Use the counted value in jq JSON construction (line 281) instead of hardcoded "0"
+    - Use the counted value in fallback manual JSON (line 297)
+  - Verification step 1 (Run post-iteration-hook.sh): ✓
+    - Script runs successfully and counts tool calls from session log
+  - Verification step 2 (Read logs/iterations.jsonl): ✓
+    - Diary entry written with toolCalls field populated
+  - Verification step 3 (Verify toolCalls field is integer): ✓
+    - Test entry shows `"toolCalls":16`
+    - Node verification confirms: `typeof data.toolCalls === 'number'` and `Number.isInteger(data.toolCalls) === true`
