@@ -3036,7 +3036,7 @@
       "Verify key findings are in output format",
       "Verify finding extraction is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "018-iteration-summary-prompt-06",
