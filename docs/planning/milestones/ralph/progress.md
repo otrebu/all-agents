@@ -1195,3 +1195,19 @@
     - Lines 185-206: Example 1 demonstrates aligned: true case with full context and reasoning
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-06
+- **Status:** PASSED
+- **Changes:** Verified JSON output format with aligned: false and reason for invalid subtasks in pre-build-validation.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify aligned: false case is documented): ✓
+    - Lines 165-176: "### Misaligned Subtask" section explicitly documents the false case
+    - Lines 169-175: JSON format shows `{"aligned": false, "reason": "<specific issue found>", ...}`
+  - Verification step 3 (Verify reason field is required for false case): ✓
+    - Lines 178-181: "**Required fields for `aligned: false`:**" explicitly states requirements
+    - Line 179: `reason`: Specific description of what's wrong
+    - Line 180: `issue_type`: One of: `scope_creep`, `too_broad`, `too_narrow`, `unfaithful`
+    - Line 181: `suggestion`: Actionable fix recommendation
+    - Examples 2-5 (lines 207-311) all demonstrate `aligned: false` output with required `reason` field
+  - All three verification steps passed
+

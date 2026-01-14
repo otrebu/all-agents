@@ -988,7 +988,7 @@
       "Verify aligned: false case is documented",
       "Verify reason field is required for false case"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-07",
