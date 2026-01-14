@@ -2376,7 +2376,7 @@
     "steps": [
       "Verify context/workflows/ralph/planning/tasks-auto.md exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-16",

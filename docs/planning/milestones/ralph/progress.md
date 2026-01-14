@@ -3115,3 +3115,13 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Examples: TASK-001, TASK-002, TASK-015
     - "### ID Uniqueness Rules" section (lines 165-169) documenting global uniqueness and no-reuse policy
   - Added "## Task ID Generation" parent section (lines 129-169) containing all new documentation
+
+### 014-tasks-auto-prompt-15
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt file exists at correct path
+- **Details:**
+  - Verification step 1 (Verify context/workflows/ralph/planning/tasks-auto.md exists): ✓
+    - File confirmed at `/home/otrebu/dev/all-agents/context/workflows/ralph/planning/tasks-auto.md`
+    - Glob pattern `**/tasks-auto.md` returned the file path
+    - File is in the correct directory alongside: vision-interactive.md, roadmap-auto.md, stories-auto.md
