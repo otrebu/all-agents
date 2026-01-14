@@ -3494,3 +3494,24 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Subtask fields match required fields in schema
     - Validation checklist at lines 234-245 explicitly states "Output is valid JSON matching the schema"
   - All three verification steps passed
+
+### 015-subtasks-auto-prompt-21
+- **Status:** PASSED
+- **Changes:** Verified prompt generates required fields documentation
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read context/workflows/ralph/planning/subtasks-auto.md
+  - Verification step 2 (Verify all 7 required fields are documented): ✓
+    - Lines 99-112 contain "### Required Fields Per Subtask" section
+    - Table documents all 7 required fields:
+      1. `id` - string - Unique ID: `SUB-NNN` pattern
+      2. `taskRef` - string - Parent task reference: `TASK-NNN` pattern
+      3. `title` - string - Short title (max 100 chars)
+      4. `description` - string - Detailed description of what to implement
+      5. `done` - boolean - Always `false` for new subtasks
+      6. `acceptanceCriteria` - string[] - How to verify subtask is complete
+      7. `filesToRead` - string[] - Files to read before implementing
+  - Verification step 3 (Verify field descriptions exist): ✓
+    - Each field in the table has a Description column with meaningful text
+    - Schema at docs/planning/schemas/subtasks.schema.json confirms these 7 as required (line 50)
+  - All three verification steps passed
