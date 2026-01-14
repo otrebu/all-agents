@@ -1725,3 +1725,22 @@
     - Step 2 (Verify output has clear section headers): ✓ All 3 sections have bold headers with underlines
     - Step 3 (Verify information is organized logically): ✓ Config → Queue → Stats flow is intuitive
   - All three verification steps passed
+
+### 008-status-sh-11
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Validated test with populated subtasks.json (no code changes needed)
+- **Details:**
+  - Used existing test fixture: `docs/planning/milestones/ralph/test-fixtures/subtasks.json`
+  - Test fixture contains 4 subtasks (2 completed, 2 pending)
+  - Ran `bash tools/src/commands/ralph/scripts/status.sh docs/planning/milestones/ralph/test-fixtures/subtasks.json`
+  - Verified all data displays correctly:
+    - Milestone: `ralph` - Correctly extracted from taskRef path
+    - Progress: `[██████████░░░░░░░░░░] 2/4 (50%)` - Correct done/total count with progress bar
+    - Last done: `test-002 (2026-01-14 09:15)` - Correct ID and formatted timestamp
+    - Next up: `test-003` with description "Next subtask to implement" - Correct ID and title
+  - Created validation record: `docs/planning/milestones/ralph/test-fixtures/validation-008-status-sh-11.md`
+  - All three verification steps passed:
+    1. ✓ Created subtasks.json with multiple entries (test fixture exists)
+    2. ✓ Ran status.sh - script executed successfully
+    3. ✓ Verified all counts and data display correctly - milestone, progress, last done, next up all correct

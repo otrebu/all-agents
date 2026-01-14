@@ -1349,7 +1349,7 @@
       "Run status.sh",
       "Verify all counts and data display correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "008-status-sh-12",
