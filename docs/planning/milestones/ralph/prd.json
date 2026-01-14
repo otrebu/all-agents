@@ -1313,7 +1313,7 @@
       "Run status.sh",
       "Verify average tool calls is calculated and shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "008-status-sh-09",

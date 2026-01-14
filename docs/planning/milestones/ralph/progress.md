@@ -1672,3 +1672,18 @@
     - Step 2 (Run status.sh): ✓ Executed script against test data
     - Step 3 (Verify success rate percentage is calculated and shown): ✓ Shows "Success rate: 75.0%" with correct yellow color for mid-range values
   - All three verification steps passed
+
+### 008-status-sh-08
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified average tool calls display in status.sh
+- **Details:**
+  - The `get_diary_stats()` function (lines 237-299) already calculates average tool calls correctly
+  - Line 433 displays the result: `echo -e "  Avg tool calls: ${BLUE}$avg_tools${NC}"`
+  - Calculation: sums all `toolCalls` fields from JSONL entries and divides by total count
+  - Supports both jq and Node.js fallback for cross-platform compatibility
+  - Verification:
+    - Step 1 (Create diary with toolCalls data): ✓ Created iterations.jsonl with entries having toolCalls: 15, 25, 10
+    - Step 2 (Run status.sh): ✓ Executed script against test data
+    - Step 3 (Verify average tool calls is calculated and shown): ✓ Shows "Avg tool calls: 16.7" (correctly calculated as (15+25+10)/3 = 16.7)
+  - All three verification steps passed
