@@ -3782,7 +3782,7 @@
       "Verify priority-related questions exist",
       "Verify story importance is explored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-05",

@@ -5012,3 +5012,23 @@ The prompt includes:
   - Deferrable edge cases
   - Minimum viable scope
   - Assumptions about existing functionality
+
+## 2026-01-14: 022-stories-interactive-prompt-04
+
+### What changed
+- Verified priority-related questions exist in stories-interactive.md
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read `context/workflows/ralph/planning/stories-interactive.md`
+- Step 2 (Verify priority-related questions exist): ✓ Phase 4: Priority Assessment (lines 78-88) contains:
+  - Key question: "How important is this story relative to others we've discussed?"
+  - "If we could only ship one story, which would have the most impact?"
+  - "What would users lose if we delayed this story?"
+  - "Does this story unlock other capabilities?"
+  - "Is there a natural sequence these stories should follow?"
+- Step 3 (Verify story importance is explored): ✓ Priority probes explicitly address:
+  - Relative importance between stories
+  - Impact assessment (which story has most impact)
+  - Consequence analysis (what users lose if delayed)
+  - Dependency tracking (unlocking other capabilities)
+  - Sequencing considerations (natural order)
