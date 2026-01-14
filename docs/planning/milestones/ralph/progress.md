@@ -1229,3 +1229,21 @@
       - "The subtask can still be aligned if it's well-defined"
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-08
+- **Status:** PASSED
+- **Changes:** Verified scope creep detection in pre-build-validation.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify scope creep detection is included): ✓
+    - Lines 66-83: Section "### 1. Scope Creep" explicitly includes scope creep detection
+    - Line 68: Definition: "The subtask's scope extends beyond what the parent Task defines."
+  - Verification step 3 (Verify criteria for scope creep defined): ✓
+    - Lines 70-73: "**Check for:**" lists specific detection criteria:
+      - Acceptance criteria that mention features not in the Task
+      - Description that adds functionality beyond Task scope
+      - Work that should be a separate subtask
+    - Lines 75-80: Example of scope creep provided with Task/Subtask comparison
+    - Line 82: Clear criteria: "All acceptance criteria should map to Task requirements."
+    - Lines 207-231: Example 2 demonstrates scope creep detection with full JSON output
+  - All three verification steps passed
+
