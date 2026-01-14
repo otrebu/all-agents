@@ -70,31 +70,37 @@ Read and follow the task template:
 
 ### Required Sections
 
+The task template defines these sections (matching @context/blocks/docs/task-template.md exactly):
+
 | Section | Required | Purpose |
 |---------|----------|---------|
-| Story | Yes | Link to parent story |
+| Story | No | Link to parent story (if this task implements a story) |
 | Goal | Yes | One sentence outcome - "what's true when done?" |
 | Context | Yes | The why: problem, trigger, constraints, links |
 | Plan | Yes | Numbered steps - concrete actions |
 | Acceptance Criteria | Yes | Checkboxes - how we verify success |
 | Test Plan | Yes | What tests to add/update/run |
 | Scope | Yes | Explicit boundaries - prevents creep |
-| Notes | No | Catch-all for extras (risks, edge cases, etc.) |
+| Notes | No | Catch-all for extras (risks, edge cases, rollback, etc.) |
+
+**Note:** Since this prompt generates tasks FROM stories, the Story link SHOULD always be included to maintain traceability, even though the template marks it as optional.
 
 ### Task File Structure
+
+This structure matches @context/blocks/docs/task-template.md exactly:
 
 ```markdown
 ## Task: [Short descriptive name]
 
-**Story:** [STORY-XXX-slug](../stories/STORY-XXX-slug.md)
+**Story:** [STORY-001-auth](../stories/STORY-001-auth.md) *(optional)*
 
 ### Goal
 [One sentence: what should be true when this is done?]
 
 ### Context
-[Why this matters. Include:
+[Why this matters. Link to ticket/spec if exists. Include:
 - Current state / problem description
-- What triggered this work (from parent story)
+- What triggered this work
 - Any constraints or dependencies]
 
 ### Plan
@@ -115,7 +121,7 @@ Read and follow the task template:
 - **Out:** [What this explicitly excludes]
 
 ### Notes
-[Optional: Technical considerations, risks, edge cases]
+[Optional: Technical considerations, risks, edge cases, investigation findings, rollback plan - whatever's relevant to THIS task]
 ```
 
 ## File Naming Convention

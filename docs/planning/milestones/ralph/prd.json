@@ -2253,7 +2253,7 @@
       "Verify output format matches context/blocks/docs/task-template.md",
       "Verify template compliance is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-05",

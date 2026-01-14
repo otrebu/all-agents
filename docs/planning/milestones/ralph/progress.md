@@ -2963,3 +2963,23 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
       - "Note dependencies" for packages/modules
       - "Match conventions" for file naming and code style
   - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
+
+### 014-tasks-auto-prompt-04
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Updated tasks-auto.md to exactly match task-template.md format
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md and task-template.md
+  - Verification step 2 (Verify output format matches context/blocks/docs/task-template.md): ✓ Updated:
+    - Required Sections table now matches task-template.md exactly:
+      - Story marked as optional (Required: No) instead of Yes
+      - Notes description updated to "Catch-all for extras (risks, edge cases, rollback, etc.)"
+    - Task File Structure template now matches task-template.md exactly:
+      - Story line shows `*(optional)*` marker
+      - Context includes "Link to ticket/spec if exists"
+      - Notes expanded to include "investigation findings, rollback plan - whatever's relevant to THIS task"
+    - Added clarifying note that Story SHOULD be included for story-derived tasks despite being optional in template
+    - Added explicit statement: "This structure matches @context/blocks/docs/task-template.md exactly"
+  - Verification step 3 (Verify template compliance is instructed): ✓ Found at:
+    - Line 69: "Generated tasks MUST comply exactly with the template above"
+    - Lines 207-218: Validation Checklist including "Task format matches the template exactly"
