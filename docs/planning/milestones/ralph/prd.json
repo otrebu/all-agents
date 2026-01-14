@@ -2561,7 +2561,7 @@
       "Read prompt content",
       "Verify filesToRead field is required in output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-12",

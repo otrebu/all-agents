@@ -47,7 +47,7 @@
   "$defs": {
     "subtask": {
       "type": "object",
-      "required": ["id", "taskRef", "title", "description", "done", "acceptanceCriteria"],
+      "required": ["id", "taskRef", "title", "description", "done", "acceptanceCriteria", "filesToRead"],
       "properties": {
         "id": {
           "type": "string",

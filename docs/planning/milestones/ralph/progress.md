@@ -3354,3 +3354,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 223: Validation checklist includes `acceptanceCriteria` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
     - Line 156: Sizing constraints mention "Have 2-5 acceptance criteria"
     - Line 228: Validation checklist states "Acceptance criteria are concrete and verifiable"
+
+### 015-subtasks-auto-prompt-11
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Updated subtasks.schema.json to require filesToRead field, aligning schema with prompt documentation
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify filesToRead field is required in output): ✓ Multiple locations confirm filesToRead is required:
+    - Prompt Line 96: Required Fields table shows `| `filesToRead` | string[] | Files to read before implementing |`
+    - Prompt Line 223: Validation checklist includes `filesToRead` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
+    - Prompt Lines 206-217: Full "### filesToRead Guidelines" section with usage instructions
+    - Prompt Line 204: "What Makes a Good Subtask" states "filesToRead provides context without overwhelming"
+    - Prompt Line 229: Validation checklist states "filesToRead contains relevant context files"
+  - Fixed: Schema docs/planning/schemas/subtasks.schema.json line 50 now includes `filesToRead` in required array: `"required": ["id", "taskRef", "title", "description", "done", "acceptanceCriteria", "filesToRead"]`
