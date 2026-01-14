@@ -1373,7 +1373,7 @@
       "Run status.sh",
       "Verify script handles missing diary gracefully"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "008-status-sh-14",

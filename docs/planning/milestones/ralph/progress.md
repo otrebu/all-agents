@@ -1761,3 +1761,20 @@
     - Step 2 (Run status.sh): ✓ Script executed successfully  
     - Step 3 (Verify empty state is handled gracefully): ✓ Shows descriptive empty state message
   - All three verification steps passed
+
+### 008-status-sh-13
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Validated missing iteration diary handling (no code changes needed)
+- **Details:**
+  - Created test directory `/tmp/ralph-test-no-diary` with subtasks.json but no logs/ directory
+  - Ran `bash tools/src/commands/ralph/scripts/status.sh subtasks.json`
+  - Script handles missing diary gracefully:
+    - Shows "No iteration diary found at: logs/iterations.jsonl" in dimmed text
+    - No errors thrown
+    - Exit code is 0
+  - Verification:
+    - Step 1 (Remove logs/iterations.jsonl): ✓ Test directory has no logs/ directory
+    - Step 2 (Run status.sh): ✓ Script executed successfully
+    - Step 3 (Verify script handles missing diary gracefully): ✓ Shows descriptive message, no errors
+  - All three verification steps passed
