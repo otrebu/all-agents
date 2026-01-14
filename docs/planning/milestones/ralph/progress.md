@@ -5630,3 +5630,16 @@ The prompt includes:
 - Template line 12 contains: `"onMaxIterationsExceeded": ["log", "notify", "pause"]`
 - Default value is correctly set to `["log", "notify", "pause"]` (log to diary + send notification + pause for user intervention)
 - Hook description provided on line 13: "Actions to execute when a subtask exceeds the retry limit without completing"
+
+## 2026-01-14: 024-ralph-config-template-06
+**Feature:** Actions array supports: log, notify, pause
+
+**What changed:**
+- Verified all three action types are used in the template `docs/planning/templates/ralph.config.template.json`
+- `log` action: Used in all 4 hooks (lines 6, 8, 10, 12)
+- `notify` action: Used in 3 hooks (onMilestoneComplete, onValidationFail, onMaxIterationsExceeded)
+- `pause` action: Used in onMaxIterationsExceeded hook (line 12)
+- Actions section (lines 20-25) explicitly documents all three available actions with descriptions:
+  - log: "Write event to logs/iterations.jsonl diary file"
+  - notify: "Send push notification via ntfy to configured topic"
+  - pause: "Pause the build loop and wait for user intervention"
