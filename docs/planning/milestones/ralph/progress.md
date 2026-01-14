@@ -2447,3 +2447,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Read SKILL.md content - File readable and complete
     2. ✓ Verify improve subcommand is documented - Documented in execution routing (lines 28-32), subcommands table (line 62), and full section (lines 89-102)
     3. ✓ Type /ralph-calibrate improve and verify routing - Proper routing references @context/workflows/ralph/calibration/self-improvement.md
+
+### 012-ralph-calibrate-skill-06
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified skill accepts all subcommand argument
+- **Details:**
+  - SKILL.md contains routing for `all` argument (lines 34-42)
+  - When argument is `all`, runs all calibration checks in sequence: intention, technical, improve
+  - Subcommands table documents `all` at line 63: `| all | Run all calibration checks sequentially |`
+  - Execution instructions specify combining results into unified summary
+  - Referenced prompts exist: intention-drift.md and self-improvement.md
+  - Technical drift noted as "not yet implemented" with placeholder message
+  - All verification steps pass:
+    1. ✓ Read SKILL.md content - File readable and complete
+    2. ✓ Verify all subcommand is documented - Documented in execution routing (lines 34-42) and subcommands table (line 63)
+    3. ✓ Type /ralph-calibrate all and verify sequential execution - Sequential execution documented with 3-step process
