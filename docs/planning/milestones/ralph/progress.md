@@ -5603,3 +5603,12 @@ The prompt includes:
 - Template line 6 contains: `"onIterationComplete": ["log"]`
 - Default value is correctly set to `["log"]` (single action: log to diary)
 - Hook description provided on line 7: "Actions to execute after each build iteration completes"
+
+## 2026-01-14: 024-ralph-config-template-03
+**Feature:** onMilestoneComplete hook defined with default: log, notify
+
+**What changed:**
+- Verified `onMilestoneComplete` hook exists in `docs/planning/templates/ralph.config.template.json`
+- Template line 8 contains: `"onMilestoneComplete": ["log", "notify"]`
+- Default value is correctly set to `["log", "notify"]` (log to diary + send push notification)
+- Hook description provided on line 9: "Actions to execute when all subtasks in a milestone are done"

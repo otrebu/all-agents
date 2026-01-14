@@ -4138,7 +4138,7 @@
       "Verify onMilestoneComplete key exists",
       "Verify default value is [\"log\", \"notify\"]"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-04",
