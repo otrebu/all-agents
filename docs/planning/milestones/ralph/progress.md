@@ -1496,3 +1496,17 @@
     - Consistent with other ralph planning prompts in same directory (vision-interactive.md)
   - All two verification steps passed
 
+### 007-roadmap-auto-prompt-07
+- **Status:** PASSED
+- **Changes:** Verified @docs/planning/VISION.md reference exists in roadmap-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - File at `context/workflows/ralph/planning/roadmap-auto.md` is 163 lines, readable
+  - Verification step 2 (Search for @docs/planning/VISION.md string): ✓
+    - Found at line 7: `@docs/planning/VISION.md` in "Required Reading" section
+    - Found at line 147: `1. Read @docs/planning/VISION.md completely` in "Execution" section
+  - Verification step 3 (Verify reference is present): ✓
+    - Reference is present in two locations
+    - Used correctly as primary input for roadmap generation
+  - All three verification steps passed
+

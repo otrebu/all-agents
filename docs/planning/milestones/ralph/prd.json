@@ -1179,7 +1179,7 @@
       "Search for @docs/planning/VISION.md string",
       "Verify reference is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "007-roadmap-auto-prompt-08",
