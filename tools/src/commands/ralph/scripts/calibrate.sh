@@ -229,6 +229,7 @@ run_technical_check() {
 
   if [ ! -f "$SUBTASKS_PATH" ]; then
     echo "Error: Subtasks file not found: $SUBTASKS_PATH"
+    echo "Please create a subtasks.json file or specify the path with SUBTASKS_PATH environment variable."
     exit 1
   fi
 
@@ -266,6 +267,7 @@ run_improve_check() {
 
   if [ ! -f "$SUBTASKS_PATH" ]; then
     echo "Error: Subtasks file not found: $SUBTASKS_PATH"
+    echo "Please create a subtasks.json file or specify the path with SUBTASKS_PATH environment variable."
     exit 1
   fi
 

@@ -1649,7 +1649,7 @@
       "Run ralph calibrate intention",
       "Verify helpful error message is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-11",

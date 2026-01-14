@@ -2152,3 +2152,19 @@
     2. ✓ Verify review mode is active - `get_approval_mode()` returns "review" regardless of config
     3. ✓ Verify user is prompted for review - Approval mode "review" instructs Claude to ask for approval
   - The feature was already complete from previous implementation work
+
+### 010-calibrate-sh-10
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Ensured consistent error handling for missing subtasks.json across all subcommands
+- **Details:**
+  - The script already had error handling for missing subtasks.json in `run_intention_check()` (lines 172-176) with a helpful message
+  - Added consistent error messages to `run_technical_check()` (lines 230-234) and `run_improve_check()` (lines 268-272)
+  - All subcommands now show:
+    - `Error: Subtasks file not found: <path>`
+    - `Please create a subtasks.json file or specify the path with SUBTASKS_PATH environment variable.`
+  - Verification tests performed:
+    1. ✓ Remove subtasks.json - Simulated with `SUBTASKS_PATH=/tmp/nonexistent.json`
+    2. ✓ Run ralph calibrate intention - Shows error and helpful guidance
+    3. ✓ Verify helpful error message is shown - Both error and guidance messages displayed
+  - Script exits with code 1 to indicate failure, allowing callers to handle the error appropriately
