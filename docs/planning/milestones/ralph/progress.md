@@ -5562,3 +5562,19 @@ The prompt includes:
   - Story reference marked as required for story-derived tasks
 - Validation passes: interactive sessions produce schema-compliant task files
 
+
+## 2026-01-14: 023-tasks-interactive-prompt-16
+**Feature:** Story context is properly read and incorporated
+
+**What changed:**
+- Created validation fixture `test-fixtures/validation-023-tasks-interactive-prompt-16.md`
+- Verified prompt handles story parameter and reads story file before session
+- Verified story info appears in conversation through:
+  - Required reading section (lines 5-10): "Read the story file provided as the argument"
+  - Phase 1: Story Context (lines 50-63): Opens with story summary
+  - Starting template (lines 315-316): "I've read the story - it focuses on: [brief summary]"
+- Verified tasks align with story through:
+  - Story reference is REQUIRED in task structure (line 163, 172, 179)
+  - Tasks must address story acceptance criteria
+  - Skill routing (SKILL.md lines 79-83) enforces story reading before session
+- Validation test uses sample story `001-autonomous-code-implementation.md` to verify end-to-end flow

@@ -4102,7 +4102,7 @@
       "Verify story info appears in conversation",
       "Verify tasks align with story"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-01",
