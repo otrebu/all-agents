@@ -3281,3 +3281,15 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 80: "Generate a `subtasks.json` file that complies with the schema"
     - Lines 219-230: "## Validation Checklist" with "Output is valid JSON matching the schema" (line 230)
     - Line 277: "Validate JSON against schema"
+
+### 015-subtasks-auto-prompt-05
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified each subtask has id field required in output
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify id field is required in output): ✓ Multiple locations confirm id is required:
+    - Line 90: Required Fields table shows `| `id` | string | Unique ID: `SUB-NNN` pattern (e.g., `SUB-001`) |`
+    - Lines 104-133: "### Subtasks Schema Structure" example JSON shows `"id": "SUB-001"` field
+    - Line 223: Validation checklist includes `id` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
+    - Lines 171-181: "## Generating Unique IDs" section documents ID generation with SUB-NNN pattern

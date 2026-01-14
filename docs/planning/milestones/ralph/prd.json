@@ -2495,7 +2495,7 @@
       "Read prompt content",
       "Verify id field is required in output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-06",
