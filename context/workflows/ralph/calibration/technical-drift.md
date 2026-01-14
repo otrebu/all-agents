@@ -169,6 +169,51 @@ Code with potential security issues.
 
 Check the codebase context. If surrounding code has the same "issue," it's the project's established pattern, not drift.
 
+## Escape Hatch: HUMAN APPROVED
+
+Code marked with a `// HUMAN APPROVED` comment should be **ignored** during technical drift analysis. This escape hatch allows developers to explicitly acknowledge a deviation from standards when there's a valid reason.
+
+### Format
+
+The comment can appear in several forms:
+
+```typescript
+// HUMAN APPROVED: Using any here because external API has no types
+function processExternalData(data: any) { ... }
+
+// HUMAN APPROVED - Performance optimization requires callback pattern
+function highFrequencyHandler(callback) { ... }
+
+/* HUMAN APPROVED: No tests needed - pure type re-export */
+export type { UserDTO } from './types';
+```
+
+### When to Respect the Escape Hatch
+
+- The comment must contain `HUMAN APPROVED` (case-insensitive: `human approved`, `Human Approved`, etc.)
+- The comment should ideally include a reason, but is valid without one
+- The approval applies to the immediately following code (function, class, or statement)
+
+### When NOT to Respect the Escape Hatch
+
+- Security vulnerabilities (e.g., SQL injection, XSS) - these should always be flagged regardless of approval
+- Comments that appear to be auto-generated or templated without human review
+- Blanket approvals covering large sections of code (e.g., `// HUMAN APPROVED: entire file`)
+
+### Example
+
+**Git Diff:**
+```diff
++ // HUMAN APPROVED: Legacy integration requires callback pattern
++ function legacyHandler(data, callback) {
++   oldSystem.process(data, (err, result) => {
++     callback(err, result);
++   });
++ }
+```
+
+**Judgment:** NO DRIFT - The callback pattern would normally be flagged as inconsistent with async/await patterns, but the `HUMAN APPROVED` comment indicates this was a deliberate decision for legacy integration.
+
 ## Few-Shot Examples
 
 ### Example 1: Clear Drift (Flag This)

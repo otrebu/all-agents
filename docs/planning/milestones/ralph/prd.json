@@ -3652,7 +3652,7 @@
       "Verify escape hatch pattern is documented",
       "Verify instruction to ignore approved exceptions"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-07",

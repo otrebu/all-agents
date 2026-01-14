@@ -4792,3 +4792,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Step 1 (Read prompt content): ✓ Read technical-drift.md (375 lines)
 - Step 2 (Verify acceptable variation examples exist): ✓ Found Examples 2 and 4 with "Acceptable (Don't Flag)" labels
 - Step 3 (Verify contrast with violations is clear): ✓ Example pairs (1,2) and (3,4) show clear contrast - same scenario with violation vs. acceptable implementation
+
+## 2026-01-14: 021-technical-drift-prompt-06
+
+### What changed
+- Added "Escape Hatch: HUMAN APPROVED" section to technical-drift.md (lines 172-215)
+- Documents `// HUMAN APPROVED` comment pattern for marking intentional deviations
+- Includes:
+  - Multiple format examples (single-line `//`, with colons/dashes, multi-line `/* */`)
+  - "When to Respect the Escape Hatch" rules (case-insensitive matching, applies to following code)
+  - "When NOT to Respect the Escape Hatch" exceptions (security vulnerabilities, auto-generated, blanket approvals)
+  - Concrete example showing callback pattern with HUMAN APPROVED and judgment of NO DRIFT
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read technical-drift.md
+- Step 2 (Verify escape hatch pattern is documented): ✓ Lines 172-189 document `// HUMAN APPROVED` pattern with format examples
+- Step 3 (Verify instruction to ignore approved exceptions): ✓ Line 174 explicitly states code with HUMAN APPROVED should be "ignored" during analysis
