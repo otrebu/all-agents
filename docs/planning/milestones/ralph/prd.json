@@ -2275,7 +2275,7 @@
       "Read prompt content",
       "Verify Context section is required in output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-07",

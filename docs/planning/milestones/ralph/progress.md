@@ -2996,3 +2996,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 179: Guidelines state "Goal is one clear sentence"
     - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
   - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
+
+### 014-tasks-auto-prompt-06
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt requires Context section in each task
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (251 lines)
+  - Verification step 2 (Verify Context section is required in output): ✓ Found at:
+    - Line 60: Input Analysis section extracts "**Context** - Business driver and constraints"
+    - Line 79: Required Sections table shows "Context | Yes | The why: problem, trigger, constraints, links"
+    - Lines 100-104: Task File Structure template includes "### Context" section with full format
+    - Line 183: Guidelines state "Context links back to parent story"
+    - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
+  - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
