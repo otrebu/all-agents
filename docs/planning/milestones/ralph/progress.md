@@ -4236,3 +4236,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 
 **Files Modified:**
 - `tools/tests/e2e/ralph.test.ts` - Added `post-iteration-hook Haiku invocation` test suite with 2 tests validating Haiku invocation and prompt content
+
+## 2026-01-14: 019-post-iteration-hook-03 - Script writes iteration diary entry with subtaskId
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified diary entry includes subtaskId field
+- **Details:**
+  - Verification step 1 (Run post-iteration-hook.sh): ✓
+    - Ran script with mock claude CLI: `PATH="/tmp/mock-bin:$PATH" ./tools/src/commands/ralph/scripts/post-iteration-hook.sh "test-subtask-123" "success" "session-abc-456"`
+    - Script completed successfully, writing diary entry to logs/iterations.jsonl
+  - Verification step 2 (Read logs/iterations.jsonl): ✓
+    - Diary file created at configured path
+    - Entry is valid JSONL format
+  - Verification step 3 (Verify subtaskId field is present): ✓
+    - Diary entry contains: `"subtaskId":"test-subtask-123"`
+    - subtaskId correctly matches the first argument passed to the script
+    - Field is populated via jq with `--arg subtaskId "$SUBTASK_ID"` in write_diary_entry function (line 250)
