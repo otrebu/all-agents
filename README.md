@@ -90,11 +90,13 @@ aaa story create my-story
 # Download URLs and convert to markdown
 aaa download <urls...> [-o name] [-d dir]
 
-# PRD-driven iterative Claude (Ralph)
-aaa ralph init                    # Create PRD interactively
-aaa ralph run                     # Run 5 iterations (default)
-aaa ralph run --unlimited         # Run until complete
-aaa ralph run --interactive       # Human approval each iteration
+# Ralph - Autonomous Development Framework
+aaa ralph plan vision             # Interactive vision planning
+aaa ralph plan stories --milestone mvp  # Plan stories
+aaa ralph build                   # Run subtask iteration loop
+aaa ralph build -i                # Interactive (pause each iteration)
+aaa ralph status                  # Show build progress
+aaa ralph calibrate intention     # Check for drift
 
 # Extract Claude Code conversation history
 aaa extract-conversations [-l limit] [-o file]
