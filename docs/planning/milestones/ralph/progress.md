@@ -3266,3 +3266,18 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Use established error handling patterns
     - Follow the project's file organization
   - Line 274 in Execution section also references: "**Deep codebase analysis** - Explore relevant code and patterns"
+
+### 015-subtasks-auto-prompt-04
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified generated subtasks follow subtasks.json schema
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md
+  - Verification step 2 (Verify output format references subtasks.schema.json): ✓ Multiple references found:
+    - Line 34: "**Subtasks Schema**: Understand and follow @docs/planning/schemas/subtasks.schema.json"
+    - Lines 80-82: "Generate a `subtasks.json` file that complies with the schema:" followed by "@docs/planning/schemas/subtasks.schema.json"
+    - Line 273: "Read @docs/planning/schemas/subtasks.schema.json"
+  - Verification step 3 (Verify schema compliance is instructed): ✓ Multiple compliance instructions:
+    - Line 80: "Generate a `subtasks.json` file that complies with the schema"
+    - Lines 219-230: "## Validation Checklist" with "Output is valid JSON matching the schema" (line 230)
+    - Line 277: "Validate JSON against schema"

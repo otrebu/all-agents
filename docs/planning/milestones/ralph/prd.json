@@ -2484,7 +2484,7 @@
       "Verify output format references subtasks.schema.json",
       "Verify schema compliance is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-05",
