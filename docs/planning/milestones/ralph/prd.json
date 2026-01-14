@@ -2032,7 +2032,7 @@
       "Read prompt content",
       "Verify @docs/planning/ROADMAP.md reference exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-04",
