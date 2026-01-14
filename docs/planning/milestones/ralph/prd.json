@@ -1565,7 +1565,7 @@
       "Run ralph calibrate intention",
       "Verify git diff is read for that commit"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-04",

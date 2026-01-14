@@ -2023,3 +2023,19 @@
     - Invokes Claude with `--dangerously-skip-permissions` flag
     - Outputs full intention drift analysis to stdout
   - Note: CLI `aaa ralph calibrate` command is registered in index.ts but requires binary rebuild
+
+### 010-calibrate-sh-03
+- **Status:** PASSED
+- **Changes:** Verified script reads git diffs via commitHash from completed subtasks
+- **Details:**
+  - Verification steps completed:
+    1. ✓ Prepared subtasks.json with completed subtask and commitHash (existing subtasks have commitHash field)
+    2. ✓ Ran ralph calibrate intention command (CLI registered and working after binary rebuild)
+    3. ✓ Git diff is read for commits via intention-drift.md prompt instructions
+  - Implementation verified:
+    - `get_completed_subtasks()` function (lines 98-119) filters subtasks with `done == true` and `commitHash != null`
+    - `run_intention_check()` (lines 163-218) passes subtasks file to Claude
+    - intention-drift.md prompt (lines 24-29) instructs Claude to read git diff using:
+      - `git show <commitHash> --stat`
+      - `git diff <commitHash>^..<commitHash>`
+  - Git commands verified working with actual commit hashes in the repository
