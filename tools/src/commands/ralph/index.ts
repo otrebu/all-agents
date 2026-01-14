@@ -1,8 +1,7 @@
 import { Command } from "@commander-js/extra-typings";
 import { getContextRoot } from "@tools/utils/paths";
-import { execSync } from "node:child_process";
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import os from "node:os";
+import { execSync, spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const DEFAULT_SUBTASKS_PATH = "subtasks.json";
@@ -129,33 +128,25 @@ function invokeClaude(
     fullPrompt = `${extraContext}\n\n${promptContent}`;
   }
 
-  // Write prompt to a temporary file to pass to Claude
-  // This avoids shell escaping issues with long prompts containing quotes/special chars
-  const temporaryPromptPath = path.join(
-    os.tmpdir(),
-    `ralph-${sessionName}-prompt.md`,
+  // Use spawnSync with argument array to avoid shell parsing entirely
+  // This prevents issues with special characters like parentheses in the prompt
+  const result = spawnSync(
+    "claude",
+    [
+      "--append-system-prompt",
+      fullPrompt,
+      `Please begin the ${sessionName} planning session following the instructions provided.`,
+    ],
+    { stdio: "inherit" },
   );
-  writeFileSync(temporaryPromptPath, fullPrompt);
 
-  // Invoke Claude interactively with the prompt as an initial message
-  // Use --append-system-prompt to inject the workflow instructions
-  // and pass a brief user prompt to start the session
-  // Use a here-document to safely pass multiline content with quotes/special chars
-  try {
-    execSync(
-      `claude --append-system-prompt "$(cat <<'EOF'
-${fullPrompt}
-EOF
-)" "Please begin the ${sessionName} planning session following the instructions provided."`,
-      { stdio: "inherit" },
-    );
-  } finally {
-    // Clean up temp file (no longer strictly needed, but keep for consistency)
-    try {
-      unlinkSync(temporaryPromptPath);
-    } catch {
-      // Ignore cleanup errors
-    }
+  if (result.error) {
+    console.error(`Failed to start Claude: ${result.error.message}`);
+    process.exit(1);
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
   }
 }
 
