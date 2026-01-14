@@ -3242,7 +3242,7 @@
       "Run with failed iteration, verify 'failed'",
       "Run with retry, verify 'retrying'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-13",

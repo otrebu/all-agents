@@ -4416,3 +4416,28 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Verification step 3 (Verify duration field is integer (ms)): ✓
     - Node verification confirms: `typeof data.duration === 'number'` and `Number.isInteger(data.duration) === true`
     - Value represents iteration duration calculated from session log timestamps
+
+### 019-post-iteration-hook-12
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Added status normalization to use enum values: completed, failed, retrying
+- **Details:**
+  - Added `normalize_status()` function (lines 23-39) that:
+    - Maps input status to standard enum: `completed`, `failed`, `retrying`
+    - Accepts legacy values for backwards compatibility: `success` -> `completed`, `failure` -> `failed`, `partial` -> `retrying`
+    - Defaults unknown values to `failed` for safety
+  - Updated documentation to reflect new status enum (line 9-10)
+  - Status normalization applied at line 47 after raw input capture
+  - Verification step 1 (Run hook with completed iteration): ✓
+    - Ran: `PATH="/tmp/mock-bin:$PATH" ./tools/src/commands/ralph/scripts/post-iteration-hook.sh "test-status-completed" "completed" "session-test-1"`
+    - Diary entry contains: `"status":"completed"`
+  - Verification step 2 (Run with failed iteration): ✓
+    - Ran: `./post-iteration-hook.sh "test-status-failed" "failed" "session-test-2"`
+    - Diary entry contains: `"status":"failed"`
+  - Verification step 3 (Run with retry): ✓
+    - Ran: `./post-iteration-hook.sh "test-status-retrying" "retrying" "session-test-3"`
+    - Diary entry contains: `"status":"retrying"`
+  - Legacy value normalization also verified:
+    - `success` -> `completed` ✓
+    - `failure` -> `failed` ✓
+    - `partial` -> `retrying` ✓

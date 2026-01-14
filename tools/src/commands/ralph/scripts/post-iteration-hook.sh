@@ -6,7 +6,8 @@
 #
 # Required Arguments:
 #   subtask-id    - The ID of the subtask that was processed
-#   status        - The iteration status: "success", "failure", or "partial"
+#   status        - The iteration status: "completed", "failed", or "retrying"
+#                   (also accepts legacy values: "success" -> "completed", "failure" -> "failed", "partial" -> "retrying")
 #   session-id    - The Claude session ID for reading the session log
 #
 # Optional Arguments:
@@ -17,17 +18,42 @@
 
 set -e
 
+# Normalize status to enum: completed, failed, retrying
+# Accepts both new enum values and legacy values for backwards compatibility
+normalize_status() {
+  local input_status="$1"
+  case "$input_status" in
+    completed|success)
+      echo "completed"
+      ;;
+    failed|failure)
+      echo "failed"
+      ;;
+    retrying|partial)
+      echo "retrying"
+      ;;
+    *)
+      # Unknown status, default to failed for safety
+      echo "failed"
+      ;;
+  esac
+}
+
 SUBTASK_ID=$1
-STATUS=$2
+RAW_STATUS=$2
 SESSION_ID=$3
+
+# Normalize status to proper enum value
+STATUS=$(normalize_status "$RAW_STATUS")
 SUBTASK_TITLE=${4:-$SUBTASK_ID}
 MILESTONE=${5:-""}
 TASK_REF=${6:-""}
 ITERATION_NUM=${7:-1}
 
-if [ -z "$SUBTASK_ID" ] || [ -z "$STATUS" ] || [ -z "$SESSION_ID" ]; then
+if [ -z "$SUBTASK_ID" ] || [ -z "$RAW_STATUS" ] || [ -z "$SESSION_ID" ]; then
   echo "Error: Missing required arguments"
   echo "Usage: post-iteration-hook.sh <subtask-id> <status> <session-id> [subtask-title] [milestone] [task-ref] [iteration-num]"
+  echo "Status must be one of: completed, failed, retrying (or legacy: success, failure, partial)"
   exit 1
 fi
 
