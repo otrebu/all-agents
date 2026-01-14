@@ -1397,3 +1397,21 @@
     2. ✓ Pre-build validation can be run via `aaa ralph build --validate-first`
     3. ✓ Prompt completes without error (graceful degradation built-in per lines 148-151)
 
+### 007-roadmap-auto-prompt-01
+- **Status:** PASSED
+- **Changes:** Created `context/workflows/ralph/planning/roadmap-auto.md` prompt file
+- **Details:**
+  - Created comprehensive roadmap generation prompt with:
+    - @docs/planning/VISION.md reference as primary input
+    - Milestone naming convention (outcome-based, not release-based)
+    - ROADMAP.md output format with Overview, Milestones, and Future Considerations sections
+    - Generation guidelines (2-5 milestones, MVP first)
+    - Validation checklist ensuring alignment with VISION.md
+    - Single-shot execution pattern (auto mode, no multi-turn conversation)
+  - File exists at `context/workflows/ralph/planning/roadmap-auto.md`
+  - File is readable and contains valid prompt content
+  - All three verification steps passed:
+    1. ✓ Navigate to context/workflows/ralph/planning/ - directory exists
+    2. ✓ Verify roadmap-auto.md file exists - confirmed via glob
+    3. ✓ Verify file is readable - content successfully read
+
