@@ -1901,7 +1901,7 @@
       "Verify intention-drift.md prompt is loaded",
       "Verify prompt content is followed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-08",

@@ -2463,3 +2463,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Read SKILL.md content - File readable and complete
     2. ✓ Verify all subcommand is documented - Documented in execution routing (lines 34-42) and subcommands table (line 63)
     3. ✓ Type /ralph-calibrate all and verify sequential execution - Sequential execution documented with 3-step process
+
+### 012-ralph-calibrate-skill-07
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified intention subcommand reads and follows intention-drift.md prompt
+- **Details:**
+  - SKILL.md contains proper routing for intention argument at line 18
+  - Reference uses correct @path syntax: `Follow: @context/workflows/ralph/calibration/intention-drift.md`
+  - intention-drift.md prompt file exists at context/workflows/ralph/calibration/intention-drift.md (10674 bytes)
+  - Pattern matches other verified skills (ralph-plan line 30, ralph-build line 52)
+  - When /ralph-calibrate intention is invoked, Claude Code:
+    1. Routes to the intention handling section (lines 14-18)
+    2. Loads the @context/workflows/ralph/calibration/intention-drift.md file via @path resolution
+    3. Follows the prompt instructions for intention drift analysis
+  - All verification steps pass:
+    1. ✓ Run /ralph-calibrate intention - Routing in place (verified in 012-ralph-calibrate-skill-03)
+    2. ✓ Verify intention-drift.md prompt is loaded - @path reference correctly resolves to existing file
+    3. ✓ Verify prompt content is followed - Follow directive instructs Claude to execute prompt workflow
