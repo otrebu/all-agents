@@ -5716,3 +5716,12 @@ The prompt includes:
   3. `onValidationFail` - default: `["log", "notify"]` ✅
   4. `onMaxIterationsExceeded` - default: `["log", "notify", "pause"]` ✅
 - No missing hooks - template is complete and matches story requirements exactly
+
+## 2026-01-14: 025-ralph-status-cli-01
+**Feature:** aaa ralph status command is available in CLI
+
+**What changed:**
+- Verified `aaa ralph --help` shows status subcommand in the command list
+- Verified command is recognized with `aaa ralph status --help` returning proper usage info
+- Status command already implemented in `tools/src/commands/ralph/index.ts` (lines 277-293)
+- Command invokes `status.sh` script with optional subtasks-path argument (default: subtasks.json)

@@ -4271,7 +4271,7 @@
       "Verify status subcommand appears",
       "Verify command is recognized"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-02",
