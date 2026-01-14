@@ -1469,7 +1469,7 @@
       "Verify interactive mode (-i) is documented",
       "Verify pause behavior is described"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "009-ralph-build-skill-06",
