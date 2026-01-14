@@ -28,7 +28,25 @@ git show <commitHash> --stat
 git diff <commitHash>^..<commitHash>
 ```
 
-### 3. Project Standards
+### 3. Subtask Context Files
+Read the `filesToRead` array from the subtask if present:
+
+```json
+{
+  "id": "SUB-001",
+  "filesToRead": [
+    "src/auth/index.ts",
+    "docs/api-conventions.md"
+  ]
+}
+```
+
+These are files the subtask author identified as relevant context. Read them to understand:
+- Existing patterns in the referenced implementation files
+- Documentation standards from any `.md` files referenced
+- Expected code style from surrounding context
+
+### 4. Project Standards
 Check for project-specific quality standards:
 - `CLAUDE.md` - Project conventions and coding standards
 - `.eslintrc.*` / `eslint.config.*` - Linting rules
@@ -325,14 +343,15 @@ When technical drift is detected, create a task file:
 1. Read `subtasks.json` to find completed subtasks with `commitHash`
 2. Read project standards (CLAUDE.md, lint configs, etc.)
 3. For each completed subtask:
-   a. Read the git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
-   b. Check for missing tests (look for corresponding test files)
-   c. Check for pattern consistency (compare to surrounding code)
-   d. Check for error handling on critical paths
-   e. Check for documentation on public APIs
-   f. Check for type safety (if TypeScript project)
-   g. Check for security concerns
-   h. Apply the "Don't Over-Flag" guard
+   a. Read the `filesToRead` array if present - these provide context for expected patterns and documentation
+   b. Read the git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
+   c. Check for missing tests (look for corresponding test files)
+   d. Check for pattern consistency (compare to surrounding code and `filesToRead` context)
+   e. Check for error handling on critical paths
+   f. Check for documentation on public APIs
+   g. Check for type safety (if TypeScript project)
+   h. Check for security concerns
+   i. Apply the "Don't Over-Flag" guard
 4. Output summary to stdout
 5. Create task files for any detected technical drift in `docs/planning/tasks/`
 

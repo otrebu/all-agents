@@ -4743,3 +4743,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Step 1 (Read prompt content): ✓ Read technical-drift.md (356 lines)
 - Step 2 (Verify commitHash reference exists): ✓ Found 8 occurrences of commitHash including subtasks.json example and execution instructions
 - Step 3 (Verify git diff reading is instructed): ✓ Found explicit instructions at lines 24, 27-28, 328
+
+## 2026-01-14: 021-technical-drift-prompt-03
+
+### What changed
+- Added "Subtask Context Files" section (section 3) to technical-drift.md Input Sources
+- Section instructs reading `filesToRead` array from subtasks for context
+- Updated Execution Instructions (step 3a) to read `filesToRead` first before analyzing
+- Also updated step 3d to consider `filesToRead` context when checking pattern consistency
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read technical-drift.md
+- Step 2 (Verify filesToRead reference exists): ✓ Added section 3 with explicit `filesToRead` array reference and JSON example
+- Step 3 (Verify documentation reading is instructed): ✓ Section explicitly instructs reading `.md` files for documentation standards

@@ -3616,7 +3616,7 @@
       "Verify filesToRead reference exists",
       "Verify documentation reading is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-04",

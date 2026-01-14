@@ -1,10 +1,6 @@
-{"status":"success","toolCalls":15}
-{"status":"failure","toolCalls":20}
-{"status":"failure","toolCalls":25}
-{"status":"failure","toolCalls":10}
-
-{"subtaskId":"test-019-05","sessionId":"session-abc","status":"success","summary":"Test summary for 019-05","timestamp":"2026-01-14T06:19:34Z","milestone":"ralph","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0}
-{"subtaskId":"test-errors-019-08","sessionId":"session-error-test","status":"failure","summary":"","timestamp":"2026-01-14T06:26:02Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0}
-
-{"subtaskId":"test-019-toolcalls","sessionId":"010e9074-d269-484e-84e9-0a04dcd8c71d","status":"success","summary":"Testing toolCalls field implementation","timestamp":"2026-01-14T06:35:08Z","milestone":"ralph","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":16}
-{"subtaskId":"test-duration-019-11","sessionId":"c3713a26-9710-4e05-a85f-a21d99334656","status":"success","summary":"","timestamp":"2026-01-14T06:41:28Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":2,"filesChanged":["tools/src/commands/ralph/scripts/post-iteration-hook.sh"],"duration":8521}
+{"subtaskId":"test-status-completed","sessionId":"session-test-1","status":"completed","summary":"","timestamp":"2026-01-14T06:44:00Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0,"filesChanged":["logs/iterations.jsonl","tools/src/commands/ralph/scripts/post-iteration-hook.sh"],"duration":0}
+{"subtaskId":"test-status-failed","sessionId":"session-test-2","status":"failed","summary":"","timestamp":"2026-01-14T06:44:13Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0,"filesChanged":["logs/iterations.jsonl","tools/src/commands/ralph/scripts/post-iteration-hook.sh"],"duration":0}
+{"subtaskId":"test-status-retrying","sessionId":"session-test-3","status":"retrying","summary":"","timestamp":"2026-01-14T06:44:13Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0,"filesChanged":["logs/iterations.jsonl","tools/src/commands/ralph/scripts/post-iteration-hook.sh"],"duration":0}
+{"subtaskId":"test-legacy-success","sessionId":"session-test-4","status":"completed","summary":"","timestamp":"2026-01-14T06:44:24Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0,"filesChanged":["logs/iterations.jsonl","tools/src/commands/ralph/scripts/post-iteration-hook.sh"],"duration":0}
+{"subtaskId":"test-legacy-failure","sessionId":"session-test-5","status":"failed","summary":"","timestamp":"2026-01-14T06:44:25Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0,"filesChanged":["logs/iterations.jsonl","tools/src/commands/ralph/scripts/post-iteration-hook.sh"],"duration":0}
+{"subtaskId":"test-legacy-partial","sessionId":"session-test-6","status":"retrying","summary":"","timestamp":"2026-01-14T06:44:26Z","milestone":"","taskRef":"","iterationNum":1,"keyFindings":[],"errors":[],"toolCalls":0,"filesChanged":["logs/iterations.jsonl","tools/src/commands/ralph/scripts/post-iteration-hook.sh"],"duration":0}
