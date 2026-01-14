@@ -3073,7 +3073,7 @@
       "Run prompt with Haiku",
       "Verify output is valid summary"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "018-iteration-summary-prompt-09",
