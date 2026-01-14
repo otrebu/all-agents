@@ -2124,7 +2124,7 @@
       "Verify single-shot pattern is used",
       "Verify no multi-turn expected"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-12",
