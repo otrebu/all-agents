@@ -1337,7 +1337,7 @@
       "Verify output has clear section headers",
       "Verify information is organized logically"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "008-status-sh-11",
