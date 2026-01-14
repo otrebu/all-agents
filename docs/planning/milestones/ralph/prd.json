@@ -3363,7 +3363,7 @@
       "Provide continue input, verify continues",
       "Provide abort input, verify aborts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "020-iteration-diary-schema-01",

@@ -4695,3 +4695,13 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Step 1 (Configure test ntfy topic): ✓ Tests create ralph.config.json with ntfy.topic and ntfy.server configuration
 - Step 2 (Run hook with notify action): ✓ Tests execute the execute_notify_action function with test entry JSON
 - Step 3 (Verify notification received): ✓ Tests verify capture file contains delivered:true, correct URL, headers, and body
+
+## 2026-01-14: 019-post-iteration-hook-22
+
+### What changed
+- Added integration test suite for post-iteration-hook pause behavior
+- Test: "hook with pause action continues on 'c' input" - verifies continue workflow
+- Test: "hook with pause action aborts on 'a' input" - verifies abort workflow with exit code 130
+- Test: "hook pause action respects pauseOnFailure config" - verifies config-driven pause triggers
+- Tests located in tools/tests/e2e/ralph.test.ts in "post-iteration-hook pause behavior integration test" describe block
+

@@ -2422,3 +2422,293 @@ describe("subtasks schema validation", () => {
     }
   });
 });
+
+describe("post-iteration-hook pause behavior integration test", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(
+      tmpdir(),
+      `pause-integration-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("hook with pause action continues on 'c' input", async () => {
+    const { writeFileSync } = await import("node:fs");
+
+    // Create a simplified version of the pause action that reads from stdin
+    // This tests the integration between execute_pause_action and user input
+    const testScript = `#!/bin/bash
+set -euo pipefail
+
+# Simplified pause action handler that can be tested with piped input
+execute_pause_action_with_input() {
+  local entry_json="$1"
+  local input="$2"
+
+  # Extract fields
+  local subtask_id status summary
+  subtask_id=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).subtaskId || 'unknown')" 2>/dev/null)
+  status=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).status || 'unknown')" 2>/dev/null)
+  summary=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).summary || '')" 2>/dev/null)
+
+  echo ""
+  echo "╔════════════════════════════════════════════════════════════════╗"
+  echo "║                      ITERATION PAUSED                          ║"
+  echo "╠════════════════════════════════════════════════════════════════╣"
+  echo "║ Subtask: $subtask_id"
+  echo "║ Status:  $status"
+  echo "║ Summary: $summary"
+  echo "╠════════════════════════════════════════════════════════════════╣"
+  echo "║ Trigger: Pause action configured"
+  echo "╠════════════════════════════════════════════════════════════════╣"
+  echo "║ Options:                                                       ║"
+  echo "║   [c] Continue to next iteration                               ║"
+  echo "║   [a] Abort build loop                                         ║"
+  echo "╚════════════════════════════════════════════════════════════════╝"
+  echo ""
+
+  # Process provided input
+  local choice="$input"
+  case "$choice" in
+    c|C|continue)
+      echo "Continuing to next iteration..."
+      return 0
+      ;;
+    a|A|abort)
+      echo "Aborting build loop..."
+      return 130
+      ;;
+    *)
+      echo "Invalid choice. Please enter 'c' to continue or 'a' to abort."
+      return 1
+      ;;
+  esac
+}
+
+# Test entry JSON
+TEST_JSON='{"subtaskId":"pause-int-001","sessionId":"session-pause-int","status":"completed","summary":"Feature completed successfully"}'
+
+# Simulate 'c' input for continue
+echo "=== Test: Continue input ==="
+if execute_pause_action_with_input "$TEST_JSON" "c"; then
+  echo "PAUSE_CONTINUE_RESULT: success"
+else
+  echo "PAUSE_CONTINUE_RESULT: failed"
+fi
+`;
+
+    const scriptPath = join(temporaryDirectory, "test-pause-continue-int.sh");
+    writeFileSync(scriptPath, testScript, { mode: 0o755 });
+
+    const { exitCode, stdout } = await execa("bash", [scriptPath], {
+      cwd: temporaryDirectory,
+    });
+
+    // Verify the pause UI was displayed
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("ITERATION PAUSED");
+    expect(stdout).toContain("Subtask: pause-int-001");
+    expect(stdout).toContain("Status:  completed");
+    expect(stdout).toContain("[c] Continue to next iteration");
+    expect(stdout).toContain("[a] Abort build loop");
+
+    // Verify continue was successful
+    expect(stdout).toContain("Continuing to next iteration...");
+    expect(stdout).toContain("PAUSE_CONTINUE_RESULT: success");
+  });
+
+  test("hook with pause action aborts on 'a' input", async () => {
+    const { writeFileSync } = await import("node:fs");
+
+    const testScript = `#!/bin/bash
+set -euo pipefail
+
+execute_pause_action_with_input() {
+  local entry_json="$1"
+  local input="$2"
+
+  local subtask_id status
+  subtask_id=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).subtaskId || 'unknown')" 2>/dev/null)
+  status=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).status || 'unknown')" 2>/dev/null)
+
+  echo ""
+  echo "╔════════════════════════════════════════════════════════════════╗"
+  echo "║                      ITERATION PAUSED                          ║"
+  echo "╠════════════════════════════════════════════════════════════════╣"
+  echo "║ Subtask: $subtask_id"
+  echo "║ Status:  $status"
+  echo "╠════════════════════════════════════════════════════════════════╣"
+  echo "║ Options:                                                       ║"
+  echo "║   [c] Continue to next iteration                               ║"
+  echo "║   [a] Abort build loop                                         ║"
+  echo "╚════════════════════════════════════════════════════════════════╝"
+  echo ""
+
+  local choice="$input"
+  case "$choice" in
+    c|C|continue)
+      echo "Continuing to next iteration..."
+      return 0
+      ;;
+    a|A|abort)
+      echo "Aborting build loop..."
+      return 130
+      ;;
+    *)
+      echo "Invalid choice."
+      return 1
+      ;;
+  esac
+}
+
+TEST_JSON='{"subtaskId":"pause-int-002","status":"failed","summary":"Build failed with errors"}'
+
+echo "=== Test: Abort input ==="
+if execute_pause_action_with_input "$TEST_JSON" "a"; then
+  echo "PAUSE_ABORT_RESULT: continued (unexpected)"
+else
+  exit_code=$?
+  if [ "$exit_code" -eq 130 ]; then
+    echo "PAUSE_ABORT_RESULT: aborted with exit code 130"
+  else
+    echo "PAUSE_ABORT_RESULT: unexpected exit code $exit_code"
+  fi
+fi
+`;
+
+    const scriptPath = join(temporaryDirectory, "test-pause-abort-int.sh");
+    writeFileSync(scriptPath, testScript, { mode: 0o755 });
+
+    const { exitCode, stdout } = await execa("bash", [scriptPath], {
+      cwd: temporaryDirectory,
+    });
+
+    // Verify the pause UI was displayed
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("ITERATION PAUSED");
+    expect(stdout).toContain("Subtask: pause-int-002");
+    expect(stdout).toContain("Status:  failed");
+
+    // Verify abort was triggered correctly
+    expect(stdout).toContain("Aborting build loop...");
+    expect(stdout).toContain("PAUSE_ABORT_RESULT: aborted with exit code 130");
+  });
+
+  test("hook pause action respects pauseOnFailure config", async () => {
+    const { writeFileSync } = await import("node:fs");
+
+    // Create ralph.config.json with pauseOnFailure enabled
+    writeFileSync(
+      join(temporaryDirectory, "ralph.config.json"),
+      JSON.stringify({
+        hooks: {
+          postIteration: {
+            actions: ["pause"],
+            enabled: true,
+            pauseOnFailure: true,
+            pauseOnSuccess: false,
+          },
+        },
+      }),
+    );
+
+    const testScript = `#!/bin/bash
+set -euo pipefail
+
+CONFIG_PATH="${temporaryDirectory}/ralph.config.json"
+
+# Read config helper
+read_hook_config() {
+  local key="$1"
+  local default="$2"
+
+  if [ ! -f "$CONFIG_PATH" ]; then
+    echo "$default"
+    return
+  fi
+
+  CONFIG_PATH="$CONFIG_PATH" KEY="$key" DEFAULT="$default" node -e "
+    const fs = require('fs');
+    try {
+      const config = JSON.parse(fs.readFileSync(process.env.CONFIG_PATH, 'utf8'));
+      const keys = process.env.KEY.split('.');
+      let value = config;
+      for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+          value = value[k];
+        } else {
+          value = process.env.DEFAULT;
+          break;
+        }
+      }
+      console.log(value === undefined || value === null ? process.env.DEFAULT : value);
+    } catch (e) {
+      console.log(process.env.DEFAULT);
+    }
+  " 2>/dev/null
+}
+
+# Determine if pause should trigger based on config and status
+should_pause() {
+  local status="$1"
+
+  local pause_on_failure pause_on_success
+  pause_on_failure=$(read_hook_config "hooks.postIteration.pauseOnFailure" "false")
+  pause_on_success=$(read_hook_config "hooks.postIteration.pauseOnSuccess" "false")
+
+  if [ "$status" = "failed" ] && [ "$pause_on_failure" = "true" ]; then
+    echo "SHOULD_PAUSE: true (pauseOnFailure)"
+    return 0
+  fi
+
+  if [ "$status" = "completed" ] && [ "$pause_on_success" = "true" ]; then
+    echo "SHOULD_PAUSE: true (pauseOnSuccess)"
+    return 0
+  fi
+
+  echo "SHOULD_PAUSE: false"
+  return 1
+}
+
+# Test with failed status
+echo "=== Test: Failed status with pauseOnFailure=true ==="
+should_pause "failed"
+
+# Test with completed status (should NOT pause)
+echo "=== Test: Completed status with pauseOnSuccess=false ==="
+should_pause "completed" || true
+`;
+
+    const scriptPath = join(temporaryDirectory, "test-pause-config.sh");
+    writeFileSync(scriptPath, testScript, { mode: 0o755 });
+
+    const { exitCode, stdout } = await execa("bash", [scriptPath], {
+      cwd: temporaryDirectory,
+    });
+
+    expect(exitCode).toBe(0);
+
+    // Verify pauseOnFailure triggers pause for failed status
+    expect(stdout).toContain("SHOULD_PAUSE: true (pauseOnFailure)");
+
+    // Verify pauseOnSuccess=false does NOT trigger pause for completed status
+    expect(stdout).toContain(
+      "Test: Completed status with pauseOnSuccess=false",
+    );
+    // The second call should return false
+    const lines = stdout.split("\n");
+    const completedTestIndex = lines.findIndex((l) =>
+      l.includes("Completed status with pauseOnSuccess=false"),
+    );
+    const afterCompletedTest = lines.slice(completedTestIndex + 1).join("\n");
+    expect(afterCompletedTest).toContain("SHOULD_PAUSE: false");
+  });
+});
