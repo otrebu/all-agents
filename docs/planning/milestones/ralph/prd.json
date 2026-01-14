@@ -3687,7 +3687,7 @@
       "Verify prompt is self-contained",
       "Verify no external dependencies required for standalone use"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-10",
