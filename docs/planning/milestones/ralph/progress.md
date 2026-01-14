@@ -5940,3 +5940,16 @@ The prompt includes:
 
 All argument parsing and help display work correctly.
 
+
+## 2026-01-14: 026-calibrate-improve-cli-09 verified
+
+**Feature:** Command reads config for selfImprovement setting
+
+**Verification:**
+- Created `ralph.config.json` with `{"selfImprovement": {"mode": "never"}}` - command correctly outputs "Self-improvement analysis is disabled in ralph.config.json" and exits
+- Changed config to `{"selfImprovement": {"mode": "always"}}` - command outputs "Self-improvement mode: always" and proceeds with analysis
+- Changed config to `{"selfImprovement": {"mode": "auto"}}` - command outputs "Self-improvement mode: auto" and proceeds with analysis
+- The `calibrate.sh` script reads config via `json_query()` function at lines 299-309
+- Config path is resolved to `$REPO_ROOT/ralph.config.json`
+
+Config reading for selfImprovement setting works correctly for all modes (never, always, auto).

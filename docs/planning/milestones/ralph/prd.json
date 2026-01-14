@@ -4488,7 +4488,7 @@
       "Run command",
       "Verify config is read"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-10",
