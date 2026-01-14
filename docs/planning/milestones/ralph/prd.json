@@ -2158,7 +2158,7 @@
       "Search for @docs/planning/VISION.md",
       "Search for @docs/planning/ROADMAP.md"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-15",

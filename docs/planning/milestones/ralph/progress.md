@@ -2818,3 +2818,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - File exists at `context/workflows/ralph/planning/stories-auto.md`
     - File is 214 lines, readable and contains all required content
     - Path matches the expected location for Ralph planning prompts
+
+### 013-stories-auto-prompt-14
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt contains Vision and Roadmap references
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File read successfully (214 lines)
+  - Verification step 2 (Search for @docs/planning/VISION.md): ✓
+    - Found on line 7: `@docs/planning/VISION.md`
+  - Verification step 3 (Search for @docs/planning/ROADMAP.md): ✓
+    - Found on line 8: `@docs/planning/ROADMAP.md`
+  - Both required references are present in the "Required Reading" section
+  - All three verification steps passed
