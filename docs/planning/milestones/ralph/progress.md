@@ -2632,3 +2632,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Run /ralph-calibrate intention - Skill dispatches to intention-drift.md
     2. ✓ Run aaa ralph calibrate intention - CLI script dispatches to same prompt
     3. ✓ Compare outputs for equivalence - Both use identical prompts and produce same output format
+
+### 013-stories-auto-prompt-01
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Created `context/workflows/ralph/planning/stories-auto.md` prompt file
+- **Details:**
+  - Created single-shot auto-generation prompt for user stories
+  - Includes @docs/planning/VISION.md reference for user context
+  - Includes @docs/planning/ROADMAP.md reference for milestone deliverables
+  - Implements milestone parameter handling for targeted story generation
+  - Follows story-template.md format with all required sections:
+    - Narrative (JTBD format)
+    - Persona
+    - Context
+    - Acceptance Criteria
+    - Tasks
+  - Documents file naming convention (STORY-NNN-slug.md)
+  - Includes generation guidelines and validation checklist
+  - File location: context/workflows/ralph/planning/stories-auto.md
