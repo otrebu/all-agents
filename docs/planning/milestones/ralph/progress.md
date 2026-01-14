@@ -2007,3 +2007,19 @@
     1. ✓ Navigate to `tools/src/commands/ralph/scripts/`
     2. ✓ `calibrate.sh` file exists (8852 bytes)
     3. ✓ File is executable (verified with `ls -la`)
+
+### 010-calibrate-sh-02
+- **Status:** PASSED
+- **Changes:** Verified `ralph calibrate intention` runs intention drift check
+- **Details:**
+  - Verification steps completed:
+    1. ✓ Ran `bash calibrate.sh intention` (via direct script invocation)
+    2. ✓ Intention-drift.md prompt is invoked via Claude (`claude $PERM_FLAG -p "$PROMPT"`)
+    3. ✓ Check completes with full analysis output and "=== Intention Drift Check Complete ===" message
+  - The script:
+    - Validates intention-drift.md prompt exists at `$REPO_ROOT/context/workflows/ralph/calibration/intention-drift.md`
+    - Validates subtasks.json exists and contains completed subtasks with commitHash
+    - Builds prompt with context files (CLAUDE.md, PROGRESS.md, VISION.md)
+    - Invokes Claude with `--dangerously-skip-permissions` flag
+    - Outputs full intention drift analysis to stdout
+  - Note: CLI `aaa ralph calibrate` command is registered in index.ts but requires binary rebuild

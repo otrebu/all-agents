@@ -1553,7 +1553,7 @@
       "Verify intention-drift.md prompt is invoked",
       "Verify check completes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-03",
