@@ -5612,3 +5612,12 @@ The prompt includes:
 - Template line 8 contains: `"onMilestoneComplete": ["log", "notify"]`
 - Default value is correctly set to `["log", "notify"]` (log to diary + send push notification)
 - Hook description provided on line 9: "Actions to execute when all subtasks in a milestone are done"
+
+## 2026-01-14: 024-ralph-config-template-04
+**Feature:** onValidationFail hook defined with default: log, notify
+
+**What changed:**
+- Verified `onValidationFail` hook exists in `docs/planning/templates/ralph.config.template.json`
+- Template line 10 contains: `"onValidationFail": ["log", "notify"]`
+- Default value is correctly set to `["log", "notify"]` (log to diary + send push notification)
+- Hook description provided on line 11: "Actions to execute when pre-build validation fails (scope creep, misalignment, etc.)"
