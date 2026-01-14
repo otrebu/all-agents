@@ -1240,7 +1240,7 @@
       "Verify total count is displayed",
       "Verify format shows done/total ratio"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "008-status-sh-03",

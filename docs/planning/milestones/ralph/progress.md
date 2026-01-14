@@ -1584,3 +1584,17 @@
     - Step 2 (Verify milestone name is displayed): ✓ Shows "Milestone: ralph" from taskRef path
     - Step 3 (Verify milestone context is shown): ✓ Progress bar and counts provide context
   - All three verification steps passed
+
+### 008-status-sh-02
+- **Status:** PASSED
+- **Changes:** Verified subtask counts (done/total) display in status.sh
+- **Details:**
+  - Feature was already implemented in 008-status-sh-01 but needed verification
+  - Script uses `get_subtask_stats()` function (lines 75-103) to count done/total
+  - Output displays progress bar with format: `Progress: [██████████░░░░░░░░░░] 1/2 (50%)`
+  - Verification:
+    - Step 1 (Run status.sh): ✓ Executed with test subtasks.json
+    - Step 2 (Verify done count is displayed): ✓ Shows "1" (done count) in "1/2" format
+    - Step 3 (Verify total count is displayed): ✓ Shows "2" (total count) in "1/2" format
+    - Step 4 (Verify format shows done/total ratio): ✓ Format is "done/total (percentage%)"
+  - All four verification steps passed
