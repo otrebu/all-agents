@@ -2666,7 +2666,7 @@
       "Compare output format with subtasks.schema.json",
       "Verify schema compliance"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-21",

@@ -3475,3 +3475,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 152: "Each subtask must fit within a single context window iteration"
     - Line 163: "All of this must fit in one context window"
   - All three verification steps passed
+
+### 015-subtasks-auto-prompt-20
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** None required - prompt already correctly documents schema compliance
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md
+  - Verification step 2 (Compare output format with subtasks.schema.json): ✓
+    - Line 34: References schema with "@docs/planning/schemas/subtasks.schema.json" in Required Reading section
+    - Line 97: Schema reference in Output Format section: "@docs/planning/schemas/subtasks.schema.json"
+    - Lines 119-147: Example JSON structure matches schema exactly
+    - Schema requires 7 fields: id, taskRef, title, description, done, acceptanceCriteria, filesToRead
+    - Prompt documents all 7 fields in table at lines 103-112
+  - Verification step 3 (Verify schema compliance): ✓
+    - Example shows correct $schema reference
+    - Metadata structure with scope and storyRef matches schema
+    - Subtask fields match required fields in schema
+    - Validation checklist at lines 234-245 explicitly states "Output is valid JSON matching the schema"
+  - All three verification steps passed
