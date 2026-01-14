@@ -1916,3 +1916,20 @@
 - Notes:
   - Print mode provides dry-run capability for debugging and verification
   - Allows users to inspect prompt content before execution
+
+## 2026-01-14: 009-ralph-build-skill-07 - Skill references --validate-first option
+
+**Status: VERIFIED ✓**
+
+- Feature already implemented in SKILL.md
+- Verification steps completed:
+  1. ✓ Read SKILL.md content - file at `.claude/skills/ralph-build/SKILL.md`
+  2. ✓ `--validate-first` option is documented in Options table (line 23): `--validate-first` with description "Run pre-build validation before starting the loop"
+  3. ✓ Pre-build validation is described in section "3. Validate First (--validate-first)" (lines 41-47):
+     - Run pre-build validation prompt on the next subtask
+     - If validation fails, report the issue and stop
+     - If validation passes, proceed to build
+  4. ✓ Reference to pre-build validation prompt at line 80: `@context/workflows/ralph/building/pre-build-validation.md`
+- Notes:
+  - Pre-build validation provides alignment check before executing subtasks
+  - Prevents wasted iterations on misaligned or problematic subtasks
