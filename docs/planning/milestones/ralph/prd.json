@@ -3024,7 +3024,7 @@
       "Verify status is in output format",
       "Verify status extraction is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "018-iteration-summary-prompt-05",

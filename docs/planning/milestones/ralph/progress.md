@@ -4035,3 +4035,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 9: `**Subtask ID:** \`{{SUBTASK_ID}}\`` documents the input parameter
     - Line 25: Output format shows subtaskId being included in the response
     - Line 79-83 "Instructions" section explains how to process inputs and generate output
+
+## 2026-01-14: 018-iteration-summary-prompt-04 - Produces summary with status field
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Validation only - prompt already produces status in output
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read `prompts/iteration-summary.md` (86 lines)
+  - Verification step 2 (Verify status is in output format): ✓
+    - Line 26: `"status": "success|failure|partial"` in JSON output format
+    - Lines 51, 61, 71: All three examples show status field with respective values
+  - Verification step 3 (Verify status extraction is instructed): ✓
+    - Line 11: `**Status:** \`{{STATUS}}\`` documents the input parameter with values "success", "failure", or "partial"
+    - Line 80 in Instructions: "Determine the overall status from the session outcome"
+    - Output format clearly shows status is a required output field
