@@ -3614,3 +3614,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
       - "Do the milestone names capture the outcome, not just the work?"
     - Line 19 states "Help them prioritize through dialogue" as core method
   - All three verification steps passed
+
+### 016-roadmap-interactive-prompt-04
+- **Status:** PASSED
+- **Changes:** Verified AI asks clarifying questions about tradeoffs
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read context/workflows/ralph/planning/roadmap-interactive.md (243 lines)
+  - Verification step 2 (Verify tradeoff-related questions are included): ✓
+    - Phase 3: Tradeoff Exploration section (lines 51-63) contains comprehensive tradeoff questions:
+      - Key question: "Every choice involves tradeoffs. What are you willing to sacrifice for speed? For quality? For completeness?"
+      - "Would you rather ship faster with fewer features, or later with more polish?"
+      - "Are there technical investments that pay off later but slow you down now?"
+      - "How will you know if you've built the wrong thing?"
+  - Verification step 3 (Verify risk/benefit discussion is prompted): ✓
+    - Lines 60-61 include explicit risk/benefit probes:
+      - "What risks are you willing to accept?"
+      - "What risks are unacceptable even if they'd save time?"
+    - These questions surface risk tolerance and help users articulate acceptable vs unacceptable tradeoffs
+  - All three verification steps passed

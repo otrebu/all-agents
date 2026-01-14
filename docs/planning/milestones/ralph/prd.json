@@ -2750,7 +2750,7 @@
       "Verify tradeoff-related questions are included",
       "Verify risk/benefit discussion is prompted"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-05",
