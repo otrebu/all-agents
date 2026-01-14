@@ -4319,7 +4319,7 @@
       "Run aaa ralph status",
       "Verify exit code is non-zero"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-06",

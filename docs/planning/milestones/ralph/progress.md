@@ -5756,3 +5756,14 @@ The prompt includes:
 - Tested with test-fixtures/subtasks.json - shows milestone, progress bar, last done, next up
 - Compared output with direct `bash status.sh` run - outputs match exactly
 - CLI passes stdio: "inherit" to execSync ensuring stdout passthrough works correctly
+
+## 2026-01-14: 025-ralph-status-cli-05
+**Feature:** Non-zero exit code propagated on script errors
+
+**What changed:**
+- Verified CLI properly propagates non-zero exit codes from status.sh script
+- Implementation uses try/catch around `execSync()` in `tools/src/commands/ralph/index.ts` (lines 295-302)
+- When `execSync` throws (script returns non-zero), catch block calls `process.exit(1)`
+- Tested by creating temporary failing status.sh script that exits with code 1
+- CLI correctly exited with code 1, confirming error propagation works as expected
+- No code changes needed - feature was already correctly implemented
