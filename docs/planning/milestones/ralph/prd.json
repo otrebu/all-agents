@@ -4187,7 +4187,7 @@
       "Verify ntfy section exists",
       "Verify topic field has placeholder value"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-08",

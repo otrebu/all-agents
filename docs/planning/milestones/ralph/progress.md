@@ -5643,3 +5643,12 @@ The prompt includes:
   - log: "Write event to logs/iterations.jsonl diary file"
   - notify: "Send push notification via ntfy to configured topic"
   - pause: "Pause the build loop and wait for user intervention"
+
+## 2026-01-14: 024-ralph-config-template-07
+**Feature:** ntfy configuration section with topic placeholder
+
+**What changed:**
+- Verified `ntfy` section exists in `docs/planning/templates/ralph.config.template.json` (lines 15-19)
+- Section includes `_description` field explaining purpose: "Configuration for ntfy push notifications (used when 'notify' action is triggered)"
+- `topic` field contains placeholder value `"YOUR_TOPIC_HERE"` (line 18)
+- User must replace this placeholder with their actual ntfy topic name before use
