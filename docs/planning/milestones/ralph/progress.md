@@ -3010,3 +3010,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 183: Guidelines state "Context links back to parent story"
     - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
   - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
+
+### 014-tasks-auto-prompt-07
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt requires Plan section in each task
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (251 lines)
+  - Verification step 2 (Verify Plan section is required in output): ✓ Found at:
+    - Line 80: Required Sections table shows "Plan | Yes | Numbered steps - concrete actions"
+    - Lines 106-109: Task File Structure template includes "### Plan" section with numbered steps format
+    - Line 221: Validation Checklist includes "Plans have numbered, concrete steps"
+    - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
+  - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation

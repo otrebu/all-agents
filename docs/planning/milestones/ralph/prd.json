@@ -2286,7 +2286,7 @@
       "Read prompt content",
       "Verify Plan section is required in output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-08",
