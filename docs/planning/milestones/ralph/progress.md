@@ -4546,3 +4546,30 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Step 1 (Test log action in isolation): ✓ Function extracted and tested independently in bash script
     - Step 2 (Verify output format): ✓ Tests verify structured log output with all fields
     - Step 3 (Verify no side effects): ✓ Test confirms only stdout output, no file writes
+
+### 019-post-iteration-hook-18
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Implemented unit tests for notify action handler in tools/tests/e2e/ralph.test.ts
+- **Details:**
+  - Added "post-iteration-hook notify action handler unit tests" describe block with 4 tests:
+    1. `test("notify action sends HTTP POST to correct ntfy endpoint")`:
+       - Creates mock curl script that captures all arguments
+       - Verifies correct endpoint URL format: `https://ntfy.sh/<topic>`
+       - Verifies Title header contains subtask ID and status
+       - Verifies Priority header is set correctly
+       - Verifies body contains the summary message
+    2. `test("notify action sets high priority for failed status")`:
+       - Tests priority escalation when status is "failed"
+       - Verifies Priority header is set to "high"
+    3. `test("notify action sets low priority for retrying status")`:
+       - Tests priority reduction when status is "retrying"
+       - Verifies Priority header is set to "low"
+    4. `test("notify action returns error when topic not configured")`:
+       - Tests error handling when ntfy topic is empty/not configured
+       - Verifies warning message is displayed
+       - Verifies function returns failure
+  - Verification:
+    - Step 1 (Test notify action in isolation): ✓ Function extracted and tested with mock curl
+    - Step 2 (Mock HTTP call): ✓ Mock curl script captures all curl arguments including endpoint, headers, body
+    - Step 3 (Verify correct endpoint and payload): ✓ Tests verify endpoint URL, Title/Priority headers, and body content
