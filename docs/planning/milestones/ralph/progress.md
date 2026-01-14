@@ -4880,3 +4880,28 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - "Drift Detected: Yes/No" section provides clear status for aggregation
   - Task files go to standard location `docs/planning/tasks/` like other calibration checks
   - ralph-calibrate SKILL.md's "all" mode (lines 59-87) expects exactly this format for combining results
+
+## 2026-01-14: 021-technical-drift-prompt-11
+
+### What changed
+- Created test fixtures for technical drift validation:
+  - `subtasks-technical-drift-test.json`: Subtask with completed payment service having technical drift
+  - `TASK-TECH-DRIFT-001.md`: Parent task defining technical standards
+  - `validation-021-technical-drift-prompt-11.md`: Full validation documentation with:
+    - Test setup (subtask definition, task standards, simulated git diff)
+    - Four technical drift issues present: Type safety, Missing tests, Missing error handling, Documentation gaps
+    - Expected analysis output showing drift is identified
+    - Prompt coverage analysis mapping issues to prompt patterns
+
+### Verification:
+- Step 1 (Prepare subtask with technical drift): Created `subtasks-technical-drift-test.json` with TECH-DRIFT-001 subtask that has:
+  - Multiple `any` types (violates TypeScript strict mode)
+  - No corresponding test file (violates testing standard)
+  - No error handling on payment gateway call (critical path without try/catch)
+  - No JSDoc documentation (violates API documentation requirement)
+- Step 2 (Run prompt against subtask): Validated prompt patterns match test case:
+  - Pattern 1 "Missing Tests" (lines 60-75) matches missing test file
+  - Pattern 3 "Missing Error Handling" (lines 96-111) matches payment gateway call
+  - Pattern 4 "Documentation Gaps" (lines 113-127) matches missing JSDoc
+  - Pattern 5 "Type Safety Issues" (lines 129-143) matches `any` usage
+- Step 3 (Verify drift is identified): Expected output documented showing all 4 issues flagged with proper severity levels

@@ -3710,7 +3710,7 @@
       "Run prompt against subtask",
       "Verify drift is identified"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-12",
