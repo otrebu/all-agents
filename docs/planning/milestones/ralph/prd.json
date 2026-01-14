@@ -1060,7 +1060,7 @@
       "Verify no parsing errors occur",
       "Verify @path references work"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-13",

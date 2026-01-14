@@ -1303,3 +1303,25 @@
     - Lines 287-311: Example 5 demonstrates unfaithful detection with full JSON output including Story context
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-12
+- **Status:** PASSED
+- **Changes:** Validated prompt file is readable by Claude Code without syntax errors
+- **Details:**
+  - Verification step 1 (Open prompt in Claude Code): ✓
+    - File exists at `context/workflows/ralph/building/pre-build-validation.md`
+    - File successfully read (322 lines)
+    - No file access errors
+  - Verification step 2 (Verify no parsing errors occur): ✓
+    - File contains valid markdown syntax
+    - All JSON code blocks are properly formatted with opening and closing triple backticks
+    - All sections use proper markdown heading hierarchy (##, ###)
+    - Tables are properly formatted (lines 142-146)
+    - No syntax errors detected
+  - Verification step 3 (Verify @path references work): ✓
+    - The pre-build-validation.md prompt does NOT use @path references (intentional)
+    - The prompt reads subtasks.json, Task files, and Story files dynamically based on taskRef and storyRef fields
+    - build.sh correctly references this file at line 18: `VALIDATION_PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/pre-build-validation.md"`
+    - File path resolves correctly from the script
+  - Created validation document at `docs/planning/milestones/ralph/test-fixtures/validation-006-pre-build-validation-prompt-12.md`
+  - All three verification steps passed
+
