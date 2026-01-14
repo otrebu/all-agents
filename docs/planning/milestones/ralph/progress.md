@@ -2738,3 +2738,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lines 86-87: Persona section included in Story File Structure template: `### Persona\n[Who is this user? What do they care about? What's their context?]`
     - Line 184: Validation Checklist requires "Each story has ALL required sections (Narrative, Persona, Context, AC, Tasks)"
   - Both verification steps passed
+
+### 013-stories-auto-prompt-08
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified Context section is required in stories-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 214 lines, readable
+  - Verification step 2 (Verify Context section is required in output): ✓
+    - Line 73: `| Context | Yes | Business driver, why this matters now |` in Required Sections table
+    - Lines 89-90: Context section included in Story File Structure template: `### Context\n[Why now? Business driver from VISION.md or ROADMAP.md deliverables]`
+    - Line 170: Generation Guidelines specify "Context explains why this matters NOW"
+    - Line 184: Validation Checklist requires "Each story has ALL required sections (Narrative, Persona, Context, AC, Tasks)"
+  - Both verification steps passed
