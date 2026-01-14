@@ -1687,3 +1687,18 @@
     - Step 2 (Run status.sh): ✓ Executed script against test data
     - Step 3 (Verify average tool calls is calculated and shown): ✓ Shows "Avg tool calls: 16.7" (correctly calculated as (15+25+10)/3 = 16.7)
   - All three verification steps passed
+
+### 008-status-sh-09
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified empty state handling in status.sh (no code changes needed)
+- **Details:**
+  - The script already handles missing subtasks.json gracefully (lines 342-345)
+  - Shows "No subtasks file found at: subtasks.json" message
+  - Shows helpful guidance: "Run 'aaa ralph init' or create subtasks.json to get started."
+  - Exit code is 0 (no errors thrown)
+  - Verification:
+    - Step 1 (Run status.sh without subtasks.json): ✓ Ran script in /tmp with no subtasks.json present
+    - Step 2 (Verify graceful empty state message): ✓ Shows dimmed helpful message about missing file and how to get started
+    - Step 3 (Verify no errors thrown): ✓ Exit code 0, no error/fail/exception messages in output
+  - All three verification steps passed
