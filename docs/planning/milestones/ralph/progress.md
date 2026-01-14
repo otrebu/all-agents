@@ -2278,3 +2278,13 @@
     1. ✓ Create subtasks with no drift - `subtasks-acceptable-variation.json` exists
     2. ✓ Run ralph calibrate intention - Script invokes intention-drift.md prompt
     3. ✓ Verify no task files are generated - No drift-ACCEPT-VAR-001-*.md file created
+
+## 2026-01-14: 011-ralph-plan-skill-01
+
+Created `.claude/skills/ralph-plan/SKILL.md` file.
+
+- Created new skill directory at `.claude/skills/ralph-plan/`
+- Added SKILL.md with YAML frontmatter (name: ralph-plan, description)
+- Documented vision subcommand for interactive vision planning
+- Added @context/workflows/ralph/planning/vision-interactive.md reference
+- Skill follows same structure as existing ralph-build SKILL.md
