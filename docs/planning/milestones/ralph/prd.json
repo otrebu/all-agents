@@ -1829,7 +1829,7 @@
       "Verify SKILL.md file exists",
       "Verify file is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-02",

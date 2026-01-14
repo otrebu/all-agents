@@ -2372,3 +2372,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ List skills in Claude Code - Skills visible in system prompt
     2. ✓ Search for ralph-plan - Skill found in available skills list
     3. ✓ Verify skill is discoverable - Skill appears with proper name and description
+
+### 012-ralph-calibrate-skill-01
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Created ralph-calibrate SKILL.md at .claude/skills/ralph-calibrate/SKILL.md
+- **Details:**
+  - Created directory `.claude/skills/ralph-calibrate/`
+  - Created SKILL.md with proper YAML frontmatter (name, description)
+  - Skill supports subcommands: intention, technical, improve, all
+  - References calibration prompts via @path syntax:
+    - @context/workflows/ralph/calibration/intention-drift.md
+    - @context/workflows/ralph/calibration/self-improvement.md
+  - File is readable (3618 bytes)
+  - All verification steps pass:
+    1. ✓ Navigate to .claude/skills/ralph-calibrate/ - Directory exists
+    2. ✓ Verify SKILL.md file exists - File created
+    3. ✓ Verify file is readable - Confirmed with ls -la and head commands
