@@ -2832,7 +2832,7 @@
       "Verify session starts correctly",
       "Verify questions are asked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-12",
