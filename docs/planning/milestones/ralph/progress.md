@@ -5125,3 +5125,20 @@ The prompt includes:
   - Search the codebase for relevant patterns
   - Create and edit story files
   - Navigate the file system
+
+## 2026-01-14: 022-stories-interactive-prompt-10
+
+### What changed
+- Added `stories` subcommand to `aaa ralph plan` CLI
+- Implemented `--milestone <name>` option for stories planning
+- Added validation to require milestone parameter for stories subcommand
+
+### Verification:
+- Step 1 (Verify CLI command documentation): ✓ 
+  - `aaa ralph plan` now shows stories in subcommands list
+  - Help text documents `--milestone <name>` option
+  - Usage shows `aaa ralph plan stories --milestone <name>`
+- Step 2 (Verify milestone parameter handling): ✓
+  - Running `aaa ralph plan stories` without `--milestone` shows error and usage
+  - Running `aaa ralph plan stories --milestone <name>` passes milestone to Claude
+  - Milestone is displayed in session startup output

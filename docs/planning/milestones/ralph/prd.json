@@ -3853,7 +3853,7 @@
       "Verify CLI command documentation",
       "Verify milestone parameter handling"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-11",
