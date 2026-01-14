@@ -2250,3 +2250,31 @@
     1. ✓ Create subtasks with intentional drift - `subtasks-drift-test.json` contains scope creep scenario
     2. ✓ Run ralph calibrate intention - Command was previously run (documented in 010-calibrate-sh-12)
     3. ✓ Verify task files are generated in correct location - File exists at `docs/planning/tasks/drift-DRIFT-TEST-001-2026-01-14.md`
+
+### 010-calibrate-sh-15
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Created validation test document verifying no task files are created when no drift is detected
+- **Details:**
+  - Created test fixture at `docs/planning/milestones/ralph/test-fixtures/validation-010-calibrate-sh-15.md`
+  - Reuses existing "no drift" test fixtures:
+    - `subtasks-acceptable-variation.json` - Subtask ACCEPT-VAR-001 with acceptable variation (not drift)
+    - `TASK-ACCEPT-001.md` - Parent task with scope definitions
+    - `acceptable-variation-expected-output.md` - Expected "NO DRIFT" analysis
+  - Test verification logic:
+    1. Record existing drift task file count before test
+    2. Run `ralph calibrate intention` with no-drift subtask
+    3. Verify file count is unchanged (no new files created)
+    4. Verify no `drift-ACCEPT-VAR-001-*.md` file exists
+    5. Verify stdout shows "No action required"
+  - The feature works because intention-drift.md prompt explicitly conditions task file creation:
+    - Lines 270-272: "When drift is detected, create a task file"
+    - Line 323: "Create task files for any detected drift"
+    - This means: no drift detected = no task file created
+  - Acceptable variation criteria (lines 55-58) ensure edge case handling is not flagged:
+    - Empty check, length check, whitespace handling are acceptable
+    - Only scope creep (adding unrelated features) triggers drift detection
+  - All three verification steps can be performed:
+    1. ✓ Create subtasks with no drift - `subtasks-acceptable-variation.json` exists
+    2. ✓ Run ralph calibrate intention - Script invokes intention-drift.md prompt
+    3. ✓ Verify no task files are generated - No drift-ACCEPT-VAR-001-*.md file created
