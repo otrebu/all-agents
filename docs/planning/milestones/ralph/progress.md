@@ -2983,3 +2983,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Verification step 3 (Verify template compliance is instructed): ✓ Found at:
     - Line 69: "Generated tasks MUST comply exactly with the template above"
     - Lines 207-218: Validation Checklist including "Task format matches the template exactly"
+
+### 014-tasks-auto-prompt-05
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt requires Goal section in each task
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (251 lines)
+  - Verification step 2 (Verify Goal section is required in output): ✓ Found at:
+    - Line 78: Required Sections table shows "Goal | Yes | One sentence outcome - what's true when done?"
+    - Lines 97-98: Task File Structure template includes "### Goal" section with description
+    - Line 179: Guidelines state "Goal is one clear sentence"
+    - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
+  - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
