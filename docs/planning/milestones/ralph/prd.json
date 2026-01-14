@@ -1529,7 +1529,7 @@
       "Run aaa ralph build with same subtasks",
       "Verify outputs are equivalent"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-01",

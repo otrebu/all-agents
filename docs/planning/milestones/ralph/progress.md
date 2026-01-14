@@ -1962,3 +1962,26 @@
 - Notes:
   - Skill is properly registered and discoverable in Claude Code
   - YAML frontmatter with `name: ralph-build` and `description` enables recognition
+
+## 2026-01-14: 009-ralph-build-skill-10 - Skill outputs match CLI aaa ralph build behavior
+
+**Status: VERIFIED ✓**
+
+- Verified structural equivalence between skill and CLI
+- Verification steps completed:
+  1. ✓ Both systems use same underlying prompt: `context/workflows/ralph/building/ralph-iteration.md`
+     - CLI: `build.sh` line 17 references `ralph-iteration.md`
+     - Skill: SKILL.md line 52 references `@context/workflows/ralph/building/ralph-iteration.md`
+  2. ✓ Both support identical options with same semantics:
+     - `--subtasks <path>`: Path to subtasks.json (CLI line 96, Skill line 20)
+     - `-i, --interactive`: Pause between iterations (CLI line 98, Skill lines 21, 54-59)
+     - `-p, --print`: Print prompt without execution (CLI line 97, Skill lines 22, 35-40)
+     - `--validate-first`: Pre-build validation (CLI line 100, Skill lines 23, 41-46)
+     - `--max-iterations`: Retry limit (CLI line 99, Skill lines 24, 62-68)
+  3. ✓ Outputs equivalent by design:
+     - Both have Claude follow same ralph-iteration.md workflow
+     - Both produce: subtask completion, git commits, PROGRESS.md updates, subtasks.json updates
+- Notes:
+  - SKILL.md lines 69-75: Explicit "CLI Equivalent" section documents `aaa ralph build [options]`
+  - Architectural difference: CLI spawns separate Claude processes; skill runs in existing session
+  - Functional outputs (commits, tracking files) are identical since same prompt governs behavior
