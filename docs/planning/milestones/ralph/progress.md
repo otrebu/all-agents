@@ -3555,3 +3555,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Both schema validation tests pass
     - Test validates structure including: subtasks array, required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead), metadata with scope/milestoneRef
 
+## 2026-01-14
+
+### 016-roadmap-interactive-prompt-01
+- **Status:** PASSED
+- **Changes:** Created `context/workflows/ralph/planning/roadmap-interactive.md` prompt file
+- **Details:**
+  - Verification step 1 (Navigate to context/workflows/ralph/planning/): ✓
+    - Directory exists and contains other planning prompts
+  - Verification step 2 (Verify roadmap-interactive.md file exists): ✓
+    - File created at context/workflows/ralph/planning/roadmap-interactive.md
+  - Verification step 3 (Verify file is readable): ✓
+    - File is 243 lines with comprehensive interactive roadmap planning prompt
+    - Includes Socratic method approach with 5 conversation phases
+    - Covers scope exploration, priority exploration, tradeoff exploration, dependency mapping, and milestone definition
+    - Documents ROADMAP.md output format with milestone linking conventions
+    - Session exit handling and full tool access documented
+

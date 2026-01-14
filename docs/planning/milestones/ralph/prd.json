@@ -2714,7 +2714,7 @@
       "Verify roadmap-interactive.md file exists",
       "Verify file is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-02",
