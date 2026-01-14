@@ -297,9 +297,10 @@ run_improve_check() {
   fi
 
   # Check selfImprovement config
+  # Config structure: { "selfImprovement": { "mode": "always" | "auto" | "never" } }
   local self_improve_setting="always"
   if [ -f "$CONFIG_PATH" ]; then
-    self_improve_setting=$(json_query "$CONFIG_PATH" ".selfImprovement" "always")
+    self_improve_setting=$(json_query "$CONFIG_PATH" ".selfImprovement.mode" "always")
   fi
 
   if [ "$self_improve_setting" = "never" ]; then

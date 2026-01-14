@@ -5864,3 +5864,18 @@ The prompt includes:
   - Created test file with sessionIds "abc123-session-id-test" and "xyz789-another-session"
   - Ran `aaa ralph calibrate improve` with test file
   - Output showed "Found sessionIds: abc123-session-id-test,xyz789-another-session"
+
+## 2026-01-14: 026-calibrate-improve-cli-04
+**Feature:** Command respects selfImprovement: always (propose only)
+
+**What changed:**
+- Fixed `tools/src/commands/ralph/scripts/calibrate.sh` to read `.selfImprovement.mode` instead of `.selfImprovement` (line 303)
+  - The config template uses nested structure: `{"selfImprovement": {"mode": "always"}}`
+  - Previous code read `.selfImprovement` which would return the whole object, not the mode value
+  - Now correctly reads `.selfImprovement.mode` to get "always", "auto", or "never"
+- Added comment documenting the expected config structure (line 300)
+- Verified json_query function handles nested paths correctly for both jq and Node.js fallback
+- The prompt passed to Claude (lines 333-335) correctly instructs:
+  - "If 'always': Require user approval before applying changes (propose only)"
+  - "If 'auto': Apply changes automatically"
+- The self-improvement.md prompt reinforces "Propose only" behavior (line 221)

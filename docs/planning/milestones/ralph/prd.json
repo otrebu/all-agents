@@ -4428,7 +4428,7 @@
       "Verify approval is required",
       "Verify no auto-apply"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-05",
