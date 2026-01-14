@@ -2346,3 +2346,15 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - References @context/workflows/ralph/planning/vision-interactive.md for full workflow
   - Tested invocation: `/ralph-plan vision` successfully starts interactive vision planning session
   - Socratic opening question is presented to the user
+
+### 011-ralph-plan-skill-08
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified skill loads and references vision-interactive.md prompt correctly
+- **Details:**
+  - SKILL.md contains @path reference at line 30: `@context/workflows/ralph/planning/vision-interactive.md`
+  - Referenced file exists at `context/workflows/ralph/planning/vision-interactive.md` (166 lines)
+  - @path syntax follows Claude Code conventions
+  - When skill is invoked with `vision` argument, it instructs to follow the full workflow in the referenced prompt
+  - Reference also appears in the References section (line 87) for documentation
+  - Previous features (011-07) confirm invocation successfully starts the planning session

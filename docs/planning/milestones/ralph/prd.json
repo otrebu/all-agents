@@ -1805,7 +1805,7 @@
       "Verify prompt content is loaded",
       "Verify @path reference resolves"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "011-ralph-plan-skill-09",
