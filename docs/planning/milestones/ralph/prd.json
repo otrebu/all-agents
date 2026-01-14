@@ -1601,7 +1601,7 @@
       "Verify task files are created",
       "Verify files contain divergence details"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-07",

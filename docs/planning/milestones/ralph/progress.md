@@ -2074,3 +2074,29 @@
       - Analysis section with drift detection and evidence
       - Recommendation section
     - Format is readable markdown with clear structure and sections
+
+### 010-calibrate-sh-06
+- **Status:** PASSED
+- **Changes:** Verified script creates task files when divergence is found
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/calibrate-task-file-creation-test.md` documenting the complete flow
+  - Verification steps validated:
+    1. ✓ Run ralph calibrate intention with drift present - `run_intention_check()` invokes Claude with drift-detection prompt
+    2. ✓ Verify task files are created - intention-drift.md lines 270-309 provide complete task file template and instructions
+    3. ✓ Verify files contain divergence details - template includes Problem, Drift Type, Evidence, Corrective Action, and Acceptance Criteria
+  - Implementation verified across two components:
+    - **calibrate.sh run_intention_check()** (lines 193-210):
+      - Builds prompt with explicit instruction: "If drift is detected, create task files in docs/planning/tasks/ as specified in the prompt"
+      - References `@${INTENTION_DRIFT_PROMPT}` for Claude to follow
+    - **intention-drift.md** (lines 270-309):
+      - Section "### 2. Task Files for Divergence" with file path format: `docs/planning/tasks/drift-<subtask-id>-<date>.md`
+      - Complete markdown template with all required fields
+      - Execution step 4 (line 323): "Create task files for any detected drift in `docs/planning/tasks/`"
+  - Approval mode is respected (calibrate.sh lines 204-207):
+    - `"auto"` (default): Creates drift task files automatically
+    - `"always"` or `"review"`: Prompts for user approval before creating
+    - `--force` flag: Skips approval even if config says "always"
+  - Test fixtures verified:
+    - `subtasks-drift-test.json`: Contains subtask with scope creep scenario
+    - `TASK-DRIFT-001.md`: Parent task with explicit "Out of Scope" items
+    - `drift-test-expected-output.md`: Documents expected drift detection and task file creation
