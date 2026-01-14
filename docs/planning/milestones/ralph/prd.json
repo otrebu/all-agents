@@ -2738,7 +2738,7 @@
       "Verify priority-related questions are included",
       "Verify milestone prioritization is explored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-04",

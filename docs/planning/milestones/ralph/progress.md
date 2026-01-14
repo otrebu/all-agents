@@ -3591,3 +3591,26 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 17-21 establishes Socratic method: "Use the **Socratic method** to help the user clarify their roadmap: Ask probing questions rather than making assumptions..."
     - Scope exploration questions follow Socratic style with probing, open-ended questions
     - Questions designed to challenge assumptions and explore boundaries
+
+### 016-roadmap-interactive-prompt-03
+- **Status:** PASSED
+- **Changes:** Verified AI asks clarifying questions about priorities
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - Read context/workflows/ralph/planning/roadmap-interactive.md (243 lines)
+  - Verification step 2 (Verify priority-related questions are included): ✓
+    - Phase 2: Priority Exploration section (lines 38-49) contains comprehensive priority questions:
+      - Key question: "If you had to ship in half the time, what would you cut?"
+      - "What keeps you up at night about this product?"
+      - "Which feature, if it failed, would doom the whole product?"
+      - "What would make your early users love this vs just tolerate it?"
+      - "Are there quick wins that would build momentum?"
+      - "What are users asking for most urgently?"
+  - Verification step 3 (Verify milestone prioritization is explored): ✓
+    - Phase 5: Milestone Definition (lines 77-88) includes milestone prioritization probes:
+      - "Does each milestone deliver standalone value?"
+      - "Would a user be happy if you stopped at milestone 1?"
+      - "Are the milestones roughly similar in scope?"
+      - "Do the milestone names capture the outcome, not just the work?"
+    - Line 19 states "Help them prioritize through dialogue" as core method
+  - All three verification steps passed
