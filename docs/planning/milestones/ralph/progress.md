@@ -1855,3 +1855,18 @@
   - Skill is registered as `ralph-build` with description: "Run Ralph autonomous build loop..."
   - Skill description includes "Use when user asks to 'ralph build'" for natural language matching
   - Skill appears in Claude Code's available skills list and can be invoked via Skill tool
+
+## 2026-01-14: 009-ralph-build-skill-03 - Skill references @context/workflows/ralph/building/ralph-iteration.md
+
+**Status: VERIFIED ✓**
+
+- Feature already implemented in SKILL.md
+- Verification steps completed:
+  1. ✓ Read SKILL.md content - file at `.claude/skills/ralph-build/SKILL.md`
+  2. ✓ @context/workflows/ralph/building/ralph-iteration.md reference exists at:
+     - Line 52: Inline reference in "Execute Build Loop" section
+     - Line 79: Reference in "References" section
+  3. ✓ Reference uses @path syntax - both references use proper `@context/...` format
+- Notes:
+  - Feature was implemented during 009-ralph-build-skill-01 commit
+  - Skill properly references the ralph-iteration.md prompt in two places for comprehensive coverage

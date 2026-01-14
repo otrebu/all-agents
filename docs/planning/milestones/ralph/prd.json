@@ -1445,7 +1445,7 @@
       "Verify @context/workflows/ralph/building/ralph-iteration.md reference exists",
       "Verify reference uses @path syntax"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "009-ralph-build-skill-04",
