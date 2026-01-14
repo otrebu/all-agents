@@ -2651,3 +2651,15 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Documents file naming convention (STORY-NNN-slug.md)
   - Includes generation guidelines and validation checklist
   - File location: context/workflows/ralph/planning/stories-auto.md
+
+### 013-stories-auto-prompt-02
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified Vision @path reference exists in stories-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 188 lines, readable
+  - Verification step 2 (Verify @docs/planning/VISION.md reference exists): ✓
+    - Line 7: `@docs/planning/VISION.md` in "Required Reading" section
+    - Line 168: `Read @docs/planning/VISION.md completely` in Execution steps
+  - The Vision document is used to understand target users, user jobs, and current pain points (lines 31-35)
+  - Both verification steps passed

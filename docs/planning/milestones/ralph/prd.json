@@ -2021,7 +2021,7 @@
       "Read prompt content",
       "Verify @docs/planning/VISION.md reference exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-03",
