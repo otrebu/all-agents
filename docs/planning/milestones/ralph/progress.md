@@ -2182,3 +2182,24 @@
     2. ✓ Verify exit code is 0 - Exit code confirmed as 0
     3. ✓ Verify usage information is displayed - Shows subcommands (intention, technical, improve, all) and options (--force, --review, -h/--help)
   - The feature was already complete from previous implementation work
+
+### 010-calibrate-sh-12
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified ralph calibrate intention with valid subtasks.json completes successfully
+- **Details:**
+  - Used existing test fixture `docs/planning/milestones/ralph/test-fixtures/subtasks-drift-test.json`:
+    - Contains completed subtask DRIFT-TEST-001 with taskRef, commitHash, and done: true
+    - References TASK-DRIFT-001 parent task with scope definitions
+  - Ran command: `SUBTASKS_PATH="docs/planning/milestones/ralph/test-fixtures/subtasks-drift-test.json" aaa ralph calibrate intention`
+  - Command completed successfully with full output:
+    - Header: "=== Running Intention Drift Check ==="
+    - Approval mode: "auto" (default)
+    - Claude invocation: "Invoking Claude for intention drift analysis..."
+    - Summary table showing analyzed subtask and drift detection
+    - Task file created for detected drift
+    - Footer: "=== Intention Drift Check Complete ==="
+  - All three verification steps passed:
+    1. ✓ Create valid subtasks.json with completed subtasks - Used subtasks-drift-test.json with completed subtask
+    2. ✓ Run ralph calibrate intention - Command executed via aaa CLI
+    3. ✓ Verify completion without error - Exit code 0, full analysis output displayed

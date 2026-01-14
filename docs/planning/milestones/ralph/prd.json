@@ -1673,7 +1673,7 @@
       "Run ralph calibrate intention",
       "Verify completion without error"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-13",
