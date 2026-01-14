@@ -1116,3 +1116,22 @@
     2. ✓ Ensure subtask fails repeatedly - test fixture designed to never complete
     3. ✓ Verify loop terminates after exactly 2 attempts - confirmed by code analysis and bash simulation
 
+### 006-pre-build-validation-prompt-01
+- **Status:** PASSED
+- **Changes:** Created `context/workflows/ralph/building/pre-build-validation.md` prompt file
+- **Details:**
+  - Created comprehensive pre-build validation prompt with:
+    - Subtask definition reading (title, description, acceptance criteria)
+    - Parent Task lookup via taskRef
+    - Parent Story lookup via Task's storyRef
+    - Four validation checks: Scope Creep, Too Broad, Too Narrow, Faithful Implementation
+    - Graceful degradation for partial chains
+    - JSON output format with aligned: true/false
+    - Five few-shot examples demonstrating each validation case
+  - File exists at `context/workflows/ralph/building/pre-build-validation.md`
+  - File is readable and contains valid markdown content
+  - All three verification steps passed:
+    1. ✓ Navigate to context/workflows/ralph/building/ - directory exists
+    2. ✓ Verify pre-build-validation.md file exists - confirmed via glob
+    3. ✓ Verify file is readable - content successfully read
+

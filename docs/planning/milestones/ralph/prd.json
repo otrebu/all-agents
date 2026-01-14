@@ -927,7 +927,7 @@
       "Verify pre-build-validation.md file exists",
       "Verify file is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-02",
