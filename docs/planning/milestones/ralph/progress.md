@@ -3713,3 +3713,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Also supports `aaa ralph plan vision` for vision planning
   - Implementation: Added new Command("plan") block with argument handling for vision/roadmap subcommands
   - Both verification steps passed
+
+### 016-roadmap-interactive-prompt-10
+- **Status:** PASSED
+- **Changes:** Added roadmap subcommand to ralph-plan SKILL.md for /ralph-plan roadmap invocation
+- **Details:**
+  - Verification step 1 (Verify skill documentation): ✓
+    - Updated SKILL.md description to include "ralph plan roadmap" trigger phrase
+    - Added execution instructions for `roadmap` argument (lines 32-50)
+    - Added roadmap row to Subcommands table (line 69)
+    - Added full "## Roadmap Planning" section (lines 98-125) with invocation, workflow steps, and notes
+    - Updated CLI Equivalent to include `aaa ralph plan roadmap`
+    - Added roadmap prompt to References section
+  - Verification step 2 (Verify roadmap subcommand routing): ✓
+    - Skill routes `roadmap` argument to `@context/workflows/ralph/planning/roadmap-interactive.md`
+    - Includes instructions to first read VISION.md and suggest vision planning if missing
+    - Session opening matches roadmap-interactive.md starting prompt
+  - All verification steps passed
