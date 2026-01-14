@@ -3341,3 +3341,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lines 113-120: "### Subtasks Schema Structure" example JSON shows `"done": false,` field
     - Line 223: Validation checklist includes `done` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
     - Schema (subtasks.schema.json line 50): `"required": ["id", "taskRef", "title", "description", "done", "acceptanceCriteria"]`
+
+### 015-subtasks-auto-prompt-10
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified each subtask has acceptanceCriteria field required in output
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify acceptanceCriteria field is required in output): ✓ Multiple locations confirm acceptanceCriteria is required:
+    - Line 95: Required Fields table shows `| `acceptanceCriteria` | string[] | How to verify subtask is complete |`
+    - Lines 121-125: "### Subtasks Schema Structure" example JSON shows `"acceptanceCriteria": [...]` field with array of criteria
+    - Line 223: Validation checklist includes `acceptanceCriteria` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
+    - Line 156: Sizing constraints mention "Have 2-5 acceptance criteria"
+    - Line 228: Validation checklist states "Acceptance criteria are concrete and verifiable"
