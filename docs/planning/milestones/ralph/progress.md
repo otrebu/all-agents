@@ -6090,3 +6090,25 @@ All verification steps pass.
    - Also in self-improvement.md lines 215-218: `**"auto"**: Apply changes directly to the target files (CLAUDE.md, prompts, skills) without creating task files. Output what was changed in the summary.`
 
 All verification steps pass - the skill correctly documents and instructs auto-apply behavior when selfImprovement is set to "auto".
+
+
+## 2026-01-14: 027-calibrate-improve-skill-06 verified
+
+**Feature:** Usage examples provided
+
+**Changes Made:**
+Added "Examples" section to `.claude/skills/ralph-calibrate/SKILL.md` (lines 107-127) with 6 helpful usage examples:
+
+1. `/ralph-calibrate intention` - Check for intention drift on completed subtasks
+2. `/ralph-calibrate technical` - Analyze technical quality patterns
+3. `/ralph-calibrate improve` - Analyze session logs for agent inefficiencies
+4. `/ralph-calibrate all` - Run all calibration checks in sequence
+5. `/ralph-calibrate intention --force` - Skip approval prompts
+6. `/ralph-calibrate all --review` - Require approval before creating task files
+
+**Verification:**
+1. **Read skill content** - Read `.claude/skills/ralph-calibrate/SKILL.md`
+2. **Verify usage examples exist** - Added "Examples" section with code block containing 6 examples
+3. **Verify examples are helpful** - Each example includes a comment explaining its purpose, covers all subcommands (`intention`, `technical`, `improve`, `all`), and demonstrates common options (`--force`, `--review`)
+
+All verification steps pass.

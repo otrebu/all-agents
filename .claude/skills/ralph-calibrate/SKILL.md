@@ -104,6 +104,28 @@ Show the usage documentation below.
 /ralph-calibrate <subcommand> [options]
 ```
 
+### Examples
+
+```bash
+# Check for intention drift on completed subtasks
+/ralph-calibrate intention
+
+# Analyze technical quality patterns
+/ralph-calibrate technical
+
+# Analyze session logs for agent inefficiencies
+/ralph-calibrate improve
+
+# Run all calibration checks in sequence
+/ralph-calibrate all
+
+# Skip approval prompts and create task files automatically
+/ralph-calibrate intention --force
+
+# Require approval before creating any task files
+/ralph-calibrate all --review
+```
+
 ## Subcommands
 
 | Subcommand | Description |
