@@ -2229,7 +2229,7 @@
       "Verify story ID parameter handling exists",
       "Verify parent story lookup is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-03",
