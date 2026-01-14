@@ -5163,3 +5163,23 @@ The prompt includes:
   - `### If argument is 'stories'` execution section routes to stories-interactive.md
   - Handles optional milestone name parameter
   - Session opening prompt matches stories-interactive.md format
+
+## 2026-01-14: 022-stories-interactive-prompt-12
+
+### What changed
+- Created validation test fixture documenting interactive session startup with sample milestone
+
+### Verification:
+- Step 1 (Run stories planning session): ✓
+  - Session invocable via `/ralph-plan stories ralph` skill or `aaa ralph plan stories --milestone ralph` CLI
+  - Prompt at `context/workflows/ralph/planning/stories-interactive.md` is loaded and executed
+- Step 2 (Verify session starts correctly): ✓
+  - SKILL.md (lines 52-74) defines stories execution path with opening prompt
+  - stories-interactive.md (lines 240-254) defines starting session format
+  - Opening greeting references milestone and asks about primary users
+- Step 3 (Verify milestone context is used): ✓
+  - Required Reading (lines 5-10): reads @docs/planning/VISION.md and @docs/planning/ROADMAP.md
+  - Milestone Parameter Handling (lines 12-26): accepts milestone name, finds in ROADMAP.md by slug
+  - Phase 1: Milestone Context (lines 39-51): grounds conversation in milestone's deliverables from ROADMAP.md
+  - For "ralph" milestone: references Core Building Loop, ralph-iteration.md, build.sh, session ID capture
+- Validation fixture: `docs/planning/milestones/ralph/test-fixtures/validation-022-stories-interactive-prompt-12.md`

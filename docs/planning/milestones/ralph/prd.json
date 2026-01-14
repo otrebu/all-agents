@@ -3876,7 +3876,7 @@
       "Verify session starts correctly",
       "Verify milestone context is used"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-13",
