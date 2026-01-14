@@ -3996,7 +3996,7 @@
       "Verify codebase reading is instructed",
       "Verify existing patterns are considered"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-08",

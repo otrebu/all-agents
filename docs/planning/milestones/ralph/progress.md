@@ -5372,3 +5372,23 @@ The prompt includes:
     - Line 150: "Some sessions may only define one or two tasks - that's fine"
     - Line 329: Explicitly tells user "(You can say 'done' at any point when you feel we've covered enough...)"
   - User-initiated exit is the primary session termination mechanism
+
+### 023-tasks-interactive-prompt-07
+- **Status:** PASSED
+- **Date:** 2026-01-14
+- **Changes:** Verified codebase is referenced for context in tasks-interactive.md
+- **Details:**
+  - "Codebase Analysis" section (lines 37-46) provides comprehensive instructions:
+    - Line 39: "Before and during the conversation, analyze the codebase to inform task generation"
+    - Line 41: "Explore relevant directories - Use Glob/Grep to understand existing patterns"
+    - Line 42: "Read related files - Understand current implementations"
+    - Line 43: "Identify dependencies - What existing code will tasks interact with?"
+    - Line 44: "Note conventions - File naming, code style, existing patterns"
+    - Line 46: "Reference specific files and patterns from the codebase"
+  - Existing patterns are explicitly considered:
+    - Line 62: "Are there existing patterns we should follow or extend?"
+    - Line 72-73: "What existing code can we build on?", "What patterns are already established here?"
+    - Line 133: "Reference specific files and patterns from the codebase"
+    - Line 144: Don't section prohibits ignoring "existing codebase patterns and conventions"
+    - Lines 319-326: Starting session template explores existing patterns
+  - Full tool access section (lines 300-308) confirms access to read files and explore codebase
