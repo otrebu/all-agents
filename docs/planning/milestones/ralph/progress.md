@@ -2864,3 +2864,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Validation checklist (lines 179-190) includes template compliance verification
     - Minor differences are intentional auto-generation placeholders (e.g., Tasks section placeholder)
   - All three verification steps passed
+
+### 013-stories-auto-prompt-17
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt includes JTBD format guidance
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File read successfully (214 lines)
+  - Verification step 2 (Verify JTBD methodology is referenced): ✓
+    - Line 45: "following the JTBD (Jobs To Be Done) methodology"
+    - Line 71: "JTBD format: As a [persona], I want [capability] so that [benefit]"
+    - Lines 105-122: Full "## JTBD (Jobs To Be Done) Methodology" section
+    - Line 107: "The Narrative section uses JTBD format to capture user motivation"
+    - Line 186: "Narrative follows JTBD format exactly" in validation checklist
+  - Verification step 3 (Verify Narrative, Persona, Context sections are defined): ✓
+    - Narrative: Lines 71, 83-84 (section header and format), 107-114 (guidelines)
+    - Persona: Lines 72, 86-87 (section header and description), 112, 168, 187
+    - Context: Lines 73, 89-90 (section header and description), 170, 184
+  - All three verification steps passed

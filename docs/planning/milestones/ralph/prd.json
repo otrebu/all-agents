@@ -2193,7 +2193,7 @@
       "Verify JTBD methodology is referenced",
       "Verify Narrative, Persona, Context sections are defined"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-18",
