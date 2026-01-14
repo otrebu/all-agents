@@ -2578,3 +2578,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Run /ralph-calibrate improve - Skill file handles improve subcommand properly (lines 44-57)
     2. ✓ Verify self-improvement.md prompt is referenced - Line 57: `@context/workflows/ralph/calibration/self-improvement.md`
     3. ✓ Verify dispatch is correct - When argument is `improve`, skill follows the self-improvement.md prompt
+
+### 012-ralph-calibrate-skill-13
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Enhanced /ralph-calibrate all to run all checks sequentially
+- **Details:**
+  - Updated SKILL.md `all` subcommand section (lines 59-87) with explicit sequential execution:
+    - Step 1: Intention drift analysis - follows @context/workflows/ralph/calibration/intention-drift.md
+    - Step 2: Technical drift analysis - follows @context/workflows/ralph/calibration/technical-drift.md
+    - Step 3: Self-improvement analysis - follows @context/workflows/ralph/calibration/self-improvement.md
+  - Added unified summary output specification
+  - Added test fixture sessionId values for complete test coverage
+  - All four verification steps satisfied:
+    1. ✓ Run /ralph-calibrate all - Skill handles `all` argument with explicit 3-step sequence
+    2. ✓ Verify intention check runs - Step 1 explicitly follows intention-drift.md
+    3. ✓ Verify technical check runs - Step 2 explicitly follows technical-drift.md
+    4. ✓ Verify improve check runs - Step 3 explicitly follows self-improvement.md

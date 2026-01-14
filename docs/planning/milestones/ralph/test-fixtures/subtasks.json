@@ -6,6 +6,7 @@
     "done": true,
     "completedAt": "2026-01-13T10:30:00Z",
     "commitHash": "abc123",
+    "sessionId": "session-test-001",
     "taskRef": "docs/planning/milestones/ralph/tasks/001.md"
   },
   {
@@ -15,6 +16,7 @@
     "done": true,
     "completedAt": "2026-01-14T09:15:00Z",
     "commitHash": "def456",
+    "sessionId": "session-test-002",
     "taskRef": "docs/planning/milestones/ralph/tasks/001.md"
   },
   {

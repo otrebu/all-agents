@@ -58,13 +58,33 @@ If prerequisites are met, follow: @context/workflows/ralph/calibration/self-impr
 
 ### If argument is `all`:
 
-Run all calibration checks in sequence:
+Run all calibration checks in sequence. Execute each check one after another, following the prerequisite checks and prompts for each:
 
-1. **Intention drift** - Check planning alignment
-2. **Technical drift** - Check code quality (when available)
-3. **Self-improvement** - Check agent efficiency
+**Step 1: Intention Drift Analysis**
+- Check prerequisites: `subtasks.json` exists with completed subtasks having `commitHash`
+- If met, follow: @context/workflows/ralph/calibration/intention-drift.md
+- Output intention drift summary
 
-Execute each check following the same prerequisite checks as individual subcommands. If subtasks.json is missing, output a helpful message and skip checks that require it. Combine results into a unified summary.
+**Step 2: Technical Drift Analysis**
+- Check prerequisites: `subtasks.json` exists with completed subtasks having `commitHash`
+- If met, follow: @context/workflows/ralph/calibration/technical-drift.md
+- Output technical drift summary
+
+**Step 3: Self-Improvement Analysis**
+- Check prerequisites: `subtasks.json` exists with completed subtasks having `sessionId`
+- If met, follow: @context/workflows/ralph/calibration/self-improvement.md
+- Output self-improvement summary
+
+**Final Output:**
+Combine all results into a unified summary showing:
+- Overall status (all checks passed, issues found, skipped checks)
+- Summary of each check that ran
+- List of task files created (if any)
+
+If `subtasks.json` is missing entirely, output:
+> "No subtasks.json found. Cannot run calibration checks.
+>
+> To run calibration, create a subtasks.json file with completed subtasks."
 
 ### If no argument or unknown argument:
 
