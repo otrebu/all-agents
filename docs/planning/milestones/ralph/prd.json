@@ -831,7 +831,7 @@
       "Verify Claude command includes --dangerously-skip-permissions",
       "Verify flag is always present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-09",
