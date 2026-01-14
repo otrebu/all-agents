@@ -1637,7 +1637,7 @@
       "Verify review mode is active",
       "Verify user is prompted for review"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "010-calibrate-sh-10",

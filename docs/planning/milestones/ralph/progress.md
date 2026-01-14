@@ -2136,3 +2136,19 @@
     2. ✓ Verify force flag bypasses approval - `get_approval_mode()` returns "force" regardless of config
     3. ✓ Verify check runs immediately - Approval mode "force" instructs Claude to create files without prompting
   - The feature was already complete from previous implementation work
+
+### 010-calibrate-sh-09
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified script works with --review override
+- **Details:**
+  - The `--review` flag is already implemented in calibrate.sh:
+    1. Documented in script header (line 13): `--review - Require approval even if config says "auto"`
+    2. Parsed in option loop (lines 22, 29-32): Sets `REVIEW_FLAG=true`
+    3. Used in `get_approval_mode()` function (lines 132-133): Returns "review" when flag is set
+    4. Prompt instructions (lines 206): `If 'always' or 'review': Show findings and ask for approval before creating task files`
+  - Verification tests performed:
+    1. ✓ Run ralph calibrate intention --review - Command parses flag correctly (bash -x shows REVIEW_FLAG=true)
+    2. ✓ Verify review mode is active - `get_approval_mode()` returns "review" regardless of config
+    3. ✓ Verify user is prompted for review - Approval mode "review" instructs Claude to ask for approval
+  - The feature was already complete from previous implementation work
