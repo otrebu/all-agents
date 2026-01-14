@@ -2217,7 +2217,7 @@
       "Verify tasks-auto.md file exists",
       "Verify file is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-02",

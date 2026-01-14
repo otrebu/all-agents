@@ -2906,3 +2906,23 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Narrative format follows JTBD: "As a [persona], I want [capability] so that [benefit]"
     - Personas are specific (developer, tech lead), not generic "user"
   - All three verification steps passed
+
+### 014-tasks-auto-prompt-01
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Created `context/workflows/ralph/planning/tasks-auto.md` prompt file
+- **Details:**
+  - Verification step 1 (Navigate to context/workflows/ralph/planning/): ✓ Directory exists
+  - Verification step 2 (Verify tasks-auto.md file exists): ✓ File created (7026 bytes)
+  - Verification step 3 (Verify file is readable): ✓ File has read permissions (-rw-rw-r--)
+  - Created comprehensive task generation prompt with:
+    - Story ID parameter handling (lines 7-24)
+    - Parent story lookup instructions
+    - Codebase analysis instructions before task generation (lines 28-42)
+    - Task template reference: @context/blocks/docs/task-template.md
+    - All required sections documented (Goal, Context, Plan, Acceptance Criteria, Test Plan, Scope)
+    - File naming convention: TASK-NNN-slug.md
+    - Output location: docs/planning/tasks/
+    - Generation guidelines (number of tasks, scope, breakdown strategy)
+    - Validation checklist for template compliance
+    - Execution steps and output summary format
