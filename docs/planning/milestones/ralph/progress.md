@@ -5183,3 +5183,23 @@ The prompt includes:
   - Phase 1: Milestone Context (lines 39-51): grounds conversation in milestone's deliverables from ROADMAP.md
   - For "ralph" milestone: references Core Building Loop, ralph-iteration.md, build.sh, session ID capture
 - Validation fixture: `docs/planning/milestones/ralph/test-fixtures/validation-022-stories-interactive-prompt-12.md`
+
+## 2026-01-14: 022-stories-interactive-prompt-13
+
+### What changed
+- Verified JTBD-style questions exist in stories-interactive.md prompt
+
+### Verification:
+- Step 1 (Start interactive session): ✓
+  - Session structure reviewed in stories-interactive.md
+- Step 2 (Observe question flow): ✓
+  - Phase 1 (lines 39-51): Opens with "Who are the primary users?" 
+  - Phase 2 (lines 52-64): JTBD exploration phase with dedicated probes
+- Step 3 (Verify JTBD pattern in questions): ✓
+  - **Who (persona):** Line 45 "Who are the primary users that will benefit from this milestone?"
+  - **Who (persona):** Line 56 "When a [persona] uses this feature, what job are they trying to get done?"
+  - **What job (functional):** Line 59 "What is the functional job - the task they're trying to accomplish?"
+  - **What job (emotional):** Line 60 "What is the emotional job - how do they want to feel while doing it?"
+  - **What job (social):** Line 61 "What is the social job - how do they want to be perceived by others?"
+  - **What outcome:** Lines 110-113 acceptance criteria probes: "What can they do now?", "What's the user's experience?", "What signals success?"
+  - Socratic method + JTBD explicitly combined (line 29): "Use the **Socratic method** combined with **Jobs To Be Done (JTBD)** thinking"

@@ -3888,7 +3888,7 @@
       "Observe question flow",
       "Verify JTBD pattern in questions"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-14",
