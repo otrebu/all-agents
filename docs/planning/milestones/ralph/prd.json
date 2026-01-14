@@ -3794,7 +3794,7 @@
       "Verify tradeoff-related questions exist",
       "Verify alternatives are explored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-06",

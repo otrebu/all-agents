@@ -5032,3 +5032,21 @@ The prompt includes:
   - Consequence analysis (what users lose if delayed)
   - Dependency tracking (unlocking other capabilities)
   - Sequencing considerations (natural order)
+
+## 2026-01-14: 022-stories-interactive-prompt-05
+
+### What changed
+- Verified tradeoff clarifying questions exist in stories-interactive.md
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read `context/workflows/ralph/planning/stories-interactive.md`
+- Step 2 (Verify tradeoff-related questions exist): ✓ Phase 5: Tradeoff Exploration (lines 90-101) contains:
+  - Key question: "What tradeoffs are we making with this story?"
+  - "What are we choosing NOT to do to keep this focused?"
+  - "What's the simplest version vs. the ideal version?"
+  - "Where might we need to cut scope if time is tight?"
+  - "What would a 'quick win' version look like vs. the full version?"
+- Step 3 (Verify alternatives are explored): ✓ Tradeoff probes explicitly include:
+  - "Are there alternative approaches we should consider?" (line 101)
+  - Scope tradeoffs (what to cut if time is tight)
+  - Version tradeoffs (simplest vs. ideal, quick win vs. full)
