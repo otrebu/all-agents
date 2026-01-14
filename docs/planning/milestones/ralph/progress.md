@@ -4289,3 +4289,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Status correctly reflects the second argument passed to the script
     - Field is populated via jq with `--arg status "$STATUS"` in write_diary_entry function (line 253)
     - Also included in fallback manual JSON construction at line 276: `"status":"'"$STATUS"'"`
+
+## 2026-01-14: 019-post-iteration-hook-06 - Script writes iteration diary entry with summary
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified diary entry includes summary field
+- **Details:**
+  - Verification step 1 (Run post-iteration-hook.sh): ✓
+    - Script execution verified through existing diary entries
+    - write_diary_entry function (lines 213-283) includes summary field
+  - Verification step 2 (Read logs/iterations.jsonl): ✓
+    - Read existing diary file at logs/iterations.jsonl
+    - Entry present: `{"subtaskId":"test-019-05","sessionId":"session-abc","status":"success","summary":"Test summary for 019-05",...}`
+  - Verification step 3 (Verify summary field is present): ✓
+    - Diary entry contains: `"summary":"Test summary for 019-05"`
+    - Summary extracted from Haiku response via jq at line 226: `summary=$(echo "$summary_json" | jq -r '.summary // ""'...)`
+    - Field populated in jq path at line 253 `--arg summary "$summary"` and line 265 `summary: $summary`
+    - Also included in fallback manual JSON construction at line 276: `"summary":"'"$summary"'"`

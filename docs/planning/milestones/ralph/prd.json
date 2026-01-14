@@ -3169,7 +3169,7 @@
       "Read logs/iterations.jsonl",
       "Verify summary field is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-07",
