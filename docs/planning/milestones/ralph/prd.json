@@ -2844,7 +2844,7 @@
       "Observe question flow",
       "Verify questions precede output generation"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "016-roadmap-interactive-prompt-13",
