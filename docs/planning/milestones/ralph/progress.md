@@ -1804,3 +1804,14 @@
     1. ✓ Created diary with diverse entries
     2. ✓ Ran status.sh
     3. ✓ Verified success rate and tool calls calculate correctly
+
+## 2026-01-14: 008-status-sh-15 - Test config detection (present scenario)
+
+**Status: VERIFIED ✓**
+
+- Verification steps completed:
+  1. ✓ Created ralph.config.json with `{"selfImprovement": "always"}`
+  2. ✓ Ran status.sh
+  3. ✓ Verified config found message: `Config: Found (ralph.config.json)` displayed in green
+- The config detection logic in status.sh (lines 328-336) correctly detects when ralph.config.json exists
+- Cleaned up test config file after verification

@@ -1397,7 +1397,7 @@
       "Run status.sh",
       "Verify config found message appears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "008-status-sh-16",
