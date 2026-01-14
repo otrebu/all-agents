@@ -1,0 +1,21 @@
+[
+  {
+    "id": "ESCAPE-HATCH-001",
+    "taskRef": "TASK-ESCAPE-HATCH-001",
+    "title": "Add legacy system integration",
+    "description": "Create integration layer for legacy payment system that requires callback patterns",
+    "acceptanceCriteria": [
+      "Connect to legacy payment gateway",
+      "Handle legacy callback responses",
+      "Map legacy data to modern types"
+    ],
+    "filesToRead": [
+      "src/integrations/legacyPaymentGateway.ts",
+      "docs/coding-standards.md"
+    ],
+    "done": true,
+    "completedAt": "2026-01-14T12:00:00Z",
+    "commitHash": "escape-hatch-test-commit",
+    "sessionId": "escape-hatch-test-session"
+  }
+]

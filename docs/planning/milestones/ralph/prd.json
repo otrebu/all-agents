@@ -3722,7 +3722,7 @@
       "Run prompt against subtask",
       "Verify approved code is not flagged"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-13",
