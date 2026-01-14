@@ -4633,7 +4633,7 @@
       "Verify vision subcommand appears",
       "Run aaa ralph plan vision --help"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-02",

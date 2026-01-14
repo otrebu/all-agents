@@ -6188,3 +6188,16 @@ The skill SKILL.md and CLI calibrate.sh both:
 - Produce semantically equivalent outputs
 
 All verification steps pass - skill and CLI outputs are functionally equivalent.
+
+### 028-ralph-plan-vision-cli-01
+- **Status:** PASSED
+- **Changes:** Refactored ralph plan command to use proper Commander subcommands
+- **Details:**
+  - Refactored `tools/src/commands/ralph/index.ts` to use proper Commander subcommands
+  - Changed from argument-based routing to nested subcommands
+  - Added `vision` subcommand with description: "Start interactive vision planning session using Socratic method"
+  - Added `roadmap`, `stories`, and `tasks` as separate subcommands
+  - Created helper function `invokeClaude()` to reduce code duplication
+  - Verification steps verified:
+    - `aaa ralph plan --help` shows vision subcommand in Commands list
+    - `aaa ralph plan vision --help` displays proper command-specific help with description

@@ -170,107 +170,108 @@ ralphCommand.addCommand(
 );
 
 // ralph plan - interactive planning commands
-const planCommand = new Command("plan")
-  .description(
-    "Interactive planning tools for vision, roadmap, stories, and tasks",
-  )
-  .argument("[subcommand]", "Planning type: vision, roadmap, stories, or tasks")
-  .option("--milestone <name>", "Milestone name (required for stories)")
-  .option("--story <id>", "Story ID (required for tasks)")
-  .action((subcommand, options) => {
-    const contextRoot = getContextRoot();
+const planCommand = new Command("plan").description(
+  "Interactive planning tools for vision, roadmap, stories, and tasks",
+);
 
-    if (subcommand === undefined || subcommand === "") {
-      console.log("Usage: aaa ralph plan <subcommand> [options]\n");
-      console.log("Subcommands:");
-      console.log("  vision     Start interactive vision planning session");
-      console.log("  roadmap    Start interactive roadmap planning session");
-      console.log(
-        "  stories    Start interactive story planning session (requires --milestone)",
+// Helper to invoke Claude with a prompt file
+function invokeClaude(
+  promptPath: string,
+  sessionName: string,
+  extraContext?: string,
+): void {
+  if (!existsSync(promptPath)) {
+    console.error(`Prompt not found: ${promptPath}`);
+    process.exit(1);
+  }
+
+  console.log(`Starting ${sessionName} planning session...`);
+  console.log(`Prompt: ${promptPath}`);
+  if (extraContext !== undefined && extraContext !== "") {
+    console.log(`Context: ${extraContext}`);
+  }
+  console.log();
+
+  // Build Claude command
+  let claudeCmd = `claude --print "${promptPath}"`;
+  if (extraContext !== undefined && extraContext !== "") {
+    claudeCmd = `claude --print "${promptPath}" -p "${extraContext}"`;
+  }
+
+  try {
+    execSync(claudeCmd, { stdio: "inherit" });
+  } catch {
+    process.exit(1);
+  }
+}
+
+// ralph plan vision - interactive vision planning
+planCommand.addCommand(
+  new Command("vision")
+    .description(
+      "Start interactive vision planning session using Socratic method",
+    )
+    .action(() => {
+      const contextRoot = getContextRoot();
+      const promptPath = path.join(
+        contextRoot,
+        "context/workflows/ralph/planning/vision-interactive.md",
       );
-      console.log(
-        "  tasks      Start interactive task planning session (requires --story)",
+      invokeClaude(promptPath, "vision");
+    }),
+);
+
+// ralph plan roadmap - interactive roadmap planning
+planCommand.addCommand(
+  new Command("roadmap")
+    .description("Start interactive roadmap planning session")
+    .action(() => {
+      const contextRoot = getContextRoot();
+      const promptPath = path.join(
+        contextRoot,
+        "context/workflows/ralph/planning/roadmap-interactive.md",
       );
-      console.log("\nOptions:");
-      console.log(
-        "  --milestone <name>  Milestone name (required for stories)",
+      invokeClaude(promptPath, "roadmap");
+    }),
+);
+
+// ralph plan stories - interactive story planning (requires milestone)
+planCommand.addCommand(
+  new Command("stories")
+    .description("Start interactive story planning session for a milestone")
+    .requiredOption("--milestone <name>", "Milestone name to plan stories for")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      const promptPath = path.join(
+        contextRoot,
+        "context/workflows/ralph/planning/stories-interactive.md",
       );
-      console.log("  --story <id>        Story ID (required for tasks)");
-      console.log("\nThese commands invoke Claude with the appropriate prompt");
-      console.log(
-        "for interactive planning. Sessions are multi-turn conversations.",
+      invokeClaude(
+        promptPath,
+        "stories",
+        `Planning stories for milestone: ${options.milestone}`,
       );
-      process.exit(0);
-    }
+    }),
+);
 
-    // Map subcommand to prompt file
-    const promptMap: Record<string, string> = {
-      roadmap: "context/workflows/ralph/planning/roadmap-interactive.md",
-      stories: "context/workflows/ralph/planning/stories-interactive.md",
-      tasks: "context/workflows/ralph/planning/tasks-interactive.md",
-      vision: "context/workflows/ralph/planning/vision-interactive.md",
-    };
-
-    const promptRelativePath = promptMap[subcommand];
-    if (promptRelativePath === undefined) {
-      console.error(`Error: Unknown subcommand: ${subcommand}`);
-      console.log(`Valid subcommands: ${Object.keys(promptMap).join(", ")}`);
-      process.exit(1);
-    }
-
-    // Validate milestone parameter for stories
-    if (
-      subcommand === "stories" &&
-      (options.milestone === undefined || options.milestone === "")
-    ) {
-      console.error("Error: --milestone <name> is required for stories");
-      console.log("\nUsage: aaa ralph plan stories --milestone <name>");
-      process.exit(1);
-    }
-
-    // Validate story parameter for tasks
-    if (
-      subcommand === "tasks" &&
-      (options.story === undefined || options.story === "")
-    ) {
-      console.error("Error: --story <id> is required for tasks");
-      console.log("\nUsage: aaa ralph plan tasks --story <id>");
-      process.exit(1);
-    }
-
-    const promptPath = path.join(contextRoot, promptRelativePath);
-    if (!existsSync(promptPath)) {
-      console.error(`Prompt not found: ${promptPath}`);
-      process.exit(1);
-    }
-
-    console.log(`Starting ${subcommand} planning session...`);
-    console.log(`Prompt: ${promptPath}`);
-    if (options.milestone !== undefined && options.milestone !== "") {
-      console.log(`Milestone: ${options.milestone}`);
-    }
-    if (options.story !== undefined && options.story !== "") {
-      console.log(`Story: ${options.story}`);
-    }
-    console.log();
-
-    // Build Claude command with context if provided
-    let claudeCmd = `claude --print "${promptPath}"`;
-    if (options.milestone !== undefined && options.milestone !== "") {
-      // Pass milestone as an additional context to Claude
-      claudeCmd = `claude --print "${promptPath}" -p "Planning stories for milestone: ${options.milestone}"`;
-    } else if (options.story !== undefined && options.story !== "") {
-      // Pass story ID as an additional context to Claude
-      claudeCmd = `claude --print "${promptPath}" -p "Planning tasks for story: ${options.story}"`;
-    }
-
-    // Invoke Claude with the prompt file
-    try {
-      execSync(claudeCmd, { stdio: "inherit" });
-    } catch {
-      process.exit(1);
-    }
-  });
+// ralph plan tasks - interactive task planning (requires story)
+planCommand.addCommand(
+  new Command("tasks")
+    .description("Start interactive task planning session for a story")
+    .requiredOption("--story <id>", "Story ID to plan tasks for")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      const promptPath = path.join(
+        contextRoot,
+        "context/workflows/ralph/planning/tasks-interactive.md",
+      );
+      invokeClaude(
+        promptPath,
+        "tasks",
+        `Planning tasks for story: ${options.story}`,
+      );
+    }),
+);
 
 ralphCommand.addCommand(planCommand);
 
