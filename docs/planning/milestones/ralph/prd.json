@@ -2297,7 +2297,7 @@
       "Read prompt content",
       "Verify Acceptance Criteria section is required in output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-09",

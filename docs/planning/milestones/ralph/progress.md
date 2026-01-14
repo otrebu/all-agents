@@ -3023,3 +3023,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 221: Validation Checklist includes "Plans have numbered, concrete steps"
     - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
   - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
+
+### 014-tasks-auto-prompt-08
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt requires Acceptance Criteria section in each task
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (251 lines)
+  - Verification step 2 (Verify Acceptance Criteria section is required in output): ✓ Found at:
+    - Line 81: Required Sections table shows "Acceptance Criteria | Yes | Checkboxes - how we verify success"
+    - Lines 111-113: Task File Structure template includes "### Acceptance Criteria" section with checkbox format
+    - Line 181: Guidelines state "Acceptance criteria are testable"
+    - Line 222: Validation Checklist includes "Acceptance criteria are testable"
+    - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
+  - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
