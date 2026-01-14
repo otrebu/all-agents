@@ -4307,7 +4307,7 @@
       "Verify output appears on stdout",
       "Verify output matches status.sh direct run"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-05",

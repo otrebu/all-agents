@@ -5746,3 +5746,13 @@ The prompt includes:
 - Updated `tools/src/commands/ralph/scripts/status.sh` to accept optional context-root argument
 - Script prioritizes: 1) context-root arg, 2) git root, 3) subtasks directory
 - Tested from multiple subdirectories (tools/, docs/planning/, nested dirs) - all correctly find project-root subtasks.json
+
+## 2026-01-14: 025-ralph-status-cli-04
+**Feature:** Outputs status.sh results to stdout
+
+**What changed:**
+- Verified `aaa ralph status` outputs results to stdout correctly
+- Tested with default (missing) subtasks.json - shows configuration and empty state message
+- Tested with test-fixtures/subtasks.json - shows milestone, progress bar, last done, next up
+- Compared output with direct `bash status.sh` run - outputs match exactly
+- CLI passes stdio: "inherit" to execSync ensuring stdout passthrough works correctly
