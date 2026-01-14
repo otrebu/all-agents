@@ -4992,3 +4992,23 @@ The prompt includes:
   - Line 61: "What is the social job - how do they want to be perceived by others?"
   - Line 62: "In what context or situation does this need arise?"
   - Line 63: "What alternatives exist today? What's frustrating about them?"
+
+## 2026-01-14: 022-stories-interactive-prompt-03
+
+### What changed
+- Verified scope clarification questions are present in stories-interactive.md
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read `context/workflows/ralph/planning/stories-interactive.md`
+- Step 2 (Verify scope-related questions exist): ✓ Phase 3: Scope Clarification (lines 65-77) contains:
+  - Key question: "What should this story include and what should it NOT include?"
+  - "What's the minimum that would make this valuable to the user?"
+  - "What edge cases can we defer to a later story?"
+  - "Where does this story end and another begin?"
+  - "What assumptions are we making about what already exists?"
+  - "Is this one story or should it be split into multiple?"
+- Step 3 (Verify boundaries are explored): ✓ Scope probes explicitly address:
+  - Story boundaries (where one story ends and another begins)
+  - Deferrable edge cases
+  - Minimum viable scope
+  - Assumptions about existing functionality

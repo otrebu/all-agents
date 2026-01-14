@@ -3770,7 +3770,7 @@
       "Verify scope-related questions exist",
       "Verify boundaries are explored"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-04",
