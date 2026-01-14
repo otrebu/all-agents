@@ -4331,7 +4331,7 @@
       "Verify status command listed",
       "Verify description is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "025-ralph-status-cli-07",

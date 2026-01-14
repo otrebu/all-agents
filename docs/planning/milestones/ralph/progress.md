@@ -5767,3 +5767,11 @@ The prompt includes:
 - Tested by creating temporary failing status.sh script that exits with code 1
 - CLI correctly exited with code 1, confirming error propagation works as expected
 - No code changes needed - feature was already correctly implemented
+
+## 2026-01-14: 025-ralph-status-cli-06
+**Feature:** Shows in aaa ralph --help output
+
+**What changed:**
+- Verified `aaa ralph --help` includes status command in the commands list
+- Status command shows as: `status [subtasks-path]` with description "Display current build status and progress"
+- No code changes needed - feature was already correctly implemented
