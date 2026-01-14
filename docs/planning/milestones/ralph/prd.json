@@ -4669,7 +4669,7 @@
       "Verify help text is displayed",
       "Verify purpose is clear"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-05",
