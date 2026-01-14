@@ -2831,3 +2831,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Found on line 8: `@docs/planning/ROADMAP.md`
   - Both required references are present in the "Required Reading" section
   - All three verification steps passed
+
+### 013-stories-auto-prompt-15
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt includes milestone parameter placeholder
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File read successfully (214 lines)
+  - Verification step 2 (Verify milestone parameter handling exists): ✓
+    - Lines 12-41: Full "Milestone Parameter" section exists
+    - Line 14: States "**Input:** Milestone name as the first argument to this prompt."
+    - Lines 16-31: Usage examples showing `stories-auto.md <milestone-name>` syntax
+    - Lines 33-38: Parameter Handling instructions for argument processing
+    - Line 39: Explicit instruction "Generate stories ONLY for the specified milestone."
+  - Both verification steps passed

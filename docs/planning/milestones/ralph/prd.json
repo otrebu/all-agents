@@ -2169,7 +2169,7 @@
       "Read prompt content",
       "Verify milestone parameter handling exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-16",
