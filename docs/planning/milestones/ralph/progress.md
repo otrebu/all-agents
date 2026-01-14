@@ -2389,3 +2389,16 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Navigate to .claude/skills/ralph-calibrate/ - Directory exists
     2. ✓ Verify SKILL.md file exists - File created
     3. ✓ Verify file is readable - Confirmed with ls -la and head commands
+
+### 012-ralph-calibrate-skill-02
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified skill invocation via /ralph-calibrate in Claude Code
+- **Details:**
+  - Skill successfully invokes via Skill tool with skill: "ralph-calibrate"
+  - Without arguments, displays usage documentation (as designed)
+  - Skill is listed in Claude Code's available skills
+  - All verification steps pass:
+    1. ✓ Start Claude Code session - Session active
+    2. ✓ Type /ralph-calibrate - Skill invokes successfully
+    3. ✓ Verify skill is recognized - Skill loads and shows documentation

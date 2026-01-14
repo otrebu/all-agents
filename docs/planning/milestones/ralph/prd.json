@@ -1841,7 +1841,7 @@
       "Type /ralph-calibrate",
       "Verify skill is recognized"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-03",
