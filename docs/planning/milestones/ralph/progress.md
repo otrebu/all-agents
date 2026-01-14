@@ -1870,3 +1870,16 @@
 - Notes:
   - Feature was implemented during 009-ralph-build-skill-01 commit
   - Skill properly references the ralph-iteration.md prompt in two places for comprehensive coverage
+
+## 2026-01-14: 009-ralph-build-skill-04 - Skill handles --subtasks <path> option
+
+**Status: VERIFIED ✓**
+
+- Feature already implemented in SKILL.md
+- Verification steps completed:
+  1. ✓ Read SKILL.md content - file at `.claude/skills/ralph-build/SKILL.md`
+  2. ✓ `--subtasks` option is documented in Options table (line 20)
+  3. ✓ Path handling is described in section "1. Determine Subtasks Path" (lines 28-32)
+- Notes:
+  - Option documented as: `--subtasks <path>` with description "Path to subtasks.json file (will prompt if not provided)"
+  - Path handling includes prompting user when not provided and suggesting default location pattern

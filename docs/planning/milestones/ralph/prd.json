@@ -1457,7 +1457,7 @@
       "Verify --subtasks option is documented",
       "Verify path handling is described"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "009-ralph-build-skill-05",
