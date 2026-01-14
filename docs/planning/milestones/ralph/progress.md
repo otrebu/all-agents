@@ -2751,3 +2751,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 170: Generation Guidelines specify "Context explains why this matters NOW"
     - Line 184: Validation Checklist requires "Each story has ALL required sections (Narrative, Persona, Context, AC, Tasks)"
   - Both verification steps passed
+
+### 013-stories-auto-prompt-09
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified Acceptance Criteria section is required in stories-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 214 lines, readable
+  - Verification step 2 (Verify Acceptance Criteria section is required in output): ✓
+    - Line 74: `| Acceptance Criteria | Yes | User-visible outcomes (not technical) |` in Required Sections table
+    - Lines 92-95: Acceptance Criteria section included in Story File Structure template with checkbox format: `### Acceptance Criteria\n- [ ] [User-visible outcome 1]...`
+    - Lines 168-169: Generation Guidelines specify "Acceptance criteria are user-visible behaviors"
+    - Line 184: Validation Checklist requires "Each story has ALL required sections (Narrative, Persona, Context, AC, Tasks)"
+    - Line 188: Validation Checklist explicitly states "Acceptance criteria are user-visible, not technical"
+  - Both verification steps passed
