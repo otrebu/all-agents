@@ -2136,7 +2136,7 @@
       "Verify single milestone constraint is documented",
       "Verify no cross-milestone stories"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-13",

@@ -2794,3 +2794,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lines 202-213: Output section describes a final summary, not a conversation continuation
     - No follow-up questions, iterations, or dialogue rounds mentioned
   - All three verification steps passed
+
+### 013-stories-auto-prompt-12
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified single-milestone constraint is documented in stories-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 214 lines, readable
+  - Verification step 2 (Verify single milestone constraint is documented): ✓
+    - Line 41: Explicitly states "**Important:** Each story belongs to exactly ONE milestone. Do not create stories that span multiple milestones."
+    - Line 189: Validation checklist includes "Stories belong to exactly one milestone"
+  - Verification step 3 (Verify no cross-milestone stories): ✓
+    - Line 176: "What NOT to Include" section lists "No cross-milestone dependencies"
+    - The single-milestone rule is enforced in multiple places throughout the prompt
+  - All three verification steps passed
