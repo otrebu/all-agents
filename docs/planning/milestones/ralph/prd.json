@@ -1877,7 +1877,7 @@
       "Verify improve subcommand is documented",
       "Type /ralph-calibrate improve and verify routing"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-06",

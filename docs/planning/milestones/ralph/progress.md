@@ -2431,3 +2431,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Read SKILL.md content - File readable and complete
     2. ✓ Verify technical subcommand is documented - Documented in execution routing (lines 20-27) and subcommands table (line 61)
     3. ✓ Type /ralph-calibrate technical and verify routing - Routing exists with placeholder message for future technical-drift.md prompt
+
+### 012-ralph-calibrate-skill-05
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified skill accepts improve subcommand argument
+- **Details:**
+  - SKILL.md contains routing for improve argument (lines 28-32)
+  - When argument is `improve`, follows self-improvement.md prompt
+  - Subcommands table documents `improve` at line 62: `| improve | Analyze session logs for agent inefficiencies |`
+  - Full "Self-Improvement Analysis" section provides detailed documentation (lines 89-102)
+  - Routing uses @path syntax: `Follow: @context/workflows/ralph/calibration/self-improvement.md`
+  - Referenced prompt file exists at context/workflows/ralph/calibration/self-improvement.md
+  - All verification steps pass:
+    1. ✓ Read SKILL.md content - File readable and complete
+    2. ✓ Verify improve subcommand is documented - Documented in execution routing (lines 28-32), subcommands table (line 62), and full section (lines 89-102)
+    3. ✓ Type /ralph-calibrate improve and verify routing - Proper routing references @context/workflows/ralph/calibration/self-improvement.md
