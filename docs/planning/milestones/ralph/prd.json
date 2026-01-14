@@ -4525,7 +4525,7 @@
       "Type /ralph-calibrate improve",
       "Verify skill is recognized"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "027-calibrate-improve-skill-02",

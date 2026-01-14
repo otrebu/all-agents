@@ -5993,3 +5993,22 @@ Session log location via sessionId works correctly.
 **Files modified:**
 - tools/tests/e2e/ralph.test.ts (added test at end of file)
 
+
+
+## 2026-01-14: 027-calibrate-improve-skill-01 verified
+
+**Feature:** /ralph-calibrate improve skill is available in Claude Code
+
+**Verification:**
+- The skill file exists at `.claude/skills/ralph-calibrate/SKILL.md`
+- The skill includes handling for the `improve` argument (lines 44-57)
+- When `improve` is passed, the skill:
+  1. Checks prerequisites: subtasks.json exists with completed subtasks having sessionId
+  2. References `@context/workflows/ralph/calibration/self-improvement.md` (line 57)
+- The skill documentation includes:
+  - `improve` in the subcommands table (line 107): "Analyze session logs for agent inefficiencies"
+  - Self-Improvement Analysis section (lines 151-165) explaining what it checks
+  - Reference to self-improvement prompt (line 179)
+- The skill will be recognized when user types `/ralph-calibrate improve` in Claude Code
+
+All verification steps pass - the skill is properly configured and available.
