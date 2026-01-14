@@ -3983,3 +3983,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Description is clear and explains both purpose and trigger phrases
     - Format follows standard skill documentation conventions
     - Matches other skills in the repository (.claude/skills/*/SKILL.md)
+
+## 2026-01-14: 018-iteration-summary-prompt-01 - Prompt template created
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Created `prompts/iteration-summary.md` prompt template for iteration summary generation
+- **Details:**
+  - Created `prompts/` directory (new directory for hook prompt templates)
+  - Created `prompts/iteration-summary.md` with:
+    - Uses `{{VAR}}` placeholder syntax for bash substitution (e.g., `{{SESSION_JSONL_PATH}}`, `{{SUBTASK_ID}}`, `{{SUBTASK_TITLE}}`, `{{STATUS}}`)
+    - JSON output format with `subtaskId`, `status`, `summary`, `keyFindings` fields
+    - Length constraints documented: 1-3 sentences, under 200 characters
+    - Three examples covering success, failure, and partial status outcomes
+    - Documentation of required input format (session JSONL path, subtask ID, etc.)
+  - Verification steps completed:
+    1. ✓ Navigated to prompts/ - directory exists
+    2. ✓ Verified iteration-summary.md file exists (2713 bytes)
+    3. ✓ Verified file is readable - content verified
