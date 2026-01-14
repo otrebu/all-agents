@@ -1565,3 +1565,22 @@
     - Future Considerations section with deferred features from VISION.md
     - Notes section with living document guidance
   - All three verification steps passed
+
+### 008-status-sh-01
+- **Status:** PASSED
+- **Changes:** Created `tools/src/commands/ralph/scripts/status.sh` script
+- **Details:**
+  - Created status.sh script at `tools/src/commands/ralph/scripts/status.sh` (332 lines)
+  - Script reads subtasks.json and displays:
+    - Milestone name (extracted from taskRef path or milestone field)
+    - Progress bar with done/total counts and percentage
+    - Last completed subtask with timestamp
+    - Next subtask in queue with title
+  - Supports both jq and Node.js for JSON parsing (graceful fallback)
+  - Includes colorized output for better readability
+  - Also created test fixture: `docs/planning/milestones/ralph/test-fixtures/subtasks.json`
+  - Verification:
+    - Step 1 (Run status.sh with valid subtasks.json): ✓ Script executes without errors
+    - Step 2 (Verify milestone name is displayed): ✓ Shows "Milestone: ralph" from taskRef path
+    - Step 3 (Verify milestone context is shown): ✓ Progress bar and counts provide context
+  - All three verification steps passed
