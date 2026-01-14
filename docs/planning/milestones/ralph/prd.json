@@ -2585,7 +2585,7 @@
       "Verify sizing constraints are documented",
       "Verify init+gather+implement+test+commit fit is mentioned"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-14",

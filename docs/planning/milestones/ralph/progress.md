@@ -3377,3 +3377,23 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
   - Verification step 2 (Verify single-shot pattern is used): ✓ Line 3 explicitly states: "This is a **single-shot, auto-generation prompt** - you will read the task, analyze the codebase deeply, and produce a subtasks.json file without human interaction."
   - Verification step 3 (Verify no multi-turn expected): ✓ Line 3 says "without human interaction" and the entire Execution section (lines 270-278) is a single execution flow with no interaction points or user prompts during execution
+
+### 015-subtasks-auto-prompt-13
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** None required - prompt already documents subtask sizing constraints with init+gather+implement+test+commit fit
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify sizing constraints are documented): ✓ Lines 135-169 contain comprehensive "## Subtask Sizing Constraints" section with:
+    - Critical statement on line 137: "Each subtask must fit within a single context window iteration"
+    - Size Guidelines subsection (lines 139-148)
+    - Subtask Scope Rules subsection (lines 150-156)
+    - Signs a Subtask is Too Large subsection (lines 158-163)
+    - Signs a Subtask is Too Small subsection (lines 165-169)
+  - Verification step 3 (Verify init+gather+implement+test+commit fit is mentioned): ✓ Lines 141-148 explicitly document the 5-phase process:
+    - "1. **Initialize** - Read context files (CLAUDE.md, task, etc.)"
+    - "2. **Gather** - Read filesToRead and explore related code"
+    - "3. **Implement** - Write the code changes"
+    - "4. **Test** - Run tests and fix issues"
+    - "5. **Commit** - Make a clean commit"
+    - Line 148: "All of this must fit in one context window."
