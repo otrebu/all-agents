@@ -5521,3 +5521,28 @@ The prompt includes:
   - "Don't" guidelines (lines 140-141): "Assume you know the technical approach - explore options"
   - Starting template explores codebase before asking about capabilities
   - Output only offered after exploration phases are complete (line 240)
+
+## 2026-01-14: 023-tasks-interactive-prompt-14
+
+**Feature:** Codebase references are incorporated
+
+**Changes:**
+- Created validation fixture `test-fixtures/validation-023-tasks-interactive-prompt-14.md`
+- Documented evidence that tasks-interactive.md prompt requires codebase references
+
+**Verification:**
+- Step 1 (Run with existing codebase): ✓
+  - Full Tool Access section (lines 300-308) enables file reading, codebase searching, Glob/Grep
+  - Session has access to all tools for codebase exploration
+
+- Step 2 (Verify file paths mentioned in conversation): ✓
+  - Codebase Analysis section (lines 37-46) requires "Reference specific files and patterns"
+  - Phase 2 probes (line 73): "[reference specific files]"
+  - Starting template (line 321): "[Read relevant files/directories based on the story context]"
+  - Do guidelines (line 133): "Reference specific files and patterns from the codebase"
+
+- Step 3 (Verify patterns from code are referenced): ✓
+  - Phase 2 probes (lines 72-73): "What existing code can we build on?", "What patterns are already established here?"
+  - Phase 5 probes (line 112): "[reference specific test files]"
+  - Don't guidelines (line 144): "Ignore existing codebase patterns and conventions" (prevents omission)
+  - Starting template (lines 323-325): outputs "[relevant existing code/patterns]" and "[dependencies/integrations involved]"

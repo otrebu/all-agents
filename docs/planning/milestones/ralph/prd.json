@@ -4078,7 +4078,7 @@
       "Verify file paths mentioned in conversation",
       "Verify patterns from code are referenced"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-15",
