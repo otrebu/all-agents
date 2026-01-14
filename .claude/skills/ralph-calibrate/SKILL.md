@@ -30,9 +30,16 @@ If prerequisites are met, follow: @context/workflows/ralph/calibration/intention
 
 Run technical quality analysis to check code quality patterns.
 
-**Note:** Technical drift prompt is planned but not yet implemented. Output:
+**Prerequisites check first:**
+1. Look for `subtasks.json` in the project root
+2. If not found, output a helpful message and exit gracefully:
+   > "No subtasks.json found. Nothing to analyze for technical drift.
+   >
+   > To run technical drift analysis, create a subtasks.json file with completed subtasks that have commitHash values."
+3. If found but no completed subtasks have `commitHash`, output:
+   > "No completed subtasks with commitHash found. Nothing to analyze."
 
-> "Technical drift analysis is not yet available. This calibration type will analyze code quality patterns like test coverage, documentation, and coding standards."
+If prerequisites are met, follow: @context/workflows/ralph/calibration/technical-drift.md
 
 ### If argument is `improve`:
 
@@ -76,7 +83,7 @@ Show the usage documentation below.
 | Subcommand | Description |
 |------------|-------------|
 | `intention` | Analyze intention drift between planning and implementation |
-| `technical` | Analyze technical quality (not yet implemented) |
+| `technical` | Analyze technical quality patterns (tests, types, error handling) |
 | `improve` | Analyze session logs for agent inefficiencies |
 | `all` | Run all calibration checks sequentially |
 
@@ -102,6 +109,24 @@ Analyzes completed subtasks to detect when code changes have diverged from the i
 
 - Summary to stdout showing drift analysis results
 - Task files created in `docs/planning/tasks/` for any detected drift
+
+## Technical Drift Analysis
+
+Analyzes completed subtasks to detect when code changes have drifted from technical quality standards.
+
+### What It Checks
+
+- **Missing Tests** - Code changes without corresponding test coverage
+- **Inconsistent Patterns** - Code that doesn't follow established codebase patterns
+- **Missing Error Handling** - Critical paths without proper error handling
+- **Documentation Gaps** - Public APIs or complex logic without documentation
+- **Type Safety Issues** - Use of `any`, type assertions, or missing types
+- **Security Concerns** - Potential security vulnerabilities
+
+### Output
+
+- Summary to stdout showing technical quality analysis results
+- Task files created in `docs/planning/tasks/` for detected technical drift
 
 ## Self-Improvement Analysis
 
@@ -130,4 +155,5 @@ aaa ralph calibrate <subcommand> [options]
 ## References
 
 - **Intention drift prompt:** @context/workflows/ralph/calibration/intention-drift.md
+- **Technical drift prompt:** @context/workflows/ralph/calibration/technical-drift.md
 - **Self-improvement prompt:** @context/workflows/ralph/calibration/self-improvement.md

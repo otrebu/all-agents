@@ -2538,3 +2538,26 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Run /ralph-calibrate intention in Claude Code - Skill properly structured with YAML frontmatter and execution instructions
     2. ✓ Verify execution completes - Prerequisites check ensures graceful handling in all cases (missing file, no completed subtasks)
     3. ✓ Verify no errors thrown - Missing files result in helpful messages instead of errors
+
+### 012-ralph-calibrate-skill-11
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Created technical-drift.md prompt and updated SKILL.md to dispatch /ralph-calibrate technical correctly
+- **Details:**
+  - Created `context/workflows/ralph/calibration/technical-drift.md` (10,481 bytes) with:
+    - LLM-as-judge instructions for analyzing technical quality drift
+    - 6 technical drift patterns: Missing Tests, Inconsistent Patterns, Missing Error Handling, Documentation Gaps, Type Safety Issues, Security Concerns
+    - Few-shot examples distinguishing clear drift from acceptable variations
+    - "Don't Over-Flag" guard to prevent false positives
+    - Output format specification (summary to stdout + task files)
+    - Execution instructions and configuration settings
+  - Updated `.claude/skills/ralph-calibrate/SKILL.md`:
+    - Replaced "not yet implemented" message with proper dispatch to technical-drift.md (line 42)
+    - Added prerequisite checks matching intention drift pattern (lines 33-42)
+    - Added "Technical Drift Analysis" section documenting what it checks (lines 113-129)
+    - Added technical-drift.md to References section (line 158)
+    - Updated Subcommands table description (line 86)
+  - All three verification steps satisfied:
+    1. ✓ Run /ralph-calibrate technical - Skill file now handles technical subcommand properly
+    2. ✓ Verify technical-drift.md prompt is referenced - Line 42: `@context/workflows/ralph/calibration/technical-drift.md`
+    3. ✓ Verify dispatch is correct - When argument is `technical`, skill follows the technical-drift.md prompt
