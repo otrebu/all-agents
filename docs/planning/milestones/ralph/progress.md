@@ -805,3 +805,31 @@
     1. ✓ Subtasks.json prepared with completed subtask having acceptable variation
     2. ✓ Prompt contains Example 2 that demonstrates acceptable variation judgment
     3. ✓ No false positive drift flagging - expected output shows "NO DRIFT"
+
+### 004-intention-drift-prompt-14
+- **Status:** PASSED
+- **Changes:** Created test fixtures validating graceful degradation for missing parent Story
+- **Details:**
+  - Created `docs/planning/milestones/ralph/test-fixtures/subtasks-missing-story.json`:
+    - Subtask ORPHAN-001: "Create user profile page"
+    - Has taskRef pointing to TASK-ORPHAN-001
+    - Task has no storyRef (orphan task)
+    - Marked as done with commitHash for analysis
+  - Created `docs/planning/milestones/ralph/test-fixtures/TASK-ORPHAN-001.md`:
+    - Orphan task with no parent Story
+    - Valid task description and scope
+    - Notes explaining intentionally orphan for testing
+  - Created `docs/planning/milestones/ralph/test-fixtures/missing-story-expected-output.md`:
+    - Documents expected analysis output
+    - Shows "Story: N/A (orphan task)" in Planning Chain
+    - Shows note: "This subtask has no Story parent. Analysis limited to Task → Subtask alignment."
+    - Analysis completes successfully without error
+  - Verified prompt's graceful degradation handling:
+    - Line 39: "Tasks may be orphans (no Story parent). Validate what exists."
+    - Line 219: "If a parent is missing: Note it in the summary but don't fail"
+    - Line 239: Output format supports "N/A (orphan task)"
+    - Line 317: Execution instruction says "(if exists)" for Story lookup
+  - All three verification steps passed:
+    1. ✓ Prepared subtasks.json with subtask lacking Story reference
+    2. ✓ Prompt can run against the subtask (graceful degradation built-in)
+    3. ✓ Prompt completes without error (expected output documented)

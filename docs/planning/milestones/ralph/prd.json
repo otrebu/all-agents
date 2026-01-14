@@ -735,7 +735,7 @@
       "Run prompt against the subtask",
       "Verify prompt completes without error"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "005-build-sh-01",
