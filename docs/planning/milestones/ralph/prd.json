@@ -2412,7 +2412,7 @@
       "Compare output format with task-template.md",
       "Verify alignment"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-19",
