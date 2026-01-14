@@ -3293,3 +3293,15 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lines 104-133: "### Subtasks Schema Structure" example JSON shows `"id": "SUB-001"` field
     - Line 223: Validation checklist includes `id` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
     - Lines 171-181: "## Generating Unique IDs" section documents ID generation with SUB-NNN pattern
+
+### 015-subtasks-auto-prompt-06
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified each subtask has taskRef field required in output
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify taskRef field is required in output): ✓ Multiple locations confirm taskRef is required:
+    - Line 91: Required Fields table shows `| `taskRef` | string | Parent task reference: `TASK-NNN` pattern |`
+    - Lines 113-117: "### Subtasks Schema Structure" example JSON shows `"taskRef": "TASK-001"` field
+    - Line 223: Validation checklist includes `taskRef` in "Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)"
+    - Lines 224-225: Validation checklist specifically states "`taskRef` matches the input task ID"
