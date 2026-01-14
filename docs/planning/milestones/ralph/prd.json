@@ -4537,7 +4537,7 @@
       "Verify @context/workflows/ralph/calibration/self-improvement.md reference",
       "Verify @path syntax is used"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "027-calibrate-improve-skill-03",

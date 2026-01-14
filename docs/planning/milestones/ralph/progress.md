@@ -6012,3 +6012,18 @@ Session log location via sessionId works correctly.
 - The skill will be recognized when user types `/ralph-calibrate improve` in Claude Code
 
 All verification steps pass - the skill is properly configured and available.
+
+
+## 2026-01-14: 027-calibrate-improve-skill-02 verified
+
+**Feature:** Skill references self-improvement.md via @path syntax
+
+**Verification:**
+- Read `.claude/skills/ralph-calibrate/SKILL.md` skill content
+- Found `@context/workflows/ralph/calibration/self-improvement.md` reference in multiple locations:
+  - Line 57: `If prerequisites are met, follow: @context/workflows/ralph/calibration/self-improvement.md`
+  - Line 75: In the `all` subcommand section
+  - Line 179: `**Self-improvement prompt:** @context/workflows/ralph/calibration/self-improvement.md`
+- The `@path` syntax (using `@` prefix) is correctly used throughout
+
+All verification steps pass - the skill correctly references self-improvement.md using @path syntax.
