@@ -114,7 +114,10 @@ ralphCommand.addCommand(
 
       // Read context files that would be included
       const claudeMdPath = path.join(contextRoot, "CLAUDE.md");
-      const progressMdPath = path.join(contextRoot, "docs/planning/PROGRESS.md");
+      const progressMdPath = path.join(
+        contextRoot,
+        "docs/planning/PROGRESS.md",
+      );
 
       const claudeMdContent = existsSync(claudeMdPath)
         ? readFileSync(claudeMdPath, "utf8")
@@ -170,23 +173,36 @@ ralphCommand.addCommand(
 ralphCommand.addCommand(
   new Command("calibrate")
     .description("Run calibration checks on completed subtasks")
-    .argument("[subcommand]", "Check type: intention, technical, improve, or all")
+    .argument(
+      "[subcommand]",
+      "Check type: intention, technical, improve, or all",
+    )
     .option("--force", "Skip approval even if config says 'always'")
     .option("--review", "Require approval even if config says 'auto'")
     .action((subcommand, options) => {
       const scriptPath = path.join(SCRIPTS_DIR, "calibrate.sh");
 
-      if (!subcommand) {
+      if (subcommand === undefined || subcommand === "") {
         console.error("Error: No subcommand specified");
         console.log("\nUsage: aaa ralph calibrate <subcommand> [options]");
         console.log("\nSubcommands:");
-        console.log("  intention    Check for intention drift (code vs planning docs)");
-        console.log("  technical    Check for technical drift (code quality issues)");
-        console.log("  improve      Run self-improvement analysis on session logs");
+        console.log(
+          "  intention    Check for intention drift (code vs planning docs)",
+        );
+        console.log(
+          "  technical    Check for technical drift (code quality issues)",
+        );
+        console.log(
+          "  improve      Run self-improvement analysis on session logs",
+        );
         console.log("  all          Run all calibration checks sequentially");
         console.log("\nOptions:");
-        console.log("  --force      Skip approval even if config says 'always'");
-        console.log("  --review     Require approval even if config says 'auto'");
+        console.log(
+          "  --force      Skip approval even if config says 'always'",
+        );
+        console.log(
+          "  --review     Require approval even if config says 'auto'",
+        );
         process.exit(1);
       }
 
@@ -203,7 +219,9 @@ ralphCommand.addCommand(
       if (options.review) args.push("--review");
 
       try {
-        execSync(`bash "${scriptPath}" ${args.join(" ")}`, { stdio: "inherit" });
+        execSync(`bash "${scriptPath}" ${args.join(" ")}`, {
+          stdio: "inherit",
+        });
       } catch {
         process.exit(1);
       }

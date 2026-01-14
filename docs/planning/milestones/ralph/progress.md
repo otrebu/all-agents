@@ -3537,3 +3537,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Schema reference included
   - Created documentation: docs/planning/milestones/ralph/test-fixtures/subtasks-auto-test-output.md
   - All three verification steps passed
+
+### 015-subtasks-auto-prompt-23
+- **Status:** PASSED
+- **Changes:** Added automated JSON schema validation test
+- **Details:**
+  - Verification step 1 (Generate subtasks.json via prompt): ✓
+    - Used existing test output: docs/planning/milestones/ralph/test-fixtures/subtasks-auto-test-output.json
+    - Generated from subtasks-auto.md prompt in previous PRD feature (015-subtasks-auto-prompt-22)
+  - Verification step 2 (Run JSON schema validator): ✓
+    - Added ajv and ajv-formats as dev dependencies
+    - Created automated test in tools/tests/e2e/ralph.test.ts
+    - Test uses AJV Draft 2020-12 validator for JSON Schema compliance
+    - Validates against docs/planning/schemas/subtasks.schema.json
+  - Verification step 3 (Verify validation passes): ✓
+    - Test runs successfully: `bun test tests/e2e/ralph.test.ts --filter "subtasks schema"`
+    - Both schema validation tests pass
+    - Test validates structure including: subtasks array, required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead), metadata with scope/milestoneRef
+
