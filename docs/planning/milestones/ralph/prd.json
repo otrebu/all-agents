@@ -1998,7 +1998,7 @@
       "Run aaa ralph calibrate intention",
       "Compare outputs for equivalence"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "013-stories-auto-prompt-01",

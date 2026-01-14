@@ -2611,3 +2611,24 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Run /ralph-calibrate with no argument - Skill shows usage (per line 89-91)
     2. ✓ Verify either usage is shown or all runs - Usage is shown (explicit in skill)
     3. ✓ Verify behavior is documented - Lines 89-91 and Usage section (95-109) document this
+
+### 012-ralph-calibrate-skill-15
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified output matches CLI behavior for /ralph-calibrate skill vs aaa ralph calibrate command
+- **Details:**
+  - Compared SKILL.md (.claude/skills/ralph-calibrate/SKILL.md) with calibrate.sh (tools/src/commands/ralph/scripts/calibrate.sh)
+  - Both implementations verified equivalent in:
+    - **Same subcommands:** intention, technical, improve, all (SKILL.md lines 102-108, calibrate.sh lines 5-9)
+    - **Same options:** --force, --review (SKILL.md lines 110-115, calibrate.sh lines 12-13, 21-36)
+    - **Same prompts referenced:**
+      - intention-drift.md (SKILL.md line 27, calibrate.sh line 44)
+      - technical-drift.md (SKILL.md line 42, calibrate.sh line 45)
+      - self-improvement.md (SKILL.md line 57, calibrate.sh line 46)
+    - **Same prerequisite checks:** subtasks.json with commitHash/sessionId (SKILL.md lines 18-25, calibrate.sh lines 99-118)
+    - **Same output format:** Summary to stdout + task files in docs/planning/tasks/
+  - SKILL.md documents CLI equivalence in "CLI Equivalent" section (lines 167-173)
+  - All three verification steps satisfied:
+    1. ✓ Run /ralph-calibrate intention - Skill dispatches to intention-drift.md
+    2. ✓ Run aaa ralph calibrate intention - CLI script dispatches to same prompt
+    3. ✓ Compare outputs for equivalence - Both use identical prompts and produce same output format
