@@ -2642,7 +2642,7 @@
       "Search for codebase analysis instructions",
       "Verify depth is emphasized"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-19",

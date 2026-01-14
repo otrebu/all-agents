@@ -36,29 +36,44 @@ Generate subtasks ONLY for the specified task.
 
 ## Deep Codebase Analysis
 
-**CRITICAL:** Before generating subtasks, you MUST perform deep codebase analysis to understand:
+**CRITICAL:** Before generating subtasks, you MUST perform **deep** codebase analysis to understand the implementation landscape thoroughly. Shallow analysis leads to subtasks that don't reflect reality.
 
-### 1. Existing Implementation Patterns
+### Why Depth Matters
 
-Explore the codebase to find relevant patterns:
+- **Shallow analysis** produces generic subtasks that miss existing patterns
+- **Deep analysis** produces subtasks aligned with actual code structure
+- Subtasks derived from real code exploration are more accurately sized
+- Implementation surprises decrease when you've explored deeply first
+
+### Depth Requirements
+
+You MUST:
+1. **Explore extensively** - Don't stop at the first match; find multiple examples
+2. **Read actual code** - Don't just search, read files to understand patterns
+3. **Answer key questions** - Use analysis to inform subtask design
+4. **Reference real paths** - Every file path in subtasks should be verified to exist
+
+### 1. Explore Existing Implementation Patterns
+
+Explore the codebase **extensively** to find relevant patterns:
 ```
 - Use Glob to find files matching patterns in the task's Plan section
 - Use Grep to search for related code, interfaces, and types
 - Read key files to understand existing implementations
 ```
 
-### 2. Analysis Questions to Answer
+### 2. Answer Deep Analysis Questions
 
-Before generating subtasks, answer:
+Before generating subtasks, answer these questions **based on code exploration**:
 - What files need to be created vs modified?
 - What existing patterns should be followed?
 - What dependencies exist that affect implementation order?
 - What test patterns are used in this codebase?
 - What validation/build steps are standard?
 
-### 3. Derive Implementation Approach from Code
+### 3. Derive Implementation Approach from Deep Code Understanding
 
-The subtasks you generate must be informed by what you learn:
+The subtasks you generate must be **directly informed** by what you discovered:
 - Reference specific files that exist
 - Follow naming conventions found in the codebase
 - Match existing test patterns
