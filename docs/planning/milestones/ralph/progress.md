@@ -3434,3 +3434,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Verification step 1 (Verify file exists): ✓ File exists at `context/workflows/ralph/planning/subtasks-auto.md`
   - File is readable and contains 294 lines of prompt content
   - Glob search for `**/subtasks-auto.md` confirms single file at expected path
+
+### 015-subtasks-auto-prompt-17
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** None required - prompt already reads parent task via parameter
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (294 lines)
+  - Verification step 2 (Verify task parameter is primary input): ✓ Multiple sections confirm task ID is the primary input:
+    - Lines 5-8 "Task Parameter" section states: "**Input:** Task ID as the first argument to this prompt."
+    - Lines 9-12 show usage: `subtasks-auto.md <task-id>`
+    - Lines 14-21 provide concrete examples: `subtasks-auto.md TASK-001`
+    - Lines 23-29 document parameter handling including missing argument behavior
+    - Line 33 in Required Reading specifies: "Read the task file at `docs/planning/tasks/<task-id>*.md`"
+    - Lines 270-271 in Execution: "Parse the task ID from the argument" then "Find and read the parent task file"

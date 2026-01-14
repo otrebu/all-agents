@@ -2630,7 +2630,7 @@
       "Read prompt content",
       "Verify task parameter is primary input"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-18",
