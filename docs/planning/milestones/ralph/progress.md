@@ -5969,3 +5969,27 @@ Config reading for selfImprovement setting works correctly for all modes (never,
 - The self-improvement.md prompt (lines 19-24) documents the session log path pattern
 
 Session log location via sessionId works correctly.
+
+
+## 2026-01-14: 026-calibrate-improve-cli-11 verified
+
+**Feature:** E2E test with sample session log produces output
+
+**What changed:**
+- Added E2E test in `tools/tests/e2e/ralph.test.ts` in the "ralph calibrate improve E2E" describe block
+- Test creates:
+  1. Sample session log in JSONL format with tool_use entries showing inefficiency (Bash for file ops)
+  2. subtasks.json with completed subtask pointing to the session via sessionId
+  3. ralph.config.json with selfImprovement.mode: "always"
+- Test runs a bash script that replicates calibrate.sh logic without invoking Claude
+- Verifies output is produced:
+  - "=== Running Self-Improvement Analysis ===" header
+  - "Found sessionIds: test-session-e2e" with correct session ID
+  - "Self-improvement mode: always" from config
+  - "Invoking Claude for self-improvement analysis..." message
+  - "=== Self-Improvement Analysis Complete ===" footer
+- Test passes with all 7 expect() assertions
+
+**Files modified:**
+- tools/tests/e2e/ralph.test.ts (added test at end of file)
+

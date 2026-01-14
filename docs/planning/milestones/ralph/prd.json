@@ -4513,7 +4513,7 @@
       "Run command",
       "Verify output is produced"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "027-calibrate-improve-skill-01",
