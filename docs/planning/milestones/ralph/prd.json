@@ -4020,7 +4020,7 @@
       "Verify no tool restrictions documented",
       "Verify full capabilities available"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "023-tasks-interactive-prompt-10",
