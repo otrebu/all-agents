@@ -4235,7 +4235,7 @@
       "Verify successful parse",
       "Verify no syntax errors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "024-ralph-config-template-12",
