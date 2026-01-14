@@ -54,6 +54,12 @@ Run self-improvement analysis to identify agent inefficiencies from session logs
 3. If found but no completed subtasks have `sessionId`, output:
    > "No completed subtasks with sessionId found. Nothing to analyze."
 
+**Check configuration:**
+Read `ralph.config.json` for the `selfImprovement` setting which controls behavior:
+- **`"always"`** (default): Propose-only mode. Creates task files in `docs/planning/tasks/` for proposed improvements. Does NOT apply changes directly.
+- **`"auto"`**: Auto-apply mode. Applies changes directly to target files (CLAUDE.md, prompts, skills) without creating task files. Use with caution.
+- **`"never"`**: Skip analysis entirely and exit with a message explaining that self-improvement is disabled.
+
 If prerequisites are met, follow: @context/workflows/ralph/calibration/self-improvement.md
 
 ### If argument is `all`:
@@ -159,10 +165,21 @@ Analyzes Ralph agent session logs for inefficiencies to propose improvements to 
 - **Backtracking** - Edits that cancel each other out
 - **Excessive Iterations** - Repeated attempts without changing approach
 
+### Configuration
+
+The `selfImprovement` setting in `ralph.config.json` controls behavior:
+
+| Setting | Mode | Behavior |
+|---------|------|----------|
+| `"always"` | Propose-only | Creates task files for review, does NOT apply changes |
+| `"auto"` | Auto-apply | Applies changes directly to target files |
+| `"never"` | Disabled | Skips analysis entirely |
+
 ### Output
 
 - Summary to stdout showing inefficiency findings
-- Task files created in `docs/planning/tasks/` for proposed improvements
+- **In propose-only mode (`"always"`):** Task files created in `docs/planning/tasks/` for proposed improvements
+- **In auto-apply mode (`"auto"`):** Changes applied directly to target files (CLAUDE.md, prompts, skills)
 
 ## CLI Equivalent
 

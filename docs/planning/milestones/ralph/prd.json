@@ -4561,7 +4561,7 @@
       "Run /ralph-calibrate improve",
       "Verify propose-only mode"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "027-calibrate-improve-skill-05",

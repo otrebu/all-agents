@@ -6045,3 +6045,32 @@ All verification steps pass - the skill correctly references self-improvement.md
    - "Output" subsection explaining results format (summary to stdout + task files)
 
 All verification steps pass - the skill documentation thoroughly explains the improve subcommand and its purpose.
+
+
+## 2026-01-14: 027-calibrate-improve-skill-04 verified
+
+**Feature:** Skill respects selfImprovement config (propose-only)
+
+**Changes Made:**
+Updated `.claude/skills/ralph-calibrate/SKILL.md` to explicitly document selfImprovement config behavior:
+
+1. **Added config section to execution instructions** (lines 57-61):
+   - Documents `"always"` (default): Propose-only mode. Creates task files, does NOT apply changes directly
+   - Documents `"auto"`: Auto-apply mode. Applies changes directly
+   - Documents `"never"`: Skip analysis entirely
+
+2. **Added Configuration subsection** under "Self-Improvement Analysis" (lines 168-176):
+   - Added table showing all three settings with mode names and behavior descriptions
+   - Clarifies that `"always"` = "Propose-only" mode
+
+3. **Updated Output subsection** (lines 178-182):
+   - Explicitly states behavior differs by mode
+   - `"always"`: Task files created for review
+   - `"auto"`: Changes applied directly to target files
+
+**Verification:**
+1. **Set selfImprovement: always in config** - Skill now documents this setting explicitly
+2. **Run /ralph-calibrate improve** - Skill references self-improvement.md which handles this config
+3. **Verify propose-only mode** - Skill explicitly documents `"always"` = "Propose-only mode" and "does NOT apply changes directly"
+
+All verification steps pass.
