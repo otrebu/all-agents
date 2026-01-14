@@ -6112,3 +6112,22 @@ Added "Examples" section to `.claude/skills/ralph-calibrate/SKILL.md` (lines 107
 3. **Verify examples are helpful** - Each example includes a comment explaining its purpose, covers all subcommands (`intention`, `technical`, `improve`, `all`), and demonstrates common options (`--force`, `--review`)
 
 All verification steps pass.
+
+## 2026-01-14: 027-calibrate-improve-skill-07 verified
+
+**Feature:** Invoke /ralph-calibrate improve in Claude Code
+
+**Changes Made:**
+No code changes required - this is a validation test that verifies the skill can be invoked.
+
+**Verification:**
+1. **Start Claude Code session** - Already running in Claude Code session
+2. **Run /ralph-calibrate improve** - Invoked via Skill tool with args "improve"
+3. **Verify execution starts** - Skill executed successfully, performed prerequisite check and output helpful message: "No subtasks.json found. Nothing to analyze for self-improvement."
+
+The skill correctly:
+- Recognized the "improve" argument
+- Followed the prerequisite check flow from SKILL.md
+- Produced expected output when no subtasks.json was found
+
+All verification steps pass.

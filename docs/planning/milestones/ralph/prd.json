@@ -4597,7 +4597,7 @@
       "Run /ralph-calibrate improve",
       "Verify execution starts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "027-calibrate-improve-skill-08",
