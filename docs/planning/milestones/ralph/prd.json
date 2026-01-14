@@ -3109,7 +3109,7 @@
       "Run post-iteration-hook.sh",
       "Verify config is read"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-02",

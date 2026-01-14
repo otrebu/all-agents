@@ -4187,3 +4187,29 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 
 **Files Modified:**
 - `tools/tests/e2e/ralph.test.ts` - Added `iteration-summary notification length validation` test suite with 2 tests
+
+## 2026-01-14: 019-post-iteration-hook-01 - Script reads hook config from ralph.config.json
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Created post-iteration-hook.sh script with config reading capability
+- **Details:**
+  - Verification step 1 (Create ralph.config.json with hook config): ✓
+    - Created test config at ralph.config.json with hooks.postIteration configuration
+    - Config includes enabled, model, and diaryPath settings
+    - Config also includes ntfy settings for notifications
+  - Verification step 2 (Run post-iteration-hook.sh): ✓
+    - Script created at tools/src/commands/ralph/scripts/post-iteration-hook.sh
+    - Script is executable and reads config using json_query helper function
+    - Uses Node.js heredoc fallback when jq is not available
+  - Verification step 3 (Verify config is read): ✓
+    - hooks.postIteration.enabled correctly reads as "true"
+    - hooks.postIteration.model correctly reads as "haiku"
+    - hooks.postIteration.diaryPath correctly reads as configured path
+    - selfImprovement and ntfy.topic also read correctly
+
+**Files Created:**
+- `tools/src/commands/ralph/scripts/post-iteration-hook.sh` - Post-iteration hook script with config reading, summary generation, and diary writing
+
+**Files Modified:**
+- `ralph.config.json` - Added hooks.postIteration and ntfy configuration for testing
