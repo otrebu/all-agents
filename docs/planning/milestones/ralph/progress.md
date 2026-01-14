@@ -1464,3 +1464,23 @@
     - Lines 151-160: "Output" section shows final summary message, not a conversation continuation
   - All three verification steps passed
 
+### 007-roadmap-auto-prompt-05
+- **Status:** PASSED
+- **Changes:** Added explicit VISION.md Section 2 references to roadmap-auto.md prompt
+- **Details:**
+  - Modified "Milestone Naming Convention" section (line 26) to explicitly state:
+    - "Per VISION.md Section 2 (Folder Structure): Milestones use outcome-based names, not release-based names."
+  - Modified "Output: ROADMAP.md" section (line 47) to explicitly state:
+    - "Location: `docs/planning/ROADMAP.md` (per VISION.md Section 2)"
+  - Verification step 1 (Read prompt content): ✓ File is 163 lines, readable
+  - Verification step 2 (Verify ROADMAP.md format matches conventions): ✓
+    - Line 47: Explicitly references VISION.md Section 2 for file location
+    - Lines 51-100: Format template matches VISION.md conventions
+    - Milestone names use outcome-based format (mvp, beta) per VISION.md examples
+  - Verification step 3 (Verify outcome-based milestone naming is instructed): ✓
+    - Line 26: Explicitly references VISION.md Section 2 for naming convention
+    - Lines 28-33: Table showing good (outcome-based) vs bad (release-based) names
+    - Line 35: "Milestones should describe what users can DO, not when it ships"
+    - Line 117: Common names include `mvp`, `core-foundation`, `proof-of-concept`
+  - All three verification steps passed
+

@@ -23,7 +23,7 @@ From the VISION.md, extract:
 
 ## Milestone Naming Convention
 
-**Use outcome-based names, not release-based names:**
+**Per VISION.md Section 2 (Folder Structure):** Milestones use outcome-based names, not release-based names.
 
 | Good (Outcome-based) | Bad (Release-based) |
 |---------------------|---------------------|
@@ -43,6 +43,8 @@ Each milestone should:
 4. **Be self-contained** - Complete enough to stand alone
 
 ## Output: ROADMAP.md
+
+**Location:** `docs/planning/ROADMAP.md` (per VISION.md Section 2)
 
 Generate the roadmap in the following format:
 
