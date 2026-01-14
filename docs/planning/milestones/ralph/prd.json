@@ -1986,7 +1986,7 @@
       "Verify either usage is shown or all runs",
       "Verify behavior is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "012-ralph-calibrate-skill-15",

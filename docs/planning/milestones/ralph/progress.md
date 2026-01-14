@@ -2595,3 +2595,19 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     2. ✓ Verify intention check runs - Step 1 explicitly follows intention-drift.md
     3. ✓ Verify technical check runs - Step 2 explicitly follows technical-drift.md
     4. ✓ Verify improve check runs - Step 3 explicitly follows self-improvement.md
+
+### 012-ralph-calibrate-skill-14
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified /ralph-calibrate with no argument shows usage
+- **Details:**
+  - SKILL.md already contains proper no-argument handling (lines 89-91):
+    - "If no argument or unknown argument: Show the usage documentation below."
+  - Usage documentation is defined in SKILL.md lines 95-109:
+    - `/ralph-calibrate <subcommand> [options]`
+    - Subcommands table listing: intention, technical, improve, all
+  - Behavior matches documented specification
+  - All three verification steps satisfied:
+    1. ✓ Run /ralph-calibrate with no argument - Skill shows usage (per line 89-91)
+    2. ✓ Verify either usage is shown or all runs - Usage is shown (explicit in skill)
+    3. ✓ Verify behavior is documented - Lines 89-91 and Usage section (95-109) document this
