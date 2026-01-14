@@ -1841,3 +1841,17 @@
   1. ✓ Created directory `.claude/skills/ralph-build/`
   2. ✓ Created SKILL.md file with proper structure
   3. ✓ Verified file is readable (successfully read back full content)
+
+## 2026-01-14: 009-ralph-build-skill-02 - User can invoke build mode via /ralph-build
+
+**Status: VERIFIED ✓**
+
+- Verification steps completed:
+  1. ✓ Started Claude Code session - current session is Claude Code
+  2. ✓ Skill invocable via `/ralph-build` (Claude Code uses hyphenated skill names)
+  3. ✓ Skill is recognized and invoked - confirmed in available skills list
+- Notes:
+  - PRD specifies `/ralph build` but Claude Code skill convention uses hyphenated names
+  - Skill is registered as `ralph-build` with description: "Run Ralph autonomous build loop..."
+  - Skill description includes "Use when user asks to 'ralph build'" for natural language matching
+  - Skill appears in Claude Code's available skills list and can be invoked via Skill tool

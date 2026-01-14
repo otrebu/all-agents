@@ -1433,7 +1433,7 @@
       "Type /ralph build",
       "Verify skill is recognized and invoked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "009-ralph-build-skill-03",
