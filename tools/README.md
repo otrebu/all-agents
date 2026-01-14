@@ -83,10 +83,10 @@ aaa story create "As a user, I want to login"
 | `story create <description>` | Create auto-numbered story file (NNN-name.md)                              | `docs/planning/stories/`   |
 | `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                  | -                          |
 | `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                 | -                          |
-| `prd generate`               | Generate PRD JSON from task markdown files (1:1 mapping)                   | `prd.json`                 |
-| `prd explode`                | Explode tasks into granular PRD features (1 task → 10-30 features)         | `prd.json`                 |
-| `ralph init`                 | Create template PRD file                                                   | `prd.json`                 |
-| `ralph run`                  | Run Claude iteratively through PRD features                                | Current directory          |
+| `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                     | `docs/planning/`           |
+| `ralph build`                | Run subtask iteration loop (autonomous dev)                                | `subtasks.json`            |
+| `ralph status`               | Display build status and progress                                          | -                          |
+| `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                           | -                          |
 
 ### Command Examples
 
@@ -265,154 +265,113 @@ Files are auto-numbered incrementally (001, 002, 003...).
 - `-d, --dir <path>` - Custom tasks directory (default: `docs/planning/tasks`)
 - `-s, --story <number>` - Link task to story by number (e.g., `001` or `1`)
 
-#### prd generate
-
-Generate a PRD (Product Requirements Document) JSON file from task markdown files. Uses Claude to transform task files into Matt Pocock's PRD format for use with `ralph run`.
-
-```bash
-# Generate PRD from default location (docs/planning/tasks/)
-aaa prd generate
-
-# Custom tasks directory
-aaa prd generate -d ./my-project/tasks
-
-# Custom output file
-aaa prd generate -o my-prd.json
-
-# Both custom
-aaa prd generate -d /path/to/tasks -o ./output/prd.json
-```
-
-**Options:**
-
-- `-d, --dir <path>` - Tasks directory (default: `docs/planning/tasks`)
-- `-o, --output <path>` - Output file (default: `prd.json`)
-
-**Task file format:** Standard markdown with `## Task:`, `### Goal`, `### Acceptance Criteria`, `### Test Plan` sections.
-
-**Output:** JSON array of features with `id`, `category`, `description`, `steps` (verification actions), and `passes: false`.
-
-#### prd explode
-
-Explode task files into granular PRD features. Based on Anthropic's effective harnesses research, each task should produce 10-30 atomic, independently verifiable features.
-
-```bash
-# Explode tasks from default location (docs/planning/tasks/)
-aaa prd explode
-
-# Custom tasks directory
-aaa prd explode -d /path/to/project/docs/planning/tasks
-
-# Custom output file
-aaa prd explode -o features.json
-```
-
-**Options:**
-
-- `-d, --dir <path>` - Tasks directory (default: `docs/planning/tasks`)
-- `-o, --output <path>` - Output file (default: `prd.json`)
-
-**Output format:**
-
-```json
-[
-  {
-    "id": "003-import-service-01",
-    "sourceTask": "003-import-service",
-    "category": "validation",
-    "description": "Duplicate import with same filename+period is skipped",
-    "steps": [
-      "Import XML file for period 2024-01",
-      "Import same XML file again",
-      "Verify second import returns skipped status",
-      "Verify no duplicate records created"
-    ],
-    "passes": false
-  }
-]
-```
-
-**Key differences from `prd generate`:**
-
-| Aspect      | `prd generate`     | `prd explode`              |
-| ----------- | ------------------ | -------------------------- |
-| Mapping     | 1 task → 1 feature | 1 task → 10-30 features    |
-| Granularity | Task-level         | Atomic, testable behaviors |
-| Lineage     | No tracking        | `sourceTask` field         |
-| Use case    | Quick PRD          | Production agent harness   |
-
 #### ralph
 
-PRD-driven iterative Claude harness. Implements features from a Product Requirements Document one at a time.
+Autonomous development framework using the hierarchy: Vision → Roadmap → Milestone → Story → Task → Subtask.
+
+**Planning commands** (interactive Socratic dialogue):
 
 ```bash
-# Create a template PRD file
-aaa ralph init
-aaa ralph init --output ./my-prd.json
+# Vision planning - define what the app IS and WILL BECOME
+aaa ralph plan vision
 
-# Run 5 iterations (default)
-aaa ralph run
+# Roadmap planning - define milestones
+aaa ralph plan roadmap
 
-# Run specific number of iterations
-aaa ralph run 10
+# Story planning for a milestone
+aaa ralph plan stories --milestone mvp
 
-# Run until all features complete
-aaa ralph run --unlimited
-
-# Human approval after each iteration (y/n/diff/prd/log)
-aaa ralph run --interactive
-
-# Custom PRD/progress paths
-aaa ralph run --prd ./my-prd.json --progress ./my-progress.md
-
-# Skip permission prompts (use with caution)
-aaa ralph run --dangerous
+# Task planning for a story
+aaa ralph plan tasks --story STORY-001
 ```
 
-**Run Modes:**
+**Build command** (autonomous implementation):
 
-| Flag            | Behavior                                             |
-| --------------- | ---------------------------------------------------- |
-| (default)       | Run 5 iterations, then stop                          |
-| `[iterations]`  | Run N iterations (positional arg)                    |
-| `--unlimited`   | Loop until `<complete/>` signal                      |
-| `--interactive` | Prompt after each iteration (y/n/d=diff/p=prd/g=log) |
+```bash
+# Run subtask iteration loop
+aaa ralph build
 
-**PRD Format:**
+# Interactive mode - pause after each iteration
+aaa ralph build -i
+
+# Custom subtasks file
+aaa ralph build --subtasks ./my-subtasks.json
+
+# Max iterations per subtask (default: 3)
+aaa ralph build --max-iterations 5
+
+# Run pre-build validation first
+aaa ralph build --validate-first
+
+# Print prompt without executing
+aaa ralph build -p
+```
+
+**Status command:**
+
+```bash
+# Show current build progress
+aaa ralph status
+aaa ralph status ./path/to/subtasks.json
+```
+
+**Calibration commands** (drift detection):
+
+```bash
+# Check for intention drift (code vs planning docs)
+aaa ralph calibrate intention
+
+# Check for technical drift (code quality issues)
+aaa ralph calibrate technical
+
+# Run self-improvement analysis on session logs
+aaa ralph calibrate improve
+
+# Run all calibration checks
+aaa ralph calibrate all
+
+# Approval overrides
+aaa ralph calibrate intention --force   # Skip approvals
+aaa ralph calibrate technical --review  # Require approvals
+```
+
+**Subtasks format** (`subtasks.json`):
 
 ```json
-[
-  {
-    "id": "001-feature-name",
-    "category": "functional",
-    "description": "What this feature should do",
-    "steps": ["Verify X works", "Check Y behavior"],
-    "passes": false
-  }
-]
+{
+  "subtasks": [
+    {
+      "id": "SUB-001",
+      "taskRef": "TASK-001",
+      "title": "Create user authentication endpoint",
+      "description": "Implement POST /api/auth/register",
+      "done": false,
+      "acceptanceCriteria": [
+        "Returns JWT on success",
+        "Returns 401 on invalid credentials"
+      ],
+      "filesToRead": ["@context/blocks/security/auth.md", "src/routes/index.ts"]
+    }
+  ]
+}
 ```
-
-- `id`: Feature identifier (from task filename)
-- `category`: functional/backend/frontend/ui/validation/error-handling
-- `description`: What to implement (from Goal + Context)
-- `steps`: Verification actions (from Acceptance Criteria + Test Plan)
-- `passes`: `false` = not implemented, `true` = verified working
-
-Claude implements one feature per iteration, sets `passes: true` when verified, and outputs `<complete/>` when all features pass.
 
 **Workflow:**
 
 ```bash
-# 1. Create task files in docs/planning/tasks/
-aaa task create "User authentication"
-aaa task create "Password reset"
+# 1. Plan vision and roadmap
+aaa ralph plan vision
+aaa ralph plan roadmap
 
-# 2. Generate PRD from tasks (choose one)
-aaa prd generate  # 1:1 mapping (quick)
-aaa prd explode   # 1:N granular features (recommended for production)
+# 2. Create stories and tasks
+aaa ralph plan stories --milestone mvp
+aaa ralph plan tasks --story STORY-001
 
-# 3. Run Claude through features
-aaa ralph run --interactive
+# 3. Build autonomously
+aaa ralph build
+
+# 4. Check for drift periodically
+aaa ralph calibrate all
 ```
 
 ## Configuration
@@ -530,12 +489,9 @@ tools/
 │   │   ├── github/
 │   │   ├── gemini/
 │   │   ├── parallel-search/
-│   │   ├── prd/            # PRD generation from tasks
-│   │   │   ├── index.ts    # CLI command wrapper
-│   │   │   └── scripts/    # prd-generate.sh, prd-explode.sh
-│   │   ├── ralph/          # PRD-driven Claude harness
-│   │   │   ├── index.ts    # CLI command
-│   │   │   └── scripts/    # Bash iteration loops
+│   │   ├── ralph/          # Autonomous development framework
+│   │   │   ├── index.ts    # CLI command (plan, build, status, calibrate)
+│   │   │   └── scripts/    # build.sh, status.sh, calibrate.sh
 │   │   ├── setup/
 │   │   ├── story.ts
 │   │   ├── task.ts

@@ -5,10 +5,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const DEFAULT_PRD_PATH = "prd.json";
-const DEFAULT_PROGRESS_PATH = "progress.md";
 const DEFAULT_SUBTASKS_PATH = "subtasks.json";
-const DEFAULT_ITERATIONS = 5;
 
 // Scripts live in repo, resolved from root (works for both dev and compiled binary)
 const SCRIPTS_DIR = path.join(
@@ -16,78 +13,8 @@ const SCRIPTS_DIR = path.join(
   "tools/src/commands/ralph/scripts",
 );
 
-const PRD_TEMPLATE = `[
-  {
-    "id": "001-example-feature",
-    "category": "functional",
-    "description": "First feature to implement - describe what it should do",
-    "steps": [
-      "Verify the feature works as expected",
-      "Check edge case behavior"
-    ],
-    "passes": false
-  }
-]`;
-
 const ralphCommand = new Command("ralph").description(
-  "PRD-driven iterative Claude harness",
-);
-
-// ralph init - create template PRD
-ralphCommand.addCommand(
-  new Command("init")
-    .description("Create a template PRD file")
-    .option("-o, --output <path>", "Output path", DEFAULT_PRD_PATH)
-    .action((options) => {
-      if (existsSync(options.output)) {
-        console.error(`PRD already exists: ${options.output}`);
-        process.exit(1);
-      }
-      writeFileSync(options.output, PRD_TEMPLATE);
-      console.log(`Created ${options.output}`);
-    }),
-);
-
-// ralph run - execute iterations
-ralphCommand.addCommand(
-  new Command("run")
-    .description("Run iterations to implement PRD features")
-    .argument(
-      "[iterations]",
-      "Number of iterations",
-      String(DEFAULT_ITERATIONS),
-    )
-    .option("--prd <path>", "PRD file path", DEFAULT_PRD_PATH)
-    .option("--progress <path>", "Progress file path", DEFAULT_PROGRESS_PATH)
-    .option("--unlimited", "Run until PRD complete")
-    .option("-i, --interactive", "Prompt after each iteration")
-    .option("--dangerous", "Skip all permission prompts")
-    .action((iterations, options) => {
-      // Validate PRD exists
-      if (!existsSync(options.prd)) {
-        console.error(`PRD not found: ${options.prd}`);
-        process.exit(1);
-      }
-
-      // Select script based on mode
-      let script = "ralph.sh";
-      if (options.unlimited) script = "ralph-unlimited.sh";
-      if (options.interactive) script = "ralph-interactive.sh";
-
-      const scriptPath = path.join(SCRIPTS_DIR, script);
-      const permFlag = options.dangerous
-        ? "--dangerously-skip-permissions"
-        : "--permission-mode acceptEdits";
-
-      try {
-        execSync(
-          `bash "${scriptPath}" "${iterations}" "${options.prd}" "${options.progress}" "${permFlag}"`,
-          { stdio: "inherit" },
-        );
-      } catch {
-        process.exit(1);
-      }
-    }),
+  "Autonomous development framework (Vision → Roadmap → Story → Task → Subtask)",
 );
 
 // ralph build - execute subtask iteration loop
@@ -213,13 +140,17 @@ function invokeClaude(
   // Invoke Claude interactively with the prompt as an initial message
   // Use --append-system-prompt to inject the workflow instructions
   // and pass a brief user prompt to start the session
+  // Use a here-document to safely pass multiline content with quotes/special chars
   try {
     execSync(
-      `claude --append-system-prompt "$(cat '${temporaryPromptPath}')" "Please begin the ${sessionName} planning session following the instructions provided."`,
+      `claude --append-system-prompt "$(cat <<'EOF'
+${fullPrompt}
+EOF
+)" "Please begin the ${sessionName} planning session following the instructions provided."`,
       { stdio: "inherit" },
     );
   } finally {
-    // Clean up temp file
+    // Clean up temp file (no longer strictly needed, but keep for consistency)
     try {
       unlinkSync(temporaryPromptPath);
     } catch {

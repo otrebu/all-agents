@@ -1,5 +1,7 @@
 import { getContextRoot } from "@tools/utils/paths";
 import addFormats from "ajv-formats";
+// @ts-expect-error - ajv/dist/2020 exists at runtime but TypeScript can't find the type definitions
+// eslint-disable-next-line import/no-unresolved
 import Ajv2020 from "ajv/dist/2020";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
@@ -35,88 +37,78 @@ describe("ralph E2E", () => {
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("PRD-driven iterative Claude harness");
+    expect(stdout).toContain("Autonomous development framework");
   });
 
-  test("ralph init --help shows options", async () => {
+  test("ralph plan --help shows planning subcommands", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
-      ["run", "dev", "ralph", "init", "--help"],
+      ["run", "dev", "ralph", "plan", "--help"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("--output");
-    expect(stdout).toContain("Create a template PRD file");
+    expect(stdout).toContain("vision");
+    expect(stdout).toContain("roadmap");
+    expect(stdout).toContain("stories");
+    expect(stdout).toContain("tasks");
   });
 
-  test("ralph run --help shows all options", async () => {
+  test("ralph build --help shows build options", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
-      ["run", "dev", "ralph", "run", "--help"],
+      ["run", "dev", "ralph", "build", "--help"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("--prd");
-    expect(stdout).toContain("--progress");
-    expect(stdout).toContain("--unlimited");
+    expect(stdout).toContain("--subtasks");
     expect(stdout).toContain("--interactive");
-    expect(stdout).toContain("--dangerous");
+    expect(stdout).toContain("--max-iterations");
+    expect(stdout).toContain("--validate-first");
   });
 
-  test("ralph run with missing PRD shows error", async () => {
-    const prdPath = join(temporaryDirectory, "nonexistent.json");
+  test("ralph build with missing subtasks shows error", async () => {
+    const subtasksPath = join(temporaryDirectory, "nonexistent.json");
 
     const { exitCode, stderr } = await execa(
       "bun",
-      ["run", "dev", "ralph", "run", "--prd", prdPath],
+      ["run", "dev", "ralph", "build", "--subtasks", subtasksPath],
       { cwd: TOOLS_DIR, reject: false },
     );
 
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("PRD not found");
+    expect(stderr).toContain("Subtasks file not found");
   });
 
-  test("ralph init creates template PRD", async () => {
-    const prdPath = join(temporaryDirectory, "prd.json");
-
+  test("ralph status --help shows status options", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
-      ["run", "dev", "ralph", "init", "--output", prdPath],
+      ["run", "dev", "ralph", "status", "--help"],
       { cwd: TOOLS_DIR },
     );
-
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("Created");
-    expect(existsSync(prdPath)).toBe(true);
-
-    const rawContent = readFileSync(prdPath, "utf8");
-    const content = JSON.parse(rawContent) as {
-      features: Array<unknown>;
-      name: string;
-      testCommand: string;
-    };
-    expect(content.name).toBe("My Project");
-    expect(content.testCommand).toBe("bun test");
-    expect(content.features).toHaveLength(1);
+    expect(stdout).toContain("subtasks-path");
   });
 
-  test("ralph init refuses to overwrite existing PRD", async () => {
-    const prdPath = join(temporaryDirectory, "prd.json");
-
-    // Create first
-    await execa("bun", ["run", "dev", "ralph", "init", "--output", prdPath], {
-      cwd: TOOLS_DIR,
-    });
-
-    // Try to create again
+  test("ralph calibrate without subcommand shows usage", async () => {
     const { exitCode, stderr } = await execa(
       "bun",
-      ["run", "dev", "ralph", "init", "--output", prdPath],
+      ["run", "dev", "ralph", "calibrate"],
       { cwd: TOOLS_DIR, reject: false },
     );
-
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("already exists");
+    expect(stderr).toContain("No subcommand specified");
+  });
+
+  test("ralph calibrate --help shows calibration types", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "calibrate", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("intention");
+    expect(stdout).toContain("technical");
+    expect(stdout).toContain("improve");
   });
 });
 
@@ -2356,17 +2348,23 @@ describe("subtasks schema validation", () => {
     const testOutput = JSON.parse(testOutputContent) as object;
 
     // Set up AJV validator with formats (for date-time, etc.)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const ajv = new Ajv2020({ allErrors: true, strict: false });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     addFormats(ajv);
 
     // Compile and validate
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const validate = ajv.compile(schema);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const isValid = validate(testOutput);
 
     // Log errors if validation fails
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!isValid) {
       console.error(
         "Validation errors:",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         JSON.stringify(validate.errors, null, 2),
       );
     }
@@ -2382,8 +2380,11 @@ describe("subtasks schema validation", () => {
     const schemaContent = readFileSync(schemaPath, "utf8");
     const schema = JSON.parse(schemaContent) as object;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const ajv = new Ajv2020({ allErrors: true, strict: false });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     addFormats(ajv);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const validate = ajv.compile(schema);
 
     // Test fixture files that should validate against the schema
@@ -2409,11 +2410,14 @@ describe("subtasks schema validation", () => {
 
       const fixtureContent = readFileSync(fixturePath, "utf8");
       const fixtureData = JSON.parse(fixtureContent) as object;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       const isValid = validate(fixtureData);
 
+      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
       if (!isValid) {
         console.error(
           `Validation errors for ${fixture}:`,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           JSON.stringify(validate.errors, null, 2),
         );
       }
