@@ -74,7 +74,7 @@ The task template defines these sections (matching @context/blocks/docs/task-tem
 
 | Section | Required | Purpose |
 |---------|----------|---------|
-| Story | No | Link to parent story (if this task implements a story) |
+| Story | **Yes*** | Link to parent story - maintains traceability |
 | Goal | Yes | One sentence outcome - "what's true when done?" |
 | Context | Yes | The why: problem, trigger, constraints, links |
 | Plan | Yes | Numbered steps - concrete actions |
@@ -83,7 +83,7 @@ The task template defines these sections (matching @context/blocks/docs/task-tem
 | Scope | Yes | Explicit boundaries - prevents creep |
 | Notes | No | Catch-all for extras (risks, edge cases, rollback, etc.) |
 
-**Note:** Since this prompt generates tasks FROM stories, the Story link SHOULD always be included to maintain traceability, even though the template marks it as optional.
+**\*Story Requirement:** While VISION.md allows orphan Tasks for tech-only work (no parent Story), this prompt generates tasks FROM stories. Therefore, the Story reference is **required** here to maintain the parent-child relationship and traceability chain (Story → Task).
 
 **Note:** The Notes section MUST always be included in generated tasks (even if content is minimal) to provide a consistent structure and capture any relevant technical considerations, risks, or edge cases.
 
@@ -94,7 +94,7 @@ This structure matches @context/blocks/docs/task-template.md exactly:
 ```markdown
 ## Task: [Short descriptive name]
 
-**Story:** [STORY-001-auth](../stories/STORY-001-auth.md) *(optional)*
+**Story:** [STORY-001-auth](../stories/STORY-001-auth.md) *(required - links to parent story)*
 
 ### Goal
 [One sentence: what should be true when this is done?]

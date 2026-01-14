@@ -2354,7 +2354,7 @@
       "Verify story reference is required",
       "Verify parent relationship is maintained"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-14",

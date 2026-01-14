@@ -3088,3 +3088,14 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - No conversation loops or user interaction points in the workflow
     - Only exception: line 25-26 handles missing argument gracefully by asking for clarification
     - Main workflow is designed to complete in one execution pass
+
+### 014-tasks-auto-prompt-13
+- **Status:** PASSED
+- **Changes:** Made Story reference explicitly required in tasks-auto.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md
+  - Verification step 2 (Verify story reference is required): ✓ Implemented by:
+    - Line 77: Changed Required Sections table from "Story | No" to "Story | **Yes***"
+    - Line 86: Added explicit note explaining the requirement: "While VISION.md allows orphan Tasks for tech-only work (no parent Story), this prompt generates tasks FROM stories. Therefore, the Story reference is **required** here"
+    - Line 97: Updated template from "*(optional)*" to "*(required - links to parent story)*"
+  - Verification step 3 (Verify parent relationship is maintained): ✓ Confirmed at lines 57, 77, 86, 97, 185, 226, 231, 237 - all establish and maintain the parent-child (Story → Task) relationship per VISION.md constraints
