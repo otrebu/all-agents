@@ -3818,7 +3818,7 @@
       "Verify exit handling is documented",
       "Verify no forced completion"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-08",

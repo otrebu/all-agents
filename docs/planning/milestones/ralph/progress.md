@@ -5070,3 +5070,22 @@ The prompt includes:
   - Line 136: "Some sessions may only define one or two stories - that's fine"
   - Line 119: "Summarize what you've learned before moving to the next story"
   - Line 120: "Adapt your questions based on their answers"
+
+## 2026-01-14: 022-stories-interactive-prompt-07
+
+### What changed
+- Verified user can exit session when satisfied in stories-interactive.md
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read `context/workflows/ralph/planning/stories-interactive.md`
+- Step 2 (Verify exit handling is documented): ✓ Session Exit section (lines 207-218) explicitly documents:
+  - "The user can exit this session at any time by:"
+  - Saying "done", "that's enough", "let's stop here", or similar
+  - Asking to save the stories
+  - Moving on to another topic
+  - Exit procedure: summarize stories, offer to save unsaved, note unexplored areas, suggest next steps
+- Step 3 (Verify no forced completion): ✓ No forced completion pattern:
+  - Line 135: "The user controls when to move on"
+  - Line 136: "Some sessions may only define one or two stories - that's fine"
+  - Line 252: "(You can say 'done' at any point when you feel we've covered enough...)"
+  - Session Pacing section emphasizes user control and natural conversation flow
