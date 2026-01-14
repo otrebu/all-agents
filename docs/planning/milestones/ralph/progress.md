@@ -3174,3 +3174,17 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Story comment differs intentionally: template says "optional" (allows orphan tasks), tasks-auto says "required" (tasks from stories must reference parent)
     - This difference is documented in tasks-auto.md lines 86-87 explaining why Story is required when generating from a story
     - Format, structure, and section names are identical
+
+### 014-tasks-auto-prompt-19
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Added "Technical How Descriptions" section to tasks-auto.md with explicit instructions for including implementation details
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (now 320 lines)
+  - Verification step 2 (Verify technical descriptions are instructed): ✓ Added:
+    - Line 224: Updated "What Makes a Good Task" to include "with **technical how descriptions**"
+    - Lines 229-252: New "### Technical How Descriptions" section
+  - Verification step 3 (Verify implementation details are expected): ✓ Added:
+    - Bad vs Good examples showing vague steps vs technical implementation details
+    - Explicit list of what to include: specific file paths, function/class names, data types/interfaces, patterns to follow, library usage
+    - Examples show Zod schemas, function signatures, test file paths, and pattern references

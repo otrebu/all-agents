@@ -2424,7 +2424,7 @@
       "Verify technical descriptions are instructed",
       "Verify implementation details are expected"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "014-tasks-auto-prompt-20",

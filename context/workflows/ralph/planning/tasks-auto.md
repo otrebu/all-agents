@@ -221,10 +221,35 @@ When breaking down a story into tasks, consider:
 ### What Makes a Good Task
 
 - Goal is one clear sentence
-- Plan has concrete, actionable steps
+- Plan has concrete, actionable steps with **technical how descriptions**
 - Acceptance criteria are testable
 - Scope explicitly excludes adjacent work
 - Context links back to parent story
+
+### Technical How Descriptions
+
+The Plan section must include **technical implementation details** - not just "what" to do, but "how" to do it technically:
+
+**Bad (too vague):**
+```
+1. Add user validation
+2. Implement error handling
+3. Add tests
+```
+
+**Good (technical how):**
+```
+1. Add Zod schema for `CreateUserInput` with email format validation and password strength rules in `src/schemas/user.ts`
+2. Create `validateUser()` function using the schema, returning `Result<User, ValidationError>` pattern
+3. Add unit tests in `src/schemas/__tests__/user.test.ts` covering: valid input, invalid email, weak password
+```
+
+Technical details to include:
+- **Specific file paths** - Where code goes
+- **Function/class names** - What to create
+- **Data types/interfaces** - What shapes to use
+- **Patterns to follow** - Which existing code to reference
+- **Library usage** - What packages/modules to import
 
 ### What NOT to Include
 
