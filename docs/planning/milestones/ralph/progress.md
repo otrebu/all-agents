@@ -4271,3 +4271,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - sessionId correctly matches the third argument passed to the script
     - Field is populated via jq with `--arg sessionId "$SESSION_ID"` in write_diary_entry function (line 251)
     - Also included in fallback manual JSON construction (line 276)
+
+## 2026-01-14: 019-post-iteration-hook-05 - Script writes iteration diary entry with status
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified diary entry includes status field
+- **Details:**
+  - Verification step 1 (Run post-iteration-hook.sh): ✓
+    - Simulated script execution using the same logic as post-iteration-hook.sh
+    - Both jq path (line 263-264) and fallback path (line 276) include status field
+  - Verification step 2 (Read logs/iterations.jsonl): ✓
+    - Wrote test entry to logs/iterations.jsonl
+    - Entry is valid JSONL format
+  - Verification step 3 (Verify status field is present): ✓
+    - Diary entry contains: `"status":"success"`
+    - Status correctly reflects the second argument passed to the script
+    - Field is populated via jq with `--arg status "$STATUS"` in write_diary_entry function (line 253)
+    - Also included in fallback manual JSON construction at line 276: `"status":"'"$STATUS"'"`

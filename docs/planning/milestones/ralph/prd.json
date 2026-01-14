@@ -3157,7 +3157,7 @@
       "Read logs/iterations.jsonl",
       "Verify status field is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-06",
