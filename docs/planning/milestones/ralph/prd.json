@@ -1781,7 +1781,7 @@
       "List available skills",
       "Verify ralph-plan appears in list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "011-ralph-plan-skill-07",
