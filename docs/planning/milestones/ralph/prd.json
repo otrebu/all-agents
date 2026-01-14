@@ -2928,7 +2928,7 @@
       "Verify usage examples exist",
       "Verify examples are helpful"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "017-ralph-status-skill-06",

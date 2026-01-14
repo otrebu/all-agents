@@ -3897,3 +3897,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Lists specific triggers: "ralph status", "build status", "queue status"
     - Mentions key outputs: subtask progress and iteration statistics
     - Additional documentation in "What It Shows" section (lines 24-36) provides detailed breakdown of outputs
+
+## 2026-01-14: 017-ralph-status-skill-05 - Usage examples provided in skill documentation
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified existing implementation (no code changes needed)
+- **Details:**
+  - Verification step 1 (Read SKILL.md content): ✓
+    - SKILL.md at `.claude/skills/ralph-status/SKILL.md` read successfully
+  - Verification step 2 (Verify usage examples exist): ✓
+    - Examples section exists at lines 38-48
+    - Two examples provided with code blocks
+  - Verification step 3 (Verify examples are helpful): ✓
+    - Example 1: Basic usage `/ralph-status` for checking current build status
+    - Example 2: Advanced usage `/ralph-status docs/planning/milestones/ralph/subtasks.json` for specific subtasks file
+    - Examples cover the two main use cases (default path vs custom path)
+    - Both examples include descriptive headers explaining the use case
