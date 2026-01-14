@@ -3037,3 +3037,15 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Line 222: Validation Checklist includes "Acceptance criteria are testable"
     - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
   - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
+
+### 014-tasks-auto-prompt-09
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified prompt requires Test Plan section in each task
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read tasks-auto.md (251 lines)
+  - Verification step 2 (Verify Test Plan section is required in output): ✓ Found at:
+    - Line 82: Required Sections table shows "Test Plan | Yes | What tests to add/update/run"
+    - Lines 115-117: Task File Structure template includes "### Test Plan" section with checkbox format
+    - Line 218: Validation Checklist includes "Each task has ALL required sections (Story, Goal, Context, Plan, AC, Test Plan, Scope)"
+  - Feature was already implemented in 014-tasks-auto-prompt-01, verified existing implementation
