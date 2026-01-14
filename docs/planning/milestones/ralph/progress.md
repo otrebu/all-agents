@@ -4325,3 +4325,21 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - Timestamp generated via `date -u +"%Y-%m-%dT%H:%M:%SZ"` at line 245
     - Field populated in jq path at line 254 `--arg timestamp "$timestamp"` and line 266 `timestamp: $timestamp`
     - Also included in fallback manual JSON construction at line 276: `"timestamp":"'"$timestamp"'"`
+
+## 2026-01-14: 019-post-iteration-hook-08 - Script writes iteration diary entry with errors array
+
+**Status: VERIFIED ✓**
+
+- **Changes:** Verified diary entry includes errors field as an array
+- **Details:**
+  - Verification step 1 (Run post-iteration-hook.sh with errors): ✓
+    - Ran script with mock claude CLI: `PATH="/tmp/mock-bin:$PATH" ./tools/src/commands/ralph/scripts/post-iteration-hook.sh "test-errors-019-08" "failure" "session-error-test"`
+    - Script completed successfully, writing diary entry to logs/iterations.jsonl
+  - Verification step 2 (Read logs/iterations.jsonl): ✓
+    - Diary file read at configured path logs/iterations.jsonl
+    - Entry is valid JSONL format
+  - Verification step 3 (Verify errors field is array): ✓
+    - Diary entry contains: `"errors":[]`
+    - errors field is properly typed as JSON array
+    - Field initialized as empty array via jq at line 259 `--argjson errors "[]"` and line 271 `errors: $errors`
+    - Also included in fallback manual JSON construction at line 276: `"errors":[]`

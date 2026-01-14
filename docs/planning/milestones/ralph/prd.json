@@ -3193,7 +3193,7 @@
       "Read logs/iterations.jsonl",
       "Verify errors field is array"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-09",
