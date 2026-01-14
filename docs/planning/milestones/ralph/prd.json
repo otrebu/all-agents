@@ -3604,7 +3604,7 @@
       "Verify commitHash reference exists",
       "Verify git diff reading is instructed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "021-technical-drift-prompt-03",

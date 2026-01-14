@@ -4731,3 +4731,15 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Step 1 (Navigate to context/workflows/ralph/calibration/): ✓ Directory exists
 - Step 2 (Verify technical-drift.md file exists): ✓ File exists at correct path
 - Step 3 (Verify file is readable): ✓ Successfully read 356 lines of prompt content
+
+## 2026-01-14: 021-technical-drift-prompt-02
+
+### What changed
+- Verified existing technical-drift.md prompt already contains commitHash and git diff instructions
+- Lines 8, 18, 24, 27-28, 253, 300, 325, 328 reference commitHash field
+- Lines 24, 27-28, 328 instruct reading git diffs via `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
+
+### Verification:
+- Step 1 (Read prompt content): ✓ Read technical-drift.md (356 lines)
+- Step 2 (Verify commitHash reference exists): ✓ Found 8 occurrences of commitHash including subtasks.json example and execution instructions
+- Step 3 (Verify git diff reading is instructed): ✓ Found explicit instructions at lines 24, 27-28, 328
