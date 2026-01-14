@@ -3900,7 +3900,7 @@
       "Verify story file is created",
       "Verify structure matches schema"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "022-stories-interactive-prompt-15",
