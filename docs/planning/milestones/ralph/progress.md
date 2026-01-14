@@ -5846,3 +5846,21 @@ The prompt includes:
   3. Invokes `claude --dangerously-skip-permissions -p "$PROMPT"` to pass the prompt to Claude
 - The prompt content is correctly included and all verification steps pass
 - No code changes needed - feature was already correctly implemented
+
+## 2026-01-14: 026-calibrate-improve-cli-03
+**Feature:** Command reads sessionId from subtasks.json
+
+**What changed:**
+- Added `get_completed_session_ids()` function to `tools/src/commands/ralph/scripts/calibrate.sh` (lines 259-282)
+  - Reads subtasks.json and extracts sessionId from all completed subtasks (done: true + sessionId not null)
+  - Uses jq if available, falls back to Node.js for JSON parsing
+  - Returns comma-separated list of sessionIds
+- Updated `run_improve_check()` function (lines 284-344):
+  - Now calls `get_completed_session_ids()` to extract sessionIds from subtasks.json
+  - Outputs "Found sessionIds: <ids>" to show extracted values
+  - Passes sessionIds to Claude in the prompt for analysis
+  - Exits early with message if no completed subtasks with sessionId found
+- Verified with test subtasks.json containing sessionId fields:
+  - Created test file with sessionIds "abc123-session-id-test" and "xyz789-another-session"
+  - Ran `aaa ralph calibrate improve` with test file
+  - Output showed "Found sessionIds: abc123-session-id-test,xyz789-another-session"

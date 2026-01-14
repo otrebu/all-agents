@@ -4415,7 +4415,7 @@
       "Run aaa ralph calibrate improve",
       "Verify sessionId is extracted"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-04",

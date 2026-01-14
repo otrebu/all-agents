@@ -256,6 +256,31 @@ Analyze code quality issues in completed subtasks and output a summary to stdout
   echo "=== Technical Drift Check Complete ==="
 }
 
+# Get sessionIds from completed subtasks
+get_completed_session_ids() {
+  if [ ! -f "$SUBTASKS_PATH" ]; then
+    echo ""
+    return
+  fi
+
+  if command -v jq &> /dev/null; then
+    jq -r '[.[] | select(.done == true and .sessionId != null) | .sessionId] | join(",")' "$SUBTASKS_PATH" 2>/dev/null || echo ""
+  elif command -v node &> /dev/null; then
+    node -e "
+      const fs = require('fs');
+      try {
+        const data = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const sessionIds = data
+          .filter(s => s.done && s.sessionId)
+          .map(s => s.sessionId);
+        console.log(sessionIds.join(','));
+      } catch (e) { console.log(''); }
+    " 2>/dev/null
+  else
+    echo ""
+  fi
+}
+
 # Run self-improvement check
 run_improve_check() {
   echo "=== Running Self-Improvement Analysis ==="
@@ -282,6 +307,18 @@ run_improve_check() {
     return 0
   fi
 
+  # Extract sessionIds from completed subtasks
+  local session_ids
+  session_ids=$(get_completed_session_ids)
+
+  if [ -z "$session_ids" ]; then
+    echo "No completed subtasks with sessionId found. Nothing to analyze."
+    return 0
+  fi
+
+  echo "Found sessionIds: $session_ids"
+  echo "Self-improvement mode: $self_improve_setting"
+
   local PROMPT="Execute self-improvement analysis.
 
 Follow the instructions in @${SELF_IMPROVEMENT_PROMPT}
@@ -289,6 +326,12 @@ Follow the instructions in @${SELF_IMPROVEMENT_PROMPT}
 Subtasks file: @${SUBTASKS_PATH}
 
 Config file: @${CONFIG_PATH}
+
+Session IDs to analyze: ${session_ids}
+
+Self-improvement mode: ${self_improve_setting}
+- If 'always': Require user approval before applying changes (propose only)
+- If 'auto': Apply changes automatically
 
 Analyze session logs from completed subtasks for inefficiencies and output a summary to stdout.
 If improvements are identified, create task files as specified in the prompt."
