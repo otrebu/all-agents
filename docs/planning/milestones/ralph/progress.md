@@ -1247,3 +1247,22 @@
     - Lines 207-231: Example 2 demonstrates scope creep detection with full JSON output
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-09
+- **Status:** PASSED
+- **Changes:** Verified too broad subtask detection in pre-build-validation.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify too broad detection is included): ✓
+    - Lines 84-100: Section "### 2. Too Broad" explicitly includes too broad detection
+    - Line 86: Definition: "The subtask tries to accomplish too much for a single iteration."
+  - Verification step 3 (Verify criteria for too broad defined): ✓
+    - Lines 88-92: "**Check for:**" lists specific detection criteria:
+      - More than 5-7 acceptance criteria
+      - Description mentions multiple distinct features
+      - Would require touching many unrelated files
+      - Estimated to take more than one focused session
+    - Lines 94-98: Example of too broad provided with subtask covering 6+ features
+    - Line 100: Clear criteria: "A subtask should be completable in one focused session (~2-4 hours of work)."
+    - Lines 233-262: Example 3 demonstrates too broad detection with full JSON output
+  - All three verification steps passed
+

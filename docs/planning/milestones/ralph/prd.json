@@ -1024,7 +1024,7 @@
       "Verify too broad detection is included",
       "Verify criteria for too broad defined"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "006-pre-build-validation-prompt-10",
