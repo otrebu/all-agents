@@ -331,11 +331,11 @@ Config file: @${CONFIG_PATH}
 Session IDs to analyze: ${session_ids}
 
 Self-improvement mode: ${self_improve_setting}
-- If 'always': Require user approval before applying changes (propose only)
-- If 'auto': Apply changes automatically
+- If 'always': Create task files only, require user approval before applying changes
+- If 'auto': Apply changes directly to target files (CLAUDE.md, prompts, skills) without creating task files
 
 Analyze session logs from completed subtasks for inefficiencies and output a summary to stdout.
-If improvements are identified, create task files as specified in the prompt."
+Handle improvements based on the mode above."
 
   echo "Invoking Claude for self-improvement analysis..."
   claude $PERM_FLAG -p "$PROMPT"

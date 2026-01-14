@@ -4440,7 +4440,7 @@
       "Run aaa ralph calibrate improve",
       "Verify changes are auto-applied"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-06",

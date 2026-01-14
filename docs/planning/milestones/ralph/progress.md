@@ -5879,3 +5879,17 @@ The prompt includes:
   - "If 'always': Require user approval before applying changes (propose only)"
   - "If 'auto': Apply changes automatically"
 - The self-improvement.md prompt reinforces "Propose only" behavior (line 221)
+
+## 2026-01-14: 026-calibrate-improve-cli-05
+
+**Feature:** Command respects selfImprovement: auto (auto-apply)
+
+**Changes:**
+- Updated `context/workflows/ralph/calibration/self-improvement.md` to add auto mode behavior in Execution Instructions section
+- Updated `tools/src/commands/ralph/scripts/calibrate.sh` to clarify auto mode instructions in the prompt passed to Claude
+- Auto mode now instructs Claude to apply changes directly to target files (CLAUDE.md, prompts, skills) instead of creating task files
+
+**Files modified:**
+- context/workflows/ralph/calibration/self-improvement.md
+- tools/src/commands/ralph/scripts/calibrate.sh
+

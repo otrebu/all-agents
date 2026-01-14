@@ -206,18 +206,21 @@ If you find a marked exception, skip it and note it in the summary.
 ## Execution Instructions
 
 1. Read `subtasks.json` to find completed subtasks with `sessionId`
-2. Check `ralph.config.json` for `selfImprovement` setting
+2. Check `ralph.config.json` for `selfImprovement.mode` setting
 3. For each completed subtask:
    a. Read the session log from `~/.claude/projects/<encoded-path>/<sessionId>.jsonl`
    b. Analyze for inefficiency patterns
    c. Record findings
 4. Output summary to stdout
-5. Create task files for proposed improvements in `docs/planning/tasks/`
-6. Do NOT apply changes directly - only propose
+5. Based on `selfImprovement.mode`:
+   - **"always"** (default): Create task files for proposed improvements in `docs/planning/tasks/` - do NOT apply changes directly, only propose
+   - **"auto"**: Apply changes directly to the target files (CLAUDE.md, prompts, skills) without creating task files. Output what was changed in the summary.
+   - **"never"**: Should not reach here (handled earlier)
 
 ## Important Notes
 
-- **High risk operation:** This analysis can propose changes to core prompts and skills
-- **Propose only:** Never modify prompts/skills directly - only create task files
+- **High risk operation:** This analysis can propose or apply changes to core prompts and skills
+- **Mode-dependent behavior:** In "always" mode, only create task files. In "auto" mode, apply changes directly.
 - **False positives:** When in doubt, don't flag. Some patterns that look inefficient may be intentional or necessary
 - **Context matters:** Consider the subtask's goal when evaluating if an action was inefficient
+- **Auto mode caution:** When applying changes automatically, be conservative. Only apply clear improvements with low risk of breaking functionality.
