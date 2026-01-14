@@ -3211,3 +3211,22 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - `### Notes` section
   - All 9 required sections present and match task-template.md exactly
   - Test artifact cleaned up after validation
+
+### 015-subtasks-auto-prompt-01
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Created `context/workflows/ralph/planning/subtasks-auto.md` prompt file
+- **Details:**
+  - Verification step 1 (Navigate to context/workflows/ralph/planning/): ✓ Directory exists with other planning prompts
+  - Verification step 2 (Verify subtasks-auto.md file exists): ✓ Created file with 8599 bytes
+  - Verification step 3 (Verify file is readable): ✓ File has proper permissions (rw-rw-r--)
+  - Created comprehensive subtask generation prompt with:
+    - Task ID parameter handling (with fallback to ask user if missing)
+    - Required reading of parent task and subtasks schema
+    - Deep codebase analysis instructions before generating subtasks
+    - Output format following subtasks.schema.json exactly
+    - Required fields: id, taskRef, title, description, done, acceptanceCriteria, filesToRead
+    - Subtask sizing constraints (fit single context window)
+    - ID generation using SUB-NNN pattern with global uniqueness
+    - Milestone-level generation support with --milestone flag
+    - Validation checklist for generated subtasks

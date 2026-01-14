@@ -2448,7 +2448,7 @@
       "Verify subtasks-auto.md file exists",
       "Verify file is readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-02",
