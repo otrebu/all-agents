@@ -4717,7 +4717,7 @@
       "Verify session starts",
       "Verify Socratic questions asked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-09",

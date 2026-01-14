@@ -6267,3 +6267,16 @@ All verification steps pass.
   - `aaa ralph plan vision --help` runs successfully (exit code 0)
   - Help text displays: Usage, description ("Start interactive vision planning session using Socratic method"), and Options (-h, --help)
   - All verification steps pass - command responds correctly to --help flag
+
+### 028-ralph-plan-vision-cli-08
+- **Status:** PASSED
+- **Description:** aaa ralph plan vision starts interactive session
+- **Verification:**
+  - `aaa ralph plan vision` command executes successfully
+  - Session starts with message: "Starting vision planning session..."
+  - Prompt path correctly resolved to context/workflows/ralph/planning/vision-interactive.md
+  - The prompt file contains Socratic method instructions throughout (lines 9-13)
+  - Opening question "What problem are you trying to solve, and for whom?" is defined (line 21)
+  - Multiple follow-up probes and phases (Purpose, Target Users/JTBD, Key Capabilities, Current vs Future)
+  - Claude invoked with `--append-system-prompt` injecting the vision planning workflow
+  - Interactive terminal session with `stdio: 'inherit'` for full user control
