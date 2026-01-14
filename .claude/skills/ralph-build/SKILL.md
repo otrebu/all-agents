@@ -49,7 +49,7 @@ If validate-first is requested:
 
 For each iteration, follow the ralph-iteration workflow:
 
-@context/workflows/ralph/building/ralph-iteration.md
+references/ralph-iteration.md
 
 ### 5. Interactive Mode (-i)
 
@@ -76,5 +76,5 @@ aaa ralph build [options]
 
 ## References
 
-- **Iteration prompt:** @context/workflows/ralph/building/ralph-iteration.md
-- **Pre-build validation:** @context/workflows/ralph/building/pre-build-validation.md
+- **Iteration prompt:** references/ralph-iteration.md
+- **Pre-build validation:** references/pre-build-validation.md
