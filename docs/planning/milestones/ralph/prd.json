@@ -4657,7 +4657,7 @@
       "Verify session starts",
       "Verify multi-turn conversation enabled"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "028-ralph-plan-vision-cli-04",
