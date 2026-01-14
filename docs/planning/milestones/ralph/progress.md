@@ -1815,3 +1815,14 @@
   3. ✓ Verified config found message: `Config: Found (ralph.config.json)` displayed in green
 - The config detection logic in status.sh (lines 328-336) correctly detects when ralph.config.json exists
 - Cleaned up test config file after verification
+
+## 2026-01-14: 008-status-sh-16 - Test config detection (absent scenario)
+
+**Status: VERIFIED ✓**
+
+- Verification steps completed:
+  1. ✓ Created test environment without ralph.config.json
+  2. ✓ Ran status.sh
+  3. ✓ Verified config not found message: `Config: Not found` displayed correctly
+- The config detection logic in status.sh (lines 331-335) correctly detects when ralph.config.json is absent
+- Output shows dim text "Not found" as expected when config file does not exist

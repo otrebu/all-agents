@@ -1409,7 +1409,7 @@
       "Run status.sh",
       "Verify config not found message appears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "009-ralph-build-skill-01",
