@@ -4,7 +4,8 @@
     "postIteration": {
       "enabled": true,
       "model": "haiku",
-      "diaryPath": "logs/iterations.jsonl"
+      "diaryPath": "logs/iterations.jsonl",
+      "actions": ["log"]
     }
   },
   "ntfy": {

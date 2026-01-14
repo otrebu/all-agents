@@ -4441,3 +4441,24 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     - `success` -> `completed` ✓
     - `failure` -> `failed` ✓
     - `partial` -> `retrying` ✓
+
+### 019-post-iteration-hook-13
+- **Status:** PASSED
+- **Changes:** Implemented log action that writes formatted iteration summary to stdout
+- **Details:**
+  - Added `get_actions()` function (lines 152-178) to read configured actions array from ralph.config.json
+    - Default actions: `["log"]` when no config exists
+    - Supports both jq and Node.js JSON parsing
+  - Added `is_action_enabled()` function (lines 181-205) to check if a specific action is enabled
+    - Supports both string actions (`"log"`) and object actions (`{type: "log", ...}`)
+  - Added `execute_log_action()` function (lines 208-268) that:
+    - Outputs formatted "=== Iteration Log ===" section to stdout
+    - Displays: timestamp, subtask ID, session ID, status, duration (human-readable), tool calls count, files changed count, summary
+    - Duration formatting: >60s shows as "Xm Ys", >1s shows as "Xs", else "Xms"
+  - Added `execute_actions()` function (lines 627-636) that dispatches to enabled action handlers
+  - Modified `write_diary_entry()` to return entry JSON for use by actions
+  - Updated ralph.config.json to include `actions: ["log"]` in postIteration config
+  - Verification:
+    - Step 1 (Configure log action in config): ✓ Added `"actions": ["log"]` to ralph.config.json
+    - Step 2 (Run hook): ✓ Script executes log action when enabled
+    - Step 3 (Verify output to stdout/logs): ✓ Formatted log output includes all iteration details

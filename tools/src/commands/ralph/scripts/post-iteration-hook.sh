@@ -149,6 +149,125 @@ get_diary_path() {
   echo "$path"
 }
 
+# Get configured actions array (default: ["log"])
+get_actions() {
+  if [ ! -f "$CONFIG_PATH" ]; then
+    echo '["log"]'
+    return
+  fi
+
+  local actions
+  if command -v jq &> /dev/null; then
+    actions=$(jq -c '.hooks.postIteration.actions // ["log"]' "$CONFIG_PATH" 2>/dev/null)
+  elif command -v node &> /dev/null; then
+    actions=$(NODE_JSON_FILE="$CONFIG_PATH" node << 'NODEJS_SCRIPT'
+const fs = require('fs');
+try {
+  const data = JSON.parse(fs.readFileSync(process.env.NODE_JSON_FILE, 'utf8'));
+  const actions = data.hooks?.postIteration?.actions || ['log'];
+  console.log(JSON.stringify(actions));
+} catch (e) {
+  console.log('["log"]');
+}
+NODEJS_SCRIPT
+    )
+  else
+    actions='["log"]'
+  fi
+
+  echo "$actions"
+}
+
+# Check if a specific action is enabled
+is_action_enabled() {
+  local action_name="$1"
+  local actions
+  actions=$(get_actions)
+
+  if command -v jq &> /dev/null; then
+    local found
+    found=$(echo "$actions" | jq -r --arg name "$action_name" 'map(select(. == $name or .type == $name)) | length')
+    [ "$found" -gt 0 ]
+  elif command -v node &> /dev/null; then
+    local found
+    found=$(ACTION_NAME="$action_name" ACTIONS_JSON="$actions" node -e "
+      try {
+        const actions = JSON.parse(process.env.ACTIONS_JSON);
+        const name = process.env.ACTION_NAME;
+        const found = actions.some(a => a === name || (typeof a === 'object' && a.type === name));
+        console.log(found ? '1' : '0');
+      } catch (e) { console.log('0'); }
+    " 2>/dev/null)
+    [ "$found" = "1" ]
+  else
+    # Default: log is enabled
+    [ "$action_name" = "log" ]
+  fi
+}
+
+# Execute log action - writes structured output to stdout and optionally to log file
+execute_log_action() {
+  local entry_json="$1"
+
+  echo ""
+  echo "=== Iteration Log ==="
+
+  # Extract fields for formatted output
+  local subtask_id session_id status summary timestamp tool_calls duration files_changed
+
+  if command -v jq &> /dev/null; then
+    subtask_id=$(echo "$entry_json" | jq -r '.subtaskId // ""')
+    session_id=$(echo "$entry_json" | jq -r '.sessionId // ""')
+    status=$(echo "$entry_json" | jq -r '.status // ""')
+    summary=$(echo "$entry_json" | jq -r '.summary // ""')
+    timestamp=$(echo "$entry_json" | jq -r '.timestamp // ""')
+    tool_calls=$(echo "$entry_json" | jq -r '.toolCalls // 0')
+    duration=$(echo "$entry_json" | jq -r '.duration // 0')
+    files_changed=$(echo "$entry_json" | jq -r '.filesChanged | length // 0')
+  elif command -v node &> /dev/null; then
+    subtask_id=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).subtaskId || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    session_id=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).sessionId || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    status=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).status || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    summary=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).summary || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    timestamp=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).timestamp || ''); } catch(e) { console.log(''); }" 2>/dev/null)
+    tool_calls=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).toolCalls || 0); } catch(e) { console.log('0'); }" 2>/dev/null)
+    duration=$(ENTRY_JSON="$entry_json" node -e "try { console.log(JSON.parse(process.env.ENTRY_JSON).duration || 0); } catch(e) { console.log('0'); }" 2>/dev/null)
+    files_changed=$(ENTRY_JSON="$entry_json" node -e "try { console.log((JSON.parse(process.env.ENTRY_JSON).filesChanged || []).length); } catch(e) { console.log('0'); }" 2>/dev/null)
+  else
+    # Fallback: use passed in values
+    subtask_id="$SUBTASK_ID"
+    session_id="$SESSION_ID"
+    status="$STATUS"
+    summary="(summary not available)"
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    tool_calls="0"
+    duration="0"
+    files_changed="0"
+  fi
+
+  # Format duration for display
+  local duration_display
+  if [ "$duration" -gt 60000 ]; then
+    duration_display="$((duration / 60000))m $((duration % 60000 / 1000))s"
+  elif [ "$duration" -gt 1000 ]; then
+    duration_display="$((duration / 1000))s"
+  else
+    duration_display="${duration}ms"
+  fi
+
+  # Output formatted log
+  echo "Timestamp: $timestamp"
+  echo "Subtask:   $subtask_id"
+  echo "Session:   $session_id"
+  echo "Status:    $status"
+  echo "Duration:  $duration_display"
+  echo "Tools:     $tool_calls calls"
+  echo "Files:     $files_changed changed"
+  echo "Summary:   $summary"
+  echo "=== End Iteration Log ==="
+  echo ""
+}
+
 # Determine session JSONL path from session ID
 get_session_jsonl_path() {
   # Claude stores sessions at ~/.claude/projects/<encoded-path>/<sessionId>.jsonl
@@ -502,7 +621,23 @@ write_diary_entry() {
   # Append to diary file
   echo "$entry" >> "$diary_file"
 
-  echo "Diary entry written to: $diary_file"
+  # Output status to stderr and entry JSON to stdout
+  echo "Diary entry written to: $diary_file" >&2
+
+  # Return the entry JSON for use by actions
+  echo "$entry"
+}
+
+# Execute configured actions
+execute_actions() {
+  local entry_json="$1"
+
+  # Execute log action if enabled
+  if is_action_enabled "log"; then
+    execute_log_action "$entry_json"
+  fi
+
+  # Note: notify and pause actions will be implemented in subsequent features
 }
 
 # Main execution
@@ -529,6 +664,10 @@ main() {
     local diary
     diary=$(get_diary_path)
     echo "Diary path: $diary"
+
+    local actions
+    actions=$(get_actions)
+    echo "Actions: $actions"
   else
     echo "Config not found, using defaults"
   fi
@@ -541,7 +680,11 @@ main() {
 
   # Write to diary
   echo "Writing diary entry..."
-  write_diary_entry "$summary_json"
+  local entry_json
+  entry_json=$(write_diary_entry "$summary_json")
+
+  # Execute configured actions (log, notify, pause)
+  execute_actions "$entry_json"
 
   echo "=== Post-Iteration Hook Complete ==="
 }

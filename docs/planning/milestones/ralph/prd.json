@@ -3254,7 +3254,7 @@
       "Run hook",
       "Verify output to stdout/logs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-14",
