@@ -2500,3 +2500,23 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
     1. ✓ Read SKILL.md content - File readable at .claude/skills/ralph-calibrate/SKILL.md
     2. ✓ Verify @context/workflows/ralph/calibration/ references exist - 4 references found
     3. ✓ Verify @path syntax is used correctly - All use correct `@context/...` format
+
+### 012-ralph-calibrate-skill-09
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** Verified skill outputs summary + creates task files for divergence
+- **Details:**
+  - SKILL.md documents output behavior for intention drift (lines 83-86):
+    - "Summary to stdout showing drift analysis results"
+    - "Task files created in `docs/planning/tasks/` for any detected drift"
+  - intention-drift.md prompt contains complete instructions:
+    - Summary format specified (lines 225-268)
+    - Task file format specified (lines 270-309)
+    - Task file naming: `docs/planning/tasks/drift-<subtask-id>-<date>.md`
+  - Evidence of working implementation:
+    - Task file exists: `docs/planning/tasks/drift-DRIFT-TEST-001-2026-01-14.md`
+    - Task file contains proper structure: Problem, Planning Chain Reference, Drift Type, Evidence, Corrective Action, Acceptance Criteria
+  - All verification steps pass:
+    1. ✓ Run /ralph-calibrate intention with drift - Skill configured to follow intention-drift.md prompt
+    2. ✓ Verify summary is output - Summary format documented in SKILL.md and intention-drift.md
+    3. ✓ Verify task files are created - Evidence: drift-DRIFT-TEST-001-2026-01-14.md exists with complete content
