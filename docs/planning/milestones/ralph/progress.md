@@ -2315,3 +2315,13 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - @context/workflows/ralph/planning/vision-interactive.md reference exists on lines 53 and 65
   - Vision subcommand documented in Subcommands table routing to "Start interactive vision planning session"
   - Verified vision-interactive.md prompt file exists at referenced path
+
+### 011-ralph-plan-skill-05
+- **Status:** PASSED
+- **Changes:** Verified skill is invocable via /ralph-plan vision in Claude Code
+- **Details:**
+  - Confirmed `ralph-plan` appears in Claude Code's available skills list in the system prompt
+  - Skill is registered with description: "Interactive vision planning using Socratic method..."
+  - SKILL.md exists at `.claude/skills/ralph-plan/SKILL.md` with proper structure
+  - Vision subcommand documented and routes to vision-interactive.md prompt
+  - Referenced prompt file exists at `context/workflows/ralph/planning/vision-interactive.md`
