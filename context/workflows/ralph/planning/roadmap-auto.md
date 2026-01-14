@@ -46,6 +46,8 @@ Each milestone should:
 
 **Location:** `docs/planning/ROADMAP.md` (per VISION.md Section 2)
 
+**Convention (from VISION.md Section 2):** The ROADMAP.md is a living doc that **references milestones** via links to their folders in the planning structure. Each milestone slug corresponds to a folder at `docs/planning/milestones/<slug>/`.
+
 Generate the roadmap in the following format:
 
 ```markdown
@@ -59,7 +61,7 @@ Generate the roadmap in the following format:
 
 ## Milestones
 
-### 1. <milestone-slug>: <Outcome Title>
+### 1. [<milestone-slug>](milestones/<milestone-slug>/): <Outcome Title>
 
 **Outcome:** <What users can do when this milestone is complete>
 
@@ -78,13 +80,13 @@ Generate the roadmap in the following format:
 
 ---
 
-### 2. <milestone-slug>: <Outcome Title>
+### 2. [<milestone-slug>](milestones/<milestone-slug>/): <Outcome Title>
 
 ...
 
 ---
 
-### 3. <milestone-slug>: <Outcome Title>
+### 3. [<milestone-slug>](milestones/<milestone-slug>/): <Outcome Title>
 
 ...
 
@@ -97,6 +99,7 @@ Generate the roadmap in the following format:
 - This roadmap is a living document that evolves as milestones complete
 - Milestone ordering is based on dependency and value delivery, not calendar dates
 - Stories and tasks within each milestone are planned separately
+- Milestone headings link to their respective folders in `docs/planning/milestones/`
 ```
 
 ## Generation Guidelines

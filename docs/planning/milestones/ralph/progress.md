@@ -1525,3 +1525,19 @@
     - Line 26: "**Per VISION.md Section 2 (Folder Structure):** Milestones use outcome-based names, not release-based names"
     - Line 35: "Milestones should describe what users can DO, not when it ships"
   - All three verification steps passed
+
+### 007-roadmap-auto-prompt-09
+- **Status:** PASSED
+- **Changes:** Enhanced output format section to align with VISION.md Section 2 conventions
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓
+    - File at `context/workflows/ralph/planning/roadmap-auto.md` is 166 lines, readable
+  - Verification step 2 (Verify output format section exists): ✓
+    - "Output: ROADMAP.md" section exists at lines 45-103
+    - Contains full markdown template for ROADMAP.md output
+  - Verification step 3 (Verify format aligns with VISION.md section 2): ✓
+    - Added explicit convention statement: "The ROADMAP.md is a living doc that **references milestones** via links to their folders in the planning structure"
+    - Updated milestone headings to link to folders: `[<milestone-slug>](milestones/<milestone-slug>/)`
+    - Added note: "Milestone headings link to their respective folders in `docs/planning/milestones/`"
+    - This aligns with VISION.md Section 2 which shows ROADMAP.md as a "living doc referencing milestones"
+  - All three verification steps passed
