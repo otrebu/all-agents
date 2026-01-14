@@ -1,1 +1,0 @@
-../../../../context/workflows/ralph/planning/stories-auto.md

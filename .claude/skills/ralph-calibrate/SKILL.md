@@ -24,7 +24,7 @@ Run intention drift analysis to verify completed subtasks align with planning ch
 3. If found but no completed subtasks have `commitHash`, output:
    > "No completed subtasks with commitHash found. Nothing to analyze."
 
-If prerequisites are met, follow: references/intention-drift.md
+If prerequisites are met, follow: @context/workflows/ralph/calibration/intention-drift.md
 
 ### If argument is `technical`:
 
@@ -39,7 +39,7 @@ Run technical quality analysis to check code quality patterns.
 3. If found but no completed subtasks have `commitHash`, output:
    > "No completed subtasks with commitHash found. Nothing to analyze."
 
-If prerequisites are met, follow: references/technical-drift.md
+If prerequisites are met, follow: @context/workflows/ralph/calibration/technical-drift.md
 
 ### If argument is `improve`:
 
@@ -60,7 +60,7 @@ Read `ralph.config.json` for the `selfImprovement` setting which controls behavi
 - **`"auto"`**: Auto-apply mode. Applies changes directly to target files (CLAUDE.md, prompts, skills) without creating task files. Use with caution.
 - **`"never"`**: Skip analysis entirely and exit with a message explaining that self-improvement is disabled.
 
-If prerequisites are met, follow: references/self-improvement.md
+If prerequisites are met, follow: @context/workflows/ralph/calibration/self-improvement.md
 
 ### If argument is `all`:
 
@@ -68,17 +68,17 @@ Run all calibration checks in sequence. Execute each check one after another, fo
 
 **Step 1: Intention Drift Analysis**
 - Check prerequisites: `subtasks.json` exists with completed subtasks having `commitHash`
-- If met, follow: references/intention-drift.md
+- If met, follow: @context/workflows/ralph/calibration/intention-drift.md
 - Output intention drift summary
 
 **Step 2: Technical Drift Analysis**
 - Check prerequisites: `subtasks.json` exists with completed subtasks having `commitHash`
-- If met, follow: references/technical-drift.md
+- If met, follow: @context/workflows/ralph/calibration/technical-drift.md
 - Output technical drift summary
 
 **Step 3: Self-Improvement Analysis**
 - Check prerequisites: `subtasks.json` exists with completed subtasks having `sessionId`
-- If met, follow: references/self-improvement.md
+- If met, follow: @context/workflows/ralph/calibration/self-improvement.md
 - Output self-improvement summary
 
 **Final Output:**
@@ -213,6 +213,6 @@ aaa ralph calibrate <subcommand> [options]
 
 ## References
 
-- **Intention drift prompt:** references/intention-drift.md
-- **Technical drift prompt:** references/technical-drift.md
-- **Self-improvement prompt:** references/self-improvement.md
+- **Intention drift prompt:** @context/workflows/ralph/calibration/intention-drift.md
+- **Technical drift prompt:** @context/workflows/ralph/calibration/technical-drift.md
+- **Self-improvement prompt:** @context/workflows/ralph/calibration/self-improvement.md

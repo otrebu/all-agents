@@ -27,7 +27,7 @@ Begin the session with:
 
 ---
 
-Then follow the full workflow in: references/vision-interactive.md
+Then follow the full workflow in: @context/workflows/ralph/planning/vision-interactive.md
 
 ### If argument is `roadmap`:
 
@@ -47,7 +47,7 @@ Then follow the full workflow in: references/vision-interactive.md
 
 ---
 
-Then follow the full workflow in: references/roadmap-interactive.md
+Then follow the full workflow in: @context/workflows/ralph/planning/roadmap-interactive.md
 
 ### If argument is `stories` (with optional milestone name):
 
@@ -71,7 +71,7 @@ I've reviewed the roadmap - this milestone focuses on: [list key deliverables fr
 
 ---
 
-Then follow the full workflow in: references/stories-interactive.md
+Then follow the full workflow in: @context/workflows/ralph/planning/stories-interactive.md
 
 ### If argument is `tasks` (with required story ID):
 
@@ -105,7 +105,7 @@ Let me also explore the codebase to understand existing patterns..."
 
 ---
 
-Then follow the full workflow in: references/tasks-interactive.md
+Then follow the full workflow in: @context/workflows/ralph/planning/tasks-interactive.md
 
 ### If no argument or unknown argument:
 
@@ -262,7 +262,7 @@ aaa ralph plan tasks --story <story-id>
 
 ## References
 
-- **Vision prompt:** references/vision-interactive.md
-- **Roadmap prompt:** references/roadmap-interactive.md
-- **Stories prompt:** references/stories-interactive.md
-- **Tasks prompt:** references/tasks-interactive.md
+- **Vision prompt:** @context/workflows/ralph/planning/vision-interactive.md
+- **Roadmap prompt:** @context/workflows/ralph/planning/roadmap-interactive.md
+- **Stories prompt:** @context/workflows/ralph/planning/stories-interactive.md
+- **Tasks prompt:** @context/workflows/ralph/planning/tasks-interactive.md
