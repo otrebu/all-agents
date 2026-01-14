@@ -3458,3 +3458,20 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
   - Emphasized "deep", "extensively", "directly informed" throughout section titles
   - Updated section headers to emphasize depth (e.g., "Explore Existing Implementation Patterns" → "Explore Existing Implementation Patterns" with "extensively")
   - Section now clearly emphasizes that depth is critical for quality subtask generation
+
+### 015-subtasks-auto-prompt-19
+- **Date:** 2026-01-14
+- **Status:** PASSED
+- **Changes:** None required - prompt already includes comprehensive sizing constraints
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ Read context/workflows/ralph/planning/subtasks-auto.md (309 lines)
+  - Verification step 2 (Search for sizing/context window constraints): ✓ Found "## Subtask Sizing Constraints" section at lines 150-185
+    - Line 152: "**CRITICAL:** Each subtask must fit within a single context window iteration"
+    - Lines 154-163: "### Size Guidelines" explaining what a properly-sized subtask allows (Initialize, Gather, Implement, Test, Commit)
+    - Lines 165-178: "### Subtask Scope Rules" with specific sizing rules (1-3 files, one clear concept, 15-30 tool calls, 2-5 acceptance criteria)
+    - Lines 173-178: "### Signs a Subtask is Too Large" (multiple unrelated changes, spanning different areas, extensive exploration, 5+ files)
+    - Lines 180-184: "### Signs a Subtask is Too Small" (single line change, trivially merged, creates overhead)
+  - Verification step 3 (Verify single-iteration fit is documented): ✓ 
+    - Line 152: "Each subtask must fit within a single context window iteration"
+    - Line 163: "All of this must fit in one context window"
+  - All three verification steps passed

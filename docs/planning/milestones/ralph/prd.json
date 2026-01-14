@@ -2654,7 +2654,7 @@
       "Search for sizing/context window constraints",
       "Verify single-iteration fit is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "015-subtasks-auto-prompt-20",
