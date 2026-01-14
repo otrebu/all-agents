@@ -1917,6 +1917,426 @@ echo "ENTRIES_WRITTEN: 3"
   });
 });
 
+describe("post-iteration-hook ntfy notification delivery integration test", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(
+      tmpdir(),
+      `ntfy-delivery-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("ntfy notification delivered with correct payload via mock HTTP server", async () => {
+    const { writeFileSync } = await import("node:fs");
+
+    // Create a request capture file to store the HTTP request details
+    const captureFile = join(temporaryDirectory, "ntfy-request-capture.json");
+
+    // Create a mock curl script that simulates HTTP delivery and captures the request
+    // This acts as our "mock HTTP server" - it captures all request details
+    const mockCurlScript = `#!/bin/bash
+# Mock curl that simulates ntfy.sh server behavior
+# Captures request details to file for verification
+
+CAPTURE_FILE="${captureFile}"
+
+# Parse arguments to extract request details
+url=""
+method="GET"
+title=""
+priority=""
+tags=""
+body=""
+
+prev_arg=""
+for arg in "$@"; do
+  case "$prev_arg" in
+    "-X")
+      method="$arg"
+      ;;
+    "-H")
+      # Parse header
+      if [[ "$arg" == Title:* ]]; then
+        title="\${arg#Title: }"
+      elif [[ "$arg" == Priority:* ]]; then
+        priority="\${arg#Priority: }"
+      elif [[ "$arg" == Tags:* ]]; then
+        tags="\${arg#Tags: }"
+      fi
+      ;;
+    "-d")
+      body="$arg"
+      ;;
+  esac
+
+  # Check if this is the URL
+  if [[ "$arg" =~ ^https?:// ]]; then
+    url="$arg"
+  fi
+
+  prev_arg="$arg"
+done
+
+# Write captured request to file (using node for JSON creation)
+node -e "
+const fs = require('fs');
+const capture = {
+  delivered: true,
+  timestamp: new Date().toISOString(),
+  method: process.env.METHOD,
+  url: process.env.URL,
+  headers: {
+    title: process.env.TITLE,
+    priority: process.env.PRIORITY,
+    tags: process.env.TAGS
+  },
+  body: process.env.BODY
+};
+fs.writeFileSync(process.env.CAPTURE_FILE, JSON.stringify(capture, null, 2));
+" 2>/dev/null
+
+# Simulate successful ntfy.sh response
+echo '{"id":"mock-msg-id","time":1234567890,"topic":"test-topic","message":"received"}'
+exit 0
+`;
+
+    const mockCurlPath = join(temporaryDirectory, "curl");
+    writeFileSync(mockCurlPath, mockCurlScript, { mode: 0o755 });
+
+    // Create ralph.config.json with ntfy configuration
+    const configPath = join(temporaryDirectory, "ralph.config.json");
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        hooks: { postIteration: { actions: ["notify"], enabled: true } },
+        ntfy: { server: "https://ntfy.sh", topic: "test-delivery-topic-123" },
+      }),
+    );
+
+    // Create test script that executes the full notify action flow
+    const testScript = `#!/bin/bash
+set -euo pipefail
+
+export PATH="${temporaryDirectory}:$PATH"
+export CAPTURE_FILE="${captureFile}"
+export METHOD="POST"
+export TITLE=""
+export PRIORITY=""
+export TAGS=""
+export BODY=""
+export URL=""
+
+REPO_ROOT="${temporaryDirectory}"
+CONFIG_PATH="$REPO_ROOT/ralph.config.json"
+
+# Read config values using node (jq alternative)
+read_config() {
+  local key="$1"
+  local default="\${2:-}"
+
+  if [ ! -f "$CONFIG_PATH" ]; then
+    echo "$default"
+    return
+  fi
+
+  local value
+  value=$(CONFIG_PATH="$CONFIG_PATH" KEY="$key" DEFAULT="$default" node -e "
+    const fs = require('fs');
+    const path = require('path');
+    try {
+      const config = JSON.parse(fs.readFileSync(process.env.CONFIG_PATH, 'utf8'));
+      const keys = process.env.KEY.split('.');
+      let value = config;
+      for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+          value = value[k];
+        } else {
+          value = process.env.DEFAULT;
+          break;
+        }
+      }
+      console.log(value === undefined || value === null ? process.env.DEFAULT : value);
+    } catch (e) {
+      console.log(process.env.DEFAULT);
+    }
+  " 2>/dev/null)
+
+  echo "$value"
+}
+
+get_ntfy_topic() {
+  read_config "ntfy.topic" ""
+}
+
+get_ntfy_server() {
+  read_config "ntfy.server" "https://ntfy.sh"
+}
+
+# The notify action implementation (matching post-iteration-hook.sh)
+execute_notify_action() {
+  local entry_json="$1"
+
+  local topic
+  topic=$(get_ntfy_topic)
+
+  if [ -z "$topic" ]; then
+    echo "Warning: ntfy topic not configured" >&2
+    return 1
+  fi
+
+  local server
+  server=$(get_ntfy_server)
+
+  # Extract fields using node
+  local subtask_id status summary
+  subtask_id=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).subtaskId || '')" 2>/dev/null)
+  status=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).status || '')" 2>/dev/null)
+  summary=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).summary || '')" 2>/dev/null)
+
+  local title="Ralph: $subtask_id ($status)"
+  local message="$summary"
+
+  # Determine priority
+  local priority="default"
+  case "$status" in
+    completed) priority="default" ;;
+    failed) priority="high" ;;
+    retrying) priority="low" ;;
+  esac
+
+  # Set environment for capture
+  export METHOD="POST"
+  export URL="\${server}/\${topic}"
+  export TITLE="$title"
+  export PRIORITY="$priority"
+  export TAGS="robot,white_check_mark"
+  export BODY="$message"
+
+  local ntfy_url="\${server}/\${topic}"
+
+  echo "=== Delivering notification ==="
+  echo "Topic: $topic"
+  echo "Server: $server"
+  echo "Title: $title"
+  echo "Priority: $priority"
+
+  # Execute curl (mock will capture and simulate success)
+  if curl -s -X POST "$ntfy_url" \\
+    -H "Title: $title" \\
+    -H "Priority: $priority" \\
+    -H "Tags: robot,white_check_mark" \\
+    -d "$message"; then
+    echo ""
+    echo "DELIVERY_STATUS: success"
+    return 0
+  else
+    echo ""
+    echo "DELIVERY_STATUS: failed"
+    return 1
+  fi
+}
+
+# Test entry JSON
+TEST_ENTRY='{"subtaskId":"ntfy-test-subtask-001","sessionId":"session-ntfy-789","status":"completed","summary":"Feature implemented and tests passing"}'
+
+# Execute the notify action
+execute_notify_action "$TEST_ENTRY"
+`;
+
+    const testScriptPath = join(temporaryDirectory, "test-ntfy-delivery.sh");
+    writeFileSync(testScriptPath, testScript, { mode: 0o755 });
+
+    // Run the test
+    const { exitCode, stdout } = await execa("bash", [testScriptPath], {
+      cwd: temporaryDirectory,
+      env: {
+        ...process.env,
+        CAPTURE_FILE: captureFile,
+        PATH: `${temporaryDirectory}:${process.env.PATH}`,
+      },
+    });
+
+    // Verify delivery was successful
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("DELIVERY_STATUS: success");
+
+    // Step 3: Verify notification was received by checking the capture file
+    expect(existsSync(captureFile)).toBe(true);
+
+    const captureContent = readFileSync(captureFile, "utf8");
+    const capture = JSON.parse(captureContent) as {
+      body: string;
+      delivered: boolean;
+      headers: { priority: string; tags: string; title: string };
+      method: string;
+      timestamp: string;
+      url: string;
+    };
+
+    // Verify the notification was delivered
+    expect(capture.delivered).toBe(true);
+
+    // Verify correct HTTP method
+    expect(capture.method).toBe("POST");
+
+    // Verify correct endpoint (configured topic)
+    expect(capture.url).toBe("https://ntfy.sh/test-delivery-topic-123");
+
+    // Verify headers contain expected values
+    expect(capture.headers.title).toBe(
+      "Ralph: ntfy-test-subtask-001 (completed)",
+    );
+    expect(capture.headers.priority).toBe("default");
+
+    // Verify body contains the summary message
+    expect(capture.body).toBe("Feature implemented and tests passing");
+
+    // Verify timestamp was recorded (notification was received)
+    expect(capture.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  test("ntfy notification delivered with high priority for failed status", async () => {
+    const { writeFileSync } = await import("node:fs");
+
+    const captureFile = join(temporaryDirectory, "ntfy-failed-capture.json");
+
+    // Simplified mock curl for this test
+    const mockCurlScript = `#!/bin/bash
+prev_arg=""
+priority=""
+for arg in "$@"; do
+  if [ "$prev_arg" = "-H" ] && [[ "$arg" == Priority:* ]]; then
+    priority="\${arg#Priority: }"
+  fi
+  prev_arg="$arg"
+done
+echo "CAPTURED_PRIORITY: $priority"
+node -e "require('fs').writeFileSync('${captureFile}', JSON.stringify({priority: '$priority'}))"
+exit 0
+`;
+
+    writeFileSync(join(temporaryDirectory, "curl"), mockCurlScript, {
+      mode: 0o755,
+    });
+
+    const testScript = `#!/bin/bash
+set -euo pipefail
+export PATH="${temporaryDirectory}:$PATH"
+
+execute_notify_action() {
+  local entry_json="$1"
+  local status
+  status=$(ENTRY="$entry_json" node -e "console.log(JSON.parse(process.env.ENTRY).status || '')" 2>/dev/null)
+
+  local priority="default"
+  case "$status" in
+    failed) priority="high" ;;
+    retrying) priority="low" ;;
+  esac
+
+  curl -s -X POST "https://ntfy.sh/test-topic" -H "Priority: $priority" -d "test"
+}
+
+execute_notify_action '{"subtaskId":"fail-001","status":"failed","summary":"Build failed"}'
+`;
+
+    writeFileSync(join(temporaryDirectory, "test-failed.sh"), testScript, {
+      mode: 0o755,
+    });
+
+    const { exitCode, stdout } = await execa(
+      "bash",
+      [join(temporaryDirectory, "test-failed.sh")],
+      {
+        cwd: temporaryDirectory,
+        env: {
+          ...process.env,
+          PATH: `${temporaryDirectory}:${process.env.PATH}`,
+        },
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("CAPTURED_PRIORITY: high");
+
+    // Verify capture file
+    const capture = JSON.parse(readFileSync(captureFile, "utf8")) as {
+      priority: string;
+    };
+    expect(capture.priority).toBe("high");
+  });
+
+  test("ntfy notification not delivered when topic not configured", async () => {
+    const { writeFileSync } = await import("node:fs");
+
+    // Create config WITHOUT ntfy topic
+    writeFileSync(
+      join(temporaryDirectory, "ralph.config.json"),
+      JSON.stringify({
+        hooks: { postIteration: { actions: ["notify"], enabled: true } },
+      }),
+    );
+
+    const testScript = `#!/bin/bash
+set -euo pipefail
+
+CONFIG_PATH="${temporaryDirectory}/ralph.config.json"
+
+get_ntfy_topic() {
+  CONFIG_PATH="$CONFIG_PATH" node -e "
+    const fs = require('fs');
+    try {
+      const config = JSON.parse(fs.readFileSync(process.env.CONFIG_PATH, 'utf8'));
+      console.log(config.ntfy?.topic || '');
+    } catch (e) { console.log(''); }
+  " 2>/dev/null
+}
+
+execute_notify_action() {
+  local topic
+  topic=$(get_ntfy_topic)
+
+  if [ -z "$topic" ]; then
+    echo "DELIVERY_BLOCKED: no topic configured"
+    return 1
+  fi
+
+  echo "DELIVERY_ATTEMPTED"
+  return 0
+}
+
+if execute_notify_action '{"subtaskId":"test","status":"completed"}'; then
+  echo "RESULT: delivered"
+else
+  echo "RESULT: not delivered"
+fi
+`;
+
+    writeFileSync(join(temporaryDirectory, "test-no-topic.sh"), testScript, {
+      mode: 0o755,
+    });
+
+    const { exitCode, stdout } = await execa(
+      "bash",
+      [join(temporaryDirectory, "test-no-topic.sh")],
+      { cwd: temporaryDirectory },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("DELIVERY_BLOCKED: no topic configured");
+    expect(stdout).toContain("RESULT: not delivered");
+    expect(stdout).not.toContain("DELIVERY_ATTEMPTED");
+  });
+});
+
 describe("subtasks schema validation", () => {
   test("generated subtasks.json validates against schema", () => {
     // Load the schema

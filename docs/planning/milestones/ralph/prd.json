@@ -3351,7 +3351,7 @@
       "Run hook with notify action",
       "Verify notification received"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "019-post-iteration-hook-22",

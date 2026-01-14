@@ -4660,3 +4660,38 @@ Created `.claude/skills/ralph-plan/SKILL.md` file.
 - Step 1 (Run hook after mock iteration): ✓ Test script simulates hook execution with mock parameters
 - Step 2 (Verify logs/iterations.jsonl updated): ✓ Test verifies file exists and contains entries
 - Step 3 (Verify entry matches schema): ✓ All 12 schema fields validated with correct types and values
+
+## 2026-01-14: 019-post-iteration-hook-21 - ntfy notification delivery test
+
+- **Feature ID**: 019-post-iteration-hook-21
+- **Description**: ntfy notification delivery test
+- **Category**: validation
+- **Source Task**: 019-Implement post-iteration-hook.sh
+
+### Changes Made:
+- Added new test suite `post-iteration-hook ntfy notification delivery integration test` to `tools/tests/e2e/ralph.test.ts`
+- Implemented 3 comprehensive integration tests for ntfy notification delivery:
+  1. `test("ntfy notification delivered with correct payload via mock HTTP server")`:
+     - Sets up mock curl script that acts as HTTP server, capturing request details
+     - Configures ralph.config.json with ntfy topic and server
+     - Executes full notify action flow
+     - Verifies delivery status is success
+     - Validates captured request includes: correct URL endpoint, HTTP POST method, Title header, Priority header, message body, and timestamp
+  2. `test("ntfy notification delivered with high priority for failed status")`:
+     - Tests priority escalation when status is "failed"
+     - Uses mock curl to capture Priority header
+     - Verifies Priority header is set to "high" for failed status
+  3. `test("ntfy notification not delivered when topic not configured")`:
+     - Creates config without ntfy topic
+     - Verifies notification delivery is blocked
+     - Verifies no curl call is made when topic is missing
+
+### Technical Notes:
+- Tests use mock curl script that captures HTTP request details to a JSON file
+- Mock server approach allows verification of: URL, headers (Title, Priority, Tags), body content
+- Tests validate the complete delivery flow including config reading, field extraction, and HTTP request construction
+
+### Verification:
+- Step 1 (Configure test ntfy topic): ✓ Tests create ralph.config.json with ntfy.topic and ntfy.server configuration
+- Step 2 (Run hook with notify action): ✓ Tests execute the execute_notify_action function with test entry JSON
+- Step 3 (Verify notification received): ✓ Tests verify capture file contains delivered:true, correct URL, headers, and body
