@@ -5824,3 +5824,13 @@ The prompt includes:
   - Troubleshooting hints for common issues (subtasks.json, ralph.config.json, iterations.jsonl)
 - Tested with forced script failure - error handling displays correctly
 - Verification: When status.sh exits with error, user sees actionable troubleshooting steps
+
+## 2026-01-14: 026-calibrate-improve-cli-01
+**Feature:** aaa ralph calibrate improve command is available
+
+**What changed:**
+- Verified that `aaa ralph calibrate improve` command already exists and works
+- The command is listed in `aaa ralph calibrate --help` output (shows "improve" in subcommand list)
+- The command is recognized and executes the `run_improve_check` function in calibrate.sh
+- The function invokes the self-improvement.md prompt via Claude
+- No code changes needed - feature was already correctly implemented
