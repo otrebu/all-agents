@@ -4500,7 +4500,7 @@
       "Run command",
       "Verify log file is found"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "026-calibrate-improve-cli-11",

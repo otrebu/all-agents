@@ -5953,3 +5953,19 @@ All argument parsing and help display work correctly.
 - Config path is resolved to `$REPO_ROOT/ralph.config.json`
 
 Config reading for selfImprovement setting works correctly for all modes (never, always, auto).
+
+
+## 2026-01-14: 026-calibrate-improve-cli-10 verified
+
+**Feature:** Command locates session logs via sessionId
+
+**Verification:**
+- Created test fixture `subtasks-session-log-test.json` with real sessionId: `fd66196d-5135-4238-9b01-cea2c6e50bc2`
+- Ran `SUBTASKS_PATH=...test-fixtures/subtasks-session-log-test.json bash calibrate.sh improve`
+- Command outputs: `Found sessionIds: fd66196d-5135-4238-9b01-cea2c6e50bc2`
+- Verified session log exists at `~/.claude/projects/-home-otrebu-dev-all-agents/fd66196d-5135-4238-9b01-cea2c6e50bc2.jsonl` (447KB)
+- The `get_completed_session_ids()` function in calibrate.sh (lines 260-282) extracts sessionIds from completed subtasks
+- Session IDs are then passed to Claude via the prompt, which locates logs at `~/.claude/projects/<encoded-path>/<sessionId>.jsonl`
+- The self-improvement.md prompt (lines 19-24) documents the session log path pattern
+
+Session log location via sessionId works correctly.
