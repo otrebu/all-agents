@@ -4729,6 +4729,6 @@
       "Complete session",
       "Verify VISION.md exists and is updated"
     ],
-    "passes": false
+    "passes": true
   }
 ]
