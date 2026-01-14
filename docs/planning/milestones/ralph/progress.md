@@ -1284,3 +1284,22 @@
     - Lines 264-284: Example 4 demonstrates too narrow detection with full JSON output
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-11
+- **Status:** PASSED
+- **Changes:** Verified faithful implementation check in pre-build-validation.md
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify faithful implementation check is included): ✓
+    - Lines 119-136: Section "### 4. Faithful Implementation" explicitly includes the check
+    - Line 121: Definition: "The subtask accurately reflects what the Task/Story intends."
+  - Verification step 3 (Verify criteria for alignment defined): ✓
+    - Lines 123-127: "**Check for:**" lists specific detection criteria:
+      - Acceptance criteria that contradict the Task
+      - Approach that differs from Task's specified approach
+      - Missing key requirements from the Task
+      - Misunderstanding of the user need from the Story
+    - Lines 129-134: Example of unfaithful implementation provided (JWT vs session-based auth)
+    - Line 136: Clear criteria: "The subtask should be a faithful decomposition of the Task."
+    - Lines 287-311: Example 5 demonstrates unfaithful detection with full JSON output including Story context
+  - All three verification steps passed
+
