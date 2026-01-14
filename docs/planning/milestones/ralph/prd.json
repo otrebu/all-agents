@@ -1733,7 +1733,7 @@
       "Verify YAML frontmatter exists",
       "Verify name field is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "011-ralph-plan-skill-03",
