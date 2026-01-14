@@ -1167,3 +1167,17 @@
     - Line 316: Execution step 2 says "Read the parent Task via `taskRef` (if exists)"
   - All three verification steps passed
 
+### 006-pre-build-validation-prompt-04
+- **Status:** PASSED
+- **Changes:** Verified prompt reads parent Story if exists via task reference
+- **Details:**
+  - Verification step 1 (Read prompt content): ✓ File is 322 lines, readable
+  - Verification step 2 (Verify Story lookup is instructed): ✓
+    - Lines 49-60: Section "### 3. Parent Story (via Task's storyRef)" explicitly documents lookup
+    - Line 51: "If the Task has a `storyRef` field, read the parent Story file:"
+    - Lines 53-55: Shows path format `docs/planning/milestones/<milestone>/stories/STORY-NNN.md`
+  - Verification step 3 (Verify parent Story content is read when available): ✓
+    - Lines 57-60: Documents what Story provides (user persona, jobs to be done, success criteria)
+    - Line 317: Execution step 3 says "Read the parent Story via Task's `storyRef` (if exists)"
+  - All three verification steps passed
+
