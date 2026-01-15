@@ -1,0 +1,60 @@
+# Drift Analysis: Stories vs Implementation
+
+  ## Scope
+  Analyze drift ONLY for stories currently being worked on.
+  Drift = implementation diverges from story spec, NOT "roadmap features not yet built".
+
+  ## Input Files
+  Read these story files:
+  - docs/planning/stories/001-cost-dashboard-overview.md
+  - docs/planning/stories/002-cdr-drill-down.md
+  - docs/planning/stories/003-import-dashboard.md
+
+  ## Process
+  For EACH story:
+  1. Extract acceptance criteria / requirements from the story
+  2. Find the corresponding implementation (routes, APIs, components)
+  3. Compare: does implementation match story spec?
+
+  ## What IS drift:
+  - Story says "show total costs from CDRs + Charges" → implementation only sums CDRs
+  - Story says "Company dropdown" → no Company concept exists
+  - Story says "sort by X column" → sorting doesn't work
+  - Feature partially works vs story spec
+
+  ## What is NOT drift:
+  - Features from OTHER stories not yet implemented
+  - Roadmap tasks not related to these 3 stories
+  - Future MVP scope items
+
+  ## Output
+  Write to: docs/planning/drift-from-stories.md
+
+  Format:
+  Story Drift Analysis
+
+  001-cost-dashboard-overview
+
+  Acceptance Criteria (from story)
+
+  - AC1: ...
+  - AC2: ...
+
+  Implementation Status
+
+  - AC1: ✅ Works | ⚠️ Partial | ❌ Missing
+  - AC2: ...
+
+  Drifts Found
+
+  1. [specific divergence with file:line evidence]
+
+  002-cdr-drill-down
+
+  [same format]
+
+  003-import-dashboard
+
+  [same format]
+
+  Be surgical. Only flag actual divergences from story specs.

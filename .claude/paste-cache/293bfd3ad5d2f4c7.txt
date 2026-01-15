@@ -1,0 +1,47 @@
+# Progress
+
+## 2026-01-08: FIX-001 - Add Charges to Cost Totals
+
+**Problem**: Division totals only summed CDR costs, ignoring Charge table (rentals, bundles, fees)
+
+**Changes**:
+
+- Modified `apps/api/src/procedures/divisions.ts` to include Charge table values in cost totals
+- Added separate SQL query to aggregate `Charge.value` by division through Bill table
+- Combined CDR costs and Charge costs: `totalCost = SUM(CDR.cost) + SUM(Charge.value)`
+- Both queries run in parallel for efficiency
+
+**Files modified**:
+
+- `apps/api/src/procedures/divisions.ts`
+
+**Acceptance criteria**:
+
+- Division totalCost = SUM(CDR.cost) + SUM(Charge.value)
+- Totals row includes charges
+- Numbers match source invoice totals
+
+## 2026-01-08: FIX-002 - Show Original Cost Separately
+
+**Problem**: Original Cost column showed same value as Cost (both used totalCost)
+
+**Changes**:
+
+- Modified `apps/api/src/procedures/divisions.ts` to add `originalTotalCost` field
+- Added `SUM(CDR.originalCost)` to CDR stats query
+- Added `SUM(Charge.originalValue)` to Charge stats query
+- Combined: `originalTotalCost = SUM(CDR.originalCost) + SUM(Charge.originalValue)`
+- Updated `packages/admin/src/routes/divisions/index.tsx` to display `originalTotalCost` in 'Original cost' column
+- Updated `packages/admin/src/lib/api-client.ts` with new type definitions
+
+**Files modified**:
+
+- `apps/api/src/procedures/divisions.ts`
+- `packages/admin/src/routes/divisions/index.tsx`
+- `packages/admin/src/lib/api-client.ts`
+
+**Acceptance criteria**:
+
+- Original Cost shows pre-discount amounts
+- Cost shows final amounts
+- Difference visible when discounts exist

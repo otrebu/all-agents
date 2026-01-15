@@ -23,16 +23,11 @@ After reading the workflow file, begin the session with:
 
 **To start:** What problem are you trying to solve, and for whom?
 
-(You can say 'done' at any point when you feel we've covered enough.)"
+(You can say 'done' at any point when you feel we've covered enough. I'll offer to save our progress incrementally as we go.)"
 
 ---
 
 Then follow ALL phases in the workflow file you just read.
-
-**IMPORTANT - Incremental Saving:** Do NOT wait until the end to create the document. Save progress incrementally:
-- After each major section/phase is discussed, offer to write it to the file
-- Update the document progressively during the conversation
-- This protects against crashes/disconnects and keeps context fresh
 
 ### If argument is `roadmap`:
 
@@ -48,16 +43,11 @@ Then follow ALL phases in the workflow file you just read.
 
 **To start:** What's the most important thing users should be able to do in your first release?
 
-(You can say 'done' at any point when you feel we've covered enough.)"
+(You can say 'done' at any point when you feel we've covered enough. I'll offer to save our progress incrementally as we define milestones.)"
 
 ---
 
 Then follow ALL phases in the workflow file you just read. Do NOT skip phases or give shallow output.
-
-**IMPORTANT - Incremental Saving:** Do NOT wait until the end to create the document. Save progress incrementally:
-- After each milestone is well-defined, offer to write it to ROADMAP.md
-- Update the document progressively during the conversation
-- This protects against crashes/disconnects and keeps context fresh
 
 ### If argument is `stories` (with optional milestone name):
 

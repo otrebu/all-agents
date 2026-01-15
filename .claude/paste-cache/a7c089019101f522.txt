@@ -1,0 +1,20 @@
+--- Iteration 60 (unlimited) ---
+{"type":"result","subtype":"error_during_execution","duration_ms":0,"duration_api_ms":0,"is_error":true,"num_turns":0,"session_id":"73d1bb84-3847-4e02-aabb-bcd0b5374dfd","total_cost_usd":0,"usage":{"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0,"web_fetch_requests":0},"service_tier":"standard","cache_creation":{"ephemeral_1h_input_tokens":0,"ephemeral_5m_input_tokens":0}},"modelUsage":{},"permission_denials":[],"uuid":"894907a7-8f6c-4d89-907b-8e69d13c7898","errors":["only prompt commands are supported in streaming mode"]}
+--- Iteration 61 (unlimited) ---
+Feature **006-import-api-17** has been completed:
+
+- Verified that GET /imports/nonexistent-id returns HTTP 404 status
+- Error response includes: `{ code: "NOT_FOUND", status: 404, message: "Import not found" }`
+- The feature was already implemented in 006-import-api-16 (lines 216-218 in imports.ts)
+- Updated PRD to mark passes: true
+- Updated progress.md with verification notes
+- Committed: `feat(006-import-api-17): verify GET /imports/:id returns 404 if not found`
+--- Iteration 62 (unlimited) ---
+{"type":"result","subtype":"error_during_execution","duration_ms":0,"duration_api_ms":0,"is_error":true,"num_turns":0,"session_id":"baf5de84-43ba-4112-807b-45e4ed291d2b","total_cost_usd":0,"usage":{"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0,"web_fetch_requests":0},"service_tier":"standard","cache_creation":{"ephemeral_1h_input_tokens":0,"ephemeral_5m_input_tokens":0}},"modelUsage":{},"permission_denials":[],"uuid":"db27bcec-4c0e-42dc-bfb7-f1949d3f558e","errors":["only prompt commands are supported in streaming mode","Error: EISDIR: illegal operation on a directory, read\n    at readFileSync (unknown)\n    at <anonymous> (/$bunfs/root/claude:12:528)\n    at N2 (/$bunfs/root/claude:11:34028)\n    at readFileSync (/$bunfs/root/claude:12:487)\n    at vw_ (/$bunfs/root/claude:4817:23311)\n    at call (/$bunfs/root/claude:1624:945)\n    at call (/$bunfs/root/claude:1620:6421)\n    at <anonymous> (/$bunfs/root/claude:2055:1505)\n    at processTicksAndRejections (native:7:39)"]}
+--- Iteration 63 (unlimited) ---
+{"type":"result","subtype":"error_during_execution","duration_ms":0,"duration_api_ms":0,"is_error":true,"num_turns":0,"session_id":"9846a3b3-0895-4048-b60d-2ef1263cbc0a","total_cost_usd":0,"usage":{"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_search_requests":0,"web_fetch_requests":0},"service_tier":"standard","cache_creation":{"ephemeral_1h_input_tokens":0,"ephemeral_5m_input_tokens":0}},"modelUsage":{},"permission_denials":[],"uuid":"a958cb96-6104-4f11-9672-375f7cffe391","errors":["only prompt commands are supported in streaming mode"]}
+--- Iteration 64 (unlimited) ---
+Feature **006-import-api-20** has been completed and committed.
+
+**Summary**: Verified that the ImportLog model in `packages/data/prisma/schema.prisma` already has the `recordCountsJson Json?` field at line 130. This feature was already implemented as part of 006-import-api-18 when adding recordCounts support. Updated the PRD to mark it as passing and appended the verification to progress.md.
+--- Iteration 65 (unlimited) ---

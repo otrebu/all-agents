@@ -24,6 +24,18 @@ tasks-interactive.md <story-id>
 3. Find the story file in `docs/planning/milestones/*/stories/<story-id>.md`
 4. If the story is not found, list available stories and ask for clarification
 
+## CRITICAL: Incremental Saving
+
+**DO NOT batch all tasks at the end.** Save each task as it becomes well-defined:
+
+- After a task has clear goal, plan, acceptance criteria, and scope: Offer to save it
+- Don't wait for all tasks to be defined
+- Each saved task is progress protected
+
+**Why:** Protects against crashes/disconnects, keeps context fresh, shows progress to user.
+
+**How to offer:** "This task is well-defined now. Want me to save it to `TASK-00X-slug.md`?"
+
 ## Your Role
 
 Use the **Socratic method** combined with **technical exploration** to help the user break down stories into well-defined tasks:

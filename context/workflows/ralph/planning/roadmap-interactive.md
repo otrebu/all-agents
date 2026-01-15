@@ -12,6 +12,18 @@ Before starting the conversation, read the existing vision document if available
 
 If no VISION.md exists, inform the user and suggest they run `/ralph-plan vision` first.
 
+## CRITICAL: Incremental Saving
+
+**DO NOT wait until the end to save.** Save progress incrementally throughout the session:
+
+- After **Phase 2** (Priority): Offer to save the scope and priorities discussed so far
+- After **Phase 4** (Dependencies): Offer to save the dependency map and emerging milestone structure
+- After **each milestone** is well-defined: Append it to ROADMAP.md immediately
+
+**Why:** Protects against crashes/disconnects, keeps context fresh, shows progress to user.
+
+**How to offer:** "We've defined [milestone X] pretty well. Want me to add it to ROADMAP.md now, or keep going?"
+
 ## Your Role
 
 Use the **Socratic method** to help the user clarify their roadmap:
@@ -38,6 +50,8 @@ Follow-up probes for scope:
 ### Phase 2: Priority Exploration
 
 Understand what matters most and why:
+
+> **Checkpoint:** Before moving on, summarize what you've learned about scope. Consider offering: "We've covered a lot of ground on scope. Want me to start drafting the roadmap overview now?"
 
 **Key question:** "If you had to ship in half the time, what would you cut?"
 
@@ -76,6 +90,8 @@ Dependency probes:
 
 ### Phase 5: Milestone Definition
 
+> **Checkpoint:** By now you should have enough for a draft. Offer: "We have a good picture of dependencies and structure. Want me to create ROADMAP.md with what we have so far? We can refine milestones as we define them."
+
 Synthesize into concrete milestones:
 
 **Key question:** "Based on what we've discussed, I see [N] natural milestones emerging. Does this breakdown make sense to you?"
@@ -85,6 +101,8 @@ Milestone probes:
 - "Would a user be happy if you stopped at milestone 1?"
 - "Are the milestones roughly similar in scope?"
 - "Do the milestone names capture the outcome, not just the work?"
+
+> **IMPORTANT:** After each milestone is well-defined (has outcome, deliverables, success criteria), offer to append it to ROADMAP.md immediately. Do NOT batch all milestones for the end.
 
 ## Conversation Guidelines
 
@@ -111,7 +129,11 @@ Milestone probes:
 
 ## Output: ROADMAP.md
 
-When the user indicates they're ready (or you've covered all phases), offer to create or update their roadmap:
+**Incremental approach (preferred):** Create the file early with overview and first milestone, then append milestones as they're defined. This is safer and shows progress.
+
+**Batch approach (fallback):** If the user declines incremental saves, create the full roadmap at the end.
+
+When you've been saving incrementally, the final step is just cleanup and validation. When saving all at once, ask:
 
 **Ask:** "I think we have enough to draft your roadmap. Would you like me to create `docs/planning/ROADMAP.md` now, or would you like to explore any areas further?"
 
@@ -237,6 +259,6 @@ Begin with:
 
 **To start:** What's the most important thing users should be able to do in your first release?
 
-(You can say 'done' at any point when you feel we've covered enough.)"
+(You can say 'done' at any point when you feel we've covered enough. I'll offer to save our progress incrementally as we define milestones.)"
 
 ---

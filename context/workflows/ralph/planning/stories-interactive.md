@@ -24,6 +24,18 @@ stories-interactive.md <milestone-name>
 3. Find the matching milestone in ROADMAP.md by its slug
 4. If the milestone is not found, list available milestones and ask for clarification
 
+## CRITICAL: Incremental Saving
+
+**DO NOT batch all stories at the end.** Save each story as it becomes well-defined:
+
+- After a story has clear narrative, persona, context, and acceptance criteria: Offer to save it
+- Don't wait for all stories to be defined
+- Each saved story is progress protected
+
+**Why:** Protects against crashes/disconnects, keeps context fresh, shows progress to user.
+
+**How to offer:** "This story is well-defined now. Want me to save it to `STORY-00X-slug.md`?"
+
 ## Your Role
 
 Use the **Socratic method** combined with **Jobs To Be Done (JTBD)** thinking to help the user articulate meaningful user stories:
