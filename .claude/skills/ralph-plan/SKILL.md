@@ -13,9 +13,9 @@ When this skill is invoked, check the ARGUMENTS provided:
 
 ### If argument is `vision`:
 
-**START THE VISION PLANNING SESSION IMMEDIATELY.** Follow the vision-interactive prompt below and begin with the opening question. Do NOT just show documentation.
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/vision-interactive.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full Socratic workflow you MUST follow.
 
-Begin the session with:
+After reading the workflow file, begin the session with:
 
 ---
 
@@ -27,13 +27,18 @@ Begin the session with:
 
 ---
 
-Then follow the full workflow in: @context/workflows/ralph/planning/vision-interactive.md
+Then follow ALL phases in the workflow file you just read.
+
+**IMPORTANT - Incremental Saving:** Do NOT wait until the end to create the document. Save progress incrementally:
+- After each major section/phase is discussed, offer to write it to the file
+- Update the document progressively during the conversation
+- This protects against crashes/disconnects and keeps context fresh
 
 ### If argument is `roadmap`:
 
-**START THE ROADMAP PLANNING SESSION IMMEDIATELY.** First read the VISION.md if it exists, then follow the roadmap-interactive prompt and begin with the opening question. Do NOT just show documentation.
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/roadmap-interactive.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full Socratic workflow with ALL phases you MUST follow.
 
-1. First, read @docs/planning/VISION.md to understand the product vision
+1. First, read `docs/planning/VISION.md` to understand the product vision
 2. If no VISION.md exists, inform the user and suggest they run `/ralph-plan vision` first
 3. Begin the session with:
 
@@ -47,13 +52,18 @@ Then follow the full workflow in: @context/workflows/ralph/planning/vision-inter
 
 ---
 
-Then follow the full workflow in: @context/workflows/ralph/planning/roadmap-interactive.md
+Then follow ALL phases in the workflow file you just read. Do NOT skip phases or give shallow output.
+
+**IMPORTANT - Incremental Saving:** Do NOT wait until the end to create the document. Save progress incrementally:
+- After each milestone is well-defined, offer to write it to ROADMAP.md
+- Update the document progressively during the conversation
+- This protects against crashes/disconnects and keeps context fresh
 
 ### If argument is `stories` (with optional milestone name):
 
-**START THE STORIES PLANNING SESSION IMMEDIATELY.** First read the VISION.md and ROADMAP.md, then follow the stories-interactive prompt. Do NOT just show documentation.
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/stories-interactive.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full Socratic workflow you MUST follow.
 
-1. First, read @docs/planning/VISION.md and @docs/planning/ROADMAP.md to understand the product context
+1. First, read `docs/planning/VISION.md` and `docs/planning/ROADMAP.md` to understand the product context
 2. If no VISION.md or ROADMAP.md exists, inform the user and suggest they run `/ralph-plan vision` and `/ralph-plan roadmap` first
 3. If a milestone name was provided as a second argument (e.g., `/ralph-plan stories my-milestone`), use that milestone
 4. If no milestone was provided, ask the user which milestone they want to create stories for
@@ -71,11 +81,16 @@ I've reviewed the roadmap - this milestone focuses on: [list key deliverables fr
 
 ---
 
-Then follow the full workflow in: @context/workflows/ralph/planning/stories-interactive.md
+Then follow ALL phases in the workflow file you just read.
+
+**IMPORTANT - Incremental Saving:** Save each story as it's well-defined:
+- After each story is discussed and refined, offer to write it to a file
+- Don't batch all stories at the end
+- This protects against crashes/disconnects
 
 ### If argument is `tasks` (with required story ID):
 
-**START THE TASKS PLANNING SESSION IMMEDIATELY.** First read the story file, then follow the tasks-interactive prompt. Do NOT just show documentation.
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/tasks-interactive.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full Socratic workflow you MUST follow.
 
 1. A story ID must be provided as the second argument (e.g., `/ralph-plan tasks STORY-001-auth`)
 2. If no story ID is provided, ask the user which story to create tasks for and list available stories
@@ -105,7 +120,12 @@ Let me also explore the codebase to understand existing patterns..."
 
 ---
 
-Then follow the full workflow in: @context/workflows/ralph/planning/tasks-interactive.md
+Then follow ALL phases in the workflow file you just read.
+
+**IMPORTANT - Incremental Saving:** Save each task as it's well-defined:
+- After each task is discussed and refined, offer to write it to a file
+- Don't batch all tasks at the end
+- This protects against crashes/disconnects
 
 ### If no argument or unknown argument:
 
@@ -262,7 +282,7 @@ aaa ralph plan tasks --story <story-id>
 
 ## References
 
-- **Vision prompt:** @context/workflows/ralph/planning/vision-interactive.md
-- **Roadmap prompt:** @context/workflows/ralph/planning/roadmap-interactive.md
-- **Stories prompt:** @context/workflows/ralph/planning/stories-interactive.md
-- **Tasks prompt:** @context/workflows/ralph/planning/tasks-interactive.md
+- **Vision prompt:** `context/workflows/ralph/planning/vision-interactive.md`
+- **Roadmap prompt:** `context/workflows/ralph/planning/roadmap-interactive.md`
+- **Stories prompt:** `context/workflows/ralph/planning/stories-interactive.md`
+- **Tasks prompt:** `context/workflows/ralph/planning/tasks-interactive.md`
