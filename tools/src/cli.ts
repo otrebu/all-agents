@@ -5,6 +5,12 @@ import type { GeminiMode } from "./commands/gemini/index";
 
 // eslint-disable-next-line import/extensions
 import packageJson from "../package.json" with { type: "json" };
+import {
+  completeCommand,
+  completionCommand,
+  handleCompletion,
+  isCompletionMode,
+} from "./commands/completion/index";
 import downloadCommand from "./commands/download";
 import extractConversationsCommand from "./commands/extract-conversations";
 import geminiResearchCommand from "./commands/gemini/index";
@@ -16,6 +22,12 @@ import createStoryCommand from "./commands/story";
 import runSyncContextCli from "./commands/sync-context";
 import createTaskCommand from "./commands/task";
 import uninstallCommand from "./commands/uninstall";
+
+// Early detection for __complete command - bypass Commander.js parsing
+if (isCompletionMode() && process.argv[2] === "__complete") {
+  handleCompletion();
+  process.exit(0);
+}
 
 const program = new Command()
   .name("aaa")
@@ -186,5 +198,9 @@ program.addCommand(storyCommand);
 
 // Ralph - autonomous development framework
 program.addCommand(ralphCommand);
+
+// Shell completion
+program.addCommand(completionCommand);
+program.addCommand(completeCommand, { hidden: true });
 
 program.parse();

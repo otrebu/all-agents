@@ -87,6 +87,7 @@ aaa story create "As a user, I want to login"
 | `ralph build`                | Run subtask iteration loop (autonomous dev)                                | `subtasks.json`            |
 | `ralph status`               | Display build status and progress                                          | -                          |
 | `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                           | -                          |
+| `completion <shell>`         | Generate shell completion script (bash, zsh, fish)                         | stdout                     |
 
 ### Command Examples
 
@@ -390,6 +391,49 @@ aaa ralph build
 # 4. Check for drift periodically
 aaa ralph calibrate all
 ```
+
+## Shell Completion
+
+Enable tab completion for faster command entry.
+
+### Bash
+
+Add to `~/.bashrc`:
+
+```bash
+source <(aaa completion bash)
+```
+
+### Zsh
+
+Add to `~/.zshrc`:
+
+```bash
+source <(aaa completion zsh)
+```
+
+For oh-my-zsh users:
+
+```bash
+aaa completion zsh > ~/.oh-my-zsh/completions/_aaa
+```
+
+### Fish
+
+```bash
+aaa completion fish > ~/.config/fish/completions/aaa.fish
+```
+
+### What's Completed
+
+Tab completion provides suggestions for:
+
+- All top-level commands (`download`, `gh-search`, `ralph`, etc.)
+- Subcommands (`ralph plan`, `ralph build`, `task create`)
+- Options and flags (`--milestone`, `--interactive`, `-o`)
+- Dynamic values where supported (e.g., milestone names from `roadmap.md`)
+
+**Note:** Restart your shell or run `source ~/.bashrc` (or equivalent) after setup.
 
 ## Configuration
 

@@ -107,6 +107,29 @@ const fileName = getNextFileName("docs/planning/tasks", "implement-auth");
 // Creates parent directories recursively
 ```
 
+### Shell Completion
+
+Tab completion is implemented via the `completion` command.
+
+**Files:**
+
+- `src/commands/completion/index.ts` - Main command + `__complete` handler
+- `src/commands/completion/bash.ts` - Bash script generator
+- `src/commands/completion/zsh.ts` - Zsh script generator
+- `src/commands/completion/fish.ts` - Fish script generator
+- `lib/milestones.ts` - Shared milestone discovery (used by completion + ralph)
+
+**Adding dynamic completions:**
+
+For new flags needing dynamic values, add cases to the `__complete` handler in `completion/index.ts` and update the shell generators.
+
+**Architecture:**
+
+- `aaa completion <shell>` outputs shell script to stdout
+- `aaa __complete <type>` is a hidden command that returns dynamic values
+- Shell scripts call `aaa __complete milestone` etc. for dynamic completions
+- Silent failures: completion errors go to stderr, always exit 0
+
 ### Research Output
 
 Consistent pattern for research commands (gh-search, gemini-research, parallel-search):
