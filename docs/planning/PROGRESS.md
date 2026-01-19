@@ -12,6 +12,13 @@
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
+### 2026-01-19T14:30: SUB-008 - Create gap analyzer subagent prompt
+
+- **Problem:** After roadmap planning, users needed a way to get objective, critical analysis of their roadmap for gaps and blind spots. In-conversation analysis misses issues due to shared context and assumptions developed during the discussion.
+- **Changes:** Created gap-analysis.md subagent prompt that analyzes planning documents across 5 dimensions: (1) Missing milestones, (2) Dependency risks, (3) Scope creep traps, (4) Technical risks, (5) User journey gaps. Designed to run as a subagent with fresh context. Explicitly instructed to be critical, not polite. Compares against VISION.md and can be adapted for other document types.
+- **Files:**
+  - `context/workflows/ralph/planning/gap-analysis.md` (new)
+
 ### 2026-01-19T12:41: SUB-007 - Create milestone review prompt template
 
 - **Problem:** After roadmap planning or gap analysis, users needed a structured way to deeply review each milestone before moving to story planning. Without this, misunderstandings could propagate through the entire planning process.

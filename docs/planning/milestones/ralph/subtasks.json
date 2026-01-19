@@ -168,7 +168,10 @@
       "storyRef": null,
       "title": "Create gap analyzer subagent prompt",
       "description": "Create a subagent prompt for analyzing ROADMAP.md for gaps, risks, and blind spots. Analysis should include: 1) Missing milestones - what's likely needed that isn't listed, 2) Dependency risks - wrong order or hidden blockers, 3) Scope creep traps - vague milestones that could explode, 4) Technical risks - integration challenges and unknown unknowns, 5) User journey gaps - can users accomplish their jobs with this sequence. Compare against VISION.md. Be critical, not polite.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-19T14:30:00Z",
+      "commitHash": "d02cbba",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "New prompt file created for gap analysis subagent",
         "Covers all 5 analysis dimensions",
