@@ -326,7 +326,7 @@ When exiting:
 1. Summarize the tasks created or refined
 2. Offer to save any unsaved tasks
 3. Note areas that weren't fully explored
-4. Suggest next steps (e.g., running subtasks-auto.md)
+4. Provide next steps: **"Next, run `aaa ralph build` to start the autonomous build loop."**
 
 ## CLI Invocation
 

@@ -182,6 +182,7 @@ When exiting:
 1. Summarize what was covered
 2. Offer to save progress to VISION.md (even if incomplete)
 3. Note any areas that weren't fully explored
+4. Provide next steps: **"Next, run `aaa ralph plan roadmap` to translate your vision into actionable milestones."**
 
 ## Web/Browser Integration
 

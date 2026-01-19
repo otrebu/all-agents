@@ -258,7 +258,7 @@ When exiting:
 1. Summarize the stories created or refined
 2. Offer to save any unsaved stories
 3. Note areas that weren't fully explored
-4. Suggest next steps (e.g., running tasks-auto.md)
+4. Provide next steps: **"Next, run `aaa ralph plan tasks --story <id>` to create technical tasks for each story."**
 
 ## CLI Invocation
 

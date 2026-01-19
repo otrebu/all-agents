@@ -322,6 +322,7 @@ When exiting:
 2. Offer to save progress to ROADMAP.md (even if incomplete)
 3. Note any areas that weren't fully explored
 4. Share the parking lot of story-level ideas captured during the session
+5. Provide next steps: **"Next, run `aaa ralph plan stories --milestone <name>` to create user stories for each milestone."**
 
 ## Tool Access
 
