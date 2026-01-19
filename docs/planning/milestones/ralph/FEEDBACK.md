@@ -34,6 +34,15 @@ Raw observations during hands-on testing. Process into Tasks/Stories when done.
 - Apply to: vision, roadmap, stories, tasks completion phases
 - Could use Opus subagent for gap/risk analysis before finalizing
 
+### Regular Validation Checkpoints (IMPORTANT)
+- Don't just trust user input - actively validate at each step
+- After reviewing each milestone/story, offer: "Want me to spin up an Opus subagent to check if we're missing anything?"
+- Should be prompted REGULARLY, not just at the end
+- Especially during step-by-step review - challenge assumptions
+- **KEY: Use SUBAGENT with fresh context** - same agent gets blind spots from conversation history
+- Fresh eyes on just the artifacts (VISION.md, ROADMAP.md) catches what we both missed
+- Subagent reads files cold, no bias from discussion that led to current state
+
 ### Roadmap vs Stories: Scope Creep Risk
 - Easy to over-plan roadmap and drift into story-level details
 - Roadmap should stay at milestone/outcome level
@@ -90,6 +99,13 @@ Raw observations during hands-on testing. Process into Tasks/Stories when done.
   ```
 - Invoke automatically at end of roadmap planning
 - Could also work for: vision (vs problem statement), stories (vs milestone), tasks (vs story)
+
+### CLI: Missing --auto Flag for Plan Commands
+- VISION.md specifies `--auto, -a` flag for auto mode
+- Currently NOT implemented in CLI
+- Should use `stories-auto.md`, `tasks-auto.md`, etc. prompts
+- Commands that need it: `ralph plan stories --auto`, `ralph plan tasks --auto`, `ralph plan subtasks --auto`
+- Roadmap auto is "risky" per VISION.md, subtasks is "always auto"
 
 ### Vision Prompt: Missing "Next Steps" Guidance
 - After completing vision, user doesn't know what to do next
