@@ -1,0 +1,226 @@
+{
+  "$schema": "../schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "mvp"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-001",
+      "taskRef": "TASK-029",
+      "storyRef": null,
+      "title": "Create ralph.config.json from template",
+      "description": "Copy ralph.config.template.json to ralph.config.json and fill in sensible defaults. User can manually edit afterward.",
+      "done": true,
+      "completedAt": "2026-01-19T12:15:00Z",
+      "commitHash": "5f13b65859098474d3846b9daf7a5aad597f563b",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "ralph.config.json exists in project root",
+        "All required fields have sensible default values",
+        "File validates against ralph-config.schema.json"
+      ],
+      "filesToRead": [
+        "docs/planning/templates/ralph.config.template.json",
+        "docs/planning/schemas/ralph-config.schema.json"
+      ]
+    },
+    {
+      "id": "SUB-002",
+      "taskRef": "TASK-030",
+      "storyRef": null,
+      "title": "Document sync-context prerequisite for Ralph",
+      "description": "Add documentation explaining that users must run `aaa sync-context -t <project-dir>` before using Ralph skills in a new project. Skills reference `@context/workflows/ralph/...` which must exist in the target project. This should be prominently documented as a prerequisite step.",
+      "done": true,
+      "completedAt": "2026-01-19T12:14:09Z",
+      "commitHash": "cdad9ee987bfdcb9fd002d61f347d4b3a3abc6c5",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "README or relevant docs explain sync-context prerequisite",
+        "Clear example command is provided for running sync-context",
+        "Explanation of why this is needed (skills reference @context paths)",
+        "Listed as first step before using any Ralph planning commands"
+      ],
+      "filesToRead": [
+        "tools/README.md",
+        "tools/src/commands/sync-context/index.ts",
+        "context/workflows/ralph/planning/vision-interactive.md"
+      ]
+    },
+    {
+      "id": "SUB-003",
+      "taskRef": "TASK-031",
+      "storyRef": null,
+      "title": "Add completion handholding to planning prompts",
+      "description": "Update all interactive planning prompts (vision, roadmap, stories, tasks) to offer two options after completing a document: 1) 'Detailed review: Let\\'s review it all in detail together' and 2) 'Gap analysis: Let me spin up a subagent to find gaps based on what I understand about your app'. Both options should be explicitly presented to the user at completion phase.",
+      "done": true,
+      "completedAt": "2026-01-19T12:18:05Z",
+      "commitHash": "7895ed4",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "Vision prompt offers detailed review and gap analysis at completion",
+        "Roadmap prompt offers detailed review and gap analysis at completion",
+        "Stories prompt offers detailed review and gap analysis at completion",
+        "Tasks prompt offers detailed review and gap analysis at completion",
+        "Both options are clearly numbered and explained",
+        "User understands subagent provides fresh eyes without conversation bias"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/vision-interactive.md",
+        "context/workflows/ralph/planning/roadmap-interactive.md",
+        "context/workflows/ralph/planning/stories-interactive.md",
+        "context/workflows/ralph/planning/tasks-interactive.md"
+      ]
+    },
+    {
+      "id": "SUB-004",
+      "taskRef": "TASK-031",
+      "storyRef": null,
+      "title": "Add regular validation checkpoints to planning prompts",
+      "description": "Update planning prompts to actively validate at each step, not just trust user input. After reviewing each milestone/story, the prompt should offer: 'Want me to spin up an Opus subagent to check if we\\'re missing anything?' This should be prompted REGULARLY during step-by-step review, using a SUBAGENT with fresh context to avoid blind spots from conversation history.",
+      "done": true,
+      "completedAt": "2026-01-19T12:30:00Z",
+      "commitHash": "6b9d0a8",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "Roadmap prompt offers validation checkpoint after each milestone is defined",
+        "Stories prompt offers validation checkpoint after each story is defined",
+        "Tasks prompt offers validation checkpoint after each task is defined",
+        "Validation uses subagent (not inline analysis) for fresh perspective",
+        "Subagent reads files cold without conversation history bias",
+        "Instructions explain why fresh context catches blind spots"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/roadmap-interactive.md",
+        "context/workflows/ralph/planning/stories-interactive.md",
+        "context/workflows/ralph/planning/tasks-interactive.md"
+      ]
+    },
+    {
+      "id": "SUB-005",
+      "taskRef": "TASK-031",
+      "storyRef": null,
+      "title": "Add scope creep guardrails to roadmap prompt",
+      "description": "Update roadmap-interactive.md to prevent scope creep into story-level details. Add explicit guardrails with phrasing like: 'That\\'s story-level detail - let\\'s capture it and move on'. Consider adding a 'parking lot' mechanism for story ideas that surface during roadmap planning. Roadmap should stay at milestone/outcome level.",
+      "done": true,
+      "completedAt": "2026-01-19T13:15:00Z",
+      "commitHash": "e437259",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "Prompt explicitly states roadmap stays at milestone/outcome level",
+        "Includes guardrail phrase to redirect story-level details",
+        "Parking lot mechanism for capturing deferred ideas",
+        "Clear examples of milestone-level vs story-level scope",
+        "Guidelines for when to redirect conversation back to roadmap scope"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/roadmap-interactive.md",
+        "context/workflows/ralph/planning/stories-interactive.md"
+      ]
+    },
+    {
+      "id": "SUB-006",
+      "taskRef": "TASK-031",
+      "storyRef": null,
+      "title": "Add web/browser integration offer to planning prompts",
+      "description": "Update planning prompts to ask: 'Want to show me anything on the web? (competitor app, existing system, docs, mockups)'. Use Chrome/Playwright MCP integration to extract requirements from existing apps, competitors, design mockups (Figma), or external documentation. Offer at start of vision/roadmap OR when discussing specific features.",
+      "done": true,
+      "completedAt": "2026-01-19T14:00:00Z",
+      "commitHash": "fb9af3e",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "Vision prompt offers web/browser integration at session start",
+        "Roadmap prompt offers web/browser integration at session start",
+        "Option to browse is offered when discussing specific features",
+        "Examples given: competitor apps, existing systems, Figma mockups, docs",
+        "Instructions for how to use Chrome/Playwright MCP for extraction"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/vision-interactive.md",
+        "context/workflows/ralph/planning/roadmap-interactive.md"
+      ]
+    },
+    {
+      "id": "SUB-007",
+      "taskRef": "TASK-032",
+      "storyRef": null,
+      "title": "Create milestone review prompt template",
+      "description": "Create a new prompt template for detailed milestone-by-milestone review after roadmap is drafted. For each milestone: 1) Show it as-is (quote current text), 2) Summarize understanding (what users can DO when complete), 3) Dependencies (what must exist first), 4) Acceptance criteria (how we know it's done), 5) Open questions (unclear or under-specified), 6) Ask 1-2 clarifying questions before moving on. Go one at a time, pause for input.",
+      "done": false,
+      "acceptanceCriteria": [
+        "New prompt file created at context/workflows/ralph/planning/milestone-review.md",
+        "Template follows the 6-step structure per milestone",
+        "Pauses after each milestone for user confirmation/refinement",
+        "Can be offered after gap analysis completes",
+        "Ensures shared understanding before moving to stories"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/roadmap-interactive.md",
+        "context/workflows/ralph/planning/stories-interactive.md"
+      ]
+    },
+    {
+      "id": "SUB-008",
+      "taskRef": "TASK-032",
+      "storyRef": null,
+      "title": "Create gap analyzer subagent prompt",
+      "description": "Create a subagent prompt for analyzing ROADMAP.md for gaps, risks, and blind spots. Analysis should include: 1) Missing milestones - what's likely needed that isn't listed, 2) Dependency risks - wrong order or hidden blockers, 3) Scope creep traps - vague milestones that could explode, 4) Technical risks - integration challenges and unknown unknowns, 5) User journey gaps - can users accomplish their jobs with this sequence. Compare against VISION.md. Be critical, not polite.",
+      "done": false,
+      "acceptanceCriteria": [
+        "New prompt file created for gap analysis subagent",
+        "Covers all 5 analysis dimensions",
+        "Compares roadmap against vision for completeness",
+        "Explicitly instructs to be critical, find problems now",
+        "Invoked automatically at end of roadmap planning",
+        "Can be adapted for vision/stories/tasks gap analysis"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/roadmap-interactive.md",
+        "context/workflows/ralph/calibration/intention-drift.md"
+      ]
+    },
+    {
+      "id": "SUB-009",
+      "taskRef": "TASK-029",
+      "storyRef": null,
+      "title": "Implement --auto flag for ralph plan commands",
+      "description": "Add --auto (-a) flag to plan commands as specified in VISION.md. Should use stories-auto.md, tasks-auto.md, etc. prompts instead of interactive ones. Commands that need it: `ralph plan stories --auto`, `ralph plan tasks --auto`, `ralph plan subtasks --auto`. Note: roadmap auto is 'risky' per VISION.md, subtasks is 'always auto'.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ralph plan stories accepts --auto/-a flag",
+        "ralph plan tasks accepts --auto/-a flag",
+        "ralph plan subtasks accepts --auto/-a flag (or is always auto)",
+        "Auto mode uses *-auto.md prompts instead of *-interactive.md",
+        "Help text explains auto mode skips interactive dialogue",
+        "Roadmap command does NOT have auto flag (or warns it's risky)"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "context/workflows/ralph/planning/stories-auto.md",
+        "context/workflows/ralph/planning/tasks-auto.md",
+        "context/workflows/ralph/planning/subtasks-auto.md"
+      ]
+    },
+    {
+      "id": "SUB-010",
+      "taskRef": "TASK-031",
+      "storyRef": null,
+      "title": "Add next steps guidance to all planning prompts",
+      "description": "Update all interactive planning prompts to include next steps guidance at completion. Vision → roadmap, Roadmap → stories, Stories → tasks, Tasks → build. Each prompt should end with the appropriate next command so users know how to continue.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Vision prompt ends with: Next run `aaa ralph plan roadmap`",
+        "Roadmap prompt ends with: Next run `aaa ralph plan stories --milestone <name>`",
+        "Stories prompt ends with: Next run `aaa ralph plan tasks --story <id>`",
+        "Tasks prompt ends with: Next run `aaa ralph build`",
+        "Consistent formatting across all four prompts"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/vision-interactive.md",
+        "context/workflows/ralph/planning/roadmap-interactive.md",
+        "context/workflows/ralph/planning/stories-interactive.md",
+        "context/workflows/ralph/planning/tasks-interactive.md"
+      ]
+    }
+  ]
+}
