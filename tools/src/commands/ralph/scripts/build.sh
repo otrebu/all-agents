@@ -28,6 +28,15 @@ CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# Render markdown if glow is available, otherwise raw output
+render_md() {
+  if command -v glow &> /dev/null; then
+    glow -s dark -w 80
+  else
+    cat
+  fi
+}
+
 # JSON query helper - uses jq if available, falls back to Node.js
 json_query() {
   local file="$1"
@@ -375,7 +384,7 @@ After completing ONE subtask:
 
     echo ""
     echo -e "${DIM}--- Claude Response ---${NC}"
-    echo "$RESULT"
+    echo "$RESULT" | render_md
     echo ""
     echo -e "${GREEN}--- Stats: ${DURATION_SEC}s | ${TURNS} turns | \$${COST} ---${NC}"
     echo ""
@@ -414,7 +423,7 @@ After completing ONE subtask:
 
     echo ""
     echo -e "${DIM}--- Claude Response ---${NC}"
-    echo "$RESULT"
+    echo "$RESULT" | render_md
     echo ""
     echo -e "${GREEN}--- Stats: ${DURATION_SEC}s | ${TURNS} turns | \$${COST} ---${NC}"
     echo ""
