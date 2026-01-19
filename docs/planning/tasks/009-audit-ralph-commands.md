@@ -4,6 +4,20 @@
 
 Update all Ralph commands to support appropriate execution modes based on the three-mode system specification.
 
+## Partial Implementation (Already Done)
+
+The following items have been implemented:
+
+- [x] **`invokeClaudeAuto()` helper** - Added to `tools/src/commands/ralph/index.ts`
+- [x] **`ralph plan subtasks` fixed** - Now uses `invokeClaudeAuto()` with `-p` flag
+
+Remaining work:
+- [ ] Add `invokeClaudeHeadless()` helper
+- [ ] Add `getExecutionMode()` helper
+- [ ] Update remaining commands (roadmap, stories, tasks, build, calibrate)
+- [ ] Add `--headless` flag to all applicable commands
+- [ ] Update shell completions
+
 ## Current State Audit
 
 | Command | Current Implementation | Current Modes |
@@ -13,7 +27,7 @@ Update all Ralph commands to support appropriate execution modes based on the th
 | `ralph plan stories` | `invokeClaude()` + `--auto` | Interactive, (broken auto) |
 | `ralph plan tasks --story` | `invokeClaude()` + `--auto` | Interactive, (broken auto) |
 | `ralph plan tasks --milestone` | `invokeClaude()` | Auto (forced) |
-| `ralph plan subtasks` | `invokeClaude()` | Auto only |
+| `ralph plan subtasks` | `invokeClaudeAuto()` ✅ | Auto only (working) |
 | `ralph build` | `execSync()` bash script | Observable Auto (with `-i`) |
 | `ralph calibrate` | `execSync()` bash script | Observable Auto |
 

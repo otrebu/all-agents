@@ -163,6 +163,49 @@ function invokeClaude(
   }
 }
 
+// Helper to invoke Claude in auto mode (observable, user watches output)
+function invokeClaudeAuto(
+  promptPath: string,
+  sessionName: string,
+  extraContext?: string,
+): void {
+  if (!existsSync(promptPath)) {
+    console.error(`Prompt not found: ${promptPath}`);
+    process.exit(1);
+  }
+
+  const promptContent = readFileSync(promptPath, "utf8");
+
+  console.log(`Running ${sessionName} in auto mode...`);
+  console.log(`Prompt: ${promptPath}`);
+  if (extraContext !== undefined && extraContext !== "") {
+    console.log(`Context: ${extraContext}`);
+  }
+  console.log();
+
+  // Build full prompt with optional extra context
+  let fullPrompt = promptContent;
+  if (extraContext !== undefined && extraContext !== "") {
+    fullPrompt = `${extraContext}\n\n${promptContent}`;
+  }
+
+  // Use -p flag for autonomous execution with real-time output
+  const result = spawnSync(
+    "claude",
+    ["-p", fullPrompt, "--dangerously-skip-permissions"],
+    { stdio: "inherit" },
+  );
+
+  if (result.error) {
+    console.error(`Failed to start Claude: ${result.error.message}`);
+    process.exit(1);
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
+
 // ralph plan vision - interactive vision planning
 planCommand.addCommand(
   new Command("vision")
@@ -294,7 +337,7 @@ planCommand.addCommand(
       const contextRoot = getContextRoot();
       // Subtasks always runs in auto mode per VISION.md
       const promptPath = getPromptPath(contextRoot, "subtasks", true);
-      invokeClaude(
+      invokeClaudeAuto(
         promptPath,
         "subtasks",
         `Generating subtasks for task: ${options.task}`,
