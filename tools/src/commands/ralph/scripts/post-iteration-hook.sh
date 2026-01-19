@@ -18,6 +18,16 @@
 
 set -euo pipefail
 
+# ANSI color codes
+BOLD='\033[1m'
+DIM='\033[2m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+NC='\033[0m'
+
 # Normalize status to enum: completed, failed, retrying
 # Accepts both new enum values and legacy values for backwards compatibility
 normalize_status() {
@@ -508,7 +518,7 @@ generate_summary() {
   # Call Claude with Haiku model
   local summary_output
   if command -v claude &> /dev/null; then
-    summary_output=$(claude --model "$model" --output-format json -p "$prompt_content" 2>/dev/null) || {
+    summary_output=$(timeout 30 claude --model "$model" --output-format json -p "$prompt_content" 2>/dev/null) || {
       # On failure, return minimal JSON
       echo '{"subtaskId":"'"$SUBTASK_ID"'","status":"'"$STATUS"'","summary":"Summary generation failed","keyFindings":[]}'
       return
@@ -854,10 +864,10 @@ execute_actions() {
 
 # Main execution
 main() {
-  echo "=== Post-Iteration Hook ==="
-  echo "Subtask: $SUBTASK_ID"
-  echo "Status: $STATUS"
-  echo "Session: $SESSION_ID"
+  echo -e "${BOLD}${BLUE}=== Post-Iteration Hook ===${NC}"
+  echo -e "${CYAN}Subtask:${NC} $SUBTASK_ID"
+  echo -e "${CYAN}Status:${NC} $STATUS"
+  echo -e "${CYAN}Session:${NC} $SESSION_ID"
 
   # Check if hook is enabled
   if ! is_hook_enabled; then
@@ -885,7 +895,7 @@ main() {
   fi
 
   # Generate summary using Haiku
-  echo "Generating iteration summary..."
+  echo -e "${DIM}Generating iteration summary...${NC}"
   local summary_json
   summary_json=$(generate_summary)
   echo "Summary: $summary_json"
@@ -898,7 +908,7 @@ main() {
   # Execute configured actions (log, notify, pause)
   execute_actions "$entry_json"
 
-  echo "=== Post-Iteration Hook Complete ==="
+  echo -e "${GREEN}=== Post-Iteration Hook Complete ===${NC}"
 }
 
 main

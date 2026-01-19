@@ -103,12 +103,13 @@ get_completed_subtasks() {
   fi
 
   if command -v jq &> /dev/null; then
-    jq -c '[.[] | select(.done == true and .commitHash != null)]' "$SUBTASKS_PATH" 2>/dev/null || echo "[]"
+    jq -c '[.subtasks[] | select(.done == true and .commitHash != null)]' "$SUBTASKS_PATH" 2>/dev/null || echo "[]"
   elif command -v node &> /dev/null; then
     node -e "
       const fs = require('fs');
       try {
-        const data = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const data = parsed.subtasks || parsed;
         const completed = data.filter(s => s.done && s.commitHash);
         console.log(JSON.stringify(completed));
       } catch (e) { console.log('[]'); }
@@ -264,12 +265,13 @@ get_completed_session_ids() {
   fi
 
   if command -v jq &> /dev/null; then
-    jq -r '[.[] | select(.done == true and .sessionId != null) | .sessionId] | join(",")' "$SUBTASKS_PATH" 2>/dev/null || echo ""
+    jq -r '[.subtasks[] | select(.done == true and .sessionId != null) | .sessionId] | join(",")' "$SUBTASKS_PATH" 2>/dev/null || echo ""
   elif command -v node &> /dev/null; then
     node -e "
       const fs = require('fs');
       try {
-        const data = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const data = parsed.subtasks || parsed;
         const sessionIds = data
           .filter(s => s.done && s.sessionId)
           .map(s => s.sessionId);

@@ -18,6 +18,16 @@ PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/ralph-iteration.md"
 VALIDATION_PROMPT_PATH="$REPO_ROOT/context/workflows/ralph/building/pre-build-validation.md"
 CONFIG_PATH="$REPO_ROOT/ralph.config.json"
 
+# ANSI color codes
+BOLD='\033[1m'
+DIM='\033[2m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+NC='\033[0m'
+
 # JSON query helper - uses jq if available, falls back to Node.js
 json_query() {
   local file="$1"
@@ -184,12 +194,13 @@ fi
 count_remaining() {
   # Use jq to count subtasks with done: false
   if command -v jq &> /dev/null; then
-    jq '[.[] | select(.done == false or .done == null)] | length' "$SUBTASKS_PATH"
+    jq '[.subtasks[] | select(.done == false or .done == null)] | length' "$SUBTASKS_PATH"
   elif command -v node &> /dev/null; then
     node -e "
       const fs = require('fs');
       try {
-        const data = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const data = parsed.subtasks || parsed;
         const incomplete = data.filter(s => !s.done);
         console.log(incomplete.length);
       } catch (e) { console.log('0'); }
@@ -203,12 +214,13 @@ count_remaining() {
 # Get first incomplete subtask ID
 get_next_subtask_id() {
   if command -v jq &> /dev/null; then
-    jq -r '[.[] | select(.done == false or .done == null)] | .[0].id // ""' "$SUBTASKS_PATH"
+    jq -r '[.subtasks[] | select(.done == false or .done == null)] | .[0].id // ""' "$SUBTASKS_PATH"
   elif command -v node &> /dev/null; then
     node -e "
       const fs = require('fs');
       try {
-        const data = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync('$SUBTASKS_PATH', 'utf8'));
+        const data = parsed.subtasks || parsed;
         const incomplete = data.filter(s => !s.done);
         if (incomplete.length > 0 && incomplete[0].id) {
           console.log(incomplete[0].id);
@@ -304,7 +316,7 @@ while true; do
 
   # Track attempts for this specific subtask
   attempts=${SUBTASK_ATTEMPTS[$current_subtask]:-0}
-  ((attempts++))
+  attempts=$((attempts + 1))
   SUBTASK_ATTEMPTS[$current_subtask]=$attempts
 
   # Check if we've exceeded max iterations for this subtask
@@ -320,7 +332,7 @@ while true; do
     exit 1
   fi
 
-  echo "=== Build Iteration $iteration (Subtask: $current_subtask, Attempt: $attempts/$MAX_ITERATIONS, ${remaining} subtasks remaining) ==="
+  echo -e "${BOLD}${CYAN}=== Build Iteration $iteration${NC} (Subtask: ${YELLOW}$current_subtask${NC}, Attempt: $attempts/$MAX_ITERATIONS, ${remaining} subtasks remaining) ==="
 
   # Build the prompt including context files
   PROMPT="Execute one iteration of the Ralph build loop.
@@ -340,21 +352,75 @@ After completing ONE subtask:
 4. STOP - do not continue to the next subtask"
 
   # Run Claude with the prompt (capture JSON output for session_id extraction)
+  # Capture stderr separately to avoid corrupting JSON output
   echo "Invoking Claude..."
-  CLAUDE_OUTPUT=$(claude $PERM_FLAG --output-format json -p "$PROMPT" 2>&1) || {
+  CLAUDE_STDERR=$(mktemp)
+  CLAUDE_OUTPUT=$(claude $PERM_FLAG --output-format json -p "$PROMPT" 2>"$CLAUDE_STDERR") || {
     echo "Claude invocation failed on iteration $iteration"
-    echo "$CLAUDE_OUTPUT"
+    cat "$CLAUDE_STDERR"
+    rm -f "$CLAUDE_STDERR"
     exit 1
   }
+  rm -f "$CLAUDE_STDERR"
 
-  # Display the output (Claude's response is in the result field for JSON output)
-  echo "$CLAUDE_OUTPUT"
-
-  # Extract session_id from Claude's JSON output
+  # Extract and display formatted output
   SESSION_ID=""
   if command -v jq &> /dev/null; then
-    # Try to extract session_id from the JSON output
+    # Extract key fields for display
+    RESULT=$(echo "$CLAUDE_OUTPUT" | jq -r '.result // "No result"' 2>/dev/null)
+    DURATION_SEC=$(echo "$CLAUDE_OUTPUT" | jq -r '(.duration_ms // 0) / 1000 | floor' 2>/dev/null)
+    COST=$(echo "$CLAUDE_OUTPUT" | jq -r '.total_cost_usd // 0 | . * 100 | round / 100' 2>/dev/null)
+    TURNS=$(echo "$CLAUDE_OUTPUT" | jq -r '.num_turns // 0' 2>/dev/null)
     SESSION_ID=$(echo "$CLAUDE_OUTPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+
+    echo ""
+    echo -e "${DIM}--- Claude Response ---${NC}"
+    echo "$RESULT"
+    echo ""
+    echo -e "${GREEN}--- Stats: ${DURATION_SEC}s | ${TURNS} turns | \$${COST} ---${NC}"
+    echo ""
+  elif command -v node &> /dev/null; then
+    # Node.js fallback for JSON parsing
+    RESULT=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+      try {
+        const data = JSON.parse(process.env.CLAUDE_JSON);
+        console.log(data.result || 'No result');
+      } catch(e) { console.log('No result'); }
+    " 2>/dev/null)
+    DURATION_SEC=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+      try {
+        const data = JSON.parse(process.env.CLAUDE_JSON);
+        console.log(Math.floor((data.duration_ms || 0) / 1000));
+      } catch(e) { console.log('0'); }
+    " 2>/dev/null)
+    COST=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+      try {
+        const data = JSON.parse(process.env.CLAUDE_JSON);
+        console.log(Math.round((data.total_cost_usd || 0) * 100) / 100);
+      } catch(e) { console.log('0'); }
+    " 2>/dev/null)
+    TURNS=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+      try {
+        const data = JSON.parse(process.env.CLAUDE_JSON);
+        console.log(data.num_turns || 0);
+      } catch(e) { console.log('0'); }
+    " 2>/dev/null)
+    SESSION_ID=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+      try {
+        const data = JSON.parse(process.env.CLAUDE_JSON);
+        if (data.session_id) console.log(data.session_id);
+      } catch(e) { }
+    " 2>/dev/null)
+
+    echo ""
+    echo -e "${DIM}--- Claude Response ---${NC}"
+    echo "$RESULT"
+    echo ""
+    echo -e "${GREEN}--- Stats: ${DURATION_SEC}s | ${TURNS} turns | \$${COST} ---${NC}"
+    echo ""
+  else
+    # No JSON parser available, show raw output
+    echo "$CLAUDE_OUTPUT"
   fi
 
   # Export session_id for hooks
@@ -381,7 +447,19 @@ After completing ONE subtask:
   if [ "$new_remaining" -lt "$remaining" ]; then
     # Subtask was completed, reset doesn't apply
     echo "Subtask $current_subtask completed successfully"
+
+    # Write iteration diary entry
+    if [ -n "$SESSION_ID" ]; then
+      bash "$SCRIPT_DIR/post-iteration-hook.sh" \
+        "$current_subtask" \
+        "completed" \
+        "$SESSION_ID" \
+        "" \
+        "" \
+        "" \
+        "$iteration"
+    fi
   fi
 
-  ((iteration++))
+  iteration=$((iteration + 1))
 done

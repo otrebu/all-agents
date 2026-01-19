@@ -93,14 +93,15 @@ get_subtask_stats() {
 
   if command -v jq &> /dev/null; then
     local total done_count
-    total=$(jq 'length' "$subtasks_file" 2>/dev/null || echo "0")
-    done_count=$(jq '[.[] | select(.done == true)] | length' "$subtasks_file" 2>/dev/null || echo "0")
+    total=$(jq '.subtasks | length' "$subtasks_file" 2>/dev/null || echo "0")
+    done_count=$(jq '[.subtasks[] | select(.done == true)] | length' "$subtasks_file" 2>/dev/null || echo "0")
     echo "$done_count $total"
   elif command -v node &> /dev/null; then
     node -e "
       const fs = require('fs');
       try {
-        const data = JSON.parse(fs.readFileSync('$subtasks_file', 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync('$subtasks_file', 'utf8'));
+        const data = parsed.subtasks || parsed;
         const total = data.length;
         const done = data.filter(s => s.done === true).length;
         console.log(done + ' ' + total);
@@ -126,7 +127,7 @@ get_milestone() {
     # First try to extract milestone from taskRef path
     local milestone
     milestone=$(jq -r '
-      (.[0].taskRef // "") |
+      (.subtasks[0].taskRef // "") |
       if . != "" then
         split("/") | if length > 3 then .[3] else "" end
       else
@@ -136,7 +137,7 @@ get_milestone() {
 
     if [ -z "$milestone" ] || [ "$milestone" = "" ] || [ "$milestone" = "null" ]; then
       # Fall back to milestone field
-      milestone=$(jq -r '.[0].milestone // ""' "$subtasks_file" 2>/dev/null)
+      milestone=$(jq -r '.subtasks[0].milestone // ""' "$subtasks_file" 2>/dev/null)
     fi
 
     if [ "$milestone" = "null" ] || [ -z "$milestone" ]; then
@@ -148,7 +149,8 @@ get_milestone() {
     node -e "
       const fs = require('fs');
       try {
-        const data = JSON.parse(fs.readFileSync('$subtasks_file', 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync('$subtasks_file', 'utf8'));
+        const data = parsed.subtasks || parsed;
         if (data.length === 0) { console.log(''); process.exit(0); }
 
         // Try taskRef path first (e.g., 'docs/planning/milestones/ralph/tasks/001.md')
@@ -184,7 +186,7 @@ get_last_completed() {
 
   if command -v jq &> /dev/null; then
     jq -r '
-      [.[] | select(.done == true and .completedAt != null)] |
+      [.subtasks[] | select(.done == true and .completedAt != null)] |
       sort_by(.completedAt) |
       last |
       if . then "\(.id)|\(.completedAt)" else "" end
@@ -193,7 +195,8 @@ get_last_completed() {
     node -e "
       const fs = require('fs');
       try {
-        const data = JSON.parse(fs.readFileSync('$subtasks_file', 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync('$subtasks_file', 'utf8'));
+        const data = parsed.subtasks || parsed;
         const completed = data.filter(s => s.done && s.completedAt);
         if (completed.length === 0) { console.log(''); process.exit(0); }
         completed.sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
@@ -218,12 +221,13 @@ get_next_subtask() {
   fi
 
   if command -v jq &> /dev/null; then
-    jq -r '[.[] | select(.done == false or .done == null)] | .[0] | if . then "\(.id)|\(.title // .description // "")" else "" end' "$subtasks_file" 2>/dev/null || echo ""
+    jq -r '[.subtasks[] | select(.done == false or .done == null)] | .[0] | if . then "\(.id)|\(.title // .description // "")" else "" end' "$subtasks_file" 2>/dev/null || echo ""
   elif command -v node &> /dev/null; then
     node -e "
       const fs = require('fs');
       try {
-        const data = JSON.parse(fs.readFileSync('$subtasks_file', 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync('$subtasks_file', 'utf8'));
+        const data = parsed.subtasks || parsed;
         const pending = data.filter(s => !s.done);
         if (pending.length === 0) { console.log(''); process.exit(0); }
         const next = pending[0];

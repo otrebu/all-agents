@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.1.12
+
+- Fixed message rendering bug
+
+## 2.1.11
+
+- Fixed excessive MCP connection requests for HTTP/SSE transports
+
+## 2.1.10
+
+- Added new `Setup` hook event that can be triggered via `--init`, `--init-only`, or `--maintenance` CLI flags for repository setup and maintenance operations
+- Added keyboard shortcut 'c' to copy OAuth URL when browser doesn't open automatically during login
+- Fixed a crash when running bash commands containing heredocs with JavaScript template literals like `${index + 1}`
+- Improved startup to capture keystrokes typed before the REPL is fully ready
+- Improved file suggestions to show as removable attachments instead of inserting text when accepted
+- [VSCode] Added install count display to plugin listings
+- [VSCode] Added trust warning when installing plugins
+
+## 2.1.9
+
+- Added `auto:N` syntax for configuring the MCP tool search auto-enable threshold, where N is the context window percentage (0-100)
+- Added `plansDirectory` setting to customize where plan files are stored
+- Added external editor support (Ctrl+G) in AskUserQuestion "Other" input field
+- Added session URL attribution to commits and PRs created from web sessions
+- Added support for `PreToolUse` hooks to return `additionalContext` to the model
+- Added `${CLAUDE_SESSION_ID}` string substitution for skills to access the current session ID
+- Fixed long sessions with parallel tool calls failing with an API error about orphan tool_result blocks
+- Fixed MCP server reconnection hanging when cached connection promise never resolves
+- Fixed Ctrl+Z suspend not working in terminals using Kitty keyboard protocol (Ghostty, iTerm2, kitty, WezTerm)
+
 ## 2.1.7
 
 - Added `showTurnDuration` setting to hide turn duration messages (e.g., "Cooked for 1m 6s")
