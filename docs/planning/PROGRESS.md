@@ -12,6 +12,16 @@
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
+### 2026-01-19T16:00: SUB-010 - Add next steps guidance to planning prompts
+
+- **Problem:** After completing a planning session, users had no clear guidance on what command to run next. The Ralph planning workflow (vision → roadmap → stories → tasks → build) wasn't explicitly communicated.
+- **Changes:** Added next steps guidance to the Session Exit section of all four interactive planning prompts. Each prompt now explicitly tells users the next command to run in the workflow.
+- **Files:**
+  - `context/workflows/ralph/planning/vision-interactive.md` (updated) - Added: "Next run `aaa ralph plan roadmap`"
+  - `context/workflows/ralph/planning/roadmap-interactive.md` (updated) - Added: "Next run `aaa ralph plan stories --milestone <name>`"
+  - `context/workflows/ralph/planning/stories-interactive.md` (updated) - Added: "Next run `aaa ralph plan tasks --story <id>`"
+  - `context/workflows/ralph/planning/tasks-interactive.md` (updated) - Added: "Next run `aaa ralph build`"
+
 ### 2026-01-19T15:30: SUB-009 - Implement --auto flag for ralph plan commands
 
 - **Problem:** Ralph plan commands only supported interactive mode. VISION.md specifies that stories, tasks, and subtasks should support auto mode for faster execution without human interaction.

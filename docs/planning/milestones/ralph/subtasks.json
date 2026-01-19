@@ -216,7 +216,10 @@
       "storyRef": null,
       "title": "Add next steps guidance to all planning prompts",
       "description": "Update all interactive planning prompts to include next steps guidance at completion. Vision → roadmap, Roadmap → stories, Stories → tasks, Tasks → build. Each prompt should end with the appropriate next command so users know how to continue.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-19T16:00:00Z",
+      "commitHash": "f0eff5d",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "Vision prompt ends with: Next run `aaa ralph plan roadmap`",
         "Roadmap prompt ends with: Next run `aaa ralph plan stories --milestone <name>`",
