@@ -29,3 +29,4 @@ bin/aaa
 docs/research/downloads/
 
 **/*.built.md
+.claude/chrome/chrome-native-host
