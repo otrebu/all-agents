@@ -12,6 +12,13 @@
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
+### 2026-01-19T15:30: SUB-009 - Implement --auto flag for ralph plan commands
+
+- **Problem:** Ralph plan commands only supported interactive mode. VISION.md specifies that stories, tasks, and subtasks should support auto mode for faster execution without human interaction.
+- **Changes:** Added `--auto/-a` flag to `ralph plan stories` and `ralph plan tasks` commands. Added new `ralph plan subtasks` command that runs in auto mode by default (per VISION.md which says subtasks is "always auto"). Roadmap intentionally excluded from auto mode as VISION.md marks it "risky". Added helper function `getPromptPath()` to switch between `*-interactive.md` and `*-auto.md` prompts.
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` (updated)
+
 ### 2026-01-19T14:30: SUB-008 - Create gap analyzer subagent prompt
 
 - **Problem:** After roadmap planning, users needed a way to get objective, critical analysis of their roadmap for gaps and blind spots. In-conversation analysis misses issues due to shared context and assumptions developed during the discussion.

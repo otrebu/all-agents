@@ -191,7 +191,10 @@
       "storyRef": null,
       "title": "Implement --auto flag for ralph plan commands",
       "description": "Add --auto (-a) flag to plan commands as specified in VISION.md. Should use stories-auto.md, tasks-auto.md, etc. prompts instead of interactive ones. Commands that need it: `ralph plan stories --auto`, `ralph plan tasks --auto`, `ralph plan subtasks --auto`. Note: roadmap auto is 'risky' per VISION.md, subtasks is 'always auto'.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-19T15:30:00Z",
+      "commitHash": "4433c8c",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "ralph plan stories accepts --auto/-a flag",
         "ralph plan tasks accepts --auto/-a flag",
