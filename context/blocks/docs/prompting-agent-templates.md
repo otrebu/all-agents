@@ -101,3 +101,66 @@ Execute multi-angle web research using Parallel Search API.
 
 Follow @context/blocks/construct/parallel-search.md very carefully and strictly.
 ```
+
+## SKILL.md Content Distribution Rule
+
+**⚠️ CRITICAL: Keep SKILL.md DRY**
+
+SKILL.md files must be **minimal dispatchers** (~200-400 words). All substantive content belongs in workflow prompts.
+
+### The Pattern
+
+| File | Contains | Size |
+|------|----------|------|
+| `.claude/skills/*/SKILL.md` | Metadata + routing logic only | ~500 bytes |
+| `context/workflows/**/*.md` | Full procedural content | 5-10KB |
+
+### What Goes Where
+
+**SKILL.md (dispatcher):**
+- Frontmatter (name, description)
+- Argument parsing logic
+- `Read: context/workflows/path/to/prompt.md` instruction
+- "Follow that prompt completely"
+
+**Workflow prompt (content):**
+- Role description
+- Phases/steps
+- Examples
+- Templates
+- Guidelines
+
+### Example
+
+**❌ BAD - Bloated SKILL.md (duplicates workflow content):**
+```markdown
+---
+name: ralph-review
+description: Review artifacts...
+---
+# Ralph Review
+## Your Role
+You are a product strategist reviewing...
+## Phase 1: Context Loading
+Before reviewing, confirm understanding...
+[...4KB of procedure...]
+```
+
+**✅ GOOD - Minimal SKILL.md:**
+```markdown
+---
+name: ralph-review
+description: Review artifacts...
+---
+# Ralph Review
+## Execution
+### `stories <milestone>`
+Follow @context/workflows/ralph/review/stories-review.md completely.
+```
+
+### Why
+
+- Single source of truth (workflow file)
+- Faster skill loading
+- Easier maintenance
+- No drift between SKILL.md and workflow
