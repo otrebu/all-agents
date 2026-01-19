@@ -24,6 +24,7 @@ bin/aaa
 .claude/plugins/cache/
 .claude/plugins/known_marketplaces.json
 .claude/image-cache/
+.claude/chrome/
 docs/research/downloads/
 
 **/*.built.md
