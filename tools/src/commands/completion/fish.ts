@@ -135,6 +135,7 @@ function __fish_aaa_ralph_plan_tasks
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = tasks
 end
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l story -d 'Story ID' -r
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s a -l auto -d 'Use auto mode'
 
 # ralph plan subtasks options

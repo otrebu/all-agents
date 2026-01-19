@@ -155,7 +155,7 @@ _aaa_completions() {
                                 return
                                 ;;
                             tasks)
-                                COMPREPLY=($(compgen -W "--story -a --auto" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--story --milestone -a --auto" -- "$cur"))
                                 return
                                 ;;
                             subtasks)

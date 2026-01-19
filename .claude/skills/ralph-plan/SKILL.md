@@ -229,34 +229,45 @@ Start an interactive Socratic dialogue to help create user stories for a specifi
 
 ## Tasks Planning
 
-Start an interactive Socratic dialogue to help create technical tasks from an existing story.
+Create technical tasks from stories. Two modes available:
 
-### Invocation
+### Single Story Mode (Interactive or Auto)
 
 ```
 /ralph-plan tasks <story-id>
 ```
 
-### What Happens
-
+**What Happens:**
 1. Reads the specified story file to understand user outcomes
 2. Explores the codebase to understand existing patterns relevant to the story
-3. Begins a multi-turn conversation using Socratic method
-4. Guides you through exploring:
-   - Technical approach options and tradeoffs
-   - Implementation details and file locations
-   - Scope boundaries for each task
-   - Acceptance criteria and testing strategy
-   - Concrete implementation steps
-5. Creates task files in `docs/planning/tasks/`
+3. Begins a multi-turn conversation using Socratic method (or auto-generates in auto mode)
+4. Creates task files in `docs/planning/tasks/`
+
+### Milestone Mode (Auto Only)
+
+```
+aaa ralph plan tasks --milestone <name> --auto
+```
+
+**What Happens:**
+1. Discovers all stories in `docs/planning/milestones/<name>/stories/`
+2. Spawns parallel `task-generator` subagents (one per story)
+3. Each agent analyzes its story and the codebase
+4. Task files are generated concurrently for all stories
+5. Reports summary of all generated tasks
+
+**Benefits:**
+- Faster: Parallel generation vs sequential
+- Better quality: Smaller context per agent
+- Consistent: Same patterns applied across stories
 
 ### Important Notes
 
-- Requires a story ID to be provided
+- **Single story mode**: Requires `--story <id>`
+- **Milestone mode**: Requires `--milestone <name>` AND `--auto`
+- Cannot combine `--story` and `--milestone`
 - Tasks are linked to their parent story for traceability
 - Focus is on technical implementation, not user outcomes
-- You control the pace and can exit anytime by saying "done"
-- Can save tasks incrementally during the session
 - References specific files and patterns from the codebase
 
 ## CLI Equivalent
@@ -267,7 +278,8 @@ This skill provides the same functionality as:
 aaa ralph plan vision
 aaa ralph plan roadmap
 aaa ralph plan stories --milestone <name>
-aaa ralph plan tasks --story <story-id>
+aaa ralph plan tasks --story <story-id>           # Single story
+aaa ralph plan tasks --milestone <name> --auto    # All stories in milestone
 ```
 
 ## References
@@ -276,3 +288,5 @@ aaa ralph plan tasks --story <story-id>
 - **Roadmap prompt:** `context/workflows/ralph/planning/roadmap-interactive.md`
 - **Stories prompt:** `context/workflows/ralph/planning/stories-interactive.md`
 - **Tasks prompt:** `context/workflows/ralph/planning/tasks-interactive.md`
+- **Tasks milestone prompt:** `context/workflows/ralph/planning/tasks-milestone.md`
+- **Task generator agent:** `.claude/agents/task-generator.md`

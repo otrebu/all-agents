@@ -239,6 +239,7 @@ _aaa_ralph_plan() {
                 tasks)
                     _arguments \\
                         '--story[Story ID]:story:' \\
+                        '--milestone[Milestone name]:milestone:_aaa_milestones' \\
                         '(-a --auto)'{-a,--auto}'[Use auto mode]'
                     ;;
                 subtasks)

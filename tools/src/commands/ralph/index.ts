@@ -214,14 +214,64 @@ planCommand.addCommand(
     }),
 );
 
-// ralph plan tasks - interactive task planning (requires story)
+// ralph plan tasks - task planning (requires --story OR --milestone)
 planCommand.addCommand(
   new Command("tasks")
-    .description("Start interactive task planning session for a story")
-    .requiredOption("--story <id>", "Story ID to plan tasks for")
+    .description(
+      "Plan tasks for a story (--story) or all stories in a milestone (--milestone)",
+    )
+    .option("--story <id>", "Story ID to plan tasks for")
+    .option("--milestone <name>", "Milestone to plan tasks for (all stories)")
     .option("-a, --auto", "Use auto mode (skip interactive dialogue)")
     .action((options) => {
+      const hasStory = options.story !== undefined;
+      const hasMilestone = options.milestone !== undefined;
+
+      // Validate: require exactly one of --story or --milestone
+      if (!hasStory && !hasMilestone) {
+        console.error(
+          "Error: Must specify either --story <id> or --milestone <name>",
+        );
+        console.log("\nUsage:");
+        console.log(
+          "  aaa ralph plan tasks --story <story-id>      # Single story",
+        );
+        console.log(
+          "  aaa ralph plan tasks --milestone <name> --auto  # All stories in milestone",
+        );
+        process.exit(1);
+      }
+      if (hasStory && hasMilestone) {
+        console.error("Error: Cannot specify both --story and --milestone");
+        process.exit(1);
+      }
+
       const contextRoot = getContextRoot();
+
+      // Milestone mode
+      if (hasMilestone) {
+        if (!options.auto) {
+          console.error(
+            "Error: --milestone requires --auto mode (parallel generation)",
+          );
+          console.log(
+            "\nUsage: aaa ralph plan tasks --milestone <name> --auto",
+          );
+          process.exit(1);
+        }
+        const promptPath = path.join(
+          contextRoot,
+          "context/workflows/ralph/planning/tasks-milestone.md",
+        );
+        invokeClaude(
+          promptPath,
+          "tasks-milestone",
+          `Generating tasks for all stories in milestone: ${options.milestone}`,
+        );
+        return;
+      }
+
+      // Story mode (original behavior)
       const promptPath = getPromptPath(
         contextRoot,
         "tasks",
