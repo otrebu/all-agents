@@ -216,6 +216,21 @@ docs/planning/milestones/<milestone>/stories/
 
 Create the directory if it doesn't exist.
 
+## Completion Options
+
+When all stories for the milestone are defined (or when the user indicates they're done), offer two options for validation:
+
+**Ask:** "We've defined the stories for this milestone. Before we wrap up, would you like to:
+
+1. **Detailed review** - Let's review each story in detail together
+2. **Gap analysis** - Let me spin up a subagent to find gaps and blind spots based on the milestone deliverables
+
+The gap analysis uses a fresh perspective (subagent without our conversation history) to catch things we might have missed due to our shared context."
+
+If they choose **detailed review**: Walk through each story, summarizing the narrative, persona, and acceptance criteria, and asking if anything is missing or unclear.
+
+If they choose **gap analysis**: Launch a subagent to analyze the stories against the milestone's deliverables in ROADMAP.md for completeness, missing user flows, scope gaps, and unclear acceptance criteria. The subagent reads the documents cold without conversation bias.
+
 ## Session Exit
 
 The user can exit this session at any time by:

@@ -229,6 +229,21 @@ Before finalizing the roadmap, verify:
 - [ ] Each milestone delivers standalone user value
 - [ ] Success criteria are measurable and specific
 
+## Completion Options
+
+When the roadmap is complete (or nearly complete), offer the user two options for validation:
+
+**Ask:** "The roadmap is shaping up well. Before we wrap up, would you like to:
+
+1. **Detailed review** - Let's review it all in detail together, milestone by milestone
+2. **Gap analysis** - Let me spin up a subagent to find gaps and blind spots based on what I understand about your product
+
+The gap analysis uses a fresh perspective (subagent without our conversation history) to catch things we might have missed due to our shared context."
+
+If they choose **detailed review**: Walk through each milestone in ROADMAP.md, summarizing your understanding of the outcome, dependencies, and deliverables, and asking if anything is missing or unclear.
+
+If they choose **gap analysis**: Launch a subagent to analyze ROADMAP.md against VISION.md for completeness, missing milestones, dependency risks, scope creep traps, and user journey gaps. The subagent reads the documents cold without conversation bias.
+
 ## Session Exit
 
 The user can exit this session at any time by:

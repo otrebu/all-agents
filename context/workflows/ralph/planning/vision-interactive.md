@@ -156,6 +156,21 @@ When creating VISION.md:
 - Focus on clarity over completeness
 - Mark uncertain areas with `[TBD]` for later refinement
 
+## Completion Options
+
+When the vision document is complete (or nearly complete), offer the user two options for validation:
+
+**Ask:** "The vision document is shaping up well. Before we wrap up, would you like to:
+
+1. **Detailed review** - Let's review it all in detail together, section by section
+2. **Gap analysis** - Let me spin up a subagent to find gaps and blind spots based on what I understand about your product
+
+The gap analysis uses a fresh perspective (subagent without our conversation history) to catch things we might have missed due to our shared context."
+
+If they choose **detailed review**: Walk through each section of VISION.md, summarizing your understanding and asking if anything is missing or unclear.
+
+If they choose **gap analysis**: Launch a subagent to analyze VISION.md for completeness, missing elements, and potential blind spots. The subagent reads the document cold without conversation bias.
+
 ## Session Exit
 
 The user can exit this session at any time by:
