@@ -138,6 +138,22 @@ Plan probes:
 - "What should be done first to unblock the rest?"
 - "Are there any setup or configuration steps needed?"
 
+### Validation Checkpoints
+
+After defining each task's implementation plan and acceptance criteria, offer a quick validation check:
+
+**Ask:** "We've defined the [task name] task with its plan and acceptance criteria. Would you like me to:
+1. **Continue** - Move on to explore the next task
+2. **Quick validation** - Let me spin up a subagent to check if we're missing anything for this task
+
+The subagent reads the parent story and this task cold, without our conversation history. Fresh eyes often catch blind spots we've developed through our discussion."
+
+**Why subagent instead of inline analysis:**
+- The conversation context creates shared assumptions and blind spots
+- A subagent starts fresh, reading only the documents (story, task draft, relevant code)
+- This "cold read" perspective catches gaps that in-context analysis misses
+- It's like having a colleague review your work who wasn't in the original meeting
+
 ## Conversation Guidelines
 
 ### Do:

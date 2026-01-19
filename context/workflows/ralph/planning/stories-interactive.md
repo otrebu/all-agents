@@ -124,6 +124,22 @@ AC probes:
 - "What signals success to the user?"
 - "How would you demo this to someone?"
 
+### Validation Checkpoints
+
+After defining each story's acceptance criteria, offer a quick validation check:
+
+**Ask:** "We've defined the [story name] story with its acceptance criteria. Would you like me to:
+1. **Continue** - Move on to explore the next story
+2. **Quick validation** - Let me spin up a subagent to check if we're missing anything for this story
+
+The subagent reads the milestone deliverables and this story cold, without our conversation history. Fresh eyes often catch blind spots we've developed through our discussion."
+
+**Why subagent instead of inline analysis:**
+- The conversation context creates shared assumptions and blind spots
+- A subagent starts fresh, reading only the documents (ROADMAP.md, story draft)
+- This "cold read" perspective catches gaps that in-context analysis misses
+- It's like having a colleague review your work who wasn't in the original meeting
+
 ## Conversation Guidelines
 
 ### Do:
