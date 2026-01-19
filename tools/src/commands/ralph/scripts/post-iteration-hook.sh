@@ -196,7 +196,7 @@ is_action_enabled() {
 
   if command -v jq &> /dev/null; then
     local found
-    found=$(echo "$actions" | jq -r --arg name "$action_name" 'map(select(. == $name or .type == $name)) | length')
+    found=$(echo "$actions" | jq -r --arg name "$action_name" 'map(select(. == $name or (type == "object" and .type == $name))) | length')
     [ "$found" -gt 0 ]
   elif command -v node &> /dev/null; then
     local found
