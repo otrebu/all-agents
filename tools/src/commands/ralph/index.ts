@@ -98,8 +98,21 @@ ralphCommand.addCommand(
 
 // ralph plan - interactive planning commands
 const planCommand = new Command("plan").description(
-  "Interactive planning tools for vision, roadmap, stories, and tasks",
+  "Planning tools for vision, roadmap, stories, tasks, and subtasks",
 );
+
+// Helper to get prompt path based on session type and auto mode
+function getPromptPath(
+  contextRoot: string,
+  sessionName: string,
+  isAutoMode: boolean,
+): string {
+  const suffix = isAutoMode ? "auto" : "interactive";
+  return path.join(
+    contextRoot,
+    `context/workflows/ralph/planning/${sessionName}-${suffix}.md`,
+  );
+}
 
 // Helper to invoke Claude with a prompt file for interactive session
 function invokeClaude(
@@ -185,11 +198,13 @@ planCommand.addCommand(
   new Command("stories")
     .description("Start interactive story planning session for a milestone")
     .requiredOption("--milestone <name>", "Milestone name to plan stories for")
+    .option("-a, --auto", "Use auto mode (skip interactive dialogue)")
     .action((options) => {
       const contextRoot = getContextRoot();
-      const promptPath = path.join(
+      const promptPath = getPromptPath(
         contextRoot,
-        "context/workflows/ralph/planning/stories-interactive.md",
+        "stories",
+        Boolean(options.auto),
       );
       invokeClaude(
         promptPath,
@@ -204,16 +219,35 @@ planCommand.addCommand(
   new Command("tasks")
     .description("Start interactive task planning session for a story")
     .requiredOption("--story <id>", "Story ID to plan tasks for")
+    .option("-a, --auto", "Use auto mode (skip interactive dialogue)")
     .action((options) => {
       const contextRoot = getContextRoot();
-      const promptPath = path.join(
+      const promptPath = getPromptPath(
         contextRoot,
-        "context/workflows/ralph/planning/tasks-interactive.md",
+        "tasks",
+        Boolean(options.auto),
       );
       invokeClaude(
         promptPath,
         "tasks",
         `Planning tasks for story: ${options.story}`,
+      );
+    }),
+);
+
+// ralph plan subtasks - subtask generation (always auto mode)
+planCommand.addCommand(
+  new Command("subtasks")
+    .description("Generate subtasks for a task (runs in auto mode)")
+    .requiredOption("--task <id>", "Task ID to generate subtasks for")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      // Subtasks always runs in auto mode per VISION.md
+      const promptPath = getPromptPath(contextRoot, "subtasks", true);
+      invokeClaude(
+        promptPath,
+        "subtasks",
+        `Generating subtasks for task: ${options.task}`,
       );
     }),
 );
