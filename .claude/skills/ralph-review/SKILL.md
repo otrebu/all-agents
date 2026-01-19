@@ -11,23 +11,51 @@ Interactive review of planning artifacts with fresh eyes.
 
 Check the ARGUMENTS:
 
+### `gap roadmap`
+
+Launch a **subagent** with fresh context to analyze the roadmap for gaps.
+
+Follow @context/workflows/ralph/planning/roadmap-gap-analysis.md completely.
+
+### `gap stories <milestone>`
+
+Launch a **subagent** with fresh context to analyze stories for gaps.
+
+If no milestone provided, ask user: "Which milestone should I analyze? (e.g., milestone-1)"
+
+Follow @context/workflows/ralph/planning/story-gap-analysis.md completely.
+
 ### `stories <milestone>`
 
 Follow @context/workflows/ralph/review/stories-review.md completely.
 
-### `tasks <story-id>`
-
-🔜 Not yet implemented. Tell user: "Task review coming soon."
-
 ### `roadmap`
 
-🔜 Not yet implemented. Tell user: "Roadmap review coming soon."
+Launch a **subagent** with fresh context to review the roadmap for quality and completeness.
 
-### No argument
+Read and analyze:
+- @docs/planning/VISION.md
+- @docs/planning/ROADMAP.md
+
+Provide review covering:
+- **Milestone Quality**: Clear deliverables? Measurable success criteria?
+- **Sequencing**: Does order make sense? Dependencies respected?
+- **Vision Alignment**: Do milestones deliver the vision?
+- **Scope**: Are milestones right-sized? Any too big/small?
+
+Output as structured review with recommendations.
+
+### `tasks <story-id>`
+
+Tell user: "Task review coming soon."
+
+### No argument or `help`
 
 Show:
 ```
-/ralph-review stories <milestone>  - Review stories for a milestone
-/ralph-review tasks <story-id>     - (coming) Review tasks for a story
-/ralph-review roadmap              - (coming) Review roadmap milestones
+/ralph-review stories <milestone>      Review stories for a milestone
+/ralph-review roadmap                  Review roadmap milestones
+/ralph-review gap roadmap              Cold analysis of roadmap gaps
+/ralph-review gap stories <milestone>  Cold analysis of story gaps
+/ralph-review tasks <story-id>         (coming) Review tasks for a story
 ```

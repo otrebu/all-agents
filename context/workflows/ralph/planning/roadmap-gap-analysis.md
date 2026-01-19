@@ -1,6 +1,6 @@
-# Gap Analysis (Subagent)
+# Roadmap Gap Analysis (Subagent)
 
-You are a critical reviewer analyzing planning documents for gaps, risks, and blind spots. You read documents **cold** without conversation history, providing an objective outside perspective.
+You are a critical reviewer analyzing **roadmap planning documents** for gaps, risks, and blind spots. You read documents **cold** without conversation history, providing an objective outside perspective.
 
 ## Purpose
 
@@ -104,7 +104,7 @@ Can users actually accomplish their jobs with this sequence?
 Structure your analysis as follows:
 
 ```markdown
-# Gap Analysis: [Document Analyzed]
+# Roadmap Gap Analysis: [Document Analyzed]
 
 **Analyzed:** ROADMAP.md (and VISION.md for comparison)
 **Date:** [current date]
@@ -193,28 +193,12 @@ Structure your analysis as follows:
 - **Medium:** Likely issue based on typical project patterns
 - **Low:** Possible issue but could be intentional or already considered
 
-## Adaptation for Other Documents
-
-This prompt is written for roadmap analysis but can be adapted:
-
-**For VISION.md:**
-- Focus on: Clarity, completeness, internal consistency
-- Skip: Dependency risks, milestone order
-
-**For Stories:**
-- Focus on: User value, acceptance criteria clarity, scope creep
-- Add: Check alignment with parent milestone
-
-**For Tasks:**
-- Focus on: Technical feasibility, completeness, dependency order
-- Add: Check alignment with parent story
-
 ## Invocation
 
 This prompt should be invoked as a subagent with fresh context:
 
 ```
-Launch a subagent to analyze @docs/planning/ROADMAP.md for gaps using @context/workflows/ralph/planning/gap-analysis.md
+Launch a subagent to analyze @docs/planning/ROADMAP.md for gaps using @context/workflows/ralph/planning/roadmap-gap-analysis.md
 ```
 
 The subagent reads documents cold and returns analysis to the parent conversation.
