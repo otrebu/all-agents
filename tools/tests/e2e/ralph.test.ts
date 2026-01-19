@@ -108,6 +108,46 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("technical");
     expect(stdout).toContain("improve");
   });
+
+  // Milestones command tests
+  test("ralph milestones lists available milestones", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "milestones"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Available milestones:");
+    expect(stdout).toContain("ralph");
+  });
+
+  test("ralph milestones --json outputs valid JSON", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "milestones", "--json"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as {
+      milestones: Array<{ name: string; slug: string }>;
+    };
+    expect(parsed).toHaveProperty("milestones");
+    expect(Array.isArray(parsed.milestones)).toBe(true);
+    expect(parsed.milestones.some((m) => m.slug === "ralph")).toBe(true);
+  });
+
+  test("ralph plan stories --milestone nonexistent shows error with available milestones", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "stories", "--milestone", "nonexistent"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain('Milestone "nonexistent" not found');
+    expect(stderr).toContain("Available milestones:");
+    expect(stderr).toContain("ralph");
+    expect(stderr).toContain("aaa ralph milestones");
+  });
 });
 
 describe("iteration-summary prompt placeholder substitution", () => {
@@ -2346,23 +2386,23 @@ describe("subtasks schema validation", () => {
     const testOutput = JSON.parse(testOutputContent) as object;
 
     // Set up AJV validator with formats (for date-time, etc.)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+
     const ajv = new Ajv2020({ allErrors: true, strict: false });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
     addFormats(ajv);
 
     // Compile and validate
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     const validate = ajv.compile(schema);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+
     const isValid = validate(testOutput);
 
     // Log errors if validation fails
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+
     if (!isValid) {
       console.error(
         "Validation errors:",
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
         JSON.stringify(validate.errors, null, 2),
       );
     }
@@ -2378,11 +2418,10 @@ describe("subtasks schema validation", () => {
     const schemaContent = readFileSync(schemaPath, "utf8");
     const schema = JSON.parse(schemaContent) as object;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const ajv = new Ajv2020({ allErrors: true, strict: false });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
     addFormats(ajv);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     const validate = ajv.compile(schema);
 
     // Test fixture files that should validate against the schema
@@ -2408,14 +2447,13 @@ describe("subtasks schema validation", () => {
 
       const fixtureContent = readFileSync(fixturePath, "utf8");
       const fixtureData = JSON.parse(fixtureContent) as object;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+
       const isValid = validate(fixtureData);
 
-      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
       if (!isValid) {
         console.error(
           `Validation errors for ${fixture}:`,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
           JSON.stringify(validate.errors, null, 2),
         );
       }
