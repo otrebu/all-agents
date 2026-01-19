@@ -6,6 +6,12 @@ Raw observations during hands-on testing. Process into Tasks/Stories when done.
 
 ## 2026-01-19
 
+### CLI: Missing `aaa ralph milestones` Command
+- Completion script lists `milestones` subcommand but it doesn't exist
+- Need to add `aaa ralph milestones` to list available milestones
+- Should parse `docs/planning/roadmap.md` for milestone headers
+- Already have `discoverMilestones()` in `tools/lib/milestones.ts` - just need CLI command
+
 ### CLI: Auto-completion for Milestone Options
 - `--milestone` flag requires exact name, no discovery
 - Should auto-complete from available milestones in `docs/planning/milestones/`
