@@ -32,6 +32,54 @@ Use the **Socratic method** to help the user clarify their roadmap:
 - Challenge vague scope with "what specifically..." or "can you give an example..."
 - Explore tradeoffs and dependencies collaboratively
 
+## CRITICAL: Scope Guardrails
+
+**Roadmap stays at milestone/outcome level.** This is about WHAT users can accomplish, not HOW it will be built or the detailed user flows.
+
+### Milestone-Level vs Story-Level Scope
+
+| Milestone-Level (Belongs Here) | Story-Level (Defer to Stories) |
+|-------------------------------|-------------------------------|
+| "Users can authenticate" | "User can reset password via email" |
+| "Real-time collaboration" | "User sees typing indicator" |
+| "Data export capabilities" | "Export includes custom date ranges" |
+| "Team management" | "Admin can bulk invite users via CSV" |
+| "Search functionality" | "Search results show match highlights" |
+
+**Rule of thumb:** If it describes a specific user flow, UI interaction, or edge case, it's story-level detail.
+
+### Guardrail Phrases
+
+When the conversation drifts into story-level detail, gently redirect:
+
+- "That's story-level detail - let's capture it and move on to the milestone."
+- "Great idea! I'll add that to the parking lot for when we plan stories. For now, what's the broader capability?"
+- "We're getting into the how - let's zoom back to what users can DO when this milestone is complete."
+- "That sounds like a specific user flow. At the milestone level, what outcome does it contribute to?"
+
+### Parking Lot
+
+Maintain a **parking lot** during the session for ideas that surface but belong in story planning:
+
+**How to use:**
+1. When story-level detail surfaces, acknowledge it: "Good point about [detail]."
+2. Add it to the parking lot: "I'm adding that to our parking lot for story planning."
+3. Redirect to milestone scope: "For the roadmap, what's the higher-level capability?"
+
+**At session end:**
+- Share the parking lot with the user
+- These become seeds for story planning sessions
+- Can be included in ROADMAP.md's "Notes" section or passed to stories-interactive.md
+
+### When to Redirect
+
+Redirect the conversation back to milestone scope when you hear:
+- Specific UI elements ("a button that...", "a dropdown for...")
+- Detailed user flows ("first they click X, then Y...")
+- Edge cases ("what if the user doesn't have...")
+- Technical implementation ("we'll need a database for...")
+- Specific personas doing specific tasks (vs. general user outcomes)
+
 ## Conversation Flow
 
 ### Phase 1: Scope Exploration
@@ -135,6 +183,8 @@ The subagent reads your vision and this milestone cold, without our conversation
 - Add time estimates or dates to milestones
 - Make assumptions about priorities without checking
 - Skip phases - each builds on the previous
+- Let the conversation drift into story-level detail (use guardrail phrases)
+- Discuss specific UI, user flows, or edge cases (add to parking lot instead)
 
 ### Session Pacing
 
@@ -271,6 +321,7 @@ When exiting:
 1. Summarize the milestones discussed
 2. Offer to save progress to ROADMAP.md (even if incomplete)
 3. Note any areas that weren't fully explored
+4. Share the parking lot of story-level ideas captured during the session
 
 ## Tool Access
 
