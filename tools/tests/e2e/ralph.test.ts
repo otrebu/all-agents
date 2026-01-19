@@ -1,7 +1,5 @@
 import { getContextRoot } from "@tools/utils/paths";
 import addFormats from "ajv-formats";
-// @ts-expect-error - ajv/dist/2020 exists at runtime but TypeScript can't find the type definitions
-// eslint-disable-next-line import/no-unresolved
 import Ajv2020 from "ajv/dist/2020";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";

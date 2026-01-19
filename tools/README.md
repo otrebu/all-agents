@@ -356,9 +356,26 @@ aaa ralph calibrate technical --review  # Require approvals
 }
 ```
 
+**Prerequisites:**
+
+Before using Ralph planning commands in a new project, you must sync the context folder:
+
+```bash
+# From your project directory, sync context from all-agents
+aaa sync-context -t /path/to/your-project
+
+# Or if you're already in the project directory
+cd /path/to/your-project && aaa sync-context
+```
+
+**Why this is required:** Ralph skills reference `@context/workflows/ralph/...` paths which must exist in the target project. The sync-context command copies these workflow prompts to your project's `context/` folder. Without this step, the planning commands will fail to find the required prompt templates.
+
 **Workflow:**
 
 ```bash
+# 0. Sync context (required first step!)
+aaa sync-context -t /path/to/your-project
+
 # 1. Plan vision and roadmap
 aaa ralph plan vision
 aaa ralph plan roadmap
