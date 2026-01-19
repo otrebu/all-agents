@@ -183,6 +183,35 @@ When exiting:
 2. Offer to save progress to VISION.md (even if incomplete)
 3. Note any areas that weren't fully explored
 
+## Web/Browser Integration
+
+You can offer to extract requirements from external sources using browser integration. Offer this at the **start of the session** and **when discussing specific features**.
+
+### When to Offer
+
+**At session start:** "Do you have anything you'd like to show me on the web? I can browse competitor apps, existing systems, Figma mockups, or documentation to understand your context better."
+
+**During feature discussion:** "Would it help to show me an example of this feature in an existing app or some reference documentation?"
+
+### What Can Be Browsed
+
+- **Competitor apps:** Extract UI patterns, feature sets, user flows
+- **Existing systems:** Understand current-state functionality being replaced
+- **Figma mockups:** Extract design requirements and UI specifications
+- **Documentation:** Technical specs, API docs, requirements documents
+- **Reference implementations:** See how others solved similar problems
+
+### How to Use Browser Integration
+
+Use the Chrome/Playwright MCP integration to browse URLs the user provides:
+
+1. User shares a URL or asks you to browse
+2. Use the WebFetch tool or MCP browser tools to access the page
+3. Extract relevant requirements, patterns, or context
+4. Summarize what you learned and incorporate into the vision discussion
+
+**Note:** Browser access depends on MCP configuration. If unavailable, ask the user to describe what they see or share screenshots.
+
 ## Starting the Session
 
 Begin with:
@@ -190,6 +219,8 @@ Begin with:
 ---
 
 "Let's work on clarifying your product vision. I'll ask questions to help you articulate what you're building and why.
+
+**Before we dive in:** Do you have anything you'd like to show me on the web? I can browse competitor apps, existing systems, Figma mockups, or documentation to help understand your context. (If not, no problem - we can always look things up later.)
 
 **To start:** What problem are you trying to solve, and for whom?
 

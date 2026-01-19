@@ -331,6 +331,35 @@ You have full access to all Claude Code tools during this session:
 - Write the ROADMAP.md when ready
 - Create milestone folders as needed
 
+## Web/Browser Integration
+
+You can offer to extract requirements from external sources using browser integration. Offer this at the **start of the session** and **when discussing specific features or milestones**.
+
+### When to Offer
+
+**At session start:** "Do you have anything you'd like to show me on the web? I can browse competitor apps, existing systems, Figma mockups, or documentation to understand your context better."
+
+**During milestone discussion:** "Would it help to show me an example of this feature in an existing app or some reference documentation?"
+
+### What Can Be Browsed
+
+- **Competitor apps:** Extract feature sets, UI patterns, capability benchmarks
+- **Existing systems:** Understand current-state functionality being replaced or enhanced
+- **Figma mockups:** Extract design requirements and planned capabilities
+- **Documentation:** Technical specs, API docs, product requirements
+- **Reference implementations:** See how others structured similar milestones
+
+### How to Use Browser Integration
+
+Use the Chrome/Playwright MCP integration to browse URLs the user provides:
+
+1. User shares a URL or asks you to browse
+2. Use the WebFetch tool or MCP browser tools to access the page
+3. Extract relevant requirements, patterns, or context
+4. Summarize what you learned and incorporate into the roadmap discussion
+
+**Note:** Browser access depends on MCP configuration. If unavailable, ask the user to describe what they see or share screenshots.
+
 ## Starting the Session
 
 Begin with:
@@ -338,6 +367,8 @@ Begin with:
 ---
 
 "Let's work on your product roadmap. I've read your vision document and I'll ask questions to help translate it into actionable milestones.
+
+**Before we dive in:** Do you have anything you'd like to show me on the web? I can browse competitor apps, existing systems, Figma mockups, or documentation to help understand your context. (If not, no problem - we can always look things up later.)
 
 **To start:** What's the most important thing users should be able to do in your first release?
 
