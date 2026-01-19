@@ -146,7 +146,10 @@
       "storyRef": null,
       "title": "Create milestone review prompt template",
       "description": "Create a new prompt template for detailed milestone-by-milestone review after roadmap is drafted. For each milestone: 1) Show it as-is (quote current text), 2) Summarize understanding (what users can DO when complete), 3) Dependencies (what must exist first), 4) Acceptance criteria (how we know it's done), 5) Open questions (unclear or under-specified), 6) Ask 1-2 clarifying questions before moving on. Go one at a time, pause for input.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-19T12:41:36Z",
+      "commitHash": "274e218",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "New prompt file created at context/workflows/ralph/planning/milestone-review.md",
         "Template follows the 6-step structure per milestone",

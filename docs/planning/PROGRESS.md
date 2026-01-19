@@ -12,6 +12,13 @@
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
+### 2026-01-19T12:41: SUB-007 - Create milestone review prompt template
+
+- **Problem:** After roadmap planning or gap analysis, users needed a structured way to deeply review each milestone before moving to story planning. Without this, misunderstandings could propagate through the entire planning process.
+- **Changes:** Created milestone-review.md prompt template with 6-step structure per milestone: (1) Present as-is, (2) Summarize understanding, (3) Surface dependencies, (4) Validate acceptance criteria, (5) Identify open questions, (6) Ask clarifying questions. Pauses after each milestone for user confirmation.
+- **Files:**
+  - `context/workflows/ralph/planning/milestone-review.md` (new)
+
 ### 2026-01-19T14:00: SUB-006 - Add web/browser integration offer to planning prompts
 
 - **Problem:** Planning prompts did not offer users the ability to show external web content (competitor apps, existing systems, Figma mockups, documentation) to help gather requirements and context.
