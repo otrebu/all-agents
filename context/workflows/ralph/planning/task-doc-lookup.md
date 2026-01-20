@@ -2,6 +2,15 @@
 
 Pairs tasks with atomic documentation. Used by task generation prompts.
 
+## ⚠️ Trigger
+
+**MANDATORY** - Run this workflow **BEFORE writing each task file**.
+
+Do NOT:
+- Write a task without searching for docs first
+- Ask user if they want doc lookup (just do it)
+- Skip because "it's a simple task"
+
 ## Process
 
 ### 1. Search Atomic Docs
@@ -41,7 +50,16 @@ Include "Related Documentation" section with `@context/...` refs:
 ## Search Strategy
 
 1. Extract key tech from task (libraries, frameworks, patterns)
-2. Grep `context/README.md` for matches
-3. Read matched file paths
-4. Add relevant ones to task's Related Documentation section
-5. Note gaps for missing coverage
+2. **Read `context/README.md`** - scan for matching tool/capability names
+3. **Glob `context/**/*keyword*.md`** - find doc files by name
+4. Verify files exist and are relevant
+5. Add to task's Related Documentation section
+6. Note gaps for missing coverage
+
+## Example
+
+Task mentions "prisma migration" → search yields:
+- `context/blocks/construct/prisma.md` ✅ tool doc
+- `context/foundations/construct/data-persist-prisma.md` ✅ patterns
+
+Add both to Related Documentation before writing task.
