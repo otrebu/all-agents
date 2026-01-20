@@ -103,6 +103,7 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand story create' -s d -l dir -d 
 # ralph subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a build -d 'Run subtask iteration loop'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a plan -d 'Planning tools'
+complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a review -d 'Review planning artifacts'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a milestones -d 'List available milestones'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a status -d 'Display build status'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a calibrate -d 'Run calibration checks'
@@ -163,6 +164,40 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a improve -
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a all -d 'Run all checks'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l force -d 'Skip approval'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l review -d 'Require approval'
+
+# ralph review subcommands
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a stories -d 'Review stories for a milestone'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a roadmap -d 'Review roadmap milestones'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a gap -d 'Cold analysis for gaps'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a tasks -d 'Review tasks (coming soon)'
+
+# ralph review - all supervised-only (no headless, review is dialogue)
+
+# ralph review stories needs milestone argument
+function __fish_aaa_ralph_review_stories
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = stories
+end
+complete -c aaa -n __fish_aaa_ralph_review_stories -xa '(aaa __complete milestone 2>/dev/null)'
+
+# ralph review roadmap - no additional options
+
+# ralph review gap subcommands
+function __fish_aaa_ralph_review_gap
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap
+end
+complete -c aaa -n __fish_aaa_ralph_review_gap -a roadmap -d 'Gap analysis of roadmap'
+complete -c aaa -n __fish_aaa_ralph_review_gap -a stories -d 'Gap analysis of stories'
+
+# ralph review gap - supervised only (no headless, requires human judgment)
+
+# ralph review gap stories needs milestone argument
+function __fish_aaa_ralph_review_gap_stories
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = stories
+end
+complete -c aaa -n __fish_aaa_ralph_review_gap_stories -xa '(aaa __complete milestone 2>/dev/null)'
 
 # completion subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand completion' -a bash -d 'Generate bash completion'

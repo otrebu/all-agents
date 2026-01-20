@@ -576,6 +576,118 @@ planCommand.addCommand(
 
 ralphCommand.addCommand(planCommand);
 
+// =============================================================================
+// ralph review - review planning artifacts
+// =============================================================================
+
+const reviewCommand = new Command("review").description(
+  "Review planning artifacts for quality, gaps, and alignment",
+);
+
+// Helper to get review prompt path
+function getReviewPromptPath(
+  contextRoot: string,
+  reviewType: string,
+  isGapAnalysis: boolean,
+): string {
+  const suffix = isGapAnalysis ? "gap-auto" : "review-auto";
+  return path.join(
+    contextRoot,
+    `context/workflows/ralph/review/${reviewType}-${suffix}.md`,
+  );
+}
+
+// ralph review stories <milestone> - review stories for a milestone
+// Note: All review commands are supervised-only (no --headless) because
+// review is inherently about dialogue and feedback. See VISION.md Section 3.1.
+reviewCommand.addCommand(
+  new Command("stories")
+    .description("Review stories for a milestone (supervised only)")
+    .argument("<milestone>", "Milestone name to review stories for")
+    .action((milestone) => {
+      const contextRoot = getContextRoot();
+      const promptPath = getReviewPromptPath(contextRoot, "stories", false);
+      const extraContext = `Reviewing stories for milestone: ${milestone}`;
+      invokeClaudeChat(promptPath, "stories-review", extraContext);
+    }),
+);
+
+// ralph review roadmap - review roadmap quality
+// Note: All review commands are supervised-only (no --headless).
+reviewCommand.addCommand(
+  new Command("roadmap")
+    .description(
+      "Review roadmap milestones for quality and completeness (supervised only)",
+    )
+    .action(() => {
+      const contextRoot = getContextRoot();
+      const promptPath = getReviewPromptPath(contextRoot, "roadmap", false);
+      const extraContext = "Reviewing roadmap for quality and completeness";
+      invokeClaudeChat(promptPath, "roadmap-review", extraContext);
+    }),
+);
+
+// ralph review gap - gap analysis subcommand group
+const gapCommand = new Command("gap").description(
+  "Cold analysis of planning artifacts for gaps and blind spots",
+);
+
+// ralph review gap roadmap - roadmap gap analysis
+// Note: Gap analysis is supervised-only (no --headless) because it produces
+// questions requiring human judgment. See VISION.md Section 3.1.
+gapCommand.addCommand(
+  new Command("roadmap")
+    .description(
+      "Cold analysis of roadmap for gaps and risks (supervised only)",
+    )
+    .action(() => {
+      const contextRoot = getContextRoot();
+      const promptPath = getReviewPromptPath(contextRoot, "roadmap", true);
+      const extraContext = "Gap analysis of roadmap for risks and blind spots";
+      invokeClaudeChat(promptPath, "roadmap-gap", extraContext);
+    }),
+);
+
+// ralph review gap stories <milestone> - stories gap analysis
+// Note: Gap analysis is supervised-only (no --headless) because it produces
+// questions requiring human judgment. See VISION.md Section 3.1.
+gapCommand.addCommand(
+  new Command("stories")
+    .description(
+      "Cold analysis of stories for gaps and risks (supervised only)",
+    )
+    .argument("<milestone>", "Milestone name to analyze stories for")
+    .action((milestone) => {
+      const contextRoot = getContextRoot();
+      const promptPath = getReviewPromptPath(contextRoot, "stories", true);
+      const extraContext = `Gap analysis of stories for milestone: ${milestone}`;
+      invokeClaudeChat(promptPath, "stories-gap", extraContext);
+    }),
+);
+
+reviewCommand.addCommand(gapCommand);
+
+// ralph review tasks <story-id> - coming soon
+reviewCommand.addCommand(
+  new Command("tasks")
+    .description("Review tasks for a story (coming soon)")
+    .argument("<story-id>", "Story ID to review tasks for")
+    .action((storyId) => {
+      console.log(`Task review for story ${storyId} coming soon.`);
+      console.log("\nAvailable review commands:");
+      console.log("  aaa ralph review stories <milestone>      Review stories");
+      console.log("  aaa ralph review roadmap                  Review roadmap");
+      console.log(
+        "  aaa ralph review gap roadmap              Gap analysis of roadmap",
+      );
+      console.log(
+        "  aaa ralph review gap stories <milestone>  Gap analysis of stories",
+      );
+    }),
+);
+
+ralphCommand.addCommand(reviewCommand);
+
 // ralph status - display build status
 ralphCommand.addCommand(
   new Command("status")

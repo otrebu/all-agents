@@ -165,6 +165,7 @@ _aaa_ralph() {
     subcommands=(
         'build:Run subtask iteration loop'
         'plan:Planning tools for vision, roadmap, stories, tasks'
+        'review:Review planning artifacts for quality and gaps'
         'milestones:List available milestones'
         'status:Display build status and progress'
         'calibrate:Run calibration checks'
@@ -192,6 +193,9 @@ _aaa_ralph() {
                     ;;
                 plan)
                     _aaa_ralph_plan
+                    ;;
+                review)
+                    _aaa_ralph_review
                     ;;
                 milestones)
                     _arguments '--json[Output as JSON]'
@@ -253,6 +257,72 @@ _aaa_ralph_plan() {
                         '--task[Task ID]:task:' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_aaa_ralph_review() {
+    local -a subcommands
+    subcommands=(
+        'stories:Review stories for a milestone'
+        'roadmap:Review roadmap milestones'
+        'gap:Cold analysis for gaps and blind spots'
+        'tasks:Review tasks for a story (coming soon)'
+    )
+
+    _arguments -C \\
+        '1: :->subcmd' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            # All review commands are supervised-only (no headless)
+            case $words[1] in
+                stories)
+                    _arguments '1:milestone:_aaa_milestones'
+                    ;;
+                roadmap)
+                    # No additional arguments
+                    ;;
+                gap)
+                    _aaa_ralph_review_gap
+                    ;;
+                tasks)
+                    _arguments '1:story-id:'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_aaa_ralph_review_gap() {
+    local -a subcommands
+    subcommands=(
+        'roadmap:Cold analysis of roadmap for gaps'
+        'stories:Cold analysis of stories for gaps'
+    )
+
+    _arguments -C \\
+        '1: :->subcmd' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                roadmap)
+                    # Gap analysis is supervised-only (no headless)
+                    ;;
+                stories)
+                    # Gap analysis is supervised-only (no headless)
+                    _arguments '1:milestone:_aaa_milestones'
                     ;;
             esac
             ;;

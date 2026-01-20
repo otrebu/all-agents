@@ -172,6 +172,9 @@ _aaa_completions() {
                         COMPREPLY=($(compgen -W "--force --review" -- "$cur"))
                         return
                         ;;
+                    review)
+                        # All review commands are supervised-only (no headless)
+                        ;;
                 esac
                 ;;
         esac
@@ -198,9 +201,14 @@ _aaa_completions() {
             ;;
         ralph)
             if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "build plan milestones status calibrate" -- "$cur"))
+                COMPREPLY=($(compgen -W "build plan review milestones status calibrate" -- "$cur"))
             elif [[ "$subcmd" == "plan" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "vision roadmap stories tasks subtasks" -- "$cur"))
+            elif [[ "$subcmd" == "review" && -z "$subsubcmd" ]]; then
+                COMPREPLY=($(compgen -W "stories roadmap gap tasks" -- "$cur"))
+            elif [[ "$subcmd" == "review" && "$subsubcmd" == "gap" ]]; then
+                # ralph review gap subcommands
+                COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
             elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "intention technical improve all" -- "$cur"))
             fi

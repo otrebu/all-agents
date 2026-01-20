@@ -133,6 +133,16 @@ Interactive          Supervised          Headless
 | **Supervised** (CLI) | Process multiple items - watch each, intervene if needed, auto-advance |
 | **Headless** (CLI) | CI/CD, overnight runs, batch processing |
 
+**Exception - Review Commands (Supervised Only):**
+
+All `ralph review *` commands are **supervised-only** - no headless mode. Rationale:
+- Review produces questions requiring human judgment ("Is this intentional?", "Should we split this?")
+- Feedback capture is complicated - headless output goes to logs where no one reads or acts on it
+- Human needs to be in the loop anyway to decide what to do with suggestions
+- This applies to: `review stories`, `review roadmap`, `review gap *`
+
+Future consideration: Could add `--fix` mode where review applies its own suggestions, but that's a higher trust level requiring more safeguards.
+
 For implementation patterns and code examples, see @context/blocks/construct/ralph-patterns.md.
 
 ### Planning Mode

@@ -270,7 +270,21 @@ Files are auto-numbered incrementally (001, 002, 003...).
 
 Autonomous development framework using the hierarchy: Vision → Roadmap → Milestone → Story → Task → Subtask.
 
-**Planning commands** (interactive Socratic dialogue):
+**Execution Modes (Three-Mode System):**
+
+| Mode        | Flag      | Description                          |
+| ----------- | --------- | ------------------------------------ |
+| Interactive | (default) | Full chat, back-and-forth dialogue   |
+| Supervised  | `-s`      | Watch Claude work, can intervene     |
+| Headless    | `-H`      | Fully autonomous, JSON output + logs |
+
+Note: Review commands are supervised-only (no `-H`). Rationale:
+
+- Review produces questions requiring human judgment ("Is this intentional?")
+- Feedback capture is complicated - where would headless output go?
+- Human needs to be in the loop anyway to act on suggestions
+
+**Planning commands:**
 
 ```bash
 # Vision planning - define what the app IS and WILL BECOME
@@ -281,16 +295,35 @@ aaa ralph plan roadmap
 
 # Story planning for a milestone
 aaa ralph plan stories --milestone mvp
+aaa ralph plan stories --milestone mvp --supervised  # watch mode
+aaa ralph plan stories --milestone mvp --headless    # autonomous
 
 # Task planning for a story
 aaa ralph plan tasks --story STORY-001
+aaa ralph plan tasks --milestone mvp --supervised    # all stories in milestone
+```
+
+**Review commands** (supervised-only):
+
+```bash
+# Review stories for quality and completeness
+aaa ralph review stories <milestone>
+
+# Review roadmap milestones
+aaa ralph review roadmap
+
+# Gap analysis (cold analysis for blind spots)
+aaa ralph review gap roadmap
+aaa ralph review gap stories <milestone>
 ```
 
 **Build command** (autonomous implementation):
 
 ```bash
-# Run subtask iteration loop
+# Run subtask iteration loop (supervised by default)
 aaa ralph build
+aaa ralph build --supervised   # same as above
+aaa ralph build --headless     # fully autonomous, JSON logs
 
 # Interactive mode - pause after each iteration
 aaa ralph build -i
