@@ -2,6 +2,10 @@
 
 You are a product strategist reviewing existing user stories for quality, clarity, and milestone alignment. This is an **interactive, multi-turn conversation** - walk through each story one-by-one with the user.
 
+## Presentation Style
+
+@context/workflows/ralph/review/chunked-presentation.md
+
 ## Required Reading
 
 **MANDATORY FIRST STEP:** Read these files before starting the review:
@@ -68,9 +72,9 @@ In your OWN words (not quoting the story):
 - Is it appropriately scoped for this milestone (not too big/small)?
 - Does it fit the sequence - are dependencies in order?
 
-#### Step 4: Quality Checks
+#### Step 4: Quality Checks (Chunked)
 
-Check these criteria:
+Check these criteria, **presenting each finding one at a time**:
 
 | Criterion | Question to Answer |
 |-----------|-------------------|
@@ -80,7 +84,14 @@ Check these criteria:
 | **Scope boundaries** | Is it clear what's in/out of scope? |
 | **Testability** | Can you imagine demoing each AC to someone? |
 
-Flag issues found. Be specific: "AC #3 'database updated correctly' is technical - what does the USER see?"
+**Present findings one at a time:**
+1. "I found [N] things to discuss. Here's the first..."
+2. Show one finding with context
+3. Wait for [next / discuss / edit]
+4. Continue until all findings shown
+5. "That's all quality checks. Ready for clarifying questions?"
+
+Be specific: "AC #3 'database updated correctly' is technical - what does the USER see?"
 
 #### Step 5: Clarifying Questions
 

@@ -33,17 +33,24 @@ Follow @context/workflows/ralph/review/stories-review.md completely.
 
 Launch a **subagent** with fresh context to review the roadmap for quality and completeness.
 
+**Presentation:** @context/workflows/ralph/review/chunked-presentation.md
+
 Read and analyze:
 - @docs/planning/VISION.md
 - @docs/planning/ROADMAP.md
 
-Provide review covering:
+Walk through **milestone by milestone**:
+1. "I'll review each milestone one at a time. Starting with the first..."
+2. Present one milestone's review (quality, sequencing, scope)
+3. Wait for [next / discuss / edit]
+4. Continue until all milestones reviewed
+5. Then: cross-milestone analysis (vision alignment, dependencies)
+
+Review dimensions per milestone:
 - **Milestone Quality**: Clear deliverables? Measurable success criteria?
 - **Sequencing**: Does order make sense? Dependencies respected?
-- **Vision Alignment**: Do milestones deliver the vision?
-- **Scope**: Are milestones right-sized? Any too big/small?
-
-Output as structured review with recommendations.
+- **Vision Alignment**: Does this milestone contribute to the vision?
+- **Scope**: Right-sized? Any scope creep traps?
 
 ### `tasks <story-id>`
 

@@ -142,5 +142,17 @@ Raw observations during hands-on testing. Process into Tasks/Stories when done.
 - Uses fresh-eyes principle: reviewer doesn't have planning context bias
 - **Implemented:** `.claude/skills/ralph-review/SKILL.md` + `context/workflows/ralph/review/stories-review.md`
 
+### Review Mode: Chunked Presentation (NEW)
+- Review skills (stories, roadmap, tasks, etc.) should present findings **one at a time**
+- Currently: dumps full review → overwhelming, user skims
+- Better: "I'll show you one review point at a time. Ready for the first one?"
+- After each point: wait for user acknowledgment/discussion before next
+- Benefits:
+  - Easier to digest and respond to
+  - User can push back on individual points
+  - Discussion stays focused
+  - Less cognitive load
+- Apply to: `/ralph-review stories`, `/ralph-review roadmap`, gap analysis outputs
+
 ---
 
