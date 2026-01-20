@@ -34,11 +34,11 @@ _aaa_completions() {
             return
             ;;
         --story)
-            COMPREPLY=($(compgen -W "$(aaa __complete story 2>/dev/null)" -- "$cur"))
+            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
             return
             ;;
         --task)
-            COMPREPLY=($(compgen -W "$(aaa __complete task 2>/dev/null)" -- "$cur"))
+            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
             return
             ;;
         --subtasks)

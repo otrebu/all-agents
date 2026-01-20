@@ -246,7 +246,7 @@ _aaa_ralph_plan() {
                     ;;
                 tasks)
                     _arguments \\
-                        '--story[Story ID]:story:' \\
+                        '--story[Story file]:story:_files -g "*.md"' \\
                         '--milestone[Milestone name]:milestone:_aaa_milestones' \\
                         '(-a --auto)'{-a,--auto}'[Use auto mode (alias for --supervised)]' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
@@ -254,7 +254,7 @@ _aaa_ralph_plan() {
                     ;;
                 subtasks)
                     _arguments \\
-                        '--task[Task ID]:task:' \\
+                        '--task[Task file]:task:_files -g "*.md"' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
