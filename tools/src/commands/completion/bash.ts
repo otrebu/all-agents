@@ -145,21 +145,21 @@ _aaa_completions() {
             ralph)
                 case "$subcmd" in
                     build)
-                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive --max-iterations --validate-first" -- "$cur"))
+                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless --max-iterations --validate-first" -- "$cur"))
                         return
                         ;;
                     plan)
                         case "$subsubcmd" in
                             stories)
-                                COMPREPLY=($(compgen -W "--milestone -a --auto" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--milestone -a --auto -s --supervised -H --headless" -- "$cur"))
                                 return
                                 ;;
                             tasks)
-                                COMPREPLY=($(compgen -W "--story --milestone -a --auto" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--story --milestone -a --auto -s --supervised -H --headless" -- "$cur"))
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--task" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--task -s --supervised -H --headless" -- "$cur"))
                                 return
                                 ;;
                         esac

@@ -110,7 +110,9 @@ complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a calibrate -d 'Run cali
 # ralph build options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s p -l print -d 'Print prompt without executing'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s i -l interactive -d 'Pause between iterations'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s i -l interactive -d 'Pause between iterations (legacy)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s s -l supervised -d 'Supervised mode: watch each iteration'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s H -l headless -d 'Headless mode: JSON output + logging'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l max-iterations -d 'Max retry attempts' -r
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Run pre-build validation'
 
@@ -127,7 +129,9 @@ function __fish_aaa_ralph_plan_stories
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = stories
 end
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null)'
-complete -c aaa -n __fish_aaa_ralph_plan_stories -s a -l auto -d 'Use auto mode'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -s a -l auto -d 'Use auto mode (alias for --supervised)'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -s s -l supervised -d 'Supervised mode: watch chat'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -s H -l headless -d 'Headless mode: JSON output + logging'
 
 # ralph plan tasks options
 function __fish_aaa_ralph_plan_tasks
@@ -136,7 +140,9 @@ function __fish_aaa_ralph_plan_tasks
 end
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l story -d 'Story ID' -r
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null)'
-complete -c aaa -n __fish_aaa_ralph_plan_tasks -s a -l auto -d 'Use auto mode'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -s a -l auto -d 'Use auto mode (alias for --supervised)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -s s -l supervised -d 'Supervised mode: watch chat'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -s H -l headless -d 'Headless mode: JSON output + logging'
 
 # ralph plan subtasks options
 function __fish_aaa_ralph_plan_subtasks
@@ -144,6 +150,8 @@ function __fish_aaa_ralph_plan_subtasks
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = subtasks
 end
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l task -d 'Task ID' -r
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s s -l supervised -d 'Supervised mode (default)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
 
 # ralph milestones options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph milestones' -l json -d 'Output as JSON'

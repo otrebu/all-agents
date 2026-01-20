@@ -19,7 +19,8 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 - `build.sh` script for iteration orchestration
 - Progress file writing and subtasks.json status updates
 - Session ID capture for debugging
-- `--dangerously-skip-permissions` execution mode
+- Three-mode execution system (Interactive, Supervised, Headless) - see VISION.md Section 3.1
+- `--supervised` and `--headless` CLI flags with consistent invocation patterns
 
 **Success criteria:**
 - Agent completes subtask, commits with ID reference, marks `done: true`

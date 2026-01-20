@@ -184,7 +184,9 @@ _aaa_ralph() {
                     _arguments \\
                         '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
                         '(-p --print)'{-p,--print}'[Print prompt without executing]' \\
-                        '(-i --interactive)'{-i,--interactive}'[Pause between iterations]' \\
+                        '(-i --interactive)'{-i,--interactive}'[Pause between iterations (legacy)]' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch each iteration]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
                         '--max-iterations[Max retry attempts]:number:' \\
                         '--validate-first[Run pre-build validation]'
                     ;;
@@ -234,16 +236,23 @@ _aaa_ralph_plan() {
                 stories)
                     _arguments \\
                         '--milestone[Milestone name]:milestone:_aaa_milestones' \\
-                        '(-a --auto)'{-a,--auto}'[Use auto mode]'
+                        '(-a --auto)'{-a,--auto}'[Use auto mode (alias for --supervised)]' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
                 tasks)
                     _arguments \\
                         '--story[Story ID]:story:' \\
                         '--milestone[Milestone name]:milestone:_aaa_milestones' \\
-                        '(-a --auto)'{-a,--auto}'[Use auto mode]'
+                        '(-a --auto)'{-a,--auto}'[Use auto mode (alias for --supervised)]' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
                 subtasks)
-                    _arguments '--task[Task ID]:task:'
+                    _arguments \\
+                        '--task[Task ID]:task:' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
             esac
             ;;

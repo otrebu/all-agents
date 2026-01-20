@@ -1,6 +1,10 @@
 #!/bin/bash
 # Ralph Build: Subtask iteration loop using ralph-iteration.md prompt
-# Usage: build.sh <subtasks-path> <max-iterations> [interactive] [validate-first] [perm-flag]
+# Usage: build.sh <subtasks-path> <max-iterations> [interactive] [validate-first] [perm-flag] [mode]
+#
+# Modes:
+#   supervised - Chat sessions with stdio:inherit, user watches (default)
+#   headless   - -p mode with JSON output + file logging
 
 set -e
 
@@ -9,6 +13,7 @@ MAX_ITERATIONS=${2:-3}
 INTERACTIVE=${3:-false}
 VALIDATE_FIRST=${4:-false}
 PERM_FLAG=${5:---dangerously-skip-permissions}
+MODE=${6:-supervised}
 
 # Get the repo root (relative to this script location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -360,84 +365,106 @@ After completing ONE subtask:
 3. Create the commit
 4. STOP - do not continue to the next subtask"
 
-  # Run Claude with the prompt (capture JSON output for session_id extraction)
-  # Capture stderr separately to avoid corrupting JSON output
-  echo "Invoking Claude..."
-  CLAUDE_STDERR=$(mktemp)
-  CLAUDE_OUTPUT=$(claude $PERM_FLAG --output-format json -p "$PROMPT" 2>"$CLAUDE_STDERR") || {
-    echo "Claude invocation failed on iteration $iteration"
-    cat "$CLAUDE_STDERR"
-    rm -f "$CLAUDE_STDERR"
-    exit 1
-  }
-  rm -f "$CLAUDE_STDERR"
-
-  # Extract and display formatted output
   SESSION_ID=""
-  if command -v jq &> /dev/null; then
-    # Extract key fields for display
-    RESULT=$(echo "$CLAUDE_OUTPUT" | jq -r '.result // "No result"' 2>/dev/null)
-    DURATION_SEC=$(echo "$CLAUDE_OUTPUT" | jq -r '(.duration_ms // 0) / 1000 | floor' 2>/dev/null)
-    COST=$(echo "$CLAUDE_OUTPUT" | jq -r '.total_cost_usd // 0 | . * 100 | round / 100' 2>/dev/null)
-    TURNS=$(echo "$CLAUDE_OUTPUT" | jq -r '.num_turns // 0' 2>/dev/null)
-    SESSION_ID=$(echo "$CLAUDE_OUTPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
 
-    echo ""
-    echo -e "${DIM}--- Claude Response ---${NC}"
-    echo "$RESULT" | render_md
-    echo ""
-    echo -e "${GREEN}--- Stats: ${DURATION_SEC}s | ${TURNS} turns | \$${COST} ---${NC}"
-    echo ""
-  elif command -v node &> /dev/null; then
-    # Node.js fallback for JSON parsing
-    RESULT=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
-      try {
-        const data = JSON.parse(process.env.CLAUDE_JSON);
-        console.log(data.result || 'No result');
-      } catch(e) { console.log('No result'); }
-    " 2>/dev/null)
-    DURATION_SEC=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
-      try {
-        const data = JSON.parse(process.env.CLAUDE_JSON);
-        console.log(Math.floor((data.duration_ms || 0) / 1000));
-      } catch(e) { console.log('0'); }
-    " 2>/dev/null)
-    COST=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
-      try {
-        const data = JSON.parse(process.env.CLAUDE_JSON);
-        console.log(Math.round((data.total_cost_usd || 0) * 100) / 100);
-      } catch(e) { console.log('0'); }
-    " 2>/dev/null)
-    TURNS=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
-      try {
-        const data = JSON.parse(process.env.CLAUDE_JSON);
-        console.log(data.num_turns || 0);
-      } catch(e) { console.log('0'); }
-    " 2>/dev/null)
-    SESSION_ID=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
-      try {
-        const data = JSON.parse(process.env.CLAUDE_JSON);
-        if (data.session_id) console.log(data.session_id);
-      } catch(e) { }
-    " 2>/dev/null)
+  if [ "$MODE" = "headless" ]; then
+    # HEADLESS MODE: -p with JSON output + file logging
+    echo "Invoking Claude (headless mode)..."
 
-    echo ""
-    echo -e "${DIM}--- Claude Response ---${NC}"
-    echo "$RESULT" | render_md
-    echo ""
-    echo -e "${GREEN}--- Stats: ${DURATION_SEC}s | ${TURNS} turns | \$${COST} ---${NC}"
-    echo ""
+    CLAUDE_STDERR=$(mktemp)
+    CLAUDE_OUTPUT=$(claude $PERM_FLAG --output-format json -p "$PROMPT" 2>"$CLAUDE_STDERR") || {
+      echo "Claude invocation failed on iteration $iteration"
+      cat "$CLAUDE_STDERR"
+      rm -f "$CLAUDE_STDERR"
+      exit 1
+    }
+    rm -f "$CLAUDE_STDERR"
+
+    # Extract and display formatted output
+    if command -v jq &> /dev/null; then
+      RESULT=$(echo "$CLAUDE_OUTPUT" | jq -r '.result // "No result"' 2>/dev/null)
+      DURATION_SEC=$(echo "$CLAUDE_OUTPUT" | jq -r '(.duration_ms // 0) / 1000 | floor' 2>/dev/null)
+      COST=$(echo "$CLAUDE_OUTPUT" | jq -r '.total_cost_usd // 0 | . * 100 | round / 100' 2>/dev/null)
+      TURNS=$(echo "$CLAUDE_OUTPUT" | jq -r '.num_turns // 0' 2>/dev/null)
+      SESSION_ID=$(echo "$CLAUDE_OUTPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+
+      echo ""
+      echo -e "${DIM}--- Claude Response ---${NC}"
+      echo "$RESULT" | render_md
+      echo ""
+      echo -e "${GREEN}--- Stats: ${DURATION_SEC}s | ${TURNS} turns | \$${COST} ---${NC}"
+      echo ""
+
+      # Log to file for headless mode
+      LOG_FILE="${REPO_ROOT}/logs/ralph-build.jsonl"
+      mkdir -p "$(dirname "$LOG_FILE")"
+      echo "{\"timestamp\":\"$(date -Iseconds)\",\"subtaskId\":\"$current_subtask\",\"sessionId\":\"$SESSION_ID\",\"iteration\":$iteration,\"durationMs\":$((DURATION_SEC * 1000)),\"costUsd\":$COST,\"numTurns\":$TURNS}" >> "$LOG_FILE"
+    elif command -v node &> /dev/null; then
+      RESULT=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+        try {
+          const data = JSON.parse(process.env.CLAUDE_JSON);
+          console.log(data.result || 'No result');
+        } catch(e) { console.log('No result'); }
+      " 2>/dev/null)
+      DURATION_SEC=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+        try {
+          const data = JSON.parse(process.env.CLAUDE_JSON);
+          console.log(Math.floor((data.duration_ms || 0) / 1000));
+        } catch(e) { console.log('0'); }
+      " 2>/dev/null)
+      COST=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+        try {
+          const data = JSON.parse(process.env.CLAUDE_JSON);
+          console.log(Math.round((data.total_cost_usd || 0) * 100) / 100);
+        } catch(e) { console.log('0'); }
+      " 2>/dev/null)
+      TURNS=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+        try {
+          const data = JSON.parse(process.env.CLAUDE_JSON);
+          console.log(data.num_turns || 0);
+        } catch(e) { console.log('0'); }
+      " 2>/dev/null)
+      SESSION_ID=$(CLAUDE_JSON="$CLAUDE_OUTPUT" node -e "
+        try {
+          const data = JSON.parse(process.env.CLAUDE_JSON);
+          if (data.session_id) console.log(data.session_id);
+        } catch(e) { }
+      " 2>/dev/null)
+
+      echo ""
+      echo -e "${DIM}--- Claude Response ---${NC}"
+      echo "$RESULT" | render_md
+      echo ""
+      echo -e "${GREEN}--- Stats: ${DURATION_SEC}s | ${TURNS} turns | \$${COST} ---${NC}"
+      echo ""
+
+      # Log to file for headless mode
+      LOG_FILE="${REPO_ROOT}/logs/ralph-build.jsonl"
+      mkdir -p "$(dirname "$LOG_FILE")"
+      echo "{\"timestamp\":\"$(date -Iseconds)\",\"subtaskId\":\"$current_subtask\",\"sessionId\":\"$SESSION_ID\",\"iteration\":$iteration}" >> "$LOG_FILE"
+    else
+      echo "$CLAUDE_OUTPUT"
+    fi
   else
-    # No JSON parser available, show raw output
-    echo "$CLAUDE_OUTPUT"
+    # SUPERVISED MODE: Chat session with stdio:inherit
+    # User can watch AND type if needed
+    echo "Invoking Claude (supervised mode - you can type if needed)..."
+
+    # Use --append-system-prompt for chat mode
+    claude $PERM_FLAG --append-system-prompt "$PROMPT" "Please begin working on the next subtask." || {
+      echo "Claude session ended with non-zero exit"
+      # Don't exit - session may have been interrupted intentionally
+    }
+
+    # In supervised mode, session_id is not captured from JSON
+    # (would need a different mechanism to capture it)
+    echo "Supervised session completed"
   fi
 
-  # Export session_id for hooks
+  # Export session_id for hooks (headless only captures this)
   if [ -n "$SESSION_ID" ]; then
     export RALPH_SESSION_ID="$SESSION_ID"
     echo "Session ID captured: $SESSION_ID"
-  else
-    echo "Note: Could not extract session_id from Claude output"
   fi
 
   # Interactive mode: pause for user confirmation

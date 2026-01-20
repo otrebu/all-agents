@@ -62,6 +62,9 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("--interactive");
     expect(stdout).toContain("--max-iterations");
     expect(stdout).toContain("--validate-first");
+    // Three-mode system flags
+    expect(stdout).toContain("--supervised");
+    expect(stdout).toContain("--headless");
   });
 
   test("ralph build with missing subtasks shows error", async () => {
@@ -147,6 +150,66 @@ describe("ralph E2E", () => {
     expect(stderr).toContain("Available milestones:");
     expect(stderr).toContain("ralph");
     expect(stderr).toContain("aaa ralph milestones");
+  });
+
+  // Three-mode system tests
+  describe("three-mode system", () => {
+    test("ralph plan stories --help shows mode flags", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "plan", "stories", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--supervised");
+      expect(stdout).toContain("--headless");
+      // Backward compatibility
+      expect(stdout).toContain("--auto");
+    });
+
+    test("ralph plan tasks --help shows mode flags", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "plan", "tasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--supervised");
+      expect(stdout).toContain("--headless");
+      // Backward compatibility
+      expect(stdout).toContain("--auto");
+    });
+
+    test("ralph plan subtasks --help shows mode flags", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "plan", "subtasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--supervised");
+      expect(stdout).toContain("--headless");
+    });
+
+    test("ralph plan tasks requires --story or --milestone with mode", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "plan", "tasks"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("Must specify either --story");
+    });
+
+    test("ralph plan tasks --milestone requires supervised or headless mode", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "plan", "tasks", "--milestone", "ralph"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("--supervised or --headless");
+    });
   });
 });
 

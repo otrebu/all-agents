@@ -1,10 +1,214 @@
 import { Command } from "@commander-js/extra-typings";
 import { getContextRoot } from "@tools/utils/paths";
 import { execSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const DEFAULT_SUBTASKS_PATH = "subtasks.json";
+
+// =============================================================================
+// Three-Mode Execution System
+// See: @context/blocks/construct/ralph-patterns.md
+// See: @docs/planning/VISION.md Section 3.1
+// =============================================================================
+
+/**
+ * Claude JSON output structure
+ */
+interface ClaudeOutput {
+  duration_ms?: number;
+  num_turns?: number;
+  result?: string;
+  session_id?: string;
+  total_cost_usd?: number;
+}
+
+/**
+ * Options for invokeClaudeHeadless
+ */
+interface HeadlessOptions {
+  extraContext?: string;
+  logFile: string;
+  promptPath: string;
+  sessionName: string;
+}
+
+/**
+ * Result from headless Claude invocation
+ */
+interface HeadlessResult {
+  costUsd: number;
+  durationMs: number;
+  numTurns: number;
+  result: string;
+  sessionId: string;
+}
+
+/**
+ * Options for logging headless results
+ */
+interface LogHeadlessOptions {
+  extraContext?: string;
+  logFile: string;
+  output: ClaudeOutput;
+  sessionName: string;
+}
+
+/**
+ * Build prompt with optional context prefix
+ */
+function buildFullPrompt(content: string, extraContext?: string): string {
+  if (extraContext !== undefined && extraContext !== "") {
+    return `${extraContext}\n\n${content}`;
+  }
+  return content;
+}
+
+/**
+ * Supervised mode: Spawn interactive chat session
+ * Uses stdio: inherit so user can watch AND type if needed
+ * When chat exits (user quits or Claude finishes), function returns
+ */
+function invokeClaudeChat(
+  promptPath: string,
+  sessionName: string,
+  extraContext?: string,
+): void {
+  if (!existsSync(promptPath)) {
+    console.error(`Prompt not found: ${promptPath}`);
+    process.exit(1);
+  }
+
+  const promptContent = readFileSync(promptPath, "utf8");
+
+  console.log(`Starting ${sessionName} session (supervised mode)...`);
+  console.log(`Prompt: ${promptPath}`);
+  if (extraContext !== undefined && extraContext !== "") {
+    console.log(`Context: ${extraContext}`);
+  }
+  console.log();
+
+  let fullPrompt = promptContent;
+  if (extraContext !== undefined && extraContext !== "") {
+    fullPrompt = `${extraContext}\n\n${promptContent}`;
+  }
+
+  // Chat mode (no -p), stdio: inherit so user can watch AND type
+  const result = spawnSync(
+    "claude",
+    [
+      "--append-system-prompt",
+      fullPrompt,
+      `Please begin the ${sessionName} session.`,
+    ],
+    { stdio: "inherit" },
+  );
+
+  if (result.error !== undefined) {
+    console.error(`Failed to start Claude: ${result.error.message}`);
+    process.exit(1);
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
+
+/**
+ * Headless mode: Run Claude with -p and JSON output
+ * Logs to file so user can see what happened
+ * Returns parsed result for further processing
+ */
+function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult {
+  const { extraContext, logFile, promptPath, sessionName } = options;
+
+  if (!existsSync(promptPath)) {
+    console.error(`Prompt not found: ${promptPath}`);
+    process.exit(1);
+  }
+
+  const promptContent = readFileSync(promptPath, "utf8");
+  const fullPrompt = buildFullPrompt(promptContent, extraContext);
+
+  console.log(`Running ${sessionName} in headless mode...`);
+  console.log(`Prompt: ${promptPath}`);
+  console.log(`Log file: ${logFile}`);
+  if (extraContext !== undefined && extraContext !== "") {
+    console.log(`Context: ${extraContext}`);
+  }
+  console.log();
+
+  // Headless mode: -p with JSON output (50MB buffer for large outputs)
+  const result = spawnSync(
+    "claude",
+    [
+      "-p",
+      fullPrompt,
+      "--dangerously-skip-permissions",
+      "--output-format",
+      "json",
+    ],
+    { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 },
+  );
+
+  if (result.error !== undefined) {
+    console.error(`Failed to start Claude: ${result.error.message}`);
+    process.exit(1);
+  }
+
+  if (result.status !== 0) {
+    console.error("Claude headless invocation failed");
+    console.error(result.stderr);
+    process.exit(result.status ?? 1);
+  }
+
+  const output: ClaudeOutput = JSON.parse(result.stdout) as ClaudeOutput;
+  logHeadlessResult({ extraContext, logFile, output, sessionName });
+
+  console.log(`Session completed: ${output.session_id ?? "unknown"}`);
+  console.log(
+    `Duration: ${Math.round((output.duration_ms ?? 0) / 1000)}s | Turns: ${output.num_turns ?? 0} | Cost: $${output.total_cost_usd ?? 0}`,
+  );
+  console.log();
+
+  return toHeadlessResult(output);
+}
+
+/**
+ * Log headless session result to file
+ */
+function logHeadlessResult(options: LogHeadlessOptions): void {
+  const { extraContext, logFile, output, sessionName } = options;
+  const logDirectory = path.dirname(logFile);
+  if (!existsSync(logDirectory)) {
+    mkdirSync(logDirectory, { recursive: true });
+  }
+
+  const logEntry = {
+    costUsd: output.total_cost_usd ?? 0,
+    durationMs: output.duration_ms ?? 0,
+    extraContext: extraContext ?? "",
+    numTurns: output.num_turns ?? 0,
+    result: output.result ?? "",
+    sessionId: output.session_id ?? "",
+    sessionName,
+    timestamp: new Date().toISOString(),
+  };
+  appendFileSync(logFile, `${JSON.stringify(logEntry)}\n`);
+}
+
+/**
+ * Transform Claude output to HeadlessResult
+ */
+function toHeadlessResult(output: ClaudeOutput): HeadlessResult {
+  return {
+    costUsd: output.total_cost_usd ?? 0,
+    durationMs: output.duration_ms ?? 0,
+    numTurns: output.num_turns ?? 0,
+    result: output.result ?? "",
+    sessionId: output.session_id ?? "",
+  };
+}
 
 // Scripts live in repo, resolved from root (works for both dev and compiled binary)
 const SCRIPTS_DIR = path.join(
@@ -22,7 +226,15 @@ ralphCommand.addCommand(
     .description("Run subtask iteration loop using ralph-iteration.md prompt")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("-p, --print", "Print prompt without executing Claude")
-    .option("-i, --interactive", "Pause between iterations")
+    .option(
+      "-i, --interactive",
+      "Pause between iterations (legacy, use --supervised)",
+    )
+    .option(
+      "-s, --supervised",
+      "Supervised mode: watch each iteration (default)",
+    )
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
     .option("--max-iterations <n>", "Max retry attempts per subtask", "3")
     .option("--validate-first", "Run pre-build validation before building")
     .action((options) => {
@@ -75,9 +287,12 @@ ralphCommand.addCommand(
       // Execution mode: run the build script
       const scriptPath = path.join(SCRIPTS_DIR, "build.sh");
       const subtasksPath = path.resolve(options.subtasks);
+      // Legacy --interactive flag maps to supervised mode with pauses
       const interactive = options.interactive ? "true" : "false";
       const validateFirst = options.validateFirst ? "true" : "false";
       const permFlag = "--dangerously-skip-permissions";
+      // Determine execution mode: headless, supervised, or supervised with pauses
+      const mode = options.headless ? "headless" : "supervised";
 
       // Validate subtasks file exists
       if (!existsSync(subtasksPath)) {
@@ -87,7 +302,7 @@ ralphCommand.addCommand(
 
       try {
         execSync(
-          `bash "${scriptPath}" "${subtasksPath}" "${options.maxIterations}" "${interactive}" "${validateFirst}" "${permFlag}"`,
+          `bash "${scriptPath}" "${subtasksPath}" "${options.maxIterations}" "${interactive}" "${validateFirst}" "${permFlag}" "${mode}"`,
           { stdio: "inherit" },
         );
       } catch {
@@ -163,49 +378,6 @@ function invokeClaude(
   }
 }
 
-// Helper to invoke Claude in auto mode (observable, user watches output)
-function invokeClaudeAuto(
-  promptPath: string,
-  sessionName: string,
-  extraContext?: string,
-): void {
-  if (!existsSync(promptPath)) {
-    console.error(`Prompt not found: ${promptPath}`);
-    process.exit(1);
-  }
-
-  const promptContent = readFileSync(promptPath, "utf8");
-
-  console.log(`Running ${sessionName} in auto mode...`);
-  console.log(`Prompt: ${promptPath}`);
-  if (extraContext !== undefined && extraContext !== "") {
-    console.log(`Context: ${extraContext}`);
-  }
-  console.log();
-
-  // Build full prompt with optional extra context
-  let fullPrompt = promptContent;
-  if (extraContext !== undefined && extraContext !== "") {
-    fullPrompt = `${extraContext}\n\n${promptContent}`;
-  }
-
-  // Use -p flag for autonomous execution with real-time output
-  const result = spawnSync(
-    "claude",
-    ["-p", fullPrompt, "--dangerously-skip-permissions"],
-    { stdio: "inherit" },
-  );
-
-  if (result.error) {
-    console.error(`Failed to start Claude: ${result.error.message}`);
-    process.exit(1);
-  }
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
-}
-
 // ralph plan vision - interactive vision planning
 planCommand.addCommand(
   new Command("vision")
@@ -236,24 +408,41 @@ planCommand.addCommand(
     }),
 );
 
-// ralph plan stories - interactive story planning (requires milestone)
+// ralph plan stories - story planning (requires milestone)
 planCommand.addCommand(
   new Command("stories")
-    .description("Start interactive story planning session for a milestone")
+    .description("Plan stories for a milestone")
     .requiredOption("--milestone <name>", "Milestone name to plan stories for")
-    .option("-a, --auto", "Use auto mode (skip interactive dialogue)")
+    .option("-a, --auto", "Use auto mode (alias for --supervised)")
+    .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
       const contextRoot = getContextRoot();
-      const promptPath = getPromptPath(
-        contextRoot,
-        "stories",
-        Boolean(options.auto),
-      );
-      invokeClaude(
-        promptPath,
-        "stories",
-        `Planning stories for milestone: ${options.milestone}`,
-      );
+
+      // Determine if using auto prompt (non-interactive generation)
+      const isAutoMode =
+        options.auto === true ||
+        options.supervised === true ||
+        options.headless === true;
+      const promptPath = getPromptPath(contextRoot, "stories", isAutoMode);
+      const extraContext = `Planning stories for milestone: ${options.milestone}`;
+
+      // Determine execution mode
+      if (options.headless === true) {
+        const logFile = path.join(contextRoot, "logs/ralph-plan-stories.jsonl");
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "stories",
+        });
+      } else if (options.auto === true || options.supervised === true) {
+        // Supervised mode (--auto or --supervised): user watches chat
+        invokeClaudeChat(promptPath, "stories", extraContext);
+      } else {
+        // Interactive mode (default): full interactive session
+        invokeClaude(promptPath, "stories", extraContext);
+      }
     }),
 );
 
@@ -265,7 +454,9 @@ planCommand.addCommand(
     )
     .option("--story <id>", "Story ID to plan tasks for")
     .option("--milestone <name>", "Milestone to plan tasks for (all stories)")
-    .option("-a, --auto", "Use auto mode (skip interactive dialogue)")
+    .option("-a, --auto", "Use auto mode (alias for --supervised)")
+    .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
       const hasStory = options.story !== undefined;
       const hasMilestone = options.milestone !== undefined;
@@ -280,7 +471,7 @@ planCommand.addCommand(
           "  aaa ralph plan tasks --story <story-id>      # Single story",
         );
         console.log(
-          "  aaa ralph plan tasks --milestone <name> --auto  # All stories in milestone",
+          "  aaa ralph plan tasks --milestone <name> --supervised  # All stories in milestone",
         );
         process.exit(1);
       }
@@ -291,14 +482,20 @@ planCommand.addCommand(
 
       const contextRoot = getContextRoot();
 
+      // Determine if using auto prompt
+      const isAutoMode =
+        options.auto === true ||
+        options.supervised === true ||
+        options.headless === true;
+
       // Milestone mode
       if (hasMilestone) {
-        if (!options.auto) {
+        if (!isAutoMode) {
           console.error(
-            "Error: --milestone requires --auto mode (parallel generation)",
+            "Error: --milestone requires --supervised or --headless mode",
           );
           console.log(
-            "\nUsage: aaa ralph plan tasks --milestone <name> --auto",
+            "\nUsage: aaa ralph plan tasks --milestone <name> --supervised",
           );
           process.exit(1);
         }
@@ -306,42 +503,74 @@ planCommand.addCommand(
           contextRoot,
           "context/workflows/ralph/planning/tasks-milestone.md",
         );
-        invokeClaude(
-          promptPath,
-          "tasks-milestone",
-          `Generating tasks for all stories in milestone: ${options.milestone}`,
-        );
+        const extraContext = `Generating tasks for all stories in milestone: ${options.milestone}`;
+
+        if (options.headless === true) {
+          const logFile = path.join(contextRoot, "logs/ralph-plan-tasks.jsonl");
+          invokeClaudeHeadless({
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "tasks-milestone",
+          });
+        } else {
+          invokeClaudeChat(promptPath, "tasks-milestone", extraContext);
+        }
         return;
       }
 
-      // Story mode (original behavior)
-      const promptPath = getPromptPath(
-        contextRoot,
-        "tasks",
-        Boolean(options.auto),
-      );
-      invokeClaude(
-        promptPath,
-        "tasks",
-        `Planning tasks for story: ${options.story}`,
-      );
+      // Story mode
+      const promptPath = getPromptPath(contextRoot, "tasks", isAutoMode);
+      const extraContext = `Planning tasks for story: ${options.story}`;
+
+      if (options.headless === true) {
+        const logFile = path.join(contextRoot, "logs/ralph-plan-tasks.jsonl");
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "tasks",
+        });
+      } else if (options.auto === true || options.supervised === true) {
+        invokeClaudeChat(promptPath, "tasks", extraContext);
+      } else {
+        invokeClaude(promptPath, "tasks", extraContext);
+      }
     }),
 );
 
-// ralph plan subtasks - subtask generation (always auto mode)
+// ralph plan subtasks - subtask generation (default: supervised)
 planCommand.addCommand(
   new Command("subtasks")
-    .description("Generate subtasks for a task (runs in auto mode)")
+    .description("Generate subtasks for a task")
     .requiredOption("--task <id>", "Task ID to generate subtasks for")
+    .option(
+      "-s, --supervised",
+      "Supervised mode: watch chat, can intervene (default)",
+    )
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
       const contextRoot = getContextRoot();
-      // Subtasks always runs in auto mode per VISION.md
+      // Subtasks always uses auto prompt (never interactive per VISION.md)
       const promptPath = getPromptPath(contextRoot, "subtasks", true);
-      invokeClaudeAuto(
-        promptPath,
-        "subtasks",
-        `Generating subtasks for task: ${options.task}`,
-      );
+      const extraContext = `Generating subtasks for task: ${options.task}`;
+
+      // Determine execution mode (default to supervised for subtasks)
+      if (options.headless === true) {
+        const logFile = path.join(
+          contextRoot,
+          "logs/ralph-plan-subtasks.jsonl",
+        );
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "subtasks",
+        });
+      } else {
+        // Default: supervised mode (user watches)
+        invokeClaudeChat(promptPath, "subtasks", extraContext);
+      }
     }),
 );
 

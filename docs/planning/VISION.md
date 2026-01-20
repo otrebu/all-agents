@@ -96,6 +96,45 @@ Flexible scope—place at milestone level (build whole milestone) or story level
 
 ## 3. Operational Modes
 
+### 3.1 Execution Modes (Trust Gradient)
+
+Ralph supports three execution modes with increasing levels of autonomy:
+
+| Mode | Entry Point | What Happens | Claude Invocation | Trust Level |
+|------|-------------|--------------|-------------------|-------------|
+| **Interactive** | Skill (`/ralph plan`) | User in Claude Code, skill loads prompt, user chats | Skill (no subprocess) | Low (human in loop) |
+| **Supervised** | CLI (`aaa ralph --supervised`) | Bash loop of chat sessions, user watches, can participate | `claude` (chat mode, no `-p`) | Medium (human on loop) |
+| **Headless** | CLI (`aaa ralph --headless`) | `claude -p` with JSON output + file logging | `claude -p --output-format json` | High (human reviews logs) |
+
+**Key Distinctions:**
+
+- **Interactive vs Supervised**: Interactive is a skill (you're already in Claude Code). Supervised spawns chat sessions from CLI.
+- **Supervised vs Headless**: Supervised = real chat sessions (can type). Headless = prompt mode (`-p`), no chat possible.
+- **Headless has logging**: Even though it's autonomous, logs to file so you can see what's going on.
+
+**Trust Gradient:**
+
+```
+Low Trust ────────────────────────────────► High Trust
+
+Interactive          Supervised          Headless
+(skill, in chat)    (CLI, chat loop)    (CLI, -p mode)
+    │                    │                   │
+    └─ Full chat         └─ Watches chat     └─ Reviews logs
+       User participates    Can type if needed   JSON for tooling
+                            Next on exit
+```
+
+**When to Use Each Mode:**
+
+| Mode | Use When |
+|------|----------|
+| **Interactive** (Skill) | You want to participate, explore, ask questions |
+| **Supervised** (CLI) | Process multiple items - watch each, intervene if needed, auto-advance |
+| **Headless** (CLI) | CI/CD, overnight runs, batch processing |
+
+For implementation patterns and code examples, see @context/blocks/construct/ralph-patterns.md.
+
 ### Planning Mode
 
 Human-guided with AI assistance. No code written. Spans: Vision → Roadmap → Milestone → Stories → Tasks → subtasks.json generation.
