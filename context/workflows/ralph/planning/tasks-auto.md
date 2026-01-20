@@ -48,6 +48,12 @@ This analysis informs:
 - What dependencies exist
 - What test patterns are in use
 
+## Documentation Context
+
+@context/workflows/ralph/planning/task-doc-lookup.md
+
+Follow the doc lookup workflow for each task. In auto mode, spawn subagent for missing docs and flag `[REVIEW]`.
+
 ## Your Task
 
 Generate task files in `docs/planning/tasks/` that translate the story's acceptance criteria into concrete development work.
@@ -82,6 +88,7 @@ The task template defines these sections (matching @context/blocks/docs/task-tem
 | Test Plan | Yes | What tests to add/update/run |
 | Scope | Yes | Explicit boundaries - prevents creep |
 | Notes | No | Catch-all for extras (risks, edge cases, rollback, etc.) |
+| Related Documentation | No | Links to @context docs; note gaps |
 
 **\*Story Requirement:** While VISION.md allows orphan Tasks for tech-only work (no parent Story), this prompt generates tasks FROM stories. Therefore, the Story reference is **required** here to maintain the parent-child relationship and traceability chain (Story → Task).
 
@@ -124,6 +131,10 @@ This structure matches @context/blocks/docs/task-template.md exactly:
 
 ### Notes
 [Optional: Technical considerations, risks, edge cases, investigation findings, rollback plan - whatever's relevant to THIS task]
+
+### Related Documentation
+- @context/blocks/... *(relevant docs from lookup)*
+- **Gap:** [topic] - created by subagent `[REVIEW]`
 ```
 
 ## Task ID Generation

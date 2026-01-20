@@ -138,6 +138,18 @@ Plan probes:
 - "What should be done first to unblock the rest?"
 - "Are there any setup or configuration steps needed?"
 
+### Phase 7: Documentation Context
+
+@context/workflows/ralph/planning/task-doc-lookup.md
+
+Follow the doc lookup workflow. In interactive mode, ask user before creating missing docs.
+
+**Key question:** "What existing atomic docs should we reference?"
+
+Doc probes:
+- "I found @context/blocks/... - relevant?"
+- "No docs for [topic]. Want me to create? Give me a prompt to guide it"
+
 ### Validation Checkpoints
 
 After defining each task's implementation plan and acceptance criteria, offer a quick validation check:
@@ -196,6 +208,7 @@ Tasks must follow this format:
 | Test Plan | Yes | What tests to add/update/run |
 | Scope | Yes | Explicit boundaries - prevents creep |
 | Notes | No | Catch-all for extras (risks, edge cases, etc.) |
+| Related Documentation | No | Links to @context docs; note gaps |
 
 **\*Story Requirement:** The Story reference is **required** here to maintain the parent-child relationship and traceability chain (Story -> Task).
 
@@ -234,6 +247,10 @@ Tasks must follow this format:
 
 ### Notes
 [Technical considerations, risks, edge cases, etc.]
+
+### Related Documentation
+- @context/blocks/... *(relevant docs from lookup)*
+- **Gap:** [topic] - to be created
 ```
 
 ### Technical How Descriptions
