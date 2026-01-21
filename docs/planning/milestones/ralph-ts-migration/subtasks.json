@@ -133,7 +133,9 @@
       "taskRef": "TASK-014",
       "title": "Create display.ts with formatting functions",
       "description": "Create display.ts with renderProgressBar(), renderStatusBox(), formatDuration(), formatTimestamp(), colorStatus(), truncate() functions. Add renderMarkdown() with glow fallback (check if glow available, else plain output). Use chalk for colors.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T15:30:00Z",
+      "commitHash": "bc3b1325",
       "acceptanceCriteria": [
         "tools/src/commands/ralph/display.ts exists",
         "renderProgressBar() outputs [████░░░░] style progress",
