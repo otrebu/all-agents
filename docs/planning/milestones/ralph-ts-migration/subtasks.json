@@ -260,7 +260,9 @@
       "taskRef": "TASK-019",
       "title": "Create build.ts with core loop structure",
       "description": "Create build.ts with BuildOptions interface and runBuild() async function. Implement main iteration loop: load subtasks, get next, track attempts with Map<string, number>, check max iterations, build prompt, invoke Claude based on mode.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T21:00:00Z",
+      "commitHash": "d613c0a7",
       "acceptanceCriteria": [
         "tools/src/commands/ralph/build.ts exists",
         "BuildOptions interface has subtasksPath, maxIterations, mode, interactive, validateFirst",
