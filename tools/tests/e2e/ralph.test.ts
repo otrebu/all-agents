@@ -96,8 +96,10 @@ describe("ralph E2E", () => {
       ["run", "dev", "ralph", "calibrate"],
       { cwd: TOOLS_DIR, reject: false },
     );
+    // Commander shows help when no subcommand specified
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("No subcommand specified");
+    expect(stderr).toContain("Commands:");
+    expect(stderr).toContain("intention");
   });
 
   test("ralph calibrate --help shows calibration types", async () => {

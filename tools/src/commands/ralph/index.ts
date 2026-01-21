@@ -714,73 +714,101 @@ ralphCommand.addCommand(
 );
 
 // ralph calibrate - run calibration checks
-ralphCommand.addCommand(
-  new Command("calibrate")
-    .description("Run calibration checks on completed subtasks")
-    .argument(
-      "[subcommand]",
-      "Check type: intention, technical, improve, or all",
-    )
+// Uses real Commander subcommands for proper --help support
+
+const calibrateCommand = new Command("calibrate").description(
+  "Run calibration checks on completed subtasks",
+);
+
+/**
+ * Helper to resolve subtasks path relative to context root if not found at cwd
+ */
+function resolveCalibrateSubtasksPath(
+  subtasksPath: string,
+  contextRoot: string,
+): string {
+  if (!path.isAbsolute(subtasksPath) && !existsSync(subtasksPath)) {
+    const rootRelativePath = path.join(contextRoot, subtasksPath);
+    if (existsSync(rootRelativePath)) {
+      return rootRelativePath;
+    }
+  }
+  return subtasksPath;
+}
+
+/**
+ * Helper to run calibrate subcommand and exit on failure
+ */
+function runCalibrateSubcommand(
+  subcommand: CalibrateSubcommand,
+  options: { force?: boolean; review?: boolean; subtasks: string },
+): void {
+  const contextRoot = getContextRoot();
+  const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
+    options.subtasks,
+    contextRoot,
+  );
+
+  const didSucceed = runCalibrate(subcommand, {
+    contextRoot,
+    force: options.force,
+    review: options.review,
+    subtasksPath: resolvedSubtasksPath,
+  });
+
+  if (!didSucceed) {
+    process.exit(1);
+  }
+}
+
+// ralph calibrate intention - check for intention drift
+calibrateCommand.addCommand(
+  new Command("intention")
+    .description("Check for intention drift (code vs planning docs)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((subcommand, options) => {
-      if (subcommand === undefined || subcommand === "") {
-        console.error("Error: No subcommand specified");
-        console.log("\nUsage: aaa ralph calibrate <subcommand> [options]");
-        console.log("\nSubcommands:");
-        console.log(
-          "  intention    Check for intention drift (code vs planning docs)",
-        );
-        console.log(
-          "  technical    Check for technical drift (code quality issues)",
-        );
-        console.log(
-          "  improve      Run self-improvement analysis on session logs",
-        );
-        console.log("  all          Run all calibration checks sequentially");
-        console.log("\nOptions:");
-        console.log(
-          "  --subtasks   Subtasks file path (default: subtasks.json)",
-        );
-        console.log(
-          "  --force      Skip approval even if config says 'suggest'",
-        );
-        console.log(
-          "  --review     Require approval even if config says 'autofix'",
-        );
-        process.exit(1);
-      }
-
-      const validSubcommands = ["intention", "technical", "improve", "all"];
-      if (!validSubcommands.includes(subcommand)) {
-        console.error(`Error: Unknown subcommand: ${subcommand}`);
-        console.log(`Valid subcommands: ${validSubcommands.join(", ")}`);
-        process.exit(1);
-      }
-
-      const contextRoot = getContextRoot();
-
-      // Resolve subtasks path: if relative and not found at cwd, try relative to context root
-      let resolvedSubtasksPath = options.subtasks;
-      if (!path.isAbsolute(options.subtasks) && !existsSync(options.subtasks)) {
-        const rootRelativePath = path.join(contextRoot, options.subtasks);
-        if (existsSync(rootRelativePath)) {
-          resolvedSubtasksPath = rootRelativePath;
-        }
-      }
-
-      const didSucceed = runCalibrate(subcommand as CalibrateSubcommand, {
-        contextRoot,
-        force: options.force,
-        review: options.review,
-        subtasksPath: resolvedSubtasksPath,
-      });
-
-      if (!didSucceed) {
-        process.exit(1);
-      }
+    .action((options) => {
+      runCalibrateSubcommand("intention", options);
     }),
 );
+
+// ralph calibrate technical - check for technical drift
+calibrateCommand.addCommand(
+  new Command("technical")
+    .description("Check for technical drift (code quality issues)")
+    .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--force", "Skip approval even if config says 'suggest'")
+    .option("--review", "Require approval even if config says 'autofix'")
+    .action((options) => {
+      runCalibrateSubcommand("technical", options);
+    }),
+);
+
+// ralph calibrate improve - run self-improvement analysis
+calibrateCommand.addCommand(
+  new Command("improve")
+    .description("Run self-improvement analysis on session logs")
+    .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--force", "Skip approval even if config says 'suggest'")
+    .option("--review", "Require approval even if config says 'autofix'")
+    .action((options) => {
+      runCalibrateSubcommand("improve", options);
+    }),
+);
+
+// ralph calibrate all - run all calibration checks
+calibrateCommand.addCommand(
+  new Command("all")
+    .description("Run all calibration checks sequentially")
+    .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--force", "Skip approval even if config says 'suggest'")
+    .option("--review", "Require approval even if config says 'autofix'")
+    .action((options) => {
+      runCalibrateSubcommand("all", options);
+    }),
+);
+
+ralphCommand.addCommand(calibrateCommand);
 
 export default ralphCommand;
