@@ -1,9 +1,10 @@
 import { Command } from "@commander-js/extra-typings";
 import { getContextRoot } from "@tools/utils/paths";
-import { execSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import {
   buildPrompt,
@@ -127,12 +128,6 @@ function invokeClaudeHeadless(
   };
 }
 
-// Scripts live in repo, resolved from root (works for both dev and compiled binary)
-const SCRIPTS_DIR = path.join(
-  getContextRoot(),
-  "tools/src/commands/ralph/scripts",
-);
-
 const ralphCommand = new Command("ralph").description(
   "Autonomous development framework (Vision → Roadmap → Story → Task → Subtask)",
 );
@@ -154,7 +149,7 @@ ralphCommand.addCommand(
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .option("--max-iterations <n>", "Max retry attempts per subtask", "3")
     .option("--validate-first", "Run pre-build validation before building")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
@@ -201,30 +196,23 @@ ralphCommand.addCommand(
         return;
       }
 
-      // Execution mode: run the build script
-      const scriptPath = path.join(SCRIPTS_DIR, "build.sh");
+      // Resolve subtasks path
       const subtasksPath = path.resolve(options.subtasks);
-      // Legacy --interactive flag maps to supervised mode with pauses
-      const interactive = options.interactive ? "true" : "false";
-      const validateFirst = options.validateFirst ? "true" : "false";
-      const permFlag = "--dangerously-skip-permissions";
-      // Determine execution mode: headless, supervised, or supervised with pauses
-      const mode = options.headless ? "headless" : "supervised";
 
-      // Validate subtasks file exists
-      if (!existsSync(subtasksPath)) {
-        console.error(`Subtasks file not found: ${subtasksPath}`);
-        process.exit(1);
-      }
+      // Determine execution mode: headless or supervised (default)
+      const mode = options.headless === true ? "headless" : "supervised";
 
-      try {
-        execSync(
-          `bash "${scriptPath}" "${subtasksPath}" "${options.maxIterations}" "${interactive}" "${validateFirst}" "${permFlag}" "${mode}"`,
-          { stdio: "inherit" },
-        );
-      } catch {
-        process.exit(1);
-      }
+      // Map CLI options to BuildOptions and call runBuild()
+      await runBuild(
+        {
+          interactive: options.interactive === true,
+          maxIterations: Number.parseInt(options.maxIterations, 10),
+          mode,
+          subtasksPath,
+          validateFirst: options.validateFirst === true,
+        },
+        contextRoot,
+      );
     }),
 );
 
