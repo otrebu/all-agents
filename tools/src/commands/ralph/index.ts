@@ -1,4 +1,5 @@
 import { Command } from "@commander-js/extra-typings";
+import { discoverMilestones } from "@lib/milestones";
 import { getContextRoot } from "@tools/utils/paths";
 import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -327,6 +328,23 @@ planCommand.addCommand(
     .action((options) => {
       const contextRoot = getContextRoot();
 
+      // Validate milestone exists
+      const milestones = discoverMilestones();
+      const hasMilestone = milestones.some(
+        (m) =>
+          m.slug === options.milestone ||
+          m.name.toLowerCase() === options.milestone.toLowerCase(),
+      );
+      if (!hasMilestone) {
+        console.error(`Milestone "${options.milestone}" not found.`);
+        console.error("\nAvailable milestones:");
+        for (const m of milestones) {
+          console.error(`  ${m.slug} - ${m.name}`);
+        }
+        console.error("\nRun 'aaa ralph milestones' to see all milestones.");
+        process.exit(1);
+      }
+
       // Determine if using auto prompt (non-interactive generation)
       const isAutoMode =
         options.auto === true ||
@@ -614,6 +632,29 @@ ralphCommand.addCommand(
       }
 
       runStatus(resolvedSubtasksPath, contextRoot);
+    }),
+);
+
+// ralph milestones - list available milestones
+ralphCommand.addCommand(
+  new Command("milestones")
+    .description("List available milestones from roadmap")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const milestones = discoverMilestones();
+
+      if (options.json === true) {
+        console.log(JSON.stringify({ milestones }, null, 2));
+        return;
+      }
+
+      console.log("Available milestones:");
+      for (const m of milestones) {
+        console.log(`  ${m.slug} - ${m.name}`);
+      }
+      if (milestones.length === 0) {
+        console.log("  (none found in docs/planning/roadmap.md)");
+      }
     }),
 );
 

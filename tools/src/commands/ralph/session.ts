@@ -209,10 +209,13 @@ function getSessionJsonlPath(
   repoRoot: string,
 ): null | string {
   const home = homedir();
+  const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
+  const triedPaths: Array<string> = [];
 
   // Try base64-encoded path
   const base64Path = Buffer.from(repoRoot).toString("base64");
   const path1 = `${home}/.claude/projects/${base64Path}/${sessionId}.jsonl`;
+  triedPaths.push(path1);
   if (existsSync(path1)) {
     return path1;
   }
@@ -220,20 +223,31 @@ function getSessionJsonlPath(
   // Try dash-encoded path (e.g., -home-user-dev-project)
   const dashPath = repoRoot.replaceAll("/", "-");
   const path2 = `${home}/.claude/projects/${dashPath}/${sessionId}.jsonl`;
+  triedPaths.push(path2);
   if (existsSync(path2)) {
     return path2;
   }
 
   // Try direct project path
   const path3 = `${home}/.claude/projects/${sessionId}.jsonl`;
+  triedPaths.push(path3);
   if (existsSync(path3)) {
     return path3;
   }
 
   // Try sessions directory
   const path4 = `${home}/.claude/sessions/${sessionId}.jsonl`;
+  triedPaths.push(path4);
   if (existsSync(path4)) {
     return path4;
+  }
+
+  // Log tried paths at debug level
+  if (isDebug) {
+    console.log(`Session ${sessionId} not found. Tried paths:`);
+    for (const p of triedPaths) {
+      console.log(`  - ${p}`);
+    }
   }
 
   // Not found

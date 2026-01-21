@@ -222,8 +222,10 @@ function getFilesChanged(
         }
       }
     }
-  } catch {
-    // Git command failed, continue to fallback
+  } catch (error) {
+    // Log git error, continue to fallback
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`Git diff failed (using session fallback): ${message}`);
   }
 
   // If no git changes found, try to extract from session log
@@ -349,17 +351,23 @@ function runPostIterationHook(
  * @param diaryPath - Path to the diary file (default: logs/iterations.jsonl)
  */
 function writeDiaryEntry(entry: IterationDiaryEntry, diaryPath: string): void {
-  // Ensure logs directory exists
-  const directory = dirname(diaryPath);
-  if (!existsSync(directory)) {
-    mkdirSync(directory, { recursive: true });
+  try {
+    // Ensure logs directory exists
+    const directory = dirname(diaryPath);
+    if (!existsSync(directory)) {
+      mkdirSync(directory, { recursive: true });
+    }
+
+    // Append JSON line to diary file
+    const jsonLine = JSON.stringify(entry);
+    appendFileSync(diaryPath, `${jsonLine}\n`, "utf8");
+
+    console.log(`Diary entry written to: ${diaryPath}`);
+  } catch (error) {
+    // Log but don't crash build loop
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to write diary entry: ${message}`);
   }
-
-  // Append JSON line to diary file
-  const jsonLine = JSON.stringify(entry);
-  appendFileSync(diaryPath, `${jsonLine}\n`, "utf8");
-
-  console.log(`Diary entry written to: ${diaryPath}`);
 }
 
 // =============================================================================

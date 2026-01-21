@@ -141,17 +141,18 @@ function executeLogAction(hookName: string, context: HookContext): void {
  * Execute notify action - send push notification via ntfy
  *
  * Uses native fetch() to POST to the ntfy server.
- * Fails silently if ntfy is not configured or request fails.
+ * Returns success status for caller to track notification failures.
  *
  * @param hookName - Name of the hook being executed
  * @param context - Hook context with message
  * @param config - Ralph configuration containing ntfy settings
+ * @returns true if notification was sent successfully, false otherwise
  */
 async function executeNotifyAction(
   hookName: string,
   context: HookContext,
   config: RalphConfig,
-): Promise<void> {
+): Promise<boolean> {
   const { ntfy } = config;
 
   // Check if ntfy is configured
@@ -161,7 +162,7 @@ async function executeNotifyAction(
     ntfy.topic === "your-ntfy-topic"
   ) {
     console.log(`[Hook:${hookName}] notify action: ntfy topic not configured`);
-    return;
+    return false;
   }
 
   const server = ntfy.server === "" ? "https://ntfy.sh" : ntfy.server;
@@ -180,10 +181,13 @@ async function executeNotifyAction(
       console.log(
         `[Hook:${hookName}] Notification failed: ${response.status} ${response.statusText}`,
       );
+      return false;
     }
+    return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.log(`[Hook:${hookName}] Notification failed: ${message}`);
+    return false;
   }
 }
 
@@ -209,7 +213,8 @@ async function executePauseAction(hookName: string): Promise<void> {
     return;
   }
 
-  // Interactive pause using readline
+  // Interactive pause using readline with 5-minute timeout
+  const PAUSE_TIMEOUT_MS = 5 * 60 * 1000;
   // eslint-disable-next-line promise/avoid-new -- readline requires manual Promise wrapping
   await new Promise<void>((resolve) => {
     const rl = readline.createInterface({
@@ -217,7 +222,14 @@ async function executePauseAction(hookName: string): Promise<void> {
       output: process.stdout,
     });
 
+    const timeout = setTimeout(() => {
+      console.log(`\n[Hook:${hookName}] Pause timed out after 5 minutes`);
+      rl.close();
+      resolve();
+    }, PAUSE_TIMEOUT_MS);
+
     rl.question("Press Enter to continue or Ctrl+C to abort: ", () => {
+      clearTimeout(timeout);
       rl.close();
       resolve();
     });
