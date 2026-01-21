@@ -667,8 +667,8 @@ ralphCommand.addCommand(
       "Check type: intention, technical, improve, or all",
     )
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
-    .option("--force", "Skip approval even if config says 'always'")
-    .option("--review", "Require approval even if config says 'auto'")
+    .option("--force", "Skip approval even if config says 'suggest'")
+    .option("--review", "Require approval even if config says 'autofix'")
     .action((subcommand, options) => {
       if (subcommand === undefined || subcommand === "") {
         console.error("Error: No subcommand specified");
@@ -689,10 +689,10 @@ ralphCommand.addCommand(
           "  --subtasks   Subtasks file path (default: subtasks.json)",
         );
         console.log(
-          "  --force      Skip approval even if config says 'always'",
+          "  --force      Skip approval even if config says 'suggest'",
         );
         console.log(
-          "  --review     Require approval even if config says 'auto'",
+          "  --review     Require approval even if config says 'autofix'",
         );
         process.exit(1);
       }

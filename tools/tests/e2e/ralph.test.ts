@@ -2972,9 +2972,9 @@ describe("ralph calibrate improve E2E", () => {
     const subtasksPath = join(temporaryDirectory, "subtasks.json");
     writeFileSync(subtasksPath, subtasksContent);
 
-    // Step 3: Create ralph.config.json with selfImprovement: always
+    // Step 3: Create ralph.config.json with selfImprovement: suggest
     const configContent = JSON.stringify(
-      { selfImprovement: { mode: "always" } },
+      { selfImprovement: { mode: "suggest" } },
       null,
       2,
     );
@@ -3080,12 +3080,12 @@ if [ ! -f "$SUBTASKS_PATH" ]; then
 fi
 
 # Check selfImprovement config
-self_improve_setting="always"
+self_improve_setting="suggest"
 if [ -f "$CONFIG_PATH" ]; then
-  self_improve_setting=$(json_query "$CONFIG_PATH" ".selfImprovement.mode" "always")
+  self_improve_setting=$(json_query "$CONFIG_PATH" ".selfImprovement.mode" "suggest")
 fi
 
-if [ "$self_improve_setting" = "never" ]; then
+if [ "$self_improve_setting" = "off" ]; then
   echo "Self-improvement analysis is disabled in ralph.config.json"
   exit 0
 fi
@@ -3117,7 +3117,7 @@ echo "OUTPUT_PRODUCED=true"
     expect(exitCode).toBe(0);
     expect(stdout).toContain("=== Running Self-Improvement Analysis ===");
     expect(stdout).toContain("Found sessionIds: test-session-e2e");
-    expect(stdout).toContain("Self-improvement mode: always");
+    expect(stdout).toContain("Self-improvement mode: suggest");
     expect(stdout).toContain(
       "Invoking Claude for self-improvement analysis...",
     );
