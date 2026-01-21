@@ -153,7 +153,9 @@
       "taskRef": "TASK-015",
       "title": "Create hooks.ts with all actions",
       "description": "Create hooks.ts with executeHook(), executeLogAction(), executeNotifyAction(), executePauseAction() functions. Use native fetch() for ntfy notifications. Implement TTY check for pause action - skip in non-interactive mode. Use readline for interactive pause prompt.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T16:00:00Z",
+      "commitHash": "3117dcbb",
       "acceptanceCriteria": [
         "tools/src/commands/ralph/hooks.ts exists",
         "executeHook() dispatches to correct action based on config",
