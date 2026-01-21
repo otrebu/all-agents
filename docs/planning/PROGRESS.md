@@ -4,7 +4,7 @@
 
 **Story:** none
 **Task:** TASK-012 (CLI ergonomics fixes)
-**Status:** in progress (SUB-017 complete)
+**Status:** in progress (SUB-018 complete)
 
 ## Session Notes
 
@@ -13,6 +13,13 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-01-21
+
+#### SUB-018
+- **Problem:** `ralph calibrate` used `.argument('[subcommand]')` pattern instead of real Commander subcommands, making `--help` less useful for individual subcommands
+- **Changes:** Converted to real subcommands using `calibrateCommand.addCommand(new Command('intention')...)` pattern; each subcommand now has proper `--help` with its own options
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Replaced argument pattern with addCommand pattern, added helper functions
+  - `tools/tests/e2e/ralph.test.ts` - Updated test to expect Commander help output instead of custom error
 
 #### SUB-017
 - **Problem:** `ralph review stories` and `ralph review gap stories` used positional arguments inconsistent with other ralph commands

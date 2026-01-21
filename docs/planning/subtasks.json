@@ -133,7 +133,10 @@
       "storyRef": null,
       "title": "Convert ralph calibrate to real subcommands",
       "description": "Replace `.argument('[subcommand]')` pattern with real Commander subcommands using `calibrateCommand.addCommand(new Command('intention')...)`. Move option definitions to each subcommand. Keep runCalibrate dispatcher but call from each subcommand's action.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:55:00Z",
+      "commitHash": "b933af83c585430f505d27f95d1a3bb8588b3c7c",
+      "sessionId": "ralph-build-2026-01-21-SUB018",
       "acceptanceCriteria": [
         "ralph calibrate intention --help works",
         "ralph calibrate technical --help works",
