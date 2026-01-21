@@ -4,7 +4,7 @@
 
 **Story:** none
 **Task:** TASK-012 (CLI ergonomics fixes)
-**Status:** in progress (SUB-018 complete)
+**Status:** in progress (SUB-019 complete)
 
 ## Session Notes
 
@@ -13,6 +13,15 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-01-21
+
+#### SUB-019
+- **Problem:** `ralph build` defaulted to `--max-iterations 3` which was too restrictive; `--auto` flag on plan stories/tasks was redundant alias for `--supervised`
+- **Changes:** Changed --max-iterations default to 0 (unlimited); updated build.ts to skip iteration limit check when value is 0; removed --auto flag from plan stories and plan tasks commands; updated tests
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Changed default, removed --auto option and logic
+  - `tools/src/commands/ralph/build.ts` - Handle maxIterations=0 as unlimited
+  - `tools/src/commands/ralph/types.ts` - Updated comment
+  - `tools/tests/e2e/ralph.test.ts` - Removed --auto expectations
 
 #### SUB-018
 - **Problem:** `ralph calibrate` used `.argument('[subcommand]')` pattern instead of real Commander subcommands, making `--help` less useful for individual subcommands

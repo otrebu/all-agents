@@ -155,7 +155,10 @@
       "storyRef": null,
       "title": "Fix --max-iterations default and remove --auto flag",
       "description": "In index.ts build command: change --max-iterations default from '3' to '0' (0=unlimited per VISION spec). In plan stories/tasks commands: remove `-a, --auto` option and its usage. Keep only --supervised and --headless modes.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T12:30:00Z",
+      "commitHash": "29a1e48111e82c457e00a0168b1ff7164543b736",
+      "sessionId": "ralph-build-2026-01-21-SUB019",
       "acceptanceCriteria": [
         "ralph build --help shows max-iterations default as 0",
         "ralph plan stories --help has no --auto flag",
