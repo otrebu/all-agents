@@ -6,7 +6,7 @@
  * - Subtasks queue info (milestone, progress bar, last completed, next pending)
  * - Iteration diary stats (iterations, success rate, avg tool calls)
  *
- * @see tools/src/commands/ralph/scripts/status.sh for original bash implementation
+ * Note: Originally ported from tools/src/commands/ralph/scripts/status.sh (now deleted)
  */
 
 import chalk from "chalk";
