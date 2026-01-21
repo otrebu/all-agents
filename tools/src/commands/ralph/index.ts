@@ -149,6 +149,11 @@ ralphCommand.addCommand(
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
+    .option(
+      "--calibrate-every <n>",
+      "Run calibration every N iterations (0 = disabled)",
+      "0",
+    )
     .option("--validate-first", "Run pre-build validation before building")
     .action(async (options) => {
       const contextRoot = getContextRoot();
@@ -206,6 +211,7 @@ ralphCommand.addCommand(
       // Map CLI options to BuildOptions and call runBuild()
       await runBuild(
         {
+          calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,

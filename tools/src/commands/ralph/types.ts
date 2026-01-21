@@ -19,6 +19,8 @@
  * Options for the build loop
  */
 interface BuildOptions {
+  /** Run calibration every N iterations (0 = disabled) */
+  calibrateEvery: number;
   /** Pause between iterations for user confirmation */
   interactive: boolean;
   /** Maximum iterations per subtask (0 = unlimited) */

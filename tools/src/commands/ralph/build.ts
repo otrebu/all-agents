@@ -17,6 +17,7 @@ import * as readline from "node:readline";
 
 import type { BuildOptions } from "./types";
 
+import { runCalibrate } from "./calibrate";
 import { buildPrompt, invokeClaudeChat, invokeClaudeHeadless } from "./claude";
 import {
   countRemaining,
@@ -35,6 +36,20 @@ import { runPostIterationHook } from "./post-iteration";
 /** Default prompt path relative to context root */
 const ITERATION_PROMPT_PATH =
   "context/workflows/ralph/building/ralph-iteration.md";
+
+// =============================================================================
+// Types
+// =============================================================================
+
+/**
+ * Options for periodic calibration
+ */
+interface PeriodicCalibrationOptions {
+  calibrateEvery: number;
+  contextRoot: string;
+  iteration: number;
+  subtasksPath: string;
+}
 
 // =============================================================================
 // Interactive Prompts
@@ -138,6 +153,7 @@ async function runBuild(
   contextRoot: string,
 ): Promise<void> {
   const {
+    calibrateEvery,
     interactive: isInteractive,
     maxIterations,
     mode,
@@ -298,6 +314,28 @@ async function runBuild(
     }
 
     iteration += 1;
+
+    // Run calibration every N iterations (if enabled)
+    runPeriodicCalibration({
+      calibrateEvery,
+      contextRoot,
+      iteration,
+      subtasksPath,
+    });
+  }
+}
+
+/**
+ * Run periodic calibration if enabled and due
+ * Placed after runBuild for alphabetical sorting per lint rules.
+ */
+function runPeriodicCalibration(options: PeriodicCalibrationOptions): void {
+  const { calibrateEvery, contextRoot, iteration, subtasksPath } = options;
+  if (calibrateEvery > 0 && iteration % calibrateEvery === 0) {
+    console.log(
+      `\n=== Running calibration (every ${calibrateEvery} iterations) ===\n`,
+    );
+    runCalibrate("all", { contextRoot, subtasksPath });
   }
 }
 
