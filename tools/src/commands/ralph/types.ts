@@ -146,7 +146,7 @@ interface RalphConfig {
  */
 interface SelfImprovementConfig {
   /** Mode for handling self-improvement suggestions */
-  mode: "always" | "auto";
+  mode: "autofix" | "off" | "suggest";
 }
 
 // =============================================================================

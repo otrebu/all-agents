@@ -59,8 +59,8 @@
       "properties": {
         "mode": {
           "type": "string",
-          "enum": ["always", "auto"],
-          "description": "'always' requires approval, 'auto' applies changes automatically"
+          "enum": ["suggest", "autofix", "off"],
+          "description": "'suggest' creates task files for review, 'autofix' applies changes directly, 'off' skips analysis"
         }
       },
       "required": ["mode"],

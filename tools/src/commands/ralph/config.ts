@@ -28,7 +28,7 @@ const DEFAULT_CONFIG: RalphConfig = {
     onMilestoneComplete: ["log", "notify"],
     onValidationFail: ["log", "notify"],
   },
-  selfImprovement: { mode: "always" },
+  selfImprovement: { mode: "suggest" },
 };
 
 /**
