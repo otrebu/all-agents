@@ -4,6 +4,7 @@ import { execSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
@@ -636,11 +637,10 @@ ralphCommand.addCommand(
       "[subcommand]",
       "Check type: intention, technical, improve, or all",
     )
+    .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'always'")
     .option("--review", "Require approval even if config says 'auto'")
     .action((subcommand, options) => {
-      const scriptPath = path.join(SCRIPTS_DIR, "calibrate.sh");
-
       if (subcommand === undefined || subcommand === "") {
         console.error("Error: No subcommand specified");
         console.log("\nUsage: aaa ralph calibrate <subcommand> [options]");
@@ -657,6 +657,9 @@ ralphCommand.addCommand(
         console.log("  all          Run all calibration checks sequentially");
         console.log("\nOptions:");
         console.log(
+          "  --subtasks   Subtasks file path (default: subtasks.json)",
+        );
+        console.log(
           "  --force      Skip approval even if config says 'always'",
         );
         console.log(
@@ -672,16 +675,25 @@ ralphCommand.addCommand(
         process.exit(1);
       }
 
-      // Build CLI args
-      const args = [subcommand];
-      if (options.force) args.push("--force");
-      if (options.review) args.push("--review");
+      const contextRoot = getContextRoot();
 
-      try {
-        execSync(`bash "${scriptPath}" ${args.join(" ")}`, {
-          stdio: "inherit",
-        });
-      } catch {
+      // Resolve subtasks path: if relative and not found at cwd, try relative to context root
+      let resolvedSubtasksPath = options.subtasks;
+      if (!path.isAbsolute(options.subtasks) && !existsSync(options.subtasks)) {
+        const rootRelativePath = path.join(contextRoot, options.subtasks);
+        if (existsSync(rootRelativePath)) {
+          resolvedSubtasksPath = rootRelativePath;
+        }
+      }
+
+      const didSucceed = runCalibrate(subcommand as CalibrateSubcommand, {
+        contextRoot,
+        force: options.force,
+        review: options.review,
+        subtasksPath: resolvedSubtasksPath,
+      });
+
+      if (!didSucceed) {
         process.exit(1);
       }
     }),
