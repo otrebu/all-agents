@@ -196,7 +196,9 @@
       "taskRef": "TASK-017",
       "title": "Create calibrate.ts with all subcommands",
       "description": "Create calibrate.ts with runCalibrate(), runIntentionCheck(), runTechnicalCheck(), runImproveCheck() functions. Build prompts with context file references. Use invokeClaudeHeadless() for automated analysis. Check for completed subtasks before running.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T18:00:00Z",
+      "commitHash": "ed30a2d3",
       "acceptanceCriteria": [
         "tools/src/commands/ralph/calibrate.ts exists",
         "runCalibrate() dispatches to correct check based on subcommand",
