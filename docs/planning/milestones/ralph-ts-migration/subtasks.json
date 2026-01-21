@@ -1,0 +1,340 @@
+{
+  "$schema": "../../schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "ralph-ts-migration"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-012",
+      "taskRef": "TASK-011",
+      "title": "Create claude.ts with invokeClaudeChat",
+      "description": "Extract Claude invocation helpers from index.ts into new claude.ts module. Create ClaudeResult interface with success/interrupted/exitCode fields. Implement invokeClaudeChat() function with SIGINT/SIGTERM signal handling. This is MANDATORY first step - blocks all other modules.",
+      "done": true,
+      "completedAt": "2026-01-21T12:00:00Z",
+      "commitHash": "2a2071a42a4a748cde24a6ac62f19e72bbf8e906",
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/claude.ts exists",
+        "ClaudeResult interface has success, interrupted, exitCode fields",
+        "invokeClaudeChat() handles SIGINT/SIGTERM signals gracefully",
+        "Uses spawnSync with stdio: 'inherit' for interactive sessions",
+        "Includes --permission-mode bypassPermissions flag"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "docs/planning/ralph-migration-implementation-plan.md"
+      ]
+    },
+    {
+      "id": "SUB-013",
+      "taskRef": "TASK-011",
+      "title": "Add invokeClaudeHeadless with stderr separation",
+      "description": "Add invokeClaudeHeadless() function to claude.ts. Use stdio: ['inherit', 'pipe', 'inherit'] to separate stderr from stdout (CRITICAL for JSON parsing). Create HeadlessOptions and HeadlessResult interfaces. Handle signal interruption.",
+      "done": true,
+      "completedAt": "2026-01-21T12:30:00Z",
+      "commitHash": "ee3ab8b3b7f5ae92c096ea08b16ccc1a1fe7b911",
+      "acceptanceCriteria": [
+        "invokeClaudeHeadless() function exists in claude.ts",
+        "HeadlessOptions interface has prompt, maxBuffer fields",
+        "HeadlessResult interface has sessionId, result, cost, duration fields",
+        "Uses stdio: ['inherit', 'pipe', 'inherit'] for stderr separation",
+        "JSON.parse on stdout works without stderr contamination"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/index.ts"
+      ]
+    },
+    {
+      "id": "SUB-014",
+      "taskRef": "TASK-011",
+      "title": "Add invokeClaudeHaiku and update index.ts imports",
+      "description": "Add invokeClaudeHaiku() function to claude.ts with 30-second timeout for summary generation. Handle ETIMEDOUT error gracefully. Update index.ts to import Claude helpers from claude.ts instead of defining them inline. Remove duplicate code from index.ts.",
+      "done": true,
+      "completedAt": "2026-01-21T13:00:00Z",
+      "commitHash": "6ce07009438bfb7c4ee684f42c49910914e3bb3a",
+      "acceptanceCriteria": [
+        "invokeClaudeHaiku() function exists with timeout parameter (default 30000ms)",
+        "ETIMEDOUT error returns null instead of crashing",
+        "index.ts imports from './claude' instead of inline definitions",
+        "No duplicate Claude invocation code in index.ts",
+        "Existing tests still pass"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/tests/e2e/ralph.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-015",
+      "taskRef": "TASK-012",
+      "title": "Create types.ts with all interfaces",
+      "description": "Create types.ts with Subtask, SubtasksFile, RalphConfig, HookConfig, PostIterationHookConfig, IterationDiaryEntry, IterationStatus types. Add normalizeStatus() function for backward compatibility (success→completed, failure→failed, partial→retrying).",
+      "done": true,
+      "completedAt": "2026-01-21T14:00:00Z",
+      "commitHash": "58709fe6b703f8f05de65c03bc8b3f59c87c74bd",
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/types.ts exists",
+        "Subtask interface matches subtasks.schema.json structure",
+        "RalphConfig interface covers all ralph.config.json options",
+        "IterationStatus type is 'completed' | 'failed' | 'retrying'",
+        "normalizeStatus() handles legacy values correctly"
+      ],
+      "filesToRead": [
+        "docs/planning/schemas/subtasks.schema.json",
+        "docs/planning/schemas/ralph-config.schema.json",
+        "docs/planning/ralph-migration-implementation-plan.md"
+      ]
+    },
+    {
+      "id": "SUB-016",
+      "taskRef": "TASK-012",
+      "title": "Create config.ts with load and query functions",
+      "description": "Create config.ts with loadRalphConfig(), loadSubtasksFile(), saveSubtasksFile() functions. Add query helpers: getCompletedSubtasks(), getPendingSubtasks(), getNextSubtask(), countRemaining(), getMilestoneFromSubtasks(). Use JSON.parse with readFileSync.",
+      "done": true,
+      "completedAt": "2026-01-21T14:30:00Z",
+      "commitHash": "dd6e8c08",
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/config.ts exists",
+        "loadRalphConfig() returns defaults when config missing",
+        "loadSubtasksFile() throws clear error if file missing",
+        "saveSubtasksFile() writes formatted JSON",
+        "Query helpers work correctly on sample subtasks.json"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "docs/planning/milestones/ralph/subtasks.json",
+        "docs/planning/templates/ralph.config.template.json"
+      ]
+    },
+    {
+      "id": "SUB-017",
+      "taskRef": "TASK-013",
+      "title": "Create session.ts with path discovery",
+      "description": "Create session.ts with getSessionJsonlPath() supporting multiple fallback locations (base64-encoded, dash-encoded, direct paths). Add countToolCalls(), calculateDurationMs(), getFilesFromSession() functions for session analysis.",
+      "done": true,
+      "completedAt": "2026-01-21T15:00:00Z",
+      "commitHash": "c4a2e918",
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/session.ts exists",
+        "getSessionJsonlPath() tries base64, dash-encoded, and direct paths",
+        "Returns null gracefully when session not found",
+        "countToolCalls() counts tool_use entries in JSONL",
+        "getFilesFromSession() extracts Write/Edit file paths"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/scripts/post-iteration-hook.sh",
+        "docs/planning/ralph-migration-implementation-plan.md"
+      ]
+    },
+    {
+      "id": "SUB-018",
+      "taskRef": "TASK-014",
+      "title": "Create display.ts with formatting functions",
+      "description": "Create display.ts with renderProgressBar(), renderStatusBox(), formatDuration(), formatTimestamp(), colorStatus(), truncate() functions. Add renderMarkdown() with glow fallback (check if glow available, else plain output). Use chalk for colors.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/display.ts exists",
+        "renderProgressBar() outputs [████░░░░] style progress",
+        "formatDuration() shows '2m 15s' or '45s' format",
+        "colorStatus() uses green/red/yellow for completed/failed/retrying",
+        "renderMarkdown() uses glow -s dark -w 80 when available"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/scripts/status.sh",
+        "tools/lib/log.ts"
+      ]
+    },
+    {
+      "id": "SUB-019",
+      "taskRef": "TASK-015",
+      "title": "Create hooks.ts with all actions",
+      "description": "Create hooks.ts with executeHook(), executeLogAction(), executeNotifyAction(), executePauseAction() functions. Use native fetch() for ntfy notifications. Implement TTY check for pause action - skip in non-interactive mode. Use readline for interactive pause prompt.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/hooks.ts exists",
+        "executeHook() dispatches to correct action based on config",
+        "executeNotifyAction() sends POST to ntfy server",
+        "executePauseAction() checks process.stdin.isTTY before prompting",
+        "Non-TTY pause logs message and continues without blocking"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/scripts/build.sh"
+      ]
+    },
+    {
+      "id": "SUB-020",
+      "taskRef": "TASK-016",
+      "title": "Create status.ts and integrate into index.ts",
+      "description": "Create status.ts with runStatus() function. Display: config status, milestone name, progress bar, last completed subtask, next pending subtask, iteration stats. Update index.ts status command to call runStatus() instead of execSync to bash script. Keep scripts/status.sh until final cleanup.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/status.ts exists with runStatus()",
+        "Output matches current scripts/status.sh behavior",
+        "index.ts status command imports and calls runStatus()",
+        "No more execSync('bash status.sh') in status command",
+        "Existing ralph status tests still pass"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/scripts/status.sh",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-021",
+      "taskRef": "TASK-017",
+      "title": "Create calibrate.ts with all subcommands",
+      "description": "Create calibrate.ts with runCalibrate(), runIntentionCheck(), runTechnicalCheck(), runImproveCheck() functions. Build prompts with context file references. Use invokeClaudeHeadless() for automated analysis. Check for completed subtasks before running.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/calibrate.ts exists",
+        "runCalibrate() dispatches to correct check based on subcommand",
+        "runIntentionCheck() uses context/workflows/ralph/calibration/intention-drift.md",
+        "runTechnicalCheck() uses context/workflows/ralph/calibration/technical-drift.md",
+        "runImproveCheck() uses context/workflows/ralph/calibration/self-improvement.md"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/scripts/calibrate.sh",
+        "context/workflows/ralph/calibration/intention-drift.md",
+        "context/workflows/ralph/calibration/technical-drift.md",
+        "context/workflows/ralph/calibration/self-improvement.md"
+      ]
+    },
+    {
+      "id": "SUB-022",
+      "taskRef": "TASK-017",
+      "title": "Integrate calibrate.ts into index.ts",
+      "description": "Update index.ts calibrate command to call runCalibrate() instead of execSync to bash script. Handle all subcommands (intention, technical, improve). Keep scripts/calibrate.sh until final cleanup.",
+      "done": false,
+      "acceptanceCriteria": [
+        "index.ts calibrate command imports and calls runCalibrate()",
+        "No more execSync('bash calibrate.sh') in calibrate command",
+        "All calibrate subcommands work: intention, technical, improve",
+        "Existing ralph calibrate tests still pass"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/tests/e2e/ralph.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-023",
+      "taskRef": "TASK-018",
+      "title": "Create post-iteration.ts with all functions",
+      "description": "Create post-iteration.ts with runPostIterationHook(), generateSummary(), writeDiaryEntry(), getFilesChanged() functions. Skip hook for supervised mode (no session ID). Use Haiku with timeout for summary generation. Write JSONL to logs/iterations.jsonl.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/post-iteration.ts exists",
+        "runPostIterationHook() only runs when sessionId provided (headless mode)",
+        "generateSummary() uses invokeClaudeHaiku() with timeout",
+        "writeDiaryEntry() appends JSON line to logs/iterations.jsonl",
+        "getFilesChanged() uses git diff + session log fallback"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/scripts/post-iteration-hook.sh",
+        "tools/src/commands/ralph/session.ts",
+        "tools/src/commands/ralph/claude.ts",
+        "docs/planning/schemas/iteration-diary.schema.json"
+      ]
+    },
+    {
+      "id": "SUB-024",
+      "taskRef": "TASK-019",
+      "title": "Create build.ts with core loop structure",
+      "description": "Create build.ts with BuildOptions interface and runBuild() async function. Implement main iteration loop: load subtasks, get next, track attempts with Map<string, number>, check max iterations, build prompt, invoke Claude based on mode.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/build.ts exists",
+        "BuildOptions interface has subtasksPath, maxIterations, mode, interactive, validateFirst",
+        "runBuild() loops until all subtasks done or max iterations exceeded",
+        "Attempt tracking uses Map<string, number> per subtask ID",
+        "Reloads subtasks.json after each iteration to check completion"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/scripts/build.sh",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/claude.ts",
+        "docs/planning/ralph-migration-implementation-plan.md"
+      ]
+    },
+    {
+      "id": "SUB-025",
+      "taskRef": "TASK-019",
+      "title": "Add hook integration and interactive pause to build.ts",
+      "description": "Add hook execution to build.ts: call executeHook('onMaxIterationsExceeded') when limit hit, call runPostIterationHook() after successful completion (headless only). Add interactive pause with promptContinue() between iterations when interactive=true.",
+      "done": false,
+      "acceptanceCriteria": [
+        "onMaxIterationsExceeded hook triggered when subtask exceeds max attempts",
+        "runPostIterationHook() called after subtask completion in headless mode",
+        "promptContinue() asks user before next iteration when interactive=true",
+        "User can abort with Ctrl+C or 'n' response",
+        "Non-interactive mode skips pause entirely"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/hooks.ts",
+        "tools/src/commands/ralph/post-iteration.ts"
+      ]
+    },
+    {
+      "id": "SUB-026",
+      "taskRef": "TASK-019",
+      "title": "Integrate build.ts into index.ts",
+      "description": "Update index.ts build command to call runBuild() instead of execSync to bash script. Map CLI options to BuildOptions: --headless → mode, --max-iterations → maxIterations, --interactive → interactive, --validate-first → validateFirst. Keep scripts/build.sh until final cleanup.",
+      "done": false,
+      "acceptanceCriteria": [
+        "index.ts build command imports and calls runBuild()",
+        "No more execSync('bash build.sh') in build command",
+        "All build flags work: --headless, --supervised, --max-iterations, --interactive",
+        "Existing ralph build tests still pass"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/tests/e2e/ralph.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-027",
+      "taskRef": "TASK-020",
+      "title": "Delete scripts/ directory",
+      "description": "Delete tools/src/commands/ralph/scripts/ directory containing build.sh, status.sh, calibrate.sh, post-iteration-hook.sh. Verify no remaining references to bash scripts in index.ts. Total removal: ~2262 lines of bash.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/scripts/ directory deleted",
+        "No execSync('bash ...') calls remain in ralph code",
+        "No references to .sh files in ralph index.ts",
+        "All existing tests still pass after deletion"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/tests/e2e/ralph.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-028",
+      "taskRef": "TASK-020",
+      "title": "Update documentation and run full verification",
+      "description": "Update tools/CLAUDE.md to reflect new TypeScript module structure. Update tools/README.md if needed. Run full test suite (bun test). Complete manual testing checklist from migration plan. Document any behavioral differences.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/CLAUDE.md documents new ralph/ module structure",
+        "All tests pass: bun test in tools/",
+        "Manual test: aaa ralph status displays correctly",
+        "Manual test: aaa ralph build --supervised runs interactively",
+        "Manual test: aaa ralph calibrate intention completes"
+      ],
+      "filesToRead": [
+        "tools/CLAUDE.md",
+        "tools/README.md",
+        "docs/planning/ralph-migration-implementation-plan.md"
+      ]
+    }
+  ]
+}
