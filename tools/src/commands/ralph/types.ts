@@ -21,7 +21,7 @@
 interface BuildOptions {
   /** Pause between iterations for user confirmation */
   interactive: boolean;
-  /** Maximum retry attempts per subtask */
+  /** Maximum iterations per subtask (0 = unlimited) */
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";

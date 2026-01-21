@@ -189,8 +189,8 @@ async function runBuild(
     const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
     attempts.set(currentSubtask.id, currentAttempts);
 
-    // Check if we've exceeded max iterations for this subtask
-    if (currentAttempts > maxIterations) {
+    // Check if we've exceeded max iterations for this subtask (0 = unlimited)
+    if (maxIterations > 0 && currentAttempts > maxIterations) {
       console.error(
         `\nError: Max iterations (${maxIterations}) exceeded for subtask: ${currentSubtask.id}`,
       );
@@ -207,10 +207,14 @@ async function runBuild(
     }
 
     // Display iteration header
+    const attemptDisplay =
+      maxIterations > 0
+        ? `${currentAttempts}/${maxIterations}`
+        : `${currentAttempts}`;
     console.log(
       `\n=== Build Iteration ${iteration} ` +
         `(Subtask: ${currentSubtask.id}, ` +
-        `Attempt: ${currentAttempts}/${maxIterations}, ` +
+        `Attempt: ${attemptDisplay}, ` +
         `${remaining} subtasks remaining) ===\n`,
     );
 

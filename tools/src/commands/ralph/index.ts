@@ -148,7 +148,7 @@ ralphCommand.addCommand(
       "Supervised mode: watch each iteration (default)",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .option("--max-iterations <n>", "Max retry attempts per subtask", "3")
+    .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
     .option("--validate-first", "Run pre-build validation before building")
     .action(async (options) => {
       const contextRoot = getContextRoot();
@@ -322,7 +322,6 @@ planCommand.addCommand(
   new Command("stories")
     .description("Plan stories for a milestone")
     .requiredOption("--milestone <name>", "Milestone name to plan stories for")
-    .option("-a, --auto", "Use auto mode (alias for --supervised)")
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
@@ -347,9 +346,7 @@ planCommand.addCommand(
 
       // Determine if using auto prompt (non-interactive generation)
       const isAutoMode =
-        options.auto === true ||
-        options.supervised === true ||
-        options.headless === true;
+        options.supervised === true || options.headless === true;
       const promptPath = getPromptPath(contextRoot, "stories", isAutoMode);
       const extraContext = `Planning stories for milestone: ${options.milestone}`;
 
@@ -362,8 +359,8 @@ planCommand.addCommand(
           promptPath,
           sessionName: "stories",
         });
-      } else if (options.auto === true || options.supervised === true) {
-        // Supervised mode (--auto or --supervised): user watches chat
+      } else if (options.supervised === true) {
+        // Supervised mode: user watches chat
         invokeClaudeChat(promptPath, "stories", extraContext);
       } else {
         // Interactive mode (default): full interactive session
@@ -380,7 +377,6 @@ planCommand.addCommand(
     )
     .option("--story <id>", "Story ID to plan tasks for")
     .option("--milestone <name>", "Milestone to plan tasks for (all stories)")
-    .option("-a, --auto", "Use auto mode (alias for --supervised)")
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
@@ -410,9 +406,7 @@ planCommand.addCommand(
 
       // Determine if using auto prompt
       const isAutoMode =
-        options.auto === true ||
-        options.supervised === true ||
-        options.headless === true;
+        options.supervised === true || options.headless === true;
 
       // Milestone mode
       if (hasMilestone) {
@@ -457,7 +451,7 @@ planCommand.addCommand(
           promptPath,
           sessionName: "tasks",
         });
-      } else if (options.auto === true || options.supervised === true) {
+      } else if (options.supervised === true) {
         invokeClaudeChat(promptPath, "tasks", extraContext);
       } else {
         invokeClaude(promptPath, "tasks", extraContext);

@@ -165,8 +165,6 @@ describe("ralph E2E", () => {
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
-      // Backward compatibility
-      expect(stdout).toContain("--auto");
     });
 
     test("ralph plan tasks --help shows mode flags", async () => {
@@ -178,8 +176,6 @@ describe("ralph E2E", () => {
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
-      // Backward compatibility
-      expect(stdout).toContain("--auto");
     });
 
     test("ralph plan subtasks --help shows mode flags", async () => {
