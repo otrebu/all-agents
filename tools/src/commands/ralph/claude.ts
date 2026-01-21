@@ -31,6 +31,18 @@ interface ClaudeResult {
 }
 
 /**
+ * Options for Haiku Claude invocation (lightweight model for summaries)
+ */
+interface HaikuOptions {
+  /** Maximum buffer size for stdout in bytes (default: 10MB) */
+  maxBuffer?: number;
+  /** The prompt to send to Claude Haiku */
+  prompt: string;
+  /** Timeout in milliseconds (default: 30000ms) */
+  timeout?: number;
+}
+
+/**
  * Options for headless Claude invocation
  */
 interface HeadlessOptions {
@@ -128,6 +140,72 @@ function invokeClaudeChat(
 }
 
 /**
+ * Invoke Claude Haiku for lightweight tasks like summary generation
+ *
+ * Uses claude-3-5-haiku model with configurable timeout. Designed for
+ * quick, low-cost operations where full Opus/Sonnet is overkill.
+ *
+ * @param options - HaikuOptions with prompt, optional timeout, and maxBuffer
+ * @returns The result string, or null if timed out/interrupted/failed
+ */
+function invokeClaudeHaiku(options: HaikuOptions): null | string {
+  const { maxBuffer = 10 * 1024 * 1024, prompt, timeout = 30_000 } = options;
+
+  // Haiku mode: -p with JSON output, specific model, and timeout
+  const result = spawnSync(
+    "claude",
+    [
+      "-p",
+      prompt,
+      "--model",
+      "claude-3-5-haiku-latest",
+      "--dangerously-skip-permissions",
+      "--output-format",
+      "json",
+    ],
+    {
+      encoding: "utf8",
+      maxBuffer,
+      stdio: ["inherit", "pipe", "inherit"],
+      timeout,
+    },
+  );
+
+  // Handle signal interruption (Ctrl+C)
+  if (result.signal === "SIGINT" || result.signal === "SIGTERM") {
+    console.log("\nHaiku session interrupted by user");
+    return null;
+  }
+
+  // Handle timeout (ETIMEDOUT) gracefully - return null instead of crashing
+  if (result.error !== undefined) {
+    const errorWithCode = result.error as { code?: string } & Error;
+    if (errorWithCode.code === "ETIMEDOUT") {
+      console.log(`Haiku invocation timed out after ${timeout}ms`);
+      return null;
+    }
+    console.error(`Failed to start Claude Haiku: ${result.error.message}`);
+    return null;
+  }
+
+  if (result.status !== 0) {
+    console.error(`Claude Haiku exited with code ${result.status}`);
+    return null;
+  }
+
+  // Parse JSON from stdout
+  try {
+    const output: ClaudeJsonOutput = JSON.parse(
+      result.stdout,
+    ) as ClaudeJsonOutput;
+    return output.result ?? null;
+  } catch {
+    console.error("Failed to parse Claude Haiku JSON output");
+    return null;
+  }
+}
+
+/**
  * Headless mode: Run Claude with -p and JSON output
  *
  * Uses stdio: ['inherit', 'pipe', 'inherit'] to separate stderr from stdout.
@@ -183,8 +261,10 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
 export {
   buildPrompt,
   type ClaudeResult,
+  type HaikuOptions,
   type HeadlessOptions,
   type HeadlessResult,
   invokeClaudeChat,
+  invokeClaudeHaiku,
   invokeClaudeHeadless,
 };

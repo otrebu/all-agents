@@ -4,6 +4,12 @@ import { execSync, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import {
+  buildPrompt,
+  invokeClaudeChat as invokeClaudeChatFromModule,
+  invokeClaudeHeadless as invokeClaudeHeadlessFromModule,
+} from "./claude";
+
 const DEFAULT_SUBTASKS_PATH = "subtasks.json";
 
 // =============================================================================
@@ -13,20 +19,9 @@ const DEFAULT_SUBTASKS_PATH = "subtasks.json";
 // =============================================================================
 
 /**
- * Claude JSON output structure
+ * Options for high-level invokeClaudeHeadlessWithLogging
  */
-interface ClaudeOutput {
-  duration_ms?: number;
-  num_turns?: number;
-  result?: string;
-  session_id?: string;
-  total_cost_usd?: number;
-}
-
-/**
- * Options for invokeClaudeHeadless
- */
-interface HeadlessOptions {
+interface HeadlessWithLoggingOptions {
   extraContext?: string;
   logFile: string;
   promptPath: string;
@@ -34,9 +29,9 @@ interface HeadlessOptions {
 }
 
 /**
- * Result from headless Claude invocation
+ * Result from headless Claude invocation with logging
  */
-interface HeadlessResult {
+interface HeadlessWithLoggingResult {
   costUsd: number;
   durationMs: number;
   numTurns: number;
@@ -45,81 +40,33 @@ interface HeadlessResult {
 }
 
 /**
- * Options for logging headless results
- */
-interface LogHeadlessOptions {
-  extraContext?: string;
-  logFile: string;
-  output: ClaudeOutput;
-  sessionName: string;
-}
-
-/**
- * Build prompt with optional context prefix
- */
-function buildFullPrompt(content: string, extraContext?: string): string {
-  if (extraContext !== undefined && extraContext !== "") {
-    return `${extraContext}\n\n${content}`;
-  }
-  return content;
-}
-
-/**
- * Supervised mode: Spawn interactive chat session
- * Uses stdio: inherit so user can watch AND type if needed
- * When chat exits (user quits or Claude finishes), function returns
+ * Supervised mode wrapper: Spawn interactive chat session
+ * Uses the claude.ts module function and exits process on failure.
  */
 function invokeClaudeChat(
   promptPath: string,
   sessionName: string,
   extraContext?: string,
 ): void {
-  if (!existsSync(promptPath)) {
-    console.error(`Prompt not found: ${promptPath}`);
-    process.exit(1);
-  }
-
-  const promptContent = readFileSync(promptPath, "utf8");
-
-  console.log(`Starting ${sessionName} session (supervised mode)...`);
-  console.log(`Prompt: ${promptPath}`);
-  if (extraContext !== undefined && extraContext !== "") {
-    console.log(`Context: ${extraContext}`);
-  }
-  console.log();
-
-  let fullPrompt = promptContent;
-  if (extraContext !== undefined && extraContext !== "") {
-    fullPrompt = `${extraContext}\n\n${promptContent}`;
-  }
-
-  // Chat mode (no -p), stdio: inherit so user can watch AND type
-  const result = spawnSync(
-    "claude",
-    [
-      "--append-system-prompt",
-      fullPrompt,
-      `Please begin the ${sessionName} session.`,
-    ],
-    { stdio: "inherit" },
+  const result = invokeClaudeChatFromModule(
+    promptPath,
+    sessionName,
+    extraContext,
   );
 
-  if (result.error !== undefined) {
-    console.error(`Failed to start Claude: ${result.error.message}`);
-    process.exit(1);
-  }
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
+  if (!result.success && !result.interrupted) {
+    process.exit(result.exitCode ?? 1);
   }
 }
 
 /**
- * Headless mode: Run Claude with -p and JSON output
- * Logs to file so user can see what happened
- * Returns parsed result for further processing
+ * Headless mode wrapper: Run Claude with JSON output and file logging
+ * Reads prompt from file, invokes Claude headless, and logs results.
+ * Exits process on failure.
  */
-function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult {
+function invokeClaudeHeadless(
+  options: HeadlessWithLoggingOptions,
+): HeadlessWithLoggingResult {
   const { extraContext, logFile, promptPath, sessionName } = options;
 
   if (!existsSync(promptPath)) {
@@ -128,7 +75,7 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult {
   }
 
   const promptContent = readFileSync(promptPath, "utf8");
-  const fullPrompt = buildFullPrompt(promptContent, extraContext);
+  const fullPrompt = buildPrompt(promptContent, extraContext);
 
   console.log(`Running ${sessionName} in headless mode...`);
   console.log(`Prompt: ${promptPath}`);
@@ -138,75 +85,43 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult {
   }
   console.log();
 
-  // Headless mode: -p with JSON output (50MB buffer for large outputs)
-  const result = spawnSync(
-    "claude",
-    [
-      "-p",
-      fullPrompt,
-      "--dangerously-skip-permissions",
-      "--output-format",
-      "json",
-    ],
-    { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 },
-  );
+  const result = invokeClaudeHeadlessFromModule({ prompt: fullPrompt });
 
-  if (result.error !== undefined) {
-    console.error(`Failed to start Claude: ${result.error.message}`);
+  if (result === null) {
+    console.error("Claude headless invocation failed or was interrupted");
     process.exit(1);
   }
 
-  if (result.status !== 0) {
-    console.error("Claude headless invocation failed");
-    console.error(result.stderr);
-    process.exit(result.status ?? 1);
-  }
-
-  const output: ClaudeOutput = JSON.parse(result.stdout) as ClaudeOutput;
-  logHeadlessResult({ extraContext, logFile, output, sessionName });
-
-  console.log(`Session completed: ${output.session_id ?? "unknown"}`);
-  console.log(
-    `Duration: ${Math.round((output.duration_ms ?? 0) / 1000)}s | Turns: ${output.num_turns ?? 0} | Cost: $${output.total_cost_usd ?? 0}`,
-  );
-  console.log();
-
-  return toHeadlessResult(output);
-}
-
-/**
- * Log headless session result to file
- */
-function logHeadlessResult(options: LogHeadlessOptions): void {
-  const { extraContext, logFile, output, sessionName } = options;
+  // Log to file
   const logDirectory = path.dirname(logFile);
   if (!existsSync(logDirectory)) {
     mkdirSync(logDirectory, { recursive: true });
   }
 
   const logEntry = {
-    costUsd: output.total_cost_usd ?? 0,
-    durationMs: output.duration_ms ?? 0,
+    costUsd: result.cost,
+    durationMs: result.duration,
     extraContext: extraContext ?? "",
-    numTurns: output.num_turns ?? 0,
-    result: output.result ?? "",
-    sessionId: output.session_id ?? "",
+    result: result.result,
+    sessionId: result.sessionId,
     sessionName,
     timestamp: new Date().toISOString(),
   };
   appendFileSync(logFile, `${JSON.stringify(logEntry)}\n`);
-}
 
-/**
- * Transform Claude output to HeadlessResult
- */
-function toHeadlessResult(output: ClaudeOutput): HeadlessResult {
+  console.log(`Session completed: ${result.sessionId || "unknown"}`);
+  console.log(
+    `Duration: ${Math.round(result.duration / 1000)}s | Cost: $${result.cost}`,
+  );
+  console.log();
+
   return {
-    costUsd: output.total_cost_usd ?? 0,
-    durationMs: output.duration_ms ?? 0,
-    numTurns: output.num_turns ?? 0,
-    result: output.result ?? "",
-    sessionId: output.session_id ?? "",
+    costUsd: result.cost,
+    durationMs: result.duration,
+    // numTurns not available from the module's HeadlessResult
+    numTurns: 0,
+    result: result.result,
+    sessionId: result.sessionId,
   };
 }
 
@@ -358,9 +273,12 @@ function invokeClaude(
 
   // Use spawnSync with argument array to avoid shell parsing entirely
   // This prevents issues with special characters like parentheses in the prompt
+  // --permission-mode bypassPermissions prevents inheriting plan mode from user settings
   const result = spawnSync(
     "claude",
     [
+      "--permission-mode",
+      "bypassPermissions",
       "--append-system-prompt",
       fullPrompt,
       `Please begin the ${sessionName} planning session following the instructions provided.`,
