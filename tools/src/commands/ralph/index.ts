@@ -572,17 +572,20 @@ function getReviewPromptPath(
   );
 }
 
-// ralph review stories <milestone> - review stories for a milestone
+// ralph review stories --milestone <path> - review stories for a milestone
 // Note: All review commands are supervised-only (no --headless) because
 // review is inherently about dialogue and feedback. See VISION.md Section 3.1.
 reviewCommand.addCommand(
   new Command("stories")
     .description("Review stories for a milestone (supervised only)")
-    .argument("<milestone>", "Milestone name to review stories for")
-    .action((milestone) => {
+    .requiredOption(
+      "--milestone <path>",
+      "Milestone path to review stories for",
+    )
+    .action((options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "stories", false);
-      const extraContext = `Reviewing stories for milestone: ${milestone}`;
+      const extraContext = `Reviewing stories for milestone: ${options.milestone}`;
       invokeClaudeChat(promptPath, "stories-review", extraContext);
     }),
 );
@@ -623,7 +626,7 @@ gapCommand.addCommand(
     }),
 );
 
-// ralph review gap stories <milestone> - stories gap analysis
+// ralph review gap stories --milestone <path> - stories gap analysis
 // Note: Gap analysis is supervised-only (no --headless) because it produces
 // questions requiring human judgment. See VISION.md Section 3.1.
 gapCommand.addCommand(
@@ -631,11 +634,14 @@ gapCommand.addCommand(
     .description(
       "Cold analysis of stories for gaps and risks (supervised only)",
     )
-    .argument("<milestone>", "Milestone name to analyze stories for")
-    .action((milestone) => {
+    .requiredOption(
+      "--milestone <path>",
+      "Milestone path to analyze stories for",
+    )
+    .action((options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "stories", true);
-      const extraContext = `Gap analysis of stories for milestone: ${milestone}`;
+      const extraContext = `Gap analysis of stories for milestone: ${options.milestone}`;
       invokeClaudeChat(promptPath, "stories-gap", extraContext);
     }),
 );

@@ -284,24 +284,24 @@ describe("ralph E2E", () => {
       expect(stdout).not.toContain("--headless");
     });
 
-    test("ralph review stories requires milestone argument", async () => {
+    test("ralph review stories requires milestone option", async () => {
       const { exitCode, stderr } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "stories"],
         { cwd: TOOLS_DIR, reject: false },
       );
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("missing required argument");
+      expect(stderr).toContain("required option '--milestone <path>'");
     });
 
-    test("ralph review gap stories requires milestone argument", async () => {
+    test("ralph review gap stories requires milestone option", async () => {
       const { exitCode, stderr } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "gap", "stories"],
         { cwd: TOOLS_DIR, reject: false },
       );
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("missing required argument");
+      expect(stderr).toContain("required option '--milestone <path>'");
     });
 
     test("ralph review tasks shows coming soon message", async () => {
