@@ -42,16 +42,16 @@ docs/planning/
   ├── VISION.md
   ├── ROADMAP.md
   └── milestones/
-        ├── mvp/
+        ├── 001-mvp/
         │     ├── stories/
         │     │     └── STORY-001-auth/
         │     │           └── subtasks.json (optional, story-scoped)
         │     ├── tasks/
         │     │     └── TASK-001-logging.md
         │     └── subtasks.json (optional, milestone-scoped)
-        ├── beta/
+        ├── 002-beta/
         │     └── stories/
-        └── bug-fixes/
+        └── 003-bug-fixes/
               └── stories/
 ```
 
@@ -100,17 +100,19 @@ Flexible scope—place at milestone level (build whole milestone) or story level
 
 Ralph supports three execution modes with increasing levels of autonomy:
 
-| Mode | Entry Point | What Happens | Claude Invocation | Trust Level |
-|------|-------------|--------------|-------------------|-------------|
-| **Interactive** | Skill (`/ralph plan`) | User in Claude Code, skill loads prompt, user chats | Skill (no subprocess) | Low (human in loop) |
-| **Supervised** | CLI (`aaa ralph --supervised`) | Bash loop of chat sessions, user watches, can participate | `claude` (chat mode, no `-p`) | Medium (human on loop) |
-| **Headless** | CLI (`aaa ralph --headless`) | `claude -p` with JSON output + file logging | `claude -p --output-format json` | High (human reviews logs) |
+| Mode | Invocation | Where Claude Runs | User Position |
+|------|------------|-------------------|---------------|
+| **Interactive** | Skill (`/ralph-plan`) | Claude IS the session | User talks TO Claude |
+| **Supervised** | CLI (`--supervised`) | CLI spawns subprocess | User WATCHES Claude |
+| **Headless** | CLI (`--headless`) | CLI spawns subprocess | User doesn't watch |
 
-**Key Distinctions:**
+**Mode Details:**
 
-- **Interactive vs Supervised**: Interactive is a skill (you're already in Claude Code). Supervised spawns chat sessions from CLI.
-- **Supervised vs Headless**: Supervised = real chat sessions (can type). Headless = prompt mode (`-p`), no chat possible.
-- **Headless has logging**: Even though it's autonomous, logs to file so you can see what's going on.
+- **Interactive**: Triggered by Claude Code skill. Claude reads workflow prompt files (`*-interactive.md`) and executes the workflow itself. Full Socratic dialogue, multi-turn conversation. User is IN the Claude Code session.
+
+- **Supervised**: CLI tool spawns Claude Code as subprocess, creating a NEW chat session. User watches terminal output, can type if needed. Uses auto prompts (`*-auto.md`).
+
+- **Headless**: CLI spawns Claude with JSON output capture. No user interaction expected. Post-iteration hooks run automatically. Best for CI/automation, background execution.
 
 **Trust Gradient:**
 
@@ -122,7 +124,6 @@ Interactive          Supervised          Headless
     │                    │                   │
     └─ Full chat         └─ Watches chat     └─ Reviews logs
        User participates    Can type if needed   JSON for tooling
-                            Next on exit
 ```
 
 **When to Use Each Mode:**
@@ -130,22 +131,68 @@ Interactive          Supervised          Headless
 | Mode | Use When |
 |------|----------|
 | **Interactive** (Skill) | You want to participate, explore, ask questions |
-| **Supervised** (CLI) | Process multiple items - watch each, intervene if needed, auto-advance |
+| **Supervised** (CLI) | Process multiple items - watch each, intervene if needed |
 | **Headless** (CLI) | CI/CD, overnight runs, batch processing |
 
 **Exception - Review Commands (Supervised Only):**
 
-All `ralph review *` commands are **supervised-only** - no headless mode. Rationale:
-- Review produces questions requiring human judgment ("Is this intentional?", "Should we split this?")
-- Feedback capture is complicated - headless output goes to logs where no one reads or acts on it
-- Human needs to be in the loop anyway to decide what to do with suggestions
-- This applies to: `review stories`, `review roadmap`, `review gap *`
+All `ralph review *` commands are **supervised-only**. Rationale:
+- Review produces questions requiring human judgment
+- Human needs to be in the loop to decide what to do with suggestions
 
-Future consideration: Could add `--fix` mode where review applies its own suggestions, but that's a higher trust level requiring more safeguards.
+For implementation patterns, see @context/blocks/construct/ralph-patterns.md.
 
-For implementation patterns and code examples, see @context/blocks/construct/ralph-patterns.md.
+### 3.2 Review vs Calibrate
 
-### Planning Mode
+| Term | Phase | Mental Model |
+|------|-------|--------------|
+| **Review** | Pre-implementation | Gatekeeper - "should we build this?" |
+| **Calibrate** | Post-implementation | Course-correction - "did we build what we intended?" |
+
+**Review Loop Pattern:** Auto-generate → Review → Proceed
+
+| Stage | Auto-generate | Review |
+|-------|---------------|--------|
+| Roadmap | `ralph plan roadmap` | `ralph review roadmap` |
+| Stories | `ralph plan stories` | `ralph review stories` |
+| Tasks | `ralph plan tasks` | `ralph review tasks` |
+| Subtasks | `ralph plan subtasks` | `ralph review subtasks` |
+
+**Review Commands:**
+
+All review commands are **supervised-only** (no `--headless`) because review produces questions requiring human judgment.
+
+```bash
+ralph review roadmap                           # Review roadmap quality
+ralph review stories --milestone <path>        # Review stories for milestone
+ralph review tasks --story <path>              # Review tasks for story
+ralph review subtasks [--subtasks <path>]      # Review subtask queue before build
+ralph review gap roadmap                       # Cold gap analysis of roadmap
+ralph review gap stories --milestone <path>    # Cold gap analysis of stories
+```
+
+**Review Prompt Patterns:**
+
+1. **Milestone Review Prompt** - Detailed walkthrough after roadmap draft:
+   - Show each milestone as-is
+   - Summarize understanding
+   - Validate dependencies and acceptance criteria
+   - Ask clarifying questions before moving on
+
+2. **Gap Analyzer Subagent** - Cold analysis with fresh eyes:
+   - Missing milestones/stories
+   - Dependency risks, wrong ordering
+   - Scope creep traps
+   - Technical risks, user journey gaps
+   - Compare artifact against parent (roadmap vs vision, stories vs milestone)
+
+3. **Chunked Presentation** - Present findings one at a time:
+   - "I'll show you one review point at a time. Ready?"
+   - Wait for acknowledgment before next finding
+   - User can push back on individual points
+   - Less cognitive load than dumping full review
+
+### 3.3 Planning Mode
 
 Human-guided with AI assistance. No code written. Spans: Vision → Roadmap → Milestone → Stories → Tasks → subtasks.json generation.
 
@@ -188,11 +235,19 @@ Two interfaces, same underlying prompts:
 
 **Auto mode**: AI reads upstream docs + codebase, generates best guess. Human reviews output.
 
+**Cascade mode** (`--cascade`): Full auto-generation through entire pipeline. Chains vision→roadmap→stories→tasks→subtasks with confirmation prompts between levels. Risk: massive generation without review. Requires `--force` to skip confirmations.
+
+```bash
+ralph plan --cascade                    # Full pipeline from vision
+ralph plan stories --cascade            # stories → tasks → subtasks
+ralph plan tasks --cascade --milestone  # tasks → subtasks for milestone
+```
+
 #### Prompts
 
 Each level needs two prompt types (except edges):
 - **Interactive prompt** - Socratic guidance, asks clarifying questions
-- **Auto prompt** - Reads context, generates artifact
+- **Auto prompt** - Reads context, generates artifact (mode-agnostic: supervised OR headless)
 
 | Level | Interactive Prompt | Auto Prompt |
 |-------|-------------------|-------------|
@@ -202,7 +257,27 @@ Each level needs two prompt types (except edges):
 | Tasks | `tasks-interactive` | `tasks-auto` |
 | Subtasks | - | `subtasks-auto` |
 
-**TODO:** Draft all 14 prompts (8 planning, 2 building, 3 calibration, 1 hook).
+**Prompt suffixes:**
+- `-interactive.md` = multi-turn Socratic dialogue
+- `-auto.md` = single-shot generation (mode-agnostic: supervised OR headless)
+
+#### Prompt Quality Guidelines
+
+All planning prompts should incorporate these patterns:
+
+1. **Incremental document creation** - Save sections as they're discussed, not big-bang at end. Crash/disconnect = partial progress, not total loss.
+
+2. **Handholding at completion** - After completing a document, offer:
+   - "Let's review it in detail together"
+   - "Let me spin up a subagent for gap analysis"
+
+3. **Regular validation checkpoints** - Don't just trust input. Offer: "Want me to spin up an Opus subagent to check if we're missing anything?" Use subagent with fresh context to avoid blind spots.
+
+4. **Scope creep guardrails** - Roadmap should stay at milestone/outcome level. When user drifts into story-level detail: "That's story-level detail - let's capture it and move on."
+
+5. **Web/browser integration** - Offer to inspect external resources: "Want to show me anything on the web? (competitor app, existing system, docs, mockups)" Use MCP tools to extract requirements from real examples.
+
+6. **Next steps guidance** - After completing any artifact, tell user what to run next: "Next: run `aaa ralph plan roadmap` to define milestones."
 
 #### Subtask Sizing
 
@@ -292,7 +367,7 @@ ralph build                      # unlimited iterations (default)
 **Progress file:** `PROGRESS.md` lives adjacent to `subtasks.json` (same folder).
 
 ```
-docs/planning/milestones/mvp/
+docs/planning/milestones/001-mvp/
 ├── subtasks.json
 ├── PROGRESS.md      # ← same folder
 └── stories/
@@ -328,6 +403,17 @@ Same as Planning - both available, kept DRY:
 2. **CLI** - `aaa ralph calibrate` calls Claude Code with same prompt
 
 CLI can call itself for end-to-end runs or one-off steps.
+
+**CLI uses real subcommands** (not fake `.argument()` pattern):
+
+```bash
+ralph calibrate intention              # Check intention drift
+ralph calibrate technical              # Check technical drift
+ralph calibrate improve                # Self-improvement analysis
+ralph calibrate all                    # Run all checks
+
+ralph calibrate intention --help       # Shows subcommand-specific help
+```
 
 #### Three Calibration Types
 
@@ -365,7 +451,14 @@ Analyzes agent sessions for inefficiencies.
 | Analyzes | Tool misuse, retries, wasted tokens, repeated patterns, wrong paths |
 | Output | Proposes changes to prompts, skills, agents, CLAUDE.md, AGENTS.md |
 | Risk | High - can affect everything since skills/agents reference prompts |
-| Control | Config controls propose-only vs auto-apply (default: propose) |
+
+**Control:** Config `selfImprovement.mode` controls behavior:
+
+| Mode | Description | Use When |
+|------|-------------|----------|
+| `suggest` | Creates task files for human review (default) | Building trust, new prompts, critical systems |
+| `autofix` | Applies improvements directly without approval | Mature systems, well-tested patterns |
+| `off` | Skips self-improvement analysis entirely | Quick iterations, cost reduction, debugging |
 
 **Approach:** LLM-as-judge with good prompt and context. See Section 8.4.
 
@@ -415,7 +508,7 @@ Centralized in `ralph.config.json`:
     "tasksToSubtasks": "auto",
     "preBuildDriftCheck": "auto",
     "driftTasks": "auto",
-    "selfImprovement": "always",
+    "selfImprovement": "suggest",
     "atomicDocChanges": "always",
     "llmJudgeSubjective": "auto"
   },
@@ -442,28 +535,39 @@ ralph calibrate --review     # ask for all approvals
 
 ### Hooks & Notifications
 
-Hooks enable human-on-the-loop checkpoints via `ralph.config.json`.
+Hooks enable human-on-the-loop checkpoints via `ralph.config.json`:
+
+```json
+{
+  "diary": { "enabled": true, "path": "logs/iterations.jsonl" },
+  "notifications": { "ntfy": { "server": "...", "topic": "..." } },
+  "defaults": { "actions": ["log", "diary"], "pause": "never" },
+  "events": {
+    "onMilestoneComplete": { "actions": ["notify"], "pause": "always" },
+    "onMaxIterationsExceeded": { "actions": ["notify"], "pause": "always" }
+  }
+}
+```
 
 **Events:**
 - `onIterationComplete` - After each subtask attempt (success or fail)
-- `onMilestoneComplete` - When all subtasks `done: true` (checked after each iteration)
+- `onMilestoneComplete` - When all subtasks `done: true`
 - `onValidationFail` - When build/lint/test fails
 - `onMaxIterationsExceeded` - When iteration limit hit for a subtask
 
 **Actions:**
-- `log` - Write to iteration diary
+- `log` - Write to stdout
+- `diary` - Append to iteration diary
 - `notify` - Send push notification
-- `pause` - Exit build loop, show what triggered pause (e.g., new tasks created), give user options to continue or review
+- `pause` - Exit build loop for user review
 
-**Notification provider:** ntfy (default)
+**Pause behavior:**
+- Hook pause timeout: 5 minutes (safety for CI)
+- Haiku summary: `claude-3-5-haiku-latest`, 60s timeout
 
-**Iteration diary:** Machine-readable log at `logs/iterations.jsonl`. Populated by Claude Code hook after each iteration. Includes LLM-generated summary (via haiku) of what happened.
+**Iteration diary:** Machine-readable log at `logs/iterations.jsonl`. Includes LLM-generated summary.
 
-```json
-{"subtaskId": "SUB-001", "sessionId": "abc123", "status": "completed", "summary": "Implemented JWT auth. Hit CORS issue, fixed with middleware.", "toolCalls": 42, "filesChanged": ["src/auth.ts"]}
-```
-
-**Status command** reads diary for recent activity, success rate, tool call stats.
+> **Note:** The `approvals` config block requires cascade mode (not yet implemented). See [ROADMAP.md](ROADMAP.md) for status.
 
 ## 6. Logging & Monitoring
 
@@ -481,43 +585,7 @@ session_id=$(echo "$result" | jq -r '.session_id')
 
 ## 7. Status & Next Steps
 
-### Current Status
-
-**Framework design: COMPLETE** ✅
-
-All core concepts, flows, and architecture are defined:
-
-| Component | Status |
-|-----------|--------|
-| Vocabulary & Hierarchy | ✅ Complete |
-| Folder Structure | ✅ Complete |
-| Subtasks Schema | ✅ Complete (`docs/planning/schemas/subtasks.schema.json`) |
-| Story Template | ✅ Complete (`context/blocks/docs/story-template.md`) |
-| Task Template | ✅ Complete (`context/blocks/docs/task-template.md`) |
-| Planning Mode | ✅ Complete (entry points, interfaces, automation levels) |
-| Building Mode | ✅ Complete (Ralph iteration loop, validation, retries) |
-| Calibration Mode | ✅ Complete (3 types, interfaces, output flow) |
-| Approval System | ✅ Complete (`ralph.config.json` structure) |
-| Logging & Monitoring | ✅ Complete (session IDs, progress file) |
-
-### Implementation TODOs
-
-These are implementation artifacts, not design blockers:
-
-1. **Draft 14 prompts** (8 planning, 2 building, 3 calibration, 1 hook)
-   - Start with `ralph-iteration.md` and `subtasks-auto.md`
-
-2. **Define self-improvement heuristics** (Calibration Mode)
-   - Concrete patterns for detecting tool misuse, wasted tokens, etc.
-
-3. **Implement `aaa ralph` CLI** commands:
-   - `ralph plan` - planning mode entry
-   - `ralph build` - building mode (Ralph iterations)
-   - `ralph calibrate` - calibration mode
-
-### Next Step
-
-**Begin implementation planning** - create Stories/Tasks for Ralph CLI in `aaa`.
+See [ROADMAP.md](ROADMAP.md) for implementation status and next steps.
 
 ## 8. Implementation Plan
 
@@ -549,7 +617,17 @@ context/workflows/ralph/
 
 **Format:** Plain markdown with file path references.
 
-**Templating note:** Planning/building/calibration prompts use `@path` references resolved by Claude Code - no preprocessing needed. Hook prompts (like `iteration-summary.md`) use `{{VAR}}` placeholders substituted by bash before calling Claude - these are programmatic, not interactive.
+**Templating: `@path` vs `{{VAR}}`**
+
+| Pattern | Use When | Examples |
+|---------|----------|----------|
+| `@path` references | Interactive sessions, exploration, large docs | Planning, building, calibration prompts |
+| `{{VAR}}` substitution | Programmatic calls, values known upfront | Hook prompts (iteration-summary) |
+
+**Why this split:**
+- **Interactive prompts** discover context through dialogue - injecting values upfront breaks the Socratic flow
+- **Hook prompts** are called programmatically with all values known - injection is more efficient and reliable
+- **Rule of thumb:** Substitute what Claude MUST know. Let Claude read what it MIGHT need.
 
 ```markdown
 ## Required Reading
@@ -570,31 +648,53 @@ Read these before proceeding.
 **Commands:**
 
 ```
-aaa ralph plan <level>     # Planning mode
-aaa ralph build            # Building mode (Ralph iterations)
-aaa ralph calibrate <type> # Calibration mode
-aaa ralph status           # Show current state
+aaa ralph plan <level>       # Planning mode
+aaa ralph build              # Building mode (Ralph iterations)
+aaa ralph calibrate <type>   # Calibration mode
+aaa ralph review <artifact>  # Review generated artifacts
+aaa ralph milestones         # List available milestones
+aaa ralph status             # Show current state
 ```
+
+**Execution mode options** (apply to most commands):
+
+| Option | Description |
+|--------|-------------|
+| `-s, --supervised` | Supervised mode: spawn chat, user watches (default for most) |
+| `-H, --headless` | Headless mode: JSON output + file logging |
 
 **Plan subcommands:**
 
 ```bash
-ralph plan vision              # Interactive only
-ralph plan roadmap             # Interactive (default) or --auto
-ralph plan stories             # Interactive (default) or --auto
-ralph plan tasks               # Interactive (default) or --auto
-ralph plan subtasks --auto     # Auto only (always requires --auto)
+ralph plan vision                                              # Interactive only (skill)
+ralph plan roadmap                                             # Default: supervised
+ralph plan stories --milestone <path>                          # Stories for a milestone
+ralph plan tasks --story <path>                                # Tasks for a story
+ralph plan tasks --milestone <path>                            # Tasks for all stories
+ralph plan subtasks --task <path>                              # Subtasks for single task
+ralph plan subtasks --story <path>                             # Subtasks for all tasks in story
+ralph plan subtasks --milestone <path>                         # Subtasks for all tasks in milestone
 ```
 
-**Plan options:**
+**Scope flags accept paths** (tab-completable):
 
-| Option | Description |
-|--------|-------------|
-| `--auto, -a` | Use auto mode (generate from upstream docs) |
-| `--milestone <name>` | Target milestone (e.g., `mvp`) |
-| `--story <id>` | Target story (e.g., `STORY-001`) |
-| `--task <id>` | Target task (e.g., `TASK-001`) |
-| `-p, --print` | Print prompt without executing |
+| Flag | Path Example |
+|------|--------------|
+| `--milestone <path>` | `docs/planning/milestones/001-mvp/` |
+| `--story <path>` | `docs/planning/milestones/001-mvp/stories/STORY-001/` |
+| `--task <path>` | `docs/planning/milestones/001-mvp/tasks/001-auth.md` |
+
+Output location inferred (subtasks.json adjacent to input).
+
+**Review subcommands** (supervised-only, no headless):
+
+```bash
+ralph review roadmap                                           # Review roadmap alignment
+ralph review stories --milestone <path>                        # Review stories for completeness
+ralph review tasks --story <path>                              # Review tasks for clarity
+ralph review subtasks [--subtasks <path>]                      # Review subtask queue before build
+ralph review gap stories --milestone <path>                    # Gap analysis
+```
 
 **Build options:**
 
@@ -602,7 +702,7 @@ ralph plan subtasks --auto     # Auto only (always requires --auto)
 |--------|-------------|
 | `--subtasks <path>` | Path to subtasks.json (default: `./subtasks.json`) |
 | `--max-iterations <n>` | Max iterations per subtask (default: 0 = unlimited) |
-| `--calibrate-every <n>` | Run calibration after N iterations (default: from config) |
+| `--calibrate-every <n>` | Run calibration after N iterations |
 | `--validate-first` | Run alignment check before building |
 | `-i, --interactive` | Pause after each iteration for review |
 | `-p, --print` | Print single iteration prompt, don't execute |
@@ -615,6 +715,14 @@ ralph calibrate technical      # Check technical drift
 ralph calibrate improve        # Analyze for self-improvement
 ralph calibrate all            # Run all checks
 ```
+
+**Calibrate options:**
+
+| Option | Description |
+|--------|-------------|
+| `--subtasks <path>` | Subtasks file path |
+| `--force` | Skip approval even if config says `always` |
+| `--review` | Require approval even if config says `auto` |
 
 **Global options:**
 
@@ -648,11 +756,22 @@ Config:    ralph.config.json (found)
 
 ```
 .claude/skills/
-├── ralph-plan/SKILL.md         # Planning workflows
-├── ralph-build/SKILL.md        # Building mode
-├── ralph-calibrate/SKILL.md    # Calibration checks
-└── ralph-status/SKILL.md       # Status reporting
+├── ralph-plan/SKILL.md         # Planning workflows (vision, roadmap, stories, tasks, subtasks)
+├── ralph-build/SKILL.md        # Building mode (iteration loop)
+├── ralph-calibrate/SKILL.md    # Calibration checks (intention, technical, improve)
+├── ralph-review/SKILL.md       # Review artifacts (stories, tasks, roadmap, subtasks, gap analysis)
+└── ralph-status/SKILL.md       # Status reporting (progress, iteration stats)
 ```
+
+**Skill descriptions:**
+
+| Skill | Trigger | What it does |
+|-------|---------|--------------|
+| `/ralph-plan` | "plan vision", "plan stories" | Interactive planning at any level |
+| `/ralph-build` | "run build", "start building" | Execute subtask iteration loop |
+| `/ralph-calibrate` | "check drift", "run calibration" | Analyze for drift and inefficiencies |
+| `/ralph-review` | "review stories", "gap analysis" | Review artifacts with fresh eyes |
+| `/ralph-status` | "show status", "build progress" | Display current state and stats |
 
 **Skill structure:**
 
@@ -716,7 +835,7 @@ tools/src/commands/ralph/
 ├── index.ts              # Registers "ralph" command, passes args to bash
 └── scripts/
     ├── ralph.sh          # Entrypoint, dispatches subcommands
-    ├── plan.sh           # ralph plan <level> [--auto]
+    ├── plan.sh           # ralph plan <level> [--supervised|--headless]
     ├── build.sh          # ralph build (iteration loop + progress writing)
     ├── calibrate.sh      # ralph calibrate <type>
     └── status.sh         # ralph status
@@ -784,8 +903,8 @@ esac
 | Command | Expected Output | Validation |
 |---------|-----------------|------------|
 | `ralph plan vision` | `VISION.md` created/updated | File exists, has required sections |
-| `ralph plan stories --auto` | `STORY-NNN.md` files | Files created, match template structure |
-| `ralph plan subtasks --auto` | `subtasks.json` | Valid JSON, passes schema validation |
+| `ralph plan stories --milestone milestones/001-mvp/` | `STORY-NNN.md` files | Files created, match template structure |
+| `ralph plan subtasks --task milestones/001-mvp/tasks/001.md` | `subtasks.json` | Valid JSON, passes schema validation |
 | `ralph build` | Updated `subtasks.json` + `PROGRESS.md` | `done: true` set, progress entry appended |
 | `ralph status` | stdout | Correct counts, valid format |
 
@@ -810,7 +929,7 @@ ralph status          # exits 0 (even with no subtasks)
 No fixtures - test against real planning structure:
 
 1. Create test milestone with sample task
-2. Run `ralph plan subtasks --auto`
+2. Run `ralph plan subtasks --task milestones/test/tasks/001.md`
 3. Verify subtasks.json is valid and sensible
 4. Run `ralph build --print` (dry run)
 5. Verify prompt includes correct context
@@ -899,41 +1018,45 @@ Before starting workstreams, ensure these are in place:
 - Prompts can evolve without code changes
 - Same bash + Claude pattern as other commands
 
-### 8.9 Interactive vs Single-Shot Mode
+### 8.9 Execution Mode Invocation Patterns
 
-**Two invocation patterns:**
+**Three invocation patterns:**
 
-#### Single-Shot (default for `--auto`)
+#### Interactive (skill, no CLI)
+
+- Used via `/ralph-plan` skill in Claude Code
+- Claude reads `*-interactive.md` prompts
+- Full Socratic dialogue, multi-turn
+
+#### Supervised (`--supervised`)
 
 ```bash
-# CLI passes prompt directly
+# CLI spawns chat session, user watches
+claude "$(cat $PROMPT_FILE)"
+```
+
+- Used for: planning commands by default
+- User can intervene if needed
+
+#### Headless (`--headless`)
+
+```bash
+# CLI passes prompt directly with JSON capture
 claude -p "$(cat $PROMPT_FILE)" --output-format json
 ```
 
-- Used for: auto-generation, build iterations
+- Used for: build iterations, CI/automation
 - One prompt → one response → done
-
-#### Multi-Turn Interactive (for planning without `--auto`)
-
-```bash
-# CLI launches interactive Claude Code session with prompt as initial context
-claude -p "$(cat context/workflows/ralph/planning/vision-interactive.md)"
-```
-
-- Used for: `ralph plan vision`, `ralph plan stories` (without `--auto`)
-- Full tool access (no restrictions)
-- Claude asks questions, user responds, iterates
-- User exits session manually when satisfied (Ctrl+C or `/exit`)
 
 **CLI flag behavior:**
 
-| Command | Mode |
-|---------|------|
-| `ralph plan vision` | Multi-turn interactive (always) |
-| `ralph plan stories` | Multi-turn interactive |
-| `ralph plan stories --auto` | Single-shot |
-| `ralph build` | Single-shot per iteration |
-| `ralph calibrate` | Single-shot |
+| Command | Default Mode |
+|---------|--------------|
+| `ralph plan vision` | Interactive only (skill) |
+| `ralph plan stories` | Supervised |
+| `ralph plan stories --headless` | Headless |
+| `ralph build` | Headless (per iteration) |
+| `ralph calibrate` | Headless |
 
 **Pre-build validation (`--validate-first`):**
 
@@ -962,15 +1085,19 @@ claude -p "$(cat $PROMPT)" \
 - Backpressure from validation (build/lint/test must pass)
 - Git provides rollback safety (each iteration = commit)
 
-**When to use:**
+**Permission model:**
 
-| Command | Permission Mode |
-|---------|----------------|
-| `ralph build` | `--dangerously-skip-permissions` (autonomous) |
-| `ralph build -i` | Same, but pauses between iterations |
-| `ralph plan --auto` | `--dangerously-skip-permissions` (single-shot) |
-| `ralph plan` (interactive) | Normal permissions (human in loop) |
-| `ralph calibrate` | `--dangerously-skip-permissions` (analysis only) |
+All modes use `--permission-mode bypassPermissions` for consistency. Safety comes from:
+- Iteration boundaries (not inline permission prompts)
+- Git rollback (each iteration = commit)
+- Validation gates (build/lint/test must pass)
+
+| Command | Permission Mode | Human Checkpoint |
+|---------|----------------|------------------|
+| `ralph build` | bypass | Between iterations (if `-i`) |
+| `ralph plan --supervised` | bypass | Real-time in chat |
+| `ralph plan --headless` | bypass | After generation (review command) |
+| `ralph calibrate` | bypass | After analysis |
 
 **Risk mitigation:**
 - Each iteration scoped to single subtask
@@ -1021,12 +1148,21 @@ SESSION_JSONL="$1"  # Path to session JSONL
   "sessionId": "abc123",
   "status": "completed|failed|retrying",
   "summary": "Implemented JWT auth endpoint. Hit CORS issue, fixed by adding middleware. Tests passing.",
+  "keyFindings": ["CORS issue required middleware fix", "All tests passing"],
   "toolCalls": 42,
-  "errors": 0,
+  "errors": ["CORS policy blocked request"],
   "filesChanged": ["src/auth.ts", "src/auth.test.ts"],
-  "duration": "4m32s"
+  "duration": 272000,
+  "iterationNum": 1,
+  "milestone": "mvp",
+  "taskRef": "TASK-001"
 }
 ```
+
+**Field types:**
+- `duration`: milliseconds (number) - display formatted as needed
+- `errors`: array of error messages (richer than count)
+- `keyFindings`: array of notable observations from iteration
 
 **Template:** `docs/planning/templates/iteration-diary.template.json`
 
@@ -1077,3 +1213,12 @@ ralph status
 # Success rate: 87% (last 24h)
 # Avg tool calls: 38/iteration
 ```
+
+### 8.12 Display/UX Guidelines
+
+Consistent terminal output for all Ralph commands:
+
+- **Progress bar:** 20-char visual `[████████░░░░] 60%`
+- **Colors:** green=done, red=failed, yellow=retrying
+- **Duration:** human-readable "1h 2m 3s"
+- **Markdown:** glow if available, plain fallback
