@@ -113,7 +113,10 @@
       "storyRef": null,
       "title": "Convert ralph review stories/tasks to use --milestone flag",
       "description": "Change `ralph review stories <milestone>` from positional arg to `--milestone <path>` flag. Change `ralph review gap stories <milestone>` similarly. Update invokeClaudeChat calls with new extraContext. Keep `ralph review roadmap` unchanged (no milestone arg).",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:45:00Z",
+      "commitHash": "54ff6ace73df616fadc6eb4e6eb7bd16a96ce5e0",
+      "sessionId": "ralph-build-2026-01-21-SUB017",
       "acceptanceCriteria": [
         "ralph review stories --milestone <path> works",
         "ralph review gap stories --milestone <path> works",

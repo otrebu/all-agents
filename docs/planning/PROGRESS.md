@@ -4,7 +4,7 @@
 
 **Story:** none
 **Task:** TASK-012 (CLI ergonomics fixes)
-**Status:** in progress (SUB-016 complete)
+**Status:** in progress (SUB-017 complete)
 
 ## Session Notes
 
@@ -13,6 +13,13 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-01-21
+
+#### SUB-017
+- **Problem:** `ralph review stories` and `ralph review gap stories` used positional arguments inconsistent with other ralph commands
+- **Changes:** Changed from `.argument("<milestone>")` to `.requiredOption("--milestone <path>")` for both commands; updated tests to expect new error message format
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Changed review stories and gap stories to use --milestone option
+  - `tools/tests/e2e/ralph.test.ts` - Updated test assertions for new error message
 
 #### SUB-016
 - **Problem:** `ralph plan subtasks` only accepted `--task` flag, missing `--story` and `--milestone` scope options
