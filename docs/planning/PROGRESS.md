@@ -4,7 +4,7 @@
 
 **Story:** none
 **Task:** TASK-012 (CLI ergonomics fixes)
-**Status:** in progress (SUB-019 complete)
+**Status:** in progress (SUB-020 complete)
 
 ## Session Notes
 
@@ -13,6 +13,14 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-01-21
+
+#### SUB-020
+- **Problem:** No way to automatically run calibration checks during long build loops
+- **Changes:** Added `--calibrate-every <n>` flag to ralph build command; when set, runCalibrate('all', ...) is called every N iterations; extracted runPeriodicCalibration helper for lint compliance
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Added --calibrate-every option, passed to BuildOptions
+  - `tools/src/commands/ralph/build.ts` - Import runCalibrate, add runPeriodicCalibration helper, call every N iterations
+  - `tools/src/commands/ralph/types.ts` - Added calibrateEvery field to BuildOptions
 
 #### SUB-019
 - **Problem:** `ralph build` defaulted to `--max-iterations 3` which was too restrictive; `--auto` flag on plan stories/tasks was redundant alias for `--supervised`

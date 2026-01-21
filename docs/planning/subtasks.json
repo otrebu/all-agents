@@ -176,7 +176,10 @@
       "storyRef": null,
       "title": "Add --calibrate-every flag to build command",
       "description": "Add `.option('--calibrate-every <n>', 'Run calibration every N iterations')` to ralph build command. In build.ts runBuild(), check iteration count and call runCalibrate('all', ...) when divisible by calibrateEvery. Pass calibrateEvery through BuildOptions type.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T13:15:00Z",
+      "commitHash": "f9c3c416362b036618864b754fb15dca11123b54",
+      "sessionId": "ralph-build-2026-01-21-SUB020",
       "acceptanceCriteria": [
         "ralph build --calibrate-every 5 --help works",
         "Calibration runs every N iterations during build",
