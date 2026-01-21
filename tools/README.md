@@ -584,8 +584,17 @@ tools/
 │   │   ├── gemini/
 │   │   ├── parallel-search/
 │   │   ├── ralph/          # Autonomous development framework
-│   │   │   ├── index.ts    # CLI command (plan, build, status, calibrate)
-│   │   │   └── scripts/    # build.sh, status.sh, calibrate.sh
+│   │   │   ├── index.ts    # CLI commands (plan, build, status, calibrate)
+│   │   │   ├── claude.ts   # Claude invocation helpers
+│   │   │   ├── types.ts    # Type definitions
+│   │   │   ├── config.ts   # Config + subtasks loading
+│   │   │   ├── session.ts  # Session file utilities
+│   │   │   ├── display.ts  # Terminal output utilities
+│   │   │   ├── hooks.ts    # Hook execution (log, notify, pause)
+│   │   │   ├── status.ts   # Status command
+│   │   │   ├── calibrate.ts # Calibrate command
+│   │   │   ├── build.ts    # Build loop
+│   │   │   └── post-iteration.ts # Post-iteration hook
 │   │   ├── setup/
 │   │   ├── story.ts
 │   │   ├── task.ts

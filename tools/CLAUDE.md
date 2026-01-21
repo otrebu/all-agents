@@ -35,6 +35,18 @@ tools/
 │   │   │   ├── types.ts          # 95L - separate justified
 │   │   │   ├── parallel-client.ts
 │   │   │   └── formatter.ts
+│   │   ├── ralph/                # Autonomous dev framework (TypeScript)
+│   │   │   ├── index.ts          # CLI commands (plan, build, status, calibrate)
+│   │   │   ├── claude.ts         # Claude invocation helpers
+│   │   │   ├── types.ts          # All type definitions
+│   │   │   ├── config.ts         # Config + subtasks loading
+│   │   │   ├── session.ts        # Session file utilities
+│   │   │   ├── display.ts        # Terminal output utilities
+│   │   │   ├── hooks.ts          # Hook execution (log, notify, pause)
+│   │   │   ├── status.ts         # Status command implementation
+│   │   │   ├── calibrate.ts      # Calibrate command implementation
+│   │   │   ├── build.ts          # Build loop implementation
+│   │   │   └── post-iteration.ts # Post-iteration hook logic
 │   │   └── setup/
 │   │       ├── index.ts
 │   │       └── utils.ts
