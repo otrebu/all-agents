@@ -238,7 +238,9 @@
       "taskRef": "TASK-018",
       "title": "Create post-iteration.ts with all functions",
       "description": "Create post-iteration.ts with runPostIterationHook(), generateSummary(), writeDiaryEntry(), getFilesChanged() functions. Skip hook for supervised mode (no session ID). Use Haiku with timeout for summary generation. Write JSONL to logs/iterations.jsonl.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T20:00:00Z",
+      "commitHash": "0556d0bb",
       "acceptanceCriteria": [
         "tools/src/commands/ralph/post-iteration.ts exists",
         "runPostIterationHook() only runs when sessionId provided (headless mode)",
