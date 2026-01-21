@@ -92,7 +92,10 @@
       "storyRef": null,
       "title": "Add --story and --milestone scope to plan subtasks",
       "description": "Extend `ralph plan subtasks` command in tools/src/commands/ralph/index.ts to accept --story <path> and --milestone <path> in addition to --task. Make --task|--story|--milestone mutually exclusive (require exactly one). Update extraContext to include the path. Infer output location from input path.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:28:03Z",
+      "commitHash": "abe0c3c2",
+      "sessionId": "ralph-build-2026-01-21-SUB016",
       "acceptanceCriteria": [
         "ralph plan subtasks --task <path> works",
         "ralph plan subtasks --story <path> works",

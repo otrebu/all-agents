@@ -4,7 +4,7 @@
 
 **Story:** none
 **Task:** TASK-012 (CLI ergonomics fixes)
-**Status:** pending (TASK-011 complete)
+**Status:** in progress (SUB-016 complete)
 
 ## Session Notes
 
@@ -13,6 +13,12 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-01-21
+
+#### SUB-016
+- **Problem:** `ralph plan subtasks` only accepted `--task` flag, missing `--story` and `--milestone` scope options
+- **Changes:** Added `--story <path>` and `--milestone <path>` options; made all three mutually exclusive (require exactly one); added error messages guiding correct usage
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Extended subtasks command with scope flags and validation
 
 #### SUB-015
 - **Problem:** Tests and CLI option descriptions still referenced old selfImprovement mode names (always/auto/never)
