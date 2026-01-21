@@ -9,6 +9,7 @@ import {
   invokeClaudeChat as invokeClaudeChatFromModule,
   invokeClaudeHeadless as invokeClaudeHeadlessFromModule,
 } from "./claude";
+import { runStatus } from "./status";
 
 const DEFAULT_SUBTASKS_PATH = "subtasks.json";
 
@@ -612,7 +613,6 @@ ralphCommand.addCommand(
     .description("Display current build status and progress")
     .argument("[subtasks-path]", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .action((subtasksPath) => {
-      const scriptPath = path.join(SCRIPTS_DIR, "status.sh");
       const contextRoot = getContextRoot();
 
       // Resolve subtasks path: if relative and not found at cwd, try relative to context root
@@ -624,22 +624,7 @@ ralphCommand.addCommand(
         }
       }
 
-      try {
-        execSync(
-          `bash "${scriptPath}" "${resolvedSubtasksPath}" "${contextRoot}"`,
-          { stdio: "inherit" },
-        );
-      } catch (error) {
-        const execError = error as { message?: string; status?: number };
-        console.error("\nError: Failed to get Ralph build status");
-        if (execError.status !== undefined && execError.status !== 0) {
-          console.error(`  Exit code: ${execError.status}`);
-        }
-        console.error(
-          "\nTroubleshooting:\n  - Ensure subtasks.json exists and is valid JSON\n  - Verify ralph.config.json is valid if present\n  - Check logs/iterations.jsonl format if present",
-        );
-        process.exit(1);
-      }
+      runStatus(resolvedSubtasksPath, contextRoot);
     }),
 );
 
