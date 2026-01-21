@@ -466,37 +466,86 @@ planCommand.addCommand(
 );
 
 // ralph plan subtasks - subtask generation (default: supervised)
+// Requires exactly one of: --task, --story, or --milestone to specify scope
 planCommand.addCommand(
   new Command("subtasks")
-    .description("Generate subtasks for a task")
-    .requiredOption("--task <id>", "Task ID to generate subtasks for")
+    .description(
+      "Generate subtasks for a task, story, or milestone (requires one scope flag)",
+    )
+    .option("--task <path>", "Task file path to generate subtasks for")
+    .option("--story <path>", "Story path to generate subtasks for")
+    .option("--milestone <path>", "Milestone path to generate subtasks for")
     .option(
       "-s, --supervised",
       "Supervised mode: watch chat, can intervene (default)",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
+      const hasTask = options.task !== undefined;
+      const hasStory = options.story !== undefined;
+      const hasMilestone = options.milestone !== undefined;
+      const scopeCount = [hasTask, hasStory, hasMilestone].filter(
+        Boolean,
+      ).length;
+
+      // Validate: require exactly one scope flag
+      if (scopeCount === 0) {
+        console.error(
+          "Error: Must specify exactly one of --task, --story, or --milestone",
+        );
+        console.log("\nUsage:");
+        console.log(
+          "  aaa ralph plan subtasks --task <path>       # Single task",
+        );
+        console.log(
+          "  aaa ralph plan subtasks --story <path>      # All tasks in story",
+        );
+        console.log(
+          "  aaa ralph plan subtasks --milestone <path>  # All tasks in milestone",
+        );
+        process.exit(1);
+      }
+      if (scopeCount > 1) {
+        console.error(
+          "Error: Cannot specify multiple scope flags (--task, --story, --milestone)",
+        );
+        process.exit(1);
+      }
+
       const contextRoot = getContextRoot();
       // Subtasks always uses auto prompt (never interactive per VISION.md)
       const promptPath = getPromptPath(contextRoot, "subtasks", true);
-      const extraContext = `Generating subtasks for task: ${options.task}`;
 
-      // Determine execution mode (default to supervised for subtasks)
-      if (options.headless === true) {
-        const logFile = path.join(
-          contextRoot,
-          "logs/ralph-plan-subtasks.jsonl",
-        );
-        invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "subtasks",
-        });
-      } else {
-        // Default: supervised mode (user watches)
-        invokeClaudeChat(promptPath, "subtasks", extraContext);
+      // Helper to invoke Claude based on mode
+      function invoke(extraContext: string): void {
+        if (options.headless === true) {
+          const logFile = path.join(
+            contextRoot,
+            "logs/ralph-plan-subtasks.jsonl",
+          );
+          invokeClaudeHeadless({
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "subtasks",
+          });
+        } else {
+          // Default: supervised mode (user watches)
+          invokeClaudeChat(promptPath, "subtasks", extraContext);
+        }
       }
+
+      // Handle each scope type (exactly one is true after validation)
+      if (hasTask) {
+        invoke(`Generating subtasks for task: ${options.task}`);
+        return;
+      }
+      if (hasStory) {
+        invoke(`Generating subtasks for story: ${options.story}`);
+        return;
+      }
+      // hasMilestone must be true at this point
+      invoke(`Generating subtasks for milestone: ${options.milestone}`);
     }),
 );
 
