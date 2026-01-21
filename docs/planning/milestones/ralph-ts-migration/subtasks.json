@@ -342,7 +342,9 @@
       "taskRef": "TASK-020",
       "title": "Update documentation and run full verification",
       "description": "Update tools/CLAUDE.md to reflect new TypeScript module structure. Update tools/README.md if needed. Run full test suite (bun test). Complete manual testing checklist from migration plan. Document any behavioral differences.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:45:00Z",
+      "commitHash": "88061290",
       "acceptanceCriteria": [
         "tools/CLAUDE.md documents new ralph/ module structure",
         "All tests pass: bun test in tools/",
