@@ -8,9 +8,20 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 /**
+ * Claude JSON output structure (internal)
+ */
+interface ClaudeJsonOutput {
+  duration_ms?: number;
+  num_turns?: number;
+  result?: string;
+  session_id?: string;
+  total_cost_usd?: number;
+}
+
+/**
  * Result from invoking Claude in chat/supervised mode
  */
-export interface ClaudeResult {
+interface ClaudeResult {
   /** The process exit code (null if interrupted by signal) */
   exitCode: null | number;
   /** Whether the session was interrupted by SIGINT/SIGTERM (Ctrl+C) */
@@ -20,9 +31,33 @@ export interface ClaudeResult {
 }
 
 /**
+ * Options for headless Claude invocation
+ */
+interface HeadlessOptions {
+  /** Maximum buffer size for stdout in bytes (default: 50MB) */
+  maxBuffer?: number;
+  /** The prompt to send to Claude */
+  prompt: string;
+}
+
+/**
+ * Result from headless Claude invocation
+ */
+interface HeadlessResult {
+  /** Total cost in USD */
+  cost: number;
+  /** Duration in milliseconds */
+  duration: number;
+  /** The result/response from Claude */
+  result: string;
+  /** Session ID from Claude */
+  sessionId: string;
+}
+
+/**
  * Build prompt with optional context prefix
  */
-export function buildPrompt(content: string, extraContext?: string): string {
+function buildPrompt(content: string, extraContext?: string): string {
   if (extraContext !== undefined && extraContext !== "") {
     return `${extraContext}\n\n${content}`;
   }
@@ -39,7 +74,7 @@ export function buildPrompt(content: string, extraContext?: string): string {
  * @param extraContext - Optional context to prepend to the prompt
  * @returns ClaudeResult with success, interrupted, and exitCode fields
  */
-export function invokeClaudeChat(
+function invokeClaudeChat(
   promptPath: string,
   sessionName: string,
   extraContext?: string,
@@ -91,3 +126,65 @@ export function invokeClaudeChat(
     success: result.status === 0,
   };
 }
+
+/**
+ * Headless mode: Run Claude with -p and JSON output
+ *
+ * Uses stdio: ['inherit', 'pipe', 'inherit'] to separate stderr from stdout.
+ * This is CRITICAL for JSON parsing - stderr messages (progress, warnings)
+ * would contaminate stdout and break JSON.parse().
+ *
+ * @param options - HeadlessOptions with prompt and optional maxBuffer
+ * @returns HeadlessResult with session info, or null if interrupted/failed
+ */
+function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
+  const { maxBuffer = 50 * 1024 * 1024, prompt } = options;
+
+  // Headless mode: -p with JSON output
+  // CRITICAL: Use ['inherit', 'pipe', 'inherit'] to separate stderr from stdout
+  // - stdin: inherit (allow input if needed)
+  // - stdout: pipe (capture for JSON parsing)
+  // - stderr: inherit (show progress to user, don't mix with JSON)
+  const result = spawnSync(
+    "claude",
+    ["-p", prompt, "--dangerously-skip-permissions", "--output-format", "json"],
+    { encoding: "utf8", maxBuffer, stdio: ["inherit", "pipe", "inherit"] },
+  );
+
+  // Handle signal interruption (Ctrl+C)
+  if (result.signal === "SIGINT" || result.signal === "SIGTERM") {
+    console.log("\nSession interrupted by user");
+    return null;
+  }
+
+  if (result.error !== undefined) {
+    console.error(`Failed to start Claude: ${result.error.message}`);
+    return null;
+  }
+
+  if (result.status !== 0) {
+    console.error(`Claude exited with code ${result.status}`);
+    return null;
+  }
+
+  // Parse JSON from stdout (now clean without stderr contamination)
+  const output: ClaudeJsonOutput = JSON.parse(
+    result.stdout,
+  ) as ClaudeJsonOutput;
+
+  return {
+    cost: output.total_cost_usd ?? 0,
+    duration: output.duration_ms ?? 0,
+    result: output.result ?? "",
+    sessionId: output.session_id ?? "",
+  };
+}
+
+export {
+  buildPrompt,
+  type ClaudeResult,
+  type HeadlessOptions,
+  type HeadlessResult,
+  invokeClaudeChat,
+  invokeClaudeHeadless,
+};
