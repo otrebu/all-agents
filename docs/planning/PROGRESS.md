@@ -14,6 +14,12 @@
 
 ### 2026-01-21
 
+#### SUB-014
+- **Problem:** VISION.md lacked documentation of the new selfImprovement mode values (suggest/autofix/off)
+- **Changes:** Added mode table to Self-Improvement section under Calibration Mode; updated example config to use 'suggest' instead of 'always'
+- **Files:**
+  - `docs/planning/VISION.md` - Added mode table with descriptions and use cases
+
 #### SUB-013
 - **Problem:** calibrate.ts still used old mode names (always/auto/never) after schema/types were updated
 - **Changes:** Updated all mode references in calibrate.ts to use new names (suggest/autofix/off)

@@ -53,7 +53,9 @@
       "storyRef": null,
       "title": "Add mode table to VISION.md",
       "description": "Add a mode table to Section 3 (Calibration Mode) in docs/planning/VISION.md documenting the three selfImprovement modes: suggest (creates task files for review), autofix (applies changes directly), off (skips analysis). Include when to use each mode.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:15:45Z",
+      "commitHash": "c6cade632bde599b957448a5a9b17ae0c0c5aab4",
       "acceptanceCriteria": [
         "VISION.md has mode table in Section 3",
         "Table lists suggest, autofix, off modes",
