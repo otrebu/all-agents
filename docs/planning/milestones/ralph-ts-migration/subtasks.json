@@ -174,7 +174,9 @@
       "taskRef": "TASK-016",
       "title": "Create status.ts and integrate into index.ts",
       "description": "Create status.ts with runStatus() function. Display: config status, milestone name, progress bar, last completed subtask, next pending subtask, iteration stats. Update index.ts status command to call runStatus() instead of execSync to bash script. Keep scripts/status.sh until final cleanup.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T17:00:00Z",
+      "commitHash": "1c1f0bdc",
       "acceptanceCriteria": [
         "tools/src/commands/ralph/status.ts exists with runStatus()",
         "Output matches current scripts/status.sh behavior",
