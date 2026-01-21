@@ -13,12 +13,20 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import * as readline from "node:readline";
 
 import type { BuildOptions } from "./types";
 
 import { buildPrompt, invokeClaudeChat, invokeClaudeHeadless } from "./claude";
-import { countRemaining, getNextSubtask, loadSubtasksFile } from "./config";
+import {
+  countRemaining,
+  getMilestoneFromSubtasks,
+  getNextSubtask,
+  loadSubtasksFile,
+} from "./config";
 import { renderMarkdown } from "./display";
+import { executeHook } from "./hooks";
+import { runPostIterationHook } from "./post-iteration";
 
 // =============================================================================
 // Constants
@@ -29,7 +37,7 @@ const ITERATION_PROMPT_PATH =
   "context/workflows/ralph/building/ralph-iteration.md";
 
 // =============================================================================
-// Build Loop Implementation
+// Interactive Prompts
 // =============================================================================
 
 /**
@@ -71,6 +79,50 @@ After completing ONE subtask:
   return buildPrompt(promptContent, extraContext);
 }
 
+// =============================================================================
+// Build Loop Implementation
+// =============================================================================
+
+/**
+ * Prompt user to continue to next iteration
+ *
+ * Checks process.stdin.isTTY before prompting:
+ * - TTY mode: Shows prompt and waits for user response
+ * - Non-TTY mode: Returns true (continue) without blocking
+ *
+ * @returns Promise resolving to true to continue, false to abort
+ */
+async function promptContinue(): Promise<boolean> {
+  // Check if running in TTY mode
+  if (!process.stdin.isTTY) {
+    console.log("Non-interactive mode detected, continuing automatically...");
+    return true;
+  }
+
+  // Interactive prompt using readline
+  // eslint-disable-next-line promise/avoid-new -- readline requires manual Promise wrapping
+  return new Promise<boolean>((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.question(
+      "Continue to next iteration? [Y/n] (Ctrl+C to abort): ",
+      (answer) => {
+        rl.close();
+        const normalized = answer.trim().toLowerCase();
+        // Default to yes (empty answer), explicit 'n' or 'no' to abort
+        if (normalized === "n" || normalized === "no") {
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      },
+    );
+  });
+}
+
 /**
  * Run the build loop
  *
@@ -79,9 +131,12 @@ After completing ONE subtask:
  *
  * @param options - Build configuration options
  * @param contextRoot - Repository root path
- * @returns void - Synchronous function that runs the build loop
+ * @returns Promise<void> - Async function that runs the build loop
  */
-function runBuild(options: BuildOptions, contextRoot: string): void {
+async function runBuild(
+  options: BuildOptions,
+  contextRoot: string,
+): Promise<void> {
   const {
     interactive: isInteractive,
     maxIterations,
@@ -141,8 +196,13 @@ function runBuild(options: BuildOptions, contextRoot: string): void {
       );
       console.error(`Subtask failed after ${maxIterations} attempts`);
 
-      // Hook execution will be added in SUB-025
-      // For now, just exit with error
+      // Execute onMaxIterationsExceeded hook
+      // eslint-disable-next-line no-await-in-loop -- Hook must complete before exit
+      await executeHook("onMaxIterationsExceeded", {
+        message: `Subtask ${currentSubtask.id} failed after ${maxIterations} attempts`,
+        subtaskId: currentSubtask.id,
+      });
+
       process.exit(1);
     }
 
@@ -178,8 +238,21 @@ function runBuild(options: BuildOptions, contextRoot: string): void {
       const costFormatted = result.cost.toFixed(2);
       console.log(`--- Stats: ${durationSeconds}s | $${costFormatted} ---\n`);
 
-      // Post-iteration hook will be added in SUB-025
-      // Session ID is available in result.sessionId
+      // Post-iteration hook for headless mode
+      // Reload subtasks to check if current one was completed
+      const postIterationSubtasks = loadSubtasksFile(subtasksPath);
+      const postRemaining = countRemaining(postIterationSubtasks.subtasks);
+      const didComplete = postRemaining < remaining;
+      const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
+
+      runPostIterationHook({
+        iterationNumber: currentAttempts,
+        milestone,
+        repoRoot: contextRoot,
+        sessionId: result.sessionId,
+        status: didComplete ? "completed" : "retrying",
+        subtask: currentSubtask,
+      });
     } else {
       // Supervised mode - user watches and can type
       console.log(
@@ -200,20 +273,24 @@ function runBuild(options: BuildOptions, contextRoot: string): void {
       console.log("\nSupervised session completed");
     }
 
-    // Reload subtasks to check if current one was completed
-    const updatedSubtasks = loadSubtasksFile(subtasksPath);
-    const newRemaining = countRemaining(updatedSubtasks.subtasks);
+    // For supervised mode, reload subtasks to check if current one was completed
+    if (mode === "supervised") {
+      const updatedSubtasks = loadSubtasksFile(subtasksPath);
+      const newRemaining = countRemaining(updatedSubtasks.subtasks);
 
-    if (newRemaining < remaining) {
-      console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
-
-      // Post-iteration hook will be added in SUB-025
+      if (newRemaining < remaining) {
+        console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
+      }
     }
 
-    // Interactive mode: prompt for continuation (will be enhanced in SUB-025)
+    // Interactive mode: prompt for continuation
     if (isInteractive) {
-      // For now, just continue - full implementation in SUB-025
-      console.log("\nInteractive mode: continuing to next iteration...");
+      // eslint-disable-next-line no-await-in-loop -- Interactive prompt must block
+      const shouldContinue = await promptContinue();
+      if (!shouldContinue) {
+        console.log("\nBuild loop aborted by user");
+        return;
+      }
     }
 
     iteration += 1;
