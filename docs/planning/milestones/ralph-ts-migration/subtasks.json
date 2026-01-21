@@ -323,7 +323,9 @@
       "taskRef": "TASK-020",
       "title": "Delete scripts/ directory",
       "description": "Delete tools/src/commands/ralph/scripts/ directory containing build.sh, status.sh, calibrate.sh, post-iteration-hook.sh. Verify no remaining references to bash scripts in index.ts. Total removal: ~2262 lines of bash.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:30:00Z",
+      "commitHash": "c41c0d94",
       "acceptanceCriteria": [
         "tools/src/commands/ralph/scripts/ directory deleted",
         "No execSync('bash ...') calls remain in ralph code",
