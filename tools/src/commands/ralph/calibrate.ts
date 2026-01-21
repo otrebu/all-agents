@@ -34,9 +34,9 @@ import {
 interface CalibrateOptions {
   /** Context root path (repo root) */
   contextRoot: string;
-  /** Skip approval even if config says 'always' */
+  /** Skip approval even if config says 'suggest' */
   force?: boolean;
-  /** Require approval even if config says 'auto' */
+  /** Require approval even if config says 'autofix' */
   review?: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
@@ -213,12 +213,11 @@ function runImproveCheck(options: CalibrateOptions): boolean {
   // Load config and check selfImprovement mode
   const configPath = path.join(contextRoot, "ralph.config.json");
   const config = loadRalphConfig(configPath);
-  // Mode could be "always", "auto", or potentially "never" (not in schema but bash script handles it)
-  const selfImproveMode = (config.selfImprovement?.mode ?? "always") as string;
+  // Mode is "suggest", "autofix", or "off"
+  const selfImproveMode = (config.selfImprovement?.mode ?? "suggest") as string;
 
-  // Check for "never" mode - skip analysis entirely
-  // Note: "never" is not in the schema but is supported for backward compatibility
-  if (selfImproveMode === "never") {
+  // Check for "off" mode - skip analysis entirely
+  if (selfImproveMode === "off") {
     console.log("Self-improvement analysis is disabled in ralph.config.json");
     return true;
   }
@@ -250,17 +249,17 @@ Config file: @${configPath}
 Session IDs to analyze: ${sessionIds}
 
 Self-improvement mode: ${selfImproveMode}
-- If 'always': Create task files only, require user approval before applying changes
-- If 'auto': Apply changes directly to target files (CLAUDE.md, prompts, skills) without creating task files
+- If 'suggest': Create task files only, require user approval before applying changes
+- If 'autofix': Apply changes directly to target files (CLAUDE.md, prompts, skills) without creating task files
 
 IMPORTANT: You MUST output a readable markdown summary to stdout following the format in the self-improvement.md prompt.
 The summary should include:
 - Session ID and subtask title
 - Findings organized by inefficiency type (Tool Misuse, Wasted Reads, Backtracking, Excessive Iterations)
 - Recommendations for improvements
-- Reference to any task files created (in 'always' mode) or changes applied (in 'auto' mode)
+- Reference to any task files created (in 'suggest' mode) or changes applied (in 'autofix' mode)
 
-TASK FILE CREATION (when mode is 'always' and inefficiencies are found):
+TASK FILE CREATION (when mode is 'suggest' and inefficiencies are found):
 When you find inefficiencies that warrant improvement, create task files at:
   docs/planning/tasks/self-improve-YYYY-MM-DD-N.md
 where YYYY-MM-DD is today's date and N is a sequential number (01, 02, etc).
@@ -359,8 +358,8 @@ Context files:
 @${path.join(contextRoot, "docs/planning/VISION.md")}
 
 Approval mode: ${approvalMode}
-- If 'auto': Create drift task files automatically
-- If 'always' or 'review': Show findings and ask for approval before creating task files
+- If 'autofix': Create drift task files automatically
+- If 'suggest' or 'review': Show findings and ask for approval before creating task files
 - If 'force': Create drift task files without asking
 
 Analyze all completed subtasks with commitHash and output a summary to stdout.
