@@ -303,7 +303,9 @@
       "taskRef": "TASK-019",
       "title": "Integrate build.ts into index.ts",
       "description": "Update index.ts build command to call runBuild() instead of execSync to bash script. Map CLI options to BuildOptions: --headless → mode, --max-iterations → maxIterations, --interactive → interactive, --validate-first → validateFirst. Keep scripts/build.sh until final cleanup.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:00:00Z",
+      "commitHash": "cc85dd21",
       "acceptanceCriteria": [
         "index.ts build command imports and calls runBuild()",
         "No more execSync('bash build.sh') in build command",
