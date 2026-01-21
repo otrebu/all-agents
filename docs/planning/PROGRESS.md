@@ -3,8 +3,8 @@
 ## Current Focus
 
 **Story:** none
-**Task:** TASK-011 (rename self-improvement modes)
-**Status:** in progress
+**Task:** TASK-012 (CLI ergonomics fixes)
+**Status:** pending (TASK-011 complete)
 
 ## Session Notes
 
@@ -13,6 +13,13 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-01-21
+
+#### SUB-015
+- **Problem:** Tests and CLI option descriptions still referenced old selfImprovement mode names (always/auto/never)
+- **Changes:** Updated ralph.test.ts to use 'suggest' instead of 'always' and 'off' instead of 'never'; updated index.ts --force and --review option help text to use new mode names
+- **Files:**
+  - `tools/tests/e2e/ralph.test.ts` - Updated config fixture and assertions
+  - `tools/src/commands/ralph/index.ts` - Updated option descriptions
 
 #### SUB-014
 - **Problem:** VISION.md lacked documentation of the new selfImprovement mode values (suggest/autofix/off)

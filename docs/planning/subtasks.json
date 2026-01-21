@@ -72,7 +72,10 @@
       "storyRef": null,
       "title": "Update tests and verify typecheck",
       "description": "Update tools/tests/e2e/ralph.test.ts to use 'suggest' instead of 'always' in test fixtures. Run bun run typecheck to verify all type changes are consistent. Fix any type errors that arise from the mode rename.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:30:00Z",
+      "commitHash": "e8a5f188bbfff5fd09f32e2b0beb893e193c7305",
+      "sessionId": "ralph-build-2026-01-21-SUB015",
       "acceptanceCriteria": [
         "ralph.test.ts uses 'suggest' in config fixtures",
         "bun run typecheck passes with no errors",
