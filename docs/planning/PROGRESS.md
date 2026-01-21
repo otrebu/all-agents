@@ -14,6 +14,12 @@
 
 ### 2026-01-21
 
+#### SUB-013
+- **Problem:** calibrate.ts still used old mode names (always/auto/never) after schema/types were updated
+- **Changes:** Updated all mode references in calibrate.ts to use new names (suggest/autofix/off)
+- **Files:**
+  - `tools/src/commands/ralph/calibrate.ts` - Updated doc comments, default value, mode checks, and prompt text
+
 #### SUB-012
 - **Problem:** selfImprovement.mode used confusing names (always/auto) that didn't clearly convey their meaning
 - **Changes:** Renamed mode values to suggest/autofix/off across schema, types, and config default

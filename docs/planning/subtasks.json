@@ -32,7 +32,9 @@
       "storyRef": null,
       "title": "Update calibrate.ts to use new mode names",
       "description": "Update tools/src/commands/ralph/calibrate.ts to use new mode names: change 'always' checks to 'suggest', 'auto' to 'autofix', 'never' to 'off'. Update console.log messages and prompt text to use new terminology. Remove the comment about 'never' not being in schema since 'off' will now be in schema.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T23:11:47Z",
+      "commitHash": "218e42bca2c05ca76e61a636caa37063698fd379",
       "acceptanceCriteria": [
         "Mode 'off' check replaces 'never' check",
         "Mode 'suggest' logic matches old 'always' behavior",
