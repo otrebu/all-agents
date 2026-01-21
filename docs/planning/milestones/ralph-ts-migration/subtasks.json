@@ -282,7 +282,9 @@
       "taskRef": "TASK-019",
       "title": "Add hook integration and interactive pause to build.ts",
       "description": "Add hook execution to build.ts: call executeHook('onMaxIterationsExceeded') when limit hit, call runPostIterationHook() after successful completion (headless only). Add interactive pause with promptContinue() between iterations when interactive=true.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T22:00:00Z",
+      "commitHash": "0fb57942",
       "acceptanceCriteria": [
         "onMaxIterationsExceeded hook triggered when subtask exceeds max attempts",
         "runPostIterationHook() called after subtask completion in headless mode",
