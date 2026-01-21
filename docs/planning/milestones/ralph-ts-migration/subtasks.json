@@ -218,7 +218,9 @@
       "taskRef": "TASK-017",
       "title": "Integrate calibrate.ts into index.ts",
       "description": "Update index.ts calibrate command to call runCalibrate() instead of execSync to bash script. Handle all subcommands (intention, technical, improve). Keep scripts/calibrate.sh until final cleanup.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T19:00:00Z",
+      "commitHash": "20fcf41f",
       "acceptanceCriteria": [
         "index.ts calibrate command imports and calls runCalibrate()",
         "No more execSync('bash calibrate.sh') in calibrate command",
