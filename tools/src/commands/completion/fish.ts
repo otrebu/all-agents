@@ -117,6 +117,9 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s H -l headless
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l max-iterations -d 'Max retry attempts' -r
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Run pre-build validation'
 
+# ralph status options
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph status' -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+
 # ralph plan subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph plan' -a vision -d 'Interactive vision planning'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph plan' -a roadmap -d 'Interactive roadmap planning'

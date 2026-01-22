@@ -202,7 +202,7 @@ _aaa_ralph() {
                     _arguments '--json[Output as JSON]'
                     ;;
                 status)
-                    _arguments '1:subtasks-path:_files -g "*.json"'
+                    _arguments '--subtasks[Subtasks file path]:file:_files -g "*.json"'
                     ;;
                 calibrate)
                     _arguments \\

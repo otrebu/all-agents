@@ -168,6 +168,10 @@ _aaa_completions() {
                         COMPREPLY=($(compgen -W "--json" -- "$cur"))
                         return
                         ;;
+                    status)
+                        COMPREPLY=($(compgen -W "--subtasks" -- "$cur"))
+                        return
+                        ;;
                     calibrate)
                         COMPREPLY=($(compgen -W "--force --review" -- "$cur"))
                         return
