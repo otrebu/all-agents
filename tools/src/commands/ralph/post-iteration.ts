@@ -34,10 +34,16 @@ import {
  * Options for running the post-iteration hook
  */
 interface PostIterationOptions {
+  /** Total cost in USD for this iteration */
+  costUsd?: number;
   /** Current iteration attempt number (1 = first try) */
   iterationNumber?: number;
+  /** Maximum retry attempts configured */
+  maxAttempts?: number;
   /** Name of the milestone this subtask belongs to */
   milestone?: string;
+  /** Number of remaining subtasks after this iteration */
+  remaining?: number;
   /** Repository root path for session discovery */
   repoRoot: string;
   /** Claude session ID (required - hook is skipped without this) */
@@ -56,25 +62,6 @@ interface SummaryResult {
   keyFindings: Array<string>;
   /** Brief summary of what happened */
   summary: string;
-}
-
-// =============================================================================
-// Utility Functions
-// =============================================================================
-
-/**
- * Format duration in milliseconds to human-readable string
- */
-function formatDuration(ms: number): string {
-  if (ms >= 60_000) {
-    const minutes = Math.floor(ms / 60_000);
-    const seconds = Math.floor((ms % 60_000) / 1000);
-    return `${minutes}m ${seconds}s`;
-  }
-  if (ms >= 1000) {
-    return `${Math.floor(ms / 1000)}s`;
-  }
-  return `${ms}ms`;
 }
 
 // =============================================================================
@@ -282,6 +269,7 @@ function runPostIterationHook(
   options: PostIterationOptions,
 ): IterationDiaryEntry | null {
   const {
+    costUsd,
     iterationNumber = 1,
     milestone = "",
     repoRoot,
@@ -322,6 +310,7 @@ function runPostIterationHook(
   // Build diary entry
   const timestamp = new Date().toISOString();
   const diaryEntry: IterationDiaryEntry = {
+    costUsd,
     duration,
     errors: [],
     filesChanged,
@@ -340,19 +329,6 @@ function runPostIterationHook(
   // Write to diary
   const diaryPath = `${repoRoot}/logs/iterations.jsonl`;
   writeDiaryEntry(diaryEntry, diaryPath);
-
-  // Log summary
-  console.log("\n=== Iteration Summary ===");
-  console.log(`Status: ${status}`);
-  console.log(`Summary: ${summaryResult.summary}`);
-  console.log(`Duration: ${formatDuration(duration)}`);
-  console.log(`Completed: ${new Date(timestamp).toLocaleTimeString()}`);
-  console.log(`Tool calls: ${toolCalls}`);
-  console.log(`Files changed: ${filesChanged.length}`);
-  if (summaryResult.keyFindings.length > 0) {
-    console.log(`Key findings: ${summaryResult.keyFindings.join(", ")}`);
-  }
-  console.log("=== End Post-Iteration Hook ===\n");
 
   return diaryEntry;
 }
@@ -395,7 +371,6 @@ function writeDiaryEntry(entry: IterationDiaryEntry, diaryPath: string): void {
 // =============================================================================
 
 export {
-  formatDuration,
   generateSummary,
   getFilesChanged,
   type PostIterationOptions,

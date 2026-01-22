@@ -11,6 +11,7 @@
  * @see tools/lib/log.ts for logging utilities
  */
 
+import boxen, { type Options as BoxenOptions } from "boxen";
 import chalk from "chalk";
 import { spawnSync } from "node:child_process";
 
@@ -21,6 +22,60 @@ import type { IterationStatus } from "./types";
 // =============================================================================
 
 /**
+ * Data for build summary box
+ */
+interface BuildSummaryData {
+  /** Number of completed iterations */
+  completed: number;
+  /** Number of failed iterations */
+  failed: number;
+  /** Total cost in USD */
+  totalCostUsd: number;
+  /** Total duration in milliseconds */
+  totalDurationMs: number;
+  /** Total files changed */
+  totalFilesChanged: number;
+  /** Total number of iterations */
+  totalIterations: number;
+}
+
+// =============================================================================
+// Duration and Time Formatting
+// =============================================================================
+
+/**
+ * Data for rendering iteration boxes
+ */
+interface IterationDisplayData {
+  /** Attempt number (1-based) */
+  attempt: number;
+  /** Total cost in USD */
+  costUsd?: number;
+  /** Duration in milliseconds */
+  durationMs?: number;
+  /** Number of files changed */
+  filesChanged?: number;
+  /** Current iteration number */
+  iteration: number;
+  /** Key findings bullets */
+  keyFindings?: Array<string>;
+  /** Maximum retry attempts */
+  maxAttempts: number;
+  /** Remaining subtasks count */
+  remaining: number;
+  /** Iteration outcome status */
+  status?: IterationStatus;
+  /** Subtask ID */
+  subtaskId: string;
+  /** Subtask title */
+  subtaskTitle: string;
+  /** Summary text */
+  summary?: string;
+  /** Number of tool calls */
+  toolCalls?: number;
+}
+
+/**
  * Check if glow CLI is available for markdown rendering
  */
 function checkGlowAvailable(): boolean {
@@ -29,7 +84,7 @@ function checkGlowAvailable(): boolean {
 }
 
 // =============================================================================
-// Duration and Time Formatting
+// Status Coloring
 // =============================================================================
 
 /**
@@ -72,6 +127,10 @@ function formatDuration(ms: number): string {
   return `${hours}h ${remainingMinutes}m ${remainingSeconds}s`;
 }
 
+// =============================================================================
+// Progress Bar Rendering
+// =============================================================================
+
 /**
  * Format an ISO 8601 timestamp for display
  *
@@ -102,7 +161,7 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
 }
 
 // =============================================================================
-// Status Coloring
+// Markdown Rendering
 // =============================================================================
 
 /**
@@ -132,7 +191,7 @@ function getColoredStatus(status: IterationStatus): string {
 }
 
 // =============================================================================
-// Progress Bar Rendering
+// Status Box Rendering
 // =============================================================================
 
 /**
@@ -165,7 +224,7 @@ function renderMarkdown(markdown: string): string {
 }
 
 // =============================================================================
-// Markdown Rendering
+// Iteration Box Types
 // =============================================================================
 
 /**
@@ -194,10 +253,6 @@ function renderProgressBar(
 
   return `[${filled}${empty}] ${completed}/${total} (${percentage}%)`;
 }
-
-// =============================================================================
-// Status Box Rendering
-// =============================================================================
 
 /**
  * Render a status box with a title and content lines
@@ -242,6 +297,231 @@ function truncate(text: string, maxLength = 50): string {
 }
 
 // =============================================================================
+// Iteration Box Rendering
+// =============================================================================
+
+/** Box width for iteration displays */
+const BOX_WIDTH = 68;
+
+/**
+ * Get box border color based on iteration status
+ */
+function getStatusBorderColor(
+  status: IterationStatus | undefined,
+): BoxenOptions["borderColor"] {
+  switch (status) {
+    case "completed": {
+      return "green";
+    }
+    case "failed": {
+      return "red";
+    }
+    case "retrying": {
+      return "yellow";
+    }
+    default: {
+      return "cyan";
+    }
+  }
+}
+
+/**
+ * Render build summary box (at end of all iterations)
+ */
+function renderBuildSummary(data: BuildSummaryData): string {
+  const {
+    completed,
+    failed,
+    totalCostUsd,
+    totalDurationMs,
+    totalFilesChanged,
+    totalIterations,
+  } = data;
+
+  // Format labels
+  const iterationsLabel = chalk.dim("Iterations");
+  const completedLabel = chalk.dim("Completed");
+  const failedLabel = chalk.dim("Failed");
+  const durationLabel = chalk.dim("Duration");
+  const costLabel = chalk.dim("Total Cost");
+  const filesLabel = chalk.dim("Files");
+
+  // Format values
+  const iterationsValue = chalk.bold(String(totalIterations));
+  const completedValue = chalk.green.bold(String(completed));
+  const failedValue =
+    failed > 0 ? chalk.red.bold(String(failed)) : chalk.dim("0");
+  const durationValue = chalk.cyan(formatDuration(totalDurationMs));
+  const costValue = chalk.magenta(`$${totalCostUsd.toFixed(2)}`);
+  const filesValue = chalk.blue(String(totalFilesChanged));
+
+  // Two-row layout with padding
+  const row1 = `${iterationsLabel}    ${iterationsValue}          ${completedLabel}   ${completedValue}         ${failedLabel}   ${failedValue}`;
+  const row2 = `${durationLabel}      ${durationValue}      ${costLabel}  ${costValue}     ${filesLabel}    ${filesValue}`;
+
+  const lines = [row1, row2];
+
+  return boxen(lines.join("\n"), {
+    borderColor: "white",
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: "Build Complete",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+/**
+ * Render iteration END box (colored border based on status)
+ */
+function renderIterationEnd(data: IterationDisplayData): string {
+  const {
+    attempt,
+    costUsd = 0,
+    durationMs = 0,
+    filesChanged = 0,
+    iteration,
+    keyFindings = [],
+    maxAttempts,
+    remaining,
+    status = "retrying",
+    subtaskId,
+    subtaskTitle,
+    summary = "",
+    toolCalls = 0,
+  } = data;
+
+  const attemptText =
+    maxAttempts > 0
+      ? `Attempt ${attempt}/${maxAttempts}`
+      : `Attempt ${attempt}`;
+  const remainingText = chalk.dim(`${remaining} remaining`);
+
+  const innerWidth = BOX_WIDTH - 4;
+  const leftPart = attemptText;
+  const rightPart = `${remaining} remaining`;
+  const padding = innerWidth - leftPart.length - rightPart.length;
+
+  // Status icon and colored status
+  const statusIcon = status === "completed" ? "✓" : "✗";
+  const statusColored = getColoredStatus(status);
+
+  // Format metrics
+  const durationText = chalk.cyan(formatDuration(durationMs));
+  const costText = chalk.magenta(`$${costUsd.toFixed(2)}`);
+  const callsText = chalk.blue(`${toolCalls} calls`);
+  const filesText = chalk.blue(`${filesChanged} files`);
+
+  const metricsLine = `${statusIcon} ${statusColored}    ${durationText}    ${costText}    ${callsText}    ${filesText}`;
+
+  // Build content lines
+  const lines = [
+    `${chalk.cyan.bold(subtaskId)}  ${truncate(subtaskTitle, innerWidth - subtaskId.length - 2)}`,
+    `${attemptText}${" ".repeat(Math.max(1, padding))}${remainingText}`,
+    "─".repeat(innerWidth),
+    metricsLine,
+  ];
+
+  // Add summary if present
+  if (summary !== "") {
+    lines.push("");
+    const wrappedSummary = wrapText(summary, innerWidth);
+    for (const line of wrappedSummary) {
+      lines.push(line);
+    }
+  }
+
+  // Add key findings if present
+  if (keyFindings.length > 0) {
+    lines.push("");
+    for (const finding of keyFindings.slice(0, 5)) {
+      lines.push(`${chalk.dim("•")} ${truncate(finding, innerWidth - 2)}`);
+    }
+  }
+
+  // Add retry indicator for failed status
+  if (status === "retrying") {
+    lines.push("");
+    lines.push(chalk.yellow("→ Retrying with error context..."));
+  }
+
+  return boxen(lines.join("\n"), {
+    borderColor: getStatusBorderColor(status),
+    borderStyle: "round",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: `Iteration ${iteration}`,
+    titleAlignment: "left",
+    width: BOX_WIDTH,
+  });
+}
+
+/**
+ * Render iteration START box (cyan border, shows iteration/subtask/attempt)
+ */
+function renderIterationStart(data: IterationDisplayData): string {
+  const {
+    attempt,
+    iteration,
+    maxAttempts,
+    remaining,
+    subtaskId,
+    subtaskTitle,
+  } = data;
+
+  const attemptText =
+    maxAttempts > 0
+      ? `Attempt ${attempt}/${maxAttempts}`
+      : `Attempt ${attempt}`;
+  const remainingText = chalk.dim(`${remaining} remaining`);
+
+  // Calculate padding for right-aligned remaining count
+  // (BOX_WIDTH - 4 accounts for box borders and padding)
+  const innerWidth = BOX_WIDTH - 4;
+  const leftPart = attemptText;
+  const rightPart = `${remaining} remaining`;
+  const padding = innerWidth - leftPart.length - rightPart.length;
+
+  const lines = [
+    `${chalk.cyan.bold(subtaskId)}  ${truncate(subtaskTitle, innerWidth - subtaskId.length - 2)}`,
+    `${attemptText}${" ".repeat(Math.max(1, padding))}${remainingText}`,
+  ];
+
+  return boxen(lines.join("\n"), {
+    borderColor: "cyan",
+    borderStyle: "round",
+    dimBorder: true,
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: `Iteration ${iteration}`,
+    titleAlignment: "left",
+    width: BOX_WIDTH,
+  });
+}
+
+/**
+ * Wrap text to fit within box width
+ */
+function wrapText(text: string, width: number): Array<string> {
+  const words = text.split(" ");
+  const lines: Array<string> = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    if (currentLine.length + word.length + 1 <= width) {
+      currentLine += (currentLine === "" ? "" : " ") + word;
+    } else {
+      if (currentLine !== "") {
+        lines.push(currentLine);
+      }
+      currentLine = word;
+    }
+  }
+  if (currentLine !== "") {
+    lines.push(currentLine);
+  }
+  return lines;
+}
+
+// =============================================================================
 // Exports
 // =============================================================================
 
@@ -249,10 +529,15 @@ function truncate(text: string, maxLength = 50): string {
 const colorStatus = getColoredStatus;
 
 export {
+  type BuildSummaryData,
   colorStatus,
   formatDuration,
   formatTimestamp,
   getColoredStatus,
+  type IterationDisplayData,
+  renderBuildSummary,
+  renderIterationEnd,
+  renderIterationStart,
   renderMarkdown,
   renderProgressBar,
   renderStatusBox,

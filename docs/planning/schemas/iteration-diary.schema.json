@@ -71,6 +71,11 @@
       "type": "integer",
       "minimum": 0,
       "description": "Duration of the iteration in seconds"
+    },
+    "costUsd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total cost in USD for this iteration"
     }
   }
 }

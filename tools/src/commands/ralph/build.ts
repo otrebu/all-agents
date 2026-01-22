@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as readline from "node:readline";
 
-import type { BuildOptions } from "./types";
+import type { BuildOptions, IterationDiaryEntry, Subtask } from "./types";
 
 import { runCalibrate } from "./calibrate";
 import { buildPrompt, invokeClaudeChat, invokeClaudeHeadless } from "./claude";
@@ -25,7 +25,12 @@ import {
   getNextSubtask,
   loadSubtasksFile,
 } from "./config";
-import { renderMarkdown } from "./display";
+import {
+  renderBuildSummary,
+  renderIterationEnd,
+  renderIterationStart,
+  renderMarkdown,
+} from "./display";
 import { executeHook } from "./hooks";
 import { runPostIterationHook } from "./post-iteration";
 
@@ -42,12 +47,44 @@ const ITERATION_PROMPT_PATH =
 // =============================================================================
 
 /**
+ * Context for headless iteration processing
+ */
+interface HeadlessIterationContext {
+  contextRoot: string;
+  currentAttempts: number;
+  currentSubtask: Subtask;
+  iteration: number;
+  maxIterations: number;
+  prompt: string;
+  remaining: number;
+  subtasksPath: string;
+}
+
+/**
+ * Result from headless iteration processing
+ */
+interface HeadlessIterationResult {
+  costUsd: number;
+  diaryEntry: IterationDiaryEntry | null;
+  didComplete: boolean;
+  durationMs: number;
+}
+
+/**
  * Options for periodic calibration
  */
 interface PeriodicCalibrationOptions {
   calibrateEvery: number;
   contextRoot: string;
   iteration: number;
+  subtasksPath: string;
+}
+
+/**
+ * Context for supervised iteration processing
+ */
+interface SupervisedIterationContext {
+  contextRoot: string;
   subtasksPath: string;
 }
 
@@ -97,6 +134,116 @@ After completing ONE subtask:
 // =============================================================================
 // Build Loop Implementation
 // =============================================================================
+
+/**
+ * Process a single headless iteration
+ *
+ * @returns Result with cost, duration, diary entry, and completion status
+ */
+function processHeadlessIteration(
+  context: HeadlessIterationContext,
+): HeadlessIterationResult | null {
+  const {
+    contextRoot,
+    currentAttempts,
+    currentSubtask,
+    iteration,
+    maxIterations,
+    prompt,
+    remaining,
+    subtasksPath,
+  } = context;
+
+  console.log("Invoking Claude (headless mode)...\n");
+
+  const result = invokeClaudeHeadless({ prompt });
+
+  if (result === null) {
+    console.error("Claude headless invocation failed or was interrupted");
+    return null;
+  }
+
+  // Display result with markdown rendering
+  console.log("\n--- Claude Response ---");
+  renderMarkdown(result.result);
+  console.log();
+
+  // Reload subtasks to check if current one was completed
+  const postIterationSubtasks = loadSubtasksFile(subtasksPath);
+  const postRemaining = countRemaining(postIterationSubtasks.subtasks);
+  const didComplete = postRemaining < remaining;
+  const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
+  const iterationStatus = didComplete ? "completed" : "retrying";
+
+  const diaryEntry = runPostIterationHook({
+    costUsd: result.cost,
+    iterationNumber: currentAttempts,
+    maxAttempts: maxIterations,
+    milestone,
+    remaining: postRemaining,
+    repoRoot: contextRoot,
+    sessionId: result.sessionId,
+    status: iterationStatus,
+    subtask: currentSubtask,
+  });
+
+  // Display iteration end box
+  if (diaryEntry !== null) {
+    console.log(
+      renderIterationEnd({
+        attempt: currentAttempts,
+        costUsd: result.cost,
+        durationMs: result.duration,
+        filesChanged: diaryEntry.filesChanged?.length ?? 0,
+        iteration,
+        keyFindings: diaryEntry.keyFindings,
+        maxAttempts: maxIterations,
+        remaining: postRemaining,
+        status: iterationStatus,
+        subtaskId: currentSubtask.id,
+        subtaskTitle: currentSubtask.title,
+        summary: diaryEntry.summary,
+        toolCalls: diaryEntry.toolCalls,
+      }),
+    );
+  }
+
+  return {
+    costUsd: result.cost,
+    diaryEntry,
+    didComplete,
+    durationMs: result.duration,
+  };
+}
+
+/**
+ * Process a single supervised iteration
+ *
+ * @returns true if successful, false if failed
+ */
+function processSupervisedIteration(
+  context: SupervisedIterationContext,
+): boolean {
+  const { contextRoot, subtasksPath } = context;
+
+  console.log(
+    "Invoking Claude (supervised mode - you can type if needed)...\n",
+  );
+
+  const chatResult = invokeClaudeChat(
+    path.join(contextRoot, ITERATION_PROMPT_PATH),
+    "build iteration",
+    `Subtasks file: @${subtasksPath}\n\nContext files:\n@${path.join(contextRoot, "CLAUDE.md")}\n@${path.join(contextRoot, "docs/planning/PROGRESS.md")}`,
+  );
+
+  if (!chatResult.success && !chatResult.interrupted) {
+    console.error("Supervised session failed");
+    process.exit(chatResult.exitCode ?? 1);
+  }
+
+  console.log("\nSupervised session completed");
+  return true;
+}
 
 /**
  * Prompt user to continue to next iteration
@@ -171,6 +318,13 @@ async function runBuild(
   // Track retry attempts per subtask ID
   const attempts = new Map<string, number>();
 
+  // Build summary tracking
+  let totalCompleted = 0;
+  let totalFailed = 0;
+  let totalCost = 0;
+  let totalDuration = 0;
+  const allFilesChanged = new Set<string>();
+
   // Optional pre-build validation (TODO: implement in SUB-025/26)
   if (shouldValidateFirst) {
     console.log(
@@ -189,7 +343,17 @@ async function runBuild(
 
     // Check if all subtasks are complete
     if (remaining === 0) {
-      console.log("\nAll subtasks complete!");
+      console.log("\n");
+      console.log(
+        renderBuildSummary({
+          completed: totalCompleted,
+          failed: totalFailed,
+          totalCostUsd: totalCost,
+          totalDurationMs: totalDuration,
+          totalFilesChanged: allFilesChanged.size,
+          totalIterations: iteration - 1,
+        }),
+      );
       return;
     }
 
@@ -222,16 +386,17 @@ async function runBuild(
       process.exit(1);
     }
 
-    // Display iteration header
-    const attemptDisplay =
-      maxIterations > 0
-        ? `${currentAttempts}/${maxIterations}`
-        : `${currentAttempts}`;
+    // Display iteration start box
+    console.log("\n");
     console.log(
-      `\n=== Build Iteration ${iteration} ` +
-        `(Subtask: ${currentSubtask.id}, ` +
-        `Attempt: ${attemptDisplay}, ` +
-        `${remaining} subtasks remaining) ===\n`,
+      renderIterationStart({
+        attempt: currentAttempts,
+        iteration,
+        maxAttempts: maxIterations,
+        remaining,
+        subtaskId: currentSubtask.id,
+        subtaskTitle: currentSubtask.title,
+      }),
     );
 
     // Build the prompt
@@ -239,58 +404,38 @@ async function runBuild(
 
     // Invoke Claude based on mode
     if (mode === "headless") {
-      console.log("Invoking Claude (headless mode)...\n");
+      const iterationResult = processHeadlessIteration({
+        contextRoot,
+        currentAttempts,
+        currentSubtask,
+        iteration,
+        maxIterations,
+        prompt,
+        remaining,
+        subtasksPath,
+      });
 
-      const result = invokeClaudeHeadless({ prompt });
-
-      if (result === null) {
-        console.error("Claude headless invocation failed or was interrupted");
+      if (iterationResult === null) {
         process.exit(1);
       }
 
-      // Display result with markdown rendering
-      console.log("\n--- Claude Response ---");
-      renderMarkdown(result.result);
-      console.log();
-
-      // Display stats
-      const durationSeconds = Math.round(result.duration / 1000);
-      const costFormatted = result.cost.toFixed(2);
-      console.log(`--- Stats: ${durationSeconds}s | $${costFormatted} ---\n`);
-
-      // Post-iteration hook for headless mode
-      // Reload subtasks to check if current one was completed
-      const postIterationSubtasks = loadSubtasksFile(subtasksPath);
-      const postRemaining = countRemaining(postIterationSubtasks.subtasks);
-      const didComplete = postRemaining < remaining;
-      const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
-
-      runPostIterationHook({
-        iterationNumber: currentAttempts,
-        milestone,
-        repoRoot: contextRoot,
-        sessionId: result.sessionId,
-        status: didComplete ? "completed" : "retrying",
-        subtask: currentSubtask,
-      });
-    } else {
-      // Supervised mode - user watches and can type
-      console.log(
-        "Invoking Claude (supervised mode - you can type if needed)...\n",
-      );
-
-      const chatResult = invokeClaudeChat(
-        path.join(contextRoot, ITERATION_PROMPT_PATH),
-        "build iteration",
-        `Subtasks file: @${subtasksPath}\n\nContext files:\n@${path.join(contextRoot, "CLAUDE.md")}\n@${path.join(contextRoot, "docs/planning/PROGRESS.md")}`,
-      );
-
-      if (!chatResult.success && !chatResult.interrupted) {
-        console.error("Supervised session failed");
-        process.exit(chatResult.exitCode ?? 1);
+      // Track build totals
+      totalCost += iterationResult.costUsd;
+      totalDuration += iterationResult.durationMs;
+      if (iterationResult.didComplete) {
+        totalCompleted += 1;
+      } else {
+        totalFailed += 1;
       }
 
-      console.log("\nSupervised session completed");
+      // Track files changed
+      if (iterationResult.diaryEntry?.filesChanged) {
+        for (const file of iterationResult.diaryEntry.filesChanged) {
+          allFilesChanged.add(file);
+        }
+      }
+    } else {
+      processSupervisedIteration({ contextRoot, subtasksPath });
     }
 
     // For supervised mode, reload subtasks to check if current one was completed

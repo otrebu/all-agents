@@ -67,6 +67,8 @@ interface HooksConfig {
  * Tracks Ralph iteration outcomes for status reporting and calibration
  */
 interface IterationDiaryEntry {
+  /** Total cost in USD for this iteration */
+  costUsd?: number;
   /** Duration of the iteration in seconds */
   duration?: number;
   /** Error messages encountered during this iteration */
