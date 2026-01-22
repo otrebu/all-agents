@@ -496,6 +496,28 @@ Three layers in `@context/`:
 
 Subtasks reference relevant docs via `filesToRead` field. Agent reads these during Investigate phase before implementing.
 
+### Atomic Documentation Integration
+
+Task generation automatically links relevant atomic docs from `context/`:
+
+**Lookup flow:**
+1. Task generator extracts key tech (tools, patterns, frameworks)
+2. Searches `context/blocks/`, `context/foundations/`, `context/stacks/`
+3. Adds found docs to task's "Related Documentation" section
+
+**Missing doc handling (controlled by `atomicDocChanges` config):**
+
+| Mode | Behavior |
+|------|----------|
+| `always` | Spawn `atomic-doc-creator` subagent, ask approval before writing |
+| `auto` | Spawn subagent, create doc without approval prompt |
+
+Both modes flag created docs with `[REVIEW]` for human verification.
+
+**CLI overrides:** `--force` skips approval, `--review` requires it.
+
+See @context/workflows/ralph/planning/task-doc-lookup.md for details.
+
 ## 5. Approval System
 
 Centralized in `ralph.config.json`:

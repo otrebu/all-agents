@@ -8,7 +8,7 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 
 ## Milestones
 
-### 1. [ralph](milestones/ralph/): Core Building Loop
+### 1. [001-ralph](milestones/001-ralph/): Core Building Loop
 
 **Outcome:** Users can run autonomous code iterations against a manually-created subtasks.json queue
 
@@ -21,6 +21,8 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 - Session ID capture for debugging
 - Three-mode execution system (Interactive, Supervised, Headless) - see VISION.md Section 3.1
 - `--supervised` and `--headless` CLI flags with consistent invocation patterns
+- `ralph milestones` command to list available milestones from ROADMAP
+- `--max-iterations` defaults to 0 (unlimited) per VISION spec
 
 **Success criteria:**
 - Agent completes subtask, commits with ID reference, marks `done: true`
@@ -31,7 +33,7 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 
 ---
 
-### 2. [planning-automation](milestones/planning-automation/): Automated Planning Pipeline
+### 2. [002-planning-automation](milestones/002-planning-automation/): Automated Planning Pipeline
 
 **Outcome:** Users can generate subtasks automatically from stories/tasks, enabling full planning-to-building pipeline
 
@@ -43,17 +45,28 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 - `vision-interactive.md` for guided vision creation
 - `plan.sh` script for planning mode entry
 - Pre-build validation prompt for alignment checks
+- `--cascade` flag for full auto-generation (vision→roadmap→stories→tasks→subtasks)
+- `ralph plan subtasks --story/--milestone` scope options (not just `--task`)
+- Prompt improvements:
+  - Incremental document creation (save sections as discussed, not big-bang)
+  - Handholding at completion (offer detailed review + gap analysis)
+  - Regular validation checkpoints with subagent fresh eyes
+  - Scope creep guardrails (roadmap vs stories boundary)
+- Web/browser integration in planning prompts (offer to inspect competitor apps, mockups)
+- Vision prompt "next steps" guidance (tell user what to run next)
 
 **Success criteria:**
-- `ralph plan subtasks --auto` generates valid subtasks.json from tasks
-- `ralph plan stories --auto` generates story files from vision
+- `ralph plan subtasks --task milestones/001-mvp/tasks/001.md` generates valid subtasks.json
+- `ralph plan subtasks --milestone milestones/001-mvp/` generates for all tasks
+- `ralph plan stories --milestone milestones/001-mvp/` generates story files
+- `ralph plan --cascade` runs full pipeline with confirmation between levels
 - Pre-build validation catches scope creep before building
 
-**Dependencies:** ralph (milestone 1)
+**Dependencies:** 001-ralph (milestone 1)
 
 ---
 
-### 3. [calibration](milestones/calibration/): Self-Improving Governance
+### 3. [003-calibration](milestones/003-calibration/): Self-Improving Governance
 
 **Outcome:** Users can detect intention drift, technical violations, and inefficiencies in agent behavior
 
@@ -65,35 +78,48 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 - `self-improvement.md` prompt (session log analysis)
 - `calibrate.sh` script for LLM-as-judge execution
 - Iteration diary (`logs/iterations.jsonl`) for status tracking
+- `ralph calibrate` uses real subcommands (not fake `.argument()`)
+- `ralph build --calibrate-every <n>` runs calibration after N iterations
 
 **Success criteria:**
 - `ralph calibrate intention` detects when code diverges from story intent
 - `ralph calibrate improve` identifies tool misuse patterns in session logs
+- `ralph calibrate --help` shows proper subcommand structure
 - Calibration outputs task files for human review
 
-**Dependencies:** planning-automation (milestone 2)
+**Dependencies:** 002-planning-automation (milestone 2)
 
 ---
 
-### 4. [full-integration](milestones/full-integration/): End-to-End Autonomous Workflow
+### 4. [004-full-integration](milestones/004-full-integration/): End-to-End Autonomous Workflow
 
 **Outcome:** Users can run complete Vision → ROADMAP → Stories → Tasks → Subtasks → Build → Calibrate cycles with minimal intervention
 
 **Why last:** This is the "polish" milestone. It integrates hooks, notifications, and the status dashboard. Requires all previous milestones to be functional.
 
 **Key deliverables:**
-- Skills for Claude Code integration (`/ralph-plan`, `/ralph-build`, `/ralph-calibrate`)
+- Skills for Claude Code integration (`/ralph-plan`, `/ralph-build`, `/ralph-calibrate`, `/ralph-status`, `/ralph-review`)
+- `/ralph-plan subtasks` subcommand (currently CLI-only via `aaa ralph plan subtasks`)
 - Hooks system (onIterationComplete, onMilestoneComplete, etc.)
 - ntfy notifications for human-on-the-loop awareness
 - `status.sh` for progress visibility
 - Interactive mode (`-i`) for human checkpoints
+- Review commands completion:
+  - `ralph review subtasks` - review subtask queue before build
+  - `ralph review tasks` - review tasks for a story (currently stub)
+  - Milestone review prompt (detailed walkthrough after roadmap draft)
+  - Gap analyzer subagent for cold analysis of artifacts
+  - Chunked presentation in review prompts (one finding at a time)
+- Skills documentation in VISION.md (what skills exist, what they do)
 
 **Success criteria:**
 - `/ralph build` in Claude Code triggers full iteration loop
 - Hooks fire and diary entries are created automatically
 - `ralph status` shows accurate counts and recent activity
+- `ralph review subtasks` validates queue before building
+- `ralph review gap roadmap` provides cold analysis with fresh eyes
 
-**Dependencies:** calibration (milestone 3)
+**Dependencies:** 003-calibration (milestone 3)
 
 ## Future Considerations
 

@@ -358,7 +358,7 @@ planCommand.addCommand(
 
       // Determine execution mode
       if (options.headless === true) {
-        const logFile = path.join(contextRoot, "logs/ralph-plan-stories.jsonl");
+        const logFile = path.join(contextRoot, "logs/planning.jsonl");
         invokeClaudeHeadless({
           extraContext,
           logFile,
@@ -432,7 +432,7 @@ planCommand.addCommand(
         const extraContext = `Generating tasks for all stories in milestone: ${options.milestone}`;
 
         if (options.headless === true) {
-          const logFile = path.join(contextRoot, "logs/ralph-plan-tasks.jsonl");
+          const logFile = path.join(contextRoot, "logs/planning.jsonl");
           invokeClaudeHeadless({
             extraContext,
             logFile,
@@ -450,7 +450,7 @@ planCommand.addCommand(
       const extraContext = `Planning tasks for story: ${options.story}`;
 
       if (options.headless === true) {
-        const logFile = path.join(contextRoot, "logs/ralph-plan-tasks.jsonl");
+        const logFile = path.join(contextRoot, "logs/planning.jsonl");
         invokeClaudeHeadless({
           extraContext,
           logFile,
@@ -519,10 +519,7 @@ planCommand.addCommand(
       // Helper to invoke Claude based on mode
       function invoke(extraContext: string): void {
         if (options.headless === true) {
-          const logFile = path.join(
-            contextRoot,
-            "logs/ralph-plan-subtasks.jsonl",
-          );
+          const logFile = path.join(contextRoot, "logs/planning.jsonl");
           invokeClaudeHeadless({
             extraContext,
             logFile,

@@ -227,6 +227,25 @@ User wants to plan something?
 
 **Note**: `-H` (capital H) avoids conflict with `-h/--help`.
 
+## 6. Config + CLI Override Pattern
+
+All approval/behavior settings should follow this pattern:
+
+1. **Config default** in `ralph.config.json` (e.g., `approvals.preBuildDriftCheck: "auto"`)
+2. **CLI override** flag (e.g., `--validate-first` forces validation regardless of config)
+
+This ensures:
+- Sensible defaults via config
+- User can override per-invocation via CLI
+- Consistent UX across all Ralph options
+
+| Config Setting | CLI Override | Effect |
+|----------------|--------------|--------|
+| `approvals.preBuildDriftCheck` | `--validate-first` | Forces validation before build |
+| `approvals.storiesToTasks` | *(approval gate)* | Approval gate in cascade mode |
+| *(all settings)* | `--force` | Skips all approvals |
+| *(all settings)* | `--review` | Requires all approvals |
+
 ## References
 
 - @docs/planning/VISION.md - Three-mode system definition

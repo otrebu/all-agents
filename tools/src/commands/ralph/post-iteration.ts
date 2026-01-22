@@ -103,7 +103,7 @@ function generateSummary(
     subtask,
   } = options;
 
-  const promptPath = `${repoRoot}/prompts/iteration-summary.md`;
+  const promptPath = `${repoRoot}/context/workflows/ralph/hooks/iteration-summary.md`;
 
   // Check if prompt template exists
   if (!existsSync(promptPath)) {

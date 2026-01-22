@@ -19,9 +19,26 @@ You will be invoked with these parameters in the prompt:
 1. **Read the story file** at the provided path
 2. **Read task template** at `context/blocks/docs/task-template.md`
 3. **Analyze codebase** for patterns relevant to this story
-4. **Generate tasks** using sequential IDs starting from the provided number
-5. **Write task files** to `docs/planning/tasks/`
-6. **Update the parent story** with task links
+4. **Lookup related documentation** - follow @context/workflows/ralph/planning/task-doc-lookup.md
+5. **Generate tasks** using sequential IDs starting from the provided number
+6. **Write task files** to `docs/planning/tasks/`
+7. **Update the parent story** with task links
+
+## Documentation Lookup
+
+**MANDATORY** - Before writing each task, search for relevant atomic docs:
+
+@context/workflows/ralph/planning/task-doc-lookup.md
+
+- Search `context/blocks/` for tool-specific docs (prisma, vitest, react, etc.)
+- Search `context/foundations/` for capability docs (testing, auth, data persistence)
+- Search `context/stacks/` for artifact patterns (cli, api, web)
+- Include found docs in task's "Related Documentation" section
+
+**Missing doc subagent:**
+- Use Task tool with `subagent_type: "atomic-doc-creator"`
+- Pass: topic, what task needs, suggested layer
+- Include returned path in Related Documentation with `[REVIEW]` marker
 
 ## Task Generation Rules
 
@@ -113,12 +130,18 @@ Follow the exact structure from `context/blocks/docs/task-template.md`:
 
 ### Notes
 [Technical considerations, risks, edge cases]
+
+### Related Documentation
+- @context/blocks/construct/[tool].md
+- @context/foundations/[domain]/[capability].md
+- **Gap:** [topic] - `[REVIEW]` (if created by subagent)
 ```
 
 ## Rules
 
 1. **Read before writing** - Always read the story and analyze codebase first
-2. **Technical specificity** - Include file paths, function names, patterns
-3. **Sequential IDs** - Use provided starting ID and increment
-4. **Report next ID** - Always report the next available ID at the end
-5. **Update parent** - Add task links to the story's Tasks section
+2. **Doc lookup is mandatory** - Search for and include relevant @context docs before writing each task
+3. **Technical specificity** - Include file paths, function names, patterns
+4. **Sequential IDs** - Use provided starting ID and increment
+5. **Report next ID** - Always report the next available ID at the end
+6. **Update parent** - Add task links to the story's Tasks section

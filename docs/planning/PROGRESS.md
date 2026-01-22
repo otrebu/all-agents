@@ -3,8 +3,8 @@
 ## Current Focus
 
 **Story:** none
-**Task:** TASK-012 complete, TASK-013 next
-**Status:** SUB-023 complete, SUB-024 pending
+**Task:** TASK-013 in progress
+**Status:** SUB-024 complete
 
 ## Session Notes
 
@@ -13,6 +13,12 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-01-22
+
+#### SUB-024
+- **Problem:** stories-review-auto.md lacked Interactive Mode (Supervised) section for chunked presentation
+- **Changes:** Added Interactive Mode section referencing chunked-presentation.md protocol; now presents per-story reviews one at a time in supervised mode
+- **Files:**
+  - `context/workflows/ralph/review/stories-review-auto.md` - Added Interactive Mode (Supervised) section
 
 #### SUB-022
 - **Problem:** VISION.md Section 8.2 was outdated after CLI ergonomics changes

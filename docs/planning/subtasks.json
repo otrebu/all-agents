@@ -258,7 +258,10 @@
       "storyRef": null,
       "title": "Add chunked presentation to stories-review-auto.md",
       "description": "Add 'Interactive Mode (Supervised)' section to stories-review-auto.md that references chunked-presentation.md (like roadmap-review-auto.md has). Add section after 'Required Reading' that says: when run in supervised mode, use chunked presentation, present per-story reviews one at a time waiting for acknowledgment. This is the ONLY file missing this pattern - all other review prompts already have it.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-22T11:00:00Z",
+      "commitHash": "d814bdf2",
+      "sessionId": "ralph-build-2026-01-22-SUB024",
       "acceptanceCriteria": [
         "stories-review-auto.md has Interactive Mode (Supervised) section",
         "Section references @context/workflows/ralph/review/chunked-presentation.md",
