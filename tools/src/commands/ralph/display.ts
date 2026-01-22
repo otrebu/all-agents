@@ -17,7 +17,6 @@ import { marked, type MarkedExtension } from "marked";
 // @ts-expect-error - marked-terminal has no types for v7
 // eslint-disable-next-line import/namespace
 import { markedTerminal } from "marked-terminal";
-import terminalLink from "terminal-link";
 
 import type { IterationStatus } from "./types";
 
@@ -232,7 +231,8 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
   }
 
   const fileUrl = `file://${fullPath}`;
-  return terminalLink(displayPath, fileUrl, { fallback: () => displayPath });
+  // OSC 8 hyperlink: \x1b]8;;URL\x1b\\TEXT\x1b]8;;\x1b\\
+  return `\x1b]8;;${fileUrl}\x1b\\${displayPath}\x1b]8;;\x1b\\`;
 }
 
 // =============================================================================
