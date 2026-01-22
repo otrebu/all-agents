@@ -9,6 +9,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 /**
  * Claude JSON output structure (internal)
+ * When --output-format json, Claude outputs an array of messages.
+ * The final "result" type message contains session stats.
  */
 interface ClaudeJsonOutput {
   duration_ms?: number;
@@ -16,6 +18,7 @@ interface ClaudeJsonOutput {
   result?: string;
   session_id?: string;
   total_cost_usd?: number;
+  type?: string;
 }
 
 /**
@@ -194,10 +197,16 @@ function invokeClaudeHaiku(options: HaikuOptions): null | string {
   }
 
   // Parse JSON from stdout
+  // Claude outputs JSON array - find the result entry
   try {
-    const output: ClaudeJsonOutput = JSON.parse(
-      result.stdout,
-    ) as ClaudeJsonOutput;
+    const parsed = JSON.parse(result.stdout) as
+      | Array<ClaudeJsonOutput>
+      | ClaudeJsonOutput;
+    const output: ClaudeJsonOutput = Array.isArray(parsed)
+      ? (parsed.findLast((entry) => entry.type === "result") ??
+        parsed.at(-1) ??
+        {})
+      : parsed;
     return output.result ?? null;
   } catch {
     console.error("Failed to parse Claude Haiku JSON output");
@@ -246,9 +255,18 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
   }
 
   // Parse JSON from stdout (now clean without stderr contamination)
-  const output: ClaudeJsonOutput = JSON.parse(
-    result.stdout,
-  ) as ClaudeJsonOutput;
+  // Claude outputs JSON array: [{type:"system",...}, {type:"assistant",...}, {type:"result",...}]
+  // We need the last element with type:"result"
+  const parsed = JSON.parse(result.stdout) as
+    | Array<ClaudeJsonOutput>
+    | ClaudeJsonOutput;
+  const output: ClaudeJsonOutput = Array.isArray(parsed)
+    ? (parsed.findLast(
+        (entry) => (entry as { type?: string }).type === "result",
+      ) ??
+      parsed.at(-1) ??
+      {})
+    : parsed;
 
   return {
     cost: output.total_cost_usd ?? 0,
