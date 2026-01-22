@@ -842,8 +842,9 @@ ralphCommand.addCommand(reviewCommand);
 ralphCommand.addCommand(
   new Command("status")
     .description("Display current build status and progress")
-    .argument("[subtasks-path]", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
-    .action((subtasksPath) => {
+    .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .action((options) => {
+      const subtasksPath = options.subtasks;
       const contextRoot = getContextRoot();
 
       // Resolve subtasks path: if relative and not found at cwd, try relative to context root
