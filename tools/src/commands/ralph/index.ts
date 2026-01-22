@@ -648,22 +648,21 @@ gapCommand.addCommand(
 
 reviewCommand.addCommand(gapCommand);
 
-// ralph review tasks <story-id> - coming soon
+// ralph review subtasks --subtasks <path> - review subtask queue
+// Note: All review commands are supervised-only (no --headless) because
+// review is inherently about dialogue and feedback. See VISION.md Section 3.1.
 reviewCommand.addCommand(
-  new Command("tasks")
-    .description("Review tasks for a story (coming soon)")
-    .argument("<story-id>", "Story ID to review tasks for")
-    .action((storyId) => {
-      console.log(`Task review for story ${storyId} coming soon.`);
-      console.log("\nAvailable review commands:");
-      console.log("  aaa ralph review stories <milestone>      Review stories");
-      console.log("  aaa ralph review roadmap                  Review roadmap");
-      console.log(
-        "  aaa ralph review gap roadmap              Gap analysis of roadmap",
+  new Command("subtasks")
+    .description("Review subtask queue before building (supervised only)")
+    .requiredOption("--subtasks <path>", "Subtasks file path to review")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      const promptPath = path.join(
+        contextRoot,
+        "context/workflows/ralph/review/subtasks-review-auto.md",
       );
-      console.log(
-        "  aaa ralph review gap stories <milestone>  Gap analysis of stories",
-      );
+      const extraContext = `Reviewing subtasks file: ${options.subtasks}`;
+      invokeClaudeChat(promptPath, "subtasks-review", extraContext);
     }),
 );
 

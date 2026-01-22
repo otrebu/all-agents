@@ -302,14 +302,14 @@ describe("ralph E2E", () => {
       expect(stderr).toContain("required option '--milestone <path>'");
     });
 
-    test("ralph review tasks shows coming soon message", async () => {
-      const { exitCode, stdout } = await execa(
+    test("ralph review subtasks requires --subtasks option", async () => {
+      const { exitCode, stderr } = await execa(
         "bun",
-        ["run", "dev", "ralph", "review", "tasks", "some-story-id"],
-        { cwd: TOOLS_DIR },
+        ["run", "dev", "ralph", "review", "subtasks"],
+        { cwd: TOOLS_DIR, reject: false },
       );
-      expect(exitCode).toBe(0);
-      expect(stdout).toContain("coming soon");
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("required option '--subtasks <path>'");
     });
   });
 });
