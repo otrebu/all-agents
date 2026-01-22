@@ -218,7 +218,10 @@
       "storyRef": null,
       "title": "Update VISION.md Section 8.2 CLI reference",
       "description": "Update docs/planning/VISION.md Section 8.2 to document final CLI command structure. Include: plan subtasks scope flags, review flag syntax, calibrate subcommands, max-iterations=0 default, calibrate-every flag, review subtasks command. Remove --auto references.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-22T10:00:00Z",
+      "commitHash": "0d396c02",
+      "sessionId": "ralph-build-2026-01-22",
       "acceptanceCriteria": [
         "VISION.md Section 8.2 documents all ralph commands",
         "Flag syntax matches implementation",

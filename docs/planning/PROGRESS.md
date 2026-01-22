@@ -4,13 +4,21 @@
 
 **Story:** none
 **Task:** TASK-012 (CLI ergonomics fixes)
-**Status:** in progress (SUB-020 complete)
+**Status:** in progress (SUB-022 complete)
 
 ## Session Notes
 
 <!-- Format: ### YYYY-MM-DDTHH:MM:SS: Brief title -->
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
+
+### 2026-01-22
+
+#### SUB-022
+- **Problem:** VISION.md Section 8.2 was outdated after CLI ergonomics changes
+- **Changes:** Updated Section 8.2 CLI Command Structure with: plan subtasks scope flags, review flag syntax with --milestone/--subtasks, calibrate as real subcommands, max-iterations=0 default, calibrate-every flag, review subtasks command
+- **Files:**
+  - `docs/planning/VISION.md` - Rewrote Section 8.2 to match current implementation
 
 ### 2026-01-21
 
