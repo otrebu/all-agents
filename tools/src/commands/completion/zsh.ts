@@ -240,15 +240,15 @@ _aaa_ralph_plan() {
                     ;;
                 stories)
                     _arguments \\
-                        '--milestone[Milestone name]:milestone:_aaa_milestones' \\
+                        '--milestone[Milestone file]:milestone:_files -g "*.md"' \\
                         '(-a --auto)'{-a,--auto}'[Use auto mode (alias for --supervised)]' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
                 tasks)
                     _arguments \\
-                        '--story[Story file]:story:_files -g "(*.md|*(/))"' \\
-                        '--milestone[Milestone name]:milestone:_aaa_milestones' \\
+                        '--story[Story file]:story:_files -g "*.md"' \\
+                        '--milestone[Milestone file]:milestone:_files -g "*.md"' \\
                         '(-a --auto)'{-a,--auto}'[Use auto mode (alias for --supervised)]' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
@@ -285,7 +285,7 @@ _aaa_ralph_review() {
             # All review commands are supervised-only (no headless)
             case $words[1] in
                 stories)
-                    _arguments '1:milestone:_aaa_milestones'
+                    _arguments '1:milestone:_files -g "*.md"'
                     ;;
                 roadmap)
                     # No additional arguments
@@ -323,17 +323,11 @@ _aaa_ralph_review_gap() {
                     ;;
                 stories)
                     # Gap analysis is supervised-only (no headless)
-                    _arguments '1:milestone:_aaa_milestones'
+                    _arguments '1:milestone:_files -g "*.md"'
                     ;;
             esac
             ;;
     esac
-}
-
-_aaa_milestones() {
-    local -a milestones
-    milestones=("\${(@f)$(aaa __complete milestone 2>/dev/null)}")
-    _describe 'milestone' milestones
 }
 
 # Register completion - handles zinit/lazy compinit that may reset _comps

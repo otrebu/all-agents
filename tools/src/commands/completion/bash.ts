@@ -30,7 +30,7 @@ _aaa_completions() {
             return
             ;;
         --milestone)
-            COMPREPLY=($(compgen -W "$(aaa __complete milestone 2>/dev/null)" -- "$cur"))
+            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
             return
             ;;
         --story)
