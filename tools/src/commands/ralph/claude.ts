@@ -169,25 +169,25 @@ function invokeClaudeHaiku(options: HaikuOptions): null | string {
     {
       encoding: "utf8",
       maxBuffer,
-      stdio: ["inherit", "pipe", "inherit"],
+      stdio: ["ignore", "pipe", "inherit"],
       timeout,
     },
   );
 
-  // Handle signal interruption (Ctrl+C)
-  if (result.signal === "SIGINT" || result.signal === "SIGTERM") {
-    console.log("\nHaiku session interrupted by user");
-    return null;
-  }
-
-  // Handle timeout (ETIMEDOUT) gracefully - return null instead of crashing
+  // Handle timeout FIRST (timeout sends SIGTERM, so check error before signal)
   if (result.error !== undefined) {
     const errorWithCode = result.error as { code?: string } & Error;
     if (errorWithCode.code === "ETIMEDOUT") {
-      console.log(`Haiku invocation timed out after ${timeout}ms`);
+      console.log(`Haiku timed out after ${timeout / 1000}s`);
       return null;
     }
     console.error(`Failed to start Claude Haiku: ${result.error.message}`);
+    return null;
+  }
+
+  // Handle signal interruption (Ctrl+C) - only after ruling out timeout
+  if (result.signal === "SIGINT" || result.signal === "SIGTERM") {
+    console.log("\nHaiku session interrupted by user");
     return null;
   }
 

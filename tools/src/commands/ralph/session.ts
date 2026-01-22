@@ -11,6 +11,7 @@
  * where encoded-path can be base64-encoded or dash-separated.
  */
 
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
@@ -209,38 +210,41 @@ function getSessionJsonlPath(
   repoRoot: string,
 ): null | string {
   const home = homedir();
+  // Use CLAUDE_CONFIG_DIR if set, otherwise default to ~/.claude
+  const claudeDirectory = process.env.CLAUDE_CONFIG_DIR ?? `${home}/.claude`;
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
   const triedPaths: Array<string> = [];
 
-  // Try base64-encoded path
-  const base64Path = Buffer.from(repoRoot).toString("base64");
-  const path1 = `${home}/.claude/projects/${base64Path}/${sessionId}.jsonl`;
-  triedPaths.push(path1);
-  if (existsSync(path1)) {
-    return path1;
+  // Search in CLAUDE_CONFIG_DIR/projects/ (sessions can be in any subdir)
+  const projectsDirectory = `${claudeDirectory}/projects`;
+  if (existsSync(projectsDirectory)) {
+    try {
+      const found = execSync(
+        `find "${projectsDirectory}" -name "${sessionId}.jsonl" -type f 2>/dev/null | head -1`,
+        { encoding: "utf8" },
+      ).trim();
+      if (found !== "") {
+        return found;
+      }
+    } catch {
+      // find failed, continue to fallbacks
+    }
+    triedPaths.push(`${projectsDirectory}/**/${sessionId}.jsonl`);
   }
 
-  // Try dash-encoded path (e.g., -home-user-dev-project)
-  // Claude Code replaces both "/" and "." with "-"
+  // Fallback: Try dash-encoded path directly
   const dashPath = repoRoot.replaceAll("/", "-").replaceAll(".", "-");
-  const path2 = `${home}/.claude/projects/${dashPath}/${sessionId}.jsonl`;
+  const path2 = `${claudeDirectory}/projects/${dashPath}/${sessionId}.jsonl`;
   triedPaths.push(path2);
   if (existsSync(path2)) {
     return path2;
   }
 
-  // Try direct project path
-  const path3 = `${home}/.claude/projects/${sessionId}.jsonl`;
+  // Fallback: Try sessions directory
+  const path3 = `${claudeDirectory}/sessions/${sessionId}.jsonl`;
   triedPaths.push(path3);
   if (existsSync(path3)) {
     return path3;
-  }
-
-  // Try sessions directory
-  const path4 = `${home}/.claude/sessions/${sessionId}.jsonl`;
-  triedPaths.push(path4);
-  if (existsSync(path4)) {
-    return path4;
   }
 
   // Log tried paths at debug level

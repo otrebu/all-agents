@@ -103,6 +103,14 @@ function generateSummary(
     subtask,
   } = options;
 
+  // Skip Haiku if no session (Haiku can't read files in -p mode anyway)
+  if (sessionPath === null) {
+    return {
+      keyFindings: [],
+      summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+    };
+  }
+
   const promptPath = `${repoRoot}/context/workflows/ralph/hooks/iteration-summary.md`;
 
   // Check if prompt template exists
@@ -119,7 +127,7 @@ function generateSummary(
   promptContent = promptContent
     .replaceAll("{{SUBTASK_ID}}", subtask.id)
     .replaceAll("{{STATUS}}", status)
-    .replaceAll("{{SESSION_JSONL_PATH}}", sessionPath ?? "")
+    .replaceAll("{{SESSION_JSONL_PATH}}", sessionPath)
     .replaceAll("{{SUBTASK_TITLE}}", subtask.title)
     .replaceAll("{{MILESTONE}}", milestone)
     .replaceAll("{{TASK_REF}}", subtask.taskRef)
