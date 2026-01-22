@@ -221,7 +221,8 @@ function getSessionJsonlPath(
   }
 
   // Try dash-encoded path (e.g., -home-user-dev-project)
-  const dashPath = repoRoot.replaceAll("/", "-");
+  // Claude Code replaces both "/" and "." with "-"
+  const dashPath = repoRoot.replaceAll("/", "-").replaceAll(".", "-");
   const path2 = `${home}/.claude/projects/${dashPath}/${sessionId}.jsonl`;
   triedPaths.push(path2);
   if (existsSync(path2)) {
