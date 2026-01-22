@@ -47,14 +47,42 @@ Include "Related Documentation" section with `@context/...` refs:
 - Ask: "No docs for [topic]. Want me to create? Give me a prompt to guide it"
 - If yes: spawn subagent with manage-atomic-doc.md + user's prompt
 
+## Stack Heuristics
+
+Always include relevant stack when task matches these patterns:
+
+| Task Pattern | Include Stack |
+|--------------|---------------|
+| UI, component, route, page, dialog | `@context/stacks/web/web-pnpm-*.md` |
+| API, endpoint, procedure, service | `@context/stacks/api/api-pnpm-*.md` |
+| Schema, migration, model | `@context/stacks/api/api-pnpm-*.md` |
+| Monorepo packages/* | `@context/stacks/monorepo/monorepo-pnpm-*.md` |
+
+Pick stack matching project setup (check for vite vs tanstack-start, etc.)
+
+## Foundation Coverage
+
+When task involves these patterns, include matching foundations:
+
+| Pattern in Task | Foundation |
+|-----------------|------------|
+| Form, dialog with inputs, validation | `foundations/construct/validate-forms-react.md` |
+| Error state, error boundary, catch | `foundations/construct/error-handling-react.md` |
+| Design tokens, theme, colors | `foundations/construct/patterns-design-tokens-tailwind.md` |
+| Loading state, skeleton, suspense | `foundations/construct/code-splitting.md` |
+| Test plan mentions component tests | `foundations/test/test-component-vitest-rtl.md` |
+| Test plan mentions integration tests | `foundations/test/test-integration-api.md` |
+
 ## Search Strategy
 
 1. Extract key tech from task (libraries, frameworks, patterns)
-2. **Read `context/README.md`** - scan for matching tool/capability names
-3. **Glob `context/**/*keyword*.md`** - find doc files by name
-4. Verify files exist and are relevant
-5. Add to task's Related Documentation section
-6. Note gaps for missing coverage
+2. **Apply stack heuristics** - determine artifact type, add stack
+3. **Apply foundation coverage** - match patterns, add foundations
+4. **Read `context/README.md`** - scan for matching tool names
+5. **Glob `context/blocks/**/*keyword*.md`** - find specific tool docs
+6. Verify files exist and are relevant
+7. Add to task's Related Documentation section
+8. Note gaps for missing coverage
 
 ## Example
 
