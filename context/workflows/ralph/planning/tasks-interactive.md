@@ -295,8 +295,10 @@ TASK-<NNN>
 Where `<NNN>` is a zero-padded sequence number (001, 002, 003...).
 
 To generate the next unique ID:
-1. Scan existing tasks in `docs/planning/tasks/`
-2. Find the highest existing TASK-NNN number
+1. Scan existing tasks in ALL locations:
+   - `docs/planning/tasks/` (global/legacy)
+   - `docs/planning/milestones/*/tasks/` (milestone-scoped)
+2. Find the highest existing TASK-NNN number across all dirs
 3. Increment by 1 and zero-pad to 3 digits
 
 ### File Naming Convention
@@ -311,6 +313,12 @@ Where:
 
 ### Output Location
 
+**Milestone-scoped stories:** If the story is at `docs/planning/milestones/<milestone>/stories/<story>.md`:
+```
+docs/planning/milestones/<milestone>/tasks/
+```
+
+**Legacy/global stories:** If the story is at `docs/planning/stories/<story>.md`:
 ```
 docs/planning/tasks/
 ```

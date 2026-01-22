@@ -8,8 +8,15 @@ You are an orchestrator that generates tasks for ALL stories in a milestone usin
 
 **Usage:**
 ```
-aaa ralph plan tasks --milestone <name> --auto
+aaa ralph plan tasks --milestone <name> --supervised
 ```
+
+## Required Reading
+
+Before starting, read these documents:
+
+1. **Task Template**: @context/blocks/docs/task-template.md
+2. **Doc Lookup Process**: @context/workflows/ralph/planning/task-doc-lookup.md
 
 ## Process
 
@@ -22,17 +29,39 @@ docs/planning/milestones/<milestone>/stories/*.md
 ```
 
 If no stories found:
-- Check if milestone exists in `docs/planning/ROADMAP.md`
+- Check if milestone directory exists in `docs/planning/milestones/`
 - Report error with available milestones if not found
 
-### 2. Determine Starting Task ID
+### 2. Codebase Analysis
 
-Scan existing tasks in `docs/planning/tasks/`:
-1. Extract all TASK-NNN patterns from filenames
+Before generating tasks, analyze the codebase for context:
+
+1. **Explore relevant directories** - Use Glob/Grep to understand existing patterns
+2. **Read related files** - Understand current implementations
+3. **Identify dependencies** - What existing code will tasks interact with?
+4. **Note conventions** - File naming, code style, test patterns
+
+This analysis informs the task generation and ensures generated tasks reference real code.
+
+### 3. Documentation Context
+
+Follow the doc lookup workflow:
+
+@context/workflows/ralph/planning/task-doc-lookup.md
+
+Search for relevant atomic docs that apply to the milestone's domain. Pass these to the task-generator agents so they can include them in generated tasks.
+
+### 4. Determine Starting Task ID
+
+Scan existing tasks in **ALL locations**:
+- `docs/planning/tasks/` (global/legacy)
+- `docs/planning/milestones/*/tasks/` (milestone-scoped)
+
+1. Extract all TASK-NNN patterns from filenames across all dirs
 2. Find highest existing number
 3. Starting ID = highest + 1 (or 1 if no tasks exist)
 
-### 3. Spawn Parallel Task Generators
+### 5. Spawn Parallel Task Generators
 
 For each story, spawn a `task-generator` subagent:
 
@@ -44,7 +73,7 @@ Use Task tool with subagent_type: "task-generator"
 
 To prevent ID collisions, assign ID ranges BEFORE spawning:
 1. Count stories (N)
-2. Estimate 3 tasks per story (conservative)
+2. Estimate 5 tasks per story (conservative)
 3. Assign ranges:
    - Story 1: starting_id to starting_id + 4
    - Story 2: starting_id + 5 to starting_id + 9
@@ -54,15 +83,16 @@ To prevent ID collisions, assign ID ranges BEFORE spawning:
 Each agent receives:
 - Story path
 - Starting task ID for that story
+- **Milestone slug** (critical for output path)
 
-### 4. Collect Results
+### 6. Collect Results
 
 After all agents complete, collect:
 - Number of tasks generated per story
 - Any errors or skipped stories
 - Actual task IDs used
 
-### 5. Report Summary
+### 7. Report Summary
 
 ```
 Task Generation Complete for Milestone: <milestone>
@@ -75,7 +105,7 @@ By Story:
 - STORY-002-dashboard: 2 tasks (TASK-006 to TASK-007)
 - STORY-003-export: 4 tasks (TASK-011 to TASK-014)
 
-Files created in: docs/planning/tasks/
+Files created in: docs/planning/milestones/<milestone>/tasks/
 ```
 
 ## Agent Invocation Template
@@ -85,10 +115,12 @@ For each story, use the Task tool:
 ```json
 {
   "subagent_type": "task-generator",
-  "prompt": "Generate tasks for story at: docs/planning/milestones/<milestone>/stories/<story-file>.md\n\nStarting task ID: <N>\n\nFollow the task-generator agent instructions to analyze the story, explore the codebase, and generate task files.",
+  "prompt": "Generate tasks for story at: docs/planning/milestones/<milestone>/stories/<story-file>.md\n\nMilestone: <milestone>\nStarting task ID: <N>\n\nOutput path: docs/planning/milestones/<milestone>/tasks/\n\nFollow the task-generator agent instructions to analyze the story, explore the codebase, and generate task files.",
   "description": "Generate tasks for <story-id>"
 }
 ```
+
+**IMPORTANT:** Include the milestone slug and output path in the prompt so the agent writes tasks to the correct location.
 
 ## Parallelization Strategy
 
@@ -122,7 +154,7 @@ This prevents collisions while accepting minor ID waste.
 ## Validation
 
 Before spawning agents, verify:
-- [ ] Milestone exists and has stories
+- [ ] Milestone directory exists (`docs/planning/milestones/<milestone>/`)
 - [ ] Stories directory has .md files
-- [ ] Tasks directory exists or can be created
-- [ ] Starting ID is calculated correctly
+- [ ] Tasks directory exists or can be created (`docs/planning/milestones/<milestone>/tasks/`)
+- [ ] Starting ID is calculated correctly (scanning ALL task locations)

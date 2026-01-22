@@ -415,7 +415,7 @@ planCommand.addCommand(
         options.supervised === true || options.headless === true;
 
       // Milestone mode
-      if (hasMilestone) {
+      if (hasMilestone && options.milestone !== undefined) {
         if (!isAutoMode) {
           console.error(
             "Error: --milestone requires --supervised or --headless mode",
@@ -425,6 +425,25 @@ planCommand.addCommand(
           );
           process.exit(1);
         }
+
+        // Validate milestone exists
+        const milestoneInput = options.milestone;
+        const milestones = discoverMilestones();
+        const hasMilestoneMatch = milestones.some(
+          (m) =>
+            m.slug === milestoneInput ||
+            m.name.toLowerCase() === milestoneInput.toLowerCase(),
+        );
+        if (!hasMilestoneMatch) {
+          console.error(`Milestone "${milestoneInput}" not found.`);
+          console.error("\nAvailable milestones:");
+          for (const m of milestones) {
+            console.error(`  ${m.slug} - ${m.name}`);
+          }
+          console.error("\nRun 'aaa ralph milestones' to see all milestones.");
+          process.exit(1);
+        }
+
         const promptPath = path.join(
           contextRoot,
           "context/workflows/ralph/planning/tasks-milestone.md",

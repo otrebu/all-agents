@@ -11,6 +11,22 @@ const VALID_SHELLS = ["bash", "zsh", "fish"] as const;
 type Shell = (typeof VALID_SHELLS)[number];
 
 /**
+ * Collect task files from a directory matching the task pattern
+ */
+function collectTasksFromDirectory(directory: string): Array<string> {
+  const taskPattern = /^(?:TASK-)?\d{3}-.*\.md$/;
+  if (!existsSync(directory)) return [];
+
+  try {
+    return readdirSync(directory)
+      .filter((f) => taskPattern.test(f))
+      .map((f) => f.replace(/\.md$/, ""));
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Find story files in docs/planning/stories/
  */
 function findStories(): Array<string> {
@@ -31,23 +47,44 @@ function findStories(): Array<string> {
 }
 
 /**
- * Find task files in docs/planning/tasks/
+ * Find task files in docs/planning/tasks/ AND docs/planning/milestones/<slug>/tasks/
  */
 function findTasks(): Array<string> {
   const projectRoot = findProjectRoot();
   if (projectRoot === null) return [];
 
-  const tasksDirectory = path.join(projectRoot, "docs/planning/tasks");
-  if (!existsSync(tasksDirectory)) return [];
+  const tasks: Array<string> = [];
 
-  try {
-    const files = readdirSync(tasksDirectory);
-    return files
-      .filter((f) => /^\d{3}-.*\.md$/.test(f))
-      .map((f) => f.replace(/\.md$/, ""));
-  } catch {
-    return [];
+  // Search global tasks directory
+  const globalTasksDirectory = path.join(projectRoot, "docs/planning/tasks");
+  tasks.push(...collectTasksFromDirectory(globalTasksDirectory));
+
+  // Search milestone task directories
+  const milestonesDirectory = path.join(
+    projectRoot,
+    "docs/planning/milestones",
+  );
+  if (existsSync(milestonesDirectory)) {
+    try {
+      const milestones = readdirSync(milestonesDirectory, {
+        withFileTypes: true,
+      });
+      for (const milestone of milestones) {
+        if (milestone.isDirectory()) {
+          const milestoneTasksDirectory = path.join(
+            milestonesDirectory,
+            milestone.name,
+            "tasks",
+          );
+          tasks.push(...collectTasksFromDirectory(milestoneTasksDirectory));
+        }
+      }
+    } catch {
+      // Ignore errors - completion should fail silently
+    }
   }
+
+  return tasks;
 }
 
 /**

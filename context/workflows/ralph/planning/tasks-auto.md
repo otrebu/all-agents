@@ -160,9 +160,11 @@ Where:
 
 To generate the next unique ID:
 
-1. **Scan existing tasks** - Read all files in `docs/planning/tasks/`
+1. **Scan existing tasks in ALL locations**:
+   - `docs/planning/tasks/` (global/legacy)
+   - `docs/planning/milestones/*/tasks/` (milestone-scoped)
 2. **Extract existing IDs** - Parse `TASK-NNN` from filenames
-3. **Find highest number** - Determine the maximum NNN value
+3. **Find highest number** - Determine the maximum NNN value across all dirs
 4. **Increment** - New ID is max + 1, zero-padded to 3 digits
 
 **Example:**
@@ -175,7 +177,7 @@ If no tasks exist, start with `TASK-001`.
 
 ### ID Uniqueness Rules
 
-- IDs are **globally unique** across all tasks (not per-story)
+- IDs are **globally unique** across all tasks (not per-story, not per-milestone)
 - Once assigned, an ID is never reused (even if task is deleted)
 - Sequential numbering helps track creation order
 
@@ -197,7 +199,12 @@ Where:
 
 ## Output Location
 
-Tasks go in the tasks folder:
+**Milestone-scoped stories:** If the story is at `docs/planning/milestones/<milestone>/stories/<story>.md`, write tasks to:
+```
+docs/planning/milestones/<milestone>/tasks/
+```
+
+**Legacy/global stories:** If the story is at `docs/planning/stories/<story>.md`, write tasks to:
 ```
 docs/planning/tasks/
 ```
@@ -306,13 +313,17 @@ Before finalizing tasks, verify:
 ## Execution
 
 1. Parse the story ID from the argument
-2. Find and read the parent story file
-3. Read @context/blocks/docs/task-template.md
-4. Analyze the codebase for relevant patterns and context
-5. Break down story acceptance criteria into tasks
-6. Generate task files following the template
-7. Create task files in `docs/planning/tasks/`
-8. Update the parent story's Tasks section with links
+2. Find and read the parent story file (check milestone paths first)
+3. Determine output directory based on story location:
+   - Story in `docs/planning/milestones/<milestone>/stories/` → output to `docs/planning/milestones/<milestone>/tasks/`
+   - Story in `docs/planning/stories/` → output to `docs/planning/tasks/`
+4. Read @context/blocks/docs/task-template.md
+5. Analyze the codebase for relevant patterns and context
+6. Scan ALL task directories for highest existing ID
+7. Break down story acceptance criteria into tasks
+8. Generate task files following the template
+9. Create task files in the determined output directory
+10. Update the parent story's Tasks section with links
 
 ## Output
 
@@ -324,7 +335,7 @@ Created N tasks for story '<story-id>':
 2. TASK-002-<slug>: <brief description>
 ...
 
-Files created in: docs/planning/tasks/
+Files created in: docs/planning/milestones/<milestone>/tasks/  (or docs/planning/tasks/)
 
-Parent story updated: docs/planning/milestones/<milestone>/stories/<story-id>.md
+Parent story updated: <story-path>
 ```

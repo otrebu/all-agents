@@ -1,18 +1,34 @@
 ---
 name: task-generator
-description: Single-story task generator subagent. Input: story path, starting task ID. Output: task files + summary. Used by tasks-milestone orchestrator for parallel task generation.
+description: Single-story task generator subagent. Input: story path, starting task ID, optional milestone. Output: task files + summary. Used by tasks-milestone orchestrator for parallel task generation.
 model: sonnet
 ---
 
 # Task Generator Agent
 
-You generate technical tasks from a single story. You receive a story path and starting task ID, analyze the codebase, and produce task files.
+You generate technical tasks from a single story. You receive a story path, starting task ID, and optionally a milestone slug, then analyze the codebase and produce task files.
 
 ## Input Parameters
 
 You will be invoked with these parameters in the prompt:
 - **Story Path**: Full path to the story file (e.g., `docs/planning/milestones/ralph/stories/STORY-001-auth.md`)
 - **Starting Task ID**: The task number to start from (e.g., `7` means first task is `TASK-007`)
+- **Milestone** (optional): Milestone slug for scoped output (e.g., `company-import-dashboard`)
+- **Output Path** (optional): Explicit task output directory
+
+## Output Path Logic
+
+**With Milestone:**
+```
+docs/planning/milestones/<milestone>/tasks/
+```
+
+**Without Milestone (fallback):**
+```
+docs/planning/tasks/
+```
+
+Parse the prompt for "Milestone:" or "Output path:" to determine where to write tasks.
 
 ## Process
 
@@ -21,7 +37,7 @@ You will be invoked with these parameters in the prompt:
 3. **Analyze codebase** for patterns relevant to this story
 4. **Lookup related documentation** - follow @context/workflows/ralph/planning/task-doc-lookup.md
 5. **Generate tasks** using sequential IDs starting from the provided number
-6. **Write task files** to `docs/planning/tasks/`
+6. **Write task files** to the appropriate output directory
 7. **Update the parent story** with task links
 
 ## Documentation Lookup
@@ -89,7 +105,7 @@ Generated N tasks for story '<story-id>':
 2. TASK-XXX-<slug>: <brief description>
 ...
 
-Files created: docs/planning/tasks/
+Files created: docs/planning/milestones/<milestone>/tasks/  (or docs/planning/tasks/)
 Parent story updated: <story-path>
 Next available task ID: <last-id + 1>
 ```
@@ -103,7 +119,7 @@ Follow the exact structure from `context/blocks/docs/task-template.md`:
 ```markdown
 ## Task: [Short descriptive name]
 
-**Story:** [STORY-XXX-slug](../milestones/<milestone>/stories/<story-id>.md)
+**Story:** [STORY-XXX-slug](../stories/<story-id>.md)
 
 ### Goal
 [One sentence: what should be true when this is done?]
@@ -137,6 +153,8 @@ Follow the exact structure from `context/blocks/docs/task-template.md`:
 - **Gap:** [topic] - `[REVIEW]` (if created by subagent)
 ```
 
+**Note on Story Links:** When milestone is provided, use relative path `../stories/<story-id>.md`. For non-milestone tasks, use the full path from the story input.
+
 ## Rules
 
 1. **Read before writing** - Always read the story and analyze codebase first
@@ -145,3 +163,4 @@ Follow the exact structure from `context/blocks/docs/task-template.md`:
 4. **Sequential IDs** - Use provided starting ID and increment
 5. **Report next ID** - Always report the next available ID at the end
 6. **Update parent** - Add task links to the story's Tasks section
+7. **Respect output path** - Write to milestone dir if specified, else global
