@@ -14,6 +14,17 @@ import {
 } from "./claude";
 import { runStatus } from "./status";
 
+/**
+ * Validate that a file path exists, exit with error if not found.
+ * Called before invoking Claude to fail fast with clear error messages.
+ */
+function validateFilePath(filePath: string, parameterName: string): void {
+  if (!existsSync(filePath)) {
+    console.error(`Error: ${parameterName} file not found: ${filePath}`);
+    process.exit(1);
+  }
+}
+
 const DEFAULT_SUBTASKS_PATH = "subtasks.json";
 
 // =============================================================================
@@ -327,28 +338,17 @@ planCommand.addCommand(
 planCommand.addCommand(
   new Command("stories")
     .description("Plan stories for a milestone")
-    .requiredOption("--milestone <name>", "Milestone name to plan stories for")
+    .requiredOption(
+      "--milestone <path>",
+      "Milestone file path to plan stories for",
+    )
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
       const contextRoot = getContextRoot();
 
-      // Validate milestone exists
-      const milestones = discoverMilestones();
-      const hasMilestone = milestones.some(
-        (m) =>
-          m.slug === options.milestone ||
-          m.name.toLowerCase() === options.milestone.toLowerCase(),
-      );
-      if (!hasMilestone) {
-        console.error(`Milestone "${options.milestone}" not found.`);
-        console.error("\nAvailable milestones:");
-        for (const m of milestones) {
-          console.error(`  ${m.slug} - ${m.name}`);
-        }
-        console.error("\nRun 'aaa ralph milestones' to see all milestones.");
-        process.exit(1);
-      }
+      // Validate milestone file exists
+      validateFilePath(options.milestone, "--milestone");
 
       // Determine if using auto prompt (non-interactive generation)
       const isAutoMode =
@@ -381,8 +381,11 @@ planCommand.addCommand(
     .description(
       "Plan tasks for a story (--story) or all stories in a milestone (--milestone)",
     )
-    .option("--story <id>", "Story ID to plan tasks for")
-    .option("--milestone <name>", "Milestone to plan tasks for (all stories)")
+    .option("--story <path>", "Story file path to plan tasks for")
+    .option(
+      "--milestone <path>",
+      "Milestone file path to plan tasks for (all stories)",
+    )
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
@@ -392,14 +395,14 @@ planCommand.addCommand(
       // Validate: require exactly one of --story or --milestone
       if (!hasStory && !hasMilestone) {
         console.error(
-          "Error: Must specify either --story <id> or --milestone <name>",
+          "Error: Must specify either --story <path> or --milestone <path>",
         );
         console.log("\nUsage:");
         console.log(
-          "  aaa ralph plan tasks --story <story-id>      # Single story",
+          "  aaa ralph plan tasks --story <path>      # Single story",
         );
         console.log(
-          "  aaa ralph plan tasks --milestone <name> --supervised  # All stories in milestone",
+          "  aaa ralph plan tasks --milestone <path> --supervised  # All stories in milestone",
         );
         process.exit(1);
       }
@@ -421,28 +424,13 @@ planCommand.addCommand(
             "Error: --milestone requires --supervised or --headless mode",
           );
           console.log(
-            "\nUsage: aaa ralph plan tasks --milestone <name> --supervised",
+            "\nUsage: aaa ralph plan tasks --milestone <path> --supervised",
           );
           process.exit(1);
         }
 
-        // Validate milestone exists
-        const milestoneInput = options.milestone;
-        const milestones = discoverMilestones();
-        const hasMilestoneMatch = milestones.some(
-          (m) =>
-            m.slug === milestoneInput ||
-            m.name.toLowerCase() === milestoneInput.toLowerCase(),
-        );
-        if (!hasMilestoneMatch) {
-          console.error(`Milestone "${milestoneInput}" not found.`);
-          console.error("\nAvailable milestones:");
-          for (const m of milestones) {
-            console.error(`  ${m.slug} - ${m.name}`);
-          }
-          console.error("\nRun 'aaa ralph milestones' to see all milestones.");
-          process.exit(1);
-        }
+        // Validate milestone file exists
+        validateFilePath(options.milestone, "--milestone");
 
         const promptPath = path.join(
           contextRoot,
@@ -464,7 +452,14 @@ planCommand.addCommand(
         return;
       }
 
-      // Story mode
+      // Story mode - validate story file exists
+      // At this point we know hasStory is true (not hasMilestone), so options.story is defined
+      if (options.story === undefined) {
+        // This should never happen due to earlier validation, but satisfies TypeScript
+        process.exit(1);
+      }
+      validateFilePath(options.story, "--story");
+
       const promptPath = getPromptPath(contextRoot, "tasks", isAutoMode);
       const extraContext = `Planning tasks for story: ${options.story}`;
 
@@ -534,6 +529,17 @@ planCommand.addCommand(
       const contextRoot = getContextRoot();
       // Subtasks always uses auto prompt (never interactive per VISION.md)
       const promptPath = getPromptPath(contextRoot, "subtasks", true);
+
+      // Validate path parameters before invoking Claude (fail fast)
+      if (hasTask && options.task !== undefined) {
+        validateFilePath(options.task, "--task");
+      }
+      if (hasStory && options.story !== undefined) {
+        validateFilePath(options.story, "--story");
+      }
+      if (hasMilestone && options.milestone !== undefined) {
+        validateFilePath(options.milestone, "--milestone");
+      }
 
       // Helper to invoke Claude based on mode
       function invoke(extraContext: string): void {

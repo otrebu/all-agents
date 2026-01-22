@@ -141,17 +141,14 @@ describe("ralph E2E", () => {
     expect(parsed.milestones.some((m) => m.slug === "ralph")).toBe(true);
   });
 
-  test("ralph plan stories --milestone nonexistent shows error with available milestones", async () => {
+  test("ralph plan stories --milestone nonexistent shows file not found error", async () => {
     const { exitCode, stderr } = await execa(
       "bun",
       ["run", "dev", "ralph", "plan", "stories", "--milestone", "nonexistent"],
       { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(1);
-    expect(stderr).toContain('Milestone "nonexistent" not found');
-    expect(stderr).toContain("Available milestones:");
-    expect(stderr).toContain("ralph");
-    expect(stderr).toContain("aaa ralph milestones");
+    expect(stderr).toContain("--milestone file not found: nonexistent");
   });
 
   // Three-mode system tests

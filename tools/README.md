@@ -294,27 +294,27 @@ aaa ralph plan vision
 aaa ralph plan roadmap
 
 # Story planning for a milestone
-aaa ralph plan stories --milestone mvp
-aaa ralph plan stories --milestone mvp --supervised  # watch mode
-aaa ralph plan stories --milestone mvp --headless    # autonomous
+aaa ralph plan stories --milestone docs/planning/milestones/mvp.md
+aaa ralph plan stories --milestone docs/planning/milestones/mvp.md --supervised  # watch mode
+aaa ralph plan stories --milestone docs/planning/milestones/mvp.md --headless    # autonomous
 
 # Task planning for a story
-aaa ralph plan tasks --story STORY-001
-aaa ralph plan tasks --milestone mvp --supervised    # all stories in milestone
+aaa ralph plan tasks --story docs/planning/stories/001-user-auth.md
+aaa ralph plan tasks --milestone docs/planning/milestones/mvp.md --supervised    # all stories in milestone
 ```
 
 **Review commands** (supervised-only):
 
 ```bash
 # Review stories for quality and completeness
-aaa ralph review stories <milestone>
+aaa ralph review stories --milestone docs/planning/milestones/mvp.md
 
 # Review roadmap milestones
 aaa ralph review roadmap
 
 # Gap analysis (cold analysis for blind spots)
 aaa ralph review gap roadmap
-aaa ralph review gap stories <milestone>
+aaa ralph review gap stories --milestone docs/planning/milestones/mvp.md
 ```
 
 **Build command** (autonomous implementation):
@@ -415,8 +415,8 @@ aaa ralph plan vision
 aaa ralph plan roadmap
 
 # 2. Create stories and tasks
-aaa ralph plan stories --milestone mvp
-aaa ralph plan tasks --story STORY-001
+aaa ralph plan stories --milestone docs/planning/milestones/mvp.md
+aaa ralph plan tasks --story docs/planning/stories/001-user-auth.md
 
 # 3. Build autonomously
 aaa ralph build
