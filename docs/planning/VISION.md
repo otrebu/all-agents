@@ -155,7 +155,7 @@ For implementation patterns, see @context/blocks/construct/ralph-patterns.md.
 |-------|---------------|--------|
 | Roadmap | `ralph plan roadmap` | `ralph review roadmap` |
 | Stories | `ralph plan stories` | `ralph review stories` |
-| Tasks | `ralph plan tasks` | `ralph review tasks` |
+| Tasks | `ralph plan tasks` | *(via story review)* |
 | Subtasks | `ralph plan subtasks` | `ralph review subtasks` |
 
 **Review Commands:**
@@ -165,8 +165,7 @@ All review commands are **supervised-only** (no `--headless`) because review pro
 ```bash
 ralph review roadmap                           # Review roadmap quality
 ralph review stories --milestone <path>        # Review stories for milestone
-ralph review tasks --story <path>              # Review tasks for story
-ralph review subtasks [--subtasks <path>]      # Review subtask queue before build
+ralph review subtasks --subtasks <path>        # Review subtask queue before build
 ralph review gap roadmap                       # Cold gap analysis of roadmap
 ralph review gap stories --milestone <path>    # Cold gap analysis of stories
 ```
@@ -353,8 +352,8 @@ Each **Ralph Iteration**:
 **No internal retries:** One iteration = one Claude session. If validation fails, that iteration is consumed. Next iteration starts fresh (memoryless).
 
 ```bash
-ralph build --max-iterations 3   # stop after 3 iterations per subtask
-ralph build                      # unlimited iterations (default)
+ralph build --max-iterations 5   # stop after 5 iterations
+ralph build                      # unlimited iterations (max-iterations=0, default)
 ```
 
 **When max iterations exceeded:** Triggers `onMaxIterationsExceeded` hook. Default action: `pause`.
@@ -691,9 +690,9 @@ Output location inferred (subtasks.json adjacent to input).
 ```bash
 ralph review roadmap                                           # Review roadmap alignment
 ralph review stories --milestone <path>                        # Review stories for completeness
-ralph review tasks --story <path>                              # Review tasks for clarity
-ralph review subtasks [--subtasks <path>]                      # Review subtask queue before build
-ralph review gap stories --milestone <path>                    # Gap analysis
+ralph review subtasks --subtasks <path>                        # Review subtask queue before build
+ralph review gap roadmap                                       # Cold gap analysis of roadmap
+ralph review gap stories --milestone <path>                    # Cold gap analysis of stories
 ```
 
 **Build options:**
