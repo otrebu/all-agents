@@ -14,6 +14,7 @@
 import boxen, { type Options as BoxenOptions } from "boxen";
 import chalk from "chalk";
 import { spawnSync } from "node:child_process";
+import terminalLink from "terminal-link";
 
 import type { IterationStatus } from "./types";
 
@@ -51,6 +52,8 @@ interface IterationDisplayData {
   attempt: number;
   /** Total cost in USD */
   costUsd?: number;
+  /** Path to diary JSONL file */
+  diaryPath?: string;
   /** Duration in milliseconds */
   durationMs?: number;
   /** Number of files changed */
@@ -63,6 +66,8 @@ interface IterationDisplayData {
   maxAttempts: number;
   /** Remaining subtasks count */
   remaining: number;
+  /** Path to session JSONL file */
+  sessionPath?: string;
   /** Iteration outcome status */
   status?: IterationStatus;
   /** Subtask ID */
@@ -195,6 +200,37 @@ function getColoredStatus(status: IterationStatus): string {
 // =============================================================================
 
 /**
+ * Create a clickable terminal path that opens in file manager/editor
+ *
+ * @param fullPath - Absolute file path
+ * @param maxLength - Max display length (truncates middle if exceeded)
+ * @returns Clickable path with ~ abbreviation for display
+ */
+function makeClickablePath(fullPath: string, maxLength?: number): string {
+  const home = process.env.HOME ?? "";
+  let displayPath = fullPath.replace(home, "~");
+
+  // Truncate middle if too long
+  if (maxLength !== undefined && displayPath.length > maxLength) {
+    const ellipsis = "...";
+    const availableLength = maxLength - ellipsis.length;
+    const startLength = Math.ceil(availableLength / 2);
+    const endLength = Math.floor(availableLength / 2);
+    displayPath =
+      displayPath.slice(0, startLength) +
+      ellipsis +
+      displayPath.slice(-endLength);
+  }
+
+  const fileUrl = `file://${fullPath}`;
+  return terminalLink(displayPath, fileUrl, { fallback: () => displayPath });
+}
+
+// =============================================================================
+// Iteration Box Types
+// =============================================================================
+
+/**
  * Render markdown content for terminal display
  *
  * Uses glow CLI for rich rendering when available,
@@ -223,10 +259,6 @@ function renderMarkdown(markdown: string): string {
   return markdown;
 }
 
-// =============================================================================
-// Iteration Box Types
-// =============================================================================
-
 /**
  * Render a progress bar showing completion status
  *
@@ -254,6 +286,10 @@ function renderProgressBar(
   return `[${filled}${empty}] ${completed}/${total} (${percentage}%)`;
 }
 
+// =============================================================================
+// Text Formatting
+// =============================================================================
+
 /**
  * Render a status box with a title and content lines
  *
@@ -279,7 +315,7 @@ function renderStatusBox(title: string, lines: Array<string>): string {
 }
 
 // =============================================================================
-// Text Formatting
+// Clickable Paths
 // =============================================================================
 
 /**
@@ -378,12 +414,14 @@ function renderIterationEnd(data: IterationDisplayData): string {
   const {
     attempt,
     costUsd = 0,
+    diaryPath,
     durationMs = 0,
     filesChanged = 0,
     iteration,
     keyFindings = [],
     maxAttempts,
     remaining,
+    sessionPath,
     status = "retrying",
     subtaskId,
     subtaskTitle,
@@ -443,6 +481,23 @@ function renderIterationEnd(data: IterationDisplayData): string {
   if (status === "retrying") {
     lines.push("");
     lines.push(chalk.yellow("→ Retrying with error context..."));
+  }
+
+  // Add clickable paths section
+  // Label "Session  " or "Diary    " = 9 chars, so max path = innerWidth - 9
+  const maxPathLength = innerWidth - 9;
+  if (sessionPath !== undefined || diaryPath !== undefined) {
+    lines.push("─".repeat(innerWidth));
+    if (sessionPath !== undefined) {
+      lines.push(
+        `${chalk.dim("Session")}  ${makeClickablePath(sessionPath, maxPathLength)}`,
+      );
+    }
+    if (diaryPath !== undefined) {
+      lines.push(
+        `${chalk.dim("Diary")}    ${makeClickablePath(diaryPath, maxPathLength)}`,
+      );
+    }
   }
 
   return boxen(lines.join("\n"), {
@@ -535,6 +590,7 @@ export {
   formatTimestamp,
   getColoredStatus,
   type IterationDisplayData,
+  makeClickablePath,
   renderBuildSummary,
   renderIterationEnd,
   renderIterationStart,

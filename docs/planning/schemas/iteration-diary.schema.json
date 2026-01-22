@@ -70,7 +70,7 @@
     "duration": {
       "type": "integer",
       "minimum": 0,
-      "description": "Duration of the iteration in seconds"
+      "description": "Duration of the iteration in milliseconds"
     },
     "costUsd": {
       "type": "number",

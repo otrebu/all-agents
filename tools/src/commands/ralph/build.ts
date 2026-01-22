@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as readline from "node:readline";
 
-import type { BuildOptions, IterationDiaryEntry, Subtask } from "./types";
+import type { BuildOptions, Subtask } from "./types";
 
 import { runCalibrate } from "./calibrate";
 import { buildPrompt, invokeClaudeChat, invokeClaudeHeadless } from "./claude";
@@ -32,7 +32,10 @@ import {
   renderMarkdown,
 } from "./display";
 import { executeHook } from "./hooks";
-import { runPostIterationHook } from "./post-iteration";
+import {
+  type PostIterationResult,
+  runPostIterationHook,
+} from "./post-iteration";
 
 // =============================================================================
 // Constants
@@ -65,9 +68,9 @@ interface HeadlessIterationContext {
  */
 interface HeadlessIterationResult {
   costUsd: number;
-  diaryEntry: IterationDiaryEntry | null;
   didComplete: boolean;
   durationMs: number;
+  hookResult: null | PostIterationResult;
 }
 
 /**
@@ -175,7 +178,7 @@ function processHeadlessIteration(
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
-  const diaryEntry = runPostIterationHook({
+  const hookResult = runPostIterationHook({
     costUsd: result.cost,
     iterationNumber: currentAttempts,
     maxAttempts: maxIterations,
@@ -188,31 +191,34 @@ function processHeadlessIteration(
   });
 
   // Display iteration end box
-  if (diaryEntry !== null) {
+  if (hookResult !== null) {
+    const { diaryPath, entry, sessionPath } = hookResult;
     console.log(
       renderIterationEnd({
         attempt: currentAttempts,
         costUsd: result.cost,
+        diaryPath,
         durationMs: result.duration,
-        filesChanged: diaryEntry.filesChanged?.length ?? 0,
+        filesChanged: entry.filesChanged?.length ?? 0,
         iteration,
-        keyFindings: diaryEntry.keyFindings,
+        keyFindings: entry.keyFindings,
         maxAttempts: maxIterations,
         remaining: postRemaining,
+        sessionPath: sessionPath ?? undefined,
         status: iterationStatus,
         subtaskId: currentSubtask.id,
         subtaskTitle: currentSubtask.title,
-        summary: diaryEntry.summary,
-        toolCalls: diaryEntry.toolCalls,
+        summary: entry.summary,
+        toolCalls: entry.toolCalls,
       }),
     );
   }
 
   return {
     costUsd: result.cost,
-    diaryEntry,
     didComplete,
     durationMs: result.duration,
+    hookResult,
   };
 }
 
@@ -371,6 +377,8 @@ async function runBuild(
 
     // Check if we've exceeded max iterations for this subtask (0 = unlimited)
     if (maxIterations > 0 && currentAttempts > maxIterations) {
+      totalFailed += 1;
+
       console.error(
         `\nError: Max iterations (${maxIterations}) exceeded for subtask: ${currentSubtask.id}`,
       );
@@ -424,13 +432,14 @@ async function runBuild(
       totalDuration += iterationResult.durationMs;
       if (iterationResult.didComplete) {
         totalCompleted += 1;
-      } else {
-        totalFailed += 1;
+        // Reset attempts for completed subtask
+        attempts.delete(currentSubtask.id);
       }
+      // Note: totalFailed is only incremented when max iterations exceeded (line 386)
 
       // Track files changed
-      if (iterationResult.diaryEntry?.filesChanged) {
-        for (const file of iterationResult.diaryEntry.filesChanged) {
+      if (iterationResult.hookResult?.entry.filesChanged) {
+        for (const file of iterationResult.hookResult.entry.filesChanged) {
           allFilesChanged.add(file);
         }
       }

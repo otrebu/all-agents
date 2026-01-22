@@ -55,6 +55,18 @@ interface PostIterationOptions {
 }
 
 /**
+ * Result from post-iteration hook
+ */
+interface PostIterationResult {
+  /** Path to diary JSONL file */
+  diaryPath: string;
+  /** The diary entry that was written */
+  entry: IterationDiaryEntry;
+  /** Path to session JSONL file (if found) */
+  sessionPath: null | string;
+}
+
+/**
  * Result from Haiku summary generation
  */
 interface SummaryResult {
@@ -102,7 +114,6 @@ function generateSummary(
 
   // Check if prompt template exists
   if (!existsSync(promptPath)) {
-    console.log("Prompt template not found, using default summary");
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
@@ -132,11 +143,9 @@ function generateSummary(
     .replaceAll("{{ITERATION_NUM}}", String(iterationNumber));
 
   // Invoke Haiku with 30 second timeout
-  console.log("Generating iteration summary with Haiku...");
   const result = invokeClaudeHaiku({ prompt: promptContent, timeout: 30_000 });
 
   if (result === null) {
-    console.log("Haiku summary generation failed, using default");
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
@@ -172,7 +181,6 @@ function generateSummary(
       summary: parsed.summary ?? `Iteration ${status} for ${subtask.id}`,
     };
   } catch {
-    console.log("Failed to parse Haiku response as JSON, using raw text");
     // Use the raw result as summary, truncated
     const summary = result.slice(0, 200);
     return { keyFindings: [], summary };
@@ -228,10 +236,8 @@ function getFilesChanged(
         }
       }
     }
-  } catch (error) {
-    // Log git error, continue to fallback
-    const message = error instanceof Error ? error.message : String(error);
-    console.log(`Git diff failed (using session fallback): ${message}`);
+  } catch {
+    // Git failed, fall back to session log extraction
   }
 
   // If no git changes found, try to extract from session log
@@ -263,11 +269,11 @@ function getFilesChanged(
  * 4. Writes a diary entry to logs/iterations.jsonl
  *
  * @param options - PostIterationOptions with session and subtask info
- * @returns The diary entry that was written, or null if hook was skipped
+ * @returns Result with diary entry and paths, or null if hook was skipped
  */
 function runPostIterationHook(
   options: PostIterationOptions,
-): IterationDiaryEntry | null {
+): null | PostIterationResult {
   const {
     costUsd,
     iterationNumber = 1,
@@ -280,26 +286,13 @@ function runPostIterationHook(
 
   // Skip hook if no session ID (supervised mode has no session capture)
   if (sessionId === "") {
-    console.log(
-      "Skipping post-iteration hook: no session ID (supervised mode)",
-    );
     return null;
   }
 
-  console.log("\n=== Post-Iteration Hook ===");
-  console.log(`Subtask: ${subtask.id}`);
-  console.log(`Status: ${status}`);
-  console.log(`Session: ${sessionId}`);
-
   // Find session JSONL path
   const sessionPath = getSessionJsonlPath(sessionId, repoRoot);
-  if (sessionPath === null) {
-    console.log("Warning: Could not find session JSONL file");
-  } else {
-    console.log(`Session file: ${sessionPath}`);
-  }
 
-  // Generate summary using Haiku
+  // Generate summary using Haiku (silent - no console output)
   const summaryResult = generateSummary(options, sessionPath);
 
   // Collect metrics
@@ -330,7 +323,7 @@ function runPostIterationHook(
   const diaryPath = `${repoRoot}/logs/iterations.jsonl`;
   writeDiaryEntry(diaryEntry, diaryPath);
 
-  return diaryEntry;
+  return { diaryPath, entry: diaryEntry, sessionPath };
 }
 
 // =============================================================================
@@ -357,8 +350,6 @@ function writeDiaryEntry(entry: IterationDiaryEntry, diaryPath: string): void {
     // Append JSON line to diary file
     const jsonLine = JSON.stringify(entry);
     appendFileSync(diaryPath, `${jsonLine}\n`, "utf8");
-
-    console.log(`Diary entry written to: ${diaryPath}`);
   } catch (error) {
     // Log but don't crash build loop
     const message = error instanceof Error ? error.message : String(error);
@@ -374,6 +365,7 @@ export {
   generateSummary,
   getFilesChanged,
   type PostIterationOptions,
+  type PostIterationResult,
   runPostIterationHook,
   type SummaryResult,
   writeDiaryEntry,

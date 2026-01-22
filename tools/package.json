@@ -29,6 +29,7 @@
     "html-to-text": "^9.0.5",
     "ora": "^8.0.1",
     "parallel-web": "latest",
+    "terminal-link": "^5.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
