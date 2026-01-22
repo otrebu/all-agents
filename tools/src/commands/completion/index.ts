@@ -10,44 +10,101 @@ import generateZshCompletion from "./zsh";
 const VALID_SHELLS = ["bash", "zsh", "fish"] as const;
 type Shell = (typeof VALID_SHELLS)[number];
 
-/**
- * Collect task files from a directory matching the task pattern
- */
-function collectTasksFromDirectory(directory: string): Array<string> {
-  const taskPattern = /^(?:TASK-)?\d{3}-.*\.md$/;
-  if (!existsSync(directory)) return [];
+/** Task filename pattern */
+const TASK_PATTERN = /^(?:TASK-)?\d{3}-.*\.md$/;
+
+/** Collect task files from directory, returns paths relative to project root */
+function collectTasksFromDirectory(
+  baseDirectory: string,
+  dirPath: string,
+): Array<string> {
+  const tasks: Array<string> = [];
+  if (!existsSync(dirPath)) return tasks;
 
   try {
-    return readdirSync(directory)
-      .filter((f) => taskPattern.test(f))
-      .map((f) => f.replace(/\.md$/, ""));
+    for (const f of readdirSync(dirPath)) {
+      if (TASK_PATTERN.test(f)) {
+        const relativePath = path.relative(
+          baseDirectory,
+          path.join(dirPath, f),
+        );
+        tasks.push(relativePath);
+      }
+    }
   } catch {
-    return [];
+    /* ignore */
   }
+  return tasks;
 }
 
 /**
- * Find story files in docs/planning/stories/
+ * Find story files in docs/planning/stories/ and milestones/slug/stories/
+ * Returns relative paths from project root
  */
 function findStories(): Array<string> {
   const projectRoot = findProjectRoot();
   if (projectRoot === null) return [];
 
-  const storiesDirectory = path.join(projectRoot, "docs/planning/stories");
-  if (!existsSync(storiesDirectory)) return [];
+  const stories: Array<string> = [];
+  const pattern = /^\d{3}-.*\.md$/;
+
+  // Global stories
+  const globalDirectory = path.join(projectRoot, "docs/planning/stories");
+  if (existsSync(globalDirectory)) {
+    try {
+      for (const f of readdirSync(globalDirectory)) {
+        if (pattern.test(f)) {
+          const relativePath = path.relative(
+            projectRoot,
+            path.join(globalDirectory, f),
+          );
+          stories.push(relativePath);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Milestone stories
+  const milestonesDirectory = path.join(
+    projectRoot,
+    "docs/planning/milestones",
+  );
+  if (!existsSync(milestonesDirectory)) return stories;
 
   try {
-    const files = readdirSync(storiesDirectory);
-    return files
-      .filter((f) => /^\d{3}-.*\.md$/.test(f))
-      .map((f) => f.replace(/\.md$/, ""));
+    const directories = readdirSync(milestonesDirectory, {
+      withFileTypes: true,
+    }).filter((d) => d.isDirectory());
+    for (const m of directories) {
+      const storyDirectory = path.join(milestonesDirectory, m.name, "stories");
+      if (!existsSync(storyDirectory)) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      const files = readdirSync(storyDirectory);
+      for (const f of files) {
+        if (pattern.test(f)) {
+          const relativePath = path.relative(
+            projectRoot,
+            path.join(storyDirectory, f),
+          );
+          stories.push(relativePath);
+        }
+      }
+    }
   } catch {
-    return [];
+    /* ignore */
   }
+
+  return stories;
 }
 
 /**
  * Find task files in docs/planning/tasks/ AND docs/planning/milestones/<slug>/tasks/
+ * Returns relative paths from project root
  */
 function findTasks(): Array<string> {
   const projectRoot = findProjectRoot();
@@ -55,32 +112,26 @@ function findTasks(): Array<string> {
 
   const tasks: Array<string> = [];
 
-  // Search global tasks directory
-  const globalTasksDirectory = path.join(projectRoot, "docs/planning/tasks");
-  tasks.push(...collectTasksFromDirectory(globalTasksDirectory));
+  // Global tasks
+  const globalDirectory = path.join(projectRoot, "docs/planning/tasks");
+  tasks.push(...collectTasksFromDirectory(projectRoot, globalDirectory));
 
-  // Search milestone task directories
+  // Milestone tasks
   const milestonesDirectory = path.join(
     projectRoot,
     "docs/planning/milestones",
   );
   if (existsSync(milestonesDirectory)) {
     try {
-      const milestones = readdirSync(milestonesDirectory, {
+      const directories = readdirSync(milestonesDirectory, {
         withFileTypes: true,
-      });
-      for (const milestone of milestones) {
-        if (milestone.isDirectory()) {
-          const milestoneTasksDirectory = path.join(
-            milestonesDirectory,
-            milestone.name,
-            "tasks",
-          );
-          tasks.push(...collectTasksFromDirectory(milestoneTasksDirectory));
-        }
+      }).filter((d) => d.isDirectory());
+      for (const m of directories) {
+        const taskDirectory = path.join(milestonesDirectory, m.name, "tasks");
+        tasks.push(...collectTasksFromDirectory(projectRoot, taskDirectory));
       }
     } catch {
-      // Ignore errors - completion should fail silently
+      /* ignore */
     }
   }
 
@@ -140,7 +191,11 @@ function handleCompletion(): void {
       }
       case "milestone": {
         const milestones = discoverMilestones();
-        console.log(milestones.map((m) => m.slug).join("\n"));
+        console.log(
+          milestones
+            .map((m) => `docs/planning/milestones/${m.slug}`)
+            .join("\n"),
+        );
         break;
       }
       case "story": {

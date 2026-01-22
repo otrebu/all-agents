@@ -1,8 +1,18 @@
 import { Command } from "@commander-js/extra-typings";
-import { discoverMilestones } from "@lib/milestones";
+import {
+  discoverMilestones,
+  findProjectRoot,
+  getMilestonePaths,
+} from "@lib/milestones";
 import { getContextRoot } from "@tools/utils/paths";
 import { spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+} from "node:fs";
 import path from "node:path";
 
 import runBuild from "./build";
@@ -15,14 +25,150 @@ import {
 import { runStatus } from "./status";
 
 /**
- * Validate that a file path exists, exit with error if not found.
- * Called before invoking Claude to fail fast with clear error messages.
+ * Resolve and validate milestone - exit with helpful error if not found
  */
-function validateFilePath(filePath: string, parameterName: string): void {
-  if (!existsSync(filePath)) {
-    console.error(`Error: ${parameterName} file not found: ${filePath}`);
+function requireMilestone(input: string): string {
+  const resolved = resolveMilestonePath(input);
+  if (resolved === null) {
+    const milestones = discoverMilestones();
+    console.error(`Error: milestone not found: ${input}`);
+    if (milestones.length > 0) {
+      console.error(`Available: ${milestones.map((m) => m.slug).join(", ")}`);
+    }
     process.exit(1);
   }
+  return resolved;
+}
+
+/**
+ * Resolve and validate story - exit with helpful error if not found
+ */
+function requireStory(input: string): string {
+  const resolved = resolveStoryPath(input);
+  if (resolved === null) {
+    console.error(`Error: story not found: ${input}`);
+    console.error("Try: full path or slug like 001-feature-name");
+    process.exit(1);
+  }
+  return resolved;
+}
+
+/**
+ * Resolve and validate task - exit with helpful error if not found
+ */
+function requireTask(input: string): string {
+  const resolved = resolveTaskPath(input);
+  if (resolved === null) {
+    console.error(`Error: task not found: ${input}`);
+    console.error("Try: full path or slug like 001-task-name");
+    process.exit(1);
+  }
+  return resolved;
+}
+
+/**
+ * Resolve milestone path from slug or full path.
+ * - If path exists as-is, return it
+ * - Otherwise try to resolve as milestone slug
+ * - Returns null if not found
+ */
+function resolveMilestonePath(input: string): null | string {
+  if (existsSync(input)) return input;
+
+  const paths = getMilestonePaths(input);
+  return paths?.root ?? null;
+}
+
+/**
+ * Resolve story path from slug or full path.
+ * Searches: docs/planning/stories/, docs/planning/milestones/{slug}/stories/
+ */
+function resolveStoryPath(input: string): null | string {
+  if (existsSync(input)) return input;
+
+  const projectRoot = findProjectRoot();
+  if (projectRoot === null) return null;
+
+  const slug = input.endsWith(".md") ? input.replace(/\.md$/, "") : input;
+
+  // Try global stories
+  const globalPath = path.join(
+    projectRoot,
+    "docs/planning/stories",
+    `${slug}.md`,
+  );
+  if (existsSync(globalPath)) return globalPath;
+
+  // Try milestone stories
+  const milestonesDirectory = path.join(
+    projectRoot,
+    "docs/planning/milestones",
+  );
+  if (!existsSync(milestonesDirectory)) return null;
+
+  try {
+    const directories = readdirSync(milestonesDirectory, {
+      withFileTypes: true,
+    }).filter((d) => d.isDirectory());
+    for (const m of directories) {
+      const storyPath = path.join(
+        milestonesDirectory,
+        m.name,
+        "stories",
+        `${slug}.md`,
+      );
+      if (existsSync(storyPath)) return storyPath;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/**
+ * Resolve task path from slug or full path.
+ * Searches: docs/planning/tasks/, docs/planning/milestones/{slug}/tasks/
+ */
+function resolveTaskPath(input: string): null | string {
+  if (existsSync(input)) return input;
+
+  const projectRoot = findProjectRoot();
+  if (projectRoot === null) return null;
+
+  const slug = input.endsWith(".md") ? input.replace(/\.md$/, "") : input;
+
+  // Try global tasks
+  const globalPath = path.join(
+    projectRoot,
+    "docs/planning/tasks",
+    `${slug}.md`,
+  );
+  if (existsSync(globalPath)) return globalPath;
+
+  // Try milestone tasks
+  const milestonesDirectory = path.join(
+    projectRoot,
+    "docs/planning/milestones",
+  );
+  if (!existsSync(milestonesDirectory)) return null;
+
+  try {
+    const directories = readdirSync(milestonesDirectory, {
+      withFileTypes: true,
+    }).filter((d) => d.isDirectory());
+    for (const m of directories) {
+      const taskPath = path.join(
+        milestonesDirectory,
+        m.name,
+        "tasks",
+        `${slug}.md`,
+      );
+      if (existsSync(taskPath)) return taskPath;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
 const DEFAULT_SUBTASKS_PATH = "subtasks.json";
@@ -346,15 +492,13 @@ planCommand.addCommand(
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
       const contextRoot = getContextRoot();
-
-      // Validate milestone file exists
-      validateFilePath(options.milestone, "--milestone");
+      const milestonePath = requireMilestone(options.milestone);
 
       // Determine if using auto prompt (non-interactive generation)
       const isAutoMode =
         options.supervised === true || options.headless === true;
       const promptPath = getPromptPath(contextRoot, "stories", isAutoMode);
-      const extraContext = `Planning stories for milestone: ${options.milestone}`;
+      const extraContext = `Planning stories for milestone: ${milestonePath}`;
 
       // Determine execution mode
       if (options.headless === true) {
@@ -429,14 +573,13 @@ planCommand.addCommand(
           process.exit(1);
         }
 
-        // Validate milestone file exists
-        validateFilePath(options.milestone, "--milestone");
+        const milestonePath = requireMilestone(options.milestone);
 
         const promptPath = path.join(
           contextRoot,
           "context/workflows/ralph/planning/tasks-milestone.md",
         );
-        const extraContext = `Generating tasks for all stories in milestone: ${options.milestone}`;
+        const extraContext = `Generating tasks for all stories in milestone: ${milestonePath}`;
 
         if (options.headless === true) {
           const logFile = path.join(contextRoot, "logs/planning.jsonl");
@@ -452,16 +595,16 @@ planCommand.addCommand(
         return;
       }
 
-      // Story mode - validate story file exists
+      // Story mode
       // At this point we know hasStory is true (not hasMilestone), so options.story is defined
       if (options.story === undefined) {
         // This should never happen due to earlier validation, but satisfies TypeScript
         process.exit(1);
       }
-      validateFilePath(options.story, "--story");
+      const storyPath = requireStory(options.story);
 
       const promptPath = getPromptPath(contextRoot, "tasks", isAutoMode);
-      const extraContext = `Planning tasks for story: ${options.story}`;
+      const extraContext = `Planning tasks for story: ${storyPath}`;
 
       if (options.headless === true) {
         const logFile = path.join(contextRoot, "logs/planning.jsonl");
@@ -530,16 +673,19 @@ planCommand.addCommand(
       // Subtasks always uses auto prompt (never interactive per VISION.md)
       const promptPath = getPromptPath(contextRoot, "subtasks", true);
 
-      // Validate path parameters before invoking Claude (fail fast)
-      if (hasTask && options.task !== undefined) {
-        validateFilePath(options.task, "--task");
-      }
-      if (hasStory && options.story !== undefined) {
-        validateFilePath(options.story, "--story");
-      }
-      if (hasMilestone && options.milestone !== undefined) {
-        validateFilePath(options.milestone, "--milestone");
-      }
+      // Resolve and validate paths (fail fast with helpful errors)
+      const taskPath =
+        hasTask && options.task !== undefined
+          ? requireTask(options.task)
+          : null;
+      const storyPath =
+        hasStory && options.story !== undefined
+          ? requireStory(options.story)
+          : null;
+      const milestonePath =
+        hasMilestone && options.milestone !== undefined
+          ? requireMilestone(options.milestone)
+          : null;
 
       // Helper to invoke Claude based on mode
       function invoke(extraContext: string): void {
@@ -558,16 +704,18 @@ planCommand.addCommand(
       }
 
       // Handle each scope type (exactly one is true after validation)
-      if (hasTask) {
-        invoke(`Generating subtasks for task: ${options.task}`);
+      if (taskPath !== null) {
+        invoke(`Generating subtasks for task: ${taskPath}`);
         return;
       }
-      if (hasStory) {
-        invoke(`Generating subtasks for story: ${options.story}`);
+      if (storyPath !== null) {
+        invoke(`Generating subtasks for story: ${storyPath}`);
         return;
       }
       // hasMilestone must be true at this point
-      invoke(`Generating subtasks for milestone: ${options.milestone}`);
+      if (milestonePath !== null) {
+        invoke(`Generating subtasks for milestone: ${milestonePath}`);
+      }
     }),
 );
 
