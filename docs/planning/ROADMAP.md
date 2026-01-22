@@ -75,25 +75,35 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 
 ---
 
-### 4. [full-integration](milestones/full-integration/): End-to-End Autonomous Workflow
+### 4. [004-full-integration](milestones/004-full-integration/): End-to-End Autonomous Workflow
 
 **Outcome:** Users can run complete Vision → ROADMAP → Stories → Tasks → Subtasks → Build → Calibrate cycles with minimal intervention
 
 **Why last:** This is the "polish" milestone. It integrates hooks, notifications, and the status dashboard. Requires all previous milestones to be functional.
 
 **Key deliverables:**
-- Skills for Claude Code integration (`/ralph-plan`, `/ralph-build`, `/ralph-calibrate`)
+- Skills for Claude Code integration (`/ralph-plan`, `/ralph-build`, `/ralph-calibrate`, `/ralph-status`, `/ralph-review`)
+- `/ralph-plan subtasks` subcommand (currently CLI-only via `aaa ralph plan subtasks`)
 - Hooks system (onIterationComplete, onMilestoneComplete, etc.)
 - ntfy notifications for human-on-the-loop awareness
 - `status.sh` for progress visibility
 - Interactive mode (`-i`) for human checkpoints
+- Review commands completion:
+  - `ralph review subtasks` - review subtask queue before build
+  - `ralph review tasks` - review tasks for a story (currently stub)
+  - Milestone review prompt (detailed walkthrough after roadmap draft)
+  - Gap analyzer subagent for cold analysis of artifacts
+  - Chunked presentation in review prompts (one finding at a time)
+- Skills documentation in VISION.md (what skills exist, what they do)
 
 **Success criteria:**
 - `/ralph build` in Claude Code triggers full iteration loop
 - Hooks fire and diary entries are created automatically
 - `ralph status` shows accurate counts and recent activity
+- `ralph review subtasks` validates queue before building
+- `ralph review gap roadmap` provides cold analysis with fresh eyes
 
-**Dependencies:** calibration (milestone 3)
+**Dependencies:** 003-calibration (milestone 3)
 
 ## Future Considerations
 
