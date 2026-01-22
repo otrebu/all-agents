@@ -207,9 +207,21 @@ function getFilesChanged(
 ): Array<string> {
   const files = new Set<string>();
 
-  // Try git diff first (staged + unstaged)
+  // Primary source: extract from session log (Write/Edit tool uses)
+  // This captures what Claude actually edited, even if already committed
+  if (sessionPath !== null) {
+    const sessionFiles = getFilesFromSession(sessionPath);
+    for (const file of sessionFiles) {
+      // Normalize to relative path if absolute
+      const relativePath = file.startsWith(repoRoot)
+        ? file.slice(repoRoot.length + 1)
+        : file;
+      files.add(relativePath);
+    }
+  }
+
+  // Secondary: add any uncommitted git changes
   try {
-    // Get staged files
     const staged = execSync("git diff --cached --name-only", {
       cwd: repoRoot,
       encoding: "utf8",
@@ -223,7 +235,6 @@ function getFilesChanged(
       }
     }
 
-    // Get unstaged modified files
     const unstaged = execSync("git diff --name-only", {
       cwd: repoRoot,
       encoding: "utf8",
@@ -237,19 +248,19 @@ function getFilesChanged(
       }
     }
   } catch {
-    // Git failed, fall back to session log extraction
+    // Git failed, session files already captured above
   }
 
-  // If no git changes found, try to extract from session log
-  if (files.size === 0 && sessionPath !== null) {
-    const sessionFiles = getFilesFromSession(sessionPath);
-    for (const file of sessionFiles) {
-      files.add(file);
-    }
-  }
+  // Filter out noise (diary files, lock files, etc.)
+  const filtered = [...files].filter(
+    (f) =>
+      !f.includes("iterations.jsonl") &&
+      !f.endsWith(".lock") &&
+      !f.endsWith("lock.json"),
+  );
 
   // Limit to 50 files
-  return [...files].slice(0, 50);
+  return filtered.slice(0, 50);
 }
 
 // =============================================================================
