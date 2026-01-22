@@ -3,8 +3,8 @@
 ## Current Focus
 
 **Story:** none
-**Task:** TASK-012 (CLI ergonomics fixes)
-**Status:** in progress (SUB-022 complete)
+**Task:** TASK-012 complete, TASK-013 next
+**Status:** SUB-023 complete, SUB-024 pending
 
 ## Session Notes
 
@@ -19,6 +19,11 @@
 - **Changes:** Updated Section 8.2 CLI Command Structure with: plan subtasks scope flags, review flag syntax with --milestone/--subtasks, calibrate as real subcommands, max-iterations=0 default, calibrate-every flag, review subtasks command
 - **Files:**
   - `docs/planning/VISION.md` - Rewrote Section 8.2 to match current implementation
+
+#### SUB-023
+- **Problem:** Need to verify TASK-012 CLI changes compile and work correctly
+- **Changes:** Ran typecheck (passed), verified all CLI commands with --help show correct flags. Confirmed: plan subtasks scope flags, calibrate as real subcommands, review commands use --milestone/--subtasks flags, build shows max-iterations default 0 and calibrate-every option
+- **Files:** No code changes - verification only
 
 ### 2026-01-21
 
