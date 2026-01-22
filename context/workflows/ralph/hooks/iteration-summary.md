@@ -9,11 +9,16 @@ You are summarizing a Claude Code build iteration for subtask **{{SUBTASK_ID}}**
 - **Task Reference:** {{TASK_REF}}
 - **Iteration:** {{ITERATION_NUM}}
 - **Status:** {{STATUS}}
-- **Session Log:** {{SESSION_JSONL_PATH}}
+
+## Session Log (excerpt)
+
+```
+{{SESSION_CONTENT}}
+```
 
 ## Instructions
 
-Analyze the session and produce a concise summary of what happened during this iteration.
+Analyze the session log excerpt above and produce a concise summary of what happened during this iteration.
 
 Return JSON only:
 

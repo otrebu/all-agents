@@ -122,12 +122,23 @@ function generateSummary(
     };
   }
 
+  // Read session content to pass directly (Haiku can't read files with -p flag)
+  let sessionContent = "";
+  try {
+    const rawContent = readFileSync(sessionPath, "utf8");
+    // Extract last ~50 lines or 10KB, whichever is smaller
+    const lines = rawContent.split("\n").slice(-50);
+    sessionContent = lines.join("\n").slice(-10_000);
+  } catch {
+    sessionContent = "(session log unavailable)";
+  }
+
   // Read and substitute placeholders in prompt template
   let promptContent = readFileSync(promptPath, "utf8");
   promptContent = promptContent
     .replaceAll("{{SUBTASK_ID}}", subtask.id)
     .replaceAll("{{STATUS}}", status)
-    .replaceAll("{{SESSION_JSONL_PATH}}", sessionPath)
+    .replaceAll("{{SESSION_CONTENT}}", sessionContent)
     .replaceAll("{{SUBTASK_TITLE}}", subtask.title)
     .replaceAll("{{MILESTONE}}", milestone)
     .replaceAll("{{TASK_REF}}", subtask.taskRef)
@@ -335,6 +346,7 @@ function runPostIterationHook(
   console.log(`Status: ${status}`);
   console.log(`Summary: ${summaryResult.summary}`);
   console.log(`Duration: ${formatDuration(duration)}`);
+  console.log(`Completed: ${new Date(timestamp).toLocaleTimeString()}`);
   console.log(`Tool calls: ${toolCalls}`);
   console.log(`Files changed: ${filesChanged.length}`);
   if (summaryResult.keyFindings.length > 0) {
