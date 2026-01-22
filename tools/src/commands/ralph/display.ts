@@ -6,17 +6,23 @@
  * - Status boxes for information display
  * - Duration and timestamp formatting
  * - Status coloring (completed/failed/retrying)
- * - Markdown rendering with glow fallback
+ * - Markdown rendering with marked-terminal
  *
  * @see tools/lib/log.ts for logging utilities
  */
 
 import boxen, { type Options as BoxenOptions } from "boxen";
 import chalk from "chalk";
-import { spawnSync } from "node:child_process";
+import { marked, type MarkedExtension } from "marked";
+// @ts-expect-error - marked-terminal has no types for v7
+import { markedTerminal } from "marked-terminal";
 import terminalLink from "terminal-link";
 
 import type { IterationStatus } from "./types";
+
+// Configure marked with terminal renderer
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+marked.use(markedTerminal({ width: 80 }) as MarkedExtension);
 
 // =============================================================================
 // Helper Functions
@@ -78,14 +84,6 @@ interface IterationDisplayData {
   summary?: string;
   /** Number of tool calls */
   toolCalls?: number;
-}
-
-/**
- * Check if glow CLI is available for markdown rendering
- */
-function checkGlowAvailable(): boolean {
-  const result = spawnSync("which", ["glow"], { encoding: "utf8" });
-  return result.status === 0;
 }
 
 // =============================================================================
@@ -259,30 +257,13 @@ function renderInvocationHeader(mode: "headless" | "supervised"): string {
 /**
  * Render markdown content for terminal display
  *
- * Uses glow CLI for rich rendering when available,
- * otherwise falls back to plain output.
+ * Uses marked-terminal for rich ANSI rendering.
  *
  * @param markdown - Markdown content to render
- * @returns Rendered content (either glow output or plain markdown)
+ * @returns Rendered content with ANSI styling
  */
 function renderMarkdown(markdown: string): string {
-  if (!checkGlowAvailable()) {
-    // Fallback: return plain markdown
-    return markdown;
-  }
-
-  // Use glow with dark style and 80 char width
-  const result = spawnSync("glow", ["-s", "dark", "-w", "80", "-"], {
-    encoding: "utf8",
-    input: markdown,
-  });
-
-  if (result.status === 0 && result.stdout) {
-    return result.stdout;
-  }
-
-  // If glow fails, return plain markdown
-  return markdown;
+  return marked(markdown) as string;
 }
 
 /**

@@ -27,6 +27,8 @@
     "commander": "^14.0.0",
     "execa": "^9.6.1",
     "html-to-text": "^9.0.5",
+    "marked": "^17.0.1",
+    "marked-terminal": "^7.3.0",
     "ora": "^8.0.1",
     "parallel-web": "latest",
     "terminal-link": "^5.0.0",
