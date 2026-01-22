@@ -14,6 +14,14 @@
 
 ### 2026-01-21
 
+#### SUB-021
+- **Problem:** `ralph review tasks` was a placeholder showing "coming soon" message
+- **Changes:** Replaced placeholder with real `ralph review subtasks --subtasks <path>` command that invokes subtasks-review-auto.md prompt in supervised mode
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Replaced review tasks with review subtasks command using --subtasks flag
+  - `context/workflows/ralph/review/subtasks-review-auto.md` - Created new prompt file for subtask queue review
+  - `tools/tests/e2e/ralph.test.ts` - Updated test to verify new command behavior
+
 #### SUB-020
 - **Problem:** No way to automatically run calibration checks during long build loops
 - **Changes:** Added `--calibrate-every <n>` flag to ralph build command; when set, runCalibrate('all', ...) is called every N iterations; extracted runPeriodicCalibration helper for lint compliance

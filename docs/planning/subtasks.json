@@ -197,7 +197,10 @@
       "storyRef": null,
       "title": "Implement ralph review subtasks command",
       "description": "Replace 'coming soon' placeholder for `ralph review tasks` with real implementation. Add `ralph review subtasks --subtasks <path>` command that invokes a subtasks-review-auto.md prompt. Create basic prompt file if missing. Supervised-only mode.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-21T14:30:00Z",
+      "commitHash": "ba32aa01dc014471da1540676239f69b7c859191",
+      "sessionId": "ralph-build-2026-01-21-SUB021",
       "acceptanceCriteria": [
         "ralph review subtasks --subtasks <path> works",
         "Invokes Claude in supervised mode",
