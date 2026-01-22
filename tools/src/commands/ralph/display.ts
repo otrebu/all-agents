@@ -137,6 +137,16 @@ function formatDuration(ms: number): string {
 // =============================================================================
 
 /**
+ * Format current time as HH:MM:SS for display in iteration boxes
+ *
+ * @returns Formatted string like "14:32:17"
+ */
+function formatTimeOfDay(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+}
+
+/**
  * Format an ISO 8601 timestamp for display
  *
  * @param isoTimestamp - ISO 8601 timestamp string
@@ -231,6 +241,22 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
 // =============================================================================
 
 /**
+ * Render a styled separator for Claude invocation
+ *
+ * @param mode - "headless" or "supervised" execution mode
+ * @returns Styled line like "──────────── Invoking Claude (headless) ────────────"
+ */
+function renderInvocationHeader(mode: "headless" | "supervised"): string {
+  const label = ` Invoking Claude (${mode}) `;
+  const lineChar = "─";
+  const totalWidth = BOX_WIDTH;
+  const sideLength = Math.floor((totalWidth - label.length) / 2);
+  return chalk.dim(
+    `${lineChar.repeat(sideLength)}${label}${lineChar.repeat(sideLength)}`,
+  );
+}
+
+/**
  * Render markdown content for terminal display
  *
  * Uses glow CLI for rich rendering when available,
@@ -284,6 +310,20 @@ function renderProgressBar(
   const empty = "░".repeat(emptyCount);
 
   return `[${filled}${empty}] ${completed}/${total} (${percentage}%)`;
+}
+
+/**
+ * Render a styled separator for Claude response output
+ *
+ * @returns Styled line like "──────────────── Claude Response ────────────────"
+ */
+function renderResponseHeader(): string {
+  const label = " Claude Response ";
+  const lineChar = "─";
+  const totalWidth = BOX_WIDTH;
+  const labelLength = label.length;
+  const sideLength = Math.floor((totalWidth - labelLength) / 2);
+  return `${lineChar.repeat(sideLength)}${chalk.cyan(label)}${lineChar.repeat(sideLength)}`;
 }
 
 // =============================================================================
@@ -441,7 +481,12 @@ function renderIterationEnd(data: IterationDisplayData): string {
   const padding = innerWidth - leftPart.length - rightPart.length;
 
   // Status icon and colored status
-  const statusIcon = status === "completed" ? "✓" : "✗";
+  const statusIcons: Record<IterationStatus, string> = {
+    completed: "✓",
+    failed: "✗",
+    retrying: "↻",
+  };
+  const statusIcon = statusIcons[status];
   const statusColored = getColoredStatus(status);
 
   // Format metrics
@@ -504,7 +549,7 @@ function renderIterationEnd(data: IterationDisplayData): string {
     borderColor: getStatusBorderColor(status),
     borderStyle: "round",
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
-    title: `Iteration ${iteration}`,
+    title: `Iteration ${iteration} @ ${formatTimeOfDay()}`,
     titleAlignment: "left",
     width: BOX_WIDTH,
   });
@@ -592,10 +637,12 @@ export {
   type IterationDisplayData,
   makeClickablePath,
   renderBuildSummary,
+  renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
   renderMarkdown,
   renderProgressBar,
+  renderResponseHeader,
   renderStatusBox,
   truncate,
 };

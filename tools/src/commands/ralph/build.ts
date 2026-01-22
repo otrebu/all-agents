@@ -27,9 +27,11 @@ import {
 } from "./config";
 import {
   renderBuildSummary,
+  renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
   renderMarkdown,
+  renderResponseHeader,
 } from "./display";
 import { executeHook } from "./hooks";
 import {
@@ -157,7 +159,8 @@ function processHeadlessIteration(
     subtasksPath,
   } = context;
 
-  console.log("Invoking Claude (headless mode)...\n");
+  console.log(renderInvocationHeader("headless"));
+  console.log();
 
   const result = invokeClaudeHeadless({ prompt });
 
@@ -167,8 +170,8 @@ function processHeadlessIteration(
   }
 
   // Display result with markdown rendering
-  console.log("\n--- Claude Response ---");
-  renderMarkdown(result.result);
+  console.log(`\n${renderResponseHeader()}`);
+  console.log(renderMarkdown(result.result));
   console.log();
 
   // Reload subtasks to check if current one was completed
@@ -232,9 +235,8 @@ function processSupervisedIteration(
 ): boolean {
   const { contextRoot, subtasksPath } = context;
 
-  console.log(
-    "Invoking Claude (supervised mode - you can type if needed)...\n",
-  );
+  console.log(renderInvocationHeader("supervised"));
+  console.log();
 
   const chatResult = invokeClaudeChat(
     path.join(contextRoot, ITERATION_PROMPT_PATH),
