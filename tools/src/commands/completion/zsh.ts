@@ -240,22 +240,22 @@ _aaa_ralph_plan() {
                     ;;
                 stories)
                     _arguments \\
-                        '--milestone[Milestone file]:milestone:_files -g "*.md"' \\
-                        '(-a --auto)'{-a,--auto}'[Use auto mode (alias for --supervised)]' \\
+                        '--milestone[Milestone path]:milestone:_aaa_complete_milestone' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
                 tasks)
                     _arguments \\
-                        '--story[Story file]:story:_files -g "*.md"' \\
-                        '--milestone[Milestone file]:milestone:_files -g "*.md"' \\
-                        '(-a --auto)'{-a,--auto}'[Use auto mode (alias for --supervised)]' \\
+                        '--story[Story path]:story:_aaa_complete_story' \\
+                        '--milestone[Milestone path]:milestone:_aaa_complete_milestone' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
                 subtasks)
                     _arguments \\
-                        '--task[Task file]:task:_files -g "(*.md|*(/))"' \\
+                        '--task[Task file]:task:_aaa_complete_task' \\
+                        '--story[Story path]:story:_aaa_complete_story' \\
+                        '--milestone[Milestone path]:milestone:_aaa_complete_milestone' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
@@ -285,7 +285,7 @@ _aaa_ralph_review() {
             # All review commands are supervised-only (no headless)
             case $words[1] in
                 stories)
-                    _arguments '1:milestone:_files -g "*.md"'
+                    _arguments '--milestone[Milestone path]:milestone:_aaa_complete_milestone'
                     ;;
                 roadmap)
                     # No additional arguments
@@ -323,11 +323,30 @@ _aaa_ralph_review_gap() {
                     ;;
                 stories)
                     # Gap analysis is supervised-only (no headless)
-                    _arguments '1:milestone:_files -g "*.md"'
+                    _arguments '--milestone[Milestone path]:milestone:_aaa_complete_milestone'
                     ;;
             esac
             ;;
     esac
+}
+
+# Dynamic completion helpers - call aaa __complete for live data
+_aaa_complete_milestone() {
+    local -a milestones
+    milestones=(\${(f)"\$(aaa __complete milestone 2>/dev/null)"})
+    _describe 'milestone' milestones
+}
+
+_aaa_complete_story() {
+    local -a stories
+    stories=(\${(f)"\$(aaa __complete story 2>/dev/null)"})
+    _describe 'story' stories
+}
+
+_aaa_complete_task() {
+    local -a tasks
+    tasks=(\${(f)"\$(aaa __complete task 2>/dev/null)"})
+    _describe 'task' tasks
 }
 
 # Register completion - handles zinit/lazy compinit that may reset _comps
