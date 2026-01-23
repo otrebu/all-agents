@@ -15,7 +15,6 @@ import boxen, { type Options as BoxenOptions } from "boxen";
 import chalk from "chalk";
 import { marked, type MarkedExtension } from "marked";
 // @ts-expect-error - marked-terminal has no types for v7
-// eslint-disable-next-line import/namespace
 import { markedTerminal } from "marked-terminal";
 import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";

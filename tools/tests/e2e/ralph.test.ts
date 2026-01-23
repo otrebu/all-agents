@@ -2569,23 +2569,17 @@ describe("subtasks schema validation", () => {
     const testOutput = JSON.parse(testOutputContent) as object;
 
     // Set up AJV validator with formats (for date-time, etc.)
-
     const ajv = new Ajv2020({ allErrors: true, strict: false });
-
     addFormats(ajv);
 
     // Compile and validate
-
     const validate = ajv.compile(schema);
-
     const isValid = validate(testOutput);
 
     // Log errors if validation fails
-
     if (!isValid) {
       console.error(
         "Validation errors:",
-
         JSON.stringify(validate.errors, null, 2),
       );
     }
@@ -2602,7 +2596,6 @@ describe("subtasks schema validation", () => {
     const schema = JSON.parse(schemaContent) as object;
 
     const ajv = new Ajv2020({ allErrors: true, strict: false });
-
     addFormats(ajv);
 
     const validate = ajv.compile(schema);
@@ -2636,7 +2629,6 @@ describe("subtasks schema validation", () => {
       if (!isValid) {
         console.error(
           `Validation errors for ${fixture}:`,
-
           JSON.stringify(validate.errors, null, 2),
         );
       }

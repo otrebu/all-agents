@@ -12,8 +12,20 @@ export default [
   {
     files: ["tests/**/*.ts"],
     settings: {
-      // Tell eslint-plugin-import that bun:test is a built-in module (like node:fs)
-      "import/core-modules": ["bun:test"],
+      // Tell eslint-plugin-import that bun:test and ajv subpaths are valid modules
+      "import/core-modules": ["bun:test", "ajv/dist/2020"],
+    },
+  },
+  {
+    // ajv/dist/2020 types aren't resolvable by eslint-typescript parser
+    // (works at bun runtime). Disable unsafe rules for this file.
+    files: ["tests/e2e/ralph.test.ts"],
+    rules: {
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/strict-boolean-expressions": "off",
     },
   },
 ];

@@ -20,6 +20,7 @@ This will:
 
 - Build the CLI binary at `bin/aaa`
 - Create a symlink in `~/.local/bin/aaa`
+- Install shell tab completion (zsh, bash, or fish)
 - Prompt to set `CLAUDE_CONFIG_DIR` for global Claude Code integration
 
 ### Project Integration
@@ -429,7 +430,20 @@ aaa ralph calibrate all
 
 Enable tab completion for faster command entry.
 
-### Bash
+### Automatic Installation (Recommended)
+
+Shell completion is **automatically offered** during `aaa setup --user`. If you decline or want to install later:
+
+```bash
+# Re-run setup - it will detect and offer to install completion
+aaa setup --user
+```
+
+### Manual Installation
+
+If you prefer to set up completion manually:
+
+#### Bash
 
 Add to `~/.bashrc`:
 
@@ -437,7 +451,7 @@ Add to `~/.bashrc`:
 source <(aaa completion bash)
 ```
 
-### Zsh
+#### Zsh
 
 Add to `~/.zshrc`:
 
@@ -451,7 +465,7 @@ For oh-my-zsh users:
 aaa completion zsh > ~/.oh-my-zsh/completions/_aaa
 ```
 
-### Fish
+#### Fish
 
 ```bash
 aaa completion fish > ~/.config/fish/completions/aaa.fish

@@ -1,5 +1,13 @@
 import { env } from "@tools/env";
-import { existsSync, lstatSync, readlinkSync, realpathSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+  realpathSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
@@ -13,6 +21,8 @@ const AAA_SYMLINK = resolve(LOCAL_BIN, "aaa");
  * Unlike getContextRoot() (runtime), this validates the complete repo structure.
  */
 type AllAgentsRootStrategy = "binary-path" | "symlink-resolution";
+
+type ShellType = "bash" | "fish" | "zsh";
 
 let cachedAllAgentsRoot: null | string = null;
 
@@ -97,10 +107,55 @@ function getClaudeConfigStatus(): {
 }
 
 /**
+ * Returns the completion line for a given shell type
+ */
+function getCompletionLine(shell: ShellType): string {
+  switch (shell) {
+    case "bash": {
+      return "source <(aaa completion bash)";
+    }
+    case "fish": {
+      return "aaa completion fish | source";
+    }
+    case "zsh": {
+      return "source <(aaa completion zsh)";
+    }
+    default: {
+      // Type exhaustiveness check
+      const _exhaustive: never = shell;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
  * Formats environment variable export line for shell config
  */
 function getExportLine(variableName: string, value: string): string {
   return `export ${variableName}="${value}"`;
+}
+
+/**
+ * Returns the actual file path for the shell config (expanded from ~)
+ */
+function getShellConfigFilePath(): string {
+  const shell = getShellType();
+  switch (shell) {
+    case "bash": {
+      return resolve(homedir(), ".bashrc");
+    }
+    case "fish": {
+      return resolve(homedir(), ".config/fish/config.fish");
+    }
+    case "zsh": {
+      return resolve(homedir(), ".zshrc");
+    }
+    default: {
+      // Type exhaustiveness check
+      const _exhaustive: never = shell;
+      return _exhaustive;
+    }
+  }
 }
 
 /**
@@ -111,6 +166,16 @@ function getShellConfigPath(): string {
   if (shell.includes("zsh")) return "~/.zshrc";
   if (shell.includes("bash")) return "~/.bashrc";
   return "~/.profile";
+}
+
+/**
+ * Detects shell type from SHELL environment variable
+ */
+function getShellType(): ShellType {
+  const shell = env.SHELL;
+  if (shell.includes("zsh")) return "zsh";
+  if (shell.includes("fish")) return "fish";
+  return "bash";
 }
 
 /**
@@ -133,6 +198,22 @@ function getSymlinkTarget(path: string): null | string {
 }
 
 /**
+ * Appends shell completion line to shell config
+ */
+function installCompletion(): void {
+  const shell = getShellType();
+  const configPath = getShellConfigFilePath();
+  const completionLine = getCompletionLine(shell);
+
+  // Ensure parent directory exists (for fish: ~/.config/fish/)
+  // recursive: true is idempotent - no-op if directory exists
+  mkdirSync(dirname(configPath), { recursive: true });
+
+  const content = `\n# aaa CLI completion\n${completionLine}\n`;
+  appendFileSync(configPath, content);
+}
+
+/**
  * Checks if CLI is installed (symlink exists at ~/.local/bin/aaa)
  */
 function isCliInstalled(): boolean {
@@ -140,6 +221,59 @@ function isCliInstalled(): boolean {
   try {
     const stat = lstatSync(AAA_SYMLINK);
     return stat.isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks if shell completion is already installed and active in shell config
+ *
+ * Detects these patterns:
+ * - Direct sourcing: `source <(aaa completion zsh)`
+ * - Eval approach: `eval "$(aaa completion zsh)"`
+ * - Fish piped: `aaa completion fish | source`
+ * - Cached file that exists and is sourced
+ *
+ * Does NOT match:
+ * - Commands inside function definitions (not executed on shell startup)
+ * - Comments mentioning completion
+ */
+function isCompletionInstalled(): boolean {
+  const configPath = getShellConfigFilePath();
+  if (!existsSync(configPath)) return false;
+
+  try {
+    const content = readFileSync(configPath, "utf8");
+
+    // Pattern 1: Direct sourcing - source <(aaa completion zsh)
+    if (/source\s+<\(aaa completion (?:bash|zsh|fish)\)/.test(content)) {
+      return true;
+    }
+
+    // Pattern 2: Eval approach - eval "$(aaa completion zsh)"
+    if (/eval\s+"\$\(aaa completion (?:bash|zsh|fish)\)"/.test(content)) {
+      return true;
+    }
+
+    // Pattern 3: Fish piped - aaa completion fish | source
+    if (/aaa completion fish\s*\|\s*source/.test(content)) {
+      return true;
+    }
+
+    // Pattern 4: Cached file sourcing - check if cache file exists
+    const cachePattern = /source\s+(?<path>[^\s]+aaa[_-]?completion[^\s]*)/;
+    const cacheMatch = cachePattern.exec(content);
+    if (cacheMatch?.groups?.path !== undefined) {
+      const cachePath = cacheMatch.groups.path
+        .replace(/^~/, homedir())
+        .replace(/^\$HOME/, homedir());
+      if (existsSync(cachePath)) {
+        return true;
+      }
+    }
+
+    return false;
   } catch {
     return false;
   }
@@ -253,10 +387,16 @@ export {
   AAA_SYMLINK,
   getAllAgentsRoot,
   getClaudeConfigStatus,
+  getCompletionLine,
   getExportLine,
+  getShellConfigFilePath,
   getShellConfigPath,
+  getShellType,
   getSymlinkTarget,
+  installCompletion,
   isCliInstalled,
+  isCompletionInstalled,
   isInPath,
   LOCAL_BIN,
 };
+export type { ShellType };

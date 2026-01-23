@@ -18,10 +18,15 @@ import {
   AAA_SYMLINK,
   getAllAgentsRoot,
   getClaudeConfigStatus,
+  getCompletionLine,
   getExportLine,
+  getShellConfigFilePath,
   getShellConfigPath,
+  getShellType,
   getSymlinkTarget,
+  installCompletion,
   isCliInstalled,
+  isCompletionInstalled,
   isInPath,
   LOCAL_BIN,
 } from "./utils";
@@ -64,6 +69,34 @@ async function handleClaudeConfigDirectory(): Promise<void> {
     `Add to ${shellConfig}:\n\n  ${getExportLine("CLAUDE_CONFIG_DIR", expected)}\n\nThen run: source ${shellConfig}`,
     "CLAUDE_CONFIG_DIR",
   );
+}
+
+async function handleShellCompletion(): Promise<void> {
+  const shell = getShellType();
+  const configPath = getShellConfigFilePath();
+
+  if (isCompletionInstalled()) {
+    log.success("Shell completion already installed");
+    return;
+  }
+
+  const shouldInstall = await p.confirm({
+    initialValue: true,
+    message: `Install tab completion for ${shell}?`,
+  });
+
+  if (p.isCancel(shouldInstall) || !shouldInstall) {
+    log.info("Skipped shell completion");
+    p.note(
+      `To enable later, add to ${configPath}:\n\n  ${getCompletionLine(shell)}`,
+      "Shell completion",
+    );
+    return;
+  }
+
+  installCompletion();
+  log.success(`Shell completion added to ${configPath}`);
+  log.info(`Restart your shell or run: source ${configPath}`);
 }
 
 async function setup(options: SetupOptions): Promise<void> {
@@ -272,10 +305,13 @@ async function setupUser(): Promise<void> {
     );
   }
 
-  // Step 5: CLAUDE_CONFIG_DIR
+  // Step 5: Shell completion
+  await handleShellCompletion();
+
+  // Step 6: CLAUDE_CONFIG_DIR
   await handleClaudeConfigDirectory();
 
-  // Step 6: Setup statusline
+  // Step 7: Setup statusline
   const userClaudeDirectory = resolve(homedir(), ".claude");
   const statuslineSource = resolve(root, ".claude/scripts/statusline.sh");
   const statuslineDestination = resolve(userClaudeDirectory, "statusline.sh");
