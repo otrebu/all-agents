@@ -1,0 +1,36 @@
+[
+  {
+    "id": "test-001",
+    "title": "First completed subtask",
+    "description": "A subtask that has been completed",
+    "done": true,
+    "completedAt": "2026-01-13T10:30:00Z",
+    "commitHash": "abc123",
+    "sessionId": "session-test-001",
+    "taskRef": "docs/planning/milestones/ralph/tasks/001.md"
+  },
+  {
+    "id": "test-002",
+    "title": "Second completed subtask",
+    "description": "Another completed subtask",
+    "done": true,
+    "completedAt": "2026-01-14T09:15:00Z",
+    "commitHash": "def456",
+    "sessionId": "session-test-002",
+    "taskRef": "docs/planning/milestones/ralph/tasks/001.md"
+  },
+  {
+    "id": "test-003",
+    "title": "Next subtask to implement",
+    "description": "This subtask is pending implementation",
+    "done": false,
+    "taskRef": "docs/planning/milestones/ralph/tasks/002.md"
+  },
+  {
+    "id": "test-004",
+    "title": "Future subtask",
+    "description": "This will be done later",
+    "done": false,
+    "taskRef": "docs/planning/milestones/ralph/tasks/002.md"
+  }
+]

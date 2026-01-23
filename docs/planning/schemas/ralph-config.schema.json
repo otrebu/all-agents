@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ralph-config.schema.json",
+  "title": "Ralph Configuration",
+  "description": "Configuration schema for Ralph autonomous build system",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Hook configuration - arrays of actions to execute on specific events",
+      "properties": {
+        "onIterationComplete": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Actions to execute after each build iteration completes"
+        },
+        "onMilestoneComplete": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Actions to execute when all subtasks in a milestone are done"
+        },
+        "onValidationFail": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Actions to execute when pre-build validation fails"
+        },
+        "onMaxIterationsExceeded": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Actions to execute when a subtask exceeds the retry limit"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ntfy": {
+      "type": "object",
+      "description": "Configuration for ntfy push notifications",
+      "properties": {
+        "server": {
+          "type": "string",
+          "format": "uri",
+          "description": "ntfy server URL"
+        },
+        "topic": {
+          "type": "string",
+          "description": "ntfy topic to publish to"
+        }
+      },
+      "required": ["server", "topic"],
+      "additionalProperties": false
+    },
+    "selfImprovement": {
+      "type": "object",
+      "description": "How to handle self-improvement suggestions from calibration",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["suggest", "autofix", "off"],
+          "description": "'suggest' creates task files for review, 'autofix' applies changes directly, 'off' skips analysis"
+        }
+      },
+      "required": ["mode"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["hooks", "ntfy", "selfImprovement"],
+  "additionalProperties": false
+}

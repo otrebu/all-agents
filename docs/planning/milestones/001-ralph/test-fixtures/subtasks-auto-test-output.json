@@ -1,0 +1,82 @@
+{
+  "$schema": "../schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "test"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-001",
+      "taskRef": "TASK-001",
+      "storyRef": null,
+      "title": "Install semantic-release and required plugins",
+      "description": "Install semantic-release and plugins (@semantic-release/changelog, @semantic-release/git, @semantic-release/npm) as dev dependencies. These provide the core release automation, changelog generation, git operations, and npm publishing capabilities.",
+      "done": false,
+      "acceptanceCriteria": [
+        "semantic-release is installed in devDependencies",
+        "@semantic-release/changelog is installed",
+        "@semantic-release/git is installed",
+        "@semantic-release/npm is installed",
+        "bun install runs without errors"
+      ],
+      "filesToRead": [
+        "package.json",
+        "bun.lock"
+      ]
+    },
+    {
+      "id": "SUB-002",
+      "taskRef": "TASK-001",
+      "storyRef": null,
+      "title": "Create .releaserc.json configuration",
+      "description": "Create .releaserc.json configuration file with branches (main), plugins array with changelog, git, npm plugins configured, and commit message parsing for conventional commits.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".releaserc.json exists in project root",
+        "branches configured for main branch",
+        "changelog plugin configured to output to CHANGELOG.md",
+        "git plugin configured for asset commits",
+        "npm plugin configured with appropriate settings"
+      ],
+      "filesToRead": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "SUB-003",
+      "taskRef": "TASK-001",
+      "storyRef": null,
+      "title": "Add release script and documentation",
+      "description": "Add release script to package.json and document the release process in README.md. Include dry-run instructions and explain how conventional commits map to version bumps.",
+      "done": false,
+      "acceptanceCriteria": [
+        "package.json has 'release' script",
+        "README.md has release process documentation",
+        "Dry-run command documented",
+        "Commit type to version bump mapping explained"
+      ],
+      "filesToRead": [
+        "package.json",
+        "README.md"
+      ]
+    },
+    {
+      "id": "SUB-004",
+      "taskRef": "TASK-001",
+      "storyRef": null,
+      "title": "Verify semantic-release with dry-run",
+      "description": "Run semantic-release in dry-run mode to verify the configuration works correctly. Ensure changelog generation, version bump detection, and git tag creation work as expected.",
+      "done": false,
+      "acceptanceCriteria": [
+        "bun run release (dry-run) completes without errors",
+        "Version bump is correctly determined from commit types",
+        "Changelog entries are generated",
+        "Git tag format is correct"
+      ],
+      "filesToRead": [
+        ".releaserc.json",
+        "package.json"
+      ]
+    }
+  ]
+}

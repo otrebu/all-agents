@@ -11,7 +11,7 @@ A single template for all dev tasks. Context speaks for itself - no type taxonom
 ```markdown
 ## Task: [Short descriptive name]
 
-**Story:** [story-name](../stories/001-story-name.md) *(optional)*
+**Story:** [STORY-001-auth](../stories/STORY-001-auth.md) *(optional)*
 
 ### Goal
 [One sentence: what should be true when this is done?]
@@ -41,6 +41,11 @@ A single template for all dev tasks. Context speaks for itself - no type taxonom
 
 ### Notes
 [Optional: Technical considerations, risks, edge cases, investigation findings, rollback plan - whatever's relevant to THIS task]
+
+### Related Documentation
+- @context/blocks/construct/prisma.md
+- @context/foundations/construct/data-persist-prisma.md
+- **Gap:** [topic] - see TASK-XXX or created by subagent
 ```
 
 ---
@@ -57,6 +62,7 @@ A single template for all dev tasks. Context speaks for itself - no type taxonom
 | Test Plan | Yes | What tests to add/update/run |
 | Scope | Yes | Explicit boundaries - prevents creep |
 | Notes | No | Catch-all for extras (risks, edge cases, rollback, etc.) |
+| Related Documentation | No | Links to @context docs; note gaps |
 
 ---
 

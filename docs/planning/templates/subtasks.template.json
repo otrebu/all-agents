@@ -1,0 +1,72 @@
+{
+  "$schema": "../schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "mvp"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-001",
+      "taskRef": "TASK-001",
+      "storyRef": "STORY-001",
+      "title": "Create user registration endpoint",
+      "description": "Implement POST /api/auth/register endpoint that accepts email and password, validates input, hashes password with bcrypt, stores user in database, and returns JWT token.",
+      "done": true,
+      "acceptanceCriteria": [
+        "POST to /api/auth/register with valid email/password returns JWT",
+        "Invalid email format returns 400",
+        "Duplicate email returns 409",
+        "Password is hashed in database (not plaintext)"
+      ],
+      "filesToRead": [
+        "@context/blocks/construct/fastify.md",
+        "@context/blocks/security/better-auth.md",
+        "@context/foundations/security/auth-api-better-auth.md",
+        "src/routes/index.ts",
+        "src/db/schema.ts"
+      ],
+      "completedAt": "2026-01-11T09:45:00Z",
+      "commitHash": "a1b2c3d",
+      "commitMessage": "feat(auth): add user registration endpoint [SUB-001]",
+      "sessionId": "abc123-def456-ghi789"
+    },
+    {
+      "id": "SUB-002",
+      "taskRef": "TASK-001",
+      "storyRef": "STORY-001",
+      "title": "Create user login endpoint",
+      "description": "Implement POST /api/auth/login endpoint that authenticates user credentials and returns JWT token with refresh token.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Valid credentials return access token and refresh token cookie",
+        "Invalid password returns 401",
+        "6th login attempt within 1 minute returns 429"
+      ],
+      "filesToRead": [
+        "@context/blocks/construct/fastify.md",
+        "@context/blocks/security/better-auth.md",
+        "src/routes/auth.ts",
+        "src/services/auth.service.ts"
+      ]
+    },
+    {
+      "id": "SUB-003",
+      "taskRef": "TASK-002",
+      "storyRef": null,
+      "title": "Add structured logging",
+      "description": "Integrate pino logger with structured JSON output, request ID tracking, and environment-appropriate log levels.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Request to any route produces log entry with request ID and timing",
+        "LOG_LEVEL=debug shows more output than LOG_LEVEL=error",
+        "Passwords and tokens don't appear in log output"
+      ],
+      "filesToRead": [
+        "@context/blocks/observe/logging.md",
+        "@context/foundations/observe/log-structured-pino.md",
+        "src/index.ts",
+        "src/config.ts"
+      ]
+    }
+  ]
+}

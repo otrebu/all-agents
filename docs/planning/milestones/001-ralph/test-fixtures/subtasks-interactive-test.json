@@ -1,0 +1,24 @@
+[
+  {
+    "id": "interactive-test-001",
+    "taskRef": null,
+    "title": "First test subtask for interactive mode",
+    "description": "Create a marker file to verify first iteration",
+    "acceptanceCriteria": [
+      "Marker file created"
+    ],
+    "filesToRead": [],
+    "done": false
+  },
+  {
+    "id": "interactive-test-002",
+    "taskRef": null,
+    "title": "Second test subtask for interactive mode",
+    "description": "Create another marker file to verify second iteration",
+    "acceptanceCriteria": [
+      "Second marker file created"
+    ],
+    "filesToRead": [],
+    "done": false
+  }
+]

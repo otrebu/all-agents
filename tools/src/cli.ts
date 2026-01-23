@@ -5,18 +5,29 @@ import type { GeminiMode } from "./commands/gemini/index";
 
 // eslint-disable-next-line import/extensions
 import packageJson from "../package.json" with { type: "json" };
+import {
+  completeCommand,
+  completionCommand,
+  handleCompletion,
+  isCompletionMode,
+} from "./commands/completion/index";
 import downloadCommand from "./commands/download";
 import extractConversationsCommand from "./commands/extract-conversations";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
-import prdCommand from "./commands/prd/index";
 import ralphCommand from "./commands/ralph/index";
 import setupCommand from "./commands/setup/index";
 import createStoryCommand from "./commands/story";
 import runSyncContextCli from "./commands/sync-context";
 import createTaskCommand from "./commands/task";
 import uninstallCommand from "./commands/uninstall";
+
+// Early detection for __complete command - bypass Commander.js parsing
+if (isCompletionMode() && process.argv[2] === "__complete") {
+  handleCompletion();
+  process.exit(0);
+}
 
 const program = new Command()
   .name("aaa")
@@ -185,10 +196,11 @@ storyCommand.addCommand(
 
 program.addCommand(storyCommand);
 
-// PRD utilities
-program.addCommand(prdCommand);
-
-// Ralph - PRD-driven iterative Claude harness
+// Ralph - autonomous development framework
 program.addCommand(ralphCommand);
+
+// Shell completion
+program.addCommand(completionCommand);
+program.addCommand(completeCommand, { hidden: true });
 
 program.parse();

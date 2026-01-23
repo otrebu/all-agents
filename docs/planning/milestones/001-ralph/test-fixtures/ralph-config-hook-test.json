@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "onMaxIterationsExceeded": {
+      "actions": ["log", "notify"]
+    },
+    "onIterationComplete": {
+      "actions": ["log"]
+    },
+    "onMilestoneComplete": {
+      "actions": ["log", "notify"]
+    },
+    "onValidationFail": {
+      "actions": ["log", "notify"]
+    }
+  },
+  "ntfy": {
+    "topic": "your-ntfy-topic",
+    "server": "https://ntfy.sh"
+  }
+}

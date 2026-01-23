@@ -25,8 +25,8 @@ As a [persona], I want [capability] so that [benefit].
 - [ ] [Another outcome]
 
 ### Tasks
-- [ ] [001-task-name](../tasks/001-task-name.md)
-- [ ] [002-task-name](../tasks/002-task-name.md)
+- [ ] [TASK-001-api](../tasks/TASK-001-api.md)
+- [ ] [TASK-002-ui](../tasks/TASK-002-ui.md)
 
 ### Notes
 [Optional: mockups, user research, edge cases, risks]
@@ -51,12 +51,12 @@ As a [persona], I want [capability] so that [benefit].
 
 **Story to Tasks:** Use relative links in the Tasks section:
 ```markdown
-- [ ] [001-auth-api](../tasks/001-auth-api.md)
+- [ ] [TASK-001-auth-api](../tasks/TASK-001-auth-api.md)
 ```
 
 **Task to Story:** Tasks reference their parent story at the top:
 ```markdown
-**Story:** [001-user-auth](../stories/001-user-auth.md)
+**Story:** [STORY-001-user-auth](../stories/STORY-001-user-auth.md)
 ```
 
 ---

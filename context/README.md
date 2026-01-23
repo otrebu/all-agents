@@ -113,6 +113,8 @@ Build, compile, bundle, package.
 
 **Permissions:** claude-code-permissions
 
+**Ralph:** ralph-patterns
+
 ### test/
 
 Verify code.

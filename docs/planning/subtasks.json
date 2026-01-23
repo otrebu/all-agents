@@ -1,0 +1,278 @@
+{
+  "$schema": "./schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "standalone"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-012",
+      "taskRef": "TASK-011",
+      "storyRef": null,
+      "title": "Update schema, types, and default config for new mode names",
+      "description": "Update selfImprovement.mode enum from ['always', 'auto'] to ['suggest', 'autofix', 'off'] in three files: (1) docs/planning/schemas/ralph-config.schema.json - change enum values, update description; (2) tools/src/commands/ralph/types.ts - update SelfImprovementConfig mode union type; (3) tools/src/commands/ralph/config.ts - change default from 'always' to 'suggest'.",
+      "done": true,
+      "completedAt": "2026-01-21T23:05:46Z",
+      "commitHash": "e6b22472b4008ef2034496b0d1c51897de92c403",
+      "acceptanceCriteria": [
+        "Schema enum is ['suggest', 'autofix', 'off']",
+        "Schema description updated: 'suggest' requires approval, 'autofix' applies automatically, 'off' skips",
+        "TypeScript type is 'suggest' | 'autofix' | 'off'",
+        "Default config uses mode: 'suggest'"
+      ],
+      "filesToRead": [
+        "docs/planning/schemas/ralph-config.schema.json",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-013",
+      "taskRef": "TASK-011",
+      "storyRef": null,
+      "title": "Update calibrate.ts to use new mode names",
+      "description": "Update tools/src/commands/ralph/calibrate.ts to use new mode names: change 'always' checks to 'suggest', 'auto' to 'autofix', 'never' to 'off'. Update console.log messages and prompt text to use new terminology. Remove the comment about 'never' not being in schema since 'off' will now be in schema.",
+      "done": true,
+      "completedAt": "2026-01-21T23:11:47Z",
+      "commitHash": "218e42bca2c05ca76e61a636caa37063698fd379",
+      "acceptanceCriteria": [
+        "Mode 'off' check replaces 'never' check",
+        "Mode 'suggest' logic matches old 'always' behavior",
+        "Mode 'autofix' logic matches old 'auto' behavior",
+        "Console messages use new mode names",
+        "Prompt text uses new mode names"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/calibrate.ts",
+        "docs/planning/tasks/011-rename-self-improvement-modes.md"
+      ]
+    },
+    {
+      "id": "SUB-014",
+      "taskRef": "TASK-011",
+      "storyRef": null,
+      "title": "Add mode table to VISION.md",
+      "description": "Add a mode table to Section 3 (Calibration Mode) in docs/planning/VISION.md documenting the three selfImprovement modes: suggest (creates task files for review), autofix (applies changes directly), off (skips analysis). Include when to use each mode.",
+      "done": true,
+      "completedAt": "2026-01-21T23:15:45Z",
+      "commitHash": "c6cade632bde599b957448a5a9b17ae0c0c5aab4",
+      "acceptanceCriteria": [
+        "VISION.md has mode table in Section 3",
+        "Table lists suggest, autofix, off modes",
+        "Each mode has description and use case"
+      ],
+      "filesToRead": [
+        "docs/planning/VISION.md",
+        "docs/planning/tasks/011-rename-self-improvement-modes.md"
+      ]
+    },
+    {
+      "id": "SUB-015",
+      "taskRef": "TASK-011",
+      "storyRef": null,
+      "title": "Update tests and verify typecheck",
+      "description": "Update tools/tests/e2e/ralph.test.ts to use 'suggest' instead of 'always' in test fixtures. Run bun run typecheck to verify all type changes are consistent. Fix any type errors that arise from the mode rename.",
+      "done": true,
+      "completedAt": "2026-01-21T23:30:00Z",
+      "commitHash": "e8a5f188bbfff5fd09f32e2b0beb893e193c7305",
+      "sessionId": "ralph-build-2026-01-21-SUB015",
+      "acceptanceCriteria": [
+        "ralph.test.ts uses 'suggest' in config fixtures",
+        "bun run typecheck passes with no errors",
+        "No references to old mode names remain in .ts files"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/ralph.test.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-016",
+      "taskRef": "TASK-012",
+      "storyRef": null,
+      "title": "Add --story and --milestone scope to plan subtasks",
+      "description": "Extend `ralph plan subtasks` command in tools/src/commands/ralph/index.ts to accept --story <path> and --milestone <path> in addition to --task. Make --task|--story|--milestone mutually exclusive (require exactly one). Update extraContext to include the path. Infer output location from input path.",
+      "done": true,
+      "completedAt": "2026-01-21T23:28:03Z",
+      "commitHash": "abe0c3c2",
+      "sessionId": "ralph-build-2026-01-21-SUB016",
+      "acceptanceCriteria": [
+        "ralph plan subtasks --task <path> works",
+        "ralph plan subtasks --story <path> works",
+        "ralph plan subtasks --milestone <path> works",
+        "Error shown if none or multiple scope flags provided"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "docs/planning/tasks/012-cli-ergonomics-fixes.md"
+      ]
+    },
+    {
+      "id": "SUB-017",
+      "taskRef": "TASK-012",
+      "storyRef": null,
+      "title": "Convert ralph review stories/tasks to use --milestone flag",
+      "description": "Change `ralph review stories <milestone>` from positional arg to `--milestone <path>` flag. Change `ralph review gap stories <milestone>` similarly. Update invokeClaudeChat calls with new extraContext. Keep `ralph review roadmap` unchanged (no milestone arg).",
+      "done": true,
+      "completedAt": "2026-01-21T23:45:00Z",
+      "commitHash": "54ff6ace73df616fadc6eb4e6eb7bd16a96ce5e0",
+      "sessionId": "ralph-build-2026-01-21-SUB017",
+      "acceptanceCriteria": [
+        "ralph review stories --milestone <path> works",
+        "ralph review gap stories --milestone <path> works",
+        "Old positional syntax removed",
+        "--help shows new flag syntax"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ]
+    },
+    {
+      "id": "SUB-018",
+      "taskRef": "TASK-012",
+      "storyRef": null,
+      "title": "Convert ralph calibrate to real subcommands",
+      "description": "Replace `.argument('[subcommand]')` pattern with real Commander subcommands using `calibrateCommand.addCommand(new Command('intention')...)`. Move option definitions to each subcommand. Keep runCalibrate dispatcher but call from each subcommand's action.",
+      "done": true,
+      "completedAt": "2026-01-21T23:55:00Z",
+      "commitHash": "b933af83c585430f505d27f95d1a3bb8588b3c7c",
+      "sessionId": "ralph-build-2026-01-21-SUB018",
+      "acceptanceCriteria": [
+        "ralph calibrate intention --help works",
+        "ralph calibrate technical --help works",
+        "ralph calibrate improve --help works",
+        "ralph calibrate all --help works",
+        "Old positional arg pattern removed"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/calibrate.ts"
+      ]
+    },
+    {
+      "id": "SUB-019",
+      "taskRef": "TASK-012",
+      "storyRef": null,
+      "title": "Fix --max-iterations default and remove --auto flag",
+      "description": "In index.ts build command: change --max-iterations default from '3' to '0' (0=unlimited per VISION spec). In plan stories/tasks commands: remove `-a, --auto` option and its usage. Keep only --supervised and --headless modes.",
+      "done": true,
+      "completedAt": "2026-01-21T12:30:00Z",
+      "commitHash": "29a1e48111e82c457e00a0168b1ff7164543b736",
+      "sessionId": "ralph-build-2026-01-21-SUB019",
+      "acceptanceCriteria": [
+        "ralph build --help shows max-iterations default as 0",
+        "ralph plan stories --help has no --auto flag",
+        "ralph plan tasks --help has no --auto flag",
+        "Build runs unlimited iterations when --max-iterations not specified"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/build.ts"
+      ]
+    },
+    {
+      "id": "SUB-020",
+      "taskRef": "TASK-012",
+      "storyRef": null,
+      "title": "Add --calibrate-every flag to build command",
+      "description": "Add `.option('--calibrate-every <n>', 'Run calibration every N iterations')` to ralph build command. In build.ts runBuild(), check iteration count and call runCalibrate('all', ...) when divisible by calibrateEvery. Pass calibrateEvery through BuildOptions type.",
+      "done": true,
+      "completedAt": "2026-01-21T13:15:00Z",
+      "commitHash": "f9c3c416362b036618864b754fb15dca11123b54",
+      "sessionId": "ralph-build-2026-01-21-SUB020",
+      "acceptanceCriteria": [
+        "ralph build --calibrate-every 5 --help works",
+        "Calibration runs every N iterations during build",
+        "BuildOptions type includes calibrateEvery field"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-021",
+      "taskRef": "TASK-012",
+      "storyRef": null,
+      "title": "Implement ralph review subtasks command",
+      "description": "Replace 'coming soon' placeholder for `ralph review tasks` with real implementation. Add `ralph review subtasks --subtasks <path>` command that invokes a subtasks-review-auto.md prompt. Create basic prompt file if missing. Supervised-only mode.",
+      "done": true,
+      "completedAt": "2026-01-21T14:30:00Z",
+      "commitHash": "ba32aa01dc014471da1540676239f69b7c859191",
+      "sessionId": "ralph-build-2026-01-21-SUB021",
+      "acceptanceCriteria": [
+        "ralph review subtasks --subtasks <path> works",
+        "Invokes Claude in supervised mode",
+        "No 'coming soon' message",
+        "Prompt file exists at context/workflows/ralph/review/"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "context/workflows/ralph/review/"
+      ]
+    },
+    {
+      "id": "SUB-022",
+      "taskRef": "TASK-012",
+      "storyRef": null,
+      "title": "Update VISION.md Section 8.2 CLI reference",
+      "description": "Update docs/planning/VISION.md Section 8.2 to document final CLI command structure. Include: plan subtasks scope flags, review flag syntax, calibrate subcommands, max-iterations=0 default, calibrate-every flag, review subtasks command. Remove --auto references.",
+      "done": true,
+      "completedAt": "2026-01-22T10:00:00Z",
+      "commitHash": "0d396c02",
+      "sessionId": "ralph-build-2026-01-22",
+      "acceptanceCriteria": [
+        "VISION.md Section 8.2 documents all ralph commands",
+        "Flag syntax matches implementation",
+        "No --auto flag documented",
+        "calibrate shows as subcommands not positional"
+      ],
+      "filesToRead": [
+        "docs/planning/VISION.md",
+        "tools/src/commands/ralph/index.ts"
+      ]
+    },
+    {
+      "id": "SUB-023",
+      "taskRef": "TASK-012",
+      "storyRef": null,
+      "title": "Run typecheck and manual CLI verification",
+      "description": "Run `bun run typecheck` in tools/ to verify all changes compile. Manually test each command with --help to verify flags. Test `ralph calibrate intention --help` shows as real subcommand.",
+      "done": true,
+      "completedAt": "2026-01-22T10:15:00Z",
+      "commitHash": "c0888a4a",
+      "sessionId": "ralph-build-2026-01-22",
+      "acceptanceCriteria": [
+        "bun run typecheck passes",
+        "All --help outputs correct",
+        "Manual test of scope flags works"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ]
+    },
+    {
+      "id": "SUB-024",
+      "taskRef": "TASK-013",
+      "storyRef": null,
+      "title": "Add chunked presentation to stories-review-auto.md",
+      "description": "Add 'Interactive Mode (Supervised)' section to stories-review-auto.md that references chunked-presentation.md (like roadmap-review-auto.md has). Add section after 'Required Reading' that says: when run in supervised mode, use chunked presentation, present per-story reviews one at a time waiting for acknowledgment. This is the ONLY file missing this pattern - all other review prompts already have it.",
+      "done": true,
+      "completedAt": "2026-01-22T11:00:00Z",
+      "commitHash": "d814bdf2",
+      "sessionId": "ralph-build-2026-01-22-SUB024",
+      "acceptanceCriteria": [
+        "stories-review-auto.md has Interactive Mode (Supervised) section",
+        "Section references @context/workflows/ralph/review/chunked-presentation.md",
+        "Section appears early in the file (after Required Reading)",
+        "Instructions describe presenting findings one at a time"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/review/stories-review-auto.md",
+        "context/workflows/ralph/review/roadmap-review-auto.md",
+        "context/workflows/ralph/review/chunked-presentation.md"
+      ]
+    }
+  ]
+}

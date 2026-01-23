@@ -1,0 +1,13 @@
+[
+  {
+    "id": "integration-test-001",
+    "title": "Create integration test marker file",
+    "description": "Create a simple marker file to verify the ralph build iteration loop marks subtasks as done after completion",
+    "acceptanceCriteria": [
+      "File docs/planning/milestones/ralph/test-fixtures/integration-marker.txt exists",
+      "File contains exactly the text: 'Ralph build integration test passed'"
+    ],
+    "filesToRead": [],
+    "done": false
+  }
+]

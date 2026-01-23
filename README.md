@@ -90,11 +90,20 @@ aaa story create my-story
 # Download URLs and convert to markdown
 aaa download <urls...> [-o name] [-d dir]
 
-# PRD-driven iterative Claude (Ralph)
-aaa ralph init                    # Create PRD interactively
-aaa ralph run                     # Run 5 iterations (default)
-aaa ralph run --unlimited         # Run until complete
-aaa ralph run --interactive       # Human approval each iteration
+# Ralph - Autonomous Development Framework
+#
+# "Humans on the loop, not in it." Engineers design specs; agents implement.
+# Hierarchy: Vision → Roadmap → Milestone → Story → Task → Subtask
+#
+aaa ralph plan vision              # Interactive vision planning
+aaa ralph build                    # Run iteration loop
+aaa ralph build -i                 # Pause between iterations
+aaa ralph status --subtasks        # Show progress
+aaa ralph review subtasks          # Review before building
+aaa ralph calibrate intention      # Check for drift
+#
+# Skills: /ralph-plan, /ralph-build, /ralph-review, /ralph-calibrate, /ralph-status
+# Full docs: docs/ralph/README.md | Design spec: docs/planning/VISION.md
 
 # Extract Claude Code conversation history
 aaa extract-conversations [-l limit] [-o file]

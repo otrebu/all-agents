@@ -35,6 +35,18 @@ tools/
 │   │   │   ├── types.ts          # 95L - separate justified
 │   │   │   ├── parallel-client.ts
 │   │   │   └── formatter.ts
+│   │   ├── ralph/                # Autonomous dev framework (TypeScript)
+│   │   │   ├── index.ts          # CLI commands (plan, build, status, calibrate)
+│   │   │   ├── claude.ts         # Claude invocation helpers
+│   │   │   ├── types.ts          # All type definitions
+│   │   │   ├── config.ts         # Config + subtasks loading
+│   │   │   ├── session.ts        # Session file utilities
+│   │   │   ├── display.ts        # Terminal output utilities
+│   │   │   ├── hooks.ts          # Hook execution (log, notify, pause)
+│   │   │   ├── status.ts         # Status command implementation
+│   │   │   ├── calibrate.ts      # Calibrate command implementation
+│   │   │   ├── build.ts          # Build loop implementation
+│   │   │   └── post-iteration.ts # Post-iteration hook logic
 │   │   └── setup/
 │   │       ├── index.ts
 │   │       └── utils.ts
@@ -106,6 +118,29 @@ const fileName = getNextFileName("docs/planning/tasks", "implement-auth");
 // Ignores non-matching files
 // Creates parent directories recursively
 ```
+
+### Shell Completion
+
+Tab completion is implemented via the `completion` command.
+
+**Files:**
+
+- `src/commands/completion/index.ts` - Main command + `__complete` handler
+- `src/commands/completion/bash.ts` - Bash script generator
+- `src/commands/completion/zsh.ts` - Zsh script generator
+- `src/commands/completion/fish.ts` - Fish script generator
+- `lib/milestones.ts` - Shared milestone discovery (used by completion + ralph)
+
+**Adding dynamic completions:**
+
+For new flags needing dynamic values, add cases to the `__complete` handler in `completion/index.ts` and update the shell generators.
+
+**Architecture:**
+
+- `aaa completion <shell>` outputs shell script to stdout
+- `aaa __complete <type>` is a hidden command that returns dynamic values
+- Shell scripts call `aaa __complete milestone` etc. for dynamic completions
+- Silent failures: completion errors go to stderr, always exit 0
 
 ### Research Output
 

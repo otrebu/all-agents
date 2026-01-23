@@ -1,0 +1,16 @@
+[
+  {
+    "id": "SCOPE-CREEP-001",
+    "taskRef": "docs/planning/milestones/ralph/test-fixtures/TASK-SCOPE-CREEP-001.md",
+    "title": "Add form validation",
+    "description": "Add comprehensive form validation to the registration form",
+    "acceptanceCriteria": [
+      "Email must be valid format (contains @)",
+      "Phone number must be 10 digits",
+      "Password must be 8+ characters with special char",
+      "Username must be alphanumeric"
+    ],
+    "filesToRead": [],
+    "done": false
+  }
+]

@@ -1,0 +1,8 @@
+{"type":"user","message":"Read the config file and update the version number"}
+{"type":"assistant","message":"I'll read the config file first."}
+{"type":"tool_use","name":"Bash","input":{"command":"cat package.json"}}
+{"type":"tool_result","content":"{\"name\": \"test-app\", \"version\": \"1.0.0\"}"}
+{"type":"assistant","message":"Now I'll update the version number."}
+{"type":"tool_use","name":"Bash","input":{"command":"echo '{\"name\": \"test-app\", \"version\": \"1.1.0\"}' > package.json"}}
+{"type":"tool_result","content":""}
+{"type":"assistant","message":"Done. I've updated the version from 1.0.0 to 1.1.0."}

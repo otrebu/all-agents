@@ -1,0 +1,11 @@
+[
+  {
+    "id": "test-session-log-001",
+    "title": "Test session log location",
+    "description": "Verify the improve command can locate session logs via sessionId",
+    "done": true,
+    "sessionId": "fd66196d-5135-4238-9b01-cea2c6e50bc2",
+    "commitHash": "abc123",
+    "completedAt": "2026-01-14T10:00:00.000Z"
+  }
+]

@@ -24,6 +24,9 @@ bin/aaa
 .claude/plugins/cache/
 .claude/plugins/known_marketplaces.json
 .claude/image-cache/
+.claude/chrome/
+.claude/paste-cache/
 docs/research/downloads/
 
 **/*.built.md
+.claude/chrome/chrome-native-host

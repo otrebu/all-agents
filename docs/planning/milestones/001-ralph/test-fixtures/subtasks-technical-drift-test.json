@@ -1,0 +1,21 @@
+[
+  {
+    "id": "TECH-DRIFT-001",
+    "taskRef": "TASK-TECH-DRIFT-001",
+    "title": "Add payment processing service",
+    "description": "Create a service to process payments via the payment gateway API",
+    "acceptanceCriteria": [
+      "Process credit card payments",
+      "Handle refunds",
+      "Log all transactions"
+    ],
+    "filesToRead": [
+      "src/services/orderService.ts",
+      "docs/coding-standards.md"
+    ],
+    "done": true,
+    "completedAt": "2026-01-14T10:00:00Z",
+    "commitHash": "tech-drift-test-commit",
+    "sessionId": "tech-drift-test-session"
+  }
+]

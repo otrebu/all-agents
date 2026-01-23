@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ORPHAN-001",
+    "taskRef": "TASK-ORPHAN-001",
+    "title": "Create user profile page",
+    "description": "Implement a basic user profile page that displays user information.",
+    "acceptanceCriteria": [
+      "Display user name",
+      "Display user email",
+      "Show account creation date"
+    ],
+    "filesToRead": ["src/components/Profile.tsx"],
+    "done": true,
+    "completedAt": "2026-01-14T10:00:00Z",
+    "commitHash": "orphan-test-commit",
+    "sessionId": "orphan-test-session"
+  }
+]
