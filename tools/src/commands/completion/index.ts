@@ -1,5 +1,6 @@
 import { Command } from "@commander-js/extra-typings";
-import { discoverMilestones, findProjectRoot } from "@lib/milestones";
+import { discoverMilestones } from "@lib/milestones";
+import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 

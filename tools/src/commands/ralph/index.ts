@@ -1,10 +1,6 @@
 import { Command } from "@commander-js/extra-typings";
-import {
-  discoverMilestones,
-  findProjectRoot,
-  getMilestonePaths,
-} from "@lib/milestones";
-import { getContextRoot } from "@tools/utils/paths";
+import { discoverMilestones, getMilestonePaths } from "@lib/milestones";
+import { findProjectRoot, getContextRoot } from "@tools/utils/paths";
 import { spawnSync } from "node:child_process";
 import {
   appendFileSync,
@@ -198,6 +194,15 @@ interface HeadlessWithLoggingResult {
   numTurns: number;
   result: string;
   sessionId: string;
+}
+
+/**
+ * Get planning log file path in target project (not all-agents)
+ * Falls back to contextRoot if not in a git repo
+ */
+function getPlanningLogPath(contextRoot: string): string {
+  const projectRoot = findProjectRoot() ?? contextRoot;
+  return path.join(projectRoot, "logs/planning.jsonl");
 }
 
 /**
@@ -502,7 +507,7 @@ planCommand.addCommand(
 
       // Determine execution mode
       if (options.headless === true) {
-        const logFile = path.join(contextRoot, "logs/planning.jsonl");
+        const logFile = getPlanningLogPath(contextRoot);
         invokeClaudeHeadless({
           extraContext,
           logFile,
@@ -582,7 +587,7 @@ planCommand.addCommand(
         const extraContext = `Generating tasks for all stories in milestone: ${milestonePath}`;
 
         if (options.headless === true) {
-          const logFile = path.join(contextRoot, "logs/planning.jsonl");
+          const logFile = getPlanningLogPath(contextRoot);
           invokeClaudeHeadless({
             extraContext,
             logFile,
@@ -607,7 +612,7 @@ planCommand.addCommand(
       const extraContext = `Planning tasks for story: ${storyPath}`;
 
       if (options.headless === true) {
-        const logFile = path.join(contextRoot, "logs/planning.jsonl");
+        const logFile = getPlanningLogPath(contextRoot);
         invokeClaudeHeadless({
           extraContext,
           logFile,
@@ -690,7 +695,7 @@ planCommand.addCommand(
       // Helper to invoke Claude based on mode
       function invoke(extraContext: string): void {
         if (options.headless === true) {
-          const logFile = path.join(contextRoot, "logs/planning.jsonl");
+          const logFile = getPlanningLogPath(contextRoot);
           invokeClaudeHeadless({
             extraContext,
             logFile,

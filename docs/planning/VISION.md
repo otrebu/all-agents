@@ -586,11 +586,13 @@ Hooks enable human-on-the-loop checkpoints via `ralph.config.json`:
 - Hook pause timeout: 5 minutes (safety for CI)
 - Haiku summary: `claude-3-5-haiku-latest`, 60s timeout
 
-**Iteration diary:** Machine-readable log at `logs/iterations.jsonl`. Includes LLM-generated summary.
+**Iteration diary:** Machine-readable log at `logs/iterations.jsonl` in the **target project** (not all-agents). Includes LLM-generated summary.
 
 > **Note:** The `approvals` config block requires cascade mode (not yet implemented). See [ROADMAP.md](ROADMAP.md) for status.
 
 ## 6. Logging & Monitoring
+
+**Log storage:** All logs (`iterations.jsonl`, `planning.jsonl`) are stored in the **target project's** `logs/` directory, not in all-agents. Uses `findProjectRoot()` to detect git repo from CWD, falling back to all-agents if not in a git repo.
 
 **Iteration logging:**
 - Each completed subtask stores `sessionId` linking to the Claude Code conversation

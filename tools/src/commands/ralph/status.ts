@@ -9,6 +9,7 @@
  * Note: Originally ported from tools/src/commands/ralph/scripts/status.sh (now deleted)
  */
 
+import { findProjectRoot } from "@tools/utils/paths";
 import chalk from "chalk";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -287,7 +288,9 @@ function renderSubtasksSection(subtasksPath: string): void {
  */
 function runStatus(subtasksPath: string, contextRoot: string): void {
   const configPath = path.join(contextRoot, "ralph.config.json");
-  const diaryPath = path.join(contextRoot, "logs/iterations.jsonl");
+  // Use target project root for logs (not all-agents)
+  const projectRoot = findProjectRoot() ?? contextRoot;
+  const diaryPath = path.join(projectRoot, "logs/iterations.jsonl");
 
   renderHeader();
   renderConfigSection(configPath);

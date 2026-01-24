@@ -1,3 +1,4 @@
+import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -93,22 +94,6 @@ function discoverMilestonesFromRoadmap(projectRoot: string): Array<Milestone> {
 }
 
 /**
- * Find project root by walking up from cwd looking for .git directory
- */
-function findProjectRoot(): null | string {
-  let directory = process.cwd();
-  for (let index = 0; index < 10; index += 1) {
-    if (existsSync(path.join(directory, ".git"))) {
-      return directory;
-    }
-    const parent = path.dirname(directory);
-    if (parent === directory) break;
-    directory = parent;
-  }
-  return null;
-}
-
-/**
  * Get paths for a milestone's directories
  */
 function getMilestonePaths(slug: string): MilestonePaths | null {
@@ -162,9 +147,9 @@ function toMilestoneSlug(name: string): string {
 
 export {
   discoverMilestones,
-  findProjectRoot,
   getMilestonePaths,
   parseMilestoneTitle,
   toMilestoneSlug,
 };
+export { findProjectRoot } from "@tools/utils/paths";
 export type { Milestone, MilestonePaths };

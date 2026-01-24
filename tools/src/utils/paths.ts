@@ -16,6 +16,28 @@ let cachedRoot: null | string = null;
 const AAA_SYMLINK = resolve(homedir(), ".local/bin/aaa");
 
 /**
+ * Find git repository root by walking up from current working directory
+ *
+ * Searches up to 10 levels for .git directory.
+ * Use this for project-local files (logs, subtasks) that should live in
+ * the target project, not necessarily in all-agents.
+ *
+ * @returns Git root path or null if not in a git repo
+ */
+function findProjectRoot(): null | string {
+  let directory = process.cwd();
+  for (let index = 0; index < 10; index += 1) {
+    if (existsSync(resolve(directory, ".git"))) {
+      return directory;
+    }
+    const parent = dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  return null;
+}
+
+/**
  * Resolves the all-agents repository root directory
  *
  * Tries four strategies in order until one succeeds:
@@ -179,4 +201,4 @@ function tryResolveFromSymlink(): null | string {
   return null;
 }
 
-export { getContextRoot, getOutputDirectory as getOutputDir };
+export { findProjectRoot, getContextRoot, getOutputDirectory as getOutputDir };

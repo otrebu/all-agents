@@ -11,6 +11,7 @@
  * @see docs/planning/ralph-migration-implementation-plan.md
  */
 
+import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as readline from "node:readline";
@@ -185,13 +186,15 @@ function processHeadlessIteration(
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
+  // Use target project root for logs (not all-agents)
+  const projectRoot = findProjectRoot() ?? contextRoot;
   const hookResult = runPostIterationHook({
     costUsd: result.cost,
     iterationNumber: currentAttempts,
     maxAttempts: maxIterations,
     milestone,
     remaining: postRemaining,
-    repoRoot: contextRoot,
+    repoRoot: projectRoot,
     sessionId: result.sessionId,
     status: iterationStatus,
     subtask: currentSubtask,

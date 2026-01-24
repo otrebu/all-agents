@@ -64,7 +64,7 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 - `technical-drift.md` prompt (docs → code compliance)
 - `self-improvement.md` prompt (session log analysis)
 - `calibrate.sh` script for LLM-as-judge execution
-- Iteration diary (`logs/iterations.jsonl`) for status tracking
+- Iteration diary (`<project>/logs/iterations.jsonl`) stored in target project
 
 **Success criteria:**
 - `ralph calibrate intention` detects when code diverges from story intent
