@@ -26,3 +26,15 @@ feat | fix | refactor | docs | test | chore
 
 - Imperative: "add" not "added"
 - 50-72 chars
+
+## Working on Main
+
+This repo uses semantic-release which auto-creates version commits on push to main.
+
+**Always pull before committing to main:**
+
+```bash
+git pull origin main
+```
+
+**Best practice**: Use feature branches, then merge to main.

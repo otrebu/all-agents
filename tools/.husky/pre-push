@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+# Prevent pushing to main when behind remote (semantic-release creates version commits)
+while read local_ref local_sha remote_ref remote_sha
+do
+    if [ "$remote_ref" = "refs/heads/main" ]; then
+        git fetch origin main --quiet
+        BEHIND=$(git rev-list --count HEAD..origin/main)
+
+        if [ "$BEHIND" -gt 0 ]; then
+            echo "❌ Push rejected: Local main is $BEHIND commit(s) behind origin/main."
+            echo ""
+            echo "This happens because semantic-release creates version commits after pushes."
+            echo ""
+            echo "Fix: git pull --rebase origin main"
+            exit 1
+        fi
+    fi
+done

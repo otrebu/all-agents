@@ -56,6 +56,8 @@ git checkout main  # or master
 git pull origin main  # or master
 ```
 
+> **Important**: Semantic-release creates version commits (`chore(release): x.y.z`) after every push to main. Always pull before pushing to avoid diverged history.
+
 ### 7. Fast-Forward Merge
 
 ```bash
