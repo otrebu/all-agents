@@ -164,3 +164,16 @@
   - ReviewerOutput interface for agent output format
   - ReviewMode type (headless, supervised, interactive)
 - **Files:** tools/src/commands/review/types.ts (created)
+
+### SUB-026
+- **Problem:** Need the main CLI command structure for the code review tool with mode selection and subcommands
+- **Changes:** Created tools/src/commands/review/index.ts with:
+  - Main review command with mode selection
+  - Bare `aaa review` prompts user to choose between modes
+  - `--supervised` flag for watched execution with intervention
+  - `--headless` flag for fully autonomous mode
+  - `--headless --dry-run` flag for preview without applying fixes
+  - Error handling for invalid flag combinations
+  - `status` subcommand placeholder for diary display
+  - Registered command in tools/src/cli.ts
+- **Files:** tools/src/commands/review/index.ts (created), tools/src/cli.ts (modified)

@@ -321,7 +321,10 @@
       "storyRef": "STORY-001",
       "title": "Create review CLI command structure",
       "description": "Create tools/src/commands/review/index.ts with main review command. Implement mode selection: bare 'review' prompts for mode, --supervised runs chat mode, --headless runs autonomous mode, --headless --dry-run previews without fixing. Add status subcommand placeholder.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:55:00Z",
+      "commitHash": "b52ec16b544ca2dbf4e3cdd58f0b57441059789d",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "tools/src/commands/review/index.ts exists",
         "Command registered in CLI entry point",
