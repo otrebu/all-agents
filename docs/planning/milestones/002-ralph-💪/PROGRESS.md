@@ -76,3 +76,14 @@
   - Example findings for swallowed exception, missing handler, incomplete recovery, weak handler, and missing context
   - JSON output format matching Finding schema from types.md
 - **Files:** .claude/agents/code-review/error-handling-reviewer.md (created)
+
+### SUB-019
+- **Problem:** Need a test coverage focused code reviewer agent that analyzes code for missing tests, untested edge cases, and insufficient test assertions
+- **Changes:** Created .claude/agents/code-review/test-coverage-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Test coverage focus areas: missing test files, untested branches, edge cases, error handling coverage, assertion quality, integration points
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to test coverage issues
+  - Example findings for missing test file, untested branch, missing edge case, assertion gap, and untested error path
+  - JSON output format matching Finding schema from types.md
+- **Files:** .claude/agents/code-review/test-coverage-reviewer.md (created)

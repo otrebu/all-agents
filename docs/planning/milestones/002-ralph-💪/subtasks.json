@@ -164,7 +164,10 @@
       "storyRef": "STORY-001",
       "title": "Create test-coverage-reviewer agent",
       "description": "Create .claude/agents/code-review/test-coverage-reviewer.md agent focused on missing tests, untested edge cases, and insufficient test assertions. Agent analyzes test files relative to implementation and outputs findings per schema.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:15:00Z",
+      "commitHash": "bad0d26e096d422ac610840d402b03399b048bea",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/test-coverage-reviewer.md exists",
         "Agent identifies missing test files for new code",
