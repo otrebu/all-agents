@@ -177,3 +177,14 @@
   - `status` subcommand placeholder for diary display
   - Registered command in tools/src/cli.ts
 - **Files:** tools/src/commands/review/index.ts (created), tools/src/cli.ts (modified)
+
+### SUB-027
+- **Problem:** Need to implement supervised mode for the review CLI that invokes Claude in chat mode with the parallel-code-review skill
+- **Changes:** Updated tools/src/commands/review/index.ts with:
+  - Implemented `runSupervisedReview()` function
+  - Added `findProjectRoot()` helper to locate project root via CLAUDE.md marker
+  - Loads the parallel-code-review skill from `.claude/skills/parallel-code-review/SKILL.md`
+  - Uses `invokeClaudeChat()` from ralph/claude.ts for session management
+  - Handles session results: interrupted, failed, and success cases
+  - Provides clear error messages when skill file is not found
+- **Files:** tools/src/commands/review/index.ts (modified)

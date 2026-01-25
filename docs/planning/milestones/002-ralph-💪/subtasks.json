@@ -346,7 +346,10 @@
       "storyRef": "STORY-001",
       "title": "Implement review supervised mode",
       "description": "Implement supervised mode in tools/src/commands/review/index.ts. Reuse invokeClaudeChat() from ralph/claude.ts to spawn chat session with review prompt. User watches execution and can intervene. Display uses ralph display utilities.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:59:00Z",
+      "commitHash": "e2bbfcb3a7052c8dae7a8b812faca4f6ddb74d34",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "Supervised mode invokes Claude in chat mode",
         "Review prompt is loaded and passed to Claude",
