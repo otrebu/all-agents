@@ -100,3 +100,16 @@
   - Output format with summary statistics, full findings array, and by-file view
   - Example input/output demonstrating deduplication and consolidation
 - **Files:** .claude/agents/code-review/synthesizer.md (created)
+
+### SUB-021
+- **Problem:** Need to rename and refocus coding-style-reviewer to maintainability-reviewer with new focus areas and move to code-review folder
+- **Changes:** Created .claude/agents/code-review/maintainability-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Maintainability focus areas: coupling/cohesion, naming conventions, SRP violations, code organization, unnecessary complexity
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to maintainability issues
+  - Example findings for SRP violation, unclear naming, tight coupling, god function, and magic numbers
+  - JSON output format matching Finding schema from types.md
+  - Deleted original .claude/agents/coding-style-reviewer.md
+  - Updated README.md to reflect the rename
+- **Files:** .claude/agents/code-review/maintainability-reviewer.md (created), .claude/agents/coding-style-reviewer.md (deleted), README.md (modified)
