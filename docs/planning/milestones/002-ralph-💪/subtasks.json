@@ -231,7 +231,10 @@
       "storyRef": "STORY-001",
       "title": "Update code-review workflow for parallel agents",
       "description": "Update context/workflows/code-review.md to include parallel agent orchestration. Add section explaining how to invoke multiple reviewers in parallel using Task tool, how findings are synthesized, and how triage actions work (FIX/SKIP/FALSE POSITIVE).",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:45:00Z",
+      "commitHash": "591140415b2e9a855fae26e10a35ced1c2650815",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "code-review.md has parallel orchestration section",
         "Document explains Task tool parallel invocation",

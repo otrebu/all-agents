@@ -113,3 +113,17 @@
   - Deleted original .claude/agents/coding-style-reviewer.md
   - Updated README.md to reflect the rename
 - **Files:** .claude/agents/code-review/maintainability-reviewer.md (created), .claude/agents/coding-style-reviewer.md (deleted), README.md (modified)
+
+### SUB-022
+- **Problem:** Need to update the code-review workflow to document parallel multi-agent orchestration, triage actions, and synthesizer integration
+- **Changes:** Updated context/workflows/code-review.md with:
+  - Added dependency on types.md in frontmatter
+  - Restructured into Simple Mode (default) and Parallel Mode (multi-agent)
+  - Documented all 6 reviewer agents in a table (security, data-integrity, error-handling, test-coverage, maintainability, synthesizer)
+  - Explained Task tool parallel invocation pattern with examples
+  - Showed synthesizer invocation for aggregating findings
+  - Defined triage actions (FIX, SKIP, FALSE POSITIVE) with meanings and next steps
+  - Added triage flow pseudocode
+  - Documented review diary logging format (logs/reviews.jsonl)
+  - Added "When to Use Each Mode" guidance table
+- **Files:** context/workflows/code-review.md (modified)
