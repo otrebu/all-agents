@@ -21,3 +21,12 @@
   - Git context gathering commands for each target type
   - Reference to interrogate workflow document
 - **Files:** .claude/commands/dev/interrogate.md (created)
+
+### SUB-014
+- **Problem:** Need to integrate interrogation workflow into the complete-feature workflow as a pre-merge checkpoint
+- **Changes:** Updated context/workflows/complete-feature.md with:
+  - Added step 4 "Interrogation Checkpoint (Optional)" between storing branch name and squashing commits
+  - Documents when interrogation is most valuable (substantial changes, AI code, uncertainty about trade-offs)
+  - Shows invocation examples for default, --quick, and --skeptical modes
+  - Renumbered subsequent steps (5-11)
+- **Files:** context/workflows/complete-feature.md (modified)

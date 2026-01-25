@@ -57,7 +57,10 @@
       "storyRef": "STORY-001",
       "title": "Integrate interrogation into complete-feature workflow",
       "description": "Update context/workflows/complete-feature.md to add interrogation as an optional pre-merge checkpoint. Add a step suggesting '/dev:interrogate changes' before creating PR, especially for substantial changes.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T13:00:00Z",
+      "commitHash": "af1954efdee6fcd0c1e6b7cd9dd247884184a42a",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "complete-feature.md has interrogation checkpoint section",
         "Checkpoint is marked as optional/recommended",
