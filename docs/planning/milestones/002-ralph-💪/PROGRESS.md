@@ -213,3 +213,11 @@
   - Implemented the `status` subcommand with full functionality (was placeholder)
   - Status displays: total reviews, total findings, avg per review, triage outcomes, recent entries with severity breakdown
 - **Files:** tools/src/commands/review/index.ts (modified)
+
+### SUB-030
+- **Problem:** Need to add shell completions for the new `aaa review` command
+- **Changes:** Updated all three shell completion generators:
+  - bash.ts: Added `review` to top-level commands, flag completions (-s/--supervised, -H/--headless, --dry-run), and `status` subcommand
+  - zsh.ts: Added `review` command with description, created `_aaa_review()` completion function with all flags and subcommand
+  - fish.ts: Added `review` top-level command, all flag completions, and `status` subcommand
+- **Files:** tools/src/commands/completion/bash.ts (modified), tools/src/commands/completion/zsh.ts (modified), tools/src/commands/completion/fish.ts (modified)

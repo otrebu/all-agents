@@ -414,7 +414,10 @@
       "storyRef": "STORY-001",
       "title": "Add review shell completions",
       "description": "Update tools/src/commands/completion/bash.ts, zsh.ts, and fish.ts to include 'review' command completions. Add --supervised, --headless, --dry-run flags and 'status' subcommand.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:55:00Z",
+      "commitHash": "ee96f9e011fae7ed75fb6a426b1d250a1eaa96ec",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "bash.ts includes review command completion",
         "zsh.ts includes review command completion",
