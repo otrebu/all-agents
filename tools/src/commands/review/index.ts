@@ -1,7 +1,7 @@
 import { Command } from "@commander-js/extra-typings";
 import chalk from "chalk";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 import type {
   Finding,
@@ -11,10 +11,7 @@ import type {
   TriageDecision,
 } from "./types";
 
-import {
-  invokeClaudeChat,
-  invokeClaudeHeadless,
-} from "../ralph/claude";
+import { invokeClaudeChat, invokeClaudeHeadless } from "../ralph/claude";
 import { formatDuration, renderMarkdown } from "../ralph/display";
 import { calculatePriority } from "./types";
 
@@ -65,6 +62,17 @@ const reviewCommand = new Command("review")
     }
   });
 
+// =============================================================================
+// Constants
+// =============================================================================
+
+/** Default path for review diary file */
+const DIARY_PATH = "logs/reviews.jsonl";
+
+// =============================================================================
+// Diary Functions
+// =============================================================================
+
 /**
  * Find the project root by looking for CLAUDE.md
  *
@@ -90,6 +98,76 @@ function findProjectRoot(): string {
 }
 
 /**
+ * Format a timestamp for display
+ *
+ * @param timestamp - ISO 8601 timestamp
+ * @returns Formatted string (e.g., "2 hours ago", "yesterday")
+ */
+function formatTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60_000);
+  const diffHours = Math.floor(diffMs / 3_600_000);
+  const diffDays = Math.floor(diffMs / 86_400_000);
+
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+
+  // Format as date for older entries
+  return date.toLocaleDateString();
+}
+
+/**
+ * Calculate diary statistics
+ *
+ * @param entries - Array of diary entries to analyze
+ * @returns Statistics object
+ */
+function getDiaryStats(entries: Array<ReviewDiaryEntry>): {
+  avgFindingsPerReview: number;
+  falsePositives: number;
+  fixed: number;
+  skipped: number;
+  total: number;
+  totalFindings: number;
+} {
+  if (entries.length === 0) {
+    return {
+      avgFindingsPerReview: 0,
+      falsePositives: 0,
+      fixed: 0,
+      skipped: 0,
+      total: 0,
+      totalFindings: 0,
+    };
+  }
+
+  let totalFindings = 0;
+  let fixed = 0;
+  let skipped = 0;
+  let falsePositives = 0;
+
+  for (const entry of entries) {
+    totalFindings += entry.findings;
+    fixed += entry.fixed;
+    skipped += entry.skipped;
+    falsePositives += entry.falsePositives;
+  }
+
+  return {
+    avgFindingsPerReview: totalFindings / entries.length,
+    falsePositives,
+    fixed,
+    skipped,
+    total: entries.length,
+    totalFindings,
+  };
+}
+
+/**
  * Prompt user to choose between supervised and headless modes
  */
 function promptForMode(): void {
@@ -109,6 +187,72 @@ function promptForMode(): void {
   console.log(chalk.yellow("  aaa review --supervised"));
   console.log(chalk.yellow("  aaa review --headless"));
   console.log(chalk.yellow("  aaa review --headless --dry-run"));
+}
+
+// =============================================================================
+// Path Utilities
+// =============================================================================
+
+/**
+ * Read and parse review diary JSONL file
+ *
+ * @param projectRoot - Project root path for resolving log path
+ * @returns Array of diary entries (empty if file doesn't exist or is invalid)
+ */
+function readDiaryEntries(projectRoot: string): Array<ReviewDiaryEntry> {
+  const diaryPath = join(projectRoot, DIARY_PATH);
+
+  if (!existsSync(diaryPath)) {
+    return [];
+  }
+
+  try {
+    const content = readFileSync(diaryPath, "utf8");
+    const lines = content.trim().split("\n").filter(Boolean);
+
+    return lines
+      .map((line) => {
+        try {
+          return JSON.parse(line) as ReviewDiaryEntry;
+        } catch {
+          return null;
+        }
+      })
+      .filter((entry): entry is ReviewDiaryEntry => entry !== null);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Write a review diary entry to logs/reviews.jsonl
+ *
+ * Creates the logs directory if it doesn't exist.
+ * Appends a single JSON line to the JSONL file.
+ *
+ * @param entry - The diary entry to write
+ * @param projectRoot - Project root path for resolving log path
+ */
+function writeDiaryEntry(entry: ReviewDiaryEntry, projectRoot: string): void {
+  const diaryPath = join(projectRoot, DIARY_PATH);
+
+  try {
+    // Ensure logs directory exists
+    const directory = dirname(diaryPath);
+    if (!existsSync(directory)) {
+      mkdirSync(directory, { recursive: true });
+    }
+
+    // Append JSON line to diary file
+    const jsonLine = JSON.stringify(entry);
+    appendFileSync(diaryPath, `${jsonLine}\n`, "utf8");
+  } catch (error) {
+    // Log but don't crash review process
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(
+      chalk.yellow(`Warning: Failed to write diary entry: ${message}`),
+    );
+  }
 }
 
 /**
@@ -158,7 +302,8 @@ function autoTriageFindings(
     const priority = calculatePriority(finding);
 
     // Auto-fix high priority findings, skip others
-    const action: TriageAction = priority >= AUTO_FIX_THRESHOLD ? "fix" : "skip";
+    const action: TriageAction =
+      priority >= AUTO_FIX_THRESHOLD ? "fix" : "skip";
 
     return {
       action,
@@ -179,7 +324,10 @@ function autoTriageFindings(
  * @param isDryRun - Whether this is a dry-run (affects instructions)
  * @returns Formatted prompt for headless Claude invocation
  */
-function buildHeadlessReviewPrompt(skillPath: string, isDryRun: boolean): string {
+function buildHeadlessReviewPrompt(
+  skillPath: string,
+  isDryRun: boolean,
+): string {
   const skillContent = readFileSync(skillPath, "utf8");
 
   const dryRunInstructions = isDryRun
@@ -227,7 +375,9 @@ Start by gathering the diff and invoking reviewers.`;
  * @param output - Raw output from Claude headless invocation
  * @returns Parsed findings data or null if parsing fails
  */
-function parseReviewFindings(output: string): {
+function parseReviewFindings(
+  output: string,
+): {
   errors: Array<string>;
   findings: Array<Finding>;
   fixed: Array<string>;
@@ -235,10 +385,18 @@ function parseReviewFindings(output: string): {
 } | null {
   // Look for <review-findings>...</review-findings> block
   // Using named capture group for linting compliance
-  const findingsMatch = /<review-findings>\s*(?<content>[\s\S]*?)\s*<\/review-findings>/i.exec(output);
+  const findingsMatch =
+    /<review-findings>\s*(?<content>[\s\S]*?)\s*<\/review-findings>/i.exec(
+      output,
+    );
 
-  if (findingsMatch?.groups?.content === undefined || findingsMatch.groups.content === "") {
-    console.error(chalk.yellow("Warning: Could not find <review-findings> block in output"));
+  if (
+    findingsMatch?.groups?.content === undefined ||
+    findingsMatch.groups.content === ""
+  ) {
+    console.error(
+      chalk.yellow("Warning: Could not find <review-findings> block in output"),
+    );
     return null;
   }
 
@@ -292,37 +450,64 @@ function renderFindingsSummary(
   // Count by action
   const fixed = decisions.filter((d) => d.action === "fix").length;
   const skipped = decisions.filter((d) => d.action === "skip").length;
-  const falsePositives = decisions.filter((d) => d.action === "false_positive").length;
+  const falsePositives = decisions.filter(
+    (d) => d.action === "false_positive",
+  ).length;
 
-  console.log(chalk.bold("\n═══════════════════════════════════════════════════════════════════"));
+  console.log(
+    chalk.bold(
+      "\n═══════════════════════════════════════════════════════════════════",
+    ),
+  );
   console.log(chalk.bold("                        Code Review Complete"));
-  console.log(chalk.bold("═══════════════════════════════════════════════════════════════════\n"));
+  console.log(
+    chalk.bold(
+      "═══════════════════════════════════════════════════════════════════\n",
+    ),
+  );
 
   // Severity breakdown
   console.log(chalk.bold("Findings by Severity:"));
   if (bySeverity.critical > 0) {
-    console.log(`  ${chalk.red("●")} Critical: ${chalk.red.bold(String(bySeverity.critical))}`);
+    console.log(
+      `  ${chalk.red("●")} Critical: ${chalk.red.bold(String(bySeverity.critical))}`,
+    );
   }
   if (bySeverity.high > 0) {
-    console.log(`  ${chalk.yellow("●")} High: ${chalk.yellow.bold(String(bySeverity.high))}`);
+    console.log(
+      `  ${chalk.yellow("●")} High: ${chalk.yellow.bold(String(bySeverity.high))}`,
+    );
   }
   if (bySeverity.medium > 0) {
-    console.log(`  ${chalk.blue("●")} Medium: ${chalk.blue.bold(String(bySeverity.medium))}`);
+    console.log(
+      `  ${chalk.blue("●")} Medium: ${chalk.blue.bold(String(bySeverity.medium))}`,
+    );
   }
   if (bySeverity.low > 0) {
-    console.log(`  ${chalk.dim("●")} Low: ${chalk.dim(String(bySeverity.low))}`);
+    console.log(
+      `  ${chalk.dim("●")} Low: ${chalk.dim(String(bySeverity.low))}`,
+    );
   }
   console.log();
 
   // Triage summary
   console.log(chalk.bold("Triage Summary:"));
-  console.log(`  ${chalk.green("✓")} Fixed: ${chalk.green.bold(String(fixed))}`);
-  console.log(`  ${chalk.yellow("→")} Skipped: ${chalk.yellow.bold(String(skipped))}`);
-  console.log(`  ${chalk.dim("○")} False Positives: ${chalk.dim(String(falsePositives))}`);
+  console.log(
+    `  ${chalk.green("✓")} Fixed: ${chalk.green.bold(String(fixed))}`,
+  );
+  console.log(
+    `  ${chalk.yellow("→")} Skipped: ${chalk.yellow.bold(String(skipped))}`,
+  );
+  console.log(
+    `  ${chalk.dim("○")} False Positives: ${chalk.dim(String(falsePositives))}`,
+  );
   console.log();
 
   // Show individual findings grouped by file
-  const byFile = new Map<string, Array<{ decision: TriageDecision; finding: Finding }>>();
+  const byFile = new Map<
+    string,
+    Array<{ decision: TriageDecision; finding: Finding }>
+  >();
   for (const [index, finding] of findings.entries()) {
     const decision = decisions[index];
     if (decision !== undefined) {
@@ -407,7 +592,9 @@ function runHeadlessReview(isDryRun: boolean): void {
   }
 
   // Display Claude's response (excluding the JSON block for cleaner output)
-  const displayOutput = result.result.replace(/<review-findings>[\s\S]*<\/review-findings>/i, "").trim();
+  const displayOutput = result.result
+    .replace(/<review-findings>[\s\S]*<\/review-findings>/i, "")
+    .trim();
   if (displayOutput) {
     console.log(renderMarkdown(displayOutput));
   }
@@ -416,9 +603,15 @@ function runHeadlessReview(isDryRun: boolean): void {
   const reviewData = parseReviewFindings(result.result);
 
   if (reviewData === null) {
-    console.log(chalk.yellow("\nCould not parse structured findings from output."));
-    console.log(chalk.dim("Review completed but findings summary unavailable."));
-    console.log(`\n${chalk.dim("Duration:")} ${formatDuration(result.duration)}`);
+    console.log(
+      chalk.yellow("\nCould not parse structured findings from output."),
+    );
+    console.log(
+      chalk.dim("Review completed but findings summary unavailable."),
+    );
+    console.log(
+      `\n${chalk.dim("Duration:")} ${formatDuration(result.duration)}`,
+    );
     console.log(`${chalk.dim("Cost:")} $${result.cost.toFixed(4)}`);
     return;
   }
@@ -446,10 +639,11 @@ function runHeadlessReview(isDryRun: boolean): void {
   console.log(`${chalk.dim("Cost:")} $${result.cost.toFixed(4)}`);
   console.log(`${chalk.dim("Session:")} ${result.sessionId}`);
 
-  // Build diary entry (for SUB-029 to read)
+  // Build diary entry
   const diaryEntry: ReviewDiaryEntry = {
     decisions,
-    falsePositives: decisions.filter((d) => d.action === "false_positive").length,
+    falsePositives: decisions.filter((d) => d.action === "false_positive")
+      .length,
     findings: findings.length,
     fixed: decisions.filter((d) => d.action === "fix").length,
     mode: "headless",
@@ -458,11 +652,143 @@ function runHeadlessReview(isDryRun: boolean): void {
     timestamp: new Date().toISOString(),
   };
 
-  // Log to console for now (SUB-029 will implement file logging)
+  // Write diary entry to logs/reviews.jsonl
+  writeDiaryEntry(diaryEntry, projectRoot);
   console.log(
-    chalk.dim(`\nDiary entry prepared (${diaryEntry.findings} findings, ${diaryEntry.fixed} fixed)`),
+    chalk.dim(
+      `\nDiary entry logged to logs/reviews.jsonl (${diaryEntry.findings} findings, ${diaryEntry.fixed} fixed)`,
+    ),
   );
 }
+
+/**
+ * Display review status from diary
+ *
+ * Shows summary statistics and recent review entries.
+ */
+function runReviewStatus(): void {
+  const projectRoot = findProjectRoot();
+  const entries = readDiaryEntries(projectRoot);
+
+  console.log(
+    chalk.bold(
+      "╔════════════════════════════════════════════════════════════════╗",
+    ),
+  );
+  console.log(
+    chalk.bold(
+      "║                        Review Status                           ║",
+    ),
+  );
+  console.log(
+    chalk.bold(
+      "╚════════════════════════════════════════════════════════════════╝\n",
+    ),
+  );
+
+  if (entries.length === 0) {
+    console.log(chalk.dim("No review history found at logs/reviews.jsonl"));
+    console.log(chalk.dim("\nRun a review to start building history:"));
+    console.log(chalk.yellow("  aaa review --supervised"));
+    console.log(chalk.yellow("  aaa review --headless"));
+    return;
+  }
+
+  // Calculate and display statistics
+  const stats = getDiaryStats(entries);
+
+  console.log(chalk.bold("Summary Statistics"));
+  console.log("──────────────────");
+  console.log(`  Total reviews:     ${chalk.blue.bold(String(stats.total))}`);
+  console.log(
+    `  Total findings:    ${chalk.blue.bold(String(stats.totalFindings))}`,
+  );
+  console.log(
+    `  Avg per review:    ${chalk.blue(stats.avgFindingsPerReview.toFixed(1))}`,
+  );
+  console.log();
+
+  // Triage outcomes
+  console.log(chalk.bold("Triage Outcomes (all reviews)"));
+  console.log("─────────────────────────────");
+  console.log(
+    `  ${chalk.green("✓")} Fixed:           ${chalk.green.bold(String(stats.fixed))}`,
+  );
+  console.log(
+    `  ${chalk.yellow("→")} Skipped:         ${chalk.yellow.bold(String(stats.skipped))}`,
+  );
+  console.log(
+    `  ${chalk.dim("○")} False Positives: ${chalk.dim(String(stats.falsePositives))}`,
+  );
+  console.log();
+
+  // Show recent entries (last 5)
+  const recentEntries = entries.slice(-5).reverse();
+  console.log(chalk.bold("Recent Reviews"));
+  console.log("──────────────");
+
+  for (const entry of recentEntries) {
+    const timeAgo = formatTimestamp(entry.timestamp);
+    const modeColor = entry.mode === "headless" ? chalk.cyan : chalk.magenta;
+
+    console.log(`\n  ${modeColor(`[${entry.mode}]`)} ${chalk.dim(timeAgo)}`);
+    console.log(
+      `    Findings: ${entry.findings}  Fixed: ${chalk.green(String(entry.fixed))}  Skipped: ${chalk.yellow(String(entry.skipped))}  FP: ${chalk.dim(String(entry.falsePositives))}`,
+    );
+
+    // Show severity breakdown if there were findings
+    if (entry.decisions.length > 0) {
+      let criticalCount = 0;
+      let highCount = 0;
+      let mediumCount = 0;
+      let lowCount = 0;
+
+      for (const decision of entry.decisions) {
+        switch (decision.severity) {
+          case "critical": {
+            criticalCount += 1;
+            break;
+          }
+          case "high": {
+            highCount += 1;
+            break;
+          }
+          case "low": {
+            lowCount += 1;
+            break;
+          }
+          case "medium": {
+            mediumCount += 1;
+            break;
+          }
+          default: {
+            // Unknown severity - ignore
+            break;
+          }
+        }
+      }
+
+      const severityParts: Array<string> = [];
+      if (criticalCount > 0)
+        severityParts.push(chalk.red(`${criticalCount} critical`));
+      if (highCount > 0) severityParts.push(chalk.yellow(`${highCount} high`));
+      if (mediumCount > 0)
+        severityParts.push(chalk.blue(`${mediumCount} medium`));
+      if (lowCount > 0) severityParts.push(chalk.dim(`${lowCount} low`));
+
+      if (severityParts.length > 0) {
+        console.log(`    Severity: ${severityParts.join(", ")}`);
+      }
+    }
+  }
+
+  console.log();
+  console.log(chalk.dim(`Log file: ${join(projectRoot, DIARY_PATH)}`));
+}
+
+// =============================================================================
+// Subcommands
+// =============================================================================
 
 /**
  * Run review in supervised mode
@@ -528,30 +854,17 @@ Start by gathering the diff.`,
   console.log(chalk.green("\nCode review session completed."));
 }
 
-// =============================================================================
-// Subcommands
-// =============================================================================
-
 /**
  * Review status subcommand
  *
  * Displays review diary entries and summary statistics.
  * Reads from logs/reviews.jsonl
- *
- * Implementation in SUB-029
  */
 reviewCommand.addCommand(
   new Command("status")
     .description("Display review history and statistics")
     .action(() => {
-      console.log(chalk.bold("Review Status\n"));
-      console.log(
-        chalk.yellow("Note: Status implementation pending (SUB-029)"),
-      );
-      // TODO: Implement in SUB-029
-      // - Read logs/reviews.jsonl
-      // - Display summary: total reviews, findings, fixed/skipped/falsePositives
-      // - Show recent review entries
+      runReviewStatus();
     }),
 );
 
