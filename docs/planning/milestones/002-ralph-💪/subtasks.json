@@ -368,7 +368,10 @@
       "storyRef": "STORY-001",
       "title": "Implement review headless mode",
       "description": "Implement headless mode in tools/src/commands/review/index.ts. Reuse invokeClaudeHeadless() from ralph/claude.ts. Parse JSON findings from output, auto-triage by severity/confidence, apply fixes unless dry-run. Log all decisions.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:55:00Z",
+      "commitHash": "4368beb",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "Headless mode invokes Claude with -p flag",
         "JSON findings are parsed from output",

@@ -188,3 +188,15 @@
   - Handles session results: interrupted, failed, and success cases
   - Provides clear error messages when skill file is not found
 - **Files:** tools/src/commands/review/index.ts (modified)
+
+### SUB-028
+- **Problem:** Need to implement headless mode for the review CLI that invokes Claude with the parallel-code-review skill and processes findings automatically
+- **Changes:** Updated tools/src/commands/review/index.ts with:
+  - Implemented `runHeadlessReview()` function using `invokeClaudeHeadless()` from ralph/claude.ts
+  - Added `buildHeadlessReviewPrompt()` to create prompt with JSON output format requirement
+  - Added `parseReviewFindings()` to extract `<review-findings>` JSON block from Claude output
+  - Added `autoTriageFindings()` for automatic categorization by severity × confidence (threshold: 3.0)
+  - Added `renderFindingsSummary()` for formatted console output with severity breakdown and file grouping
+  - Supports `--dry-run` flag to preview findings without applying fixes
+  - Prepares diary entry for SUB-029 to persist
+- **Files:** tools/src/commands/review/index.ts (modified)
