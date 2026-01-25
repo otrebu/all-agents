@@ -41,6 +41,7 @@ _aaa() {
                 'task:Task management utilities'
                 'story:Story management utilities'
                 'ralph:Autonomous development framework'
+                'review:Run parallel multi-agent code review'
                 'completion:Generate shell completion scripts'
             )
             _describe 'command' commands
@@ -99,6 +100,9 @@ _aaa() {
                     ;;
                 ralph)
                     _aaa_ralph
+                    ;;
+                review)
+                    _aaa_review
                     ;;
                 completion)
                     _arguments '1:shell:(bash zsh fish)'
@@ -326,6 +330,25 @@ _aaa_ralph_review_gap() {
                     _arguments '--milestone[Milestone path]:milestone:_files -/'
                     ;;
             esac
+            ;;
+    esac
+}
+
+_aaa_review() {
+    local -a subcommands
+    subcommands=(
+        'status:Display review history and statistics'
+    )
+
+    _arguments -C \\
+        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch execution]' \\
+        '(-H --headless)'{-H,--headless}'[Headless mode: fully autonomous]' \\
+        '--dry-run[Preview findings without fixing (requires --headless)]' \\
+        '1: :->subcmd'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
             ;;
     esac
 }

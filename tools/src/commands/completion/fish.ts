@@ -54,6 +54,7 @@ complete -c aaa -n __fish_aaa_needs_command -a sync-context -d 'Sync context fol
 complete -c aaa -n __fish_aaa_needs_command -a task -d 'Task management utilities'
 complete -c aaa -n __fish_aaa_needs_command -a story -d 'Story management utilities'
 complete -c aaa -n __fish_aaa_needs_command -a ralph -d 'Autonomous development framework'
+complete -c aaa -n __fish_aaa_needs_command -a review -d 'Run parallel multi-agent code review'
 complete -c aaa -n __fish_aaa_needs_command -a completion -d 'Generate shell completion scripts'
 
 # Global options
@@ -201,6 +202,12 @@ function __fish_aaa_ralph_review_gap_stories
     test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = stories
 end
 complete -c aaa -n __fish_aaa_ralph_review_gap_stories -xa '(aaa __complete milestone 2>/dev/null)'
+
+# review options and subcommands
+complete -c aaa -n '__fish_aaa_using_subcommand review' -s s -l supervised -d 'Supervised mode: watch execution'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -s H -l headless -d 'Headless mode: fully autonomous'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l dry-run -d 'Preview findings without fixing (requires --headless)'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -a status -d 'Display review history and statistics'
 
 # completion subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand completion' -a bash -d 'Generate bash completion'

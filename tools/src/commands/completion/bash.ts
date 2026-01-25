@@ -181,6 +181,12 @@ _aaa_completions() {
                         ;;
                 esac
                 ;;
+            review)
+                if [[ -z "$subcmd" ]]; then
+                    COMPREPLY=($(compgen -W "-s --supervised -H --headless --dry-run" -- "$cur"))
+                fi
+                return
+                ;;
         esac
         # Global flags
         COMPREPLY=($(compgen -W "-h --help -V --version" -- "$cur"))
@@ -191,7 +197,7 @@ _aaa_completions() {
     case "$cmd" in
         "")
             # Top-level commands
-            COMPREPLY=($(compgen -W "download extract-conversations gh-search gemini-research parallel-search setup uninstall sync-context task story ralph completion" -- "$cur"))
+            COMPREPLY=($(compgen -W "download extract-conversations gh-search gemini-research parallel-search setup uninstall sync-context task story ralph review completion" -- "$cur"))
             ;;
         task)
             if [[ -z "$subcmd" ]]; then
@@ -215,6 +221,11 @@ _aaa_completions() {
                 COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
             elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "intention technical improve all" -- "$cur"))
+            fi
+            ;;
+        review)
+            if [[ -z "$subcmd" ]]; then
+                COMPREPLY=($(compgen -W "status" -- "$cur"))
             fi
             ;;
         completion)
