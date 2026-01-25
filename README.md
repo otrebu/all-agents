@@ -218,7 +218,7 @@ Claude Code extends with three mechanisms:
 | `parallel-search`                | Multi-angle web research                          | beta         |
 | `conversation-friction-analyzer` | Stage 1: Extract raw friction points from chats   | experimental |
 | `friction-pattern-abstractor`    | Stage 2: Group similar problems, find root causes | experimental |
-| `coding-style-reviewer`          | Review code against style guidelines              | experimental |
+| `maintainability-reviewer`       | Review code for coupling, naming, SRP issues      | experimental |
 
 </details>
 
