@@ -34,7 +34,10 @@
       "storyRef": "STORY-001",
       "title": "Create interrogate skill command",
       "description": "Create .claude/commands/dev/interrogate.md skill that loads the interrogate workflow. Support args for target [changes|commit|pr] and modes [--quick|--skeptical]. The skill gathers git context and applies the workflow questions.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T12:30:00Z",
+      "commitHash": "df2a2cfc812326bf2fa6bae40ae5216ed1540027",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/commands/dev/interrogate.md exists with proper frontmatter",
         "Skill accepts target argument (changes, commit, pr)",
