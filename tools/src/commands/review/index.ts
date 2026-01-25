@@ -1,5 +1,9 @@
 import { Command } from "@commander-js/extra-typings";
 import chalk from "chalk";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
+import { invokeClaudeChat } from "../ralph/claude";
 
 /**
  * Review command - orchestrate parallel code review using specialized agents
@@ -47,6 +51,30 @@ const reviewCommand = new Command("review")
       promptForMode();
     }
   });
+
+/**
+ * Find the project root by looking for CLAUDE.md
+ *
+ * Walks up from current working directory until CLAUDE.md is found.
+ * This is the standard project root marker.
+ *
+ * @returns Project root path, or current working directory if not found
+ */
+function findProjectRoot(): string {
+  let current = process.cwd();
+  const root = "/";
+
+  while (current !== root) {
+    if (existsSync(join(current, "CLAUDE.md"))) {
+      return current;
+    }
+    const parent = join(current, "..");
+    if (parent === current) break;
+    current = parent;
+  }
+
+  return process.cwd();
+}
 
 /**
  * Prompt user to choose between supervised and headless modes
@@ -104,18 +132,63 @@ function runHeadlessReview(isDryRun: boolean): void {
  *
  * Spawns a Claude chat session with the parallel-code-review skill.
  * User watches execution and can intervene.
- *
- * Implementation in SUB-027
  */
 function runSupervisedReview(): void {
   console.log(chalk.bold("Starting supervised code review...\n"));
-  console.log(
-    chalk.yellow("Note: Supervised mode implementation pending (SUB-027)"),
+
+  // Find project root and skill prompt
+  const projectRoot = findProjectRoot();
+  const skillPath = join(
+    projectRoot,
+    ".claude/skills/parallel-code-review/SKILL.md",
   );
-  // TODO: Implement in SUB-027
-  // - Reuse invokeClaudeChat() from ralph/claude.ts
-  // - Load parallel-code-review skill prompt
-  // - User watches and can type during session
+
+  // Check if skill file exists
+  if (!existsSync(skillPath)) {
+    console.error(chalk.red(`Error: Skill not found at ${skillPath}`));
+    console.log(
+      chalk.dim(
+        "\nEnsure the parallel-code-review skill is installed in .claude/skills/",
+      ),
+    );
+    process.exit(1);
+  }
+
+  // Use the skill file as the prompt path
+  const promptPath = skillPath;
+
+  // Invoke Claude in chat/supervised mode
+  // User can watch and type during the session
+  const result = invokeClaudeChat(
+    promptPath,
+    "code review",
+    `Execute the parallel code review workflow as defined in this skill document.
+
+Run all phases:
+1. Gather the diff of current changes
+2. Invoke all reviewer agents in parallel
+3. Synthesize the findings
+4. Present findings for triage
+
+Start by gathering the diff.`,
+  );
+
+  // Handle result
+  if (result.interrupted) {
+    console.log(chalk.yellow("\nCode review session interrupted by user."));
+    process.exit(0);
+  }
+
+  if (!result.success) {
+    console.error(
+      chalk.red(
+        `\nCode review session failed with exit code ${result.exitCode}`,
+      ),
+    );
+    process.exit(result.exitCode ?? 1);
+  }
+
+  console.log(chalk.green("\nCode review session completed."));
 }
 
 // =============================================================================
