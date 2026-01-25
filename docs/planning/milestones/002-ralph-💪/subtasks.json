@@ -298,7 +298,10 @@
       "storyRef": "STORY-001",
       "title": "Create review CLI types",
       "description": "Create tools/src/commands/review/types.ts with Finding interface (matching agent schema), ReviewDiaryEntry interface (timestamp, mode, findings count, fixed/skipped/falsePositives counts, decisions array), and ReviewResult interface for CLI output.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:45:00Z",
+      "commitHash": "6e57b11db99d94a5596ad17115e5b9af1a88c4a3",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "tools/src/commands/review/types.ts exists",
         "Finding interface matches agent schema exactly",

@@ -151,3 +151,16 @@
   - Pass-through of $ARGUMENTS to the skill
   - /dev:code-review now triggers multi-agent parallel code review
 - **Files:** .claude/commands/dev/code-review.md (modified)
+
+### SUB-025
+- **Problem:** Need TypeScript types for the code review CLI command to define Finding, ReviewDiaryEntry, and ReviewResult interfaces
+- **Changes:** Created tools/src/commands/review/types.ts with:
+  - Finding interface matching agent schema (id, reviewer, severity, file, line, description, suggestedFix, confidence)
+  - Severity type enum (critical, high, medium, low)
+  - ReviewDiaryEntry interface for logs/reviews.jsonl (timestamp, mode, findings count, fixed/skipped/falsePositives counts, decisions array)
+  - ReviewResult interface for CLI output
+  - TriageAction and TriageDecision types for triage handling
+  - SEVERITY_WEIGHTS constant and calculatePriority utility function
+  - ReviewerOutput interface for agent output format
+  - ReviewMode type (headless, supervised, interactive)
+- **Files:** tools/src/commands/review/types.ts (created)
