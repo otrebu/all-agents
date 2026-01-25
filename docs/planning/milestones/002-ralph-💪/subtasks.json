@@ -143,7 +143,10 @@
       "storyRef": "STORY-001",
       "title": "Create error-handling-reviewer agent",
       "description": "Create .claude/agents/code-review/error-handling-reviewer.md agent focused on swallowed exceptions, missing catch blocks, incomplete error recovery, and logging gaps. Agent identifies error handling issues and outputs findings per schema.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:05:00Z",
+      "commitHash": "ee2513fad34861df52a73c35766e4772dd92a526",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/error-handling-reviewer.md exists",
         "Agent focuses on exceptions, catch blocks, recovery paths",

@@ -64,3 +64,15 @@
   - Example findings for null dereference, array bounds, race condition, and missing validation
   - JSON output format matching Finding schema from types.md
 - **Files:** .claude/agents/code-review/data-integrity-reviewer.md (created)
+
+### SUB-018
+- **Problem:** Need an error handling focused code reviewer agent that analyzes code for swallowed exceptions, missing catch blocks, incomplete error recovery, and logging gaps
+- **Changes:** Created .claude/agents/code-review/error-handling-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Error handling focus areas: swallowed exceptions, missing handlers, incomplete recovery, logging gaps, weak handlers, async/await anti-patterns
+  - Distinction between missing handlers (no try/catch) and weak handlers (inadequate handling)
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to error handling issues
+  - Example findings for swallowed exception, missing handler, incomplete recovery, weak handler, and missing context
+  - JSON output format matching Finding schema from types.md
+- **Files:** .claude/agents/code-review/error-handling-reviewer.md (created)
