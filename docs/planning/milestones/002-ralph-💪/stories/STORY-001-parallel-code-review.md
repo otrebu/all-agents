@@ -328,6 +328,16 @@ Add after Milestone 4:
 
 ---
 
+## Tasks
+
+- [TASK-014-interrogation-workflow](../tasks/TASK-014-interrogation-workflow.md) - Phase 1: Interrogation workflow
+- [TASK-015-core-reviewer-agents](../tasks/TASK-015-core-reviewer-agents.md) - Phase 2: Core reviewer agents + synthesizer
+- [TASK-016-update-code-review-skill](../tasks/TASK-016-update-code-review-skill.md) - Phase 3: Update code-review skill
+- [TASK-017-review-cli-command](../tasks/TASK-017-review-cli-command.md) - Phase 4: Review CLI with trust gradient
+- [TASK-018-additional-reviewer-agents](../tasks/TASK-018-additional-reviewer-agents.md) - Phase 5: Additional agents + docs
+
+---
+
 ## Verification
 
 1. **Interrogation:** `/dev:interrogate changes` → structured output with 3 questions

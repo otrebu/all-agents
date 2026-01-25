@@ -1,0 +1,543 @@
+{
+  "$schema": "../schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "story",
+    "storyRef": "STORY-001"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-012",
+      "taskRef": "TASK-014",
+      "storyRef": "STORY-001",
+      "title": "Create interrogate workflow doc",
+      "description": "Create context/workflows/interrogate.md defining the interrogation workflow. Document the 3 core questions (hardest decision, rejected alternatives, lowest confidence), --quick mode (minimal output), --skeptical mode (extra validation), and output format (structured table with confidence levels, rejected alternatives, assumptions).",
+      "done": false,
+      "acceptanceCriteria": [
+        "context/workflows/interrogate.md exists",
+        "Document defines 3 core questions with explanations",
+        "Document specifies --quick mode behavior",
+        "Document specifies --skeptical mode behavior",
+        "Output format section shows structured table example"
+      ],
+      "filesToRead": [
+        "context/workflows/code-review.md",
+        "context/workflows/complete-feature.md",
+        "docs/planning/milestones/002-ralph-💪/tasks/TASK-014-interrogation-workflow.md"
+      ]
+    },
+    {
+      "id": "SUB-013",
+      "taskRef": "TASK-014",
+      "storyRef": "STORY-001",
+      "title": "Create interrogate skill command",
+      "description": "Create .claude/commands/dev/interrogate.md skill that loads the interrogate workflow. Support args for target [changes|commit|pr] and modes [--quick|--skeptical]. The skill gathers git context and applies the workflow questions.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/commands/dev/interrogate.md exists with proper frontmatter",
+        "Skill accepts target argument (changes, commit, pr)",
+        "Skill accepts --quick and --skeptical mode flags",
+        "Skill loads @context/workflows/interrogate.md",
+        "Skill gathers appropriate git context based on target"
+      ],
+      "filesToRead": [
+        ".claude/commands/dev/code-review.md",
+        ".claude/commands/dev/git-commit.md",
+        "context/workflows/interrogate.md"
+      ]
+    },
+    {
+      "id": "SUB-014",
+      "taskRef": "TASK-014",
+      "storyRef": "STORY-001",
+      "title": "Integrate interrogation into complete-feature workflow",
+      "description": "Update context/workflows/complete-feature.md to add interrogation as an optional pre-merge checkpoint. Add a step suggesting '/dev:interrogate changes' before creating PR, especially for substantial changes.",
+      "done": false,
+      "acceptanceCriteria": [
+        "complete-feature.md has interrogation checkpoint section",
+        "Checkpoint is marked as optional/recommended",
+        "Instructions show how to run /dev:interrogate",
+        "Mentions when interrogation is most valuable (substantial changes, AI code)"
+      ],
+      "filesToRead": [
+        "context/workflows/complete-feature.md",
+        "context/workflows/dev-lifecycle-simple.md"
+      ]
+    },
+    {
+      "id": "SUB-015",
+      "taskRef": "TASK-015",
+      "storyRef": "STORY-001",
+      "title": "Create code-review agents directory and Finding types",
+      "description": "Create .claude/agents/code-review/ directory structure. Create types.md documenting the Finding interface schema: id (hash), reviewer (agent name), severity (critical|high|medium|low), file, line?, description, suggestedFix?, confidence (0-1). This becomes the contract for all reviewer agents.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/ directory exists",
+        "types.md documents Finding interface with all fields",
+        "Schema includes severity enum values",
+        "Schema includes confidence range (0-1)",
+        "Example Finding JSON is included"
+      ],
+      "filesToRead": [
+        ".claude/agents/coding-style-reviewer.md",
+        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+      ]
+    },
+    {
+      "id": "SUB-016",
+      "taskRef": "TASK-015",
+      "storyRef": "STORY-001",
+      "title": "Create security-reviewer agent",
+      "description": "Create .claude/agents/code-review/security-reviewer.md agent focused on OWASP Top 10, injection vulnerabilities, authentication issues, secrets exposure, and XSS. Agent reads git diff, analyzes for security issues, outputs findings in JSON format per types.md schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/security-reviewer.md exists",
+        "Agent has proper frontmatter (name, description, model)",
+        "Agent focuses on security-specific issues (OWASP, injection, auth, secrets, XSS)",
+        "Agent outputs findings in JSON format matching Finding schema",
+        "Agent includes confidence scoring logic"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/coding-style-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-017",
+      "taskRef": "TASK-015",
+      "storyRef": "STORY-001",
+      "title": "Create data-integrity-reviewer agent",
+      "description": "Create .claude/agents/code-review/data-integrity-reviewer.md agent focused on null checks, array boundary conditions, race conditions, and data validation. Agent analyzes code for data integrity issues and outputs findings per schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/data-integrity-reviewer.md exists",
+        "Agent focuses on null checks, boundaries, race conditions",
+        "Agent outputs findings in JSON format matching Finding schema",
+        "Agent provides confidence scores based on certainty of issue"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-018",
+      "taskRef": "TASK-015",
+      "storyRef": "STORY-001",
+      "title": "Create error-handling-reviewer agent",
+      "description": "Create .claude/agents/code-review/error-handling-reviewer.md agent focused on swallowed exceptions, missing catch blocks, incomplete error recovery, and logging gaps. Agent identifies error handling issues and outputs findings per schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/error-handling-reviewer.md exists",
+        "Agent focuses on exceptions, catch blocks, recovery paths",
+        "Agent outputs findings in JSON format matching Finding schema",
+        "Agent distinguishes between missing handlers and weak handlers"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-019",
+      "taskRef": "TASK-015",
+      "storyRef": "STORY-001",
+      "title": "Create test-coverage-reviewer agent",
+      "description": "Create .claude/agents/code-review/test-coverage-reviewer.md agent focused on missing tests, untested edge cases, and insufficient test assertions. Agent analyzes test files relative to implementation and outputs findings per schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/test-coverage-reviewer.md exists",
+        "Agent identifies missing test files for new code",
+        "Agent identifies untested branches and edge cases",
+        "Agent outputs findings in JSON format matching Finding schema"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md",
+        "context/blocks/test/vitest.md"
+      ]
+    },
+    {
+      "id": "SUB-020",
+      "taskRef": "TASK-015",
+      "storyRef": "STORY-001",
+      "title": "Create synthesizer agent",
+      "description": "Create .claude/agents/code-review/synthesizer.md agent that aggregates findings from multiple reviewers. Synthesizer dedupes similar findings (same file+line+issue), ranks by severity × confidence, groups by file, and outputs consolidated report.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/synthesizer.md exists",
+        "Agent accepts findings JSON from multiple reviewers",
+        "Agent dedupes findings with same file+line+description",
+        "Agent ranks findings by severity × confidence product",
+        "Agent outputs consolidated report with grouped findings"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-021",
+      "taskRef": "TASK-016",
+      "storyRef": "STORY-001",
+      "title": "Rename coding-style-reviewer to maintainability-reviewer",
+      "description": "Move .claude/agents/coding-style-reviewer.md to .claude/agents/code-review/maintainability-reviewer.md. Update description to focus on coupling, naming conventions, Single Responsibility Principle, and code organization. Update any references in settings.json or elsewhere.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/maintainability-reviewer.md exists",
+        "Original coding-style-reviewer.md is removed",
+        "Agent description focuses on coupling, naming, SRP",
+        "Agent outputs findings in JSON format matching Finding schema",
+        "Any references in .claude/settings.json are updated"
+      ],
+      "filesToRead": [
+        ".claude/agents/coding-style-reviewer.md",
+        ".claude/settings.json",
+        ".claude/agents/code-review/types.md"
+      ]
+    },
+    {
+      "id": "SUB-022",
+      "taskRef": "TASK-016",
+      "storyRef": "STORY-001",
+      "title": "Update code-review workflow for parallel agents",
+      "description": "Update context/workflows/code-review.md to include parallel agent orchestration. Add section explaining how to invoke multiple reviewers in parallel using Task tool, how findings are synthesized, and how triage actions work (FIX/SKIP/FALSE POSITIVE).",
+      "done": false,
+      "acceptanceCriteria": [
+        "code-review.md has parallel orchestration section",
+        "Document explains Task tool parallel invocation",
+        "Document references Finding schema from types.md",
+        "Document defines triage actions (FIX, SKIP, FALSE POSITIVE)",
+        "Document shows synthesizer invocation pattern"
+      ],
+      "filesToRead": [
+        "context/workflows/code-review.md",
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/synthesizer.md"
+      ]
+    },
+    {
+      "id": "SUB-023",
+      "taskRef": "TASK-016",
+      "storyRef": "STORY-001",
+      "title": "Create parallel-code-review skill",
+      "description": "Create .claude/skills/parallel-code-review/SKILL.md that orchestrates parallel reviewer agents. Skill spawns reviewers via Task tool, collects findings, invokes synthesizer, and presents findings one at a time with triage options.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/skills/parallel-code-review/SKILL.md exists",
+        "Skill has proper frontmatter (name, description)",
+        "Skill invokes reviewers in parallel using Task tool",
+        "Skill invokes synthesizer with collected findings",
+        "Skill presents findings with chunked presentation",
+        "Skill handles FIX/SKIP/FALSE POSITIVE responses"
+      ],
+      "filesToRead": [
+        ".claude/skills/brainwriting/SKILL.md",
+        "context/workflows/code-review.md",
+        ".claude/agents/code-review/synthesizer.md"
+      ]
+    },
+    {
+      "id": "SUB-024",
+      "taskRef": "TASK-016",
+      "storyRef": "STORY-001",
+      "title": "Update code-review command to use new skill",
+      "description": "Update .claude/commands/dev/code-review.md to load the new parallel-code-review skill instead of the simple workflow. The command becomes a thin wrapper that invokes the skill.",
+      "done": false,
+      "acceptanceCriteria": [
+        "code-review.md command loads parallel-code-review skill",
+        "Command passes through any arguments to the skill",
+        "/dev:code-review invocation triggers parallel review"
+      ],
+      "filesToRead": [
+        ".claude/commands/dev/code-review.md",
+        ".claude/skills/parallel-code-review/SKILL.md"
+      ]
+    },
+    {
+      "id": "SUB-025",
+      "taskRef": "TASK-017",
+      "storyRef": "STORY-001",
+      "title": "Create review CLI types",
+      "description": "Create tools/src/commands/review/types.ts with Finding interface (matching agent schema), ReviewDiaryEntry interface (timestamp, mode, findings count, fixed/skipped/falsePositives counts, decisions array), and ReviewResult interface for CLI output.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/review/types.ts exists",
+        "Finding interface matches agent schema exactly",
+        "ReviewDiaryEntry has all fields from story spec",
+        "ReviewResult interface defined for CLI output",
+        "Types are properly exported"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        ".claude/agents/code-review/types.md",
+        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+      ]
+    },
+    {
+      "id": "SUB-026",
+      "taskRef": "TASK-017",
+      "storyRef": "STORY-001",
+      "title": "Create review CLI command structure",
+      "description": "Create tools/src/commands/review/index.ts with main review command. Implement mode selection: bare 'review' prompts for mode, --supervised runs chat mode, --headless runs autonomous mode, --headless --dry-run previews without fixing. Add status subcommand placeholder.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/review/index.ts exists",
+        "Command registered in CLI entry point",
+        "'aaa review' prompts for supervised vs headless",
+        "'aaa review --supervised' flag works",
+        "'aaa review --headless' flag works",
+        "'aaa review --headless --dry-run' flag works",
+        "'aaa review status' subcommand exists (placeholder)"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/index.ts",
+        "tools/src/commands/review/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-027",
+      "taskRef": "TASK-017",
+      "storyRef": "STORY-001",
+      "title": "Implement review supervised mode",
+      "description": "Implement supervised mode in tools/src/commands/review/index.ts. Reuse invokeClaudeChat() from ralph/claude.ts to spawn chat session with review prompt. User watches execution and can intervene. Display uses ralph display utilities.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Supervised mode invokes Claude in chat mode",
+        "Review prompt is loaded and passed to Claude",
+        "User can watch and type during session",
+        "Display matches Ralph supervised mode style"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/review/index.ts"
+      ]
+    },
+    {
+      "id": "SUB-028",
+      "taskRef": "TASK-017",
+      "storyRef": "STORY-001",
+      "title": "Implement review headless mode",
+      "description": "Implement headless mode in tools/src/commands/review/index.ts. Reuse invokeClaudeHeadless() from ralph/claude.ts. Parse JSON findings from output, auto-triage by severity/confidence, apply fixes unless dry-run. Log all decisions.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Headless mode invokes Claude with -p flag",
+        "JSON findings are parsed from output",
+        "Auto-triage categorizes by severity × confidence",
+        "Fixes are applied (unless --dry-run)",
+        "All decisions are logged for diary"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/review/index.ts"
+      ]
+    },
+    {
+      "id": "SUB-029",
+      "taskRef": "TASK-017",
+      "storyRef": "STORY-001",
+      "title": "Implement review diary logging",
+      "description": "Implement diary logging for review command. Write ReviewDiaryEntry to logs/reviews.jsonl after each review run. Include timestamp, mode, findings count, fixed/skipped/falsePositives, and full decisions array. Implement 'aaa review status' to read and display diary.",
+      "done": false,
+      "acceptanceCriteria": [
+        "logs/reviews.jsonl created if doesn't exist",
+        "ReviewDiaryEntry appended after each run",
+        "Entry includes all specified fields",
+        "'aaa review status' reads and displays diary entries",
+        "Status shows summary statistics"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/ralph/status.ts",
+        "tools/src/commands/review/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-030",
+      "taskRef": "TASK-017",
+      "storyRef": "STORY-001",
+      "title": "Add review shell completions",
+      "description": "Update tools/src/commands/completion/bash.ts, zsh.ts, and fish.ts to include 'review' command completions. Add --supervised, --headless, --dry-run flags and 'status' subcommand.",
+      "done": false,
+      "acceptanceCriteria": [
+        "bash.ts includes review command completion",
+        "zsh.ts includes review command completion",
+        "fish.ts includes review command completion",
+        "All three include --supervised, --headless, --dry-run flags",
+        "All three include status subcommand"
+      ],
+      "filesToRead": [
+        "tools/src/commands/completion/bash.ts",
+        "tools/src/commands/completion/zsh.ts",
+        "tools/src/commands/completion/fish.ts"
+      ]
+    },
+    {
+      "id": "SUB-031",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Create over-engineering-reviewer agent",
+      "description": "Create .claude/agents/code-review/over-engineering-reviewer.md agent focused on YAGNI violations, premature abstraction, unnecessary complexity, and over-configurability. Agent identifies over-engineering and outputs findings per schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/over-engineering-reviewer.md exists",
+        "Agent focuses on YAGNI, premature abstraction, complexity",
+        "Agent outputs findings in JSON format matching Finding schema",
+        "Agent provides specific examples of simpler alternatives"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-032",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Create performance-reviewer agent",
+      "description": "Create .claude/agents/code-review/performance-reviewer.md agent focused on N+1 queries, memory leaks, algorithm complexity, and inefficient patterns. Agent identifies performance issues and outputs findings per schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/performance-reviewer.md exists",
+        "Agent focuses on N+1, memory, algorithms, inefficiency",
+        "Agent outputs findings in JSON format matching Finding schema",
+        "Agent suggests specific performance improvements"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-033",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Create accessibility-reviewer agent",
+      "description": "Create .claude/agents/code-review/accessibility-reviewer.md agent focused on WCAG compliance for frontend code. Agent should skip non-frontend files. Identifies missing ARIA, color contrast, keyboard navigation issues.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/accessibility-reviewer.md exists",
+        "Agent focuses on WCAG, ARIA, color contrast, keyboard nav",
+        "Agent skips non-frontend files (detect by extension/path)",
+        "Agent outputs findings in JSON format matching Finding schema"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-034",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Create documentation-reviewer agent",
+      "description": "Create .claude/agents/code-review/documentation-reviewer.md agent focused on missing/outdated documentation, README gaps, missing JSDoc/TSDoc comments, and changelog omissions. Agent identifies doc issues and outputs findings per schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/documentation-reviewer.md exists",
+        "Agent identifies missing docs for public APIs",
+        "Agent identifies outdated docs that don't match code",
+        "Agent outputs findings in JSON format matching Finding schema"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-035",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Create dependency-reviewer agent",
+      "description": "Create .claude/agents/code-review/dependency-reviewer.md agent focused on outdated dependencies, known vulnerabilities, license compatibility, and unnecessary dependencies. Agent checks package.json and outputs findings per schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/dependency-reviewer.md exists",
+        "Agent identifies outdated dependencies",
+        "Agent flags known vulnerabilities (can suggest npm audit)",
+        "Agent outputs findings in JSON format matching Finding schema"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md"
+      ]
+    },
+    {
+      "id": "SUB-036",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Create intent-alignment-reviewer agent",
+      "description": "Create .claude/agents/code-review/intent-alignment-reviewer.md agent that verifies code matches stated requirements. Agent requires intent input (description or file reference) and checks implementation alignment. Outputs findings per schema.",
+      "done": false,
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/intent-alignment-reviewer.md exists",
+        "Agent requires intent parameter (description or @file)",
+        "Agent compares implementation to stated intent",
+        "Agent identifies gaps and deviations",
+        "Agent outputs findings in JSON format matching Finding schema"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/security-reviewer.md",
+        "context/workflows/code-review.md"
+      ]
+    },
+    {
+      "id": "SUB-037",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Update atomic-documentation with lessons placement",
+      "description": "Update context/blocks/docs/atomic-documentation.md to add 'Where Lessons Go' decision tree. Document that project-specific lessons go in docs/{folder}/, reusable lessons go in context/blocks/ as Gotchas sections. Clarify context/ vs docs/ distinction.",
+      "done": false,
+      "acceptanceCriteria": [
+        "atomic-documentation.md has 'Where Lessons Go' section",
+        "Decision tree matches story specification",
+        "Examples show project-specific vs reusable placement",
+        "Clarifies that no separate lessons/ folder exists"
+      ],
+      "filesToRead": [
+        "context/blocks/docs/atomic-documentation.md",
+        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+      ]
+    },
+    {
+      "id": "SUB-038",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Update VISION.md with Code Review Mode",
+      "description": "Add Section 3.4 'Code Review Mode' to docs/planning/VISION.md. Document parallel multi-agent review, 12 specialized reviewers list, trust gradient modes (Interactive/Supervised/Headless), interrogation workflow, and diary logging.",
+      "done": false,
+      "acceptanceCriteria": [
+        "VISION.md has Section 3.4 Code Review Mode",
+        "Section lists all 12 reviewer agents",
+        "Section documents trust gradient for review",
+        "Section mentions interrogation workflow",
+        "Section references logs/reviews.jsonl diary"
+      ],
+      "filesToRead": [
+        "docs/planning/VISION.md",
+        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+      ]
+    },
+    {
+      "id": "SUB-039",
+      "taskRef": "TASK-018",
+      "storyRef": "STORY-001",
+      "title": "Update ROADMAP.md with code review milestone",
+      "description": "Update docs/planning/ROADMAP.md to add or integrate code review milestone. List key deliverables: 12 reviewer agents, aaa review CLI, /dev:code-review skill, /dev:interrogate workflow, diary logging. Note dependency on Ralph patterns.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ROADMAP.md has code review section/milestone",
+        "Deliverables list matches story specification",
+        "Dependencies on Ralph milestone noted",
+        "Section follows existing roadmap format"
+      ],
+      "filesToRead": [
+        "docs/planning/ROADMAP.md",
+        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+      ]
+    }
+  ]
+}
