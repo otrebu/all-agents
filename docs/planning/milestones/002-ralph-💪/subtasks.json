@@ -391,7 +391,10 @@
       "storyRef": "STORY-001",
       "title": "Implement review diary logging",
       "description": "Implement diary logging for review command. Write ReviewDiaryEntry to logs/reviews.jsonl after each review run. Include timestamp, mode, findings count, fixed/skipped/falsePositives, and full decisions array. Implement 'aaa review status' to read and display diary.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:59:00Z",
+      "commitHash": "521232b",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "logs/reviews.jsonl created if doesn't exist",
         "ReviewDiaryEntry appended after each run",

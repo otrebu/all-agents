@@ -200,3 +200,16 @@
   - Supports `--dry-run` flag to preview findings without applying fixes
   - Prepares diary entry for SUB-029 to persist
 - **Files:** tools/src/commands/review/index.ts (modified)
+
+### SUB-029
+- **Problem:** Need to implement diary logging for the review command to persist review outcomes and provide a status display
+- **Changes:** Updated tools/src/commands/review/index.ts with:
+  - Added `writeDiaryEntry()` function to append ReviewDiaryEntry to logs/reviews.jsonl
+  - Added `readDiaryEntries()` function to read and parse diary JSONL file
+  - Added `getDiaryStats()` function to calculate summary statistics from diary entries
+  - Added `formatTimestamp()` function for human-readable time display
+  - Implemented `runReviewStatus()` to display review history and statistics
+  - Updated `runHeadlessReview()` to call `writeDiaryEntry()` after each run
+  - Implemented the `status` subcommand with full functionality (was placeholder)
+  - Status displays: total reviews, total findings, avg per review, triage outcomes, recent entries with severity breakdown
+- **Files:** tools/src/commands/review/index.ts (modified)
