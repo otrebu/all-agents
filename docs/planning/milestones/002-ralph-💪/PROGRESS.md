@@ -141,3 +141,13 @@
   - Review diary logging to logs/reviews.jsonl
   - Error handling for no diff, failed reviewers, and no findings
 - **Files:** .claude/skills/parallel-code-review/SKILL.md (created)
+
+### SUB-024
+- **Problem:** Need to update the /dev:code-review command to use the new parallel-code-review skill instead of the simple workflow
+- **Changes:** Updated .claude/commands/dev/code-review.md with:
+  - Reference to .claude/skills/parallel-code-review/SKILL.md instead of context/workflows/code-review.md
+  - Added allowed-tools: Task, Bash, Read, Glob, AskUserQuestion
+  - Added argument-hint for --quick and --intent flags
+  - Pass-through of $ARGUMENTS to the skill
+  - /dev:code-review now triggers multi-agent parallel code review
+- **Files:** .claude/commands/dev/code-review.md (modified)

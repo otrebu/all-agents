@@ -278,7 +278,10 @@
       "storyRef": "STORY-001",
       "title": "Update code-review command to use new skill",
       "description": "Update .claude/commands/dev/code-review.md to load the new parallel-code-review skill instead of the simple workflow. The command becomes a thin wrapper that invokes the skill.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:35:00Z",
+      "commitHash": "9ef9879dc09a3b653bf7ea42c36f8aa830958f84",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "code-review.md command loads parallel-code-review skill",
         "Command passes through any arguments to the skill",
