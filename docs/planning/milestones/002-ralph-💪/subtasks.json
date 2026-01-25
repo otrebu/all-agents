@@ -186,7 +186,10 @@
       "storyRef": "STORY-001",
       "title": "Create synthesizer agent",
       "description": "Create .claude/agents/code-review/synthesizer.md agent that aggregates findings from multiple reviewers. Synthesizer dedupes similar findings (same file+line+issue), ranks by severity × confidence, groups by file, and outputs consolidated report.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:25:00Z",
+      "commitHash": "5aad2a374ba72b5fbe22347799ee3c157fb8901c",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/synthesizer.md exists",
         "Agent accepts findings JSON from multiple reviewers",

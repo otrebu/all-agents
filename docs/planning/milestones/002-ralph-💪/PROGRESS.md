@@ -87,3 +87,16 @@
   - Example findings for missing test file, untested branch, missing edge case, assertion gap, and untested error path
   - JSON output format matching Finding schema from types.md
 - **Files:** .claude/agents/code-review/test-coverage-reviewer.md (created)
+
+### SUB-020
+- **Problem:** Need a synthesizer agent to aggregate findings from multiple specialized code reviewer agents into a consolidated, deduplicated, and prioritized report
+- **Changes:** Created .claude/agents/code-review/synthesizer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Input format for receiving findings from multiple reviewers
+  - Deduplication logic for same file+line+description findings
+  - Priority scoring using severity weight × confidence formula
+  - Sorting by priority score, severity, then file path
+  - Grouping by file for easier navigation
+  - Output format with summary statistics, full findings array, and by-file view
+  - Example input/output demonstrating deduplication and consolidation
+- **Files:** .claude/agents/code-review/synthesizer.md (created)
