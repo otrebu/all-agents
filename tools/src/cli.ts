@@ -17,6 +17,7 @@ import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
 import ralphCommand from "./commands/ralph/index";
+import reviewCommand from "./commands/review/index";
 import setupCommand from "./commands/setup/index";
 import createStoryCommand from "./commands/story";
 import runSyncContextCli from "./commands/sync-context";
@@ -198,6 +199,9 @@ program.addCommand(storyCommand);
 
 // Ralph - autonomous development framework
 program.addCommand(ralphCommand);
+
+// Review - parallel multi-agent code review
+program.addCommand(reviewCommand);
 
 // Shell completion
 program.addCommand(completionCommand);
