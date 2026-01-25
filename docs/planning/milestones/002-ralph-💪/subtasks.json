@@ -254,7 +254,10 @@
       "storyRef": "STORY-001",
       "title": "Create parallel-code-review skill",
       "description": "Create .claude/skills/parallel-code-review/SKILL.md that orchestrates parallel reviewer agents. Skill spawns reviewers via Task tool, collects findings, invokes synthesizer, and presents findings one at a time with triage options.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T23:05:38Z",
+      "commitHash": "fc25f8d14b0708e6074766aa76ce200b872f55ab",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/skills/parallel-code-review/SKILL.md exists",
         "Skill has proper frontmatter (name, description)",

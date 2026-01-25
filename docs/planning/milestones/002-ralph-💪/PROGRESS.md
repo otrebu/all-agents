@@ -127,3 +127,17 @@
   - Documented review diary logging format (logs/reviews.jsonl)
   - Added "When to Use Each Mode" guidance table
 - **Files:** context/workflows/code-review.md (modified)
+
+### SUB-023
+- **Problem:** Need a skill to orchestrate parallel code review using multiple specialized reviewer agents with interactive triage
+- **Changes:** Created .claude/skills/parallel-code-review/SKILL.md with:
+  - Proper frontmatter (name, description, allowed-tools: Task, Bash, Read, Glob, AskUserQuestion)
+  - Four-phase workflow: Gather Diff, Invoke Reviewers, Synthesize, Triage
+  - Parallel invocation of 5 reviewer agents (security, data-integrity, error-handling, test-coverage, maintainability)
+  - --quick mode for only security and data-integrity reviewers
+  - Synthesizer invocation to aggregate and dedupe findings
+  - Chunked presentation of findings (3-5 at a time)
+  - Triage handling for FIX/SKIP/FALSE POSITIVE decisions
+  - Review diary logging to logs/reviews.jsonl
+  - Error handling for no diff, failed reviewers, and no findings
+- **Files:** .claude/skills/parallel-code-review/SKILL.md (created)
