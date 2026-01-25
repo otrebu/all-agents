@@ -53,3 +53,14 @@
   - Example findings for SQL injection, XSS, and hardcoded secrets
   - JSON output format matching Finding schema from types.md
 - **Files:** .claude/agents/code-review/security-reviewer.md (created)
+
+### SUB-017
+- **Problem:** Need a data integrity focused code reviewer agent that analyzes code for null checks, boundary conditions, race conditions, and data validation issues
+- **Changes:** Created .claude/agents/code-review/data-integrity-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Data integrity focus areas: null/undefined references, array boundaries, race conditions, data validation, object/map access, string/buffer handling
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to data integrity issues
+  - Example findings for null dereference, array bounds, race condition, and missing validation
+  - JSON output format matching Finding schema from types.md
+- **Files:** .claude/agents/code-review/data-integrity-reviewer.md (created)
