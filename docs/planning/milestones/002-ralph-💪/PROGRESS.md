@@ -30,3 +30,14 @@
   - Shows invocation examples for default, --quick, and --skeptical modes
   - Renumbered subsequent steps (5-11)
 - **Files:** context/workflows/complete-feature.md (modified)
+
+### SUB-015
+- **Problem:** Need a shared data contract (Finding interface) for all code review agents to output findings in a consistent format
+- **Changes:** Created .claude/agents/code-review/ directory and types.md with:
+  - Finding interface schema: id, reviewer, severity, file, line?, description, suggestedFix?, confidence
+  - Severity enum: critical, high, medium, low with usage guidelines
+  - Confidence scale: 0-1 with ranges explained (0.9-1.0 certain, 0.7-0.9 high, etc.)
+  - Example Finding JSON for reference
+  - Output format specification for reviewer agents
+  - Usage notes for synthesizer agent
+- **Files:** .claude/agents/code-review/types.md (created)
