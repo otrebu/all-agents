@@ -100,7 +100,10 @@
       "storyRef": "STORY-001",
       "title": "Create security-reviewer agent",
       "description": "Create .claude/agents/code-review/security-reviewer.md agent focused on OWASP Top 10, injection vulnerabilities, authentication issues, secrets exposure, and XSS. Agent reads git diff, analyzes for security issues, outputs findings in JSON format per types.md schema.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T22:45:00Z",
+      "commitHash": "7a3361dc9a1c9535d6e97cd1d2c8d5350cca4432",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/security-reviewer.md exists",
         "Agent has proper frontmatter (name, description, model)",

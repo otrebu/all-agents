@@ -41,3 +41,15 @@
   - Output format specification for reviewer agents
   - Usage notes for synthesizer agent
 - **Files:** .claude/agents/code-review/types.md (created)
+
+### SUB-016
+- **Problem:** Need a security-focused code reviewer agent that analyzes code for vulnerabilities and outputs findings in the standard Finding JSON format
+- **Changes:** Created .claude/agents/code-review/security-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Security focus areas: injection, XSS, authentication, secrets, authorization, crypto, data handling
+  - OWASP Top 10 coverage
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to security issues
+  - Example findings for SQL injection, XSS, and hardcoded secrets
+  - JSON output format matching Finding schema from types.md
+- **Files:** .claude/agents/code-review/security-reviewer.md (created)
