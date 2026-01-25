@@ -11,7 +11,10 @@
       "storyRef": "STORY-001",
       "title": "Create interrogate workflow doc",
       "description": "Create context/workflows/interrogate.md defining the interrogation workflow. Document the 3 core questions (hardest decision, rejected alternatives, lowest confidence), --quick mode (minimal output), --skeptical mode (extra validation), and output format (structured table with confidence levels, rejected alternatives, assumptions).",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-25T12:00:00Z",
+      "commitHash": "3d744ddc8b4143968c18c6c7b9fb5c9430a4fa79",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "context/workflows/interrogate.md exists",
         "Document defines 3 core questions with explanations",
