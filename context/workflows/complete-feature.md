@@ -27,7 +27,33 @@ Run `git status`:
 FEATURE_BRANCH=$(git branch --show-current)
 ```
 
-### 4. Squash Commits
+### 4. Interrogation Checkpoint (Optional)
+
+Before squashing and merging, consider running the interrogation workflow to surface assumptions and confidence levels:
+
+```bash
+/dev:interrogate changes
+```
+
+**When this is most valuable:**
+- Substantial changes (multiple files, new features, complex logic)
+- AI-generated or pair-programmed code
+- Changes you want documented understanding of before merge
+- When you're uncertain about trade-offs or alternatives
+
+**Quick option for small changes:**
+```bash
+/dev:interrogate changes --quick
+```
+
+**Extra validation for AI code:**
+```bash
+/dev:interrogate changes --skeptical
+```
+
+This step is optional but recommended for non-trivial changes. It helps surface the "why" behind decisions before the commit history is squashed.
+
+### 5. Squash Commits
 
 Review commits to summarize, then squash:
 
@@ -42,7 +68,7 @@ git commit -m "feat(scope): summary" -m "- change 1
 - Title: conventional commit summarizing the feature
 - Body: bullet list of key changes from squashed commits
 
-### 5. Switch to Main
+### 6. Switch to Main
 
 Determine main branch (`git branch --list main master`), then:
 
@@ -50,7 +76,7 @@ Determine main branch (`git branch --list main master`), then:
 git checkout main  # or master
 ```
 
-### 6. Pull Latest
+### 7. Pull Latest
 
 ```bash
 git pull origin main  # or master
@@ -58,7 +84,7 @@ git pull origin main  # or master
 
 > **Important**: Semantic-release creates version commits (`chore(release): x.y.z`) after every push to main. Always pull before pushing to avoid diverged history.
 
-### 7. Fast-Forward Merge
+### 8. Fast-Forward Merge
 
 ```bash
 git merge --ff-only $FEATURE_BRANCH
@@ -66,13 +92,13 @@ git merge --ff-only $FEATURE_BRANCH
 
 If FF fails (main moved ahead), rebase feature branch on main first.
 
-### 8. Push
+### 9. Push
 
 ```bash
 git push origin main  # or master
 ```
 
-### 9. Delete Feature Branch?
+### 10. Delete Feature Branch?
 
 Ask user:
 
@@ -88,7 +114,7 @@ git branch -d $FEATURE_BRANCH
 git push origin --delete $FEATURE_BRANCH
 ```
 
-### 10. Confirm Completion
+### 11. Confirm Completion
 
 Output:
 
