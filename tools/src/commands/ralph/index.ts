@@ -18,6 +18,10 @@ import {
   invokeClaudeChat as invokeClaudeChatFromModule,
   invokeClaudeHeadless as invokeClaudeHeadlessFromModule,
 } from "./claude";
+import {
+  getPlanningLogPath as getMilestonePlanningLogPath,
+  ORPHAN_MILESTONE_ROOT,
+} from "./config";
 import { runStatus } from "./status";
 
 /**
@@ -197,12 +201,26 @@ interface HeadlessWithLoggingResult {
 }
 
 /**
- * Get planning log file path in target project (not all-agents)
- * Falls back to contextRoot if not in a git repo
+ * Get planning log file path for a milestone
+ *
+ * When a milestone path is provided, logs are written to:
+ *   {milestonePath}/logs/{YYYY-MM-DD}.jsonl
+ *
+ * When no milestone is specified, falls back to orphan location:
+ *   docs/planning/milestones/_orphan/logs/{YYYY-MM-DD}.jsonl
+ *
+ * @param milestonePath - Optional path to the milestone root directory
+ * @returns Full path to the daily planning JSONL log file
  */
-function getPlanningLogPath(contextRoot: string): string {
-  const projectRoot = findProjectRoot() ?? contextRoot;
-  return path.join(projectRoot, "logs/planning.jsonl");
+function getPlanningLogPath(milestonePath?: string): string {
+  if (milestonePath !== undefined && milestonePath !== "") {
+    return getMilestonePlanningLogPath(milestonePath);
+  }
+  // Fall back to orphan location when no milestone is specified
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  return getMilestonePlanningLogPath(
+    path.join(projectRoot, ORPHAN_MILESTONE_ROOT),
+  );
 }
 
 /**
@@ -272,6 +290,7 @@ function invokeClaudeHeadless(
     sessionId: result.sessionId,
     sessionName,
     timestamp: new Date().toISOString(),
+    type: "planning" as const,
   };
   appendFileSync(logFile, `${JSON.stringify(logEntry)}\n`);
 
@@ -512,7 +531,7 @@ planCommand.addCommand(
 
       // Determine execution mode
       if (options.headless === true) {
-        const logFile = getPlanningLogPath(contextRoot);
+        const logFile = getPlanningLogPath(milestonePath);
         invokeClaudeHeadless({
           extraContext,
           logFile,
@@ -592,7 +611,7 @@ planCommand.addCommand(
         const extraContext = `Generating tasks for all stories in milestone: ${milestonePath}`;
 
         if (options.headless === true) {
-          const logFile = getPlanningLogPath(contextRoot);
+          const logFile = getPlanningLogPath(milestonePath);
           invokeClaudeHeadless({
             extraContext,
             logFile,
@@ -617,7 +636,8 @@ planCommand.addCommand(
       const extraContext = `Planning tasks for story: ${storyPath}`;
 
       if (options.headless === true) {
-        const logFile = getPlanningLogPath(contextRoot);
+        // Story mode doesn't have direct milestone, use orphan fallback
+        const logFile = getPlanningLogPath();
         invokeClaudeHeadless({
           extraContext,
           logFile,
@@ -678,6 +698,12 @@ planCommand.addCommand(
 
       const contextRoot = getContextRoot();
 
+      // Resolve milestone path if provided (used for log file location)
+      const resolvedMilestonePath =
+        options.milestone === undefined
+          ? undefined
+          : resolveMilestonePath(options.milestone);
+
       // Determine which prompt to use
       // Legacy --task mode uses subtasks-auto.md, new modes use subtasks-from-source.md
       const promptPath = hasTask
@@ -690,7 +716,10 @@ planCommand.addCommand(
       // Helper to invoke Claude based on mode
       function invoke(extraContext: string): void {
         if (options.headless === true) {
-          const logFile = getPlanningLogPath(contextRoot);
+          // Use milestone path if resolved, otherwise fall back to orphan
+          const logFile = getPlanningLogPath(
+            resolvedMilestonePath ?? undefined,
+          );
           invokeClaudeHeadless({
             extraContext,
             logFile,
