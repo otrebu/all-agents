@@ -82,6 +82,10 @@ interface IterationDisplayData {
   iteration: number;
   /** Key findings bullets */
   keyFindings?: Array<string>;
+  /** Number of lines added */
+  linesAdded?: number;
+  /** Number of lines removed */
+  linesRemoved?: number;
   /** Maximum retry attempts */
   maxAttempts: number;
   /** Remaining subtasks count */
@@ -358,7 +362,7 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
 
   const lines: Array<string> = [];
 
-  // Stats line 1: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12
+  // Stats line 1: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12    Lines  +42/-3
   const completedLabel = chalk.dim("Completed");
   const completedValue =
     stats.completed > 0
@@ -373,8 +377,10 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
   const durationValue = chalk.cyan(formatDuration(stats.durationMs));
   const filesLabel = chalk.dim("Files");
   const filesValue = chalk.blue(String(stats.filesChanged));
+  const linesLabel = chalk.dim("Lines");
+  const linesValue = `${chalk.green(`+${stats.linesAdded}`)}/${chalk.red(`-${stats.linesRemoved}`)}`;
 
-  const statsLine = `${completedLabel} ${completedValue}   ${failedLabel} ${failedValue}   ${costLabel} ${costValue}   ${durationLabel} ${durationValue}   ${filesLabel} ${filesValue}`;
+  const statsLine = `${completedLabel} ${completedValue}   ${failedLabel} ${failedValue}   ${costLabel} ${costValue}   ${durationLabel} ${durationValue}   ${filesLabel} ${filesValue}   ${linesLabel} ${linesValue}`;
   lines.push(statsLine);
 
   // Stats line 2: Tokens - In: 35K  Out: 7K  Cache: 28K
@@ -512,6 +518,8 @@ function renderIterationEnd(data: IterationDisplayData): string {
     filesChanged = 0,
     iteration,
     keyFindings = [],
+    linesAdded = 0,
+    linesRemoved = 0,
     maxAttempts,
     remaining,
     sessionPath,
@@ -547,8 +555,9 @@ function renderIterationEnd(data: IterationDisplayData): string {
   const costText = chalk.magenta(`$${costUsd.toFixed(2)}`);
   const callsText = chalk.blue(`${toolCalls} calls`);
   const filesText = chalk.blue(`${filesChanged} files`);
+  const linesText = `${chalk.green(`+${linesAdded}`)}/${chalk.red(`-${linesRemoved}`)}`;
 
-  const metricsLine = `${statusIcon} ${statusColored}    ${durationText}    ${costText}    ${callsText}    ${filesText}`;
+  const metricsLine = `${statusIcon} ${statusColored}    ${durationText}    ${costText}    ${callsText}    ${filesText}    ${linesText}`;
 
   // Build content lines
   const lines = [

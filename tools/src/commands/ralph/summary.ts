@@ -49,6 +49,10 @@ interface BuildStats {
   filesChanged: number;
   /** Total input tokens (non-cached) */
   inputTokens: number;
+  /** Total lines added across all iterations */
+  linesAdded: number;
+  /** Total lines removed across all iterations */
+  linesRemoved: number;
   /** Total output tokens generated */
   outputTokens: number;
 }
@@ -138,6 +142,8 @@ function generateBuildSummary(
   let totalOutputTokens = 0;
   let totalCacheReadTokens = 0;
   let totalCacheCreationTokens = 0;
+  let totalLinesAdded = 0;
+  let totalLinesRemoved = 0;
 
   // Count all entries (not just final) for aggregate stats
   for (const entry of diaryEntries) {
@@ -155,6 +161,9 @@ function generateBuildSummary(
         totalCacheReadTokens += entry.tokenUsage.cacheReadTokens;
         totalCacheCreationTokens += entry.tokenUsage.cacheCreationTokens;
       }
+      // Aggregate line counts
+      totalLinesAdded += entry.linesAdded ?? 0;
+      totalLinesRemoved += entry.linesRemoved ?? 0;
     }
   }
 
@@ -176,6 +185,8 @@ function generateBuildSummary(
       failed: failedCount,
       filesChanged: totalFilesChanged,
       inputTokens: totalInputTokens,
+      linesAdded: totalLinesAdded,
+      linesRemoved: totalLinesRemoved,
       outputTokens: totalOutputTokens,
     },
     subtasks,
