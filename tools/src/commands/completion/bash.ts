@@ -46,6 +46,10 @@ _aaa_completions() {
             COMPREPLY=($(compgen -f -X '!*.json' -- "$cur"))
             return
             ;;
+        --size)
+            COMPREPLY=($(compgen -W "small medium large" -- "$cur"))
+            return
+            ;;
         -o|--output)
             # File path completion
             COMPREPLY=($(compgen -f -- "$cur"))
@@ -83,7 +87,7 @@ _aaa_completions() {
             continue
         fi
         case "$word" in
-            --mode|--processor|--milestone|--story|--task|--subtasks|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
+            --mode|--processor|--milestone|--story|--task|--subtasks|--size|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
                 # Flag that takes a value - skip next word
                 skip_next=true
                 ;;
@@ -159,7 +163,7 @@ _aaa_completions() {
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--task -s --supervised -H --headless" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--review --task --story --milestone --size -s --supervised -H --headless" -- "$cur"))
                                 return
                                 ;;
                         esac

@@ -257,9 +257,12 @@ _aaa_ralph_plan() {
                     ;;
                 subtasks)
                     _arguments \\
-                        '--task[Task file]:task:_files -g "*.md"' \\
-                        '--story[Story path]:story:_files -g "*.md" -/' \\
-                        '--milestone[Milestone path]:milestone:_files -/' \\
+                        '1:source:_files' \\
+                        '--review[Parse logs/reviews.jsonl for findings]' \\
+                        '--task[Task file (legacy)]:task:_files -g "*.md"' \\
+                        '--story[Link subtasks to parent story]:story:' \\
+                        '--milestone[Target milestone]:milestone:_files -/' \\
+                        '--size[Slice thickness]:size:(small medium large)' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;

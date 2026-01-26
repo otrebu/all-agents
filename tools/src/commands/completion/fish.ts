@@ -154,9 +154,15 @@ function __fish_aaa_ralph_plan_subtasks
     set -l cmd (commandline -opc)
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = subtasks
 end
-complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l task -d 'Task file' -ra '(__fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l task -d 'Task file (legacy)' -ra '(__fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l review -d 'Parse logs/reviews.jsonl for findings'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l story -d 'Link subtasks to parent story' -r
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l milestone -d 'Target milestone' -xa '(aaa __complete milestone 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l size -d 'Slice thickness' -xa 'small medium large'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s s -l supervised -d 'Supervised mode (default)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
+# Enable file completion for positional [source] argument
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -F
 
 # ralph milestones options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph milestones' -l json -d 'Output as JSON'
