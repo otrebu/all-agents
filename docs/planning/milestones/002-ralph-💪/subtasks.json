@@ -415,7 +415,10 @@
       "storyRef": null,
       "title": "Add type discriminator to IterationDiaryEntry",
       "description": "Add optional type: 'iteration' | 'planning' field to IterationDiaryEntry in types.ts. This discriminator allows both iteration and planning entries to coexist in the same daily JSONL file while being distinguishable.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T16:15:00Z",
+      "commitHash": "adfbac0ff4f5ad7c159f8e08aaf39b3edeade6b9",
+      "sessionId": "current-session",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,

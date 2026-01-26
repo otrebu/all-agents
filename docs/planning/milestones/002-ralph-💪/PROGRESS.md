@@ -444,3 +444,11 @@
   - Added ORPHAN_MILESTONE_ROOT constant for fallback path
   - Added comprehensive unit tests for both functions (14 new tests)
 - **Files:** tools/src/commands/ralph/config.ts (modified), tools/tests/lib/config.test.ts (modified)
+
+### SUB-037
+- **Problem:** Need a type discriminator field in IterationDiaryEntry to distinguish iteration entries from planning entries in the same daily log file
+- **Changes:** Added optional type field to IterationDiaryEntry in types.ts:
+  - Field: `type?: "iteration" | "planning"`
+  - JSDoc comment explaining the discriminator's purpose for daily log files
+  - Enables iteration and planning entries to coexist in milestone-scoped daily JSONL files
+- **Files:** tools/src/commands/ralph/types.ts (modified)
