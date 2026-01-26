@@ -734,3 +734,13 @@
   - Removed Phase 6 Validation Checklist inline content (now in common)
   - Preserved unique sections: Input Sources, Phase 1 (Parse), Phase 1b (Doc Lookup), Phase 2 (Codebase Analysis), Phase 6b (Doc Linking), Phase 7 (Draft), Phase 8 (Review), Parsing Patterns, CLI Invocation
 - **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)
+
+### SUB-066
+- **Problem:** No guidance for build agents on when to update documentation after code changes
+- **Changes:** Added Phase 5c: Documentation Sync to ralph-iteration.md:
+  - New phase positioned after Phase 5b (AC Verification), before Phase 6 (Commit)
+  - Reference to @context/blocks/docs/atomic-documentation.md for detailed guidance
+  - Quick Decision table showing when to update README.md, docs/, or context/
+  - Process documentation: search for existing docs, update if found, skip conditions
+  - Documentation AC section for when doc updates are required
+- **Files:** context/workflows/ralph/building/ralph-iteration.md (modified)
