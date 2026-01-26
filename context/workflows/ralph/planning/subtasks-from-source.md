@@ -355,7 +355,98 @@ Phase 6b actions:
   2. "chalk styling" → SKIP (well-known library, npm docs sufficient)
 ```
 
-### Phase 7: Output
+### Phase 7: Output (Draft)
+
+**Output location:** `tmp/subtasks-draft.json`
+
+All generated subtasks are written to a draft file first. This enables Phase 8 review before committing to the final location.
+
+**Draft format:**
+```json
+{
+  "$schema": "../docs/planning/schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "<milestone-name>",
+    "isDraft": true
+  },
+  "subtasks": [...]
+}
+```
+
+**Behavior:**
+- Always write to `tmp/subtasks-draft.json` (overwrite if exists)
+- Include all generated subtasks from Phases 3-6
+- Draft is input for Phase 8 review
+
+### Phase 8: Review
+
+**Purpose:** Review all generated subtasks for sizing issues before committing to final location.
+
+This phase always runs. There is no `--no-review` flag.
+
+#### Step 1: Invoke Haiku Subtask Reviewer
+
+Spawn the subtask-reviewer agent to analyze all pending subtasks:
+
+```
+Invoke @.claude/agents/subtask-reviewer.md with:
+  - Input: contents of tmp/subtasks-draft.json
+  - Output: structured review findings
+```
+
+The reviewer applies sizing heuristics:
+- `changeCount < 2` → undersized (merge candidate)
+- `changeCount > 8` → oversized (split candidate)
+- `changeCount 2-8` → approved
+
+#### Step 2: Log Review Findings
+
+Write review findings to milestone daily log:
+
+```json
+{
+  "type": "subtask-review",
+  "timestamp": "<ISO 8601>",
+  "subtasksPath": "tmp/subtasks-draft.json",
+  "summary": {
+    "total": 15,
+    "pending": 8,
+    "oversized": 1,
+    "undersized": 3,
+    "approved": 4
+  },
+  "oversized": [...],
+  "undersized": [...],
+  "mergeCandidates": [...],
+  "splitCandidates": [...],
+  "approved": [...]
+}
+```
+
+Log location: `docs/planning/milestones/<milestone>/logs/<YYYY-MM-DD>.jsonl`
+
+#### Step 3: Opus Triage
+
+Opus reviews the Haiku findings and applies suggestions:
+
+| Finding Type | Opus Action |
+|--------------|-------------|
+| `mergeCandidates` | Combine subtasks into single entry |
+| `splitCandidates` | Create multiple subtasks from one |
+| `undersized` (no merge) | Keep as-is or merge with adjacent |
+| `oversized` (no split suggestion) | Add spike subtask or split by files |
+| `approved` | Pass through unchanged |
+
+**Triage guidelines:**
+- Haiku suggestions are advisory, not mandatory
+- Opus uses judgment to accept, modify, or reject suggestions
+- Priority: avoid context window overflow (split) > reduce overhead (merge)
+- When uncertain, err on keeping subtasks separate
+
+#### Step 4: Write Final Output
+
+After triage, write final subtasks to the destination:
 
 **Output location:**
 - If `--milestone` provided: `docs/planning/milestones/<milestone>/subtasks.json`
@@ -364,6 +455,7 @@ Phase 6b actions:
 **Behavior:**
 - If file exists: Append new subtasks to existing array
 - If file doesn't exist: Create new file with proper structure
+- Remove `isDraft` from metadata
 
 **Schema reference:**
 ```json
@@ -375,6 +467,13 @@ Phase 6b actions:
   },
   "subtasks": [...]
 }
+```
+
+#### Step 5: Cleanup
+
+Delete the draft file after successful write:
+```bash
+rm tmp/subtasks-draft.json
 ```
 
 ## Output Summary
