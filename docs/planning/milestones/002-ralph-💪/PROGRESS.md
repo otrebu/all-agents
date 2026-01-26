@@ -426,3 +426,12 @@
   - Refactored handleMaxIterationsExceeded() into helper function to reduce runBuild complexity
   - Updated runBuild() to use new supervised result tracking
 - **Files:** tools/src/commands/ralph/build.ts (modified)
+
+### SUB-035
+- **Problem:** Need a foundational helper function to generate milestone-scoped log paths for the daily log file restructuring
+- **Changes:** Added getMilestoneLogPath() function to config.ts:
+  - Function takes milestoneRoot: string parameter
+  - Returns path: {milestoneRoot}/logs/{YYYY-MM-DD}.jsonl
+  - Uses UTC date via new Date().toISOString().split('T')[0] for timezone consistency
+  - Added unit tests in tools/tests/lib/config.test.ts covering all acceptance criteria
+- **Files:** tools/src/commands/ralph/config.ts (modified), tools/tests/lib/config.test.ts (created)

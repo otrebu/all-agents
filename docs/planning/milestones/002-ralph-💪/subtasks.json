@@ -348,6 +348,221 @@
         "tools/src/commands/ralph/session.ts",
         "tools/src/commands/ralph/types.ts"
       ]
+    },
+    {
+      "id": "SUB-035",
+      "taskRef": "TASK-LOGS-001",
+      "storyRef": null,
+      "title": "Add getMilestoneLogPath() core helper to config.ts",
+      "description": "Add the foundational getMilestoneLogPath(milestoneRoot: string): string helper function to config.ts. This function returns the path to the daily log file: {milestoneRoot}/logs/{YYYY-MM-DD}.jsonl using UTC date. This is the core helper that getIterationLogPath and getPlanningLogPath will call.",
+      "done": true,
+      "completedAt": "2026-01-26T14:45:00Z",
+      "commitHash": "ac0e1bb1fd591fa0558d03d84c646d1afb5e21fb",
+      "sessionId": "current-session",
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "Clear function signature specified in plan. Returns simple path. Date formatting is straightforward."
+      },
+      "acceptanceCriteria": [
+        "getMilestoneLogPath(milestoneRoot: string): string function exists in config.ts",
+        "Returns path: {milestoneRoot}/logs/{YYYY-MM-DD}.jsonl",
+        "Uses UTC date (new Date().toISOString().split('T')[0])",
+        "Function is exported",
+        "Verify: grep -q 'getMilestoneLogPath' tools/src/commands/ralph/config.ts",
+        "TypeScript compiles: bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-036",
+      "taskRef": "TASK-LOGS-001",
+      "storyRef": null,
+      "title": "Add getIterationLogPath() and getPlanningLogPath() helpers",
+      "description": "Add two helper functions to config.ts that use getMilestoneLogPath(): (1) getIterationLogPath(subtasksPath: string) derives milestone root from subtasks.json location and calls getMilestoneLogPath, handles _orphan/ fallback for empty milestone; (2) getPlanningLogPath(milestonePath: string) uses milestone path directly. Both call the core getMilestoneLogPath helper.",
+      "done": false,
+      "blockedBy": ["SUB-035"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "Clear patterns. getIterationLogPath uses dirname(). getPlanningLogPath is direct pass-through. _orphan fallback is simple conditional."
+      },
+      "acceptanceCriteria": [
+        "getIterationLogPath(subtasksPath: string): string exists and exported",
+        "getIterationLogPath derives milestone root from subtasks.json parent directory",
+        "getIterationLogPath handles empty/undefined milestone by routing to _orphan/logs/",
+        "getPlanningLogPath(milestonePath: string): string exists and exported",
+        "getPlanningLogPath calls getMilestoneLogPath with milestonePath",
+        "Verify: grep -q 'getIterationLogPath' tools/src/commands/ralph/config.ts",
+        "Verify: grep -q 'getPlanningLogPath' tools/src/commands/ralph/config.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-037",
+      "taskRef": "TASK-LOGS-001",
+      "storyRef": null,
+      "title": "Add type discriminator to IterationDiaryEntry",
+      "description": "Add optional type: 'iteration' | 'planning' field to IterationDiaryEntry in types.ts. This discriminator allows both iteration and planning entries to coexist in the same daily JSONL file while being distinguishable.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 1,
+        "reasoning": "Single field addition to existing interface. Pattern already exists with mode field."
+      },
+      "acceptanceCriteria": [
+        "IterationDiaryEntry has optional type?: 'iteration' | 'planning' field",
+        "Field is documented with JSDoc comment explaining purpose",
+        "Verify: grep -q \"type?:.*'iteration'\" tools/src/commands/ralph/types.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-038",
+      "taskRef": "TASK-LOGS-001",
+      "storyRef": null,
+      "title": "Update index.ts to use milestone-scoped planning logs",
+      "description": "Update getPlanningLogPath() in index.ts (currently at line 203-206) to use the new config.ts helper. Update invokeClaudeHeadless() calls to add 'type': 'planning' to diary entries. The planning log should now write to docs/planning/milestones/{milestone}/logs/{date}.jsonl instead of global logs/planning.jsonl.",
+      "done": false,
+      "blockedBy": ["SUB-036", "SUB-037"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "Clear refactor: replace implementation with import from config.ts. Add type field to existing entry writes."
+      },
+      "acceptanceCriteria": [
+        "index.ts imports getPlanningLogPath from ./config (or uses new config helper)",
+        "Local getPlanningLogPath function updated to use milestone-scoped path",
+        "Planning log entries include 'type': 'planning' field",
+        "Planning logs written to docs/planning/milestones/{milestone}/logs/{date}.jsonl",
+        "Verify: grep -q \"type.*planning\" tools/src/commands/ralph/index.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-039",
+      "taskRef": "TASK-LOGS-001",
+      "storyRef": null,
+      "title": "Update post-iteration.ts for milestone-scoped iteration logs",
+      "description": "Update runPostIterationHook() in post-iteration.ts (line 383) to use getIterationLogPath() from config.ts instead of hardcoded logs/iterations.jsonl. Update writeDiaryEntry calls to add 'type': 'iteration' to entries. Consider atomic write pattern (temp file → append) for concurrent writes.",
+      "done": false,
+      "blockedBy": ["SUB-036", "SUB-037"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "Import new helper, replace hardcoded path, add type field. Atomic write is optional enhancement."
+      },
+      "acceptanceCriteria": [
+        "post-iteration.ts imports getIterationLogPath from ./config",
+        "Diary path uses getIterationLogPath(subtasksPath) instead of hardcoded path",
+        "Iteration diary entries include 'type': 'iteration' field",
+        "mkdirSync({ recursive: true }) handles new milestone/logs/ directories",
+        "Verify: grep -q 'getIterationLogPath' tools/src/commands/ralph/post-iteration.ts",
+        "Verify: grep -q \"type.*iteration\" tools/src/commands/ralph/post-iteration.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-040",
+      "taskRef": "TASK-LOGS-001",
+      "storyRef": null,
+      "title": "Update status.ts to glob multiple daily log files",
+      "description": "Update readIterationDiary() in status.ts (lines 112-133) to glob multiple JSONL files from the milestone logs directory. Use pattern: {milestoneRoot}/logs/*.jsonl to find all daily files. Aggregate entries from all files for stats calculation. Update runStatus() to derive log path from subtasks file milestone.",
+      "done": false,
+      "blockedBy": ["SUB-039"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 1,
+        "elementCount": 4,
+        "reasoning": "Glob pattern is new but straightforward. Multiple file aggregation requires iteration. Path derivation from subtasks is clear."
+      },
+      "acceptanceCriteria": [
+        "readIterationDiary accepts directory path instead of single file path",
+        "Uses glob pattern {path}/logs/*.jsonl to find all daily log files",
+        "Aggregates entries from all matching files",
+        "Sorts entries by timestamp for consistent stats",
+        "runStatus derives milestone log directory from subtasks file metadata",
+        "Verify: grep -q 'glob\\|readdirSync' tools/src/commands/ralph/status.ts",
+        "aaa ralph status shows stats from milestone-scoped logs",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/status.ts",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-041",
+      "taskRef": "TASK-LOGS-001",
+      "storyRef": null,
+      "title": "Update ralph.test.ts for milestone-scoped log paths",
+      "description": "Update ralph.test.ts hardcoded log paths at lines 1860, 1899, 1958, 2045 to use milestone-scoped paths. Update test fixtures to expect logs at docs/planning/milestones/{milestone}/logs/{date}.jsonl instead of global logs/iterations.jsonl.",
+      "done": false,
+      "blockedBy": ["SUB-039"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 4,
+        "reasoning": "Direct path string replacements at known line numbers. Test structure remains same."
+      },
+      "acceptanceCriteria": [
+        "Test at line 1860 uses milestone-scoped log path",
+        "Test at line 1899 uses milestone-scoped log path in DIARY_PATH",
+        "Tests at lines 1957-1958 verify milestone-scoped logs",
+        "Test at line 2045 uses milestone-scoped log path",
+        "All ralph tests pass: bun test tools/tests/e2e/ralph.test.ts",
+        "Verify: grep -q 'milestones.*logs' tools/tests/e2e/ralph.test.ts"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/ralph.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-042",
+      "taskRef": "TASK-LOGS-001",
+      "storyRef": null,
+      "title": "Cleanup: gitignore and delete remnant files",
+      "description": "Final cleanup: (1) Add .claude/cache/ to .gitignore, (2) Delete old global logs/ folder contents if empty after migration, (3) Delete any v2 remnant files. This is the last subtask to run after all migrations are verified working.",
+      "done": false,
+      "blockedBy": ["SUB-040", "SUB-041"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "Simple file operations. Clear what to add/delete. No code changes."
+      },
+      "acceptanceCriteria": [
+        ".gitignore contains .claude/cache/ entry",
+        "Old logs/iterations.jsonl and logs/planning.jsonl removed (if migrated)",
+        "No v2 remnant files in project root",
+        "git status shows clean working tree (after commit)",
+        "Verify: grep -q '.claude/cache' .gitignore"
+      ],
+      "filesToRead": [
+        ".gitignore"
+      ]
     }
   ],
   "skippedFindings": [
