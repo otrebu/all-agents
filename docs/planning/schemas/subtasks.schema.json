@@ -25,8 +25,8 @@
         },
         "storyRef": {
           "type": "string",
-          "pattern": "^STORY-[0-9]{3,}$",
-          "description": "Reference to parent story. Required when scope is 'story'."
+          "pattern": "^[0-9]{3,}-[a-z0-9-]+$",
+          "description": "Reference to parent story using filename format (e.g., '001-parallel-code-review'). Required when scope is 'story'."
         }
       },
       "if": {
@@ -55,14 +55,14 @@
           "description": "Unique subtask identifier (e.g., 'SUB-001')"
         },
         "taskRef": {
-          "type": "string",
-          "pattern": "^TASK-[0-9]{3,}$",
-          "description": "Reference to parent task (e.g., 'TASK-001'). Subtasks always have a task parent."
+          "type": ["string", "null"],
+          "pattern": "^[0-9]{3,}-[a-z0-9-]+$",
+          "description": "Reference to parent task using filename format (e.g., '015-cli-ergonomics-fixes'). Null for orphan subtasks."
         },
         "storyRef": {
           "type": ["string", "null"],
-          "pattern": "^STORY-[0-9]{3,}$",
-          "description": "Reference to grandparent story if task has one (e.g., 'STORY-001'). Null for orphan tasks."
+          "pattern": "^[0-9]{3,}-[a-z0-9-]+$",
+          "description": "Reference to grandparent story using filename format (e.g., '001-parallel-code-review'). Null for orphan tasks."
         },
         "title": {
           "type": "string",
