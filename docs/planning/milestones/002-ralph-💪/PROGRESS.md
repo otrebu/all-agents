@@ -520,3 +520,12 @@
   - Deleted tasks/ directory with 28 task files (001-028)
   - Preserved test-fixtures/ directory and other milestone artifacts
 - **Files:** docs/planning/milestones/001-ralph/stories/ (deleted), docs/planning/milestones/001-ralph/tasks/ (deleted)
+
+### SUB-045
+- **Problem:** Need to delete milestone 002-ralph story and task files as part of Phase 1b of naming consistency cleanup
+- **Changes:** Deleted story and task directories from milestone 002-ralph-💪:
+  - Deleted stories/ directory with STORY-001-parallel-code-review.md
+  - Deleted tasks/ directory with TASK-014 through TASK-018 (5 files)
+  - Feature is documented in VISION.md Section 3.4 Code Review Mode
+  - Preserved subtasks.json and PROGRESS.md
+- **Files:** docs/planning/milestones/002-ralph-💪/stories/ (deleted), docs/planning/milestones/002-ralph-💪/tasks/ (deleted)

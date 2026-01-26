@@ -647,7 +647,10 @@
       "storyRef": null,
       "title": "Delete milestone 002-ralph story and task files",
       "description": "Phase 1b: Delete story and task files from milestone 002-ralph-💪 that are covered by VISION/ROADMAP. This includes STORY-001-parallel-code-review.md and TASK-014 through TASK-018. The parallel code review feature is documented in VISION 3.4 Code Review Mode.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T16:20:00Z",
+      "commitHash": "9878efa",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-043"],
       "classification": {
         "knowledgeCertainty": "known-known",
