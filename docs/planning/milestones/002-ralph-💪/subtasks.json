@@ -1447,7 +1447,10 @@
       "taskRef": "build-loop-practical-summary",
       "title": "Replace build completion with practical summary",
       "description": "Update the normal completion path in build.ts (when remaining === 0) to use the new practical summary instead of the old renderBuildSummary. Call generateBuildSummary, writeBuildSummaryFile, and renderBuildPracticalSummary. Set summaryGenerated flag to true.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T13:30:00Z",
+      "commitHash": "d1cdcfc",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-070"],
       "classification": {
         "knowledgeCertainty": "known-known",

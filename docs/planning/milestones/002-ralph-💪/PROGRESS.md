@@ -787,3 +787,14 @@
   - Updated runBuild() to call registerSignalHandlers() and initialize summaryContext
   - Exported readIterationDiary and getMilestoneLogsDirectory from status.ts
 - **Files:** tools/src/commands/ralph/build.ts (modified), tools/src/commands/ralph/status.ts (modified)
+
+### SUB-071
+- **Problem:** Normal build completion path used old renderBuildSummary with simple stats instead of practical summary
+- **Changes:** Replaced build completion path in build.ts (when remaining === 0):
+  - Use generateBuildSummary() instead of manual stat tracking
+  - Call writeBuildSummaryFile() to create BUILD-SUMMARY-{timestamp}.md
+  - Call renderBuildPracticalSummary() for rich terminal output
+  - Set hasSummaryBeenGenerated = true before return to prevent double execution
+  - Removed unused summary tracking variables (totalCompleted, totalFailed, totalCost, totalDuration, allFilesChanged, filesChangedThisIteration)
+  - Removed unused renderBuildSummary import
+- **Files:** tools/src/commands/ralph/build.ts (modified)
