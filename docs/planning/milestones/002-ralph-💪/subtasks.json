@@ -479,7 +479,10 @@
       "storyRef": "STORY-001",
       "title": "Create accessibility-reviewer agent",
       "description": "Create .claude/agents/code-review/accessibility-reviewer.md agent focused on WCAG compliance for frontend code. Agent should skip non-frontend files. Identifies missing ARIA, color contrast, keyboard navigation issues.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T00:15:00Z",
+      "commitHash": "310dc003f4bda6df428af66bc21b597e53d2cefe",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/accessibility-reviewer.md exists",
         "Agent focuses on WCAG, ARIA, color contrast, keyboard nav",

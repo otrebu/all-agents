@@ -246,3 +246,18 @@
   - JSON output format matching Finding schema from types.md
   - Suggested fixes with O-notation improvements where applicable
 - **Files:** .claude/agents/code-review/performance-reviewer.md (created)
+
+## 2026-01-26
+
+### SUB-033
+- **Problem:** Need an accessibility-focused code reviewer agent that identifies WCAG compliance issues in frontend code
+- **Changes:** Created .claude/agents/code-review/accessibility-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Accessibility focus areas: ARIA and semantic HTML, keyboard navigation, color and visual, screen reader compatibility, form accessibility, media and time-based content
+  - File scope filtering to only review frontend files (tsx, jsx, vue, svelte, html, css, scss)
+  - Skip logic for non-frontend files (tests, server-side, config, build scripts)
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to accessibility issues
+  - Example findings for missing alt text, click handler without keyboard support, missing form label, missing focus indicator, and non-semantic element
+  - JSON output format matching Finding schema from types.md
+- **Files:** .claude/agents/code-review/accessibility-reviewer.md (created)
