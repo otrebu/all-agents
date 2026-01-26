@@ -675,7 +675,10 @@
       "storyRef": null,
       "title": "Delete global orphan stories and tasks",
       "description": "Phase 1c: Delete orphaned files in global docs/planning/stories/ and docs/planning/tasks/. This includes 001-cost-dashboard-overview.md (empty template) and tasks 011-013 (maintenance tasks not tracked in VISION).",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T16:22:00Z",
+      "commitHash": "b44f573",
+      "sessionId": "current-session",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,

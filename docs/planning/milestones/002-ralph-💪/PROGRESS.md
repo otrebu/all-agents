@@ -529,3 +529,14 @@
   - Feature is documented in VISION.md Section 3.4 Code Review Mode
   - Preserved subtasks.json and PROGRESS.md
 - **Files:** docs/planning/milestones/002-ralph-💪/stories/ (deleted), docs/planning/milestones/002-ralph-💪/tasks/ (deleted)
+
+### SUB-046
+- **Problem:** Need to delete global orphan stories and tasks as part of Phase 1c of naming consistency cleanup
+- **Changes:** Deleted orphaned planning files from global docs/planning/ directories:
+  - Deleted docs/planning/stories/001-cost-dashboard-overview.md (empty template)
+  - Deleted docs/planning/tasks/011-rename-self-improvement-modes.md
+  - Deleted docs/planning/tasks/012-cli-ergonomics-fixes.md
+  - Deleted docs/planning/tasks/013-prompt-quality-improvements.md
+  - Added .gitkeep to tasks/ to preserve directory structure
+  - Preserved existing .gitkeep in stories/
+- **Files:** docs/planning/stories/001-cost-dashboard-overview.md (deleted), docs/planning/tasks/011-013 (deleted), docs/planning/tasks/.gitkeep (created)
