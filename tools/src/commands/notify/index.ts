@@ -12,13 +12,17 @@
  *     └── config test        Send test notification
  */
 
+import * as p from "@clack/prompts";
 import { Command, Option } from "@commander-js/extra-typings";
 import chalk from "chalk";
+import { existsSync } from "node:fs";
+import ora from "ora";
 
 import type { NotifyConfig, Priority } from "./types";
 
 import { sendNotification } from "./client";
 import {
+  DEFAULT_NOTIFY_CONFIG,
   getConfigPath,
   isInQuietHours,
   loadNotifyConfig,
@@ -64,16 +68,8 @@ function formatQuietHours(config: NotifyConfig): string {
  */
 function resolveConfig(
   fileConfig: NotifyConfig,
-  cliOptions: {
-    priority?: string;
-    title?: string;
-  },
-): {
-  priority: Priority;
-  server: string;
-  title: string;
-  topic: string;
-} {
+  cliOptions: { priority?: string; title?: string },
+): { priority: Priority; server: string; title: string; topic: string } {
   // Resolve priority with quiet hours fallback
   function resolvePriority(): Priority {
     // CLI flag has highest priority
@@ -162,6 +158,179 @@ notifyCommand
     }
   });
 
+// aaa notify init - interactive setup wizard
+notifyCommand
+  .command("init")
+  .description("Interactive first-time setup")
+  .action(async () => {
+    const configPath = getConfigPath();
+    const hasExistingConfig = existsSync(configPath);
+
+    p.intro(chalk.bold("🔔 ntfy Notification Setup"));
+
+    // Warn if config already exists
+    if (hasExistingConfig) {
+      const shouldContinue = await p.confirm({
+        initialValue: false,
+        message: "Configuration already exists. Overwrite?",
+      });
+
+      if (p.isCancel(shouldContinue) || !shouldContinue) {
+        p.cancel("Setup cancelled");
+        process.exit(0);
+      }
+    }
+
+    // Prompt for topic (required)
+    const topic = await p.text({
+      message: "Topic name (secret, hard to guess)",
+      placeholder: "my-claude-abc123",
+      validate: (value: string): string | undefined => {
+        if (value.trim() === "") return "Topic is required";
+        if (!/^[\w-]+$/.test(value)) {
+          return "Topic can only contain letters, numbers, hyphens, and underscores";
+        }
+        if (value.length > 64) return "Topic must be 64 characters or less";
+        return undefined;
+      },
+    });
+
+    if (p.isCancel(topic)) {
+      p.cancel("Setup cancelled");
+      process.exit(0);
+    }
+
+    // Prompt for server URL
+    const server = await p.text({
+      defaultValue: DEFAULT_NOTIFY_CONFIG.server,
+      message: "Server URL",
+      placeholder: DEFAULT_NOTIFY_CONFIG.server,
+    });
+
+    if (p.isCancel(server)) {
+      p.cancel("Setup cancelled");
+      process.exit(0);
+    }
+
+    // Ask about quiet hours
+    const enableQuietHours = await p.confirm({
+      initialValue: false,
+      message: "Enable quiet hours? (lower priority during night)",
+    });
+
+    if (p.isCancel(enableQuietHours)) {
+      p.cancel("Setup cancelled");
+      process.exit(0);
+    }
+
+    let quietHoursStart = DEFAULT_NOTIFY_CONFIG.quietHours.startHour;
+    let quietHoursEnd = DEFAULT_NOTIFY_CONFIG.quietHours.endHour;
+
+    if (enableQuietHours) {
+      const startHour = await p.text({
+        defaultValue: String(DEFAULT_NOTIFY_CONFIG.quietHours.startHour),
+        message: "Quiet hours start (0-23)",
+        validate: (value: string): string | undefined => {
+          const parsed = Number.parseInt(value, 10);
+          if (Number.isNaN(parsed) || parsed < 0 || parsed > 23) {
+            return "Must be a number between 0 and 23";
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(startHour)) {
+        p.cancel("Setup cancelled");
+        process.exit(0);
+      }
+
+      const endHour = await p.text({
+        defaultValue: String(DEFAULT_NOTIFY_CONFIG.quietHours.endHour),
+        message: "Quiet hours end (0-23)",
+        validate: (value: string): string | undefined => {
+          const parsed = Number.parseInt(value, 10);
+          if (Number.isNaN(parsed) || parsed < 0 || parsed > 23) {
+            return "Must be a number between 0 and 23";
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(endHour)) {
+        p.cancel("Setup cancelled");
+        process.exit(0);
+      }
+
+      quietHoursStart = Number.parseInt(startHour, 10);
+      quietHoursEnd = Number.parseInt(endHour, 10);
+    }
+
+    // Build and save config
+    const config: NotifyConfig = {
+      $schemaVersion: 1,
+      defaultPriority: DEFAULT_NOTIFY_CONFIG.defaultPriority,
+      enabled: true,
+      quietHours: {
+        enabled: enableQuietHours,
+        endHour: quietHoursEnd,
+        startHour: quietHoursStart,
+      },
+      server: server || DEFAULT_NOTIFY_CONFIG.server,
+      title: DEFAULT_NOTIFY_CONFIG.title,
+      topic,
+    };
+
+    saveNotifyConfig(config);
+    p.log.success("Configuration saved");
+
+    // Send test notification
+    const spinner = ora("Sending test notification...").start();
+
+    try {
+      await sendNotification({
+        message: "Test notification from aaa notify init",
+        priority: config.defaultPriority,
+        server: config.server,
+        title: config.title,
+        topic: config.topic,
+      });
+      spinner.succeed("Test notification sent!");
+    } catch (error) {
+      spinner.fail("Test notification failed");
+      if (error instanceof NtfyNetworkError) {
+        p.log.error(`Network error: ${error.message}`);
+      } else if (error instanceof NtfyRateLimitError) {
+        p.log.error("Rate limited. Try again later.");
+      } else {
+        p.log.error(error instanceof Error ? error.message : "Unknown error");
+      }
+      p.log.warn(
+        "Configuration was saved. You can test again with: aaa notify config test",
+      );
+    }
+
+    // Show next steps
+    p.note(
+      `1. Install ntfy app on your phone (iOS/Android)
+2. Subscribe to topic: ${topic}
+3. Add hook to ~/.claude/settings.json:
+
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "aaa notify 'Task complete'"
+      }]
+    }]
+  }
+}`,
+      "Next steps",
+    );
+
+    p.outro("Setup complete!");
+  });
+
 // aaa notify on - enable notifications
 notifyCommand
   .command("on")
@@ -229,8 +398,9 @@ configCommand
   .option("--server <url>", "Set ntfy server URL")
   .option("--title <title>", "Set default notification title")
   .addOption(
-    new Option("--priority <level>", "Set default priority")
-      .choices(priorities)
+    new Option("--priority <level>", "Set default priority").choices(
+      priorities,
+    ),
   )
   .option("--quiet-start <hour>", "Set quiet hours start (0-23)", (v) =>
     Number.parseInt(v, 10),
@@ -238,8 +408,10 @@ configCommand
   .option("--quiet-end <hour>", "Set quiet hours end (0-23)", (v) =>
     Number.parseInt(v, 10),
   )
-  .option("--quiet-enabled <bool>", "Enable/disable quiet hours", (v) =>
-    v === "true" || v === "1",
+  .option(
+    "--quiet-enabled <bool>",
+    "Enable/disable quiet hours",
+    (v) => v === "true" || v === "1",
   )
   .action((options) => {
     const config = loadNotifyConfig();

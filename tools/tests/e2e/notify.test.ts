@@ -6,20 +6,9 @@
  */
 
 import { getContextRoot } from "@tools/utils/paths";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
-import {
-  existsSync,
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -256,5 +245,30 @@ describe("notify E2E - priority option", () => {
     expect(stdout).toContain("default");
     expect(stdout).toContain("high");
     expect(stdout).toContain("max");
+  });
+});
+
+describe("notify E2E - init command", () => {
+  test("notify init --help shows description", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "notify", "init", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Interactive first-time setup");
+  });
+
+  test("notify --help shows init subcommand", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "notify", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("init");
+    expect(stdout).toContain("Interactive first-time setup");
   });
 });
