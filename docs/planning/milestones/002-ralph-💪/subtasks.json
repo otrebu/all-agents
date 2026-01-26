@@ -1385,7 +1385,10 @@
       "taskRef": "build-loop-practical-summary",
       "title": "Track completedThisRun in build.ts",
       "description": "Update build.ts to track subtasks completed during this build run. Add completedThisRun array that stores { id, attempts } for each subtask that completes. Push to array when didComplete is true. This array enables the practical summary to know which subtasks were completed this run.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T00:15:00Z",
+      "commitHash": "7627604f23a477b14c0a3081d2cb9a6b85f65ed1",
+      "sessionId": "ralph-build-iteration",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,

@@ -767,3 +767,12 @@
   - Uses green border for success, yellow if any failures
   - Added comprehensive unit tests in display.test.ts
 - **Files:** tools/src/commands/ralph/display.ts (modified), tools/tests/lib/display.test.ts (created)
+
+### SUB-069
+- **Problem:** Need to track which subtasks were completed during a build run for the practical summary feature
+- **Changes:** Added completedThisRun array to build.ts that:
+  - Declared after the attempts Map at start of runBuild function
+  - Type: `Array<{ attempts: number; id: string }>`
+  - Populated when didComplete is true, storing subtask ID and number of attempts
+  - Enables practical summary (SUB-070-072) to display completed subtasks with retry counts
+- **Files:** tools/src/commands/ralph/build.ts (modified)
