@@ -260,6 +260,53 @@ If ANY criterion fails:
 
 All verification commands must be **idempotent** - running them twice produces the same result. Commands that modify state are NOT valid verification commands.
 
+### Phase 5c: Documentation Sync
+
+After code changes pass validation, check if documentation needs updates.
+
+**Reference:** @context/blocks/docs/atomic-documentation.md
+
+#### Quick Decision Table
+
+| Change Type | README.md | docs/ | context/ |
+|-------------|-----------|-------|----------|
+| New CLI command | ✅ Add to CLI section | - | - |
+| New CLI flag | ✅ Update command docs | - | - |
+| New workflow | - | ✅ If project-specific | ✅ If reusable |
+| New pattern/convention | - | - | ✅ blocks/ or foundations/ |
+| Bug fix | - | - | - |
+| Internal refactor | - | - | - |
+| Config change | Maybe | - | - |
+
+#### Process
+
+1. **Search** - Check if existing docs mention the changed area:
+   ```bash
+   grep -r "keyword" README.md docs/ context/
+   ```
+
+2. **Update if found** - If docs exist for this feature, update them:
+   - Add new commands/flags to README CLI section
+   - Update existing workflow docs in docs/ or context/
+   - Add gotchas to relevant blocks
+
+3. **Skip conditions** - Documentation update NOT required when:
+   - Change is internal refactor with no API change
+   - Change is bug fix with no behavior change
+   - Change is test-only
+   - No existing docs mention the changed component
+
+4. **Create if missing** - For significant new features without existing docs:
+   - CLI commands → README.md
+   - Project-specific knowledge → docs/
+   - Reusable knowledge → context/ (see atomic-documentation.md)
+
+#### Documentation AC (When Required)
+
+If documentation update is needed, add it as an implicit AC:
+- Verify the doc was updated: `grep -q 'new-feature' README.md`
+- Verify accuracy: The documented behavior matches implementation
+
 ### Phase 6: Commit
 
 Create a commit for the completed work.
