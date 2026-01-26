@@ -27,6 +27,8 @@ interface BuildOptions {
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
+  /** Suppress terminal summary output (still writes BUILD-SUMMARY file) */
+  quiet: boolean;
   /** Skip Haiku summary generation in headless mode to reduce latency and cost */
   skipSummary: boolean;
   /** Path to subtasks.json file */

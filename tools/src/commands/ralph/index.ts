@@ -333,6 +333,10 @@ ralphCommand.addCommand(
       "-S, --skip-summary",
       "Skip Haiku summary generation in headless mode",
     )
+    .option(
+      "-q, --quiet",
+      "Suppress terminal summary output (still writes BUILD-SUMMARY file)",
+    )
     .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
     .option(
       "--calibrate-every <n>",
@@ -400,6 +404,7 @@ ralphCommand.addCommand(
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
+          quiet: options.quiet === true,
           skipSummary: options.skipSummary === true,
           subtasksPath,
           validateFirst: options.validateFirst === true,

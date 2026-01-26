@@ -98,9 +98,16 @@ aaa download <urls...> [-o name] [-d dir]
 aaa ralph plan vision              # Interactive vision planning
 aaa ralph build                    # Run iteration loop
 aaa ralph build -i                 # Pause between iterations
+aaa ralph build --headless         # Headless mode with JSON capture
+aaa ralph build --quiet            # Suppress terminal summary (still writes file)
 aaa ralph status --subtasks        # Show progress
 aaa ralph review subtasks          # Review before building
 aaa ralph calibrate intention      # Check for drift
+#
+# Build completion generates BUILD-SUMMARY-{timestamp}.md with:
+# - Completed subtasks and their summaries
+# - Git commit range for `git diff` review
+# - Stats: completed, failed, cost, duration, files changed
 #
 # Skills: /ralph-plan, /ralph-build, /ralph-review, /ralph-calibrate, /ralph-status
 # Full docs: docs/ralph/README.md | Design spec: docs/planning/VISION.md

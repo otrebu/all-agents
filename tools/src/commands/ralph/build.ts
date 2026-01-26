@@ -101,6 +101,8 @@ interface SummaryContext {
   contextRoot: string;
   /** Milestone name for summary file location */
   milestone: string;
+  /** Suppress terminal summary output (still writes file) */
+  quiet: boolean;
   /** Path to subtasks file */
   subtasksPath: string;
 }
@@ -213,17 +215,26 @@ function generateSummaryAndExit(exitCode: number): void {
     return;
   }
 
-  const { completedThisRun, contextRoot, milestone, subtasksPath } =
-    summaryContext;
+  const {
+    completedThisRun,
+    contextRoot,
+    milestone,
+    quiet: isQuiet,
+    subtasksPath,
+  } = summaryContext;
 
   // If nothing was completed this run, just exit
   if (completedThisRun.length === 0) {
-    console.log("\n\nBuild interrupted. No subtasks completed this run.");
+    if (!isQuiet) {
+      console.log("\n\nBuild interrupted. No subtasks completed this run.");
+    }
     process.exit(exitCode);
     return;
   }
 
-  console.log("\n\nGenerating build summary before exit...\n");
+  if (!isQuiet) {
+    console.log("\n\nGenerating build summary before exit...\n");
+  }
 
   try {
     // Read diary entries for summary generation
@@ -243,8 +254,10 @@ function generateSummaryAndExit(exitCode: number): void {
     // Write summary file
     const savedPath = writeBuildSummaryFile(summary, contextRoot, milestone);
 
-    // Render summary to terminal
-    console.log(renderBuildPracticalSummary(summary, savedPath));
+    // Render summary to terminal (unless quiet mode)
+    if (!isQuiet) {
+      console.log(renderBuildPracticalSummary(summary, savedPath));
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Failed to generate summary: ${message}`);
@@ -567,6 +580,7 @@ async function runBuild(
     interactive: isInteractive,
     maxIterations,
     mode,
+    quiet: isQuiet,
     skipSummary: shouldSkipSummary,
     subtasksPath,
     validateFirst: shouldValidateFirst,
@@ -593,7 +607,13 @@ async function runBuild(
   const milestone = getMilestoneFromSubtasks(initialSubtasksFile);
 
   // Initialize summary context for signal handlers
-  summaryContext = { completedThisRun, contextRoot, milestone, subtasksPath };
+  summaryContext = {
+    completedThisRun,
+    contextRoot,
+    milestone,
+    quiet: isQuiet,
+    subtasksPath,
+  };
 
   // Optional pre-build validation (TODO: implement in SUB-025/26)
   if (shouldValidateFirst) {
@@ -613,7 +633,9 @@ async function runBuild(
 
     // Check if all subtasks are complete
     if (remaining === 0) {
-      console.log("\n");
+      if (!isQuiet) {
+        console.log("\n");
+      }
 
       // Generate practical summary
       const logsDirectory = getMilestoneLogsDirectory(subtasksPath);
@@ -624,11 +646,13 @@ async function runBuild(
         subtasksFile,
       );
 
-      // Write summary file
+      // Write summary file (always, even in quiet mode)
       const savedPath = writeBuildSummaryFile(summary, contextRoot, milestone);
 
-      // Render practical summary to terminal
-      console.log(renderBuildPracticalSummary(summary, savedPath));
+      // Render practical summary to terminal (unless quiet mode)
+      if (!isQuiet) {
+        console.log(renderBuildPracticalSummary(summary, savedPath));
+      }
 
       // Mark summary as generated to prevent double execution on signal
       hasSummaryBeenGenerated = true;
