@@ -97,7 +97,7 @@
       "description": "Research task: The /dev:interrogate command exists alongside the parallel-code-review skill. Determine: (1) What is the purpose of each? (2) Are they currently integrated? (3) When should users use which? Output a documented analysis to inform SUB-028b.",
       "done": true,
       "completedAt": "2026-01-26T21:15:00Z",
-      "commitHash": "667b3e9",
+      "commitHash": "ca0138e",
       "classification": {
         "knowledgeCertainty": "known-unknown",
         "spikeIndicators": 2,
