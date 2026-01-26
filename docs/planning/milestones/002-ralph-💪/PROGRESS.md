@@ -808,3 +808,13 @@
   - When quiet=true, BUILD-SUMMARY file is still written but terminal output is suppressed
   - Updated README.md to document the practical summary feature, BUILD-SUMMARY file output, and --quiet flag
 - **Files:** tools/src/commands/ralph/types.ts (modified), tools/src/commands/ralph/index.ts (modified), tools/src/commands/ralph/build.ts (modified), README.md (modified)
+
+### SUB-073
+- **Problem:** Need to add --size flag for controlling subtask slice thickness and replace numeric changeCount thresholds with reasoning-based vertical slice guidance
+- **Changes:**
+  - Added --size small|medium|large flag to ralph plan subtasks command with medium as default
+  - Removed classification property from subtasks.schema.json (added blockedBy property instead)
+  - Added Phase 3b: Size Judgment to subtasks-from-source.md with 4-question vertical slice test
+  - Replaced "Classification-Based Sizing" in subtasks-common.md with "The Vertical Slice Test" and sizing modes table
+  - Rewrote subtask-reviewer.md to use reasoning-based red/yellow/green flags instead of changeCount thresholds
+- **Files:** tools/src/commands/ralph/index.ts (modified), docs/planning/schemas/subtasks.schema.json (modified), context/workflows/ralph/planning/subtasks-from-source.md (modified), context/workflows/ralph/planning/subtasks-common.md (modified), .claude/agents/subtask-reviewer.md (modified)

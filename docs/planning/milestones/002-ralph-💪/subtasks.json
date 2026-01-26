@@ -1508,6 +1508,38 @@
         "tools/src/commands/ralph/build.ts",
         "README.md"
       ]
+    },
+    {
+      "id": "SUB-073",
+      "taskRef": "subtask-sizing-modes",
+      "title": "Add --size flag and replace classification with vertical slice guidance",
+      "description": "Add --size small|medium|large flag to 'ralph plan subtasks' command, remove classification from subtasks.schema.json, and update all planning prompts with vertical slice guidance. The --size flag controls slice thickness: small (thinnest viable slices), medium (one PR = one subtask, default), large (only split at major boundaries). The 4 questions test: (1) Is it vertical? (2) One pass? (3) Ships alone? (4) Test boundary? Remove classification object entirely from schema - LLM judges from description + filesToRead. Update subtasks-from-source.md with Phase 3b Size Judgment, subtasks-common.md with vertical slice guidelines, and subtask-reviewer.md with reasoning-based red/green flags instead of threshold checks.",
+      "done": true,
+      "completedAt": "2026-01-26T14:45:00Z",
+      "commitHash": "4966fa8",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "CLI: aaa ralph plan subtasks --help shows --size <mode> option with small|medium|large choices",
+        "CLI: --size flag defaults to 'medium' when not specified",
+        "CLI: Sizing mode context passed to generation prompt",
+        "Schema: classification property removed from docs/planning/schemas/subtasks.schema.json",
+        "Schema: Existing subtasks with classification field still load (ignored, no validation error)",
+        "Prompt: subtasks-from-source.md has Phase 3b: Size Judgment with 4 questions test",
+        "Prompt: subtasks-common.md replaces changeCount-based guidelines with vertical slice guidance",
+        "Agent: subtask-reviewer.md uses reasoning-based red/green flags (not changeCount thresholds)",
+        "Verify: grep -q '\\-\\-size' tools/src/commands/ralph/index.ts",
+        "Verify: ! grep -q 'classification' docs/planning/schemas/subtasks.schema.json (property removed)",
+        "Verify: grep -q 'vertical slice' context/workflows/ralph/planning/subtasks-common.md",
+        "Verify: grep -q 'Phase 3b' context/workflows/ralph/planning/subtasks-from-source.md",
+        "TypeScript compiles: bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "docs/planning/schemas/subtasks.schema.json",
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        "context/workflows/ralph/planning/subtasks-common.md",
+        ".claude/agents/subtask-reviewer.md"
+      ]
     }
   ],
   "skippedFindings": [
