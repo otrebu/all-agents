@@ -12,6 +12,7 @@
  */
 
 import { findProjectRoot } from "@tools/utils/paths";
+import chalk from "chalk";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as readline from "node:readline";
@@ -331,21 +332,30 @@ function processHeadlessIteration(
 
   // Use target project root for logs (not all-agents)
   const projectRoot = findProjectRoot() ?? contextRoot;
-  const hookResult = runPostIterationHook({
-    claudeMs,
-    costUsd: result.cost,
-    iterationNumber: currentAttempts,
-    maxAttempts: maxIterations,
-    milestone,
-    mode: "headless",
-    remaining: postRemaining,
-    repoRoot: projectRoot,
-    sessionId: result.sessionId,
-    skipSummary: shouldSkipSummary,
-    status: iterationStatus,
-    subtask: currentSubtask,
-    subtasksPath,
-  });
+  let hookResult: null | PostIterationResult = null;
+  try {
+    hookResult = runPostIterationHook({
+      claudeMs,
+      costUsd: result.cost,
+      iterationNumber: currentAttempts,
+      maxAttempts: maxIterations,
+      milestone,
+      mode: "headless",
+      remaining: postRemaining,
+      repoRoot: projectRoot,
+      sessionId: result.sessionId,
+      skipSummary: shouldSkipSummary,
+      status: iterationStatus,
+      subtask: currentSubtask,
+      subtasksPath,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(
+      chalk.yellow(`⚠ Post-iteration hook failed: ${errorMessage}`),
+    );
+    // Continue without hook result - build loop proceeds
+  }
 
   // Display iteration end box
   if (hookResult !== null) {
