@@ -2,6 +2,11 @@
 
 You are a technical implementation planner generating subtasks from an existing task. This is a **single-shot, auto-generation prompt** - you will read the task, analyze the codebase deeply, and produce a subtasks.json file without human interaction.
 
+## Shared Reference
+
+For schema, size guidelines, ID generation, validation checklist, and AC quality gate:
+@context/workflows/ralph/planning/subtasks-common.md
+
 ## Task Parameter
 
 **Input:** Task ID as the first argument to this prompt.
@@ -13,16 +18,16 @@ subtasks-auto.md <task-id>
 
 **Examples:**
 ```bash
-# Generate subtasks for task TASK-001
-subtasks-auto.md TASK-001
+# Generate subtasks for task 014-review-code-quality
+subtasks-auto.md 014-review-code-quality
 
-# Generate subtasks for task TASK-015
-subtasks-auto.md TASK-015
+# Generate subtasks for task 015-timing-instrumentation
+subtasks-auto.md 015-timing-instrumentation
 ```
 
 **Parameter Handling:**
 1. The task ID is provided as the argument when invoking this prompt
-2. If no argument is provided, stop and ask: "Which task should I generate subtasks for? Please provide the task ID (e.g., `TASK-001`)."
+2. If no argument is provided, stop and ask: "Which task should I generate subtasks for? Please provide the task ID (e.g., `014-review-code-quality`)."
 3. Find the task file in `docs/planning/tasks/<task-id>*.md`
 4. If the task is not found, report an error and list available tasks
 
@@ -32,7 +37,8 @@ Generate subtasks ONLY for the specified task.
 
 1. **Parent Task**: Read the task file at `docs/planning/tasks/<task-id>*.md`
 2. **Subtasks Schema**: Understand and follow @docs/planning/schemas/subtasks.schema.json
-3. **Parent Story** (if exists): Read the story referenced in the task's `Story:` field
+3. **Subtasks Common**: Read @context/workflows/ralph/planning/subtasks-common.md for shared conventions
+4. **Parent Story** (if exists): Read the story referenced in the task's `Story:` field
 
 ## Deep Codebase Analysis
 
@@ -96,104 +102,13 @@ Generate a `subtasks.json` file that complies with the schema:
 
 @docs/planning/schemas/subtasks.schema.json
 
-### Required Fields Per Subtask
-
-Each subtask MUST have these fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Unique ID: `SUB-NNN` pattern (e.g., `SUB-001`) |
-| `taskRef` | string | Parent task reference: `TASK-NNN` pattern |
-| `title` | string | Short title (max 100 chars) for commits and tracking |
-| `description` | string | Detailed description of what to implement |
-| `done` | boolean | Always `false` for new subtasks |
-| `acceptanceCriteria` | string[] | How to verify subtask is complete |
-| `filesToRead` | string[] | Files to read before implementing |
-
-### Optional Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `storyRef` | string | Grandparent story reference if task has one |
-
-### Subtasks Schema Structure
-
-```json
-{
-  "$schema": "../schemas/subtasks.schema.json",
-  "metadata": {
-    "scope": "story",
-    "storyRef": "STORY-001"
-  },
-  "subtasks": [
-    {
-      "id": "SUB-001",
-      "taskRef": "TASK-001",
-      "storyRef": "STORY-001",
-      "title": "Create user input validation schema",
-      "description": "Add Zod schema for CreateUserInput with email and password validation in src/schemas/user.ts",
-      "done": false,
-      "acceptanceCriteria": [
-        "Zod schema exists in src/schemas/user.ts",
-        "Email format is validated",
-        "Password strength rules are enforced"
-      ],
-      "filesToRead": [
-        "src/schemas/auth.ts",
-        "src/types/user.ts"
-      ]
-    }
-  ]
-}
-```
-
-## Subtask Sizing Constraints
-
-**CRITICAL:** Each subtask must fit within a single context window iteration.
-
-### Size Guidelines
-
-A properly-sized subtask allows the agent to:
-1. **Initialize** - Read context files (CLAUDE.md, task, etc.)
-2. **Gather** - Read filesToRead and explore related code
-3. **Implement** - Write the code changes
-4. **Test** - Run tests and fix issues
-5. **Commit** - Make a clean commit
-
-All of this must fit in one context window.
-
-### Subtask Scope Rules
-
-Each subtask should:
-- **Touch 1-3 files** (not counting test files)
-- **Implement one clear concept**
-- **Be completable in 15-30 tool calls**
-- **Have 2-5 acceptance criteria**
-
-### Signs a Subtask is Too Large
-
-- Description mentions multiple unrelated changes
-- Acceptance criteria span different areas of the codebase
-- Implementation requires extensive exploration
-- Would result in commits touching 5+ files
-
-### Signs a Subtask is Too Small
-
-- Could be a single line change
-- Trivially merged with another subtask
-- Creates overhead without value
-
-## Generating Unique IDs
-
-To generate subtask IDs:
-
-1. **Scan existing subtasks** - Check all `subtasks.json` files in the project
-2. **Find highest SUB-NNN** - Determine the maximum number used
-3. **Increment** - New IDs start at max + 1, zero-padded to 3 digits
-
-If no subtasks exist, start with `SUB-001`.
-
-**IDs are globally unique** across all subtasks in the project.
+See @context/workflows/ralph/planning/subtasks-common.md for:
+- Required and optional fields per subtask
+- Example subtask JSON structure
+- Size guidelines and classification-based sizing
+- ID generation rules
+- Validation checklist
+- Acceptance criteria quality gate
 
 ## Generation Guidelines
 
@@ -230,19 +145,6 @@ Use paths relative to project root:
 - `src/services/auth.ts`
 - `@context/blocks/docs/api-conventions.md`
 - `src/**/*.schema.ts` (globs for exploration)
-
-## Validation Checklist
-
-Before finalizing subtasks, verify:
-
-- [ ] Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)
-- [ ] All IDs follow SUB-NNN pattern
-- [ ] taskRef matches the input task ID
-- [ ] storyRef is included if task has a parent story
-- [ ] Subtasks are sized to fit single context window
-- [ ] Acceptance criteria are concrete and verifiable
-- [ ] filesToRead contains relevant context files
-- [ ] Output is valid JSON matching the schema
 
 ## Milestone-Level Generation
 
