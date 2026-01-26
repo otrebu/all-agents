@@ -55,6 +55,41 @@ If `--review` flag is set, parse `logs/reviews.jsonl` for findings.
 2. Extract findings from most recent review session
 3. Filter to unresolved findings (not marked as FALSE POSITIVE)
 
+### Phase 1b: Doc Lookup
+
+**Purpose:** Before codebase analysis, identify relevant atomic documentation that informs subtask boundaries and implementation context.
+
+**Process (Haiku subagent):**
+
+1. **Extract technologies/concepts** from parsed input
+   - Tools, libraries, patterns mentioned
+   - File types and modules involved
+   - Domain concepts (e.g., "code review", "CLI", "logging")
+
+2. **Search documentation index** (`context/README.md`)
+   - Query the index for relevant blocks/foundations/stacks
+   - Match against: `context/blocks/`, `context/foundations/`, `context/stacks/`
+
+3. **Classify results:**
+   | Found | Action |
+   |-------|--------|
+   | Relevant doc exists | Add to `filesToRead` for subtasks touching that area |
+   | Doc missing for critical concept | Flag for Phase 6b (Doc Linking) |
+   | Doc exists but outdated | Flag for Phase 6b update |
+
+**Output:**
+- `docMatches`: Array of `{ concept, docPath }` to add to filesToRead
+- `missingDocs`: Array of `{ concept, reason }` for Phase 6b to create
+
+**Example:**
+```
+Input: "Add error logging to diary functions"
+→ Search: "error handling", "logging", "diary"
+→ Found: context/blocks/patterns/error-handling.md
+→ Missing: No diary-specific doc (flag for potential creation)
+→ Output: { docMatches: [{ concept: "error handling", docPath: "context/blocks/patterns/error-handling.md" }], missingDocs: [{ concept: "diary module", reason: "No docs for review/diary subsystem" }] }
+```
+
 ### Phase 2: Codebase Analysis
 
 Before generating subtasks, explore the codebase to understand context:
