@@ -364,4 +364,4 @@ function runStatus(subtasksPath: string, contextRoot: string): void {
 // =============================================================================
 
 export default runStatus;
-export { runStatus };
+export { getMilestoneLogsDirectory, readIterationDiary, runStatus };

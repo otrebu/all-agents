@@ -27,6 +27,7 @@ import {
   loadSubtasksFile,
 } from "./config";
 import {
+  renderBuildPracticalSummary,
   renderBuildSummary,
   renderInvocationHeader,
   renderIterationEnd,
@@ -40,6 +41,8 @@ import {
   runPostIterationHook,
 } from "./post-iteration";
 import { discoverRecentSession } from "./session";
+import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
+import { generateBuildSummary, writeBuildSummaryFile } from "./summary";
 
 // =============================================================================
 // Constants
@@ -89,6 +92,21 @@ interface PeriodicCalibrationOptions {
 }
 
 /**
+ * Context for summary generation (populated during build)
+ * Used by signal handlers to generate summary on interrupt
+ */
+interface SummaryContext {
+  /** Subtasks completed during this build run */
+  completedThisRun: Array<{ attempts: number; id: string }>;
+  /** Repository root for writing summary file */
+  contextRoot: string;
+  /** Milestone name for summary file location */
+  milestone: string;
+  /** Path to subtasks file */
+  subtasksPath: string;
+}
+
+/**
  * Context for supervised iteration processing
  */
 interface SupervisedIterationContext {
@@ -110,7 +128,23 @@ interface SupervisedIterationResult {
 }
 
 // =============================================================================
-// Interactive Prompts
+// Module-Level State for Signal Handling
+// =============================================================================
+
+/**
+ * Flag to prevent double summary generation
+ * Set to true after summary is generated (normal completion or interrupt)
+ */
+let hasSummaryBeenGenerated = false;
+
+/**
+ * Context for summary generation (set by runBuild, used by signal handlers)
+ * Null until runBuild initializes it
+ */
+let summaryContext: null | SummaryContext = null;
+
+// =============================================================================
+// Build Helpers
 // =============================================================================
 
 /**
@@ -154,6 +188,70 @@ After completing ONE subtask:
 4. STOP - do not continue to the next subtask`;
 
   return buildPrompt(promptContent, extraContext);
+}
+
+/**
+ * Generate summary and exit with the specified code
+ *
+ * Generates a practical build summary from diary entries and completed subtasks,
+ * writes the summary file, displays it to the terminal, and exits.
+ * Prevents double execution via hasSummaryBeenGenerated flag.
+ *
+ * @param exitCode - Exit code to use (130 for SIGINT, 143 for SIGTERM)
+ */
+function generateSummaryAndExit(exitCode: number): void {
+  // Prevent double execution
+  if (hasSummaryBeenGenerated) {
+    process.exit(exitCode);
+    return;
+  }
+  hasSummaryBeenGenerated = true;
+
+  // If no context available, can't generate summary
+  if (summaryContext === null) {
+    console.log("\n\nBuild interrupted before any iterations completed.");
+    process.exit(exitCode);
+    return;
+  }
+
+  const { completedThisRun, contextRoot, milestone, subtasksPath } =
+    summaryContext;
+
+  // If nothing was completed this run, just exit
+  if (completedThisRun.length === 0) {
+    console.log("\n\nBuild interrupted. No subtasks completed this run.");
+    process.exit(exitCode);
+    return;
+  }
+
+  console.log("\n\nGenerating build summary before exit...\n");
+
+  try {
+    // Read diary entries for summary generation
+    const logsDirectory = getMilestoneLogsDirectory(subtasksPath);
+    const diaryEntries = readIterationDiary(logsDirectory);
+
+    // Load current subtasks file for remaining count
+    const subtasksFile = loadSubtasksFile(subtasksPath);
+
+    // Generate the summary
+    const summary = generateBuildSummary(
+      completedThisRun,
+      diaryEntries,
+      subtasksFile,
+    );
+
+    // Write summary file
+    const savedPath = writeBuildSummaryFile(summary, contextRoot, milestone);
+
+    // Render summary to terminal
+    console.log(renderBuildPracticalSummary(summary, savedPath));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to generate summary: ${message}`);
+  }
+
+  process.exit(exitCode);
 }
 
 // =============================================================================
@@ -387,6 +485,10 @@ function processSupervisedIteration(
   return { didComplete, hookResult };
 }
 
+// =============================================================================
+// Interactive Prompts
+// =============================================================================
+
 /**
  * Prompt user to continue to next iteration
  *
@@ -428,6 +530,26 @@ async function promptContinue(): Promise<boolean> {
 }
 
 /**
+ * Register signal handlers for graceful shutdown
+ *
+ * SIGINT (Ctrl+C): exit code 130
+ * SIGTERM: exit code 143
+ */
+function registerSignalHandlers(): void {
+  process.on("SIGINT", () => {
+    generateSummaryAndExit(130);
+  });
+
+  process.on("SIGTERM", () => {
+    generateSummaryAndExit(143);
+  });
+}
+
+// =============================================================================
+// Build Loop Implementation
+// =============================================================================
+
+/**
  * Run the build loop
  *
  * Iterates through subtasks, invoking Claude for each until all are done
@@ -451,6 +573,9 @@ async function runBuild(
     validateFirst: shouldValidateFirst,
   } = options;
 
+  // Register signal handlers for graceful summary on interrupt
+  registerSignalHandlers();
+
   // Validate subtasks file exists
   if (!existsSync(subtasksPath)) {
     console.error(`Subtasks file not found: ${subtasksPath}`);
@@ -463,6 +588,13 @@ async function runBuild(
 
   // Track subtasks completed during this build run
   const completedThisRun: Array<{ attempts: number; id: string }> = [];
+
+  // Get milestone for summary context
+  const initialSubtasksFile = loadSubtasksFile(subtasksPath);
+  const milestone = getMilestoneFromSubtasks(initialSubtasksFile);
+
+  // Initialize summary context for signal handlers
+  summaryContext = { completedThisRun, contextRoot, milestone, subtasksPath };
 
   // Build summary tracking
   let totalCompleted = 0;
