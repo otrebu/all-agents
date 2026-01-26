@@ -820,7 +820,10 @@
       "storyRef": null,
       "title": "Update refs in milestone 002-ralph subtasks.json",
       "description": "Phase 5b: Update taskRef and storyRef values in docs/planning/milestones/002-ralph-💪/subtasks.json. Change TASK-REVIEW-001 to review-findings, STORY-001 to 001-parallel-code-review, and similar updates for TASK-TIMING-001, TASK-SUPERVISED-001, TASK-LOGS-001.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T19:45:00Z",
+      "commitHash": "00b0ff4",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-049"],
       "classification": {
         "knowledgeCertainty": "known-known",
