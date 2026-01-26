@@ -60,7 +60,8 @@ context/
 │   ├── security/     # auth/secrets
 │   ├── scm/          # version control
 │   ├── observe/      # logging/monitoring
-│   └── docs/         # documentation/prompting
+│   ├── docs/         # documentation/prompting
+│   └── patterns/     # reusable processing patterns
 │
 ├── foundations/      # Capabilities by SWEBOK domain
 │   ├── construct/    # build/execution strategies
@@ -172,6 +173,12 @@ Document, diagram, prompting.
 - prompting.md - Context engineering
 - prompting-optimize.md - Prompt optimization
 - prompting-agent-templates.md - AI agent patterns
+
+### patterns/
+
+Reusable processing patterns.
+
+- triage.md - Dedupe, score, rank, group pattern
 
 ---
 
