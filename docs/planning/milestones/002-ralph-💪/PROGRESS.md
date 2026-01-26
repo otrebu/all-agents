@@ -512,3 +512,11 @@
   - Each row preserves the persona description and user story from milestone 001-ralph story files
   - Positioned after Section 2 (Folder Structure), before subtasks.json section
 - **Files:** docs/planning/VISION.md (modified)
+
+### SUB-044
+- **Problem:** Need to delete milestone 001-ralph story and task files as part of Phase 1a of naming consistency cleanup
+- **Changes:** Deleted story and task directories from milestone 001-ralph:
+  - Deleted stories/ directory with 9 story files (001-009)
+  - Deleted tasks/ directory with 28 task files (001-028)
+  - Preserved test-fixtures/ directory and other milestone artifacts
+- **Files:** docs/planning/milestones/001-ralph/stories/ (deleted), docs/planning/milestones/001-ralph/tasks/ (deleted)

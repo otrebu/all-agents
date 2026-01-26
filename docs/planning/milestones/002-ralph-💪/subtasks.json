@@ -619,7 +619,10 @@
       "storyRef": null,
       "title": "Delete milestone 001-ralph story and task files",
       "description": "Phase 1a: Delete all story and task markdown files from milestone 001-ralph that are now covered by VISION.md. This includes 9 story files in stories/ and 28 task files in tasks/. Keep test-fixtures/, PROGRESS.md, and other milestone artifacts.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T22:30:00Z",
+      "commitHash": "4baf2c3",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-043"],
       "classification": {
         "knowledgeCertainty": "known-known",
