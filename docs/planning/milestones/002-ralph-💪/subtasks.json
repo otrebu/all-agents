@@ -158,6 +158,181 @@
         ".claude/skills/parallel-code-review/SKILL.md",
         "docs/planning/VISION.md"
       ]
+    },
+    {
+      "id": "SUB-029",
+      "taskRef": "TASK-TIMING-001",
+      "storyRef": null,
+      "title": "Add timing, skipSummary, and mode types to ralph/types.ts",
+      "description": "Extend IterationDiaryEntry with optional timing field, optional mode field, and add skipSummary to BuildOptions. The timing field tracks where time is spent (claudeMs, hookMs, summaryMs, metricsMs). The mode field distinguishes 'headless' vs 'supervised' entries. This is a types-only change that enables the instrumentation in subsequent subtasks.",
+      "done": true,
+      "completedAt": "2026-01-26T22:10:00Z",
+      "commitHash": "aabdbd6",
+      "sessionId": "c97c60fb-f0c5-4722-b503-b1e147e95b39",
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "Clear interface additions. Exact shapes defined in plan. No dependencies."
+      },
+      "acceptanceCriteria": [
+        "IterationDiaryEntry has optional timing?: { claudeMs: number; hookMs: number; summaryMs: number; metricsMs: number }",
+        "IterationDiaryEntry has optional mode?: 'headless' | 'supervised'",
+        "BuildOptions has skipSummary: boolean field",
+        "All types are exported",
+        "Verify: grep -q 'timing?:' tools/src/commands/ralph/types.ts",
+        "Verify: grep -q 'skipSummary:' tools/src/commands/ralph/types.ts",
+        "Verify: grep -q \"mode?:\" tools/src/commands/ralph/types.ts",
+        "TypeScript compiles without errors: bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-030",
+      "taskRef": "TASK-TIMING-001",
+      "storyRef": null,
+      "title": "Add --skip-summary CLI flag to ralph build",
+      "description": "Add -S, --skip-summary option to the ralph build command in index.ts. Pass skipSummary boolean through to runBuild() options. This enables users to skip Haiku summary generation in headless mode to reduce latency and cost.",
+      "done": false,
+      "blockedBy": ["SUB-029"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "Follows existing CLI option pattern. Similar to --headless flag. Straightforward Commander option addition."
+      },
+      "acceptanceCriteria": [
+        "ralph build command has .option('-S, --skip-summary', 'Skip Haiku summary generation in headless mode')",
+        "options.skipSummary is passed to runBuild() call",
+        "aaa ralph build --help shows -S, --skip-summary option",
+        "Verify: grep -q 'skip-summary' tools/src/commands/ralph/index.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-031",
+      "taskRef": "TASK-TIMING-001",
+      "storyRef": null,
+      "title": "Instrument timing in post-iteration hook",
+      "description": "Add timing instrumentation to runPostIterationHook() in post-iteration.ts. Wrap summary generation and metrics collection with Date.now() timing. Populate the timing field in diary entry. Respect skipSummary option by returning placeholder summary when true. Accept optional mode field and pass it to diary entry.",
+      "done": false,
+      "blockedBy": ["SUB-029"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 5,
+        "reasoning": "Clear instrumentation pattern (Date.now() wrappers). Exact locations specified in plan. skipSummary short-circuit is straightforward conditional."
+      },
+      "acceptanceCriteria": [
+        "runPostIterationHook accepts skipSummary in options",
+        "runPostIterationHook accepts optional mode: 'headless' | 'supervised' in options",
+        "Summary generation is wrapped with timing (summaryMs)",
+        "Metrics collection (toolCalls, filesChanged) is wrapped with timing (metricsMs)",
+        "Hook total time is tracked (hookMs)",
+        "When skipSummary=true, generateSummary is skipped and placeholder used",
+        "IterationDiaryEntry written includes timing field with all values",
+        "IterationDiaryEntry written includes mode field if provided",
+        "Verify: grep -q 'summaryMs' tools/src/commands/ralph/post-iteration.ts",
+        "Verify: grep -q 'skipSummary' tools/src/commands/ralph/post-iteration.ts",
+        "Verify: grep -q 'mode' tools/src/commands/ralph/post-iteration.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-032",
+      "taskRef": "TASK-TIMING-001",
+      "storyRef": null,
+      "title": "Track Claude invocation time in build.ts",
+      "description": "Wrap invokeClaudeHeadless() call in build.ts with timing to capture claudeMs. Pass claudeMs and skipSummary to runPostIterationHook(). This completes the timing instrumentation chain so diary entries capture all timing phases.",
+      "done": false,
+      "blockedBy": ["SUB-030", "SUB-031"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "Simple wrapper pattern around existing invokeClaudeHeadless call. Exact location specified. Follows established timing pattern from SUB-031."
+      },
+      "acceptanceCriteria": [
+        "invokeClaudeHeadless call is wrapped with const claudeStart = Date.now() / claudeMs calculation",
+        "claudeMs is passed to runPostIterationHook in options",
+        "skipSummary from build options is passed through to hook",
+        "Given: aaa ralph build --headless runs, When: iteration completes, Then: logs/iterations.jsonl entry has timing.claudeMs > 0",
+        "Verify: grep -q 'claudeMs' tools/src/commands/ralph/build.ts",
+        "E2E: Run headless build and verify jq '.timing' logs/iterations.jsonl returns timing object"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-033",
+      "taskRef": "TASK-SUPERVISED-001",
+      "storyRef": null,
+      "title": "Add discoverRecentSession() to session.ts",
+      "description": "Add a function to find the most recent Claude session file created after a given timestamp. Uses `find ~/.claude/projects -name '*.jsonl' -newermt ...` to locate session files. Returns { sessionId, path } or null if not found. This enables supervised mode to discover the session after it completes.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "Clear implementation pattern. Similar to existing getSessionJsonlPath(). Uses standard find command with timestamp filter."
+      },
+      "acceptanceCriteria": [
+        "discoverRecentSession(afterTimestamp: number) function exists in session.ts",
+        "Function returns { sessionId: string; path: string } | null",
+        "Uses find command with -newermt to filter by timestamp",
+        "Searches in ~/.claude/projects (or CLAUDE_CONFIG_DIR/projects)",
+        "Returns most recent session file if multiple match",
+        "Function is exported",
+        "Verify: grep -q 'discoverRecentSession' tools/src/commands/ralph/session.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/session.ts"
+      ]
+    },
+    {
+      "id": "SUB-034",
+      "taskRef": "TASK-SUPERVISED-001",
+      "storyRef": null,
+      "title": "Add post-iteration feedback to supervised mode",
+      "description": "Update processSupervisedIteration() in build.ts to: (1) capture startTime before invoking Claude, (2) after session ends, call discoverRecentSession(startTime) to find session file, (3) if found, call runPostIterationHook() with skipSummary: true to generate metrics and diary entry. This gives supervised mode the same feedback display as headless mode.",
+      "done": false,
+      "blockedBy": ["SUB-029", "SUB-031", "SUB-033"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 4,
+        "reasoning": "Clear integration pattern. Reuses existing runPostIterationHook(). Only new code is timestamp capture and session discovery call."
+      },
+      "acceptanceCriteria": [
+        "processSupervisedIteration captures startTime = Date.now() before invokeClaudeChat",
+        "After session ends, calls discoverRecentSession(startTime)",
+        "If session found, calls runPostIterationHook with skipSummary: true",
+        "Post-iteration hook receives mode: 'supervised' in options",
+        "Metrics box displays after supervised session ends (via renderIterationEnd)",
+        "Diary entry written to logs/iterations.jsonl with mode: 'supervised'",
+        "Given: aaa ralph build (supervised) runs, When: iteration completes, Then: metrics box shows and diary entry created",
+        "Verify: grep -q 'discoverRecentSession' tools/src/commands/ralph/build.ts",
+        "Verify: grep -q 'skipSummary.*true' tools/src/commands/ralph/build.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/ralph/session.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
     }
   ],
   "skippedFindings": [

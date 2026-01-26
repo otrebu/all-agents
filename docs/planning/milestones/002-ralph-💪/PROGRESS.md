@@ -360,3 +360,13 @@
   - "When to use which" guidance explaining interrogate = understanding decisions, review = finding issues
   - Recommendation for thorough pre-merge validation: run both (interrogate first for intent, then review for quality)
 - **Files:** .claude/skills/parallel-code-review/SKILL.md (modified)
+
+### SUB-029
+- **Problem:** Need types to support timing instrumentation and mode tracking in Ralph iterations
+- **Changes:** Extended Ralph types in tools/src/commands/ralph/types.ts:
+  - Added IterationTiming interface (claudeMs, hookMs, summaryMs, metricsMs)
+  - Added optional timing field to IterationDiaryEntry
+  - Added optional mode field to IterationDiaryEntry ('headless' | 'supervised')
+  - Added skipSummary boolean field to BuildOptions
+  - Updated index.ts to include skipSummary: false in BuildOptions call
+- **Files:** tools/src/commands/ralph/types.ts (modified), tools/src/commands/ralph/index.ts (modified)
