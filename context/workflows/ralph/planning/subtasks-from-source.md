@@ -241,6 +241,20 @@ A properly-sized subtask allows the agent to:
 
 All of this must fit in one context window.
 
+#### Classification-Based Sizing
+
+Each subtask should include a `classification.changeCount` field that estimates the number of discrete changes (file creates, function additions, config updates, etc.). This drives sizing decisions:
+
+| changeCount | Classification | Action |
+|-------------|---------------|--------|
+| `< 2` | Undersized | Consider merging with related subtask |
+| `2-8` | Appropriate | Proceed as-is |
+| `> 8` | Oversized | Split into multiple subtasks |
+
+**Heuristics:**
+- `changeCount < 2` → Subtask is too granular, creates unnecessary overhead. Merge with adjacent subtask touching same files/concepts.
+- `changeCount > 8` → Subtask risks context window overflow. Split by file boundaries, research/implementation phases, or functional units.
+
 #### Subtask Scope Rules
 
 Each subtask should:
@@ -248,9 +262,11 @@ Each subtask should:
 - **Implement one clear concept**
 - **Be completable in 15-30 tool calls**
 - **Have 2-5 acceptance criteria**
+- **Have `classification.changeCount` between 2-8**
 
 #### Signs a Subtask is Too Large
 
+- `classification.changeCount > 8`
 - Description mentions multiple unrelated changes
 - Acceptance criteria span different areas of the codebase
 - Implementation requires extensive exploration
@@ -260,6 +276,7 @@ Each subtask should:
 
 #### Signs a Subtask is Too Small
 
+- `classification.changeCount < 2`
 - Could be a single line change
 - Trivially merged with another subtask
 - Creates overhead without value
