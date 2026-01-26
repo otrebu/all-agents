@@ -710,3 +710,15 @@
   - Test-related AC requirements table (CLI command → E2E test, etc.)
   - NEW: Documentation-Related AC requirements (CLI command → README update, CLI flag → README update)
 - **Files:** context/workflows/ralph/planning/subtasks-common.md (created)
+
+### SUB-064
+- **Problem:** subtasks-auto.md contained duplicated content (~100 lines) that was now available in subtasks-common.md
+- **Changes:** Simplified subtasks-auto.md by removing duplicated content and adding reference to subtasks-common.md:
+  - Added "Shared Reference" section pointing to subtasks-common.md
+  - Removed inline schema/required fields section (now in common)
+  - Removed inline size guidelines section (now in common)
+  - Removed inline ID generation section (now in common)
+  - Removed inline validation checklist section (now in common)
+  - Updated examples to use new NNN-slug format (014-review-code-quality)
+  - Preserved unique sections: task parameter handling, deep codebase analysis, generation guidelines, milestone-level generation, output location
+- **Files:** context/workflows/ralph/planning/subtasks-auto.md (modified)

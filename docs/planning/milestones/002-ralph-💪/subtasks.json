@@ -1225,7 +1225,10 @@
       "taskRef": "doc-sync-dry-refactor",
       "title": "Simplify subtasks-auto.md to reference common file",
       "description": "Remove duplicated content from subtasks-auto.md (~80 lines) and add reference to subtasks-common.md. Keep unique sections: task parameter handling, deep codebase analysis, milestone-level generation, output location.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T20:15:00Z",
+      "commitHash": "ba2f49f4ef3995ddc7699a1bdf4d75a4a8dd4dbb",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-063"],
       "classification": {
         "knowledgeCertainty": "known-known",
@@ -1298,6 +1301,188 @@
       "filesToRead": [
         "context/workflows/ralph/building/ralph-iteration.md",
         "context/blocks/docs/atomic-documentation.md"
+      ]
+    },
+    {
+      "id": "SUB-067",
+      "taskRef": "build-loop-practical-summary",
+      "title": "Create summary.ts with types and all summary functions",
+      "description": "Create new file tools/src/commands/ralph/summary.ts with: BuildPracticalSummary and related types, generateBuildSummary() that reads diary entries and aggregates subtask summaries (no LLM calls), getCommitRange() that extracts git commit range from subtasks.json, and writeBuildSummaryFile() that writes BUILD-SUMMARY markdown file. This consolidates all summary-related functionality in one new module.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 6,
+        "reasoning": "Merged: types (2) + generateBuildSummary (3) + getCommitRange (2) + writeBuildSummaryFile (2). New file creation with 4 related functions. All summary-related, cohesive module."
+      },
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/summary.ts exists",
+        "BuildPracticalSummary interface with: subtasks array, commitRange, stats, remaining",
+        "CompletedSubtaskInfo interface with: id, summary, attempts",
+        "generateBuildSummary() reads diary entries, filters by completed IDs, returns BuildPracticalSummary",
+        "getCommitRange() extracts startHash/endHash from subtasks.json commitHash fields",
+        "writeBuildSummaryFile() creates BUILD-SUMMARY-{timestamp}.md with stats, git diff, subtask list",
+        "No LLM/Haiku calls - pure TypeScript aggregation",
+        "All functions exported",
+        "Verify: test -f tools/src/commands/ralph/summary.ts",
+        "Verify: grep -q 'BuildPracticalSummary' tools/src/commands/ralph/summary.ts",
+        "Verify: grep -q 'getCommitRange' tools/src/commands/ralph/summary.ts",
+        "Verify: grep -q 'writeBuildSummaryFile' tools/src/commands/ralph/summary.ts",
+        "TypeScript compiles: bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-068",
+      "taskRef": "build-loop-practical-summary",
+      "title": "Add renderBuildPracticalSummary to display.ts",
+      "description": "Add renderBuildPracticalSummary() function to display.ts that renders the practical summary as a boxen terminal box. Shows: completed/failed/cost/duration/files stats, git commit range with diff command, subtask bullets with summaries and retry counts, remaining count, saved file path.",
+      "done": false,
+      "blockedBy": ["SUB-067"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 3,
+        "reasoning": "New display function. Follows existing renderBuildSummary pattern. Output format specified in plan."
+      },
+      "acceptanceCriteria": [
+        "renderBuildPracticalSummary() function exists in display.ts",
+        "Function accepts BuildPracticalSummary and savedFilePath",
+        "Renders boxen box with 'Build Summary' title",
+        "Shows stats line: Completed, Failed, Cost, Duration, Files",
+        "Shows git commit range with diff command",
+        "Shows bullet list of completed subtasks with summaries",
+        "Shows retry count for subtasks with >1 attempt (e.g., '(2 attempts)')",
+        "Shows remaining subtasks count",
+        "Shows saved file path",
+        "Function is exported",
+        "Verify: grep -q 'renderBuildPracticalSummary' tools/src/commands/ralph/display.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/summary.ts"
+      ]
+    },
+    {
+      "id": "SUB-069",
+      "taskRef": "build-loop-practical-summary",
+      "title": "Track completedThisRun in build.ts",
+      "description": "Update build.ts to track subtasks completed during this build run. Add completedThisRun array that stores { id, attempts } for each subtask that completes. Push to array when didComplete is true. This array enables the practical summary to know which subtasks were completed this run.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 3,
+        "reasoning": "Small code additions to existing build loop. Clear locations to modify."
+      },
+      "acceptanceCriteria": [
+        "completedThisRun array declared at start of runBuild (after attempts Map)",
+        "Array type is Array<{ id: string; attempts: number }>",
+        "When didComplete is true, push { id: currentSubtask.id, attempts: currentAttempts }",
+        "Array is accessible for summary generation in later subtasks",
+        "Verify: grep -q 'completedThisRun' tools/src/commands/ralph/build.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts"
+      ]
+    },
+    {
+      "id": "SUB-070",
+      "taskRef": "build-loop-practical-summary",
+      "title": "Add signal handlers for graceful summary on interrupt",
+      "description": "Add SIGINT/SIGTERM signal handlers to build.ts that ensure the practical summary runs even on Ctrl+C. Add summaryGenerated flag to prevent double execution. Create generateSummaryAndExit() helper that generates summary, writes file, prints to console, then exits.",
+      "done": false,
+      "blockedBy": ["SUB-067", "SUB-068", "SUB-069"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 4,
+        "reasoning": "Signal handlers + helper function. Focused on interrupt handling, not summary integration."
+      },
+      "acceptanceCriteria": [
+        "summaryGenerated flag declared (let summaryGenerated = false)",
+        "generateSummaryAndExit(exitCode) function created",
+        "Function checks summaryGenerated flag to prevent double execution",
+        "Function calls generateBuildSummary, writeBuildSummaryFile, renderBuildPracticalSummary",
+        "Function exits with provided exit code",
+        "process.on('SIGINT', ...) handler calls generateSummaryAndExit(130)",
+        "process.on('SIGTERM', ...) handler calls generateSummaryAndExit(143)",
+        "Imports added for summary functions",
+        "Verify: grep -q 'SIGINT' tools/src/commands/ralph/build.ts",
+        "Verify: grep -q 'generateSummaryAndExit' tools/src/commands/ralph/build.ts",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/summary.ts",
+        "tools/src/commands/ralph/display.ts"
+      ]
+    },
+    {
+      "id": "SUB-071",
+      "taskRef": "build-loop-practical-summary",
+      "title": "Replace build completion with practical summary",
+      "description": "Update the normal completion path in build.ts (when remaining === 0) to use the new practical summary instead of the old renderBuildSummary. Call generateBuildSummary, writeBuildSummaryFile, and renderBuildPracticalSummary. Set summaryGenerated flag to true.",
+      "done": false,
+      "blockedBy": ["SUB-070"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 3,
+        "reasoning": "Replace existing summary call with new functions. Focused on normal completion path."
+      },
+      "acceptanceCriteria": [
+        "Normal completion path (remaining === 0) uses generateBuildSummary instead of old stats",
+        "Calls writeBuildSummaryFile to create BUILD-SUMMARY-{timestamp}.md",
+        "Calls renderBuildPracticalSummary for terminal output",
+        "Sets summaryGenerated = true before return",
+        "Old renderBuildSummary call removed or replaced",
+        "Verify: grep -q 'generateBuildSummary' tools/src/commands/ralph/build.ts",
+        "E2E: Run aaa ralph build, let complete, verify summary box and file appear",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/summary.ts"
+      ]
+    },
+    {
+      "id": "SUB-072",
+      "taskRef": "build-loop-practical-summary",
+      "title": "Add --quiet flag and update README documentation",
+      "description": "Add -q, --quiet option to ralph build command that suppresses terminal summary output but still writes BUILD-SUMMARY file. Update README.md to document the practical summary feature, BUILD-SUMMARY file output, and --quiet flag.",
+      "done": false,
+      "blockedBy": ["SUB-071"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 4,
+        "reasoning": "Merged: CLI flag (3) + README docs (2). Feature flag with its documentation is cohesive."
+      },
+      "acceptanceCriteria": [
+        "ralph build has .option('-q, --quiet', 'Suppress terminal summary (still writes file)')",
+        "BuildOptions has quiet: boolean field in types.ts",
+        "options.quiet passed through to runBuild",
+        "When quiet=true, skip console.log of renderBuildPracticalSummary but still write file",
+        "README.md ralph build section documents practical summary feature",
+        "README documents BUILD-SUMMARY-{timestamp}.md file output",
+        "README documents --quiet flag",
+        "aaa ralph build --help shows -q, --quiet option",
+        "Verify: grep -q 'quiet' tools/src/commands/ralph/index.ts",
+        "Verify: grep -q 'BUILD-SUMMARY' README.md",
+        "TypeScript compiles without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/build.ts",
+        "README.md"
       ]
     }
   ],
