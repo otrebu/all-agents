@@ -1,624 +1,170 @@
 {
-  "$schema": "../schemas/subtasks.schema.json",
+  "$schema": "../docs/planning/schemas/subtasks.schema.json",
   "metadata": {
-    "scope": "story",
-    "storyRef": "STORY-001"
+    "scope": "milestone",
+    "milestoneRef": "002-ralph-💪",
+    "generatedWith": "subtasks-from-source-v2.md",
+    "note": "Predictability-based sizing - comparison test"
   },
   "subtasks": [
     {
-      "id": "SUB-012",
-      "taskRef": "TASK-014",
-      "storyRef": "STORY-001",
-      "title": "Create interrogate workflow doc",
-      "description": "Create context/workflows/interrogate.md defining the interrogation workflow. Document the 3 core questions (hardest decision, rejected alternatives, lowest confidence), --quick mode (minimal output), --skeptical mode (extra validation), and output format (structured table with confidence levels, rejected alternatives, assumptions).",
-      "done": true,
-      "completedAt": "2026-01-25T12:00:00Z",
-      "commitHash": "3d744ddc8b4143968c18c6c7b9fb5c9430a4fa79",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "context/workflows/interrogate.md exists",
-        "Document defines 3 core questions with explanations",
-        "Document specifies --quick mode behavior",
-        "Document specifies --skeptical mode behavior",
-        "Output format section shows structured table example"
-      ],
-      "filesToRead": [
-        "context/workflows/code-review.md",
-        "context/workflows/complete-feature.md",
-        "docs/planning/milestones/002-ralph-💪/tasks/TASK-014-interrogation-workflow.md"
-      ]
-    },
-    {
-      "id": "SUB-013",
-      "taskRef": "TASK-014",
-      "storyRef": "STORY-001",
-      "title": "Create interrogate skill command",
-      "description": "Create .claude/commands/dev/interrogate.md skill that loads the interrogate workflow. Support args for target [changes|commit|pr] and modes [--quick|--skeptical]. The skill gathers git context and applies the workflow questions.",
-      "done": true,
-      "completedAt": "2026-01-25T12:30:00Z",
-      "commitHash": "df2a2cfc812326bf2fa6bae40ae5216ed1540027",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/commands/dev/interrogate.md exists with proper frontmatter",
-        "Skill accepts target argument (changes, commit, pr)",
-        "Skill accepts --quick and --skeptical mode flags",
-        "Skill loads @context/workflows/interrogate.md",
-        "Skill gathers appropriate git context based on target"
-      ],
-      "filesToRead": [
-        ".claude/commands/dev/code-review.md",
-        ".claude/commands/dev/git-commit.md",
-        "context/workflows/interrogate.md"
-      ]
-    },
-    {
-      "id": "SUB-014",
-      "taskRef": "TASK-014",
-      "storyRef": "STORY-001",
-      "title": "Integrate interrogation into complete-feature workflow",
-      "description": "Update context/workflows/complete-feature.md to add interrogation as an optional pre-merge checkpoint. Add a step suggesting '/dev:interrogate changes' before creating PR, especially for substantial changes.",
-      "done": true,
-      "completedAt": "2026-01-25T13:00:00Z",
-      "commitHash": "af1954efdee6fcd0c1e6b7cd9dd247884184a42a",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "complete-feature.md has interrogation checkpoint section",
-        "Checkpoint is marked as optional/recommended",
-        "Instructions show how to run /dev:interrogate",
-        "Mentions when interrogation is most valuable (substantial changes, AI code)"
-      ],
-      "filesToRead": [
-        "context/workflows/complete-feature.md",
-        "context/workflows/dev-lifecycle-simple.md"
-      ]
-    },
-    {
-      "id": "SUB-015",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create code-review agents directory and Finding types",
-      "description": "Create .claude/agents/code-review/ directory structure. Create types.md documenting the Finding interface schema: id (hash), reviewer (agent name), severity (critical|high|medium|low), file, line?, description, suggestedFix?, confidence (0-1). This becomes the contract for all reviewer agents.",
-      "done": true,
-      "completedAt": "2026-01-25T22:35:00Z",
-      "commitHash": "9015ef22ff21cd978099242664312ac772886c9b",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/ directory exists",
-        "types.md documents Finding interface with all fields",
-        "Schema includes severity enum values",
-        "Schema includes confidence range (0-1)",
-        "Example Finding JSON is included"
-      ],
-      "filesToRead": [
-        ".claude/agents/coding-style-reviewer.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
-      ]
-    },
-    {
-      "id": "SUB-016",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create security-reviewer agent",
-      "description": "Create .claude/agents/code-review/security-reviewer.md agent focused on OWASP Top 10, injection vulnerabilities, authentication issues, secrets exposure, and XSS. Agent reads git diff, analyzes for security issues, outputs findings in JSON format per types.md schema.",
-      "done": true,
-      "completedAt": "2026-01-25T22:45:00Z",
-      "commitHash": "7a3361dc9a1c9535d6e97cd1d2c8d5350cca4432",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/security-reviewer.md exists",
-        "Agent has proper frontmatter (name, description, model)",
-        "Agent focuses on security-specific issues (OWASP, injection, auth, secrets, XSS)",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent includes confidence scoring logic"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/coding-style-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-017",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create data-integrity-reviewer agent",
-      "description": "Create .claude/agents/code-review/data-integrity-reviewer.md agent focused on null checks, array boundary conditions, race conditions, and data validation. Agent analyzes code for data integrity issues and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-25T22:55:00Z",
-      "commitHash": "e8603b504b47f1b1052a53a4a7ae7028b8a656d9",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/data-integrity-reviewer.md exists",
-        "Agent focuses on null checks, boundaries, race conditions",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent provides confidence scores based on certainty of issue"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-018",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create error-handling-reviewer agent",
-      "description": "Create .claude/agents/code-review/error-handling-reviewer.md agent focused on swallowed exceptions, missing catch blocks, incomplete error recovery, and logging gaps. Agent identifies error handling issues and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-25T23:05:00Z",
-      "commitHash": "ee2513fad34861df52a73c35766e4772dd92a526",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/error-handling-reviewer.md exists",
-        "Agent focuses on exceptions, catch blocks, recovery paths",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent distinguishes between missing handlers and weak handlers"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-019",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create test-coverage-reviewer agent",
-      "description": "Create .claude/agents/code-review/test-coverage-reviewer.md agent focused on missing tests, untested edge cases, and insufficient test assertions. Agent analyzes test files relative to implementation and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-25T23:15:00Z",
-      "commitHash": "bad0d26e096d422ac610840d402b03399b048bea",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/test-coverage-reviewer.md exists",
-        "Agent identifies missing test files for new code",
-        "Agent identifies untested branches and edge cases",
-        "Agent outputs findings in JSON format matching Finding schema"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md",
-        "context/blocks/test/vitest.md"
-      ]
-    },
-    {
-      "id": "SUB-020",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create synthesizer agent",
-      "description": "Create .claude/agents/code-review/synthesizer.md agent that aggregates findings from multiple reviewers. Synthesizer dedupes similar findings (same file+line+issue), ranks by severity × confidence, groups by file, and outputs consolidated report.",
-      "done": true,
-      "completedAt": "2026-01-25T23:25:00Z",
-      "commitHash": "5aad2a374ba72b5fbe22347799ee3c157fb8901c",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/synthesizer.md exists",
-        "Agent accepts findings JSON from multiple reviewers",
-        "Agent dedupes findings with same file+line+description",
-        "Agent ranks findings by severity × confidence product",
-        "Agent outputs consolidated report with grouped findings"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-021",
-      "taskRef": "TASK-016",
-      "storyRef": "STORY-001",
-      "title": "Rename coding-style-reviewer to maintainability-reviewer",
-      "description": "Move .claude/agents/coding-style-reviewer.md to .claude/agents/code-review/maintainability-reviewer.md. Update description to focus on coupling, naming conventions, Single Responsibility Principle, and code organization. Update any references in settings.json or elsewhere.",
-      "done": true,
-      "completedAt": "2026-01-25T23:10:00Z",
-      "commitHash": "430ac5c09fba5377f2f6e3ec3b6337c699b8decc",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/maintainability-reviewer.md exists",
-        "Original coding-style-reviewer.md is removed",
-        "Agent description focuses on coupling, naming, SRP",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Any references in .claude/settings.json are updated"
-      ],
-      "filesToRead": [
-        ".claude/agents/coding-style-reviewer.md",
-        ".claude/settings.json",
-        ".claude/agents/code-review/types.md"
-      ]
-    },
-    {
-      "id": "SUB-022",
-      "taskRef": "TASK-016",
-      "storyRef": "STORY-001",
-      "title": "Update code-review workflow for parallel agents",
-      "description": "Update context/workflows/code-review.md to include parallel agent orchestration. Add section explaining how to invoke multiple reviewers in parallel using Task tool, how findings are synthesized, and how triage actions work (FIX/SKIP/FALSE POSITIVE).",
-      "done": true,
-      "completedAt": "2026-01-25T23:45:00Z",
-      "commitHash": "591140415b2e9a855fae26e10a35ced1c2650815",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "code-review.md has parallel orchestration section",
-        "Document explains Task tool parallel invocation",
-        "Document references Finding schema from types.md",
-        "Document defines triage actions (FIX, SKIP, FALSE POSITIVE)",
-        "Document shows synthesizer invocation pattern"
-      ],
-      "filesToRead": [
-        "context/workflows/code-review.md",
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/synthesizer.md"
-      ]
-    },
-    {
-      "id": "SUB-023",
-      "taskRef": "TASK-016",
-      "storyRef": "STORY-001",
-      "title": "Create parallel-code-review skill",
-      "description": "Create .claude/skills/parallel-code-review/SKILL.md that orchestrates parallel reviewer agents. Skill spawns reviewers via Task tool, collects findings, invokes synthesizer, and presents findings one at a time with triage options.",
-      "done": true,
-      "completedAt": "2026-01-25T23:05:38Z",
-      "commitHash": "fc25f8d14b0708e6074766aa76ce200b872f55ab",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/skills/parallel-code-review/SKILL.md exists",
-        "Skill has proper frontmatter (name, description)",
-        "Skill invokes reviewers in parallel using Task tool",
-        "Skill invokes synthesizer with collected findings",
-        "Skill presents findings with chunked presentation",
-        "Skill handles FIX/SKIP/FALSE POSITIVE responses"
-      ],
-      "filesToRead": [
-        ".claude/skills/brainwriting/SKILL.md",
-        "context/workflows/code-review.md",
-        ".claude/agents/code-review/synthesizer.md"
-      ]
-    },
-    {
-      "id": "SUB-024",
-      "taskRef": "TASK-016",
-      "storyRef": "STORY-001",
-      "title": "Update code-review command to use new skill",
-      "description": "Update .claude/commands/dev/code-review.md to load the new parallel-code-review skill instead of the simple workflow. The command becomes a thin wrapper that invokes the skill.",
-      "done": true,
-      "completedAt": "2026-01-25T23:35:00Z",
-      "commitHash": "9ef9879dc09a3b653bf7ea42c36f8aa830958f84",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "code-review.md command loads parallel-code-review skill",
-        "Command passes through any arguments to the skill",
-        "/dev:code-review invocation triggers parallel review"
-      ],
-      "filesToRead": [
-        ".claude/commands/dev/code-review.md",
-        ".claude/skills/parallel-code-review/SKILL.md"
-      ]
-    },
-    {
       "id": "SUB-025",
-      "taskRef": "TASK-017",
+      "taskRef": "TASK-REVIEW-001",
       "storyRef": "STORY-001",
-      "title": "Create review CLI types",
-      "description": "Create tools/src/commands/review/types.ts with Finding interface (matching agent schema), ReviewDiaryEntry interface (timestamp, mode, findings count, fixed/skipped/falsePositives counts, decisions array), and ReviewResult interface for CLI output.",
-      "done": true,
-      "completedAt": "2026-01-25T23:45:00Z",
-      "commitHash": "6e57b11db99d94a5596ad17115e5b9af1a88c4a3",
-      "sessionId": "ralph-build-iteration",
+      "title": "Update SKILL.md with all 11 reviewer agents",
+      "description": "The parallel-code-review skill documentation lists only 5 reviewers but there are 11 reviewer agents. Update the Reviewer Agents table in SKILL.md to include all 11: security-reviewer, data-integrity-reviewer, error-handling-reviewer, test-coverage-reviewer, maintainability-reviewer, dependency-reviewer, documentation-reviewer, accessibility-reviewer, intent-alignment-reviewer, over-engineering-reviewer, performance-reviewer.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "Clear what to do (update table), clear how (add rows), similar tables exist in file"
+      },
       "acceptanceCriteria": [
-        "tools/src/commands/review/types.ts exists",
-        "Finding interface matches agent schema exactly",
-        "ReviewDiaryEntry has all fields from story spec",
-        "ReviewResult interface defined for CLI output",
-        "Types are properly exported"
+        "SKILL.md Reviewer Agents table contains 11 rows (one per agent)",
+        "Each agent row has: name, focus area description",
+        "Verify: grep -c 'reviewer' .claude/skills/parallel-code-review/SKILL.md | test $(cat) -ge 11"
       ],
       "filesToRead": [
-        "tools/src/commands/ralph/types.ts",
-        ".claude/agents/code-review/types.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+        ".claude/skills/parallel-code-review/SKILL.md",
+        ".claude/agents/code-review/"
       ]
     },
     {
       "id": "SUB-026",
-      "taskRef": "TASK-017",
+      "taskRef": "TASK-REVIEW-001",
       "storyRef": "STORY-001",
-      "title": "Create review CLI command structure",
-      "description": "Create tools/src/commands/review/index.ts with main review command. Implement mode selection: bare 'review' prompts for mode, --supervised runs chat mode, --headless runs autonomous mode, --headless --dry-run previews without fixing. Add status subcommand placeholder.",
-      "done": true,
-      "completedAt": "2026-01-25T23:55:00Z",
-      "commitHash": "b52ec16b544ca2dbf4e3cdd58f0b57441059789d",
-      "sessionId": "ralph-build-iteration",
+      "title": "Document aaa review command in README.md and tools/CLAUDE.md",
+      "description": "Two documentation gaps: (1) README.md CLI Tools section doesn't document aaa review command, (2) tools/CLAUDE.md directory structure doesn't include review/ folder. Add both in one subtask since they're related documentation updates with no code changes.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 4,
+        "reasoning": "Clear content to add, patterns exist in both files, no research needed. Merged from findings #3 and #4 - same concern (documentation), both deterministic."
+      },
       "acceptanceCriteria": [
-        "tools/src/commands/review/index.ts exists",
-        "Command registered in CLI entry point",
-        "'aaa review' prompts for supervised vs headless",
-        "'aaa review --supervised' flag works",
-        "'aaa review --headless' flag works",
-        "'aaa review --headless --dry-run' flag works",
-        "'aaa review status' subcommand exists (placeholder)"
+        "README.md CLI Tools section documents 'aaa review' with --supervised, --headless, --dry-run flags",
+        "README.md documents 'aaa review status' subcommand",
+        "tools/CLAUDE.md Directory Structure includes review/ folder with index.ts, types.ts",
+        "Verify: grep -q 'aaa review' README.md",
+        "Verify: grep -q 'review/' tools/CLAUDE.md"
       ],
       "filesToRead": [
-        "tools/src/commands/ralph/index.ts",
-        "tools/src/index.ts",
-        "tools/src/commands/review/types.ts"
+        "README.md",
+        "tools/CLAUDE.md",
+        "tools/src/commands/review/"
       ]
     },
     {
       "id": "SUB-027",
-      "taskRef": "TASK-017",
+      "taskRef": "TASK-REVIEW-001",
       "storyRef": "STORY-001",
-      "title": "Implement review supervised mode",
-      "description": "Implement supervised mode in tools/src/commands/review/index.ts. Reuse invokeClaudeChat() from ralph/claude.ts to spawn chat session with review prompt. User watches execution and can intervene. Display uses ralph display utilities.",
-      "done": true,
-      "completedAt": "2026-01-25T23:59:00Z",
-      "commitHash": "e2bbfcb3a7052c8dae7a8b812faca4f6ddb74d34",
-      "sessionId": "ralph-build-iteration",
+      "title": "Add error logging and Zod validation to review parsing",
+      "description": "Two related error handling improvements in review/index.ts: (1) readDiaryEntries silently returns [] on error - add console.warn matching writeDiaryEntry pattern at line 250, (2) parseReviewFindings uses raw JSON.parse without validation - add Zod schema for Finding[] structure. Both improve error handling in the same file.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 5,
+        "reasoning": "Merged findings #6 and #7. Both touch same file, same concern (error handling/validation). Pattern for console.warn exists in file. Zod is standard, Finding type defined in types.ts."
+      },
       "acceptanceCriteria": [
-        "Supervised mode invokes Claude in chat mode",
-        "Review prompt is loaded and passed to Claude",
-        "User can watch and type during session",
-        "Display matches Ralph supervised mode style"
+        "readDiaryEntries catch block logs warning with chalk.yellow including file path and error message",
+        "Pattern matches writeDiaryEntry error handling (lines 250-254)",
+        "Zod schema defined for Finding array structure matching types.ts Finding interface",
+        "parseReviewFindings uses schema.safeParse() instead of raw JSON.parse",
+        "Invalid JSON logs Zod format errors for debugging",
+        "Verify: grep -q 'console.warn' tools/src/commands/review/index.ts",
+        "Verify: grep -q 'z.object\\|z.array' tools/src/commands/review/index.ts"
       ],
       "filesToRead": [
-        "tools/src/commands/ralph/claude.ts",
-        "tools/src/commands/ralph/display.ts",
-        "tools/src/commands/review/index.ts"
-      ]
-    },
-    {
-      "id": "SUB-028",
-      "taskRef": "TASK-017",
-      "storyRef": "STORY-001",
-      "title": "Implement review headless mode",
-      "description": "Implement headless mode in tools/src/commands/review/index.ts. Reuse invokeClaudeHeadless() from ralph/claude.ts. Parse JSON findings from output, auto-triage by severity/confidence, apply fixes unless dry-run. Log all decisions.",
-      "done": true,
-      "completedAt": "2026-01-25T23:55:00Z",
-      "commitHash": "4368beb",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "Headless mode invokes Claude with -p flag",
-        "JSON findings are parsed from output",
-        "Auto-triage categorizes by severity × confidence",
-        "Fixes are applied (unless --dry-run)",
-        "All decisions are logged for diary"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/claude.ts",
-        "tools/src/commands/ralph/build.ts",
-        "tools/src/commands/review/index.ts"
-      ]
-    },
-    {
-      "id": "SUB-029",
-      "taskRef": "TASK-017",
-      "storyRef": "STORY-001",
-      "title": "Implement review diary logging",
-      "description": "Implement diary logging for review command. Write ReviewDiaryEntry to logs/reviews.jsonl after each review run. Include timestamp, mode, findings count, fixed/skipped/falsePositives, and full decisions array. Implement 'aaa review status' to read and display diary.",
-      "done": true,
-      "completedAt": "2026-01-25T23:59:00Z",
-      "commitHash": "521232b",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "logs/reviews.jsonl created if doesn't exist",
-        "ReviewDiaryEntry appended after each run",
-        "Entry includes all specified fields",
-        "'aaa review status' reads and displays diary entries",
-        "Status shows summary statistics"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/post-iteration.ts",
-        "tools/src/commands/ralph/status.ts",
+        "tools/src/commands/review/index.ts",
         "tools/src/commands/review/types.ts"
       ]
     },
     {
-      "id": "SUB-030",
-      "taskRef": "TASK-017",
+      "id": "SUB-028a",
+      "taskRef": "TASK-REVIEW-001",
       "storyRef": "STORY-001",
-      "title": "Add review shell completions",
-      "description": "Update tools/src/commands/completion/bash.ts, zsh.ts, and fish.ts to include 'review' command completions. Add --supervised, --headless, --dry-run flags and 'status' subcommand.",
-      "done": true,
-      "completedAt": "2026-01-25T23:55:00Z",
-      "commitHash": "ee96f9e011fae7ed75fb6a426b1d250a1eaa96ec",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "bash.ts includes review command completion",
-        "zsh.ts includes review command completion",
-        "fish.ts includes review command completion",
-        "All three include --supervised, --headless, --dry-run flags",
-        "All three include status subcommand"
-      ],
-      "filesToRead": [
-        "tools/src/commands/completion/bash.ts",
-        "tools/src/commands/completion/zsh.ts",
-        "tools/src/commands/completion/fish.ts"
-      ]
-    },
-    {
-      "id": "SUB-031",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create over-engineering-reviewer agent",
-      "description": "Create .claude/agents/code-review/over-engineering-reviewer.md agent focused on YAGNI violations, premature abstraction, unnecessary complexity, and over-configurability. Agent identifies over-engineering and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-26T00:05:00Z",
-      "commitHash": "fc80652ab10ab8bf2e77486a1a821f9aafc4c1cd",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/over-engineering-reviewer.md exists",
-        "Agent focuses on YAGNI, premature abstraction, complexity",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent provides specific examples of simpler alternatives"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-032",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create performance-reviewer agent",
-      "description": "Create .claude/agents/code-review/performance-reviewer.md agent focused on N+1 queries, memory leaks, algorithm complexity, and inefficient patterns. Agent identifies performance issues and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-26T00:05:00Z",
-      "commitHash": "7bc893592941cdaf8685e03cf9e023bc526a3cb7",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/performance-reviewer.md exists",
-        "Agent focuses on N+1, memory, algorithms, inefficiency",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent suggests specific performance improvements"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-033",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create accessibility-reviewer agent",
-      "description": "Create .claude/agents/code-review/accessibility-reviewer.md agent focused on WCAG compliance for frontend code. Agent should skip non-frontend files. Identifies missing ARIA, color contrast, keyboard navigation issues.",
-      "done": true,
-      "completedAt": "2026-01-26T00:15:00Z",
-      "commitHash": "310dc003f4bda6df428af66bc21b597e53d2cefe",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/accessibility-reviewer.md exists",
-        "Agent focuses on WCAG, ARIA, color contrast, keyboard nav",
-        "Agent skips non-frontend files (detect by extension/path)",
-        "Agent outputs findings in JSON format matching Finding schema"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-034",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create documentation-reviewer agent",
-      "description": "Create .claude/agents/code-review/documentation-reviewer.md agent focused on missing/outdated documentation, README gaps, missing JSDoc/TSDoc comments, and changelog omissions. Agent identifies doc issues and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-26T00:25:00Z",
-      "commitHash": "0f3b7d264416a6b46c0690ec9201d103fbb15bcc",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/documentation-reviewer.md exists",
-        "Agent identifies missing docs for public APIs",
-        "Agent identifies outdated docs that don't match code",
-        "Agent outputs findings in JSON format matching Finding schema"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-035",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create dependency-reviewer agent",
-      "description": "Create .claude/agents/code-review/dependency-reviewer.md agent focused on outdated dependencies, known vulnerabilities, license compatibility, and unnecessary dependencies. Agent checks package.json and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-26T00:35:00Z",
-      "commitHash": "1f33dcf8bae8e18708a9ecd6d591ea6eec3a3bca",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/dependency-reviewer.md exists",
-        "Agent identifies outdated dependencies",
-        "Agent flags known vulnerabilities (can suggest npm audit)",
-        "Agent outputs findings in JSON format matching Finding schema"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-036",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create intent-alignment-reviewer agent",
-      "description": "Create .claude/agents/code-review/intent-alignment-reviewer.md agent that verifies code matches stated requirements. Agent requires intent input (description or file reference) and checks implementation alignment. Outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-26T00:45:00Z",
-      "commitHash": "03c8054118fe2955c7cc5eb410239a50137a123f",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/intent-alignment-reviewer.md exists",
-        "Agent requires intent parameter (description or @file)",
-        "Agent compares implementation to stated intent",
-        "Agent identifies gaps and deviations",
-        "Agent outputs findings in JSON format matching Finding schema"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md",
-        "context/workflows/code-review.md"
-      ]
-    },
-    {
-      "id": "SUB-037",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Update atomic-documentation with lessons placement",
-      "description": "Update context/blocks/docs/atomic-documentation.md to add 'Where Lessons Go' decision tree. Document that project-specific lessons go in docs/{folder}/, reusable lessons go in context/blocks/ as Gotchas sections. Clarify context/ vs docs/ distinction.",
-      "done": true,
-      "completedAt": "2026-01-26T01:00:00Z",
-      "commitHash": "253c563cd103985a190e30410d1da514b1f71799",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "atomic-documentation.md has 'Where Lessons Go' section",
-        "Decision tree matches story specification",
-        "Examples show project-specific vs reusable placement",
-        "Clarifies that no separate lessons/ folder exists"
-      ],
-      "filesToRead": [
-        "context/blocks/docs/atomic-documentation.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
-      ]
-    },
-    {
-      "id": "SUB-038",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Update VISION.md with Code Review Mode",
-      "description": "Add Section 3.4 'Code Review Mode' to docs/planning/VISION.md. Document parallel multi-agent review, 12 specialized reviewers list, trust gradient modes (Interactive/Supervised/Headless), interrogation workflow, and diary logging.",
-      "done": true,
-      "completedAt": "2026-01-26T01:15:00Z",
-      "commitHash": "556f9146587fbce64f0bf8acf4d60adffa3edee4",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "VISION.md has Section 3.4 Code Review Mode",
-        "Section lists all 12 reviewer agents",
-        "Section documents trust gradient for review",
-        "Section mentions interrogation workflow",
-        "Section references logs/reviews.jsonl diary"
-      ],
-      "filesToRead": [
-        "docs/planning/VISION.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
-      ]
-    },
-    {
-      "id": "SUB-039",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Update ROADMAP.md with code review milestone",
-      "description": "Update docs/planning/ROADMAP.md to add or integrate code review milestone. List key deliverables: 12 reviewer agents, aaa review CLI, /dev:code-review skill, /dev:interrogate workflow, diary logging. Note dependency on Ralph patterns.",
+      "title": "Analyze interrogate-review workflow relationship",
+      "description": "Research task: The /dev:interrogate command exists alongside the parallel-code-review skill. Determine: (1) What is the purpose of each? (2) Are they currently integrated? (3) When should users use which? Output a documented analysis to inform SUB-028b.",
       "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-unknown",
+        "spikeIndicators": 2,
+        "elementCount": 4,
+        "reasoning": "Split from finding #12. Original was 'verify and document' which mixes research + implementation. This subtask is research-only with defined output artifact."
+      },
       "acceptanceCriteria": [
-        "ROADMAP.md has code review section/milestone",
-        "Deliverables list matches story specification",
-        "Dependencies on Ralph milestone noted",
-        "Section follows existing roadmap format"
+        "Read and analyzed: .claude/skills/parallel-code-review/SKILL.md",
+        "Read and analyzed: .claude/commands/dev/interrogate.md",
+        "Read and analyzed: context/workflows/interrogate.md",
+        "Output: Analysis documented in completion notes covering: purpose of each, current integration status, recommendation for documentation"
       ],
       "filesToRead": [
-        "docs/planning/ROADMAP.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+        ".claude/skills/parallel-code-review/SKILL.md",
+        ".claude/commands/dev/interrogate.md",
+        "context/workflows/interrogate.md",
+        "docs/planning/VISION.md"
       ]
+    },
+    {
+      "id": "SUB-028b",
+      "taskRef": "TASK-REVIEW-001",
+      "storyRef": "STORY-001",
+      "title": "Document interrogate vs review distinction",
+      "description": "Implementation task (blocked by SUB-028a): Based on analysis findings, add documentation clarifying when to use /dev:interrogate vs aaa review. Add section to SKILL.md or VISION.md explaining: interrogate is for questioning decisions in existing code, review is for finding issues in changes.",
+      "done": false,
+      "blockedBy": ["SUB-028a"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "After SUB-028a completes, this becomes deterministic: add specific content to specific file based on research findings."
+      },
+      "acceptanceCriteria": [
+        "Documentation added to SKILL.md OR VISION.md (based on SUB-028a recommendation)",
+        "Section clearly states: interrogate = questioning decisions, review = finding issues",
+        "Section includes guidance on when to use each",
+        "Verify: grep -q 'interrogate' in the updated documentation file"
+      ],
+      "filesToRead": [
+        ".claude/skills/parallel-code-review/SKILL.md",
+        "docs/planning/VISION.md"
+      ]
+    }
+  ],
+  "skippedFindings": [
+    {
+      "finding": 2,
+      "title": "Array bounds check - undefined decision",
+      "reason": "FALSE POSITIVE - Line 2532 doesn't exist. File is 871 lines, not 2600+."
+    },
+    {
+      "finding": 5,
+      "title": "Null safety - regex match",
+      "reason": "FALSE POSITIVE - Line 2415 doesn't exist. File is 871 lines."
+    },
+    {
+      "finding": 8,
+      "title": "Simplify threshold calculation",
+      "reason": "FALSE POSITIVE - Current severity × confidence implementation is reasonable and well-documented."
+    },
+    {
+      "finding": 9,
+      "title": "Split index.ts into modules",
+      "reason": "FALSE POSITIVE - File is 871 lines, not 2600+. Not large enough to warrant splitting."
+    },
+    {
+      "finding": 10,
+      "title": "Break up runHeadlessReview()",
+      "reason": "FALSE POSITIVE - File is manageable at 871 lines. Function refactoring not necessary."
+    },
+    {
+      "finding": 11,
+      "title": "Break up runReviewStatus()",
+      "reason": "FALSE POSITIVE - File is manageable at 871 lines. Function refactoring not necessary."
     }
   ]
 }
