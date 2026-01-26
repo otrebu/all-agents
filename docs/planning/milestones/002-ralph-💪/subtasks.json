@@ -1350,7 +1350,10 @@
       "taskRef": "build-loop-practical-summary",
       "title": "Add renderBuildPracticalSummary to display.ts",
       "description": "Add renderBuildPracticalSummary() function to display.ts that renders the practical summary as a boxen terminal box. Shows: completed/failed/cost/duration/files stats, git commit range with diff command, subtask bullets with summaries and retry counts, remaining count, saved file path.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T23:45:00Z",
+      "commitHash": "aa07be9a2281dbcb2a8b01b768c201521fc95f77",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-067"],
       "classification": {
         "knowledgeCertainty": "known-known",

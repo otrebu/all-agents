@@ -744,3 +744,26 @@
   - Process documentation: search for existing docs, update if found, skip conditions
   - Documentation AC section for when doc updates are required
 - **Files:** context/workflows/ralph/building/ralph-iteration.md (modified)
+
+### SUB-067
+- **Problem:** Need types and core summary functions for the practical build summary feature
+- **Changes:** Created tools/src/commands/ralph/summary.ts with:
+  - BuildPracticalSummary and related types (CompletedSubtaskInfo, BuildStats, CommitRange)
+  - generateBuildSummary() - aggregates diary entries for completed subtasks (no LLM)
+  - getCommitRange() - extracts start/end commit hashes from subtasks
+  - writeBuildSummaryFile() - writes BUILD-SUMMARY-{timestamp}.md with stats and diff
+- **Files:** tools/src/commands/ralph/summary.ts (created)
+
+### SUB-068
+- **Problem:** Need terminal rendering function for practical build summary display
+- **Changes:** Added renderBuildPracticalSummary() to display.ts:
+  - Accepts BuildPracticalSummary and savedFilePath parameters
+  - Shows stats line: Completed, Failed, Cost, Duration, Files
+  - Shows git commit range with diff command when available
+  - Shows bullet list of completed subtasks with summaries
+  - Shows retry count for subtasks with >1 attempt (e.g., '2 attempts')
+  - Shows remaining subtasks count or "All complete" message
+  - Shows clickable path to saved summary file
+  - Uses green border for success, yellow if any failures
+  - Added comprehensive unit tests in display.test.ts
+- **Files:** tools/src/commands/ralph/display.ts (modified), tools/tests/lib/display.test.ts (created)
