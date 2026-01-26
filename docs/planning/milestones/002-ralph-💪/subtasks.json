@@ -19,7 +19,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "Clear what to do (update table), clear how (add rows), similar tables exist in file"
       },
       "acceptanceCriteria": [
@@ -44,7 +44,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 4,
+        "changeCount": 4,
         "reasoning": "Clear content to add, patterns exist in both files, no research needed. Merged from findings #3 and #4 - same concern (documentation), both deterministic."
       },
       "acceptanceCriteria": [
@@ -72,7 +72,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 5,
+        "changeCount": 5,
         "reasoning": "Merged findings #6 and #7. Both touch same file, same concern (error handling/validation). Pattern for console.warn exists in file. Zod is standard, Finding type defined in types.ts."
       },
       "acceptanceCriteria": [
@@ -101,7 +101,7 @@
       "classification": {
         "knowledgeCertainty": "known-unknown",
         "spikeIndicators": 2,
-        "elementCount": 4,
+        "changeCount": 4,
         "reasoning": "Split from finding #12. Original was 'verify and document' which mixes research + implementation. This subtask is research-only with defined output artifact."
       },
       "acceptanceCriteria": [
@@ -145,7 +145,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "After SUB-028a completes, this becomes deterministic: add specific content to specific file based on research findings."
       },
       "acceptanceCriteria": [
@@ -172,7 +172,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "Clear interface additions. Exact shapes defined in plan. No dependencies."
       },
       "acceptanceCriteria": [
@@ -203,7 +203,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "Follows existing CLI option pattern. Similar to --headless flag. Straightforward Commander option addition."
       },
       "acceptanceCriteria": [
@@ -232,7 +232,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 5,
+        "changeCount": 5,
         "reasoning": "Clear instrumentation pattern (Date.now() wrappers). Exact locations specified in plan. skipSummary short-circuit is straightforward conditional."
       },
       "acceptanceCriteria": [
@@ -267,7 +267,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "Simple wrapper pattern around existing invokeClaudeHeadless call. Exact location specified. Follows established timing pattern from SUB-031."
       },
       "acceptanceCriteria": [
@@ -297,7 +297,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "Clear implementation pattern. Similar to existing getSessionJsonlPath(). Uses standard find command with timestamp filter."
       },
       "acceptanceCriteria": [
@@ -328,7 +328,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 4,
+        "changeCount": 4,
         "reasoning": "Clear integration pattern. Reuses existing runPostIterationHook(). Only new code is timestamp capture and session discovery call."
       },
       "acceptanceCriteria": [
@@ -362,7 +362,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "Clear function signature specified in plan. Returns simple path. Date formatting is straightforward."
       },
       "acceptanceCriteria": [
@@ -391,7 +391,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "Clear patterns. getIterationLogPath uses dirname(). getPlanningLogPath is direct pass-through. _orphan fallback is simple conditional."
       },
       "acceptanceCriteria": [
@@ -422,7 +422,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 1,
+        "changeCount": 1,
         "reasoning": "Single field addition to existing interface. Pattern already exists with mode field."
       },
       "acceptanceCriteria": [
@@ -449,7 +449,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "Clear refactor: replace implementation with import from config.ts. Add type field to existing entry writes."
       },
       "acceptanceCriteria": [
@@ -479,7 +479,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "Import new helper, replace hardcoded path, add type field. Atomic write is optional enhancement."
       },
       "acceptanceCriteria": [
@@ -510,7 +510,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 1,
-        "elementCount": 4,
+        "changeCount": 4,
         "reasoning": "Glob pattern is new but straightforward. Multiple file aggregation requires iteration. Path derivation from subtasks is clear."
       },
       "acceptanceCriteria": [
@@ -542,7 +542,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 4,
+        "changeCount": 4,
         "reasoning": "Direct path string replacements at known line numbers. Test structure remains same."
       },
       "acceptanceCriteria": [
@@ -571,7 +571,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "Simple file operations. Clear what to add/delete. No code changes."
       },
       "acceptanceCriteria": [
@@ -598,7 +598,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "Clear content to add (table from plan). Clear location (after Section 2). No code changes."
       },
       "acceptanceCriteria": [
@@ -627,7 +627,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "Simple deletion. Files explicitly listed in plan. No code dependencies."
       },
       "acceptanceCriteria": [
@@ -655,7 +655,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "Simple deletion. 6 specific files to delete. No code dependencies."
       },
       "acceptanceCriteria": [
@@ -682,7 +682,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "Simple deletion of 4 orphaned files. No dependencies."
       },
       "acceptanceCriteria": [
@@ -712,7 +712,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 1,
+        "changeCount": 1,
         "reasoning": "Single file deletion. Explicitly called out in plan."
       },
       "acceptanceCriteria": [
@@ -739,7 +739,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "New documentation file. Content fully specified in plan. No code changes."
       },
       "acceptanceCriteria": [
@@ -771,7 +771,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 2,
+        "changeCount": 2,
         "reasoning": "Two regex pattern updates. Schema location specified. Exact new patterns in plan."
       },
       "acceptanceCriteria": [
@@ -799,7 +799,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 3,
+        "changeCount": 3,
         "reasoning": "String replacements in JSON. taskRef values are identifiable. Pattern is clear."
       },
       "acceptanceCriteria": [
@@ -828,7 +828,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 4,
+        "changeCount": 4,
         "reasoning": "String replacements in JSON. Multiple refs to update but pattern is clear."
       },
       "acceptanceCriteria": [
@@ -859,7 +859,7 @@
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
-        "elementCount": 5,
+        "changeCount": 5,
         "reasoning": "Verification steps clearly listed in plan. No new code, just checks."
       },
       "acceptanceCriteria": [
@@ -882,8 +882,8 @@
       "id": "SUB-053",
       "taskRef": "subtask-review-workflow",
       "storyRef": null,
-      "title": "Rename elementCount to changeCount in schema and subtasks",
-      "description": "Update docs/planning/schemas/subtasks.schema.json to rename the elementCount field to changeCount in the classification object. Also update all existing subtasks in docs/planning/milestones/002-ralph-💪/subtasks.json that use elementCount to use changeCount instead. This aligns with the plan's decision to use 'changeCount' as the sizing metric name.",
+      "title": "Rename changeCount to changeCount in schema and subtasks",
+      "description": "Update docs/planning/schemas/subtasks.schema.json to rename the changeCount field to changeCount in the classification object. Also update all existing subtasks in docs/planning/milestones/002-ralph-💪/subtasks.json that use changeCount to use changeCount instead. This aligns with the plan's decision to use 'changeCount' as the sizing metric name.",
       "done": false,
       "classification": {
         "knowledgeCertainty": "known-known",
@@ -892,11 +892,11 @@
         "reasoning": "Schema field rename + JSON find/replace. Both files known, exact changes clear."
       },
       "acceptanceCriteria": [
-        "subtasks.schema.json has 'changeCount' instead of 'elementCount' in classification properties",
-        "All subtasks in 002-ralph-💪/subtasks.json use 'changeCount' instead of 'elementCount'",
+        "subtasks.schema.json has 'changeCount' instead of 'changeCount' in classification properties",
+        "All subtasks in 002-ralph-💪/subtasks.json use 'changeCount' instead of 'changeCount'",
         "Schema remains valid JSON: jq . docs/planning/schemas/subtasks.schema.json > /dev/null",
         "Verify: grep -q 'changeCount' docs/planning/schemas/subtasks.schema.json",
-        "Verify: ! grep -q 'elementCount' docs/planning/milestones/002-ralph-💪/subtasks.json"
+        "Verify: ! grep -q 'changeCount' docs/planning/milestones/002-ralph-💪/subtasks.json"
       ],
       "filesToRead": [
         "docs/planning/schemas/subtasks.schema.json",
