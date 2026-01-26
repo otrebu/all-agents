@@ -521,7 +521,10 @@
       "storyRef": "STORY-001",
       "title": "Create dependency-reviewer agent",
       "description": "Create .claude/agents/code-review/dependency-reviewer.md agent focused on outdated dependencies, known vulnerabilities, license compatibility, and unnecessary dependencies. Agent checks package.json and outputs findings per schema.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T00:35:00Z",
+      "commitHash": "1f33dcf8bae8e18708a9ecd6d591ea6eec3a3bca",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/dependency-reviewer.md exists",
         "Agent identifies outdated dependencies",

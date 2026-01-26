@@ -272,3 +272,15 @@
   - Example findings for missing JSDoc on exported function, new CLI flag without README, complex algorithm without comments, missing changelog entry, and missing type documentation
   - JSON output format matching Finding schema from types.md
 - **Files:** .claude/agents/code-review/documentation-reviewer.md (created)
+
+### SUB-035
+- **Problem:** Need a dependency-focused code reviewer agent that identifies outdated dependencies, known vulnerabilities, license compatibility issues, and unnecessary dependencies
+- **Changes:** Created .claude/agents/code-review/dependency-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Dependency focus areas: security vulnerabilities (CVEs), outdated dependencies, license compatibility, unnecessary dependencies, version range issues, supply chain risks
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to dependency issues
+  - Example findings for known vulnerability, deprecated package, unnecessary dependency, license concern, and overly permissive range
+  - References to npm audit, npm-check-updates, and license-checker tools
+  - JSON output format matching Finding schema from types.md
+- **Files:** .claude/agents/code-review/dependency-reviewer.md (created)
