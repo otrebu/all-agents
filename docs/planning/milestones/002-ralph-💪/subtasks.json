@@ -1038,7 +1038,10 @@
       "storyRef": null,
       "title": "Add Phase 6b (Doc Linking) to subtasks-from-source.md",
       "description": "Update context/workflows/ralph/planning/subtasks-from-source.md to add Phase 6b: Doc Linking after Phase 6 (Validation). This phase spawns atomic-doc-creator for missing critical docs, logs creation to milestone diary, and adds created doc paths to subtask's filesToRead.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T12:30:00Z",
+      "commitHash": "fdfe943",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-057"],
       "classification": {
         "knowledgeCertainty": "known-known",

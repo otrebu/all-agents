@@ -649,3 +649,14 @@
   - Output format: docMatches array and missingDocs array
   - Includes example showing end-to-end doc lookup process
 - **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)
+
+### SUB-058
+- **Problem:** Need to add Phase 6b (Doc Linking) to subtasks-from-source.md workflow for creating missing atomic docs flagged during Phase 1b
+- **Changes:** Added Phase 6b: Doc Linking after Phase 6 (Validation):
+  - Documents filtering for critical gaps (skip trivial/well-known concepts)
+  - Documents spawning atomic-doc-creator agent for each critical gap
+  - Documents logging creation to milestone daily log with type: "doc-creation"
+  - Documents updating subtask filesToRead with created doc paths
+  - Clarifies created docs do NOT have [REVIEW] flag in this context
+  - Includes skip conditions and example workflow
+- **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)
