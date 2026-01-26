@@ -563,7 +563,10 @@
       "storyRef": null,
       "title": "Cleanup: gitignore and delete remnant files",
       "description": "Final cleanup: (1) Add .claude/cache/ to .gitignore, (2) Delete old global logs/ folder contents if empty after migration, (3) Delete any v2 remnant files. This is the last subtask to run after all migrations are verified working.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T20:00:00Z",
+      "commitHash": "0c46ee3",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-040", "SUB-041"],
       "classification": {
         "knowledgeCertainty": "known-known",

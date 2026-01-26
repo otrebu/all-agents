@@ -494,3 +494,12 @@
   - Update DIARY_PATH in bash test scripts to use milestone-scoped paths
   - Update verification assertions to check the new path structure
 - **Files:** tools/tests/e2e/ralph.test.ts (modified)
+
+### SUB-042
+- **Problem:** Need to clean up .gitignore and remove v2 remnant files after milestone-scoped logs migration
+- **Changes:** Cleanup operations for TASK-LOGS-001 completion:
+  - Added .claude/cache/ to .gitignore to exclude cache files from version control
+  - Deleted tmp/subtasks-v2.json remnant file (was untracked)
+  - Deleted context/workflows/ralph/planning/subtasks-from-source-v2.md remnant file (was untracked)
+  - Preserved old global logs/ files (contain historical data not yet migrated - per AC "if migrated" condition)
+- **Files:** .gitignore (modified)
