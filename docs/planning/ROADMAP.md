@@ -105,6 +105,31 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 
 **Dependencies:** 003-calibration (milestone 3)
 
+---
+
+### 5. [code-review](milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md): Parallel Multi-Agent Review System
+
+**Outcome:** Users can run comprehensive code review with 12 specialized agents in parallel, with trust gradient modes matching Ralph's execution patterns
+
+**Why fifth:** Code review complements Ralph's build-time quality with pre-merge verification. Reuses patterns established in earlier milestones (trust gradient, diary logging, CLI structure) and applies them to a new domain.
+
+**Key deliverables:**
+- 12 reviewer agents (`security`, `data-integrity`, `error-handling`, `test-coverage`, `over-engineering`, `performance`, `accessibility`, `documentation`, `maintainability`, `dependency`, `intent-alignment`) + `synthesizer`
+- `aaa review` CLI with `--supervised` and `--headless` modes
+- `/dev:code-review` skill for interactive mode in Claude Code
+- `/dev:interrogate` workflow for surfacing assumptions and confidence levels
+- Diary logging to `logs/reviews.jsonl`
+
+**Success criteria:**
+- `/dev:code-review` spawns parallel reviewers, synthesizes findings, presents for triage
+- `aaa review --headless` auto-triages and fixes based on severity × confidence
+- `/dev:interrogate changes` outputs structured table with hardest decisions, rejected alternatives, lowest confidence areas
+- Review diary captures all triage decisions for analysis
+
+**Dependencies:** full-integration (milestone 4) for hooks and notification patterns; ralph (milestone 1) for trust gradient and display utilities
+
+---
+
 ## Future Considerations
 
 Features from VISION.md that are explicitly deferred beyond these milestones:
