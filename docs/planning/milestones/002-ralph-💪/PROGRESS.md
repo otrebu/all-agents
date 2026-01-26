@@ -798,3 +798,13 @@
   - Removed unused summary tracking variables (totalCompleted, totalFailed, totalCost, totalDuration, allFilesChanged, filesChangedThisIteration)
   - Removed unused renderBuildSummary import
 - **Files:** tools/src/commands/ralph/build.ts (modified)
+
+### SUB-072
+- **Problem:** Need a --quiet flag to suppress terminal output during automated builds while still writing summary files
+- **Changes:** Added quiet mode support for ralph build:
+  - Added quiet: boolean field to BuildOptions in types.ts
+  - Added -q, --quiet CLI option to ralph build command in index.ts
+  - Updated build.ts to respect quiet flag in both normal completion and signal handler paths
+  - When quiet=true, BUILD-SUMMARY file is still written but terminal output is suppressed
+  - Updated README.md to document the practical summary feature, BUILD-SUMMARY file output, and --quiet flag
+- **Files:** tools/src/commands/ralph/types.ts (modified), tools/src/commands/ralph/index.ts (modified), tools/src/commands/ralph/build.ts (modified), README.md (modified)

@@ -1478,7 +1478,10 @@
       "taskRef": "build-loop-practical-summary",
       "title": "Add --quiet flag and update README documentation",
       "description": "Add -q, --quiet option to ralph build command that suppresses terminal summary output but still writes BUILD-SUMMARY file. Update README.md to document the practical summary feature, BUILD-SUMMARY file output, and --quiet flag.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T14:30:00Z",
+      "commitHash": "cfe964c",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-071"],
       "classification": {
         "knowledgeCertainty": "known-known",
