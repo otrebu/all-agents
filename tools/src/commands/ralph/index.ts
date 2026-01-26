@@ -627,70 +627,60 @@ planCommand.addCommand(
     }),
 );
 
-// ralph plan subtasks - subtask generation (default: supervised)
-// Requires exactly one of: --task, --story, or --milestone to specify scope
+// ralph plan subtasks - subtask generation from any source
+// Accepts: file path, text description, or --review flag
 planCommand.addCommand(
   new Command("subtasks")
     .description(
-      "Generate subtasks for a task, story, or milestone (requires one scope flag)",
+      "Generate subtasks from any source (file, text, or review diary)",
     )
-    .option("--task <path>", "Task file path to generate subtasks for")
-    .option("--story <path>", "Story path to generate subtasks for")
-    .option("--milestone <path>", "Milestone path to generate subtasks for")
+    .argument("[source]", "File path or text description")
+    .option("--review", "Parse logs/reviews.jsonl for findings")
+    .option("--task <path>", "Task file path (legacy mode)")
+    .option("--story <ref>", "Link subtasks to a parent story")
+    .option("--milestone <name>", "Target milestone for output location")
     .option(
       "-s, --supervised",
       "Supervised mode: watch chat, can intervene (default)",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action((source: string | undefined, options) => {
+      const hasSource = source !== undefined && source !== "";
+      const hasReview = options.review === true;
       const hasTask = options.task !== undefined;
-      const hasStory = options.story !== undefined;
-      const hasMilestone = options.milestone !== undefined;
-      const scopeCount = [hasTask, hasStory, hasMilestone].filter(
-        Boolean,
-      ).length;
 
-      // Validate: require exactly one scope flag
-      if (scopeCount === 0) {
+      // Validate: require one of source, --review, or --task (legacy)
+      if (!hasSource && !hasReview && !hasTask) {
         console.error(
-          "Error: Must specify exactly one of --task, --story, or --milestone",
+          "Error: Must provide a source (file path or text), --review, or --task",
         );
         console.log("\nUsage:");
+        console.log("  aaa ralph plan subtasks ./file.md          # From file");
+        console.log('  aaa ralph plan subtasks "Fix bug"          # From text');
         console.log(
-          "  aaa ralph plan subtasks --task <path>       # Single task",
+          "  aaa ralph plan subtasks --review           # From review diary",
         );
         console.log(
-          "  aaa ralph plan subtasks --story <path>      # All tasks in story",
+          "  aaa ralph plan subtasks --task <path>      # Legacy: from task file",
         );
+        console.log("\nOptional flags:");
         console.log(
-          "  aaa ralph plan subtasks --milestone <path>  # All tasks in milestone",
+          "  --milestone <name>  Target milestone for subtasks.json location",
         );
-        process.exit(1);
-      }
-      if (scopeCount > 1) {
-        console.error(
-          "Error: Cannot specify multiple scope flags (--task, --story, --milestone)",
-        );
+        console.log("  --story <ref>       Link subtasks to a parent story");
         process.exit(1);
       }
 
       const contextRoot = getContextRoot();
-      // Subtasks always uses auto prompt (never interactive per VISION.md)
-      const promptPath = getPromptPath(contextRoot, "subtasks", true);
 
-      // Resolve and validate paths (fail fast with helpful errors)
-      const taskPath =
-        hasTask && options.task !== undefined
-          ? requireTask(options.task)
-          : null;
-      const storyPath =
-        hasStory && options.story !== undefined
-          ? requireStory(options.story)
-          : null;
-      const milestonePath =
-        hasMilestone && options.milestone !== undefined
-          ? requireMilestone(options.milestone)
-          : null;
+      // Determine which prompt to use
+      // Legacy --task mode uses subtasks-auto.md, new modes use subtasks-from-source.md
+      const promptPath = hasTask
+        ? getPromptPath(contextRoot, "subtasks", true)
+        : path.join(
+            contextRoot,
+            "context/workflows/ralph/planning/subtasks-from-source.md",
+          );
 
       // Helper to invoke Claude based on mode
       function invoke(extraContext: string): void {
@@ -708,19 +698,37 @@ planCommand.addCommand(
         }
       }
 
-      // Handle each scope type (exactly one is true after validation)
-      if (taskPath !== null) {
-        invoke(`Generating subtasks for task: ${taskPath}`);
-        return;
+      // Build context string with all relevant info
+      const contextParts: Array<string> = [];
+
+      // Legacy task mode
+      if (hasTask && options.task !== undefined) {
+        const taskPath = requireTask(options.task);
+        contextParts.push(`Generating subtasks for task: ${taskPath}`);
       }
-      if (storyPath !== null) {
-        invoke(`Generating subtasks for story: ${storyPath}`);
-        return;
+      // New source-based modes
+      else if (hasReview) {
+        contextParts.push(
+          "Generating subtasks from review diary: logs/reviews.jsonl",
+        );
+      } else if (hasSource) {
+        // Check if source is a file path or text
+        if (existsSync(source)) {
+          contextParts.push(`Generating subtasks from file: ${source}`);
+        } else {
+          contextParts.push(`Generating subtasks from description: ${source}`);
+        }
       }
-      // hasMilestone must be true at this point
-      if (milestonePath !== null) {
-        invoke(`Generating subtasks for milestone: ${milestonePath}`);
+
+      // Add optional metadata
+      if (options.milestone !== undefined) {
+        contextParts.push(`Target milestone: ${options.milestone}`);
       }
+      if (options.story !== undefined) {
+        contextParts.push(`Link to story: ${options.story}`);
+      }
+
+      invoke(contextParts.join("\n"));
     }),
 );
 

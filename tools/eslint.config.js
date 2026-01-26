@@ -17,6 +17,11 @@ export default [
     },
   },
   {
+    // marked-terminal's ESM build can't be parsed by eslint-plugin-import
+    files: ["src/commands/ralph/display.ts"],
+    settings: { "import/core-modules": ["marked-terminal"] },
+  },
+  {
     // ajv/dist/2020 types aren't resolvable by eslint-typescript parser
     // (works at bun runtime). Disable unsafe rules for this file.
     files: ["tests/e2e/ralph.test.ts"],
