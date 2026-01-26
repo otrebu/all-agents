@@ -320,7 +320,10 @@
       "storyRef": null,
       "title": "Add post-iteration feedback to supervised mode",
       "description": "Update processSupervisedIteration() in build.ts to: (1) capture startTime before invoking Claude, (2) after session ends, call discoverRecentSession(startTime) to find session file, (3) if found, call runPostIterationHook() with skipSummary: true to generate metrics and diary entry. This gives supervised mode the same feedback display as headless mode.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T13:45:00Z",
+      "commitHash": "b0259e6",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-029", "SUB-031", "SUB-033"],
       "classification": {
         "knowledgeCertainty": "known-known",

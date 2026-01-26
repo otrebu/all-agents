@@ -412,3 +412,17 @@
   - Exported both the function and type
   - Added unit tests in tools/tests/lib/session.test.ts
 - **Files:** tools/src/commands/ralph/session.ts (modified), tools/tests/lib/session.test.ts (created)
+
+### SUB-034
+- **Problem:** Supervised mode didn't display post-iteration metrics or write diary entries like headless mode does
+- **Changes:** Updated processSupervisedIteration() in build.ts to add post-iteration feedback:
+  - Extended SupervisedIterationContext with currentAttempts, currentSubtask, iteration, maxIterations, remaining
+  - Added SupervisedIterationResult interface for return type
+  - Capture startTime = Date.now() before invokeClaudeChat
+  - After session ends, call discoverRecentSession(startTime) to find session file
+  - If session found, call runPostIterationHook() with skipSummary: true, mode: 'supervised'
+  - Display metrics box via renderIterationEnd() when hook returns result
+  - Diary entry written to logs/iterations.jsonl with mode: 'supervised'
+  - Refactored handleMaxIterationsExceeded() into helper function to reduce runBuild complexity
+  - Updated runBuild() to use new supervised result tracking
+- **Files:** tools/src/commands/ralph/build.ts (modified)
