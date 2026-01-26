@@ -333,3 +333,12 @@
   - README.md: Added "Code Review" section documenting all 11 reviewers, modes (--supervised, --headless, --dry-run), status subcommand, and link to VISION.md
   - tools/CLAUDE.md: Added review/ folder entry to Directory Structure with index.ts and types.ts
 - **Files:** README.md (modified), tools/CLAUDE.md (modified)
+
+### SUB-027
+- **Problem:** Error handling gaps in review/index.ts: readDiaryEntries silently returns [] on error, and parseReviewFindings uses raw JSON.parse without validation
+- **Changes:** Added error logging and Zod validation:
+  - Added console.warn with chalk.yellow to readDiaryEntries catch block, matching writeDiaryEntry pattern
+  - Created Zod schemas (SeveritySchema, FindingSchema, FindingsArraySchema) in types.ts for runtime validation
+  - Updated parseReviewFindings to use FindingsArraySchema.safeParse() instead of raw JSON.parse
+  - Added detailed Zod error logging when findings validation fails
+- **Files:** tools/src/commands/review/index.ts (modified), tools/src/commands/review/types.ts (modified)

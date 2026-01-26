@@ -66,7 +66,9 @@
       "storyRef": "STORY-001",
       "title": "Add error logging and Zod validation to review parsing",
       "description": "Two related error handling improvements in review/index.ts: (1) readDiaryEntries silently returns [] on error - add console.warn matching writeDiaryEntry pattern at line 250, (2) parseReviewFindings uses raw JSON.parse without validation - add Zod schema for Finding[] structure. Both improve error handling in the same file.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T18:30:00Z",
+      "commitHash": "d9d26c8",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
