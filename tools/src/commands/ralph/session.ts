@@ -20,6 +20,14 @@ import { homedir } from "node:os";
 // =============================================================================
 
 /**
+ * Result from discovering a recent session
+ */
+interface DiscoveredSession {
+  path: string;
+  sessionId: string;
+}
+
+/**
  * Calculate iteration duration from session JSONL timestamps
  *
  * Extracts the first and last timestamps from the session log and
@@ -109,6 +117,61 @@ function countToolCalls(sessionPath: string): number {
 }
 
 /**
+ * Discover the most recent Claude session file created after a given timestamp
+ *
+ * This is useful for supervised mode where we need to find the session file
+ * after the user completes their work in Claude chat mode.
+ *
+ * Uses `find` with `-newermt` to locate session files created after the timestamp.
+ * Returns the most recent session file if multiple match.
+ *
+ * @param afterTimestamp - Unix timestamp in milliseconds (Date.now())
+ * @returns Session info { sessionId, path } or null if not found
+ */
+function discoverRecentSession(
+  afterTimestamp: number,
+): DiscoveredSession | null {
+  const home = homedir();
+  const claudeDirectory = process.env.CLAUDE_CONFIG_DIR ?? `${home}/.claude`;
+  const projectsDirectory = `${claudeDirectory}/projects`;
+
+  if (!existsSync(projectsDirectory)) {
+    return null;
+  }
+
+  try {
+    // Convert timestamp to ISO date format for find -newermt
+    const afterDate = new Date(afterTimestamp).toISOString();
+
+    // Find session files newer than the given timestamp, sorted by modification time (most recent first)
+    // Using ls -t to sort by modification time, then head -1 to get most recent
+    const found = execSync(
+      `find "${projectsDirectory}" -name "*.jsonl" -type f -newermt "${afterDate}" -exec ls -t {} + 2>/dev/null | head -1`,
+      { encoding: "utf8" },
+    ).trim();
+
+    if (found === "") {
+      return null;
+    }
+
+    // Extract session ID from path (filename without .jsonl extension)
+    const sessionId = found.split("/").pop()?.replace(".jsonl", "") ?? "";
+
+    if (sessionId === "") {
+      return null;
+    }
+
+    return { path: found, sessionId };
+  } catch {
+    return null;
+  }
+}
+
+// =============================================================================
+// Path Discovery
+// =============================================================================
+
+/**
  * Extract timestamp from a JSONL line
  *
  * Parses JSON and extracts the timestamp field.
@@ -126,6 +189,10 @@ function extractTimestamp(line: string): null | string {
     return match?.groups?.timestamp ?? null;
   }
 }
+
+// =============================================================================
+// Session Discovery
+// =============================================================================
 
 /**
  * Extract file paths from Write and Edit tool calls in a session
@@ -187,10 +254,6 @@ function getFilesFromSession(sessionPath: string): Array<string> {
     return [];
   }
 }
-
-// =============================================================================
-// Path Discovery
-// =============================================================================
 
 /**
  * Find the session JSONL file path for a given session ID
@@ -266,6 +329,8 @@ function getSessionJsonlPath(
 export {
   calculateDurationMs,
   countToolCalls,
+  discoverRecentSession,
   getFilesFromSession,
   getSessionJsonlPath,
 };
+export type { DiscoveredSession };
