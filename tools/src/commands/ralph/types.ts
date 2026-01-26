@@ -27,6 +27,8 @@ interface BuildOptions {
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
+  /** Skip Haiku summary generation in headless mode to reduce latency and cost */
+  skipSummary: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
   /** Run pre-build validation before starting */
@@ -81,6 +83,8 @@ interface IterationDiaryEntry {
   keyFindings?: Array<string>;
   /** Name of the milestone this subtask belongs to */
   milestone?: string;
+  /** Execution mode: 'headless' or 'supervised' */
+  mode?: "headless" | "supervised";
   /** Claude Code session ID */
   sessionId: string;
   /** Outcome of this iteration */
@@ -93,6 +97,8 @@ interface IterationDiaryEntry {
   taskRef?: string;
   /** ISO 8601 timestamp when this iteration completed */
   timestamp: string;
+  /** Timing breakdown for this iteration */
+  timing?: IterationTiming;
   /** Number of tool calls made during this iteration */
   toolCalls?: number;
 }
@@ -104,6 +110,21 @@ interface IterationDiaryEntry {
  * - retrying: will retry the subtask
  */
 type IterationStatus = "completed" | "failed" | "retrying";
+
+/**
+ * Timing breakdown for an iteration
+ * Tracks where time is spent during a Ralph build iteration
+ */
+interface IterationTiming {
+  /** Time spent in Claude Code invocation (ms) */
+  claudeMs: number;
+  /** Time spent in post-iteration hook (ms) */
+  hookMs: number;
+  /** Time spent collecting metrics (ms) */
+  metricsMs: number;
+  /** Time spent generating Haiku summary (ms) */
+  summaryMs: number;
+}
 
 /**
  * ntfy push notification configuration
@@ -257,6 +278,7 @@ export {
   type HooksConfig,
   type IterationDiaryEntry,
   type IterationStatus,
+  type IterationTiming,
   normalizeStatus,
   type NtfyConfig,
   type PostIterationHookConfig,

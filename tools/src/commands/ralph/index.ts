@@ -377,6 +377,7 @@ ralphCommand.addCommand(
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
+          skipSummary: false,
           subtasksPath,
           validateFirst: options.validateFirst === true,
         },
