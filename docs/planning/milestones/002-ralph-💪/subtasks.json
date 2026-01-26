@@ -441,7 +441,10 @@
       "storyRef": null,
       "title": "Update index.ts to use milestone-scoped planning logs",
       "description": "Update getPlanningLogPath() in index.ts (currently at line 203-206) to use the new config.ts helper. Update invokeClaudeHeadless() calls to add 'type': 'planning' to diary entries. The planning log should now write to docs/planning/milestones/{milestone}/logs/{date}.jsonl instead of global logs/planning.jsonl.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T17:00:00Z",
+      "commitHash": "65d388718375177aec44f0bc54168d5ab2353cf0",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-036", "SUB-037"],
       "classification": {
         "knowledgeCertainty": "known-known",
@@ -468,7 +471,10 @@
       "storyRef": null,
       "title": "Update post-iteration.ts for milestone-scoped iteration logs",
       "description": "Update runPostIterationHook() in post-iteration.ts (line 383) to use getIterationLogPath() from config.ts instead of hardcoded logs/iterations.jsonl. Update writeDiaryEntry calls to add 'type': 'iteration' to entries. Consider atomic write pattern (temp file → append) for concurrent writes.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T17:45:00Z",
+      "commitHash": "9086e6142c507e31ff64ef0b762dd0d4fc3ea7c3",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-036", "SUB-037"],
       "classification": {
         "knowledgeCertainty": "known-known",
@@ -568,6 +574,269 @@
       ],
       "filesToRead": [
         ".gitignore"
+      ]
+    },
+    {
+      "id": "SUB-043",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Add User Personas & Stories section to VISION.md",
+      "description": "Phase 0 of naming consistency cleanup. Before deleting story files, preserve their user-centric narratives by adding a 'User Personas & Stories' table to VISION.md after Section 2 (Folder Structure). The table maps each feature to its persona and user story from the 9 story files in milestone 001-ralph.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "Clear content to add (table from plan). Clear location (after Section 2). No code changes."
+      },
+      "acceptanceCriteria": [
+        "VISION.md has new 'User Personas & Stories' section after Section 2",
+        "Table has columns: Feature, Persona, User Story",
+        "Table has 9 rows covering: Building Mode, Intention Drift, Interactive Planning, Automated Pipeline, Self-Improvement, Hooks & Notifications, Progress & Status, Technical Standards, Interactive Guidance",
+        "Verify: grep -q 'User Personas' docs/planning/VISION.md",
+        "Verify: grep -c 'humans on loop' docs/planning/VISION.md returns at least 1"
+      ],
+      "filesToRead": [
+        "docs/planning/VISION.md",
+        "docs/planning/milestones/001-ralph/stories/"
+      ]
+    },
+    {
+      "id": "SUB-044",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Delete milestone 001-ralph story and task files",
+      "description": "Phase 1a: Delete all story and task markdown files from milestone 001-ralph that are now covered by VISION.md. This includes 9 story files in stories/ and 28 task files in tasks/. Keep test-fixtures/, PROGRESS.md, and other milestone artifacts.",
+      "done": false,
+      "blockedBy": ["SUB-043"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "Simple deletion. Files explicitly listed in plan. No code dependencies."
+      },
+      "acceptanceCriteria": [
+        "docs/planning/milestones/001-ralph/stories/ directory deleted or empty",
+        "docs/planning/milestones/001-ralph/tasks/ directory deleted or empty",
+        "test-fixtures/ directory preserved",
+        "Verify: ! test -d docs/planning/milestones/001-ralph/stories",
+        "Verify: ! test -d docs/planning/milestones/001-ralph/tasks"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/001-ralph/"
+      ]
+    },
+    {
+      "id": "SUB-045",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Delete milestone 002-ralph story and task files",
+      "description": "Phase 1b: Delete story and task files from milestone 002-ralph-💪 that are covered by VISION/ROADMAP. This includes STORY-001-parallel-code-review.md and TASK-014 through TASK-018. The parallel code review feature is documented in VISION 3.4 Code Review Mode.",
+      "done": false,
+      "blockedBy": ["SUB-043"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "Simple deletion. 6 specific files to delete. No code dependencies."
+      },
+      "acceptanceCriteria": [
+        "docs/planning/milestones/002-ralph-💪/stories/ directory deleted or empty",
+        "docs/planning/milestones/002-ralph-💪/tasks/ directory deleted or empty",
+        "subtasks.json and PROGRESS.md preserved",
+        "Verify: ! test -d docs/planning/milestones/002-ralph-💪/stories",
+        "Verify: ! test -d docs/planning/milestones/002-ralph-💪/tasks"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/002-ralph-💪/"
+      ]
+    },
+    {
+      "id": "SUB-046",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Delete global orphan stories and tasks",
+      "description": "Phase 1c: Delete orphaned files in global docs/planning/stories/ and docs/planning/tasks/. This includes 001-cost-dashboard-overview.md (empty template) and tasks 011-013 (maintenance tasks not tracked in VISION).",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "Simple deletion of 4 orphaned files. No dependencies."
+      },
+      "acceptanceCriteria": [
+        "docs/planning/stories/001-cost-dashboard-overview.md deleted",
+        "docs/planning/tasks/011-rename-self-improvement-modes.md deleted",
+        "docs/planning/tasks/012-cli-ergonomics-fixes.md deleted",
+        "docs/planning/tasks/013-prompt-quality-improvements.md deleted",
+        ".gitkeep files preserved if present",
+        "Verify: ! test -f docs/planning/stories/001-cost-dashboard-overview.md"
+      ],
+      "filesToRead": [
+        "docs/planning/stories/",
+        "docs/planning/tasks/"
+      ]
+    },
+    {
+      "id": "SUB-047",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Delete stale 001-ralph subtasks.json",
+      "description": "Phase 1d: Delete docs/planning/milestones/001-ralph/subtasks.json which contains pending subtasks (SUB-001 through SUB-011) referencing deleted task files. The completed subtasks (SUB-012 onward) are in the global subtasks.json.",
+      "done": false,
+      "blockedBy": ["SUB-044"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 1,
+        "reasoning": "Single file deletion. Explicitly called out in plan."
+      },
+      "acceptanceCriteria": [
+        "docs/planning/milestones/001-ralph/subtasks.json deleted",
+        "docs/planning/subtasks.json (global) preserved",
+        "docs/planning/milestones/002-ralph-💪/subtasks.json preserved",
+        "Verify: ! test -f docs/planning/milestones/001-ralph/subtasks.json"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/001-ralph/subtasks.json"
+      ]
+    },
+    {
+      "id": "SUB-048",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Create naming-convention.md documentation",
+      "description": "Phase 2: Create context/blocks/docs/naming-convention.md as the single source of truth for file naming. Document: NNN-slug.md pattern, zero-padded 3-digit numbers, kebab-case slugs, folder-based type inference, JSON refs = filename without extension.",
+      "done": false,
+      "blockedBy": ["SUB-046"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "New documentation file. Content fully specified in plan. No code changes."
+      },
+      "acceptanceCriteria": [
+        "context/blocks/docs/naming-convention.md exists",
+        "Documents NNN-slug.md pattern with examples",
+        "Documents zero-padded 3-digit numbers rule",
+        "Documents kebab-case slug rules (lowercase, hyphens, no spaces)",
+        "Documents folder-based type inference (stories/ vs tasks/)",
+        "Documents JSON refs format (filename without .md extension)",
+        "Verify: test -f context/blocks/docs/naming-convention.md",
+        "Verify: grep -q 'NNN-slug' context/blocks/docs/naming-convention.md"
+      ],
+      "filesToRead": [
+        "context/blocks/docs/",
+        "context/README.md"
+      ]
+    },
+    {
+      "id": "SUB-049",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Update subtasks.schema.json taskRef/storyRef patterns",
+      "description": "Phase 3: Update docs/planning/schemas/subtasks.schema.json to use filename-based refs instead of TASK-NNN/STORY-NNN patterns. Change taskRef pattern from ^TASK-[0-9]{3,}$ to ^[0-9]{3,}-[a-z0-9-]+$ and storyRef similarly.",
+      "done": false,
+      "blockedBy": ["SUB-048"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 2,
+        "reasoning": "Two regex pattern updates. Schema location specified. Exact new patterns in plan."
+      },
+      "acceptanceCriteria": [
+        "taskRef pattern changed to ^[0-9]{3,}-[a-z0-9-]+$ (or similar filename pattern)",
+        "storyRef pattern changed to ^[0-9]{3,}-[a-z0-9-]+$ (or similar)",
+        "metadata.storyRef pattern also updated",
+        "Schema remains valid JSON",
+        "Verify: grep -q '[0-9].*-.*[a-z]' docs/planning/schemas/subtasks.schema.json"
+      ],
+      "filesToRead": [
+        "docs/planning/schemas/subtasks.schema.json"
+      ]
+    },
+    {
+      "id": "SUB-050",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Update refs in global subtasks.json",
+      "description": "Phase 5a: Update taskRef values in docs/planning/subtasks.json from TASK-NNN format to filename-based refs (e.g., TASK-011 → 011-rename-self-improvement-modes). Since the referenced task files will be deleted, use the original filename slugs.",
+      "done": false,
+      "blockedBy": ["SUB-049"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 3,
+        "reasoning": "String replacements in JSON. taskRef values are identifiable. Pattern is clear."
+      },
+      "acceptanceCriteria": [
+        "All taskRef values follow new pattern (NNN-slug format)",
+        "TASK-011 → 011-rename-self-improvement-modes",
+        "TASK-012 → 012-cli-ergonomics-fixes",
+        "TASK-013 → 013-prompt-quality-improvements",
+        "JSON remains valid",
+        "Verify: ! grep -q 'TASK-[0-9]' docs/planning/subtasks.json"
+      ],
+      "filesToRead": [
+        "docs/planning/subtasks.json"
+      ]
+    },
+    {
+      "id": "SUB-051",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Update refs in milestone 002-ralph subtasks.json",
+      "description": "Phase 5b: Update taskRef and storyRef values in docs/planning/milestones/002-ralph-💪/subtasks.json. Change TASK-REVIEW-001 to review-findings, STORY-001 to 001-parallel-code-review, and similar updates for TASK-TIMING-001, TASK-SUPERVISED-001, TASK-LOGS-001.",
+      "done": false,
+      "blockedBy": ["SUB-049"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 4,
+        "reasoning": "String replacements in JSON. Multiple refs to update but pattern is clear."
+      },
+      "acceptanceCriteria": [
+        "All taskRef values follow new filename-based pattern",
+        "TASK-REVIEW-001 → review-code-quality (or similar descriptive slug)",
+        "TASK-TIMING-001 → timing-instrumentation (or similar)",
+        "TASK-SUPERVISED-001 → supervised-mode-feedback (or similar)",
+        "TASK-LOGS-001 → milestone-scoped-logs (or similar)",
+        "STORY-001 → 001-parallel-code-review",
+        "JSON remains valid",
+        "Verify: ! grep -q 'TASK-[A-Z]' docs/planning/milestones/002-ralph-💪/subtasks.json"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/002-ralph-💪/subtasks.json"
+      ]
+    },
+    {
+      "id": "SUB-052",
+      "taskRef": "TASK-NAMING-001",
+      "storyRef": null,
+      "title": "Verify cleanup and run validation tests",
+      "description": "Phase 6: Final verification. Check all deleted files are gone, remaining subtasks.json files are valid JSON, CLI tools still work. Run aaa task create test-task and aaa story create test-story to verify correct format, then delete test files.",
+      "done": false,
+      "blockedBy": ["SUB-050", "SUB-051"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "elementCount": 5,
+        "reasoning": "Verification steps clearly listed in plan. No new code, just checks."
+      },
+      "acceptanceCriteria": [
+        "No stories/ or tasks/ directories in milestone folders",
+        "No subtasks.json in 001-ralph/",
+        "No files in docs/planning/stories/ (except .gitkeep)",
+        "No files in docs/planning/tasks/ (except .gitkeep)",
+        "docs/planning/subtasks.json is valid JSON",
+        "docs/planning/milestones/002-ralph-💪/subtasks.json is valid JSON",
+        "bun test passes (or no relevant test failures)",
+        "Verify: jq . docs/planning/subtasks.json > /dev/null"
+      ],
+      "filesToRead": [
+        "docs/planning/",
+        "tools/src/commands/task.ts",
+        "tools/src/commands/story.ts"
       ]
     }
   ],

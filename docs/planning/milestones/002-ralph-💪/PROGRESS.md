@@ -452,3 +452,24 @@
   - JSDoc comment explaining the discriminator's purpose for daily log files
   - Enables iteration and planning entries to coexist in milestone-scoped daily JSONL files
 - **Files:** tools/src/commands/ralph/types.ts (modified)
+
+### SUB-038
+- **Problem:** Planning logs were being written to global logs/planning.jsonl instead of milestone-scoped locations
+- **Changes:** Updated getPlanningLogPath() in index.ts to use milestone-scoped paths:
+  - Import getMilestonePlanningLogPath helper from config.ts
+  - Function now takes optional milestonePath parameter
+  - When milestone provided: writes to {milestone}/logs/{date}.jsonl
+  - When no milestone: falls back to _orphan/logs/{date}.jsonl
+  - Add 'type: planning' field to all planning log entries for discriminating from iteration entries
+  - Updated all call sites (stories, tasks, subtasks commands) to pass milestone path when available
+- **Files:** tools/src/commands/ralph/index.ts (modified)
+
+### SUB-039
+- **Problem:** Iteration logs were being written to global logs/iterations.jsonl instead of milestone-scoped locations
+- **Changes:** Updated post-iteration.ts to use milestone-scoped iteration log paths:
+  - Import getIterationLogPath from ./config
+  - Add subtasksPath to PostIterationOptions interface
+  - Replace hardcoded `${repoRoot}/logs/iterations.jsonl` with `getIterationLogPath(subtasksPath)`
+  - Add `type: 'iteration'` field to diary entries for discriminating from planning entries
+  - Update build.ts to pass subtasksPath to runPostIterationHook in both headless and supervised modes
+- **Files:** tools/src/commands/ralph/post-iteration.ts (modified), tools/src/commands/ralph/build.ts (modified)
