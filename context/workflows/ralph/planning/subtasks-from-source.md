@@ -291,6 +291,70 @@ Before finalizing subtasks, verify:
 - [ ] filesToRead contains relevant context files
 - [ ] Output is valid JSON matching the schema
 
+### Phase 6b: Doc Linking
+
+**Purpose:** Create missing atomic documentation flagged during Phase 1b, ensuring subtasks have complete context.
+
+**Input:** `missingDocs` array from Phase 1b containing `{ concept, reason }` entries.
+
+**Process:**
+
+1. **Filter for critical gaps**
+   - Skip docs for concepts that are trivial or well-known
+   - Prioritize docs that would help multiple subtasks
+   - Skip if existing doc covers 80%+ of the concept
+
+2. **Spawn atomic-doc-creator for each critical gap**
+   ```
+   For each { concept, reason } in missingDocs:
+     → Invoke @.claude/agents/atomic-doc-creator.md with:
+       - Topic: <concept>
+       - Context: <reason>
+       - Suggested Layer: (inferred from concept type)
+   ```
+
+3. **Log creation to milestone diary**
+
+   Each created doc is logged to the milestone's daily log:
+   ```json
+   {
+     "type": "doc-creation",
+     "timestamp": "<ISO 8601>",
+     "what": "<concept>",
+     "path": "<created doc path>",
+     "reason": "<why it was needed>",
+     "triggeredBy": "subtasks-from-source"
+   }
+   ```
+
+4. **Update subtask filesToRead**
+   - Add created doc paths to relevant subtasks' `filesToRead` arrays
+   - A doc is relevant if the subtask touches the concept area
+
+**Important:** Created docs do NOT have the `[REVIEW]` flag. The atomic-doc-creator normally adds this flag, but in the subtask generation context, docs are created just-in-time for immediate use. Human review happens during the broader subtask review cycle.
+
+**Skip conditions:**
+- No `missingDocs` from Phase 1b → skip entire phase
+- Concept already documented elsewhere → skip that doc
+- Doc would be trivially small (< 50 words) → skip
+
+**Example:**
+
+```
+Phase 1b output:
+  missingDocs: [
+    { concept: "diary module", reason: "No docs for review/diary subsystem" },
+    { concept: "chalk styling", reason: "No docs for console formatting" }
+  ]
+
+Phase 6b actions:
+  1. "diary module" → Create context/blocks/tools/diary.md
+     → Log: { type: "doc-creation", what: "diary module", path: "context/blocks/tools/diary.md", ... }
+     → Add to filesToRead for SUB-058, SUB-059 (touch diary code)
+
+  2. "chalk styling" → SKIP (well-known library, npm docs sufficient)
+```
+
 ### Phase 7: Output
 
 **Output location:**
