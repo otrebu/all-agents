@@ -121,9 +121,50 @@ For each actionable item, create a subtask following the schema in subtasks-comm
 
 Apply the AC Quality Gate from subtasks-common.md before proceeding.
 
+### Phase 3b: Size Judgment
+
+**Purpose:** Validate each subtask's scope using the vertical slice test before proceeding.
+
+For each generated subtask, answer these **4 questions**:
+
+| # | Question | What It Tests | Red Flag |
+|---|----------|---------------|----------|
+| 1 | **Is it vertical?** | Does it deliver value end-to-end? | Touches only UI, only backend, or only tests without the others needed |
+| 2 | **One pass?** | Can an agent complete it in a single context window? | Requires multiple research-then-implement cycles |
+| 3 | **Ships alone?** | Could this be merged to main independently? | Depends on unfinished sibling subtasks |
+| 4 | **Test boundary?** | Does it have a natural test boundary? | No obvious "given X, when Y, then Z" scenario |
+
+**Scoring:**
+- **4/4 Pass** → Subtask is correctly scoped
+- **3/4 Pass** → Consider refinement, proceed with caution
+- **2/4 or less** → Must split or merge
+
+**Sizing Mode Guidance:**
+
+The `--size` flag controls slice thickness:
+
+| Mode | Interpretation of "One pass" | Guidance |
+|------|------------------------------|----------|
+| `small` | Thinnest viable slice | Split aggressively. Each subtask = 1 function or 1 file change. Maximize granularity. |
+| `medium` | One PR per subtask | Each subtask is a coherent unit that ships independently. 1-3 files typical. (Default) |
+| `large` | Major boundaries only | Only split at major functional seams. Prefer fewer, larger subtasks. 3-5 files acceptable. |
+
+**Example Size Judgment:**
+
+```
+Subtask: "Add error logging to diary functions"
+
+1. Is it vertical? YES - touches code + tests
+2. One pass? YES - localized change, clear scope
+3. Ships alone? YES - independent improvement
+4. Test boundary? YES - "when error occurs, log message appears"
+
+Result: 4/4 PASS → Proceed
+```
+
 ### Phase 4: Size Validation
 
-Apply Size Guidelines from subtasks-common.md. Use `classification.changeCount` to drive sizing decisions.
+Apply Size Guidelines from subtasks-common.md using the vertical slice test from Phase 3b.
 
 ### Phase 5: ID Generation
 
@@ -234,13 +275,13 @@ Spawn the subtask-reviewer agent to analyze all pending subtasks:
 ```
 Invoke @.claude/agents/subtask-reviewer.md with:
   - Input: contents of tmp/subtasks-draft.json
+  - Sizing mode: <small|medium|large> from --size flag
   - Output: structured review findings
 ```
 
-The reviewer applies sizing heuristics:
-- `changeCount < 2` → undersized (merge candidate)
-- `changeCount > 8` → oversized (split candidate)
-- `changeCount 2-8` → approved
+The reviewer applies the 4-question vertical slice test:
+- Fails 2+ questions → needs attention (split or merge)
+- Passes 3-4 questions → approved
 
 #### Step 2: Log Review Findings
 

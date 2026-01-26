@@ -111,31 +111,13 @@
           "type": "string",
           "description": "Claude Code session ID that completed this subtask. Maps to ~/.claude/projects/<path>/<session-id>.jsonl"
         },
-        "classification": {
-          "type": "object",
-          "description": "Sizing classification for predictability tracking",
-          "properties": {
-            "knowledgeCertainty": {
-              "type": "string",
-              "enum": ["known-known", "known-unknown", "unknown-unknown"],
-              "description": "Knowledge certainty level: known-known (clear what and how), known-unknown (clear what, unclear how), unknown-unknown (unclear what)"
-            },
-            "spikeIndicators": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Count of spike indicators suggesting need for research/exploration"
-            },
-            "changeCount": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Estimated number of discrete changes (files, functions, config entries). Used for sizing: <2 = undersized, >8 = oversized"
-            },
-            "reasoning": {
-              "type": "string",
-              "description": "Brief explanation of the classification decision"
-            }
+        "blockedBy": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^SUB-[0-9]{3,}$"
           },
-          "required": ["knowledgeCertainty", "changeCount"]
+          "description": "IDs of subtasks that must complete before this one"
         }
       },
       "if": {

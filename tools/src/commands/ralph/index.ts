@@ -670,6 +670,11 @@ planCommand.addCommand(
     .option("--story <ref>", "Link subtasks to a parent story")
     .option("--milestone <name>", "Target milestone for output location")
     .option(
+      "--size <mode>",
+      "Slice thickness: small (thinnest viable), medium (one PR per subtask, default), large (major boundaries only)",
+      "medium",
+    )
+    .option(
       "-s, --supervised",
       "Supervised mode: watch chat, can intervene (default)",
     )
@@ -766,6 +771,19 @@ planCommand.addCommand(
       if (options.story !== undefined) {
         contextParts.push(`Link to story: ${options.story}`);
       }
+
+      // Add sizing mode context
+      const sizeMode = options.size as "large" | "medium" | "small";
+      const sizeDescriptions = {
+        large:
+          "Large slices: Only split at major functional boundaries. One subtask per logical feature. Prefer fewer, larger subtasks.",
+        medium:
+          "Medium slices (default): One PR per subtask. Each subtask is a coherent unit of work that ships independently.",
+        small:
+          "Small slices: Thinnest viable slices. Maximize granularity for fine-grained progress tracking. Split aggressively.",
+      };
+      contextParts.push(`Sizing mode: ${sizeMode}`);
+      contextParts.push(`Sizing guidance: ${sizeDescriptions[sizeMode]}`);
 
       invoke(contextParts.join("\n"));
     }),

@@ -24,7 +24,6 @@ Each subtask MUST have these fields:
 |-------|------|-------------|
 | `storyRef` | string | Parent story reference if task has one |
 | `blockedBy` | string[] | IDs of subtasks that must complete first |
-| `classification` | object | Sizing metadata (see Size Guidelines) |
 
 ### Example Subtask
 
@@ -36,12 +35,6 @@ Each subtask MUST have these fields:
   "title": "Create user input validation schema",
   "description": "Add Zod schema for CreateUserInput with email and password validation in src/schemas/user.ts",
   "done": false,
-  "classification": {
-    "knowledgeCertainty": "known-known",
-    "spikeIndicators": 0,
-    "changeCount": 3,
-    "reasoning": "Clear pattern exists, exact changes known"
-  },
   "acceptanceCriteria": [
     "Zod schema exists in src/schemas/user.ts",
     "Email format is validated",
@@ -59,6 +52,32 @@ Each subtask MUST have these fields:
 
 **CRITICAL:** Each subtask must fit within a single context window iteration.
 
+### The Vertical Slice Test
+
+Every subtask must pass the **4-question vertical slice test**:
+
+| # | Question | What It Tests | Red Flag |
+|---|----------|---------------|----------|
+| 1 | **Is it vertical?** | Delivers value end-to-end | Only touches UI, backend, or tests in isolation |
+| 2 | **One pass?** | Completable in single context window | Requires multiple research-then-implement cycles |
+| 3 | **Ships alone?** | Can be merged to main independently | Depends on unfinished sibling subtasks |
+| 4 | **Test boundary?** | Has natural test boundary | No obvious "given X, when Y, then Z" scenario |
+
+**Scoring:**
+- **4/4 Pass** → Correctly scoped
+- **3/4 Pass** → Proceed with caution
+- **2/4 or less** → Must split or merge
+
+### Sizing Modes
+
+The `--size` flag controls slice thickness:
+
+| Mode | Slice Thickness | Typical Scope | When to Use |
+|------|-----------------|---------------|-------------|
+| `small` | Thinnest viable | 1 function, 1 file | Fine-grained progress tracking, high uncertainty |
+| `medium` | One PR per subtask | 1-3 files | Default. Balanced granularity. |
+| `large` | Major boundaries only | 3-5 files | Well-understood work, reduce overhead |
+
 ### Context Window Budget
 
 A properly-sized subtask allows the agent to:
@@ -70,16 +89,6 @@ A properly-sized subtask allows the agent to:
 
 All of this must fit in one context window.
 
-### Classification-Based Sizing
-
-Each subtask should include a `classification.changeCount` field that estimates the number of discrete changes (file creates, function additions, config updates, etc.):
-
-| changeCount | Classification | Action |
-|-------------|---------------|--------|
-| `< 2` | Undersized | Consider merging with related subtask |
-| `2-8` | Appropriate | Proceed as-is |
-| `> 8` | Oversized | Split into multiple subtasks |
-
 ### Subtask Scope Rules
 
 Each subtask should:
@@ -87,11 +96,11 @@ Each subtask should:
 - **Implement one clear concept**
 - **Be completable in 15-30 tool calls**
 - **Have 2-5 acceptance criteria**
-- **Have `classification.changeCount` between 2-8**
+- **Pass the 4-question vertical slice test**
 
 ### Signs a Subtask is Too Large
 
-- `classification.changeCount > 8`
+- Fails "One pass?" question - needs multiple research cycles
 - Description mentions multiple unrelated changes
 - Acceptance criteria span different areas of the codebase
 - Implementation requires extensive exploration
@@ -101,10 +110,10 @@ Each subtask should:
 
 ### Signs a Subtask is Too Small
 
-- `classification.changeCount < 2`
-- Could be a single line change
-- Trivially merged with another subtask
-- Creates overhead without value
+- Only modifies a single line
+- Would be trivially merged with another subtask
+- Creates overhead without meaningful value
+- Doesn't deliver end-to-end value alone
 
 **If too small:** Merge with related subtask.
 
@@ -128,7 +137,7 @@ Before finalizing subtasks, verify:
 - [ ] All IDs follow SUB-NNN pattern and are unique
 - [ ] taskRef is set (NNN-slug pattern)
 - [ ] storyRef is included if task has a parent story
-- [ ] Subtasks are sized to fit single context window (changeCount 2-8)
+- [ ] Subtasks pass the 4-question vertical slice test (see Size Guidelines)
 - [ ] Acceptance criteria are concrete and verifiable
 - [ ] filesToRead contains relevant context files
 - [ ] Output is valid JSON matching the schema
