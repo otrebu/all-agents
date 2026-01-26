@@ -47,6 +47,9 @@ tools/
 │   │   │   ├── calibrate.ts      # Calibrate command implementation
 │   │   │   ├── build.ts          # Build loop implementation
 │   │   │   └── post-iteration.ts # Post-iteration hook logic
+│   │   ├── review/               # Code review CLI (modes: supervised, headless)
+│   │   │   ├── index.ts          # CLI commands and mode logic
+│   │   │   └── types.ts          # Finding, DiaryEntry, triage types
 │   │   └── setup/
 │   │       ├── index.ts
 │   │       └── utils.ts

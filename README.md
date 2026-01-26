@@ -105,6 +105,20 @@ aaa ralph calibrate intention      # Check for drift
 # Skills: /ralph-plan, /ralph-build, /ralph-review, /ralph-calibrate, /ralph-status
 # Full docs: docs/ralph/README.md | Design spec: docs/planning/VISION.md
 
+# Code Review - Parallel multi-agent review with 11 specialized reviewers
+#
+# Spawns security, data-integrity, error-handling, test-coverage, maintainability,
+# dependency, documentation, accessibility, intent-alignment, over-engineering,
+# and performance reviewers in parallel. Synthesizes and triages findings.
+#
+aaa review                       # Prompt for mode selection
+aaa review --supervised          # Watch execution, can intervene
+aaa review --headless            # Fully autonomous with auto-triage
+aaa review --headless --dry-run  # Preview findings without fixes
+aaa review status                # Show review history and statistics
+#
+# Skill: /dev:code-review | Full docs: docs/planning/VISION.md Section 3.4
+
 # Extract Claude Code conversation history
 aaa extract-conversations [-l limit] [-o file]
 ```
