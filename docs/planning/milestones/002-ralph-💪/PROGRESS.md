@@ -352,3 +352,11 @@
   - **Relationship:** Complementary tools. Interrogate surfaces assumptions, Review validates correctness. Both useful for thorough pre-merge validation.
   - **Recommendation for SUB-028b:** Add "Related Tools" section to SKILL.md clarifying the distinction.
 - **Files:** None modified (research task - output in completion notes)
+
+### SUB-028b
+- **Problem:** Need to document the distinction between /dev:interrogate and aaa review (parallel code review) so users know when to use each
+- **Changes:** Added "Related Tools" section to .claude/skills/parallel-code-review/SKILL.md with:
+  - Comparison table: Primary Question, Target, Analogy, Best For
+  - "When to use which" guidance explaining interrogate = understanding decisions, review = finding issues
+  - Recommendation for thorough pre-merge validation: run both (interrogate first for intent, then review for quality)
+- **Files:** .claude/skills/parallel-code-review/SKILL.md (modified)

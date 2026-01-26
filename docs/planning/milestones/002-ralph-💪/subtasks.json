@@ -138,7 +138,9 @@
       "storyRef": "STORY-001",
       "title": "Document interrogate vs review distinction",
       "description": "Implementation task (blocked by SUB-028a): Based on analysis findings, add documentation clarifying when to use /dev:interrogate vs aaa review. Add section to SKILL.md or VISION.md explaining: interrogate is for questioning decisions in existing code, review is for finding issues in changes.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T21:35:00Z",
+      "commitHash": "b614b69",
       "blockedBy": ["SUB-028a"],
       "classification": {
         "knowledgeCertainty": "known-known",
