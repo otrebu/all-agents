@@ -39,6 +39,7 @@ import {
   type PostIterationResult,
   runPostIterationHook,
 } from "./post-iteration";
+import { discoverRecentSession } from "./session";
 
 // =============================================================================
 // Constants
@@ -92,7 +93,20 @@ interface PeriodicCalibrationOptions {
  */
 interface SupervisedIterationContext {
   contextRoot: string;
+  currentAttempts: number;
+  currentSubtask: Subtask;
+  iteration: number;
+  maxIterations: number;
+  remaining: number;
   subtasksPath: string;
+}
+
+/**
+ * Result from supervised iteration processing
+ */
+interface SupervisedIterationResult {
+  didComplete: boolean;
+  hookResult: null | PostIterationResult;
 }
 
 // =============================================================================
@@ -145,6 +159,33 @@ After completing ONE subtask:
 // =============================================================================
 // Build Loop Implementation
 // =============================================================================
+
+/**
+ * Check if max iterations exceeded and handle failure
+ *
+ * @returns true if exceeded and should exit, false to continue
+ */
+async function handleMaxIterationsExceeded(
+  currentAttempts: number,
+  maxIterations: number,
+  subtaskId: string,
+): Promise<boolean> {
+  if (maxIterations <= 0 || currentAttempts <= maxIterations) {
+    return false;
+  }
+
+  console.error(
+    `\nError: Max iterations (${maxIterations}) exceeded for subtask: ${subtaskId}`,
+  );
+  console.error(`Subtask failed after ${maxIterations} attempts`);
+
+  await executeHook("onMaxIterationsExceeded", {
+    message: `Subtask ${subtaskId} failed after ${maxIterations} attempts`,
+    subtaskId,
+  });
+
+  return true;
+}
 
 /**
  * Process a single headless iteration
@@ -243,12 +284,23 @@ function processHeadlessIteration(
 /**
  * Process a single supervised iteration
  *
- * @returns true if successful, false if failed
+ * Captures session timing, discovers session file after completion,
+ * and runs post-iteration hook to generate metrics and diary entry.
+ *
+ * @returns Result with completion status and hook result, or null on failure
  */
 function processSupervisedIteration(
   context: SupervisedIterationContext,
-): boolean {
-  const { contextRoot, subtasksPath } = context;
+): null | SupervisedIterationResult {
+  const {
+    contextRoot,
+    currentAttempts,
+    currentSubtask,
+    iteration,
+    maxIterations,
+    remaining,
+    subtasksPath,
+  } = context;
 
   console.log(renderInvocationHeader("supervised"));
   console.log();
@@ -256,6 +308,9 @@ function processSupervisedIteration(
   // Derive PROGRESS.md location from subtasks.json location
   const subtasksDirectory = path.dirname(subtasksPath);
   const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
+
+  // Capture start time for session discovery
+  const startTime = Date.now();
 
   const chatResult = invokeClaudeChat(
     path.join(contextRoot, ITERATION_PROMPT_PATH),
@@ -268,8 +323,66 @@ function processSupervisedIteration(
     process.exit(chatResult.exitCode ?? 1);
   }
 
+  // Calculate elapsed time for Claude invocation
+  const claudeMs = Date.now() - startTime;
+
   console.log("\nSupervised session completed");
-  return true;
+
+  // Discover the session file created during the interactive session
+  const discoveredSession = discoverRecentSession(startTime);
+
+  // Reload subtasks to check completion status
+  const postIterationSubtasks = loadSubtasksFile(subtasksPath);
+  const postRemaining = countRemaining(postIterationSubtasks.subtasks);
+  const didComplete = postRemaining < remaining;
+  const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
+  const iterationStatus = didComplete ? "completed" : "retrying";
+
+  // Run post-iteration hook if session was discovered
+  let hookResult: null | PostIterationResult = null;
+  if (discoveredSession !== null) {
+    // Use target project root for logs
+    const projectRoot = findProjectRoot() ?? contextRoot;
+
+    hookResult = runPostIterationHook({
+      claudeMs,
+      iterationNumber: currentAttempts,
+      maxAttempts: maxIterations,
+      milestone,
+      mode: "supervised",
+      remaining: postRemaining,
+      repoRoot: projectRoot,
+      sessionId: discoveredSession.sessionId,
+      skipSummary: true,
+      status: iterationStatus,
+      subtask: currentSubtask,
+    });
+
+    // Display iteration end box with metrics
+    if (hookResult !== null) {
+      const { diaryPath, entry, sessionPath } = hookResult;
+      console.log(
+        renderIterationEnd({
+          attempt: currentAttempts,
+          diaryPath,
+          durationMs: claudeMs,
+          filesChanged: entry.filesChanged?.length ?? 0,
+          iteration,
+          keyFindings: entry.keyFindings,
+          maxAttempts: maxIterations,
+          remaining: postRemaining,
+          sessionPath: sessionPath ?? undefined,
+          status: iterationStatus,
+          subtaskId: currentSubtask.id,
+          subtaskTitle: currentSubtask.title,
+          summary: entry.summary,
+          toolCalls: entry.toolCalls,
+        }),
+      );
+    }
+  }
+
+  return { didComplete, hookResult };
 }
 
 /**
@@ -397,22 +510,15 @@ async function runBuild(
     const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
     attempts.set(currentSubtask.id, currentAttempts);
 
-    // Check if we've exceeded max iterations for this subtask (0 = unlimited)
-    if (maxIterations > 0 && currentAttempts > maxIterations) {
+    // Check if we've exceeded max iterations for this subtask
+    // eslint-disable-next-line no-await-in-loop -- Must check before continuing
+    const didExceedMaxIterations = await handleMaxIterationsExceeded(
+      currentAttempts,
+      maxIterations,
+      currentSubtask.id,
+    );
+    if (didExceedMaxIterations) {
       totalFailed += 1;
-
-      console.error(
-        `\nError: Max iterations (${maxIterations}) exceeded for subtask: ${currentSubtask.id}`,
-      );
-      console.error(`Subtask failed after ${maxIterations} attempts`);
-
-      // Execute onMaxIterationsExceeded hook
-      // eslint-disable-next-line no-await-in-loop -- Hook must complete before exit
-      await executeHook("onMaxIterationsExceeded", {
-        message: `Subtask ${currentSubtask.id} failed after ${maxIterations} attempts`,
-        subtaskId: currentSubtask.id,
-      });
-
       process.exit(1);
     }
 
@@ -433,8 +539,11 @@ async function runBuild(
     const prompt = buildIterationPrompt(contextRoot, subtasksPath);
 
     // Invoke Claude based on mode
+    let didComplete = false;
+    let filesChangedThisIteration: Array<string> = [];
+
     if (mode === "headless") {
-      const iterationResult = processHeadlessIteration({
+      const headlessResult = processHeadlessIteration({
         contextRoot,
         currentAttempts,
         currentSubtask,
@@ -446,38 +555,48 @@ async function runBuild(
         subtasksPath,
       });
 
-      if (iterationResult === null) {
+      if (headlessResult === null) {
         process.exit(1);
       }
 
-      // Track build totals
-      totalCost += iterationResult.costUsd;
-      totalDuration += iterationResult.durationMs;
-      if (iterationResult.didComplete) {
-        totalCompleted += 1;
-        // Reset attempts for completed subtask
-        attempts.delete(currentSubtask.id);
-      }
-      // Note: totalFailed is only incremented when max iterations exceeded (line 386)
-
-      // Track files changed
-      if (iterationResult.hookResult?.entry.filesChanged) {
-        for (const file of iterationResult.hookResult.entry.filesChanged) {
-          allFilesChanged.add(file);
-        }
-      }
+      totalCost += headlessResult.costUsd;
+      totalDuration += headlessResult.durationMs;
+      ({ didComplete } = headlessResult);
+      filesChangedThisIteration =
+        headlessResult.hookResult?.entry.filesChanged ?? [];
     } else {
-      processSupervisedIteration({ contextRoot, subtasksPath });
-    }
+      const supervisedResult = processSupervisedIteration({
+        contextRoot,
+        currentAttempts,
+        currentSubtask,
+        iteration,
+        maxIterations,
+        remaining,
+        subtasksPath,
+      });
 
-    // For supervised mode, reload subtasks to check if current one was completed
-    if (mode === "supervised") {
-      const updatedSubtasks = loadSubtasksFile(subtasksPath);
-      const newRemaining = countRemaining(updatedSubtasks.subtasks);
+      if (supervisedResult === null) {
+        process.exit(1);
+      }
 
-      if (newRemaining < remaining) {
+      ({ didComplete } = supervisedResult);
+      filesChangedThisIteration =
+        supervisedResult.hookResult?.entry.filesChanged ?? [];
+
+      if (didComplete) {
         console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
       }
+    }
+
+    // Handle completion tracking
+    if (didComplete) {
+      totalCompleted += 1;
+      attempts.delete(currentSubtask.id);
+    }
+
+    // Track files changed
+    for (const file of filesChangedThisIteration) {
+      allFilesChanged.add(file);
     }
 
     // Interactive mode: prompt for continuation
