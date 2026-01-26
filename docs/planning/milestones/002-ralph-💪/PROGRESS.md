@@ -342,3 +342,13 @@
   - Updated parseReviewFindings to use FindingsArraySchema.safeParse() instead of raw JSON.parse
   - Added detailed Zod error logging when findings validation fails
 - **Files:** tools/src/commands/review/index.ts (modified), tools/src/commands/review/types.ts (modified)
+
+### SUB-028a
+- **Problem:** Research task to analyze the relationship between /dev:interrogate command and parallel-code-review skill
+- **Changes:** Analyzed all relevant files and documented findings:
+  - **Interrogate purpose:** Ask "why" - surfaces assumptions, decisions, and confidence levels. Focus: developer's decision-making process. 3 core questions about what was hard, rejected, and uncertain.
+  - **Review purpose:** Find issues - identifies bugs, vulnerabilities, anti-patterns across 11 specialized domains. Focus: technical quality of the code itself.
+  - **Integration status:** NOT currently integrated - they run independently. Interrogation is documented as optional pre-merge checkpoint in complete-feature.md.
+  - **Relationship:** Complementary tools. Interrogate surfaces assumptions, Review validates correctness. Both useful for thorough pre-merge validation.
+  - **Recommendation for SUB-028b:** Add "Related Tools" section to SKILL.md clarifying the distinction.
+- **Files:** None modified (research task - output in completion notes)

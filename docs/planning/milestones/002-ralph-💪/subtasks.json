@@ -95,7 +95,9 @@
       "storyRef": "STORY-001",
       "title": "Analyze interrogate-review workflow relationship",
       "description": "Research task: The /dev:interrogate command exists alongside the parallel-code-review skill. Determine: (1) What is the purpose of each? (2) Are they currently integrated? (3) When should users use which? Output a documented analysis to inform SUB-028b.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T21:15:00Z",
+      "commitHash": "667b3e9",
       "classification": {
         "knowledgeCertainty": "known-unknown",
         "spikeIndicators": 2,
@@ -113,7 +115,22 @@
         ".claude/commands/dev/interrogate.md",
         "context/workflows/interrogate.md",
         "docs/planning/VISION.md"
-      ]
+      ],
+      "completionNotes": {
+        "analysis": {
+          "interrogatePurpose": "Ask 'why' - surfaces assumptions, decisions, and confidence levels behind code changes. Focus: developer's decision-making process.",
+          "reviewPurpose": "Find issues - identifies bugs, vulnerabilities, anti-patterns across 11 specialized domains. Focus: technical quality of the code itself.",
+          "currentIntegration": "NOT integrated - they run independently. Interrogation documented as optional pre-merge checkpoint in complete-feature.md.",
+          "relationshipSummary": "Complementary tools: Interrogate surfaces assumptions, Review validates correctness. Both useful for thorough pre-merge validation.",
+          "recommendation": "Add 'Related Tools' section to SKILL.md clarifying: interrogate = question decisions (understand intent), review = find problems (verify quality)."
+        },
+        "comparisonTable": {
+          "primaryQuestion": { "interrogate": "Why did you make these choices?", "review": "What problems does this code have?" },
+          "target": { "interrogate": "Developer's reasoning/intent", "review": "Code quality/correctness" },
+          "analogy": { "interrogate": "Explaining your work", "review": "Having work audited" },
+          "bestFor": { "interrogate": "Understanding design decisions", "review": "Finding bugs and anti-patterns" }
+        }
+      }
     },
     {
       "id": "SUB-028b",
