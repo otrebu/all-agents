@@ -259,7 +259,10 @@
       "storyRef": null,
       "title": "Track Claude invocation time in build.ts",
       "description": "Wrap invokeClaudeHeadless() call in build.ts with timing to capture claudeMs. Pass claudeMs and skipSummary to runPostIterationHook(). This completes the timing instrumentation chain so diary entries capture all timing phases.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T23:50:00Z",
+      "commitHash": "8a64b2f",
+      "sessionId": "c97c60fb-f0c5-4722-b503-b1e147e95b39",
       "blockedBy": ["SUB-030", "SUB-031"],
       "classification": {
         "knowledgeCertainty": "known-known",

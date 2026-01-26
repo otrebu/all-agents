@@ -390,3 +390,13 @@
   - Populated timing field (IterationTiming) in diary entry with all timing values
   - Populated mode field in diary entry when provided
 - **Files:** tools/src/commands/ralph/post-iteration.ts (modified)
+
+### SUB-032
+- **Problem:** Need to track Claude invocation time in build.ts to complete the timing instrumentation chain
+- **Changes:** Added timing instrumentation to processHeadlessIteration() in build.ts:
+  - Added shouldSkipSummary to HeadlessIterationContext interface
+  - Wrapped invokeClaudeHeadless() call with timing (claudeStart = Date.now(), claudeMs calculation)
+  - Passed claudeMs, skipSummary, and mode: "headless" to runPostIterationHook()
+  - Destructured skipSummary from build options (as shouldSkipSummary to follow naming convention)
+  - Passed shouldSkipSummary through processHeadlessIteration context
+- **Files:** tools/src/commands/ralph/build.ts (modified)
