@@ -851,7 +851,10 @@
       "storyRef": null,
       "title": "Verify cleanup and run validation tests",
       "description": "Phase 6: Final verification. Check all deleted files are gone, remaining subtasks.json files are valid JSON, CLI tools still work. Run aaa task create test-task and aaa story create test-story to verify correct format, then delete test files.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T20:30:00Z",
+      "commitHash": "16fe2fe",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-050", "SUB-051"],
       "classification": {
         "knowledgeCertainty": "known-known",
