@@ -128,6 +128,34 @@ aaa review status                # Show review history and statistics
 
 # Extract Claude Code conversation history
 aaa extract-conversations [-l limit] [-o file]
+
+# Notify - Push notifications via ntfy.sh
+#
+# Send push notifications to your phone when Claude Code completes tasks.
+# Uses ntfy.sh for free, no-auth-required push notifications.
+#
+aaa notify "Task complete"            # Send notification
+aaa notify on                         # Enable notifications
+aaa notify off                        # Disable notifications
+aaa notify status                     # Show current status
+aaa notify config set --topic <topic> # Set your ntfy topic
+aaa notify config show                # Display configuration
+aaa notify config test                # Send test notification
+#
+# Options for aaa notify <message>:
+#   -t, --title <text>     Notification title
+#   -p, --priority <level> Priority: min, low, default, high, max
+#   --tags <tags>          Comma-separated tags/emojis
+#
+# Claude Code hook integration example (in ~/.claude/settings.json):
+#   "hooks": {
+#     "Stop": [{
+#       "hooks": [{ "type": "command", "command": "aaa notify 'Task complete'" }]
+#     }]
+#   }
+#
+# Config resolution: CLI flags → env vars → config file → defaults
+# Env vars: NTFY_TOPIC, NTFY_SERVER, NTFY_PRIORITY
 ```
 
 Research outputs are saved to `docs/research/`.

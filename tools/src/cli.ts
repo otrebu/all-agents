@@ -15,6 +15,7 @@ import downloadCommand from "./commands/download";
 import extractConversationsCommand from "./commands/extract-conversations";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
+import notifyCommand from "./commands/notify/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
 import ralphCommand from "./commands/ralph/index";
 import reviewCommand from "./commands/review/index";
@@ -202,6 +203,9 @@ program.addCommand(ralphCommand);
 
 // Review - parallel multi-agent code review
 program.addCommand(reviewCommand);
+
+// Notify - push notifications via ntfy.sh
+program.addCommand(notifyCommand);
 
 // Shell completion
 program.addCommand(completionCommand);
