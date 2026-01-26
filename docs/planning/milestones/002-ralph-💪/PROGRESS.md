@@ -540,3 +540,8 @@
   - Added .gitkeep to tasks/ to preserve directory structure
   - Preserved existing .gitkeep in stories/
 - **Files:** docs/planning/stories/001-cost-dashboard-overview.md (deleted), docs/planning/tasks/011-013 (deleted), docs/planning/tasks/.gitkeep (created)
+
+### SUB-047
+- **Problem:** Stale subtasks.json in 001-ralph milestone contained pending subtasks (SUB-001 through SUB-011) referencing task files that were deleted in SUB-044
+- **Changes:** Deleted docs/planning/milestones/001-ralph/subtasks.json as part of Phase 1d of naming consistency cleanup
+- **Files:** docs/planning/milestones/001-ralph/subtasks.json (deleted)

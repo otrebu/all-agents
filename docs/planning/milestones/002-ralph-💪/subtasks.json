@@ -704,7 +704,10 @@
       "storyRef": null,
       "title": "Delete stale 001-ralph subtasks.json",
       "description": "Phase 1d: Delete docs/planning/milestones/001-ralph/subtasks.json which contains pending subtasks (SUB-001 through SUB-011) referencing deleted task files. The completed subtasks (SUB-012 onward) are in the global subtasks.json.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T16:55:00Z",
+      "commitHash": "9d58e81",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-044"],
       "classification": {
         "knowledgeCertainty": "known-known",
