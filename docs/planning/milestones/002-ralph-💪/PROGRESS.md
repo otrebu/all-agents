@@ -681,3 +681,12 @@
   - Preserved existing guidelines (1-3 files, 15-30 tool calls)
   - Updated "Signs a Subtask is Too Large/Small" sections to reference changeCount
 - **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)
+
+### SUB-061
+- **Problem:** Need to add 'subtask-review' as a valid type discriminator for milestone daily logs to support subtask review findings from the subtask-reviewer agent
+- **Changes:** Extended IterationDiaryEntry type in types.ts:
+  - Added 'subtask-review' to the type discriminator union: `type?: "iteration" | "planning" | "subtask-review"`
+  - Updated JSDoc comment to document all three entry types and their purposes
+  - No CLI command changes needed - existing getMilestoneLogPath() infrastructure handles the log paths
+  - Log entry shape (oversized, undersized, mergeCandidates, splitCandidates, approved) is documented in .claude/agents/subtask-reviewer.md
+- **Files:** tools/src/commands/ralph/types.ts (modified)

@@ -1134,7 +1134,10 @@
       "storyRef": null,
       "title": "Add subtask-review log type to ralph CLI",
       "description": "Update tools/src/commands/ralph/index.ts to support writing subtask-review findings to milestone daily logs. Add 'subtask-review' as a valid type discriminator alongside 'iteration' and 'planning'. Update the planning subcommands to log review findings to docs/planning/milestones/{milestone}/logs/{date}.jsonl with type: 'subtask-review'.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T17:30:00Z",
+      "commitHash": "fa51587",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-055"],
       "classification": {
         "knowledgeCertainty": "known-known",
