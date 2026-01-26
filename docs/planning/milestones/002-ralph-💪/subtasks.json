@@ -195,7 +195,10 @@
       "storyRef": null,
       "title": "Add --skip-summary CLI flag to ralph build",
       "description": "Add -S, --skip-summary option to the ralph build command in index.ts. Pass skipSummary boolean through to runBuild() options. This enables users to skip Haiku summary generation in headless mode to reduce latency and cost.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T22:45:00Z",
+      "commitHash": "2c8631e",
+      "sessionId": "c97c60fb-f0c5-4722-b503-b1e147e95b39",
       "blockedBy": ["SUB-029"],
       "classification": {
         "knowledgeCertainty": "known-known",

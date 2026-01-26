@@ -370,3 +370,11 @@
   - Added skipSummary boolean field to BuildOptions
   - Updated index.ts to include skipSummary: false in BuildOptions call
 - **Files:** tools/src/commands/ralph/types.ts (modified), tools/src/commands/ralph/index.ts (modified)
+
+### SUB-030
+- **Problem:** Need CLI flag to skip Haiku summary generation in headless mode to reduce latency and cost
+- **Changes:** Added -S, --skip-summary CLI flag to ralph build command:
+  - Added .option('-S, --skip-summary', 'Skip Haiku summary generation in headless mode') to build command
+  - Updated skipSummary from hardcoded false to options.skipSummary === true in runBuild() call
+  - Added E2E test coverage for the new flag
+- **Files:** tools/src/commands/ralph/index.ts (modified), tools/tests/e2e/ralph.test.ts (modified)
