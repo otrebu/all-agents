@@ -234,3 +234,15 @@
   - JSON output format matching Finding schema from types.md
   - Suggested fixes showing simpler alternatives
 - **Files:** .claude/agents/code-review/over-engineering-reviewer.md (created)
+
+### SUB-032
+- **Problem:** Need a performance-focused code reviewer agent that identifies N+1 queries, memory leaks, algorithm complexity issues, and inefficient patterns
+- **Changes:** Created .claude/agents/code-review/performance-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Performance focus areas: N+1 query patterns, memory leaks and retention, algorithm complexity, inefficient data structures, rendering/UI performance, network/I/O inefficiency, startup/bundle performance
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to performance issues
+  - Example findings for N+1 query, memory leak, O(n²) algorithm, unnecessary re-renders, and missing pagination
+  - JSON output format matching Finding schema from types.md
+  - Suggested fixes with O-notation improvements where applicable
+- **Files:** .claude/agents/code-review/performance-reviewer.md (created)

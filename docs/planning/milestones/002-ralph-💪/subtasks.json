@@ -458,7 +458,10 @@
       "storyRef": "STORY-001",
       "title": "Create performance-reviewer agent",
       "description": "Create .claude/agents/code-review/performance-reviewer.md agent focused on N+1 queries, memory leaks, algorithm complexity, and inefficient patterns. Agent identifies performance issues and outputs findings per schema.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T00:05:00Z",
+      "commitHash": "7bc893592941cdaf8685e03cf9e023bc526a3cb7",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/performance-reviewer.md exists",
         "Agent focuses on N+1, memory, algorithms, inefficiency",
