@@ -9,8 +9,8 @@
   "subtasks": [
     {
       "id": "SUB-025",
-      "taskRef": "TASK-REVIEW-001",
-      "storyRef": "STORY-001",
+      "taskRef": "014-review-code-quality",
+      "storyRef": "001-parallel-code-review",
       "title": "Update SKILL.md with all 11 reviewer agents",
       "description": "The parallel-code-review skill documentation lists only 5 reviewers but there are 11 reviewer agents. Update the Reviewer Agents table in SKILL.md to include all 11: security-reviewer, data-integrity-reviewer, error-handling-reviewer, test-coverage-reviewer, maintainability-reviewer, dependency-reviewer, documentation-reviewer, accessibility-reviewer, intent-alignment-reviewer, over-engineering-reviewer, performance-reviewer.",
       "done": true,
@@ -34,8 +34,8 @@
     },
     {
       "id": "SUB-026",
-      "taskRef": "TASK-REVIEW-001",
-      "storyRef": "STORY-001",
+      "taskRef": "014-review-code-quality",
+      "storyRef": "001-parallel-code-review",
       "title": "Document aaa review command in README.md and tools/CLAUDE.md",
       "description": "Two documentation gaps: (1) README.md CLI Tools section doesn't document aaa review command, (2) tools/CLAUDE.md directory structure doesn't include review/ folder. Add both in one subtask since they're related documentation updates with no code changes.",
       "done": true,
@@ -62,8 +62,8 @@
     },
     {
       "id": "SUB-027",
-      "taskRef": "TASK-REVIEW-001",
-      "storyRef": "STORY-001",
+      "taskRef": "014-review-code-quality",
+      "storyRef": "001-parallel-code-review",
       "title": "Add error logging and Zod validation to review parsing",
       "description": "Two related error handling improvements in review/index.ts: (1) readDiaryEntries silently returns [] on error - add console.warn matching writeDiaryEntry pattern at line 250, (2) parseReviewFindings uses raw JSON.parse without validation - add Zod schema for Finding[] structure. Both improve error handling in the same file.",
       "done": true,
@@ -91,8 +91,8 @@
     },
     {
       "id": "SUB-028a",
-      "taskRef": "TASK-REVIEW-001",
-      "storyRef": "STORY-001",
+      "taskRef": "014-review-code-quality",
+      "storyRef": "001-parallel-code-review",
       "title": "Analyze interrogate-review workflow relationship",
       "description": "Research task: The /dev:interrogate command exists alongside the parallel-code-review skill. Determine: (1) What is the purpose of each? (2) Are they currently integrated? (3) When should users use which? Output a documented analysis to inform SUB-028b.",
       "done": true,
@@ -134,8 +134,8 @@
     },
     {
       "id": "SUB-028b",
-      "taskRef": "TASK-REVIEW-001",
-      "storyRef": "STORY-001",
+      "taskRef": "014-review-code-quality",
+      "storyRef": "001-parallel-code-review",
       "title": "Document interrogate vs review distinction",
       "description": "Implementation task (blocked by SUB-028a): Based on analysis findings, add documentation clarifying when to use /dev:interrogate vs aaa review. Add section to SKILL.md or VISION.md explaining: interrogate is for questioning decisions in existing code, review is for finding issues in changes.",
       "done": true,
@@ -161,7 +161,7 @@
     },
     {
       "id": "SUB-029",
-      "taskRef": "TASK-TIMING-001",
+      "taskRef": "015-timing-instrumentation",
       "storyRef": null,
       "title": "Add timing, skipSummary, and mode types to ralph/types.ts",
       "description": "Extend IterationDiaryEntry with optional timing field, optional mode field, and add skipSummary to BuildOptions. The timing field tracks where time is spent (claudeMs, hookMs, summaryMs, metricsMs). The mode field distinguishes 'headless' vs 'supervised' entries. This is a types-only change that enables the instrumentation in subsequent subtasks.",
@@ -191,7 +191,7 @@
     },
     {
       "id": "SUB-030",
-      "taskRef": "TASK-TIMING-001",
+      "taskRef": "015-timing-instrumentation",
       "storyRef": null,
       "title": "Add --skip-summary CLI flag to ralph build",
       "description": "Add -S, --skip-summary option to the ralph build command in index.ts. Pass skipSummary boolean through to runBuild() options. This enables users to skip Haiku summary generation in headless mode to reduce latency and cost.",
@@ -220,7 +220,7 @@
     },
     {
       "id": "SUB-031",
-      "taskRef": "TASK-TIMING-001",
+      "taskRef": "015-timing-instrumentation",
       "storyRef": null,
       "title": "Instrument timing in post-iteration hook",
       "description": "Add timing instrumentation to runPostIterationHook() in post-iteration.ts. Wrap summary generation and metrics collection with Date.now() timing. Populate the timing field in diary entry. Respect skipSummary option by returning placeholder summary when true. Accept optional mode field and pass it to diary entry.",
@@ -255,7 +255,7 @@
     },
     {
       "id": "SUB-032",
-      "taskRef": "TASK-TIMING-001",
+      "taskRef": "015-timing-instrumentation",
       "storyRef": null,
       "title": "Track Claude invocation time in build.ts",
       "description": "Wrap invokeClaudeHeadless() call in build.ts with timing to capture claudeMs. Pass claudeMs and skipSummary to runPostIterationHook(). This completes the timing instrumentation chain so diary entries capture all timing phases.",
@@ -286,7 +286,7 @@
     },
     {
       "id": "SUB-033",
-      "taskRef": "TASK-SUPERVISED-001",
+      "taskRef": "016-supervised-mode-feedback",
       "storyRef": null,
       "title": "Add discoverRecentSession() to session.ts",
       "description": "Add a function to find the most recent Claude session file created after a given timestamp. Uses `find ~/.claude/projects -name '*.jsonl' -newermt ...` to locate session files. Returns { sessionId, path } or null if not found. This enables supervised mode to discover the session after it completes.",
@@ -316,7 +316,7 @@
     },
     {
       "id": "SUB-034",
-      "taskRef": "TASK-SUPERVISED-001",
+      "taskRef": "016-supervised-mode-feedback",
       "storyRef": null,
       "title": "Add post-iteration feedback to supervised mode",
       "description": "Update processSupervisedIteration() in build.ts to: (1) capture startTime before invoking Claude, (2) after session ends, call discoverRecentSession(startTime) to find session file, (3) if found, call runPostIterationHook() with skipSummary: true to generate metrics and diary entry. This gives supervised mode the same feedback display as headless mode.",
@@ -351,7 +351,7 @@
     },
     {
       "id": "SUB-035",
-      "taskRef": "TASK-LOGS-001",
+      "taskRef": "017-milestone-scoped-logs",
       "storyRef": null,
       "title": "Add getMilestoneLogPath() core helper to config.ts",
       "description": "Add the foundational getMilestoneLogPath(milestoneRoot: string): string helper function to config.ts. This function returns the path to the daily log file: {milestoneRoot}/logs/{YYYY-MM-DD}.jsonl using UTC date. This is the core helper that getIterationLogPath and getPlanningLogPath will call.",
@@ -379,7 +379,7 @@
     },
     {
       "id": "SUB-036",
-      "taskRef": "TASK-LOGS-001",
+      "taskRef": "017-milestone-scoped-logs",
       "storyRef": null,
       "title": "Add getIterationLogPath() and getPlanningLogPath() helpers",
       "description": "Add two helper functions to config.ts that use getMilestoneLogPath(): (1) getIterationLogPath(subtasksPath: string) derives milestone root from subtasks.json location and calls getMilestoneLogPath, handles _orphan/ fallback for empty milestone; (2) getPlanningLogPath(milestonePath: string) uses milestone path directly. Both call the core getMilestoneLogPath helper.",
@@ -411,7 +411,7 @@
     },
     {
       "id": "SUB-037",
-      "taskRef": "TASK-LOGS-001",
+      "taskRef": "017-milestone-scoped-logs",
       "storyRef": null,
       "title": "Add type discriminator to IterationDiaryEntry",
       "description": "Add optional type: 'iteration' | 'planning' field to IterationDiaryEntry in types.ts. This discriminator allows both iteration and planning entries to coexist in the same daily JSONL file while being distinguishable.",
@@ -437,7 +437,7 @@
     },
     {
       "id": "SUB-038",
-      "taskRef": "TASK-LOGS-001",
+      "taskRef": "017-milestone-scoped-logs",
       "storyRef": null,
       "title": "Update index.ts to use milestone-scoped planning logs",
       "description": "Update getPlanningLogPath() in index.ts (currently at line 203-206) to use the new config.ts helper. Update invokeClaudeHeadless() calls to add 'type': 'planning' to diary entries. The planning log should now write to docs/planning/milestones/{milestone}/logs/{date}.jsonl instead of global logs/planning.jsonl.",
@@ -467,7 +467,7 @@
     },
     {
       "id": "SUB-039",
-      "taskRef": "TASK-LOGS-001",
+      "taskRef": "017-milestone-scoped-logs",
       "storyRef": null,
       "title": "Update post-iteration.ts for milestone-scoped iteration logs",
       "description": "Update runPostIterationHook() in post-iteration.ts (line 383) to use getIterationLogPath() from config.ts instead of hardcoded logs/iterations.jsonl. Update writeDiaryEntry calls to add 'type': 'iteration' to entries. Consider atomic write pattern (temp file → append) for concurrent writes.",
@@ -498,7 +498,7 @@
     },
     {
       "id": "SUB-040",
-      "taskRef": "TASK-LOGS-001",
+      "taskRef": "017-milestone-scoped-logs",
       "storyRef": null,
       "title": "Update status.ts to glob multiple daily log files",
       "description": "Update readIterationDiary() in status.ts (lines 112-133) to glob multiple JSONL files from the milestone logs directory. Use pattern: {milestoneRoot}/logs/*.jsonl to find all daily files. Aggregate entries from all files for stats calculation. Update runStatus() to derive log path from subtasks file milestone.",
@@ -530,7 +530,7 @@
     },
     {
       "id": "SUB-041",
-      "taskRef": "TASK-LOGS-001",
+      "taskRef": "017-milestone-scoped-logs",
       "storyRef": null,
       "title": "Update ralph.test.ts for milestone-scoped log paths",
       "description": "Update ralph.test.ts hardcoded log paths at lines 1860, 1899, 1958, 2045 to use milestone-scoped paths. Update test fixtures to expect logs at docs/planning/milestones/{milestone}/logs/{date}.jsonl instead of global logs/iterations.jsonl.",
@@ -559,7 +559,7 @@
     },
     {
       "id": "SUB-042",
-      "taskRef": "TASK-LOGS-001",
+      "taskRef": "017-milestone-scoped-logs",
       "storyRef": null,
       "title": "Cleanup: gitignore and delete remnant files",
       "description": "Final cleanup: (1) Add .claude/cache/ to .gitignore, (2) Delete old global logs/ folder contents if empty after migration, (3) Delete any v2 remnant files. This is the last subtask to run after all migrations are verified working.",
@@ -587,7 +587,7 @@
     },
     {
       "id": "SUB-043",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Add User Personas & Stories section to VISION.md",
       "description": "Phase 0 of naming consistency cleanup. Before deleting story files, preserve their user-centric narratives by adding a 'User Personas & Stories' table to VISION.md after Section 2 (Folder Structure). The table maps each feature to its persona and user story from the 9 story files in milestone 001-ralph.",
@@ -615,7 +615,7 @@
     },
     {
       "id": "SUB-044",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Delete milestone 001-ralph story and task files",
       "description": "Phase 1a: Delete all story and task markdown files from milestone 001-ralph that are now covered by VISION.md. This includes 9 story files in stories/ and 28 task files in tasks/. Keep test-fixtures/, PROGRESS.md, and other milestone artifacts.",
@@ -643,7 +643,7 @@
     },
     {
       "id": "SUB-045",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Delete milestone 002-ralph story and task files",
       "description": "Phase 1b: Delete story and task files from milestone 002-ralph-💪 that are covered by VISION/ROADMAP. This includes STORY-001-parallel-code-review.md and TASK-014 through TASK-018. The parallel code review feature is documented in VISION 3.4 Code Review Mode.",
@@ -671,7 +671,7 @@
     },
     {
       "id": "SUB-046",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Delete global orphan stories and tasks",
       "description": "Phase 1c: Delete orphaned files in global docs/planning/stories/ and docs/planning/tasks/. This includes 001-cost-dashboard-overview.md (empty template) and tasks 011-013 (maintenance tasks not tracked in VISION).",
@@ -700,7 +700,7 @@
     },
     {
       "id": "SUB-047",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Delete stale 001-ralph subtasks.json",
       "description": "Phase 1d: Delete docs/planning/milestones/001-ralph/subtasks.json which contains pending subtasks (SUB-001 through SUB-011) referencing deleted task files. The completed subtasks (SUB-012 onward) are in the global subtasks.json.",
@@ -727,7 +727,7 @@
     },
     {
       "id": "SUB-048",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Create naming-convention.md documentation",
       "description": "Phase 2: Create context/blocks/docs/naming-convention.md as the single source of truth for file naming. Document: NNN-slug.md pattern, zero-padded 3-digit numbers, kebab-case slugs, folder-based type inference, JSON refs = filename without extension.",
@@ -759,7 +759,7 @@
     },
     {
       "id": "SUB-049",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Update subtasks.schema.json taskRef/storyRef patterns",
       "description": "Phase 3: Update docs/planning/schemas/subtasks.schema.json to use filename-based refs instead of TASK-NNN/STORY-NNN patterns. Change taskRef pattern from ^TASK-[0-9]{3,}$ to ^[0-9]{3,}-[a-z0-9-]+$ and storyRef similarly.",
@@ -787,7 +787,7 @@
     },
     {
       "id": "SUB-050",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Update refs in global subtasks.json",
       "description": "Phase 5a: Update taskRef values in docs/planning/subtasks.json from TASK-NNN format to filename-based refs (e.g., TASK-011 → 011-rename-self-improvement-modes). Since the referenced task files will be deleted, use the original filename slugs.",
@@ -816,7 +816,7 @@
     },
     {
       "id": "SUB-051",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Update refs in milestone 002-ralph subtasks.json",
       "description": "Phase 5b: Update taskRef and storyRef values in docs/planning/milestones/002-ralph-💪/subtasks.json. Change TASK-REVIEW-001 to review-findings, STORY-001 to 001-parallel-code-review, and similar updates for TASK-TIMING-001, TASK-SUPERVISED-001, TASK-LOGS-001.",
@@ -844,7 +844,7 @@
     },
     {
       "id": "SUB-052",
-      "taskRef": "TASK-NAMING-001",
+      "taskRef": "018-naming-consistency-cleanup",
       "storyRef": null,
       "title": "Verify cleanup and run validation tests",
       "description": "Phase 6: Final verification. Check all deleted files are gone, remaining subtasks.json files are valid JSON, CLI tools still work. Run aaa task create test-task and aaa story create test-story to verify correct format, then delete test files.",
