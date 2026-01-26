@@ -7,7 +7,7 @@
   "subtasks": [
     {
       "id": "SUB-012",
-      "taskRef": "TASK-011",
+      "taskRef": "011-rename-self-improvement-modes",
       "storyRef": null,
       "title": "Update schema, types, and default config for new mode names",
       "description": "Update selfImprovement.mode enum from ['always', 'auto'] to ['suggest', 'autofix', 'off'] in three files: (1) docs/planning/schemas/ralph-config.schema.json - change enum values, update description; (2) tools/src/commands/ralph/types.ts - update SelfImprovementConfig mode union type; (3) tools/src/commands/ralph/config.ts - change default from 'always' to 'suggest'.",
@@ -28,7 +28,7 @@
     },
     {
       "id": "SUB-013",
-      "taskRef": "TASK-011",
+      "taskRef": "011-rename-self-improvement-modes",
       "storyRef": null,
       "title": "Update calibrate.ts to use new mode names",
       "description": "Update tools/src/commands/ralph/calibrate.ts to use new mode names: change 'always' checks to 'suggest', 'auto' to 'autofix', 'never' to 'off'. Update console.log messages and prompt text to use new terminology. Remove the comment about 'never' not being in schema since 'off' will now be in schema.",
@@ -49,7 +49,7 @@
     },
     {
       "id": "SUB-014",
-      "taskRef": "TASK-011",
+      "taskRef": "011-rename-self-improvement-modes",
       "storyRef": null,
       "title": "Add mode table to VISION.md",
       "description": "Add a mode table to Section 3 (Calibration Mode) in docs/planning/VISION.md documenting the three selfImprovement modes: suggest (creates task files for review), autofix (applies changes directly), off (skips analysis). Include when to use each mode.",
@@ -68,7 +68,7 @@
     },
     {
       "id": "SUB-015",
-      "taskRef": "TASK-011",
+      "taskRef": "011-rename-self-improvement-modes",
       "storyRef": null,
       "title": "Update tests and verify typecheck",
       "description": "Update tools/tests/e2e/ralph.test.ts to use 'suggest' instead of 'always' in test fixtures. Run bun run typecheck to verify all type changes are consistent. Fix any type errors that arise from the mode rename.",
@@ -88,7 +88,7 @@
     },
     {
       "id": "SUB-016",
-      "taskRef": "TASK-012",
+      "taskRef": "012-cli-ergonomics-fixes",
       "storyRef": null,
       "title": "Add --story and --milestone scope to plan subtasks",
       "description": "Extend `ralph plan subtasks` command in tools/src/commands/ralph/index.ts to accept --story <path> and --milestone <path> in addition to --task. Make --task|--story|--milestone mutually exclusive (require exactly one). Update extraContext to include the path. Infer output location from input path.",
@@ -109,7 +109,7 @@
     },
     {
       "id": "SUB-017",
-      "taskRef": "TASK-012",
+      "taskRef": "012-cli-ergonomics-fixes",
       "storyRef": null,
       "title": "Convert ralph review stories/tasks to use --milestone flag",
       "description": "Change `ralph review stories <milestone>` from positional arg to `--milestone <path>` flag. Change `ralph review gap stories <milestone>` similarly. Update invokeClaudeChat calls with new extraContext. Keep `ralph review roadmap` unchanged (no milestone arg).",
@@ -129,7 +129,7 @@
     },
     {
       "id": "SUB-018",
-      "taskRef": "TASK-012",
+      "taskRef": "012-cli-ergonomics-fixes",
       "storyRef": null,
       "title": "Convert ralph calibrate to real subcommands",
       "description": "Replace `.argument('[subcommand]')` pattern with real Commander subcommands using `calibrateCommand.addCommand(new Command('intention')...)`. Move option definitions to each subcommand. Keep runCalibrate dispatcher but call from each subcommand's action.",
@@ -151,7 +151,7 @@
     },
     {
       "id": "SUB-019",
-      "taskRef": "TASK-012",
+      "taskRef": "012-cli-ergonomics-fixes",
       "storyRef": null,
       "title": "Fix --max-iterations default and remove --auto flag",
       "description": "In index.ts build command: change --max-iterations default from '3' to '0' (0=unlimited per VISION spec). In plan stories/tasks commands: remove `-a, --auto` option and its usage. Keep only --supervised and --headless modes.",
@@ -172,7 +172,7 @@
     },
     {
       "id": "SUB-020",
-      "taskRef": "TASK-012",
+      "taskRef": "012-cli-ergonomics-fixes",
       "storyRef": null,
       "title": "Add --calibrate-every flag to build command",
       "description": "Add `.option('--calibrate-every <n>', 'Run calibration every N iterations')` to ralph build command. In build.ts runBuild(), check iteration count and call runCalibrate('all', ...) when divisible by calibrateEvery. Pass calibrateEvery through BuildOptions type.",
@@ -193,7 +193,7 @@
     },
     {
       "id": "SUB-021",
-      "taskRef": "TASK-012",
+      "taskRef": "012-cli-ergonomics-fixes",
       "storyRef": null,
       "title": "Implement ralph review subtasks command",
       "description": "Replace 'coming soon' placeholder for `ralph review tasks` with real implementation. Add `ralph review subtasks --subtasks <path>` command that invokes a subtasks-review-auto.md prompt. Create basic prompt file if missing. Supervised-only mode.",
@@ -214,7 +214,7 @@
     },
     {
       "id": "SUB-022",
-      "taskRef": "TASK-012",
+      "taskRef": "012-cli-ergonomics-fixes",
       "storyRef": null,
       "title": "Update VISION.md Section 8.2 CLI reference",
       "description": "Update docs/planning/VISION.md Section 8.2 to document final CLI command structure. Include: plan subtasks scope flags, review flag syntax, calibrate subcommands, max-iterations=0 default, calibrate-every flag, review subtasks command. Remove --auto references.",
@@ -235,7 +235,7 @@
     },
     {
       "id": "SUB-023",
-      "taskRef": "TASK-012",
+      "taskRef": "012-cli-ergonomics-fixes",
       "storyRef": null,
       "title": "Run typecheck and manual CLI verification",
       "description": "Run `bun run typecheck` in tools/ to verify all changes compile. Manually test each command with --help to verify flags. Test `ralph calibrate intention --help` shows as real subcommand.",
@@ -254,7 +254,7 @@
     },
     {
       "id": "SUB-024",
-      "taskRef": "TASK-013",
+      "taskRef": "013-prompt-quality-improvements",
       "storyRef": null,
       "title": "Add chunked presentation to stories-review-auto.md",
       "description": "Add 'Interactive Mode (Supervised)' section to stories-review-auto.md that references chunked-presentation.md (like roadmap-review-auto.md has). Add section after 'Required Reading' that says: when run in supervised mode, use chunked presentation, present per-story reviews one at a time waiting for acknowledgment. This is the ONLY file missing this pattern - all other review prompts already have it.",
