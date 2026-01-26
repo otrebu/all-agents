@@ -1009,7 +1009,10 @@
       "storyRef": null,
       "title": "Add Phase 1b (Doc Lookup) to subtasks-from-source.md",
       "description": "Update context/workflows/ralph/planning/subtasks-from-source.md to add Phase 1b: Doc Lookup between Phase 1 (Parse Input) and Phase 2 (Codebase Analysis). This phase uses Haiku to find relevant atomic docs for subtask context, adds them to filesToRead, or flags missing docs for Phase 6b.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T23:59:00Z",
+      "commitHash": "ae3ec19",
+      "sessionId": "ralph-build-iteration",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,

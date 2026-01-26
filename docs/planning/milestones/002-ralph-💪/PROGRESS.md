@@ -639,3 +639,13 @@
   - Kept code-review specific details (file/line/description duplicate criteria)
   - Preserved output format unchanged
 - **Files:** .claude/agents/code-review/synthesizer.md (modified)
+
+### SUB-057
+- **Problem:** Need to add Phase 1b (Doc Lookup) to subtasks-from-source.md workflow for identifying relevant atomic docs before codebase analysis
+- **Changes:** Added Phase 1b: Doc Lookup between Phase 1 (Parse Input) and Phase 2 (Codebase Analysis):
+  - Documents using Haiku subagent to extract technologies/concepts from parsed input
+  - Documents searching context/README.md index for matching blocks/foundations/stacks
+  - Documents classification of results: add to filesToRead OR flag missing for Phase 6b
+  - Output format: docMatches array and missingDocs array
+  - Includes example showing end-to-end doc lookup process
+- **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)
