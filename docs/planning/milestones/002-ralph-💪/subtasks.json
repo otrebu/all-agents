@@ -586,7 +586,10 @@
       "storyRef": "STORY-001",
       "title": "Update VISION.md with Code Review Mode",
       "description": "Add Section 3.4 'Code Review Mode' to docs/planning/VISION.md. Document parallel multi-agent review, 12 specialized reviewers list, trust gradient modes (Interactive/Supervised/Headless), interrogation workflow, and diary logging.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T01:15:00Z",
+      "commitHash": "556f9146587fbce64f0bf8acf4d60adffa3edee4",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "VISION.md has Section 3.4 Code Review Mode",
         "Section lists all 12 reviewer agents",

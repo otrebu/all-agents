@@ -306,3 +306,12 @@
   - Example showing how to add a Gotcha section to a block
   - Clarification that no separate lessons/ folder exists - lessons live where related docs already exist
 - **Files:** context/blocks/docs/atomic-documentation.md (modified)
+
+### SUB-038
+- **Problem:** Need to document the Code Review Mode in the project VISION.md
+- **Changes:** Added Section 3.4 "Code Review Mode" to docs/planning/VISION.md with:
+  - Trust gradient documentation (Interactive, Supervised, Headless modes with commands)
+  - Table listing all 12 specialized reviewer agents and their focus areas
+  - Interrogation workflow section (/dev:interrogate with core questions and modes)
+  - Review diary section documenting logs/reviews.jsonl format
+- **Files:** docs/planning/VISION.md (modified)
