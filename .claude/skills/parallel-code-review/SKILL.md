@@ -309,6 +309,27 @@ If `logs/reviews.jsonl` exists or should be created, append entry:
 - **No findings:** Report "No issues found by any reviewer"
 - **Synthesizer fails:** Present raw findings ungrouped, note synthesis failed
 
+## Related Tools
+
+### Interrogate vs Review
+
+These are complementary tools for thorough pre-merge validation:
+
+| Aspect | `/dev:interrogate` | `aaa review` (this tool) |
+|--------|-------------------|--------------------------|
+| **Primary Question** | "Why did you make these choices?" | "What problems does this code have?" |
+| **Target** | Developer's reasoning and intent | Code quality and correctness |
+| **Analogy** | Explaining your work to a colleague | Having your work audited |
+| **Best For** | Understanding design decisions | Finding bugs and anti-patterns |
+
+**When to use which:**
+
+- **Use Interrogate** when you want to understand the "why" behind changes - surfaces assumptions, rejected alternatives, and areas of low confidence. Especially valuable for AI-generated code or complex decisions.
+
+- **Use Review** (this tool) when you want to find issues - bugs, vulnerabilities, anti-patterns, missing tests. Validates correctness across 11 specialized domains.
+
+**For thorough pre-merge validation:** Run both. Interrogate first to understand intent, then Review to verify quality. Both are documented as optional checkpoints in the complete-feature workflow.
+
 ## Notes
 
 - All reviewers must complete before synthesis begins
