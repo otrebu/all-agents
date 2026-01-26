@@ -556,3 +556,12 @@
   - JSON refs format (filename without .md extension)
   - Migration guidance for legacy TASK-NNN/STORY-NNN formats
 - **Files:** context/blocks/docs/naming-convention.md (created)
+
+### SUB-049
+- **Problem:** subtasks.schema.json used legacy TASK-NNN/STORY-NNN patterns for taskRef and storyRef
+- **Changes:** Updated schema patterns to use filename-based refs:
+  - Changed metadata.storyRef pattern from ^STORY-[0-9]{3,}$ to ^[0-9]{3,}-[a-z0-9-]+$
+  - Changed subtask.taskRef pattern from ^TASK-[0-9]{3,}$ to ^[0-9]{3,}-[a-z0-9-]+$ (also made nullable)
+  - Changed subtask.storyRef pattern from ^STORY-[0-9]{3,}$ to ^[0-9]{3,}-[a-z0-9-]+$
+  - Updated descriptions with examples (e.g., '015-cli-ergonomics-fixes', '001-parallel-code-review')
+- **Files:** docs/planning/schemas/subtasks.schema.json (modified)

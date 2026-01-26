@@ -763,7 +763,10 @@
       "storyRef": null,
       "title": "Update subtasks.schema.json taskRef/storyRef patterns",
       "description": "Phase 3: Update docs/planning/schemas/subtasks.schema.json to use filename-based refs instead of TASK-NNN/STORY-NNN patterns. Change taskRef pattern from ^TASK-[0-9]{3,}$ to ^[0-9]{3,}-[a-z0-9-]+$ and storyRef similarly.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T18:15:00Z",
+      "commitHash": "8987629",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-048"],
       "classification": {
         "knowledgeCertainty": "known-known",
