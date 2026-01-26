@@ -11,6 +11,7 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
@@ -68,6 +69,20 @@ function getMilestoneFromSubtasks(subtasksFile: SubtasksFile): string {
 // =============================================================================
 // Query Helpers
 // =============================================================================
+
+/**
+ * Get the path to the daily log file for a milestone
+ *
+ * Returns a path in the format: {milestoneRoot}/logs/{YYYY-MM-DD}.jsonl
+ * Uses UTC date to ensure consistency across time zones.
+ *
+ * @param milestoneRoot - Root directory of the milestone (e.g., docs/planning/milestones/002-ralph)
+ * @returns Full path to the daily JSONL log file
+ */
+function getMilestoneLogPath(milestoneRoot: string): string {
+  const utcDate = new Date().toISOString().split("T")[0];
+  return join(milestoneRoot, "logs", `${utcDate}.jsonl`);
+}
 
 /**
  * Get the next subtask to work on
@@ -150,6 +165,10 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
   }
 }
 
+// =============================================================================
+// Log Path Helpers
+// =============================================================================
+
 /**
  * Save subtasks file to disk with formatted JSON
  *
@@ -172,6 +191,7 @@ export {
   DEFAULT_CONFIG,
   getCompletedSubtasks,
   getMilestoneFromSubtasks,
+  getMilestoneLogPath,
   getNextSubtask,
   getPendingSubtasks,
   loadRalphConfig,
