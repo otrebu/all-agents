@@ -533,6 +533,64 @@ construct, test, quality, security, scm, ops, observe, docs
 
 ---
 
+## Where Lessons Go
+
+When you learn something worth documenting, put it where it belongs immediately. No staging area. No graduation ceremony.
+
+### context/ vs docs/
+
+| Location | Contains | Scope | Example |
+|----------|----------|-------|---------|
+| `context/` | Reusable knowledge | Cross-project | "Bun test hangs with ESM mocks" |
+| `docs/` | Project specifics | This project only | "Our API uses snake_case because legacy DB" |
+
+### Decision Tree
+
+```
+Is this lesson project-specific?
+├── YES → docs/{relevant-folder}/
+│         Example: "Our API uses snake_case because legacy DB"
+│         → docs/backend/API_CONVENTIONS.md
+│
+└── NO, it's reusable
+    ├── About a tool? → context/blocks/{domain}/{tool}.md
+    │   Add "Gotchas" section to existing doc
+    │   Example: "Bun test hangs with ESM mocks"
+    │   → context/blocks/test/bun-test.md under "Gotchas"
+    │
+    ├── About combining tools? → context/foundations/{domain}/
+    │   Example: "tsx + tsconfig paths requires tsc-alias"
+    │   → context/foundations/construct/exec-tsx.md
+    │
+    └── About a process? → context/workflows/
+        Example: "Always squash before merging to main"
+        → context/workflows/complete-feature.md
+```
+
+### Example: Adding a Gotcha to a Block
+
+```markdown
+# context/blocks/test/bun-test.md
+
+## Usage
+...existing content...
+
+## Gotchas
+
+### ESM Mocks Hang
+Bun test can hang indefinitely when mocking ESM modules with circular dependencies.
+**Workaround:** Use dynamic imports or restructure to avoid cycles.
+```
+
+### What This Means
+
+- **No separate lessons folder** - Lessons live where related docs already exist
+- **No graduation pipeline** - Put it in the right place immediately
+- **Gotchas sections** - Add to existing blocks/foundations when you hit edge cases
+- **Project docs extend context** - `docs/` can reference `context/` for philosophy, then add project-specific details
+
+---
+
 ## Further Reading
 
 - context/blocks/docs/maintenance.md - Maintenance patterns, decision framework, composition rules
