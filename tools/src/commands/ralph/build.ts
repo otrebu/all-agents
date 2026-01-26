@@ -461,6 +461,9 @@ async function runBuild(
   // Track retry attempts per subtask ID
   const attempts = new Map<string, number>();
 
+  // Track subtasks completed during this build run
+  const completedThisRun: Array<{ attempts: number; id: string }> = [];
+
   // Build summary tracking
   let totalCompleted = 0;
   let totalFailed = 0;
@@ -594,6 +597,10 @@ async function runBuild(
     if (didComplete) {
       totalCompleted += 1;
       attempts.delete(currentSubtask.id);
+      completedThisRun.push({
+        attempts: currentAttempts,
+        id: currentSubtask.id,
+      });
     }
 
     // Track files changed
