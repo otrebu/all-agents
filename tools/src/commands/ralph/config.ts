@@ -11,7 +11,7 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
@@ -170,6 +170,59 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
 // =============================================================================
 
 /**
+ * Default milestone for orphaned logs (when milestone cannot be determined)
+ */
+const ORPHAN_MILESTONE_ROOT = "docs/planning/milestones/_orphan";
+
+/**
+ * Get the path to the iteration log file for a subtasks file
+ *
+ * Derives the milestone root from the subtasks.json parent directory.
+ * Falls back to _orphan/logs/ if the milestone cannot be determined.
+ *
+ * @param subtasksPath - Path to the subtasks.json file
+ * @returns Full path to the daily iteration JSONL log file
+ *
+ * @example
+ * // subtasksPath: docs/planning/milestones/002-ralph/subtasks.json
+ * // returns: docs/planning/milestones/002-ralph/logs/2026-01-26.jsonl
+ *
+ * @example
+ * // subtasksPath: "" (empty)
+ * // returns: docs/planning/milestones/_orphan/logs/2026-01-26.jsonl
+ */
+function getIterationLogPath(subtasksPath: string): string {
+  if (!subtasksPath) {
+    return getMilestoneLogPath(ORPHAN_MILESTONE_ROOT);
+  }
+
+  const milestoneRoot = dirname(subtasksPath);
+
+  // If dirname returns "." or empty, route to orphan
+  if (!milestoneRoot || milestoneRoot === ".") {
+    return getMilestoneLogPath(ORPHAN_MILESTONE_ROOT);
+  }
+
+  return getMilestoneLogPath(milestoneRoot);
+}
+
+/**
+ * Get the path to the planning log file for a milestone
+ *
+ * Used by planning commands (ralph plan) to log planning activity.
+ *
+ * @param milestonePath - Root directory of the milestone
+ * @returns Full path to the daily planning JSONL log file
+ *
+ * @example
+ * // milestonePath: docs/planning/milestones/002-ralph
+ * // returns: docs/planning/milestones/002-ralph/logs/2026-01-26.jsonl
+ */
+function getPlanningLogPath(milestonePath: string): string {
+  return getMilestoneLogPath(milestonePath);
+}
+
+/**
  * Save subtasks file to disk with formatted JSON
  *
  * Writes with 2-space indentation for readability.
@@ -190,11 +243,14 @@ export {
   countRemaining,
   DEFAULT_CONFIG,
   getCompletedSubtasks,
+  getIterationLogPath,
   getMilestoneFromSubtasks,
   getMilestoneLogPath,
   getNextSubtask,
   getPendingSubtasks,
+  getPlanningLogPath,
   loadRalphConfig,
   loadSubtasksFile,
+  ORPHAN_MILESTONE_ROOT,
   saveSubtasksFile,
 };
