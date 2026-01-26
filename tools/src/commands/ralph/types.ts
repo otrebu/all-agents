@@ -101,6 +101,12 @@ interface IterationDiaryEntry {
   timing?: IterationTiming;
   /** Number of tool calls made during this iteration */
   toolCalls?: number;
+  /**
+   * Entry type discriminator for daily log files.
+   * Allows iteration and planning entries to coexist in the same
+   * milestone-scoped daily JSONL file while being distinguishable.
+   */
+  type?: "iteration" | "planning";
 }
 
 /**
