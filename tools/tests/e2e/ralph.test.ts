@@ -1846,9 +1846,17 @@ describe("post-iteration-hook diary entry integration test", () => {
   test("diary entry created after mock iteration with correct schema", async () => {
     const { writeFileSync } = await import("node:fs");
 
-    // Create logs directory
-    const logsDirectory = join(temporaryDirectory, "logs");
+    // Create milestone-scoped logs directory (new structure: {milestone}/logs/{date}.jsonl)
+    const milestoneRoot = join(
+      temporaryDirectory,
+      "docs/planning/milestones/mock-milestone",
+    );
+    const logsDirectory = join(milestoneRoot, "logs");
     mkdirSync(logsDirectory, { recursive: true });
+
+    // Get today's date in UTC for the log filename
+    const utcDate = new Date().toISOString().split("T")[0];
+    const diaryFileName = `${utcDate}.jsonl`;
 
     // Create a minimal ralph.config.json
     writeFileSync(
@@ -1857,7 +1865,7 @@ describe("post-iteration-hook diary entry integration test", () => {
         hooks: {
           postIteration: {
             actions: ["log"],
-            diaryPath: join(logsDirectory, "iterations.jsonl"),
+            diaryPath: join(logsDirectory, diaryFileName),
             enabled: true,
             model: "haiku",
           },
@@ -1896,7 +1904,8 @@ export PATH="${temporaryDirectory}:$PATH"
 
 REPO_ROOT="${temporaryDirectory}"
 CONFIG_PATH="$REPO_ROOT/ralph.config.json"
-DIARY_PATH="$REPO_ROOT/logs/iterations.jsonl"
+# Milestone-scoped diary path: {milestone}/logs/{date}.jsonl
+DIARY_PATH="${join(logsDirectory, diaryFileName)}"
 
 # Test parameters (simulating a mock iteration)
 SUBTASK_ID="mock-subtask-001"
@@ -1954,8 +1963,8 @@ echo "DIARY_PATH: $DIARY_PATH"
     expect(exitCode).toBe(0);
     expect(stdout).toContain("Diary entry written successfully");
 
-    // Step 2: Verify logs/iterations.jsonl was updated
-    const diaryPath = join(logsDirectory, "iterations.jsonl");
+    // Step 2: Verify milestone-scoped logs/{date}.jsonl was updated
+    const diaryPath = join(logsDirectory, diaryFileName);
     expect(existsSync(diaryPath)).toBe(true);
 
     // Read the diary file
@@ -2038,11 +2047,17 @@ echo "DIARY_PATH: $DIARY_PATH"
   test("multiple iterations append to same diary file", async () => {
     const { writeFileSync } = await import("node:fs");
 
-    // Create logs directory
-    const logsDirectory = join(temporaryDirectory, "logs");
+    // Create milestone-scoped logs directory (new structure: {milestone}/logs/{date}.jsonl)
+    const milestoneRoot = join(
+      temporaryDirectory,
+      "docs/planning/milestones/mock-milestone",
+    );
+    const logsDirectory = join(milestoneRoot, "logs");
     mkdirSync(logsDirectory, { recursive: true });
 
-    const diaryPath = join(logsDirectory, "iterations.jsonl");
+    // Get today's date in UTC for the log filename
+    const utcDate = new Date().toISOString().split("T")[0];
+    const diaryPath = join(logsDirectory, `${utcDate}.jsonl`);
 
     // Create a test script that appends multiple entries using node (jq may not be available)
     const testScript = `#!/bin/bash
