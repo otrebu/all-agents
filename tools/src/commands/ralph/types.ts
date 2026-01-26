@@ -101,6 +101,8 @@ interface IterationDiaryEntry {
   timestamp: string;
   /** Timing breakdown for this iteration */
   timing?: IterationTiming;
+  /** Token usage for this iteration */
+  tokenUsage?: TokenUsage;
   /** Number of tool calls made during this iteration */
   toolCalls?: number;
   /**

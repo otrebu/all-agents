@@ -100,6 +100,41 @@ interface IterationDisplayData {
   toolCalls?: number;
 }
 
+/**
+ * Data for plan subtasks summary box (headless mode output)
+ */
+interface PlanSubtasksSummaryData {
+  /** Total cost in USD */
+  costUsd: number;
+  /** Duration in milliseconds */
+  durationMs: number;
+  /** Error message if generation failed */
+  error?: string;
+  /** Target milestone name */
+  milestone?: string;
+  /** Path where subtasks.json was written */
+  outputPath: string;
+  /** Claude session ID */
+  sessionId: string;
+  /** Sizing mode used */
+  sizeMode: "large" | "medium" | "small";
+  /** Source of the subtasks */
+  source: {
+    /** Number of findings (for review mode) */
+    findingsCount?: number;
+    /** File path (for file or review mode) */
+    path?: string;
+    /** Description text (for text mode) */
+    text?: string;
+    /** Source type */
+    type: "file" | "review" | "text";
+  };
+  /** Reference to parent story */
+  storyRef?: string;
+  /** Generated subtasks (empty on error) */
+  subtasks: Array<{ id: string; title: string }>;
+}
+
 // =============================================================================
 // Status Coloring
 // =============================================================================
@@ -144,10 +179,6 @@ function formatDuration(ms: number): string {
   return `${hours}h ${remainingMinutes}m ${remainingSeconds}s`;
 }
 
-// =============================================================================
-// Progress Bar Rendering
-// =============================================================================
-
 /**
  * Format current time as HH:MM:SS for display in iteration boxes
  *
@@ -185,6 +216,33 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
   } catch {
     return isoTimestamp;
   }
+}
+
+/**
+ * Format a token count as a human-readable string
+ *
+ * @param count - Number of tokens
+ * @returns Formatted string like "42K" or "1.2M" or "532"
+ *
+ * @example
+ * formatTokenCount(532) // "532"
+ * formatTokenCount(42312) // "42K"
+ * formatTokenCount(1234567) // "1.2M"
+ */
+function formatTokenCount(count: number): string {
+  if (count >= 1_000_000) {
+    const millions = count / 1_000_000;
+    return millions >= 10
+      ? `${Math.round(millions)}M`
+      : `${millions.toFixed(1)}M`;
+  }
+  if (count >= 1000) {
+    const thousands = count / 1000;
+    return thousands >= 10
+      ? `${Math.round(thousands)}K`
+      : `${thousands.toFixed(1)}K`;
+  }
+  return String(count);
 }
 
 // =============================================================================
@@ -300,7 +358,7 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
 
   const lines: Array<string> = [];
 
-  // Stats line: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12
+  // Stats line 1: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12
   const completedLabel = chalk.dim("Completed");
   const completedValue =
     stats.completed > 0
@@ -318,6 +376,20 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
 
   const statsLine = `${completedLabel} ${completedValue}   ${failedLabel} ${failedValue}   ${costLabel} ${costValue}   ${durationLabel} ${durationValue}   ${filesLabel} ${filesValue}`;
   lines.push(statsLine);
+
+  // Stats line 2: Tokens - In: 35K  Out: 7K  Cache: 28K
+  const totalTokens =
+    stats.inputTokens + stats.outputTokens + stats.cacheReadTokens;
+  if (totalTokens > 0) {
+    const inLabel = chalk.dim("In:");
+    const inValue = chalk.yellow(formatTokenCount(stats.inputTokens));
+    const outLabel = chalk.dim("Out:");
+    const outValue = chalk.yellow(formatTokenCount(stats.outputTokens));
+    const cacheLabel = chalk.dim("Cache:");
+    const cacheValue = chalk.yellow(formatTokenCount(stats.cacheReadTokens));
+    const tokensLine = `${chalk.dim("Tokens")}  ${inLabel} ${inValue}  ${outLabel} ${outValue}  ${cacheLabel} ${cacheValue}`;
+    lines.push(tokensLine);
+  }
 
   // Git commit range
   if (commitRange.startHash !== null && commitRange.endHash !== null) {
@@ -599,6 +671,128 @@ function renderMarkdown(markdown: string): string {
 }
 
 // =============================================================================
+// Plan Subtasks Summary
+// =============================================================================
+
+/**
+ * Render plan subtasks summary box (for headless mode output)
+ *
+ * Shows: stats (created/duration/cost), source info, configuration,
+ * subtask list (truncated if many), output path, and next step.
+ *
+ * @param data - PlanSubtasksSummaryData with generation results
+ * @returns Formatted boxen box string
+ */
+function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
+  const {
+    costUsd,
+    durationMs,
+    error,
+    milestone,
+    outputPath,
+    sizeMode,
+    source,
+    storyRef,
+    subtasks,
+  } = data;
+
+  const innerWidth = BOX_WIDTH - 4;
+  const lines: Array<string> = [];
+
+  // Stats line: Created N   Duration Xs   Cost $X.XX
+  const hasSubtasks = subtasks.length > 0;
+  const createdPart = hasSubtasks
+    ? `${chalk.dim("Created")} ${chalk.cyan.bold(String(subtasks.length))}   `
+    : "";
+  const durationPart = `${chalk.dim("Duration")} ${chalk.cyan(formatDuration(durationMs))}`;
+  const costPart = `${chalk.dim("Cost")} ${chalk.magenta(`$${costUsd.toFixed(2)}`)}`;
+  lines.push(`${createdPart}${durationPart}   ${costPart}`);
+
+  // Separator
+  lines.push("─".repeat(innerWidth));
+
+  // Source info
+  const sourceLabels: Record<
+    PlanSubtasksSummaryData["source"]["type"],
+    string
+  > = {
+    file: "Source (file):",
+    review: "Source (review):",
+    text: "Source (text):",
+  };
+  const sourceLabel = sourceLabels[source.type];
+
+  if (source.type === "text" && source.text !== undefined) {
+    const truncatedText = truncate(source.text, innerWidth - 16);
+    lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
+  } else if (source.path !== undefined) {
+    const pathDisplay =
+      source.type === "review" && source.findingsCount !== undefined
+        ? `${source.path} (${source.findingsCount} findings)`
+        : source.path;
+    lines.push(`${chalk.dim(sourceLabel)} ${pathDisplay}`);
+  }
+
+  // Configuration: milestone, size mode, story ref
+  if (milestone !== undefined) {
+    lines.push(`${chalk.dim("Milestone:")} ${milestone}`);
+  }
+  lines.push(`${chalk.dim("Size mode:")} ${sizeMode}`);
+  if (storyRef !== undefined) {
+    lines.push(`${chalk.dim("Story:")} ${storyRef}`);
+  }
+
+  // Separator before subtasks or error
+  lines.push("─".repeat(innerWidth));
+
+  if (error === undefined && hasSubtasks) {
+    // Success state - list subtasks
+    lines.push(chalk.dim("Subtasks:"));
+    const maxDisplay = 8;
+    const displaySubtasks = subtasks.slice(0, maxDisplay);
+    for (const st of displaySubtasks) {
+      const idPart = chalk.cyan.bold(st.id);
+      const titlePart = truncate(st.title, innerWidth - st.id.length - 4);
+      lines.push(`  ${idPart}  ${titlePart}`);
+    }
+    if (subtasks.length > maxDisplay) {
+      lines.push(chalk.dim(`  (showing ${maxDisplay} of ${subtasks.length})`));
+    }
+
+    // Output path and next step
+    lines.push("─".repeat(innerWidth));
+    lines.push(
+      `${chalk.dim("Output:")} ${makeClickablePath(outputPath, innerWidth - 8)}`,
+    );
+    lines.push("");
+    const nextCmd =
+      milestone === undefined
+        ? "aaa ralph build"
+        : `aaa ralph build --milestone ${milestone}`;
+    lines.push(`${chalk.green("Next:")} ${nextCmd}`);
+  } else if (error !== undefined) {
+    // Error state
+    lines.push(`${chalk.yellow("⚠")} ${error}`);
+    lines.push(`${chalk.dim("Expected:")} ${outputPath}`);
+    lines.push("");
+    lines.push(`${chalk.dim("Check session log:")} logs/planning.jsonl`);
+  }
+
+  // Determine box title and color based on success/error
+  const title = hasSubtasks ? "Subtasks Generated" : "Subtasks Generation";
+  const borderColor = error === undefined ? "green" : "yellow";
+
+  return boxen(lines.join("\n"), {
+    borderColor,
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title,
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+// =============================================================================
 // Iteration Box Rendering
 // =============================================================================
 
@@ -669,6 +863,10 @@ function renderStatusBox(title: string, lines: Array<string>): string {
   return output.join("\n");
 }
 
+// =============================================================================
+// Text Formatting
+// =============================================================================
+
 /**
  * Truncate a string to a maximum length, adding ellipsis if needed
  *
@@ -709,15 +907,18 @@ export {
   colorStatus,
   formatDuration,
   formatTimestamp,
+  formatTokenCount,
   getColoredStatus,
   type IterationDisplayData,
   makeClickablePath,
+  type PlanSubtasksSummaryData,
   renderBuildPracticalSummary,
   renderBuildSummary,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
   renderMarkdown,
+  renderPlanSubtasksSummary,
   renderProgressBar,
   renderResponseHeader,
   renderStatusBox,

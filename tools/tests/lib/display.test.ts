@@ -6,6 +6,7 @@ import type { BuildPracticalSummary } from "@tools/commands/ralph/summary";
 
 import {
   formatDuration,
+  formatTokenCount,
   renderBuildPracticalSummary,
   truncate,
 } from "@tools/commands/ralph/display";
@@ -42,17 +43,47 @@ describe("display utilities", () => {
     });
   });
 
+  describe("formatTokenCount", () => {
+    test("formats small numbers as-is", () => {
+      expect(formatTokenCount(532)).toBe("532");
+    });
+
+    test("formats thousands with K suffix", () => {
+      expect(formatTokenCount(42_312)).toBe("42K");
+    });
+
+    test("formats small thousands with decimal", () => {
+      expect(formatTokenCount(7000)).toBe("7.0K");
+    });
+
+    test("formats millions with M suffix", () => {
+      expect(formatTokenCount(1_234_567)).toBe("1.2M");
+    });
+
+    test("formats large millions without decimal", () => {
+      expect(formatTokenCount(15_000_000)).toBe("15M");
+    });
+
+    test("handles zero", () => {
+      expect(formatTokenCount(0)).toBe("0");
+    });
+  });
+
   describe("renderBuildPracticalSummary", () => {
     test("renders box with Build Summary title", () => {
       const summary: BuildPracticalSummary = {
         commitRange: { endHash: null, startHash: null },
         remaining: 5,
         stats: {
+          cacheCreationTokens: 1500,
+          cacheReadTokens: 28_000,
           completed: 3,
           costUsd: 1.25,
           durationMs: 300_000,
           failed: 0,
           filesChanged: 12,
+          inputTokens: 35_000,
+          outputTokens: 7000,
         },
         subtasks: [
           { attempts: 1, id: "SUB-001", summary: "First subtask completed" },
@@ -94,11 +125,15 @@ describe("display utilities", () => {
         commitRange: { endHash: "def456", startHash: "abc123" },
         remaining: 0,
         stats: {
+          cacheCreationTokens: 500,
+          cacheReadTokens: 10_000,
           completed: 1,
           costUsd: 0.5,
           durationMs: 60_000,
           failed: 0,
           filesChanged: 5,
+          inputTokens: 12_000,
+          outputTokens: 3000,
         },
         subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
       };
@@ -115,11 +150,15 @@ describe("display utilities", () => {
         commitRange: { endHash: null, startHash: null },
         remaining: 0,
         stats: {
+          cacheCreationTokens: 200,
+          cacheReadTokens: 5000,
           completed: 1,
           costUsd: 0.25,
           durationMs: 30_000,
           failed: 0,
           filesChanged: 3,
+          inputTokens: 6000,
+          outputTokens: 1500,
         },
         subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
       };
@@ -131,6 +170,63 @@ describe("display utilities", () => {
 
     test("function is exported", () => {
       expect(typeof renderBuildPracticalSummary).toBe("function");
+    });
+
+    test("displays token usage when present", () => {
+      const summary: BuildPracticalSummary = {
+        commitRange: { endHash: null, startHash: null },
+        remaining: 0,
+        stats: {
+          cacheCreationTokens: 1500,
+          cacheReadTokens: 28_000,
+          completed: 1,
+          costUsd: 0.5,
+          durationMs: 60_000,
+          failed: 0,
+          filesChanged: 5,
+          inputTokens: 35_000,
+          outputTokens: 7000,
+        },
+        subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
+      };
+
+      const result = renderBuildPracticalSummary(summary);
+
+      // Should display token info
+      expect(result).toContain("Tokens");
+      expect(result).toContain("In:");
+      expect(result).toContain("Out:");
+      expect(result).toContain("Cache:");
+      // inputTokens = 35K
+      expect(result).toContain("35K");
+      // outputTokens < 10K so shows decimal
+      expect(result).toContain("7.0K");
+      // cacheReadTokens = 28K
+      expect(result).toContain("28K");
+    });
+
+    test("does not display tokens when all zero", () => {
+      const summary: BuildPracticalSummary = {
+        commitRange: { endHash: null, startHash: null },
+        remaining: 0,
+        stats: {
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          completed: 1,
+          costUsd: 0.5,
+          durationMs: 60_000,
+          failed: 0,
+          filesChanged: 5,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
+        subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
+      };
+
+      const result = renderBuildPracticalSummary(summary);
+
+      // Should NOT display tokens line when all zero
+      expect(result).not.toContain("In:");
     });
   });
 });

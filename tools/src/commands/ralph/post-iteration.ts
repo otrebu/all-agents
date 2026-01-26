@@ -30,6 +30,7 @@ import {
   countToolCalls,
   getFilesFromSession,
   getSessionJsonlPath,
+  getTokenUsageFromSession,
 } from "./session";
 
 // =============================================================================
@@ -349,6 +350,8 @@ function runPostIterationHook(
   const toolCalls = sessionPath === null ? 0 : countToolCalls(sessionPath);
   const duration = sessionPath === null ? 0 : calculateDurationMs(sessionPath);
   const filesChanged = getFilesChanged(sessionPath, repoRoot);
+  const tokenUsage =
+    sessionPath === null ? undefined : getTokenUsageFromSession(sessionPath);
   const metricsMs = Date.now() - metricsStart;
 
   // Calculate hook total time
@@ -380,6 +383,7 @@ function runPostIterationHook(
     taskRef: subtask.taskRef,
     timestamp,
     timing,
+    tokenUsage,
     toolCalls,
     type: "iteration",
   };

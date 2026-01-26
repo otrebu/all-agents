@@ -33,6 +33,10 @@ interface BuildPracticalSummary {
  * Stats for the build run
  */
 interface BuildStats {
+  /** Total tokens written to cache */
+  cacheCreationTokens: number;
+  /** Total tokens read from cache */
+  cacheReadTokens: number;
   /** Number of subtasks completed this run */
   completed: number;
   /** Total cost in USD */
@@ -43,6 +47,10 @@ interface BuildStats {
   failed: number;
   /** Total files changed across all iterations */
   filesChanged: number;
+  /** Total input tokens (non-cached) */
+  inputTokens: number;
+  /** Total output tokens generated */
+  outputTokens: number;
 }
 
 /**
@@ -126,6 +134,10 @@ function generateBuildSummary(
   let totalDurationMs = 0;
   let totalFilesChanged = 0;
   let failedCount = 0;
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalCacheReadTokens = 0;
+  let totalCacheCreationTokens = 0;
 
   // Count all entries (not just final) for aggregate stats
   for (const entry of diaryEntries) {
@@ -135,6 +147,13 @@ function generateBuildSummary(
       totalFilesChanged += entry.filesChanged?.length ?? 0;
       if (entry.status === "failed") {
         failedCount += 1;
+      }
+      // Aggregate token usage
+      if (entry.tokenUsage !== undefined) {
+        totalInputTokens += entry.tokenUsage.inputTokens;
+        totalOutputTokens += entry.tokenUsage.outputTokens;
+        totalCacheReadTokens += entry.tokenUsage.cacheReadTokens;
+        totalCacheCreationTokens += entry.tokenUsage.cacheCreationTokens;
       }
     }
   }
@@ -149,11 +168,15 @@ function generateBuildSummary(
     commitRange,
     remaining,
     stats: {
+      cacheCreationTokens: totalCacheCreationTokens,
+      cacheReadTokens: totalCacheReadTokens,
       completed: completedThisRun.length,
       costUsd: totalCostUsd,
       durationMs: totalDurationMs,
       failed: failedCount,
       filesChanged: totalFilesChanged,
+      inputTokens: totalInputTokens,
+      outputTokens: totalOutputTokens,
     },
     subtasks,
   };
