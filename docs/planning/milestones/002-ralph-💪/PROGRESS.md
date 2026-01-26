@@ -660,3 +660,14 @@
   - Clarifies created docs do NOT have [REVIEW] flag in this context
   - Includes skip conditions and example workflow
 - **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)
+
+### SUB-059
+- **Problem:** Need to add Phase 8 (Review) to subtasks-from-source.md workflow as the final mandatory review step for generated subtasks
+- **Changes:** Added Phase 8: Review and updated Phase 7 (Output) to write draft:
+  - Phase 7 renamed to "Output (Draft)" - now writes to tmp/subtasks-draft.json instead of final location
+  - Added Phase 8: Review with 5 steps: invoke Haiku subtask-reviewer, log review findings, Opus triage, write final output, cleanup draft
+  - Documents sizing heuristics: changeCount < 2 = undersized, > 8 = oversized
+  - Triage table shows how Opus handles each finding type (mergeCandidates, splitCandidates, etc.)
+  - No --no-review flag - review always runs
+  - Review findings logged to milestone daily log with type: "subtask-review"
+- **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)

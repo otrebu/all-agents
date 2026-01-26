@@ -1069,7 +1069,10 @@
       "storyRef": null,
       "title": "Add Phase 8 (Review) to subtasks-from-source.md",
       "description": "Update context/workflows/ralph/planning/subtasks-from-source.md to add Phase 8: Review as the final phase. This phase always runs: (1) write draft to tmp/subtasks-draft.json, (2) spawn Haiku subtask-reviewer, (3) Opus triage applies suggestions, (4) write final to milestone subtasks.json. Update Phase 7 output to write draft instead of final.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T13:15:00Z",
+      "commitHash": "ce599a1",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-055", "SUB-058"],
       "classification": {
         "knowledgeCertainty": "known-known",
