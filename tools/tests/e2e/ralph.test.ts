@@ -65,6 +65,7 @@ describe("ralph E2E", () => {
     // Three-mode system flags
     expect(stdout).toContain("--supervised");
     expect(stdout).toContain("--headless");
+    expect(stdout).toContain("--skip-summary");
   });
 
   test("ralph build with missing subtasks shows error", async () => {

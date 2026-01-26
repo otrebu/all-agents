@@ -310,6 +310,10 @@ ralphCommand.addCommand(
       "Supervised mode: watch each iteration (default)",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option(
+      "-S, --skip-summary",
+      "Skip Haiku summary generation in headless mode",
+    )
     .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
     .option(
       "--calibrate-every <n>",
@@ -377,7 +381,7 @@ ralphCommand.addCommand(
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
-          skipSummary: false,
+          skipSummary: options.skipSummary === true,
           subtasksPath,
           validateFirst: options.validateFirst === true,
         },
