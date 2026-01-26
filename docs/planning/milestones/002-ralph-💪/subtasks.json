@@ -1104,7 +1104,10 @@
       "storyRef": null,
       "title": "Update subtasks-from-source.md sizing to use changeCount",
       "description": "Update Phase 4 (Size Validation) in context/workflows/ralph/planning/subtasks-from-source.md to reference classification.changeCount instead of generic sizing. Document the heuristics: changeCount < 2 = undersized (merge), changeCount > 8 = oversized (split).",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T17:13:00Z",
+      "commitHash": "53e4db8",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-053"],
       "classification": {
         "knowledgeCertainty": "known-known",

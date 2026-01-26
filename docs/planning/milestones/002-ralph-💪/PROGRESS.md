@@ -671,3 +671,13 @@
   - No --no-review flag - review always runs
   - Review findings logged to milestone daily log with type: "subtask-review"
 - **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)
+
+### SUB-060
+- **Problem:** Phase 4 (Size Validation) in subtasks-from-source.md used generic sizing guidelines without referencing the classification.changeCount field for sizing decisions
+- **Changes:** Added classification-based sizing documentation to Phase 4:
+  - Added reference to classification.changeCount field for sizing decisions
+  - Added sizing table showing changeCount ranges and corresponding actions
+  - Documented heuristics: changeCount < 2 = undersized (merge candidate), > 8 = oversized (split candidate)
+  - Preserved existing guidelines (1-3 files, 15-30 tool calls)
+  - Updated "Signs a Subtask is Too Large/Small" sections to reference changeCount
+- **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)
