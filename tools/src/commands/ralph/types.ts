@@ -83,6 +83,10 @@ interface IterationDiaryEntry {
   iterationNum?: number;
   /** Key findings or insights from this iteration */
   keyFindings?: Array<string>;
+  /** Number of lines added during this iteration */
+  linesAdded?: number;
+  /** Number of lines removed during this iteration */
+  linesRemoved?: number;
   /** Name of the milestone this subtask belongs to */
   milestone?: string;
   /** Execution mode: 'headless' or 'supervised' */

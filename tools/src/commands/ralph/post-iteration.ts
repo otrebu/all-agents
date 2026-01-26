@@ -38,6 +38,16 @@ import {
 // =============================================================================
 
 /**
+ * Result from getLinesChanged()
+ */
+interface LinesChangedResult {
+  /** Total lines added across all files */
+  linesAdded: number;
+  /** Total lines removed across all files */
+  linesRemoved: number;
+}
+
+/**
  * Options for running the post-iteration hook
  */
 interface PostIterationOptions {
@@ -81,6 +91,10 @@ interface PostIterationResult {
   sessionPath: null | string;
 }
 
+// =============================================================================
+// Summary Generation
+// =============================================================================
+
 /**
  * Result from Haiku summary generation
  */
@@ -94,7 +108,7 @@ interface SummaryResult {
 }
 
 // =============================================================================
-// Summary Generation
+// Lines Changed
 // =============================================================================
 
 /**
@@ -297,6 +311,90 @@ function getFilesChanged(
   return filtered.slice(0, 50);
 }
 
+/**
+ * Get lines added/removed during the iteration
+ *
+ * Uses git diff --numstat to count insertions and deletions.
+ * Includes both staged and unstaged changes.
+ *
+ * @param repoRoot - Repository root path for git commands
+ * @returns LinesChangedResult with totals
+ */
+function getLinesChanged(repoRoot: string): LinesChangedResult {
+  let linesAdded = 0;
+  let linesRemoved = 0;
+
+  try {
+    // Get staged changes
+    const staged = execSync("git diff --cached --numstat", {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
+
+    const stagedResult = parseNumstat(staged);
+    linesAdded += stagedResult.linesAdded;
+    linesRemoved += stagedResult.linesRemoved;
+
+    // Get unstaged changes
+    const unstaged = execSync("git diff --numstat", {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
+
+    const unstagedResult = parseNumstat(unstaged);
+    linesAdded += unstagedResult.linesAdded;
+    linesRemoved += unstagedResult.linesRemoved;
+  } catch {
+    // Git failed, return zeros
+  }
+
+  return { linesAdded, linesRemoved };
+}
+
+/**
+ * Parse git diff --numstat output to sum lines added/removed
+ *
+ * @param numstatOutput - Raw output from git diff --numstat
+ * @returns LinesChangedResult with totals
+ */
+function parseNumstat(numstatOutput: string): LinesChangedResult {
+  let linesAdded = 0;
+  let linesRemoved = 0;
+
+  const lines = numstatOutput.split("\n").filter((line) => line.trim() !== "");
+
+  for (const line of lines) {
+    // Format: "insertions\tdeletions\tfilename"
+    // Binary files show as "-\t-\tfilename"
+    const parts = line.split("\t");
+    const added = parts[0];
+    const removed = parts[1];
+
+    // Skip if parts are missing or binary files (shown as "-")
+    if (
+      added === undefined ||
+      removed === undefined ||
+      added === "-" ||
+      removed === "-"
+    ) {
+      // eslint-disable-next-line no-continue -- skip invalid lines
+      continue;
+    }
+
+    const addedNumber = Number.parseInt(added, 10);
+    const removedNumber = Number.parseInt(removed, 10);
+
+    if (!Number.isNaN(addedNumber)) {
+      linesAdded += addedNumber;
+    }
+    if (!Number.isNaN(removedNumber)) {
+      linesRemoved += removedNumber;
+    }
+  }
+
+  return { linesAdded, linesRemoved };
+}
+
 // =============================================================================
 // Main Hook
 // =============================================================================
@@ -350,6 +448,7 @@ function runPostIterationHook(
   const toolCalls = sessionPath === null ? 0 : countToolCalls(sessionPath);
   const duration = sessionPath === null ? 0 : calculateDurationMs(sessionPath);
   const filesChanged = getFilesChanged(sessionPath, repoRoot);
+  const { linesAdded, linesRemoved } = getLinesChanged(repoRoot);
   const tokenUsage =
     sessionPath === null ? undefined : getTokenUsageFromSession(sessionPath);
   const metricsMs = Date.now() - metricsStart;
@@ -374,6 +473,8 @@ function runPostIterationHook(
     filesChanged,
     iterationNum: iterationNumber,
     keyFindings: summaryResult.keyFindings,
+    linesAdded,
+    linesRemoved,
     milestone,
     mode,
     sessionId,
@@ -433,6 +534,9 @@ function writeDiaryEntry(entry: IterationDiaryEntry, diaryPath: string): void {
 export {
   generateSummary,
   getFilesChanged,
+  getLinesChanged,
+  type LinesChangedResult,
+  parseNumstat,
   type PostIterationOptions,
   type PostIterationResult,
   runPostIterationHook,
