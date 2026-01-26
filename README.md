@@ -156,6 +156,9 @@ aaa notify config test                # Send test notification
 #
 # Config resolution: CLI flags → env vars → config file → defaults
 # Env vars: NTFY_TOPIC, NTFY_SERVER, NTFY_PRIORITY
+#
+# Note: Safe to add to hooks before running `aaa notify init` -
+# exits silently (exit 0, no output) when unconfigured.
 ```
 
 Research outputs are saved to `docs/research/`.
