@@ -573,3 +573,14 @@
   - TASK-012 → 012-cli-ergonomics-fixes
   - TASK-013 → 013-prompt-quality-improvements
 - **Files:** docs/planning/subtasks.json (modified)
+
+### SUB-051
+- **Problem:** Milestone 002-ralph subtasks.json used legacy TASK-XXX and STORY-XXX format for taskRef and storyRef values
+- **Changes:** Updated all taskRef and storyRef values to use filename-based NNN-slug format:
+  - TASK-REVIEW-001 → 014-review-code-quality
+  - TASK-TIMING-001 → 015-timing-instrumentation
+  - TASK-SUPERVISED-001 → 016-supervised-mode-feedback
+  - TASK-LOGS-001 → 017-milestone-scoped-logs
+  - TASK-NAMING-001 → 018-naming-consistency-cleanup
+  - STORY-001 → 001-parallel-code-review
+- **Files:** docs/planning/milestones/002-ralph-💪/subtasks.json (modified)
