@@ -55,6 +55,22 @@ docs/planning/
               └── stories/
 ```
 
+## 2b. User Personas & Stories
+
+The core philosophy of "humans on the loop, not in it" is realized through these user-centric features:
+
+| Feature | Persona | User Story |
+|---------|---------|------------|
+| **Building Mode** (Ralph Iterations) | Developer embracing "humans on loop" | Autonomously implement subtasks with validation so I can focus on oversight rather than writing code |
+| **Intention Drift Detection** | Tech lead overseeing autonomous dev | Detect when code diverges from intended behavior so I can correct course before drift compounds |
+| **Interactive Vision Planning** | Tech lead starting new project | Collaboratively define product vision with AI guidance to establish clear direction |
+| **Automated Planning Pipeline** | Developer with established vision | Auto-generate stories, tasks, subtasks to quickly build work queue without manual documentation |
+| **Self-Improvement Analysis** | Framework maintainer | Analyze session logs for inefficiencies to continuously improve prompts, skills, and docs |
+| **Hooks & Notifications** | Developer running long builds | Be notified of key events with checkpoints so I can stay informed without watching terminal |
+| **Progress & Status** | Developer monitoring builds | Clear visibility into progress and iteration history without reading code diffs |
+| **Technical Standards Enforcement** | Developer maintaining quality | Detect when code violates documented standards so I can maintain consistency |
+| **Interactive Planning Guidance** | Developer refining structure | AI-guided sessions with Socratic questioning to collaboratively define artifacts |
+
 ### subtasks.json
 
 Flexible scope—place at milestone level (build whole milestone) or story level (build just that story). JSON format for better AI parseability.
