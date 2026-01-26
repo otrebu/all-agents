@@ -221,3 +221,16 @@
   - zsh.ts: Added `review` command with description, created `_aaa_review()` completion function with all flags and subcommand
   - fish.ts: Added `review` top-level command, all flag completions, and `status` subcommand
 - **Files:** tools/src/commands/completion/bash.ts (modified), tools/src/commands/completion/zsh.ts (modified), tools/src/commands/completion/fish.ts (modified)
+
+### SUB-031
+- **Problem:** Need an over-engineering focused code reviewer agent that identifies YAGNI violations, premature abstraction, unnecessary complexity, and over-configurability
+- **Changes:** Created .claude/agents/code-review/over-engineering-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Over-engineering focus areas: YAGNI violations, premature abstraction, unnecessary complexity, over-configurability, accidental complexity
+  - Specific patterns to detect: single-implementation patterns, unused abstraction layers, factory patterns with single products, enterprise patterns in non-enterprise contexts
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to over-engineering issues
+  - Example findings for single implementation factory, premature abstraction, over-configurability, unnecessary indirection, and utility used once
+  - JSON output format matching Finding schema from types.md
+  - Suggested fixes showing simpler alternatives
+- **Files:** .claude/agents/code-review/over-engineering-reviewer.md (created)
