@@ -15,6 +15,8 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
+import type { TokenUsage } from "./types";
+
 // =============================================================================
 // Session Analysis
 // =============================================================================
@@ -322,6 +324,73 @@ function getSessionJsonlPath(
   return null;
 }
 
+/**
+ * Extract and sum token usage from a session JSONL file
+ *
+ * Parses each line for "usage" objects and sums the token counts
+ * across all API responses.
+ *
+ * @param sessionPath - Path to session JSONL file
+ * @returns Aggregated token usage, or zeros if file not found/invalid
+ */
+function getTokenUsageFromSession(sessionPath: string): TokenUsage {
+  const emptyUsage: TokenUsage = {
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+  };
+
+  if (!existsSync(sessionPath)) {
+    return emptyUsage;
+  }
+
+  try {
+    const content = readFileSync(sessionPath, "utf8");
+    const lines = content.split("\n").filter((line) => line.trim());
+
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let cacheReadTokens = 0;
+    let cacheCreationTokens = 0;
+
+    for (const line of lines) {
+      // Skip lines without usage data
+      if (!line.includes('"usage"')) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      try {
+        const parsed = JSON.parse(line) as {
+          message?: {
+            usage?: {
+              cache_creation_input_tokens?: number;
+              cache_read_input_tokens?: number;
+              input_tokens?: number;
+              output_tokens?: number;
+            };
+          };
+        };
+
+        const usage = parsed.message?.usage;
+        if (usage !== undefined) {
+          inputTokens += usage.input_tokens ?? 0;
+          outputTokens += usage.output_tokens ?? 0;
+          cacheReadTokens += usage.cache_read_input_tokens ?? 0;
+          cacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    return { cacheCreationTokens, cacheReadTokens, inputTokens, outputTokens };
+  } catch {
+    return emptyUsage;
+  }
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -332,5 +401,6 @@ export {
   discoverRecentSession,
   getFilesFromSession,
   getSessionJsonlPath,
+  getTokenUsageFromSession,
 };
 export type { DiscoveredSession };

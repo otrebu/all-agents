@@ -186,10 +186,6 @@ interface SelfImprovementConfig {
   mode: "autofix" | "off" | "suggest";
 }
 
-// =============================================================================
-// Subtask Types (matches subtasks.schema.json)
-// =============================================================================
-
 /**
  * Individual subtask in the work queue
  * Represents atomic work units for Ralph iterations
@@ -221,6 +217,10 @@ interface Subtask {
   title: string;
 }
 
+// =============================================================================
+// Subtask Types (matches subtasks.schema.json)
+// =============================================================================
+
 /**
  * Subtask metadata for queue-level information
  */
@@ -241,6 +241,21 @@ interface SubtasksFile {
   metadata?: SubtaskMetadata;
   /** The queue of subtasks for autonomous agents to process */
   subtasks: Array<Subtask>;
+}
+
+/**
+ * Token usage for an iteration
+ * Tracks token consumption from Claude Code session
+ */
+interface TokenUsage {
+  /** Tokens written to cache */
+  cacheCreationTokens: number;
+  /** Tokens read from cache */
+  cacheReadTokens: number;
+  /** Input tokens (non-cached) */
+  inputTokens: number;
+  /** Output tokens generated */
+  outputTokens: number;
 }
 
 // =============================================================================
@@ -299,4 +314,5 @@ export {
   type Subtask,
   type SubtaskMetadata,
   type SubtasksFile,
+  type TokenUsage,
 };
