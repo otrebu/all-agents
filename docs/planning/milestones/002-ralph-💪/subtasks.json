@@ -38,7 +38,9 @@
       "storyRef": "STORY-001",
       "title": "Document aaa review command in README.md and tools/CLAUDE.md",
       "description": "Two documentation gaps: (1) README.md CLI Tools section doesn't document aaa review command, (2) tools/CLAUDE.md directory structure doesn't include review/ folder. Add both in one subtask since they're related documentation updates with no code changes.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T16:45:00Z",
+      "commitHash": "def6ef6",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,

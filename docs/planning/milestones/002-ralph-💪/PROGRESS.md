@@ -326,3 +326,10 @@
   - Updated synthesizer input example to include all 11 reviewers
   - Updated "CRITICAL" note from "All 5 Task calls" to "All 11 Task calls"
 - **Files:** .claude/skills/parallel-code-review/SKILL.md (modified)
+
+### SUB-026
+- **Problem:** Documentation gaps for the new `aaa review` CLI command - not documented in README.md CLI Tools section, and review/ folder missing from tools/CLAUDE.md directory structure
+- **Changes:** Added documentation in two files:
+  - README.md: Added "Code Review" section documenting all 11 reviewers, modes (--supervised, --headless, --dry-run), status subcommand, and link to VISION.md
+  - tools/CLAUDE.md: Added review/ folder entry to Directory Structure with index.ts and types.ts
+- **Files:** README.md (modified), tools/CLAUDE.md (modified)
