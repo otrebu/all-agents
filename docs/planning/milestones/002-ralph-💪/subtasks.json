@@ -1166,7 +1166,10 @@
       "storyRef": null,
       "title": "Update context/README.md with patterns category",
       "description": "Update context/README.md to document the new patterns/ category under blocks. Add entry for triage.md pattern. This ensures the new pattern is discoverable in the atomic documentation index.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T18:15:00Z",
+      "commitHash": "5613727",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-054"],
       "classification": {
         "knowledgeCertainty": "known-known",

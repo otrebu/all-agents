@@ -690,3 +690,11 @@
   - No CLI command changes needed - existing getMilestoneLogPath() infrastructure handles the log paths
   - Log entry shape (oversized, undersized, mergeCandidates, splitCandidates, approved) is documented in .claude/agents/subtask-reviewer.md
 - **Files:** tools/src/commands/ralph/types.ts (modified)
+
+### SUB-062
+- **Problem:** The new patterns/ category under blocks/ was not documented in context/README.md, making the triage pattern undiscoverable in the atomic documentation index
+- **Changes:** Updated context/README.md with patterns/ category:
+  - Added patterns/ to Structure diagram showing directory structure under blocks/
+  - Added patterns/ section to Blocks documentation with description: 'Reusable processing patterns'
+  - Listed triage.md with description: 'Dedupe, score, rank, group pattern'
+- **Files:** context/README.md (modified)
