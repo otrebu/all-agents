@@ -630,3 +630,12 @@
   - Merge candidate detection criteria (same taskRef, same files, sequential blockedBy)
   - Split candidate suggestion boundaries (research/implementation, file boundaries, functional units)
 - **Files:** .claude/agents/subtask-reviewer.md (created)
+
+### SUB-056
+- **Problem:** The synthesizer.md contained duplicated triage logic instead of referencing the shared triage pattern documentation
+- **Changes:** Updated .claude/agents/code-review/synthesizer.md to reference triage pattern:
+  - Added "Core Pattern" section with reference to @context/blocks/patterns/triage.md
+  - Annotated processing steps with "Pattern Phase N" references
+  - Kept code-review specific details (file/line/description duplicate criteria)
+  - Preserved output format unchanged
+- **Files:** .claude/agents/code-review/synthesizer.md (modified)

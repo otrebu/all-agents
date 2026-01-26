@@ -980,7 +980,10 @@
       "storyRef": null,
       "title": "Update synthesizer.md to reference triage pattern",
       "description": "Update .claude/agents/code-review/synthesizer.md to reference @context/blocks/patterns/triage.md for the core triage logic instead of duplicating it inline. Keep the code-review specific details but extract the generic pattern to the shared doc.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T23:55:00Z",
+      "commitHash": "e7a40a7",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-054"],
       "classification": {
         "knowledgeCertainty": "known-known",
