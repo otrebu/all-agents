@@ -1,6 +1,6 @@
 ---
 name: parallel-code-review
-description: Orchestrate parallel code review using specialized reviewer agents. Spawns 5 reviewers in parallel, synthesizes findings, and presents for triage. Use when user wants comprehensive multi-agent code review.
+description: Orchestrate parallel code review using specialized reviewer agents. Spawns 11 reviewers in parallel, synthesizes findings, and presents for triage. Use when user wants comprehensive multi-agent code review.
 allowed-tools: Task, Bash, Read, Glob, AskUserQuestion
 ---
 
@@ -18,7 +18,7 @@ Orchestrates a multi-agent code review using specialized reviewers running in pa
 | Phase | Action | Purpose |
 |-------|--------|---------|
 | 1 | Gather Diff | Get code changes to review |
-| 2 | Invoke Reviewers | Spawn 5 specialized agents in parallel |
+| 2 | Invoke Reviewers | Spawn 11 specialized agents in parallel |
 | 3 | Synthesize | Aggregate and dedupe findings |
 | 4 | Triage | Present findings for FIX/SKIP/FALSE POSITIVE decisions |
 
@@ -31,6 +31,12 @@ Orchestrates a multi-agent code review using specialized reviewers running in pa
 | `error-handling-reviewer` | Exceptions, catch blocks, error recovery |
 | `test-coverage-reviewer` | Missing tests, edge cases, assertions |
 | `maintainability-reviewer` | Coupling, naming, SRP, organization |
+| `dependency-reviewer` | Outdated deps, vulnerabilities, licenses |
+| `documentation-reviewer` | Missing docs, README gaps, JSDoc/TSDoc |
+| `accessibility-reviewer` | WCAG, ARIA, color contrast, keyboard nav |
+| `intent-alignment-reviewer` | Implementation vs requirements, scope creep |
+| `over-engineering-reviewer` | YAGNI, premature abstraction, complexity |
+| `performance-reviewer` | N+1 queries, memory leaks, algorithm complexity |
 
 All reviewers output findings in the standard JSON format defined in @.claude/agents/code-review/types.md.
 
@@ -62,7 +68,7 @@ Spawn all reviewer agents simultaneously using Task tool. Each agent receives:
 
 **For --quick mode:** Only spawn `security-reviewer` and `data-integrity-reviewer`.
 
-**Standard mode (5 agents in parallel):**
+**Standard mode (11 agents in parallel):**
 
 ```
 Launch ALL these Task tool calls in a SINGLE message:
@@ -111,9 +117,67 @@ Task 5: maintainability-reviewer agent
       <diff>
       {diff content}
       </diff>
+
+Task 6: dependency-reviewer agent
+  - subagent_type: "dependency-reviewer"
+  - prompt: |
+      Review this diff for dependency issues. Output JSON findings per the Finding schema.
+
+      <diff>
+      {diff content}
+      </diff>
+
+Task 7: documentation-reviewer agent
+  - subagent_type: "documentation-reviewer"
+  - prompt: |
+      Review this diff for documentation issues. Output JSON findings per the Finding schema.
+
+      <diff>
+      {diff content}
+      </diff>
+
+Task 8: accessibility-reviewer agent
+  - subagent_type: "accessibility-reviewer"
+  - prompt: |
+      Review this diff for accessibility issues. Output JSON findings per the Finding schema.
+
+      <diff>
+      {diff content}
+      </diff>
+
+Task 9: intent-alignment-reviewer agent
+  - subagent_type: "intent-alignment-reviewer"
+  - prompt: |
+      Review this diff for intent alignment issues. Output JSON findings per the Finding schema.
+
+      <intent>
+      {intent description or @file reference, if provided via --intent flag}
+      </intent>
+
+      <diff>
+      {diff content}
+      </diff>
+
+Task 10: over-engineering-reviewer agent
+  - subagent_type: "over-engineering-reviewer"
+  - prompt: |
+      Review this diff for over-engineering issues. Output JSON findings per the Finding schema.
+
+      <diff>
+      {diff content}
+      </diff>
+
+Task 11: performance-reviewer agent
+  - subagent_type: "performance-reviewer"
+  - prompt: |
+      Review this diff for performance issues. Output JSON findings per the Finding schema.
+
+      <diff>
+      {diff content}
+      </diff>
 ```
 
-**CRITICAL:** All 5 Task calls must be in a single message for true parallel execution.
+**CRITICAL:** All 11 Task calls must be in a single message for true parallel execution.
 
 ### Phase 3: Synthesize Results
 
@@ -132,7 +196,13 @@ Task: synthesizer agent
           "data-integrity-reviewer": { "findings": [...] },
           "error-handling-reviewer": { "findings": [...] },
           "test-coverage-reviewer": { "findings": [...] },
-          "maintainability-reviewer": { "findings": [...] }
+          "maintainability-reviewer": { "findings": [...] },
+          "dependency-reviewer": { "findings": [...] },
+          "documentation-reviewer": { "findings": [...] },
+          "accessibility-reviewer": { "findings": [...] },
+          "intent-alignment-reviewer": { "findings": [...] },
+          "over-engineering-reviewer": { "findings": [...] },
+          "performance-reviewer": { "findings": [...] }
         }
       }
       </findings>
