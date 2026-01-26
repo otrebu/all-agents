@@ -297,3 +297,12 @@
   - Example findings for missing feature, partial implementation, scope creep, misinterpretation, and docs mismatch
   - JSON output format matching Finding schema from types.md
 - **Files:** .claude/agents/code-review/intent-alignment-reviewer.md (created)
+
+### SUB-037
+- **Problem:** Need to document where lessons (learned knowledge) should be placed in the atomic documentation structure
+- **Changes:** Updated context/blocks/docs/atomic-documentation.md with:
+  - Added "Where Lessons Go" section with context/ vs docs/ comparison table
+  - Decision tree for determining placement: project-specific → docs/{folder}/, reusable about a tool → context/blocks/, about combining tools → context/foundations/, about a process → context/workflows/
+  - Example showing how to add a Gotcha section to a block
+  - Clarification that no separate lessons/ folder exists - lessons live where related docs already exist
+- **Files:** context/blocks/docs/atomic-documentation.md (modified)

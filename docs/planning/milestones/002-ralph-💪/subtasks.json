@@ -565,7 +565,10 @@
       "storyRef": "STORY-001",
       "title": "Update atomic-documentation with lessons placement",
       "description": "Update context/blocks/docs/atomic-documentation.md to add 'Where Lessons Go' decision tree. Document that project-specific lessons go in docs/{folder}/, reusable lessons go in context/blocks/ as Gotchas sections. Clarify context/ vs docs/ distinction.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T01:00:00Z",
+      "commitHash": "253c563cd103985a190e30410d1da514b1f71799",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         "atomic-documentation.md has 'Where Lessons Go' section",
         "Decision tree matches story specification",
