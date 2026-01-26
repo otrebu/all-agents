@@ -945,7 +945,10 @@
       "storyRef": null,
       "title": "Create subtask-reviewer agent",
       "description": "Create .claude/agents/subtask-reviewer.md - a Haiku-based agent that reviews ALL subtasks for sizing issues. Input: subtasks JSON. Output: structured findings (oversized, undersized, mergeCandidates, splitCandidates, approved). Uses changeCount < 2 = undersized, > 8 = oversized heuristics. References @context/blocks/patterns/triage.md for core logic.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T23:30:00Z",
+      "commitHash": "5f137e4",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-054"],
       "classification": {
         "knowledgeCertainty": "known-known",

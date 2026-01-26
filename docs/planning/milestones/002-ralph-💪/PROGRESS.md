@@ -618,3 +618,15 @@
   - Output structure documentation (summary, items array, grouped view)
   - Use case references to code-review synthesizer and subtask-reviewer
 - **Files:** context/blocks/patterns/triage.md (created)
+
+### SUB-055
+- **Problem:** Need a Haiku-based agent to review ALL subtasks for sizing issues (oversized, undersized, merge/split candidates)
+- **Changes:** Created .claude/agents/subtask-reviewer.md with:
+  - YAML frontmatter with model: haiku
+  - Input format documentation (subtasks JSON array)
+  - Sizing heuristics: changeCount < 2 = undersized, > 8 = oversized
+  - Output format: oversized, undersized, mergeCandidates, splitCandidates, approved arrays
+  - Reference to @context/blocks/patterns/triage.md for core triage logic
+  - Merge candidate detection criteria (same taskRef, same files, sequential blockedBy)
+  - Split candidate suggestion boundaries (research/implementation, file boundaries, functional units)
+- **Files:** .claude/agents/subtask-reviewer.md (created)
