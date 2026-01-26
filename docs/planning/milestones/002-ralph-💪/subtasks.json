@@ -791,7 +791,10 @@
       "storyRef": null,
       "title": "Update refs in global subtasks.json",
       "description": "Phase 5a: Update taskRef values in docs/planning/subtasks.json from TASK-NNN format to filename-based refs (e.g., TASK-011 → 011-rename-self-improvement-modes). Since the referenced task files will be deleted, use the original filename slugs.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T19:00:00Z",
+      "commitHash": "cb8b572",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-049"],
       "classification": {
         "knowledgeCertainty": "known-known",
@@ -867,6 +870,287 @@
         "docs/planning/",
         "tools/src/commands/task.ts",
         "tools/src/commands/story.ts"
+      ]
+    },
+    {
+      "id": "SUB-053",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Rename elementCount to changeCount in schema and subtasks",
+      "description": "Update docs/planning/schemas/subtasks.schema.json to rename the elementCount field to changeCount in the classification object. Also update all existing subtasks in docs/planning/milestones/002-ralph-💪/subtasks.json that use elementCount to use changeCount instead. This aligns with the plan's decision to use 'changeCount' as the sizing metric name.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "Schema field rename + JSON find/replace. Both files known, exact changes clear."
+      },
+      "acceptanceCriteria": [
+        "subtasks.schema.json has 'changeCount' instead of 'elementCount' in classification properties",
+        "All subtasks in 002-ralph-💪/subtasks.json use 'changeCount' instead of 'elementCount'",
+        "Schema remains valid JSON: jq . docs/planning/schemas/subtasks.schema.json > /dev/null",
+        "Verify: grep -q 'changeCount' docs/planning/schemas/subtasks.schema.json",
+        "Verify: ! grep -q 'elementCount' docs/planning/milestones/002-ralph-💪/subtasks.json"
+      ],
+      "filesToRead": [
+        "docs/planning/schemas/subtasks.schema.json",
+        "docs/planning/milestones/002-ralph-💪/subtasks.json"
+      ]
+    },
+    {
+      "id": "SUB-054",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Create triage pattern documentation",
+      "description": "Create context/blocks/patterns/triage.md as a new patterns category under blocks. This doc extracts the common triage pattern (dedupe, score, rank, group) used by both code-review synthesizer and the new subtask-reviewer. The pattern includes: deduplication logic, priority scoring formula, sorting rules, and grouping strategies.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "New doc creation. Content specified in plan. Pattern extracted from synthesizer.md."
+      },
+      "acceptanceCriteria": [
+        "context/blocks/patterns/ directory exists",
+        "context/blocks/patterns/triage.md exists",
+        "Documents deduplication logic (same file + line + description overlap)",
+        "Documents priority scoring: severityWeight × confidence",
+        "Documents sorting rules: priority desc, severity, file path",
+        "Documents grouping strategy: by file for navigation",
+        "Includes reference examples from synthesizer use case",
+        "Verify: test -f context/blocks/patterns/triage.md",
+        "Verify: grep -q 'dedupe\\|deduplication' context/blocks/patterns/triage.md"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/synthesizer.md",
+        "context/blocks/docs/",
+        "context/README.md"
+      ]
+    },
+    {
+      "id": "SUB-055",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Create subtask-reviewer agent",
+      "description": "Create .claude/agents/subtask-reviewer.md - a Haiku-based agent that reviews ALL subtasks for sizing issues. Input: subtasks JSON. Output: structured findings (oversized, undersized, mergeCandidates, splitCandidates, approved). Uses changeCount < 2 = undersized, > 8 = oversized heuristics. References @context/blocks/patterns/triage.md for core logic.",
+      "done": false,
+      "blockedBy": ["SUB-054"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "New agent file. Structure follows existing agents. Output format specified in plan."
+      },
+      "acceptanceCriteria": [
+        ".claude/agents/subtask-reviewer.md exists",
+        "Has YAML frontmatter with model: haiku",
+        "Documents input format (subtasks JSON array)",
+        "Documents output format (oversized, undersized, mergeCandidates, splitCandidates, approved)",
+        "Specifies sizing heuristics: changeCount < 2 = undersized, > 8 = oversized",
+        "References @context/blocks/patterns/triage.md",
+        "Output shape matches plan's review findings structure",
+        "Verify: test -f .claude/agents/subtask-reviewer.md",
+        "Verify: grep -q 'model.*haiku' .claude/agents/subtask-reviewer.md",
+        "Verify: grep -q 'changeCount' .claude/agents/subtask-reviewer.md"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/synthesizer.md",
+        "context/blocks/patterns/triage.md",
+        ".claude/plans/agile-nibbling-octopus.md"
+      ]
+    },
+    {
+      "id": "SUB-056",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Update synthesizer.md to reference triage pattern",
+      "description": "Update .claude/agents/code-review/synthesizer.md to reference @context/blocks/patterns/triage.md for the core triage logic instead of duplicating it inline. Keep the code-review specific details but extract the generic pattern to the shared doc.",
+      "done": false,
+      "blockedBy": ["SUB-054"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "Documentation refactor. Add reference, remove duplicated content. Pattern doc already created."
+      },
+      "acceptanceCriteria": [
+        "synthesizer.md references @context/blocks/patterns/triage.md",
+        "Core triage logic (dedupe, score, rank, group) references pattern doc",
+        "Code-review specific details remain in synthesizer.md",
+        "Agent still produces same output format",
+        "Verify: grep -q '@context/blocks/patterns/triage.md' .claude/agents/code-review/synthesizer.md"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/synthesizer.md",
+        "context/blocks/patterns/triage.md"
+      ]
+    },
+    {
+      "id": "SUB-057",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Add Phase 1b (Doc Lookup) to subtasks-from-source.md",
+      "description": "Update context/workflows/ralph/planning/subtasks-from-source.md to add Phase 1b: Doc Lookup between Phase 1 (Parse Input) and Phase 2 (Codebase Analysis). This phase uses Haiku to find relevant atomic docs for subtask context, adds them to filesToRead, or flags missing docs for Phase 6b.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "Workflow doc update. Clear location (after Phase 1). Content specified in plan."
+      },
+      "acceptanceCriteria": [
+        "Phase 1b: Doc Lookup section added after Phase 1 (Parse Input)",
+        "Documents using Haiku to search context/README.md index",
+        "Documents matching against blocks/foundations/stacks",
+        "Documents output: filesToRead additions OR missing docs list",
+        "Phase numbering updated (old Phase 2 becomes Phase 2, etc.)",
+        "Verify: grep -q 'Phase 1b.*Doc Lookup' context/workflows/ralph/planning/subtasks-from-source.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        ".claude/plans/agile-nibbling-octopus.md"
+      ]
+    },
+    {
+      "id": "SUB-058",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Add Phase 6b (Doc Linking) to subtasks-from-source.md",
+      "description": "Update context/workflows/ralph/planning/subtasks-from-source.md to add Phase 6b: Doc Linking after Phase 6 (Validation). This phase spawns atomic-doc-creator for missing critical docs, logs creation to milestone diary, and adds created doc paths to subtask's filesToRead.",
+      "done": false,
+      "blockedBy": ["SUB-057"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "Workflow doc update. Clear location (after Phase 6). Content specified in plan."
+      },
+      "acceptanceCriteria": [
+        "Phase 6b: Doc Linking section added after Phase 6 (Validation)",
+        "Documents spawning atomic-doc-creator for missing docs",
+        "Documents logging to milestone diary (what/when/why)",
+        "Documents adding created doc paths to filesToRead",
+        "Clarifies NO [REVIEW] flag on created docs",
+        "Verify: grep -q 'Phase 6b.*Doc Linking' context/workflows/ralph/planning/subtasks-from-source.md",
+        "Verify: grep -q 'atomic-doc-creator' context/workflows/ralph/planning/subtasks-from-source.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        ".claude/agents/atomic-doc-creator.md"
+      ]
+    },
+    {
+      "id": "SUB-059",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Add Phase 8 (Review) to subtasks-from-source.md",
+      "description": "Update context/workflows/ralph/planning/subtasks-from-source.md to add Phase 8: Review as the final phase. This phase always runs: (1) write draft to tmp/subtasks-draft.json, (2) spawn Haiku subtask-reviewer, (3) Opus triage applies suggestions, (4) write final to milestone subtasks.json. Update Phase 7 output to write draft instead of final.",
+      "done": false,
+      "blockedBy": ["SUB-055", "SUB-058"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 3,
+        "reasoning": "Workflow doc update. New phase + update existing Phase 7. Content specified in plan."
+      },
+      "acceptanceCriteria": [
+        "Phase 8: Review section added as final phase",
+        "Documents writing draft to tmp/subtasks-draft.json",
+        "Documents spawning Haiku subtask-reviewer",
+        "Documents Opus triage step for applying suggestions",
+        "Documents final output to milestone subtasks.json",
+        "Phase 7 (Output) updated to write to tmp/ instead of final location",
+        "No --no-review flag mentioned (always review)",
+        "Verify: grep -q 'Phase 8.*Review' context/workflows/ralph/planning/subtasks-from-source.md",
+        "Verify: grep -q 'tmp/subtasks-draft.json' context/workflows/ralph/planning/subtasks-from-source.md",
+        "Verify: grep -q 'Opus.*triage' context/workflows/ralph/planning/subtasks-from-source.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        ".claude/agents/subtask-reviewer.md",
+        ".claude/plans/agile-nibbling-octopus.md"
+      ]
+    },
+    {
+      "id": "SUB-060",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Update subtasks-from-source.md sizing to use changeCount",
+      "description": "Update Phase 4 (Size Validation) in context/workflows/ralph/planning/subtasks-from-source.md to reference classification.changeCount instead of generic sizing. Document the heuristics: changeCount < 2 = undersized (merge), changeCount > 8 = oversized (split).",
+      "done": false,
+      "blockedBy": ["SUB-053"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "Workflow doc update. Update Phase 4 sizing section. Heuristics specified in plan."
+      },
+      "acceptanceCriteria": [
+        "Phase 4 references classification.changeCount for sizing",
+        "Documents heuristic: changeCount < 2 = undersized (consider merge)",
+        "Documents heuristic: changeCount > 8 = oversized (consider split)",
+        "Existing size guidelines remain (touch 1-3 files, 15-30 tool calls)",
+        "Verify: grep -q 'changeCount' context/workflows/ralph/planning/subtasks-from-source.md",
+        "Verify: grep -q 'changeCount.*<.*2' context/workflows/ralph/planning/subtasks-from-source.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        ".claude/plans/agile-nibbling-octopus.md"
+      ]
+    },
+    {
+      "id": "SUB-061",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Add subtask-review log type to ralph CLI",
+      "description": "Update tools/src/commands/ralph/index.ts to support writing subtask-review findings to milestone daily logs. Add 'subtask-review' as a valid type discriminator alongside 'iteration' and 'planning'. Update the planning subcommands to log review findings to docs/planning/milestones/{milestone}/logs/{date}.jsonl with type: 'subtask-review'.",
+      "done": false,
+      "blockedBy": ["SUB-055"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 1,
+        "changeCount": 4,
+        "reasoning": "CLI code update. Extends existing log type pattern. Requires understanding current diary write pattern."
+      },
+      "acceptanceCriteria": [
+        "IterationDiaryEntry type includes 'subtask-review' as valid type option",
+        "Subtask review findings logged to milestone daily log file",
+        "Log entry shape matches plan: oversized, undersized, mergeCandidates, splitCandidates, approved",
+        "Log path follows existing pattern: {milestone}/logs/{date}.jsonl",
+        "Verify: grep -q \"'subtask-review'\" tools/src/commands/ralph/types.ts",
+        "TypeScript compiles without errors: bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/config.ts",
+        ".claude/plans/agile-nibbling-octopus.md"
+      ]
+    },
+    {
+      "id": "SUB-062",
+      "taskRef": "subtask-review-workflow",
+      "storyRef": null,
+      "title": "Update context/README.md with patterns category",
+      "description": "Update context/README.md to document the new patterns/ category under blocks. Add entry for triage.md pattern. This ensures the new pattern is discoverable in the atomic documentation index.",
+      "done": false,
+      "blockedBy": ["SUB-054"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 1,
+        "reasoning": "Documentation index update. Add new category and entry."
+      },
+      "acceptanceCriteria": [
+        "context/README.md Structure section includes patterns/ under blocks/",
+        "patterns/ category documented with description: 'Reusable processing patterns'",
+        "triage.md listed with description: 'Dedupe, score, rank, group pattern'",
+        "Verify: grep -q 'patterns/' context/README.md",
+        "Verify: grep -q 'triage.md' context/README.md"
+      ],
+      "filesToRead": [
+        "context/README.md",
+        "context/blocks/patterns/triage.md"
       ]
     }
   ],

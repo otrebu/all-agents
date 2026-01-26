@@ -565,3 +565,11 @@
   - Changed subtask.storyRef pattern from ^STORY-[0-9]{3,}$ to ^[0-9]{3,}-[a-z0-9-]+$
   - Updated descriptions with examples (e.g., '015-cli-ergonomics-fixes', '001-parallel-code-review')
 - **Files:** docs/planning/schemas/subtasks.schema.json (modified)
+
+### SUB-050
+- **Problem:** Global subtasks.json used legacy TASK-NNN format for taskRef values
+- **Changes:** Updated all taskRef values to use filename-based NNN-slug format:
+  - TASK-011 → 011-rename-self-improvement-modes
+  - TASK-012 → 012-cli-ergonomics-fixes
+  - TASK-013 → 013-prompt-quality-improvements
+- **Files:** docs/planning/subtasks.json (modified)
