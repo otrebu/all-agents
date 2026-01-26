@@ -315,3 +315,14 @@
   - Interrogation workflow section (/dev:interrogate with core questions and modes)
   - Review diary section documenting logs/reviews.jsonl format
 - **Files:** docs/planning/VISION.md (modified)
+
+### SUB-025
+- **Problem:** The parallel-code-review skill documentation listed only 5 reviewers but there are 11 reviewer agents
+- **Changes:** Updated .claude/skills/parallel-code-review/SKILL.md with:
+  - Extended Reviewer Agents table from 5 to 11 agents (added dependency, documentation, accessibility, intent-alignment, over-engineering, performance reviewers)
+  - Updated frontmatter description from "5 reviewers" to "11 reviewers"
+  - Updated Overview table Phase 2 from "5 specialized agents" to "11 specialized agents"
+  - Added Task 6-11 examples in Phase 2 invocation section
+  - Updated synthesizer input example to include all 11 reviewers
+  - Updated "CRITICAL" note from "All 5 Task calls" to "All 11 Task calls"
+- **Files:** .claude/skills/parallel-code-review/SKILL.md (modified)
