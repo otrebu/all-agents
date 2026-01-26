@@ -224,7 +224,10 @@
       "storyRef": null,
       "title": "Instrument timing in post-iteration hook",
       "description": "Add timing instrumentation to runPostIterationHook() in post-iteration.ts. Wrap summary generation and metrics collection with Date.now() timing. Populate the timing field in diary entry. Respect skipSummary option by returning placeholder summary when true. Accept optional mode field and pass it to diary entry.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T23:15:00Z",
+      "commitHash": "0b21f21",
+      "sessionId": "c97c60fb-f0c5-4722-b503-b1e147e95b39",
       "blockedBy": ["SUB-029"],
       "classification": {
         "knowledgeCertainty": "known-known",

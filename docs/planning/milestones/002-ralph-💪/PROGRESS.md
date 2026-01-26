@@ -378,3 +378,15 @@
   - Updated skipSummary from hardcoded false to options.skipSummary === true in runBuild() call
   - Added E2E test coverage for the new flag
 - **Files:** tools/src/commands/ralph/index.ts (modified), tools/tests/e2e/ralph.test.ts (modified)
+
+### SUB-031
+- **Problem:** Need timing instrumentation in post-iteration hook to track where time is spent during Ralph build iterations
+- **Changes:** Added timing instrumentation to runPostIterationHook() in post-iteration.ts:
+  - Extended PostIterationOptions with claudeMs, mode, and skipSummary fields
+  - Added timing to generateSummary() - returns summaryMs in SummaryResult
+  - Added timing to metrics collection (metricsMs)
+  - Added hook total time tracking (hookMs)
+  - Implemented skipSummary logic - returns placeholder "[skipped]" summary when true
+  - Populated timing field (IterationTiming) in diary entry with all timing values
+  - Populated mode field in diary entry when provided
+- **Files:** tools/src/commands/ralph/post-iteration.ts (modified)
