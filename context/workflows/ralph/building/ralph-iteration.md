@@ -115,6 +115,151 @@ If validation fails:
 3. Re-run validation
 4. Repeat until all checks pass
 
+### Phase 5b: Verify Acceptance Criteria
+
+**CRITICAL:** Do not proceed to commit until every acceptance criterion passes verification.
+
+#### Verification Process
+
+For each acceptance criterion:
+
+1. **State the criterion** - exact text from subtask
+2. **Classify tier** - static, content, or behavioral
+3. **Run verification command** - must be idempotent (no side effects)
+4. **Record PASS/FAIL** - with evidence
+
+#### Verification Report Format
+
+```markdown
+## AC Verification: SUB-047
+
+| # | Criterion | Tier | Command | Result | Evidence |
+|---|-----------|------|---------|--------|----------|
+| 1 | diary.ts exists with extracted functions | static | `test -f .../diary.ts` | PASS | File exists |
+| 2 | DIARY_PATH constant moved | content | `grep -q DIARY_PATH diary.ts` | PASS | Line 12 |
+| 3 | TypeScript compiles | behavioral | `bun run typecheck` | PASS | Exit 0 |
+| 4 | index.ts imports diary | content | `grep -q "from './diary'" index.ts` | PASS | Line 8 |
+
+**Summary:** 4/4 PASS → Proceed to commit
+```
+
+#### Generate Tests From AC
+
+**MANDATORY:** Tests are not optional. Every behavioral AC MUST have a corresponding test.
+
+##### Test Types and Locations
+
+| Change Type | Test Type | Location | File Pattern |
+|-------------|-----------|----------|--------------|
+| New CLI command | E2E | `tools/tests/e2e/` | `<command>.test.ts` |
+| New CLI flag | E2E | `tools/tests/e2e/` | Add to existing command test |
+| New utility function | Unit | `tools/tests/lib/` | `<module>.test.ts` |
+| New module extraction | Unit | `tools/tests/lib/` | `<module>.test.ts` |
+| Bug fix | Regression | Appropriate location | Add test that would have caught the bug |
+
+##### AC-to-Test Mapping (Required)
+
+| AC Pattern | Required Test |
+|------------|---------------|
+| "Command X exists" | `test("X --help exits 0")` with `execa` |
+| "Flag --Y works" | `test("--Y flag is recognized")` with `execa` |
+| "Returns error on Z" | `test("fails with error on Z", { reject: false })` |
+| "Output contains W" | `expect(stdout).toContain("W")` |
+| "File X is created" | `expect(existsSync(X)).toBe(true)` |
+| "Function exports Y" | `expect(typeof module.Y).toBe("function")` |
+| "Throws on invalid input" | `expect(() => fn(invalid)).toThrow()` |
+
+##### Test Template (E2E for CLI)
+
+**Note:** Current tests use `execa` but consider alternatives like `Bun.spawn` for native Bun subprocess handling. Follow existing project patterns.
+
+```typescript
+// tools/tests/e2e/<command>.test.ts
+import { describe, expect, test } from "bun:test";
+import { execa } from "execa";  // Or use Bun.spawn if preferred
+
+describe("aaa <command>", () => {
+  test("--help shows usage", async () => {
+    const { exitCode, stdout } = await execa("bun", ["run", "dev", "<command>", "--help"]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("<expected content>");
+  });
+
+  test("fails gracefully on invalid input", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun", ["run", "dev", "<command>", "--invalid"],
+      { reject: false }
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("error");
+  });
+});
+
+// Alternative with Bun.spawn:
+// const proc = Bun.spawn(["bun", "run", "dev", "<command>", "--help"]);
+// const stdout = await new Response(proc.stdout).text();
+// expect(proc.exitCode).toBe(0);
+```
+
+##### Test Template (Unit for modules)
+
+```typescript
+// tools/tests/lib/<module>.test.ts
+import { describe, expect, test } from "bun:test";
+import { functionName } from "../../src/commands/<path>/<module>";
+
+describe("<module>", () => {
+  test("functionName does X", () => {
+    const result = functionName(input);
+    expect(result).toBe(expected);
+  });
+
+  test("functionName throws on invalid input", () => {
+    expect(() => functionName(invalid)).toThrow();
+  });
+});
+```
+
+##### When Tests Are REQUIRED (Not Optional)
+
+| Subtask Creates | Test Required? | Justification |
+|-----------------|----------------|---------------|
+| New CLI command | **YES** | Must verify command runs |
+| New CLI flag | **YES** | Must verify flag is recognized |
+| New module with exports | **YES** | Must verify exports work |
+| Refactor (extract module) | **YES** | Must verify no regression |
+| Bug fix | **YES** | Must prevent regression |
+| Documentation only | No | No code to test |
+| Config change only | No | No code to test |
+
+**If unsure:** Write the test. Over-testing is better than under-testing.
+
+#### Regression Check
+
+Before marking complete, verify:
+```bash
+# Baseline tests still pass
+bun test 2>&1 | grep -E "PASS|FAIL"
+
+# No new TypeScript errors
+bun run typecheck 2>&1 | grep -c error  # Should be 0
+
+# No new lint errors
+bun run lint 2>&1 | grep -c error  # Should be 0
+```
+
+#### Failure Handling
+
+If ANY criterion fails:
+1. **Do NOT commit**
+2. Fix the implementation
+3. Re-run Phase 5 (quality gates) and Phase 5b (AC verification)
+4. Only proceed when ALL criteria PASS
+
+#### Idempotency Requirement
+
+All verification commands must be **idempotent** - running them twice produces the same result. Commands that modify state are NOT valid verification commands.
+
 ### Phase 6: Commit
 
 Create a commit for the completed work.

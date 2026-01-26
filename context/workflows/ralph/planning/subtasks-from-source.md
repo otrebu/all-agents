@@ -92,6 +92,105 @@ For each actionable item, create a subtask following the schema:
 - If generating from review findings or text, use a placeholder `TASK-REVIEW-001`
 - If `--story` provided, also set `storyRef`
 
+### Phase 3b: Acceptance Criteria Quality Gate
+
+**Goal:** Ensure each AC is verifiable while preserving semantic meaning.
+
+#### Two-Layer AC Structure
+
+Each acceptance criterion has two aspects:
+1. **Intent** - What outcome we want (human-readable, semantic)
+2. **Verification** - How to confirm it's done (machine-checkable)
+
+**Good AC preserves both:**
+```
+"Diary functionality is extracted into its own module"
+  → Verify: test -f tools/src/commands/review/diary.ts && grep -q "export.*readDiary" diary.ts
+```
+
+**Bad AC loses intent:**
+```
+"grep returns match" ← This is a test case, not an acceptance criterion
+```
+
+#### Three-Tier Verification Methods
+
+| Tier | AC Pattern | Verification | Example |
+|------|------------|--------------|---------|
+| **Static** | "X exists", "file at Y" | `test -f`, `ls` | "diary.ts exists" → `test -f diary.ts` |
+| **Content** | "contains X", "has section Y" | `grep -q`, `jq` | "Lists 11 agents" → `grep -c "reviewer" \| test $(cat) -eq 11` |
+| **Behavioral** | "X works", "returns Y on Z" | Run command | "review --help works" → `aaa review --help` exits 0 |
+
+#### Extended Verification Patterns
+
+| Pattern | Command | Example AC |
+|---------|---------|------------|
+| File exists | `test -f <path>` | "diary.ts exists" |
+| File NOT exists | `! test -f <path>` | "Legacy file removed" |
+| Contains string | `grep -q "string" file` | "Exports readDiary function" |
+| Does NOT contain | `! grep -q "string" file` | "No console.error calls" |
+| JSON field value | `jq '.field == "value"'` | "Mode is 'suggest'" |
+| Count items | `grep -c "pattern"` | "Lists 11 reviewers" |
+| Command succeeds | `cmd; test $? -eq 0` | "TypeScript compiles" |
+| Output contains | `cmd \| grep -q "text"` | "Help shows --supervised flag" |
+| Line count | `wc -l < file` | "Under 300 lines" |
+
+#### Vague Terms That Need Specificity
+
+When you see these terms, **add specificity** (don't just rewrite mechanically):
+
+| Vague | Ask Yourself | Better |
+|-------|--------------|--------|
+| "works correctly" | What's the expected output/behavior? | "Returns 200 and JSON body with 'status: ok'" |
+| "properly handles" | What happens on success? On failure? | "Returns 400 for invalid input, 200 for valid" |
+| "significantly smaller" | What's the target? | "Reduced from 2600 to under 500 lines" |
+| "follows format" | What specific elements? | "Has: title, description, flags table" |
+| "single responsibility" | What's the measurable proxy? | "Each function under 50 lines and has one verb in name" |
+
+**Key insight:** The criterion "Each function has single responsibility" is semantically valid. Don't replace it with "under 50 lines" - instead keep both:
+- Intent: "Each function has single responsibility"
+- Proxy check: "No function exceeds 50 lines"
+
+#### BDD-Style AC (Encouraged for User-Facing Features)
+
+For commands and user interactions, Given/When/Then is clearer:
+
+```
+Given: User runs `aaa review` without flags
+When: Command executes
+Then: Prompt appears asking for mode selection
+
+Verification: aaa review 2>&1 | grep -q "supervised.*headless"
+```
+
+#### Test-Related AC Requirements
+
+Every subtask that creates executable code MUST include test-related acceptance criteria:
+
+| Subtask Type | Required AC |
+|--------------|-------------|
+| New CLI command | "E2E test in tools/tests/e2e/<cmd>.test.ts passes" |
+| New CLI flag | "Test for --<flag> added to existing E2E test" |
+| New module | "Unit test in tools/tests/lib/<module>.test.ts passes" |
+| Refactor | "Existing tests still pass" AND "New test for extracted code" |
+| Bug fix | "Regression test added that would have caught the bug" |
+
+**Example AC with test requirement:**
+```json
+{
+  "acceptanceCriteria": [
+    "diary.ts exports readDiary and writeDiaryEntry",
+    "Unit test tools/tests/lib/diary.test.ts exists and passes",
+    "Test covers: read empty file, read valid entries, write new entry"
+  ]
+}
+```
+
+**Before proceeding:** Review each AC. Ensure it has:
+1. Clear intent
+2. Verification method
+3. Test requirement (if code change)
+
 ### Phase 4: Size Validation
 
 **CRITICAL:** Each subtask must fit within a single context window iteration.
