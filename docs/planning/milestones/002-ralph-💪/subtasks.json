@@ -542,7 +542,10 @@
       "storyRef": "STORY-001",
       "title": "Create intent-alignment-reviewer agent",
       "description": "Create .claude/agents/code-review/intent-alignment-reviewer.md agent that verifies code matches stated requirements. Agent requires intent input (description or file reference) and checks implementation alignment. Outputs findings per schema.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T00:45:00Z",
+      "commitHash": "03c8054118fe2955c7cc5eb410239a50137a123f",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/intent-alignment-reviewer.md exists",
         "Agent requires intent parameter (description or @file)",

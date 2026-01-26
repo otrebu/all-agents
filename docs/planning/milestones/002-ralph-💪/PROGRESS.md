@@ -284,3 +284,16 @@
   - References to npm audit, npm-check-updates, and license-checker tools
   - JSON output format matching Finding schema from types.md
 - **Files:** .claude/agents/code-review/dependency-reviewer.md (created)
+
+### SUB-036
+- **Problem:** Need an intent-alignment focused code reviewer agent that verifies implementation matches stated requirements
+- **Changes:** Created .claude/agents/code-review/intent-alignment-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Requires intent parameter (description or @file reference)
+  - Alignment focus areas: missing functionality, implementation gaps, scope creep, misinterpretation, documentation alignment
+  - Comparison process: parse intent, map to implementation, identify gaps, find deviations, detect additions
+  - Confidence scoring logic based on requirement clarity
+  - Severity guidelines specific to alignment issues
+  - Example findings for missing feature, partial implementation, scope creep, misinterpretation, and docs mismatch
+  - JSON output format matching Finding schema from types.md
+- **Files:** .claude/agents/code-review/intent-alignment-reviewer.md (created)
