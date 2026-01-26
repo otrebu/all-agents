@@ -595,3 +595,15 @@
   - Build, typecheck, and lint all pass
   - Pre-existing test failures in format.test.ts unrelated to cleanup
 - **Files:** None modified (verification task)
+
+### SUB-053
+- **Problem:** The sizing metric field was named `elementCount` but the plan decided to use `changeCount` as the field name
+- **Changes:**
+  - Added `classification` schema to subtasks.schema.json with:
+    - `knowledgeCertainty` enum (known-known, known-unknown, unknown-unknown)
+    - `spikeIndicators` integer field
+    - `changeCount` integer field (the renamed sizing metric)
+    - `reasoning` string field
+  - Replaced all `elementCount` occurrences with `changeCount` in milestone subtasks.json (29 occurrences)
+  - The changeCount field is documented for sizing: <2 = undersized, >8 = oversized
+- **Files:** docs/planning/schemas/subtasks.schema.json (modified), docs/planning/milestones/002-ralph-💪/subtasks.json (modified)
