@@ -383,7 +383,10 @@
       "storyRef": null,
       "title": "Add getIterationLogPath() and getPlanningLogPath() helpers",
       "description": "Add two helper functions to config.ts that use getMilestoneLogPath(): (1) getIterationLogPath(subtasksPath: string) derives milestone root from subtasks.json location and calls getMilestoneLogPath, handles _orphan/ fallback for empty milestone; (2) getPlanningLogPath(milestonePath: string) uses milestone path directly. Both call the core getMilestoneLogPath helper.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T15:30:00Z",
+      "commitHash": "f7f74d1fa899f61f548336ce8f0410816fce8e66",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-035"],
       "classification": {
         "knowledgeCertainty": "known-known",

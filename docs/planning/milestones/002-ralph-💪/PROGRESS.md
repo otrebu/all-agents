@@ -435,3 +435,12 @@
   - Uses UTC date via new Date().toISOString().split('T')[0] for timezone consistency
   - Added unit tests in tools/tests/lib/config.test.ts covering all acceptance criteria
 - **Files:** tools/src/commands/ralph/config.ts (modified), tools/tests/lib/config.test.ts (created)
+
+### SUB-036
+- **Problem:** Need helper functions to derive log paths from subtasks.json location for iteration logs and milestone path for planning logs
+- **Changes:** Added two helper functions to config.ts:
+  - getIterationLogPath(subtasksPath: string) - derives milestone root from subtasks.json parent directory using dirname(), routes to _orphan/logs/ for empty/invalid paths
+  - getPlanningLogPath(milestonePath: string) - passes milestone path directly to getMilestoneLogPath()
+  - Added ORPHAN_MILESTONE_ROOT constant for fallback path
+  - Added comprehensive unit tests for both functions (14 new tests)
+- **Files:** tools/src/commands/ralph/config.ts (modified), tools/tests/lib/config.test.ts (modified)
