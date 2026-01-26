@@ -400,3 +400,15 @@
   - Destructured skipSummary from build options (as shouldSkipSummary to follow naming convention)
   - Passed shouldSkipSummary through processHeadlessIteration context
 - **Files:** tools/src/commands/ralph/build.ts (modified)
+
+### SUB-033
+- **Problem:** Need a function to discover the most recent Claude session file created after a given timestamp for supervised mode integration
+- **Changes:** Added discoverRecentSession() function to session.ts:
+  - Added DiscoveredSession interface for return type { sessionId: string; path: string }
+  - Implemented discoverRecentSession(afterTimestamp: number) function
+  - Uses find command with -newermt to filter by timestamp
+  - Searches in CLAUDE_CONFIG_DIR/projects or ~/.claude/projects
+  - Returns most recent session file using ls -t sorting
+  - Exported both the function and type
+  - Added unit tests in tools/tests/lib/session.test.ts
+- **Files:** tools/src/commands/ralph/session.ts (modified), tools/tests/lib/session.test.ts (created)
