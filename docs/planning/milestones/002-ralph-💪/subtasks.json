@@ -502,7 +502,10 @@
       "storyRef": null,
       "title": "Update status.ts to glob multiple daily log files",
       "description": "Update readIterationDiary() in status.ts (lines 112-133) to glob multiple JSONL files from the milestone logs directory. Use pattern: {milestoneRoot}/logs/*.jsonl to find all daily files. Aggregate entries from all files for stats calculation. Update runStatus() to derive log path from subtasks file milestone.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T18:30:00Z",
+      "commitHash": "b2295f89993ed7deaf6deeba1a7f6d651a2be701",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-039"],
       "classification": {
         "knowledgeCertainty": "known-known",

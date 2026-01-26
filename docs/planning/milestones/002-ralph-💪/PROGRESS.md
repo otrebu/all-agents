@@ -473,3 +473,15 @@
   - Add `type: 'iteration'` field to diary entries for discriminating from planning entries
   - Update build.ts to pass subtasksPath to runPostIterationHook in both headless and supervised modes
 - **Files:** tools/src/commands/ralph/post-iteration.ts (modified), tools/src/commands/ralph/build.ts (modified)
+
+### SUB-040
+- **Problem:** status.ts read from a single hardcoded log file path instead of aggregating from milestone-scoped daily log files
+- **Changes:** Updated status.ts to glob multiple daily log files:
+  - readIterationDiary() now accepts a directory path and uses readdirSync to find all *.jsonl files
+  - Added readSingleDiaryFile() helper to parse individual JSONL files
+  - Aggregates entries from all matching files and sorts by timestamp
+  - Added getMilestoneLogsDirectory() to derive log directory from subtasks.json location
+  - runStatus() now uses getMilestoneLogsDirectory() instead of hardcoded path
+  - Falls back to _orphan/logs/ for orphaned logs
+  - Created status.test.ts with unit tests for log aggregation behavior
+- **Files:** tools/src/commands/ralph/status.ts (modified), tools/tests/lib/status.test.ts (created)
