@@ -1412,7 +1412,10 @@
       "taskRef": "build-loop-practical-summary",
       "title": "Add signal handlers for graceful summary on interrupt",
       "description": "Add SIGINT/SIGTERM signal handlers to build.ts that ensure the practical summary runs even on Ctrl+C. Add summaryGenerated flag to prevent double execution. Create generateSummaryAndExit() helper that generates summary, writes file, prints to console, then exits.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T12:45:00Z",
+      "commitHash": "b1aba8d",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-067", "SUB-068", "SUB-069"],
       "classification": {
         "knowledgeCertainty": "known-known",

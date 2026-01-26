@@ -776,3 +776,14 @@
   - Populated when didComplete is true, storing subtask ID and number of attempts
   - Enables practical summary (SUB-070-072) to display completed subtasks with retry counts
 - **Files:** tools/src/commands/ralph/build.ts (modified)
+
+### SUB-070
+- **Problem:** Need signal handlers for graceful summary generation when build loop is interrupted
+- **Changes:** Added SIGINT/SIGTERM signal handlers to build.ts:
+  - Created SummaryContext interface to track build state (completedThisRun, milestone, paths)
+  - Added hasSummaryBeenGenerated flag to prevent double execution
+  - Created generateSummaryAndExit() function that generates summary, writes file, renders to terminal, then exits
+  - Created registerSignalHandlers() function to set up SIGINT (130) and SIGTERM (143) handlers
+  - Updated runBuild() to call registerSignalHandlers() and initialize summaryContext
+  - Exported readIterationDiary and getMilestoneLogsDirectory from status.ts
+- **Files:** tools/src/commands/ralph/build.ts (modified), tools/src/commands/ralph/status.ts (modified)
