@@ -722,3 +722,15 @@
   - Updated examples to use new NNN-slug format (014-review-code-quality)
   - Preserved unique sections: task parameter handling, deep codebase analysis, generation guidelines, milestone-level generation, output location
 - **Files:** context/workflows/ralph/planning/subtasks-auto.md (modified)
+
+### SUB-065
+- **Problem:** subtasks-from-source.md contained duplicated content (~175 lines) that was now available in subtasks-common.md
+- **Changes:** Simplified subtasks-from-source.md by removing duplicated content and adding reference to subtasks-common.md:
+  - Added "Shared Reference" section pointing to subtasks-common.md
+  - Removed inline subtask schema definition (now in common)
+  - Removed Phase 3b AC Quality Gate section (now in common)
+  - Removed Phase 4 inline size guidelines (now in common)
+  - Removed Phase 5 ID Generation inline content (now in common)
+  - Removed Phase 6 Validation Checklist inline content (now in common)
+  - Preserved unique sections: Input Sources, Phase 1 (Parse), Phase 1b (Doc Lookup), Phase 2 (Codebase Analysis), Phase 6b (Doc Linking), Phase 7 (Draft), Phase 8 (Review), Parsing Patterns, CLI Invocation
+- **Files:** context/workflows/ralph/planning/subtasks-from-source.md (modified)

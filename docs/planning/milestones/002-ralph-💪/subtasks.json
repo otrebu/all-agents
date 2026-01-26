@@ -1256,7 +1256,10 @@
       "taskRef": "doc-sync-dry-refactor",
       "title": "Simplify subtasks-from-source.md to reference common file",
       "description": "Remove duplicated content from subtasks-from-source.md (~60 lines) and add reference to subtasks-common.md. Keep unique sections: input sources, Phase 1 (Parse), Phase 1b (Doc Lookup), Phase 6b (Doc Linking), Phase 7 (Draft), Phase 8 (Review).",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T20:45:00Z",
+      "commitHash": "b104629025a2cb162141e9728dc4f0c157c63d53",
+      "sessionId": "ralph-build-iteration",
       "blockedBy": ["SUB-063"],
       "classification": {
         "knowledgeCertainty": "known-known",
