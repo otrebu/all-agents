@@ -26,6 +26,7 @@ bin/aaa
 .claude/image-cache/
 .claude/chrome/
 .claude/paste-cache/
+.claude/cache/
 docs/research/downloads/
 
 **/*.built.md
