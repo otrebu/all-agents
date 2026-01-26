@@ -591,7 +591,10 @@
       "storyRef": null,
       "title": "Add User Personas & Stories section to VISION.md",
       "description": "Phase 0 of naming consistency cleanup. Before deleting story files, preserve their user-centric narratives by adding a 'User Personas & Stories' table to VISION.md after Section 2 (Folder Structure). The table maps each feature to its persona and user story from the 9 story files in milestone 001-ralph.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T21:30:00Z",
+      "commitHash": "c225a77",
+      "sessionId": "current-session",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,

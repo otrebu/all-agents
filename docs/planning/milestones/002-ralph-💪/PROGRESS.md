@@ -503,3 +503,12 @@
   - Deleted context/workflows/ralph/planning/subtasks-from-source-v2.md remnant file (was untracked)
   - Preserved old global logs/ files (contain historical data not yet migrated - per AC "if migrated" condition)
 - **Files:** .gitignore (modified)
+
+### SUB-043
+- **Problem:** Need to preserve user-centric narratives from story files before cleanup (Phase 0 of naming consistency cleanup)
+- **Changes:** Added Section 2b "User Personas & Stories" to docs/planning/VISION.md:
+  - Table with 9 rows mapping features to personas and user stories
+  - Features: Building Mode, Intention Drift, Interactive Vision Planning, Automated Pipeline, Self-Improvement, Hooks & Notifications, Progress & Status, Technical Standards, Interactive Planning Guidance
+  - Each row preserves the persona description and user story from milestone 001-ralph story files
+  - Positioned after Section 2 (Folder Structure), before subtasks.json section
+- **Files:** docs/planning/VISION.md (modified)
