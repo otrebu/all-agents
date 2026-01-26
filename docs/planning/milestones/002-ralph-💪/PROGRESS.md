@@ -485,3 +485,12 @@
   - Falls back to _orphan/logs/ for orphaned logs
   - Created status.test.ts with unit tests for log aggregation behavior
 - **Files:** tools/src/commands/ralph/status.ts (modified), tools/tests/lib/status.test.ts (created)
+
+### SUB-041
+- **Problem:** ralph.test.ts diary entry integration tests used hardcoded global log paths (logs/iterations.jsonl) instead of milestone-scoped paths
+- **Changes:** Updated diary entry integration tests to use milestone-scoped log paths:
+  - Create mock milestone directory structure (docs/planning/milestones/mock-milestone) in temp directories
+  - Use UTC date-based log filenames ({YYYY-MM-DD}.jsonl) instead of iterations.jsonl
+  - Update DIARY_PATH in bash test scripts to use milestone-scoped paths
+  - Update verification assertions to check the new path structure
+- **Files:** tools/tests/e2e/ralph.test.ts (modified)

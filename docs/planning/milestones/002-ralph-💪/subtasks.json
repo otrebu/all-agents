@@ -534,7 +534,10 @@
       "storyRef": null,
       "title": "Update ralph.test.ts for milestone-scoped log paths",
       "description": "Update ralph.test.ts hardcoded log paths at lines 1860, 1899, 1958, 2045 to use milestone-scoped paths. Update test fixtures to expect logs at docs/planning/milestones/{milestone}/logs/{date}.jsonl instead of global logs/iterations.jsonl.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T19:15:00Z",
+      "commitHash": "9f6e400465d7ef044b54a8ba5cdf2df860f3e086",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-039"],
       "classification": {
         "knowledgeCertainty": "known-known",
