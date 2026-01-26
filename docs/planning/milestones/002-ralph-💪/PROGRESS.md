@@ -607,3 +607,14 @@
   - Replaced all `elementCount` occurrences with `changeCount` in milestone subtasks.json (29 occurrences)
   - The changeCount field is documented for sizing: <2 = undersized, >8 = oversized
 - **Files:** docs/planning/schemas/subtasks.schema.json (modified), docs/planning/milestones/002-ralph-💪/subtasks.json (modified)
+
+### SUB-054
+- **Problem:** Need a reusable pattern documentation for the triage workflow (dedupe, score, rank, group) used by code-review synthesizer and future subtask-reviewer
+- **Changes:** Created context/blocks/patterns/triage.md with:
+  - Phase 1: Deduplication logic (same file + line + description overlap, merge strategy)
+  - Phase 2: Priority scoring formula (severity × confidence, with weight table)
+  - Phase 3: Ranking/sorting rules (priority desc, severity, alphabetical location)
+  - Phase 4: Grouping strategies (by file for navigation)
+  - Output structure documentation (summary, items array, grouped view)
+  - Use case references to code-review synthesizer and subtask-reviewer
+- **Files:** context/blocks/patterns/triage.md (created)

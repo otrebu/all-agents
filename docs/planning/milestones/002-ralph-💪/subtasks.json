@@ -912,7 +912,10 @@
       "storyRef": null,
       "title": "Create triage pattern documentation",
       "description": "Create context/blocks/patterns/triage.md as a new patterns category under blocks. This doc extracts the common triage pattern (dedupe, score, rank, group) used by both code-review synthesizer and the new subtask-reviewer. The pattern includes: deduplication logic, priority scoring formula, sorting rules, and grouping strategies.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T22:00:00Z",
+      "commitHash": "5088edc",
+      "sessionId": "ralph-build-iteration",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
