@@ -698,3 +698,15 @@
   - Added patterns/ section to Blocks documentation with description: 'Reusable processing patterns'
   - Listed triage.md with description: 'Dedupe, score, rank, group pattern'
 - **Files:** context/README.md (modified)
+
+### SUB-063
+- **Problem:** Subtasks-auto.md and subtasks-from-source.md contain duplicated content (~140 lines combined) for subtask schema, size guidelines, ID generation, validation checklist, and AC quality gate
+- **Changes:** Created context/workflows/ralph/planning/subtasks-common.md with shared content:
+  - Subtask Schema section with required/optional field definitions
+  - Size Guidelines (1-3 files, 15-30 tool calls, 2-5 AC, changeCount 2-8)
+  - ID Generation (SUB-NNN pattern, globally unique across project)
+  - Validation Checklist for finalizing subtasks
+  - AC Quality Gate with two-layer structure (intent + verification)
+  - Test-related AC requirements table (CLI command → E2E test, etc.)
+  - NEW: Documentation-Related AC requirements (CLI command → README update, CLI flag → README update)
+- **Files:** context/workflows/ralph/planning/subtasks-common.md (created)

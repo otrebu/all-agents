@@ -1188,6 +1188,117 @@
         "context/README.md",
         "context/blocks/patterns/triage.md"
       ]
+    },
+    {
+      "id": "SUB-063",
+      "taskRef": "doc-sync-dry-refactor",
+      "title": "Create subtasks-common.md with shared content",
+      "description": "Create context/workflows/ralph/planning/subtasks-common.md extracting shared content from subtasks-auto.md and subtasks-from-source.md: subtask schema, size guidelines, ID generation, validation checklist, and AC quality gate (including new doc-related AC requirements).",
+      "done": true,
+      "completedAt": "2026-01-26T19:30:00Z",
+      "commitHash": "06f7cc674dfc40e785f4d4179cea65ee4054bbf5",
+      "sessionId": "ralph-build-iteration",
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "New file creation. Content clearly defined from existing files. No research needed."
+      },
+      "acceptanceCriteria": [
+        "context/workflows/ralph/planning/subtasks-common.md exists",
+        "Contains Subtask Schema section with field definitions",
+        "Contains Size Guidelines section (1-3 files, 15-30 tool calls, 2-5 AC)",
+        "Contains ID Generation section (SUB-NNN pattern)",
+        "Contains Validation Checklist section",
+        "Contains AC Quality Gate section with test-related and doc-related requirements",
+        "Doc-related AC table shows: CLI command → README update, CLI flag → README update",
+        "Verify: test -f context/workflows/ralph/planning/subtasks-common.md",
+        "Verify: grep -q 'Documentation-Related AC' context/workflows/ralph/planning/subtasks-common.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-auto.md",
+        "context/workflows/ralph/planning/subtasks-from-source.md"
+      ]
+    },
+    {
+      "id": "SUB-064",
+      "taskRef": "doc-sync-dry-refactor",
+      "title": "Simplify subtasks-auto.md to reference common file",
+      "description": "Remove duplicated content from subtasks-auto.md (~80 lines) and add reference to subtasks-common.md. Keep unique sections: task parameter handling, deep codebase analysis, milestone-level generation, output location.",
+      "done": false,
+      "blockedBy": ["SUB-063"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 3,
+        "reasoning": "Content removal + reference addition. Sections to remove/keep clearly identified."
+      },
+      "acceptanceCriteria": [
+        "subtasks-auto.md references @context/workflows/ralph/planning/subtasks-common.md",
+        "ID Generation section removed (now in common)",
+        "Validation Checklist section removed (now in common)",
+        "Size Guidelines section removed (now in common)",
+        "Deep Codebase Analysis section preserved",
+        "Milestone-Level Generation section preserved",
+        "Verify: grep -q '@context/workflows/ralph/planning/subtasks-common.md' context/workflows/ralph/planning/subtasks-auto.md",
+        "Verify: ! grep -q 'SUB-001.*start with' context/workflows/ralph/planning/subtasks-auto.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-auto.md",
+        "context/workflows/ralph/planning/subtasks-common.md"
+      ]
+    },
+    {
+      "id": "SUB-065",
+      "taskRef": "doc-sync-dry-refactor",
+      "title": "Simplify subtasks-from-source.md to reference common file",
+      "description": "Remove duplicated content from subtasks-from-source.md (~60 lines) and add reference to subtasks-common.md. Keep unique sections: input sources, Phase 1 (Parse), Phase 1b (Doc Lookup), Phase 6b (Doc Linking), Phase 7 (Draft), Phase 8 (Review).",
+      "done": false,
+      "blockedBy": ["SUB-063"],
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 3,
+        "reasoning": "Content removal + reference addition. Sections to remove/keep clearly identified."
+      },
+      "acceptanceCriteria": [
+        "subtasks-from-source.md references @context/workflows/ralph/planning/subtasks-common.md",
+        "ID Generation section removed (now in common)",
+        "Validation Checklist section removed (now in common)",
+        "Phase 1b (Doc Lookup) preserved",
+        "Phase 6b (Doc Linking) preserved",
+        "Phase 8 (Review) preserved",
+        "Verify: grep -q '@context/workflows/ralph/planning/subtasks-common.md' context/workflows/ralph/planning/subtasks-from-source.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        "context/workflows/ralph/planning/subtasks-common.md"
+      ]
+    },
+    {
+      "id": "SUB-066",
+      "taskRef": "doc-sync-dry-refactor",
+      "title": "Add Phase 5c Documentation Sync to ralph-iteration.md",
+      "description": "Add Phase 5c: Documentation Sync to ralph-iteration.md after Phase 5b (AC Verification). Include reference to atomic-documentation.md, quick decision table for README/docs/context updates, and simple search-update-skip process.",
+      "done": false,
+      "classification": {
+        "knowledgeCertainty": "known-known",
+        "spikeIndicators": 0,
+        "changeCount": 2,
+        "reasoning": "New section addition. Content fully specified in plan. Follows existing phase pattern."
+      },
+      "acceptanceCriteria": [
+        "Phase 5c: Documentation Sync section exists after Phase 5b",
+        "References @context/blocks/docs/atomic-documentation.md",
+        "Has Quick Decision table with README.md, docs/, context/ columns",
+        "Documents process: search grep, update if found, skip conditions",
+        "Verify: grep -q 'Phase 5c.*Documentation Sync' context/workflows/ralph/building/ralph-iteration.md",
+        "Verify: grep -q '@context/blocks/docs/atomic-documentation.md' context/workflows/ralph/building/ralph-iteration.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/building/ralph-iteration.md",
+        "context/blocks/docs/atomic-documentation.md"
+      ]
     }
   ],
   "skippedFindings": [
