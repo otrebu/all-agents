@@ -16,7 +16,12 @@ import { execSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import type { IterationDiaryEntry, IterationStatus, Subtask } from "./types";
+import type {
+  IterationDiaryEntry,
+  IterationStatus,
+  IterationTiming,
+  Subtask,
+} from "./types";
 
 import { invokeClaudeHaiku } from "./claude";
 import {
@@ -34,6 +39,8 @@ import {
  * Options for running the post-iteration hook
  */
 interface PostIterationOptions {
+  /** Time spent in Claude Code invocation (ms) - passed from build.ts */
+  claudeMs?: number;
   /** Total cost in USD for this iteration */
   costUsd?: number;
   /** Current iteration attempt number (1 = first try) */
@@ -42,12 +49,16 @@ interface PostIterationOptions {
   maxAttempts?: number;
   /** Name of the milestone this subtask belongs to */
   milestone?: string;
+  /** Execution mode: 'headless' or 'supervised' */
+  mode?: "headless" | "supervised";
   /** Number of remaining subtasks after this iteration */
   remaining?: number;
   /** Repository root path for session discovery */
   repoRoot: string;
   /** Claude session ID (required - hook is skipped without this) */
   sessionId: string;
+  /** Skip Haiku summary generation to reduce latency and cost */
+  skipSummary?: boolean;
   /** The iteration status */
   status: IterationStatus;
   /** The subtask that was processed */
@@ -74,6 +85,8 @@ interface SummaryResult {
   keyFindings: Array<string>;
   /** Brief summary of what happened */
   summary: string;
+  /** Time spent generating summary (ms) */
+  summaryMs: number;
 }
 
 // =============================================================================
@@ -85,10 +98,11 @@ interface SummaryResult {
  *
  * Uses the iteration-summary.md prompt template with placeholder substitution.
  * Falls back to a default summary if Haiku fails or times out.
+ * When skipSummary is true, returns a placeholder summary immediately.
  *
  * @param options - PostIterationOptions containing subtask and session info
  * @param sessionPath - Path to session JSONL file
- * @returns SummaryResult with summary text and key findings
+ * @returns SummaryResult with summary text, key findings, and timing
  */
 function generateSummary(
   options: PostIterationOptions,
@@ -98,15 +112,28 @@ function generateSummary(
     iterationNumber = 1,
     milestone = "",
     repoRoot,
+    skipSummary: shouldSkipSummary = false,
     status,
     subtask,
   } = options;
+
+  const summaryStart = Date.now();
+
+  // Skip Haiku if skipSummary is true
+  if (shouldSkipSummary) {
+    return {
+      keyFindings: [],
+      summary: `[skipped] Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+      summaryMs: Date.now() - summaryStart,
+    };
+  }
 
   // Skip Haiku if no session (Haiku can't read files in -p mode anyway)
   if (sessionPath === null) {
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+      summaryMs: Date.now() - summaryStart,
     };
   }
 
@@ -117,6 +144,7 @@ function generateSummary(
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+      summaryMs: Date.now() - summaryStart,
     };
   }
 
@@ -149,6 +177,7 @@ function generateSummary(
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+      summaryMs: Date.now() - summaryStart,
     };
   }
 
@@ -179,11 +208,12 @@ function generateSummary(
     return {
       keyFindings: parsed.keyFindings ?? [],
       summary: parsed.summary ?? `Iteration ${status} for ${subtask.id}`,
+      summaryMs: Date.now() - summaryStart,
     };
   } catch {
     // Use the raw result as summary, truncated
     const summary = result.slice(0, 200);
-    return { keyFindings: [], summary };
+    return { keyFindings: [], summary, summaryMs: Date.now() - summaryStart };
   }
 }
 
@@ -275,9 +305,9 @@ function getFilesChanged(
  *
  * The hook:
  * 1. Finds the session JSONL file
- * 2. Generates a summary using Haiku
- * 3. Collects metrics (tool calls, duration, files changed)
- * 4. Writes a diary entry to logs/iterations.jsonl
+ * 2. Generates a summary using Haiku (with timing)
+ * 3. Collects metrics (tool calls, duration, files changed) with timing
+ * 4. Writes a diary entry to logs/iterations.jsonl with timing breakdown
  *
  * @param options - PostIterationOptions with session and subtask info
  * @returns Result with diary entry and paths, or null if hook was skipped
@@ -285,10 +315,14 @@ function getFilesChanged(
 function runPostIterationHook(
   options: PostIterationOptions,
 ): null | PostIterationResult {
+  const hookStart = Date.now();
+
   const {
+    claudeMs = 0,
     costUsd,
     iterationNumber = 1,
     milestone = "",
+    mode,
     repoRoot,
     sessionId,
     status,
@@ -306,10 +340,23 @@ function runPostIterationHook(
   // Generate summary using Haiku (silent - no console output)
   const summaryResult = generateSummary(options, sessionPath);
 
-  // Collect metrics
+  // Collect metrics with timing
+  const metricsStart = Date.now();
   const toolCalls = sessionPath === null ? 0 : countToolCalls(sessionPath);
   const duration = sessionPath === null ? 0 : calculateDurationMs(sessionPath);
   const filesChanged = getFilesChanged(sessionPath, repoRoot);
+  const metricsMs = Date.now() - metricsStart;
+
+  // Calculate hook total time
+  const hookMs = Date.now() - hookStart;
+
+  // Build timing breakdown
+  const timing: IterationTiming = {
+    claudeMs,
+    hookMs,
+    metricsMs,
+    summaryMs: summaryResult.summaryMs,
+  };
 
   // Build diary entry
   const timestamp = new Date().toISOString();
@@ -321,12 +368,14 @@ function runPostIterationHook(
     iterationNum: iterationNumber,
     keyFindings: summaryResult.keyFindings,
     milestone,
+    mode,
     sessionId,
     status,
     subtaskId: subtask.id,
     summary: summaryResult.summary,
     taskRef: subtask.taskRef,
     timestamp,
+    timing,
     toolCalls,
   };
 
