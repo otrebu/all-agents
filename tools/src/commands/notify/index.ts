@@ -116,6 +116,8 @@ notifyCommand
     new Option("-p, --priority <level>", "Priority level").choices(priorities),
   )
   .option("--tags <tags>", "Comma-separated tags/emojis")
+  .option("-q, --quiet", "Suppress output on success")
+  .option("--dry-run", "Show what would be sent without sending")
   .action(async (message, options) => {
     // If no message and no subcommand, show help
     if (message === undefined) {
@@ -124,6 +126,25 @@ notifyCommand
     }
 
     const fileConfig = loadNotifyConfig();
+    const resolved = resolveConfig(fileConfig, options);
+
+    // --dry-run: show what would be sent without sending
+    // This runs even when unconfigured to help debug config issues
+    if (options.dryRun === true) {
+      console.log(chalk.bold("Dry run - would send:"));
+      console.log();
+      console.log(
+        `  Topic:    ${resolved.topic || chalk.yellow("(not configured)")}`,
+      );
+      console.log(`  Server:   ${resolved.server}`);
+      console.log(`  Title:    ${resolved.title}`);
+      console.log(`  Priority: ${resolved.priority}`);
+      if (options.tags !== undefined) {
+        console.log(`  Tags:     ${options.tags}`);
+      }
+      console.log(`  Message:  ${message}`);
+      return;
+    }
 
     // Check if notifications should be sent
     const errorMessage = checkNotificationEnabled(fileConfig);
@@ -131,8 +152,6 @@ notifyCommand
       // Silent exit when unconfigured (safe for hooks)
       process.exit(0);
     }
-
-    const resolved = resolveConfig(fileConfig, options);
 
     try {
       const result = await sendNotification({
@@ -144,7 +163,10 @@ notifyCommand
         topic: resolved.topic,
       });
 
-      console.log(`${chalk.green("✓")} Notification sent (${result.id})`);
+      // -q/--quiet: suppress output on success
+      if (options.quiet !== true) {
+        console.log(`${chalk.green("✓")} Notification sent (${result.id})`);
+      }
     } catch (error) {
       if (error instanceof NtfyRateLimitError) {
         console.error(chalk.red("Error:"), "Rate limited. Try again later.");

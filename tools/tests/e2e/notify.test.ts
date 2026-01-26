@@ -351,3 +351,87 @@ describe("notify E2E - init command", () => {
     expect(stdout).toContain("Interactive first-time setup");
   });
 });
+
+describe("notify E2E - dry-run flag", () => {
+  test("notify --dry-run shows notification details without sending", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "notify", "test message", "--dry-run"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Dry run - would send:");
+    expect(stdout).toContain("Topic:");
+    expect(stdout).toContain("Server:");
+    expect(stdout).toContain("Title:");
+    expect(stdout).toContain("Priority:");
+    expect(stdout).toContain("Message:");
+    expect(stdout).toContain("test message");
+  });
+
+  test("notify --dry-run shows tags when provided", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "notify",
+        "test message",
+        "--dry-run",
+        "--tags",
+        "warning,skull",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Tags:");
+    expect(stdout).toContain("warning,skull");
+  });
+
+  test("notify --dry-run shows priority when overridden", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "notify",
+        "test message",
+        "--dry-run",
+        "--priority",
+        "max",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Priority: max");
+  });
+
+  test("notify --help shows --dry-run option", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "notify", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--dry-run");
+    expect(stdout).toContain("Show what would be sent without sending");
+  });
+});
+
+describe("notify E2E - quiet flag", () => {
+  test("notify --help shows -q/--quiet option", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "notify", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("-q, --quiet");
+    expect(stdout).toContain("Suppress output on success");
+  });
+});

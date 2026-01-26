@@ -146,6 +146,8 @@ aaa notify config test                # Send test notification
 #   -t, --title <text>     Notification title
 #   -p, --priority <level> Priority: min, low, default, high, max
 #   --tags <tags>          Comma-separated tags/emojis
+#   -q, --quiet            Suppress output on success
+#   --dry-run              Show what would be sent without sending
 #
 # Claude Code hook integration example (in ~/.claude/settings.json):
 #   "hooks": {
