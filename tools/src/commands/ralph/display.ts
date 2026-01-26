@@ -19,6 +19,7 @@ import { markedTerminal } from "marked-terminal";
 import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
+import type { BuildPracticalSummary } from "./summary";
 import type { IterationStatus } from "./types";
 
 // Box width for iteration displays (defined early for marked config)
@@ -282,6 +283,98 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
 
   // Fallback: plain path (user can cmd+click in some terminals)
   return displayPath;
+}
+
+/**
+ * Render practical build summary box (at end of build run or on interrupt)
+ *
+ * Shows: stats (completed/failed/cost/duration/files), git commit range with diff command,
+ * bullet list of completed subtasks with summaries and retry counts, remaining count,
+ * and saved file path.
+ *
+ * @param summary - BuildPracticalSummary with stats, subtasks, commitRange, remaining
+ * @param savedFilePath - Path where the BUILD-SUMMARY file was saved
+ * @returns Formatted boxen box string
+ */
+function renderBuildPracticalSummary(
+  summary: BuildPracticalSummary,
+  savedFilePath: string,
+): string {
+  const { commitRange, remaining, stats, subtasks } = summary;
+  const innerWidth = BOX_WIDTH - 4;
+
+  const lines: Array<string> = [];
+
+  // Stats line: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12
+  const completedLabel = chalk.dim("Completed");
+  const completedValue =
+    stats.completed > 0
+      ? chalk.green.bold(String(stats.completed))
+      : chalk.dim("0");
+  const failedLabel = chalk.dim("Failed");
+  const failedValue =
+    stats.failed > 0 ? chalk.red.bold(String(stats.failed)) : chalk.dim("0");
+  const costLabel = chalk.dim("Cost");
+  const costValue = chalk.magenta(`$${stats.costUsd.toFixed(2)}`);
+  const durationLabel = chalk.dim("Duration");
+  const durationValue = chalk.cyan(formatDuration(stats.durationMs));
+  const filesLabel = chalk.dim("Files");
+  const filesValue = chalk.blue(String(stats.filesChanged));
+
+  const statsLine = `${completedLabel} ${completedValue}   ${failedLabel} ${failedValue}   ${costLabel} ${costValue}   ${durationLabel} ${durationValue}   ${filesLabel} ${filesValue}`;
+  lines.push(statsLine);
+
+  // Git commit range
+  if (commitRange.startHash !== null && commitRange.endHash !== null) {
+    lines.push("");
+    lines.push(chalk.dim("Git changes:"));
+    const diffCmd = `git diff ${commitRange.startHash}^..${commitRange.endHash}`;
+    lines.push(`  ${chalk.yellow(diffCmd)}`);
+  }
+
+  // Completed subtasks with summaries
+  if (subtasks.length > 0) {
+    lines.push("");
+    lines.push(chalk.dim("Completed:"));
+    for (const subtask of subtasks) {
+      const retryNote =
+        subtask.attempts > 1
+          ? chalk.yellow(` (${subtask.attempts} attempts)`)
+          : "";
+      const idPart = chalk.cyan(subtask.id);
+      const summaryPart = truncate(subtask.summary, innerWidth - 20);
+      lines.push(`  • ${idPart}${retryNote}`);
+      if (
+        subtask.summary !== "" &&
+        subtask.summary !== `Completed ${subtask.id}`
+      ) {
+        lines.push(`    ${chalk.dim(summaryPart)}`);
+      }
+    }
+  }
+
+  // Remaining count
+  lines.push("");
+  const remainingText =
+    remaining > 0
+      ? `${chalk.yellow(String(remaining))} subtasks remaining`
+      : chalk.green("All subtasks complete!");
+  lines.push(remainingText);
+
+  // Saved file path
+  lines.push("");
+  lines.push(
+    `${chalk.dim("Summary saved:")} ${makeClickablePath(savedFilePath, innerWidth - 15)}`,
+  );
+
+  return boxen(lines.join("\n"), {
+    borderColor: stats.failed > 0 ? "yellow" : "green",
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: "Build Summary",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
 }
 
 /**
@@ -630,6 +723,7 @@ export {
   getColoredStatus,
   type IterationDisplayData,
   makeClickablePath,
+  renderBuildPracticalSummary,
   renderBuildSummary,
   renderInvocationHeader,
   renderIterationEnd,
