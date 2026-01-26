@@ -28,7 +28,6 @@ import {
 } from "./config";
 import {
   renderBuildPracticalSummary,
-  renderBuildSummary,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
@@ -596,13 +595,6 @@ async function runBuild(
   // Initialize summary context for signal handlers
   summaryContext = { completedThisRun, contextRoot, milestone, subtasksPath };
 
-  // Build summary tracking
-  let totalCompleted = 0;
-  let totalFailed = 0;
-  let totalCost = 0;
-  let totalDuration = 0;
-  const allFilesChanged = new Set<string>();
-
   // Optional pre-build validation (TODO: implement in SUB-025/26)
   if (shouldValidateFirst) {
     console.log(
@@ -622,16 +614,24 @@ async function runBuild(
     // Check if all subtasks are complete
     if (remaining === 0) {
       console.log("\n");
-      console.log(
-        renderBuildSummary({
-          completed: totalCompleted,
-          failed: totalFailed,
-          totalCostUsd: totalCost,
-          totalDurationMs: totalDuration,
-          totalFilesChanged: allFilesChanged.size,
-          totalIterations: iteration - 1,
-        }),
+
+      // Generate practical summary
+      const logsDirectory = getMilestoneLogsDirectory(subtasksPath);
+      const diaryEntries = readIterationDiary(logsDirectory);
+      const summary = generateBuildSummary(
+        completedThisRun,
+        diaryEntries,
+        subtasksFile,
       );
+
+      // Write summary file
+      const savedPath = writeBuildSummaryFile(summary, contextRoot, milestone);
+
+      // Render practical summary to terminal
+      console.log(renderBuildPracticalSummary(summary, savedPath));
+
+      // Mark summary as generated to prevent double execution on signal
+      hasSummaryBeenGenerated = true;
       return;
     }
 
@@ -655,7 +655,6 @@ async function runBuild(
       currentSubtask.id,
     );
     if (didExceedMaxIterations) {
-      totalFailed += 1;
       process.exit(1);
     }
 
@@ -677,7 +676,6 @@ async function runBuild(
 
     // Invoke Claude based on mode
     let didComplete = false;
-    let filesChangedThisIteration: Array<string> = [];
 
     if (mode === "headless") {
       const headlessResult = processHeadlessIteration({
@@ -696,11 +694,7 @@ async function runBuild(
         process.exit(1);
       }
 
-      totalCost += headlessResult.costUsd;
-      totalDuration += headlessResult.durationMs;
       ({ didComplete } = headlessResult);
-      filesChangedThisIteration =
-        headlessResult.hookResult?.entry.filesChanged ?? [];
     } else {
       const supervisedResult = processSupervisedIteration({
         contextRoot,
@@ -717,8 +711,6 @@ async function runBuild(
       }
 
       ({ didComplete } = supervisedResult);
-      filesChangedThisIteration =
-        supervisedResult.hookResult?.entry.filesChanged ?? [];
 
       if (didComplete) {
         console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
@@ -727,17 +719,11 @@ async function runBuild(
 
     // Handle completion tracking
     if (didComplete) {
-      totalCompleted += 1;
       attempts.delete(currentSubtask.id);
       completedThisRun.push({
         attempts: currentAttempts,
         id: currentSubtask.id,
       });
-    }
-
-    // Track files changed
-    for (const file of filesChangedThisIteration) {
-      allFilesChanged.add(file);
     }
 
     // Interactive mode: prompt for continuation
