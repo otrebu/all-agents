@@ -63,6 +63,7 @@ interface HeadlessIterationContext {
   maxIterations: number;
   prompt: string;
   remaining: number;
+  shouldSkipSummary: boolean;
   subtasksPath: string;
 }
 
@@ -161,13 +162,17 @@ function processHeadlessIteration(
     maxIterations,
     prompt,
     remaining,
+    shouldSkipSummary,
     subtasksPath,
   } = context;
 
   console.log(renderInvocationHeader("headless"));
   console.log();
 
+  // Time Claude invocation for metrics
+  const claudeStart = Date.now();
   const result = invokeClaudeHeadless({ prompt });
+  const claudeMs = Date.now() - claudeStart;
 
   if (result === null) {
     console.error("Claude headless invocation failed or was interrupted");
@@ -189,13 +194,16 @@ function processHeadlessIteration(
   // Use target project root for logs (not all-agents)
   const projectRoot = findProjectRoot() ?? contextRoot;
   const hookResult = runPostIterationHook({
+    claudeMs,
     costUsd: result.cost,
     iterationNumber: currentAttempts,
     maxAttempts: maxIterations,
     milestone,
+    mode: "headless",
     remaining: postRemaining,
     repoRoot: projectRoot,
     sessionId: result.sessionId,
+    skipSummary: shouldSkipSummary,
     status: iterationStatus,
     subtask: currentSubtask,
   });
@@ -323,6 +331,7 @@ async function runBuild(
     interactive: isInteractive,
     maxIterations,
     mode,
+    skipSummary: shouldSkipSummary,
     subtasksPath,
     validateFirst: shouldValidateFirst,
   } = options;
@@ -433,6 +442,7 @@ async function runBuild(
         maxIterations,
         prompt,
         remaining,
+        shouldSkipSummary,
         subtasksPath,
       });
 
