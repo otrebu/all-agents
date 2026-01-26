@@ -10,6 +10,8 @@
  * @see docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md
  */
 
+import { z } from "zod";
+
 // =============================================================================
 // Finding Types (matches .claude/agents/code-review/types.md)
 // =============================================================================
@@ -146,6 +148,36 @@ const SEVERITY_WEIGHTS: Record<Severity, number> = {
   medium: 2,
 };
 
+// =============================================================================
+// Zod Schemas for Runtime Validation
+// =============================================================================
+
+/**
+ * Zod schema for Severity enum
+ */
+const SeveritySchema = z.enum(["critical", "high", "medium", "low"]);
+
+/**
+ * Zod schema for Finding interface
+ * Used by parseReviewFindings to validate JSON from Claude output
+ */
+const FindingSchema = z.object({
+  confidence: z.number().min(0).max(1),
+  description: z.string(),
+  file: z.string(),
+  id: z.string(),
+  line: z.number().optional(),
+  reviewer: z.string(),
+  severity: SeveritySchema,
+  suggestedFix: z.string().optional(),
+});
+
+/**
+ * Zod schema for array of Findings
+ * Used to validate the findings array from review output
+ */
+const FindingsArraySchema = z.array(FindingSchema);
+
 /**
  * Calculate priority score for a finding
  * @param finding - The finding to calculate priority for
@@ -162,6 +194,8 @@ function calculatePriority(finding: Finding): number {
 export {
   calculatePriority,
   type Finding,
+  FindingsArraySchema,
+  FindingSchema,
   type ReviewDiaryEntry,
   type ReviewerOutput,
   type ReviewMode,

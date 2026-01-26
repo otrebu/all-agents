@@ -13,7 +13,7 @@ import type {
 
 import { invokeClaudeChat, invokeClaudeHeadless } from "../ralph/claude";
 import { formatDuration, renderMarkdown } from "../ralph/display";
-import { calculatePriority } from "./types";
+import { calculatePriority, FindingsArraySchema } from "./types";
 
 /**
  * Review command - orchestrate parallel code review using specialized agents
@@ -219,7 +219,14 @@ function readDiaryEntries(projectRoot: string): Array<ReviewDiaryEntry> {
         }
       })
       .filter((entry): entry is ReviewDiaryEntry => entry !== null);
-  } catch {
+  } catch (error) {
+    // Log but don't crash - matches writeDiaryEntry error handling pattern
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      chalk.yellow(
+        `Warning: Failed to read diary entries from ${diaryPath}: ${message}`,
+      ),
+    );
     return [];
   }
 }
@@ -401,18 +408,42 @@ function parseReviewFindings(
   }
 
   try {
-    const parsed = JSON.parse(findingsMatch.groups.content) as {
+    const rawParsed = JSON.parse(findingsMatch.groups.content) as {
       errors?: Array<string>;
-      findings?: Array<Finding>;
+      findings?: unknown;
       fixed?: Array<string>;
       skipped?: Array<string>;
     };
 
+    // Validate findings array with Zod schema
+    const findingsResult = FindingsArraySchema.safeParse(
+      rawParsed.findings ?? [],
+    );
+
+    if (!findingsResult.success) {
+      // Log Zod validation errors for debugging
+      console.warn(
+        chalk.yellow("Warning: Invalid findings structure in review output:"),
+      );
+      for (const error of findingsResult.error.errors) {
+        console.warn(
+          chalk.yellow(`  - ${error.path.join(".")}: ${error.message}`),
+        );
+      }
+      // Return with empty findings but preserve other fields
+      return {
+        errors: rawParsed.errors ?? [],
+        findings: [],
+        fixed: rawParsed.fixed ?? [],
+        skipped: rawParsed.skipped ?? [],
+      };
+    }
+
     return {
-      errors: parsed.errors ?? [],
-      findings: parsed.findings ?? [],
-      fixed: parsed.fixed ?? [],
-      skipped: parsed.skipped ?? [],
+      errors: rawParsed.errors ?? [],
+      findings: findingsResult.data,
+      fixed: rawParsed.fixed ?? [],
+      skipped: rawParsed.skipped ?? [],
     };
   } catch (error) {
     console.error(chalk.red("Error parsing findings JSON:"), error);
