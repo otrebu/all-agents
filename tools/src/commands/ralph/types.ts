@@ -103,10 +103,14 @@ interface IterationDiaryEntry {
   toolCalls?: number;
   /**
    * Entry type discriminator for daily log files.
-   * Allows iteration and planning entries to coexist in the same
+   * Allows iteration, planning, and subtask-review entries to coexist in the same
    * milestone-scoped daily JSONL file while being distinguishable.
+   *
+   * - 'iteration': Build iteration diary entry (Ralph build)
+   * - 'planning': Planning session log (Ralph plan)
+   * - 'subtask-review': Subtask sizing review findings (subtask-reviewer agent)
    */
-  type?: "iteration" | "planning";
+  type?: "iteration" | "planning" | "subtask-review";
 }
 
 /**
