@@ -1,5 +1,6 @@
 node_modules/
 dist/
+tmp/
 .env
 .DS_Store
 coverage/
@@ -27,6 +28,7 @@ bin/aaa
 .claude/chrome/
 .claude/paste-cache/
 .claude/cache/
+.claude/tasks/
 docs/research/downloads/
 
 **/*.built.md
