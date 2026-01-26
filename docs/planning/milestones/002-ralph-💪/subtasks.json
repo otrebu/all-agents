@@ -731,7 +731,10 @@
       "storyRef": null,
       "title": "Create naming-convention.md documentation",
       "description": "Phase 2: Create context/blocks/docs/naming-convention.md as the single source of truth for file naming. Document: NNN-slug.md pattern, zero-padded 3-digit numbers, kebab-case slugs, folder-based type inference, JSON refs = filename without extension.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T17:30:00Z",
+      "commitHash": "c0bf04e",
+      "sessionId": "current-session",
       "blockedBy": ["SUB-046"],
       "classification": {
         "knowledgeCertainty": "known-known",

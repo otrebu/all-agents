@@ -545,3 +545,14 @@
 - **Problem:** Stale subtasks.json in 001-ralph milestone contained pending subtasks (SUB-001 through SUB-011) referencing task files that were deleted in SUB-044
 - **Changes:** Deleted docs/planning/milestones/001-ralph/subtasks.json as part of Phase 1d of naming consistency cleanup
 - **Files:** docs/planning/milestones/001-ralph/subtasks.json (deleted)
+
+### SUB-048
+- **Problem:** No single source of truth for planning file naming conventions (stories, tasks, subtasks refs)
+- **Changes:** Created context/blocks/docs/naming-convention.md documenting:
+  - NNN-slug.md pattern with examples (e.g., 001-user-authentication.md)
+  - Zero-padded 3-digit numbers rule for correct alphabetical sorting
+  - Kebab-case slug rules (lowercase, hyphens, no spaces/special characters)
+  - Folder-based type inference (stories/ vs tasks/ determines type, no STORY-/TASK- prefix needed)
+  - JSON refs format (filename without .md extension)
+  - Migration guidance for legacy TASK-NNN/STORY-NNN formats
+- **Files:** context/blocks/docs/naming-convention.md (created)
