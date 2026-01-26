@@ -500,7 +500,10 @@
       "storyRef": "STORY-001",
       "title": "Create documentation-reviewer agent",
       "description": "Create .claude/agents/code-review/documentation-reviewer.md agent focused on missing/outdated documentation, README gaps, missing JSDoc/TSDoc comments, and changelog omissions. Agent identifies doc issues and outputs findings per schema.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T00:25:00Z",
+      "commitHash": "0f3b7d264416a6b46c0690ec9201d103fbb15bcc",
+      "sessionId": "ralph-build-iteration",
       "acceptanceCriteria": [
         ".claude/agents/code-review/documentation-reviewer.md exists",
         "Agent identifies missing docs for public APIs",

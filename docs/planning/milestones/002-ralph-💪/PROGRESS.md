@@ -261,3 +261,14 @@
   - Example findings for missing alt text, click handler without keyboard support, missing form label, missing focus indicator, and non-semantic element
   - JSON output format matching Finding schema from types.md
 - **Files:** .claude/agents/code-review/accessibility-reviewer.md (created)
+
+### SUB-034
+- **Problem:** Need a documentation-focused code reviewer agent that identifies missing/outdated documentation, README gaps, missing JSDoc/TSDoc comments, and changelog omissions
+- **Changes:** Created .claude/agents/code-review/documentation-reviewer.md with:
+  - Proper frontmatter (name, description, model: haiku)
+  - Documentation focus areas: public API documentation, README and guide updates, inline code documentation, changelog and release notes, type documentation, configuration documentation
+  - Confidence scoring logic with factors that increase/decrease confidence
+  - Severity guidelines specific to documentation issues
+  - Example findings for missing JSDoc on exported function, new CLI flag without README, complex algorithm without comments, missing changelog entry, and missing type documentation
+  - JSON output format matching Finding schema from types.md
+- **Files:** .claude/agents/code-review/documentation-reviewer.md (created)
