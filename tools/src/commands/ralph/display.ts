@@ -289,17 +289,12 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
  * Render practical build summary box (at end of build run or on interrupt)
  *
  * Shows: stats (completed/failed/cost/duration/files), git commit range with diff command,
- * bullet list of completed subtasks with summaries and retry counts, remaining count,
- * and saved file path.
+ * bullet list of completed subtasks with summaries and retry counts, and remaining count.
  *
  * @param summary - BuildPracticalSummary with stats, subtasks, commitRange, remaining
- * @param savedFilePath - Path where the BUILD-SUMMARY file was saved
  * @returns Formatted boxen box string
  */
-function renderBuildPracticalSummary(
-  summary: BuildPracticalSummary,
-  savedFilePath: string,
-): string {
+function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
   const { commitRange, remaining, stats, subtasks } = summary;
   const innerWidth = BOX_WIDTH - 4;
 
@@ -360,12 +355,6 @@ function renderBuildPracticalSummary(
       ? `${chalk.yellow(String(remaining))} subtasks remaining`
       : chalk.green("All subtasks complete!");
   lines.push(remainingText);
-
-  // Saved file path
-  lines.push("");
-  lines.push(
-    `${chalk.dim("Summary saved:")} ${makeClickablePath(savedFilePath, innerWidth - 15)}`,
-  );
 
   return boxen(lines.join("\n"), {
     borderColor: stats.failed > 0 ? "yellow" : "green",

@@ -61,7 +61,7 @@ describe("display utilities", () => {
         ],
       };
 
-      const result = renderBuildPracticalSummary(summary, "/tmp/summary.md");
+      const result = renderBuildPracticalSummary(summary);
 
       // Should contain Build Summary title
       expect(result).toContain("Build Summary");
@@ -87,9 +87,6 @@ describe("display utilities", () => {
       // Should show remaining count
       expect(result).toContain("5");
       expect(result).toContain("remaining");
-
-      // Should show file path
-      expect(result).toContain("summary.md");
     });
 
     test("shows git diff command when commit range exists", () => {
@@ -106,7 +103,7 @@ describe("display utilities", () => {
         subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
       };
 
-      const result = renderBuildPracticalSummary(summary, "/tmp/test.md");
+      const result = renderBuildPracticalSummary(summary);
 
       expect(result).toContain("git diff");
       expect(result).toContain("abc123");
@@ -127,7 +124,7 @@ describe("display utilities", () => {
         subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
       };
 
-      const result = renderBuildPracticalSummary(summary, "/tmp/test.md");
+      const result = renderBuildPracticalSummary(summary);
 
       expect(result).toContain("All subtasks complete");
     });

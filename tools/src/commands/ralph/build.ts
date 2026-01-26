@@ -41,7 +41,7 @@ import {
 } from "./post-iteration";
 import { discoverRecentSession } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
-import { generateBuildSummary, writeBuildSummaryFile } from "./summary";
+import { generateBuildSummary } from "./summary";
 
 // =============================================================================
 // Constants
@@ -97,11 +97,7 @@ interface PeriodicCalibrationOptions {
 interface SummaryContext {
   /** Subtasks completed during this build run */
   completedThisRun: Array<{ attempts: number; id: string }>;
-  /** Repository root for writing summary file */
-  contextRoot: string;
-  /** Milestone name for summary file location */
-  milestone: string;
-  /** Suppress terminal summary output (still writes file) */
+  /** Suppress terminal summary output */
   quiet: boolean;
   /** Path to subtasks file */
   subtasksPath: string;
@@ -215,13 +211,7 @@ function generateSummaryAndExit(exitCode: number): void {
     return;
   }
 
-  const {
-    completedThisRun,
-    contextRoot,
-    milestone,
-    quiet: isQuiet,
-    subtasksPath,
-  } = summaryContext;
+  const { completedThisRun, quiet: isQuiet, subtasksPath } = summaryContext;
 
   // If nothing was completed this run, just exit
   if (completedThisRun.length === 0) {
@@ -251,12 +241,9 @@ function generateSummaryAndExit(exitCode: number): void {
       subtasksFile,
     );
 
-    // Write summary file
-    const savedPath = writeBuildSummaryFile(summary, contextRoot, milestone);
-
     // Render summary to terminal (unless quiet mode)
     if (!isQuiet) {
-      console.log(renderBuildPracticalSummary(summary, savedPath));
+      console.log(renderBuildPracticalSummary(summary));
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -602,18 +589,8 @@ async function runBuild(
   // Track subtasks completed during this build run
   const completedThisRun: Array<{ attempts: number; id: string }> = [];
 
-  // Get milestone for summary context
-  const initialSubtasksFile = loadSubtasksFile(subtasksPath);
-  const milestone = getMilestoneFromSubtasks(initialSubtasksFile);
-
   // Initialize summary context for signal handlers
-  summaryContext = {
-    completedThisRun,
-    contextRoot,
-    milestone,
-    quiet: isQuiet,
-    subtasksPath,
-  };
+  summaryContext = { completedThisRun, quiet: isQuiet, subtasksPath };
 
   // Optional pre-build validation (TODO: implement in SUB-025/26)
   if (shouldValidateFirst) {
@@ -646,12 +623,9 @@ async function runBuild(
         subtasksFile,
       );
 
-      // Write summary file (always, even in quiet mode)
-      const savedPath = writeBuildSummaryFile(summary, contextRoot, milestone);
-
       // Render practical summary to terminal (unless quiet mode)
       if (!isQuiet) {
-        console.log(renderBuildPracticalSummary(summary, savedPath));
+        console.log(renderBuildPracticalSummary(summary));
       }
 
       // Mark summary as generated to prevent double execution on signal

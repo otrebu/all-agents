@@ -4,7 +4,6 @@
  * Tests the BuildPracticalSummary types and functions:
  * - generateBuildSummary()
  * - getCommitRange()
- * - writeBuildSummaryFile()
  */
 
 import type {
@@ -15,12 +14,8 @@ import type {
 import {
   generateBuildSummary,
   getCommitRange,
-  writeBuildSummaryFile,
 } from "@tools/commands/ralph/summary";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
 
 // =============================================================================
 // Test Fixtures
@@ -274,165 +269,5 @@ describe("getCommitRange", () => {
 
     expect(range.startHash).toBe("new111");
     expect(range.endHash).toBe("new111");
-  });
-});
-
-describe("writeBuildSummaryFile", () => {
-  let temporaryDirectory = "";
-
-  beforeEach(() => {
-    temporaryDirectory = join(tmpdir(), `ralph-summary-test-${Date.now()}`);
-    mkdirSync(temporaryDirectory, { recursive: true });
-  });
-
-  afterEach(() => {
-    if (existsSync(temporaryDirectory)) {
-      rmSync(temporaryDirectory, { recursive: true });
-    }
-  });
-
-  test("writes summary file to repo root", () => {
-    const summary = {
-      commitRange: { endHash: null, startHash: null },
-      remaining: 5,
-      stats: {
-        completed: 2,
-        costUsd: 0.15,
-        durationMs: 90_000,
-        failed: 0,
-        filesChanged: 10,
-      },
-      subtasks: [
-        { attempts: 1, id: "SUB-001", summary: "First subtask done" },
-        { attempts: 2, id: "SUB-002", summary: "Second subtask done" },
-      ],
-    };
-
-    const outputPath = writeBuildSummaryFile(summary, temporaryDirectory);
-
-    expect(existsSync(outputPath)).toBe(true);
-    expect(outputPath).toContain("BUILD-SUMMARY-");
-    expect(outputPath).toContain(temporaryDirectory);
-  });
-
-  test("includes stats in markdown content", () => {
-    const summary = {
-      commitRange: { endHash: null, startHash: null },
-      remaining: 3,
-      stats: {
-        completed: 5,
-        costUsd: 0.5,
-        durationMs: 180_000,
-        failed: 1,
-        filesChanged: 25,
-      },
-      subtasks: [],
-    };
-
-    const outputPath = writeBuildSummaryFile(summary, temporaryDirectory);
-    const content = readFileSync(outputPath, "utf8");
-
-    expect(content).toContain("# Build Summary");
-    expect(content).toContain("| Completed | 5 |");
-    expect(content).toContain("| Failed | 1 |");
-    expect(content).toContain("| Duration | 3m |");
-    expect(content).toContain("| Cost | $0.50 |");
-    expect(content).toContain("| Files Changed | 25 |");
-    expect(content).toContain("| Remaining | 3 |");
-  });
-
-  test("includes git diff command when commit range exists", () => {
-    const summary = {
-      commitRange: { endHash: "def456", startHash: "abc123" },
-      remaining: 0,
-      stats: {
-        completed: 2,
-        costUsd: 0.1,
-        durationMs: 60_000,
-        failed: 0,
-        filesChanged: 5,
-      },
-      subtasks: [],
-    };
-
-    const outputPath = writeBuildSummaryFile(summary, temporaryDirectory);
-    const content = readFileSync(outputPath, "utf8");
-
-    expect(content).toContain("## Git Changes");
-    expect(content).toContain("git diff abc123^..def456");
-  });
-
-  test("includes completed subtasks with retry counts", () => {
-    const summary = {
-      commitRange: { endHash: null, startHash: null },
-      remaining: 2,
-      stats: {
-        completed: 2,
-        costUsd: 0.2,
-        durationMs: 120_000,
-        failed: 0,
-        filesChanged: 8,
-      },
-      subtasks: [
-        { attempts: 1, id: "SUB-001", summary: "Single attempt success" },
-        { attempts: 3, id: "SUB-002", summary: "Third time's the charm" },
-      ],
-    };
-
-    const outputPath = writeBuildSummaryFile(summary, temporaryDirectory);
-    const content = readFileSync(outputPath, "utf8");
-
-    expect(content).toContain("## Completed Subtasks");
-    expect(content).toContain("- **SUB-001**: Single attempt success");
-    expect(content).toContain(
-      "- **SUB-002** (3 attempts): Third time's the charm",
-    );
-  });
-
-  test("writes to milestone directory when provided", () => {
-    const summary = {
-      commitRange: { endHash: null, startHash: null },
-      remaining: 0,
-      stats: {
-        completed: 1,
-        costUsd: 0.05,
-        durationMs: 30_000,
-        failed: 0,
-        filesChanged: 2,
-      },
-      subtasks: [],
-    };
-
-    const outputPath = writeBuildSummaryFile(
-      summary,
-      temporaryDirectory,
-      "test-milestone",
-    );
-    const content = readFileSync(outputPath, "utf8");
-
-    expect(outputPath).toContain(
-      join("docs", "planning", "milestones", "test-milestone"),
-    );
-    expect(content).toContain("Milestone: test-milestone");
-  });
-
-  test("handles empty subtasks list", () => {
-    const summary = {
-      commitRange: { endHash: null, startHash: null },
-      remaining: 10,
-      stats: {
-        completed: 0,
-        costUsd: 0,
-        durationMs: 0,
-        failed: 0,
-        filesChanged: 0,
-      },
-      subtasks: [],
-    };
-
-    const outputPath = writeBuildSummaryFile(summary, temporaryDirectory);
-    const content = readFileSync(outputPath, "utf8");
-
-    expect(content).toContain("*No subtasks completed this run*");
   });
 });
