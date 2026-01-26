@@ -1314,7 +1314,10 @@
       "taskRef": "build-loop-practical-summary",
       "title": "Create summary.ts with types and all summary functions",
       "description": "Create new file tools/src/commands/ralph/summary.ts with: BuildPracticalSummary and related types, generateBuildSummary() that reads diary entries and aggregates subtask summaries (no LLM calls), getCommitRange() that extracts git commit range from subtasks.json, and writeBuildSummaryFile() that writes BUILD-SUMMARY markdown file. This consolidates all summary-related functionality in one new module.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-01-26T22:15:00Z",
+      "commitHash": "8aa0adcfd019f88a72369c7e201c82e056cdc41f",
+      "sessionId": "ralph-build-iteration",
       "classification": {
         "knowledgeCertainty": "known-known",
         "spikeIndicators": 0,
