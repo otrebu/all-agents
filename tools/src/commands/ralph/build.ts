@@ -247,6 +247,7 @@ function processHeadlessIteration(
     skipSummary: shouldSkipSummary,
     status: iterationStatus,
     subtask: currentSubtask,
+    subtasksPath,
   });
 
   // Display iteration end box
@@ -356,6 +357,7 @@ function processSupervisedIteration(
       skipSummary: true,
       status: iterationStatus,
       subtask: currentSubtask,
+      subtasksPath,
     });
 
     // Display iteration end box with metrics

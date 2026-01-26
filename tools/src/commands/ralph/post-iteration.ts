@@ -24,6 +24,7 @@ import type {
 } from "./types";
 
 import { invokeClaudeHaiku } from "./claude";
+import { getIterationLogPath } from "./config";
 import {
   calculateDurationMs,
   countToolCalls,
@@ -63,6 +64,8 @@ interface PostIterationOptions {
   status: IterationStatus;
   /** The subtask that was processed */
   subtask: Subtask;
+  /** Path to the subtasks.json file - used to derive milestone-scoped log path */
+  subtasksPath: string;
 }
 
 /**
@@ -327,6 +330,7 @@ function runPostIterationHook(
     sessionId,
     status,
     subtask,
+    subtasksPath,
   } = options;
 
   // Skip hook if no session ID (supervised mode has no session capture)
@@ -377,10 +381,11 @@ function runPostIterationHook(
     timestamp,
     timing,
     toolCalls,
+    type: "iteration",
   };
 
-  // Write to diary
-  const diaryPath = `${repoRoot}/logs/iterations.jsonl`;
+  // Write to diary - use milestone-scoped path
+  const diaryPath = getIterationLogPath(subtasksPath);
   writeDiaryEntry(diaryEntry, diaryPath);
 
   return { diaryPath, entry: diaryEntry, sessionPath };
