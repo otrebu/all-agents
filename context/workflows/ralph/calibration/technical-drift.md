@@ -36,7 +36,7 @@ Read the `filesToRead` array from the subtask if present:
   "id": "SUB-001",
   "filesToRead": [
     "src/auth/index.ts",
-    "docs/api-conventions.md"
+    "@context/blocks/quality/data-integrity.md"
   ]
 }
 ```
@@ -45,6 +45,22 @@ These are files the subtask author identified as relevant context. Read them to 
 - Existing patterns in the referenced implementation files
 - Documentation standards from any `.md` files referenced
 - Expected code style from surrounding context
+
+#### Atomic Doc References
+
+**Special handling for `@context/` paths:** When `filesToRead` contains paths starting with `@context/` (atomic documentation), these represent explicit guidance the code should follow. For example:
+
+| Atomic Doc Path | Code Should Follow |
+|-----------------|-------------------|
+| `@context/blocks/quality/data-integrity.md` | Null checks, race condition guards, validation patterns |
+| `@context/blocks/quality/performance.md` | N+1 avoidance, memory management, algorithm efficiency |
+| `@context/blocks/security/secure-coding.md` | OWASP Top 10 mitigations, input validation, secrets handling |
+| `@context/blocks/test/testing.md` | Test structure, coverage expectations, mock patterns |
+
+When atomic docs are referenced:
+1. Read the atomic doc to understand the guidance
+2. Verify the code changes follow that guidance
+3. Flag drift when code contradicts the atomic doc's recommendations
 
 ### 4. Project Standards
 Check for project-specific quality standards:
@@ -158,6 +174,27 @@ Code with potential security issues.
 - Input is already validated/sanitized at middleware level
 - Parameterized queries used (this example should be flagged)
 - Test code or fixtures (clearly isolated)
+
+**7. Does Not Follow Atomic Doc Guidance**
+Code that contradicts guidance from atomic docs referenced in the subtask's `filesToRead`.
+
+**Example:**
+```json
+// Subtask filesToRead:
+["@context/blocks/quality/data-integrity.md", "src/services/user.ts"]
+```
+```diff
++ // data-integrity.md says: "Always check array bounds before access"
++ function getFirstUser(users) {
++   return users[0].name;  // No bounds check!
++ }
+```
+*Drift:* The atomic doc explicitly recommends array bounds checking, but the code accesses `users[0]` without checking if the array is non-empty.
+
+**Acceptable Variation:**
+- Code has equivalent protection (e.g., TypeScript non-empty array type)
+- Caller guarantees precondition (documented at call site)
+- Guidance is marked as "optional" or "when applicable" in the atomic doc
 
 ## Don't Over-Flag Guard
 
@@ -389,14 +426,16 @@ When technical drift is detected, create a task file:
 2. Read project standards (CLAUDE.md, lint configs, etc.)
 3. For each completed subtask:
    a. Read the `filesToRead` array if present - these provide context for expected patterns and documentation
-   b. Read the git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
-   c. Check for missing tests (look for corresponding test files)
-   d. Check for pattern consistency (compare to surrounding code and `filesToRead` context)
-   e. Check for error handling on critical paths
-   f. Check for documentation on public APIs
-   g. Check for type safety (if TypeScript project)
-   h. Check for security concerns
-   i. Apply the "Don't Over-Flag" guard
+   b. **Identify atomic docs:** Check if `filesToRead` contains `@context/` paths; read those atomic docs to understand explicit guidance
+   c. Read the git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
+   d. Check for missing tests (look for corresponding test files)
+   e. Check for pattern consistency (compare to surrounding code and `filesToRead` context)
+   f. **Check atomic doc compliance:** Verify code follows guidance from any referenced atomic docs
+   g. Check for error handling on critical paths
+   h. Check for documentation on public APIs
+   i. Check for type safety (if TypeScript project)
+   j. Check for security concerns
+   k. Apply the "Don't Over-Flag" guard
 4. Output summary to stdout
 5. Create task files for any detected technical drift in `docs/planning/tasks/`
 
