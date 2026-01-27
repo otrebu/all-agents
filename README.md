@@ -439,7 +439,6 @@ bun run lint:fix      # Auto-fix
 
 - `gh-search`: GitHub token via `gh auth login` or `GITHUB_TOKEN`
 - `parallel-search`: `AAA_PARALLEL_API_KEY` env var
-- `gemini-research`: Skipped by default (set `GEMINI_TEST_ENABLED=1` to run)
 
 ## Configuration
 
