@@ -256,13 +256,9 @@ interface SubtasksFile {
  * Tracks token consumption from Claude Code session
  */
 interface TokenUsage {
-  /** Tokens written to cache */
-  cacheCreationTokens: number;
-  /** Tokens read from cache */
-  cacheReadTokens: number;
-  /** Input tokens (non-cached) */
-  inputTokens: number;
-  /** Output tokens generated */
+  /** Final context window size (input + cached tokens at last API call) */
+  contextTokens: number;
+  /** Output tokens generated (summed across all API calls for cost tracking) */
   outputTokens: number;
 }
 

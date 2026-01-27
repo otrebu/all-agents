@@ -335,21 +335,19 @@ function getSessionJsonlPath(
 }
 
 /**
- * Extract and sum token usage from a session JSONL file
+ * Extract token usage from a session JSONL file
  *
- * Parses each line for "usage" objects and sums the token counts
- * across all API responses.
+ * Tracks the FINAL context window size (last API request's context) instead
+ * of summing across all requests. This reflects what Claude "sees" at the end
+ * of the iteration, similar to what Claude Code CLI shows.
+ *
+ * Output tokens are still summed for cost tracking.
  *
  * @param sessionPath - Path to session JSONL file
- * @returns Aggregated token usage, or zeros if file not found/invalid
+ * @returns Token usage with final context size, or zeros if file not found/invalid
  */
 function getTokenUsageFromSession(sessionPath: string): TokenUsage {
-  const emptyUsage: TokenUsage = {
-    cacheCreationTokens: 0,
-    cacheReadTokens: 0,
-    inputTokens: 0,
-    outputTokens: 0,
-  };
+  const emptyUsage: TokenUsage = { contextTokens: 0, outputTokens: 0 };
 
   if (!existsSync(sessionPath)) {
     return emptyUsage;
@@ -359,10 +357,10 @@ function getTokenUsageFromSession(sessionPath: string): TokenUsage {
     const content = readFileSync(sessionPath, "utf8");
     const lines = content.split("\n").filter((line) => line.trim());
 
-    let inputTokens = 0;
+    // Track final context window (what Claude sees at end of iteration)
+    let contextTokens = 0;
+    // Sum outputs for cost tracking
     let outputTokens = 0;
-    let cacheReadTokens = 0;
-    let cacheCreationTokens = 0;
 
     for (const line of lines) {
       // Skip lines without usage data
@@ -385,17 +383,22 @@ function getTokenUsageFromSession(sessionPath: string): TokenUsage {
 
         const usage = parsed.message?.usage;
         if (usage !== undefined) {
-          inputTokens += usage.input_tokens ?? 0;
+          // Context for THIS request = cached + non-cached input
+          // Overwrite each time so we end up with the LAST request's context
+          contextTokens =
+            (usage.cache_read_input_tokens ?? 0) +
+            (usage.cache_creation_input_tokens ?? 0) +
+            (usage.input_tokens ?? 0);
+
+          // Sum outputs for cost tracking
           outputTokens += usage.output_tokens ?? 0;
-          cacheReadTokens += usage.cache_read_input_tokens ?? 0;
-          cacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
         }
       } catch {
         // Skip malformed lines
       }
     }
 
-    return { cacheCreationTokens, cacheReadTokens, inputTokens, outputTokens };
+    return { contextTokens, outputTokens };
   } catch {
     return emptyUsage;
   }

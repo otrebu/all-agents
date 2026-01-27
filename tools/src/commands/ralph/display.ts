@@ -299,18 +299,12 @@ function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
     return null;
   }
 
-  // Total context = what Claude "sees" (input + all cached)
-  const totalContext =
-    tokenUsage.inputTokens +
-    tokenUsage.cacheReadTokens +
-    tokenUsage.cacheCreationTokens;
-
-  if (totalContext === 0) {
+  if (tokenUsage.contextTokens === 0) {
     return null;
   }
 
   const ctxLabel = chalk.dim("Ctx:");
-  const ctxValue = chalk.yellow(formatTokenCount(totalContext));
+  const ctxValue = chalk.yellow(formatTokenCount(tokenUsage.contextTokens));
 
   return `${ctxLabel} ${ctxValue}`;
 }
@@ -445,17 +439,14 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
   const statsLine = `${completedLabel} ${completedValue}   ${failedLabel} ${failedValue}   ${costLabel} ${costValue}   ${durationLabel} ${durationValue}   ${filesLabel} ${filesValue}   ${linesLabel} ${linesValue}`;
   lines.push(statsLine);
 
-  // Stats line 2: Tokens - In: 35K  Out: 7K  Cache: 28K
-  const totalTokens =
-    stats.inputTokens + stats.outputTokens + stats.cacheReadTokens;
+  // Stats line 2: Tokens - MaxCtx: 120K  Out: 7K
+  const totalTokens = stats.maxContextTokens + stats.outputTokens;
   if (totalTokens > 0) {
-    const inLabel = chalk.dim("In:");
-    const inValue = chalk.yellow(formatTokenCount(stats.inputTokens));
+    const ctxLabel = chalk.dim("MaxCtx:");
+    const ctxValue = chalk.yellow(formatTokenCount(stats.maxContextTokens));
     const outLabel = chalk.dim("Out:");
     const outValue = chalk.yellow(formatTokenCount(stats.outputTokens));
-    const cacheLabel = chalk.dim("Cache:");
-    const cacheValue = chalk.yellow(formatTokenCount(stats.cacheReadTokens));
-    const tokensLine = `${chalk.dim("Tokens")}  ${inLabel} ${inValue}  ${outLabel} ${outValue}  ${cacheLabel} ${cacheValue}`;
+    const tokensLine = `${chalk.dim("Tokens")}  ${ctxLabel} ${ctxValue}  ${outLabel} ${outValue}`;
     lines.push(tokensLine);
   }
 

@@ -28,9 +28,7 @@ describe("getTokenUsageFromSession", () => {
   test("returns zeros for missing file", () => {
     const result = getTokenUsageFromSession("/nonexistent/path/session.jsonl");
     expect(result).toEqual({
-      cacheCreationTokens: 0,
-      cacheReadTokens: 0,
-      inputTokens: 0,
+      contextTokens: 0,
       outputTokens: 0,
     } satisfies TokenUsage);
   });
@@ -40,14 +38,12 @@ describe("getTokenUsageFromSession", () => {
     writeFileSync(emptyPath, "");
     const result = getTokenUsageFromSession(emptyPath);
     expect(result).toEqual({
-      cacheCreationTokens: 0,
-      cacheReadTokens: 0,
-      inputTokens: 0,
+      contextTokens: 0,
       outputTokens: 0,
     } satisfies TokenUsage);
   });
 
-  test("sums token usage from single entry", () => {
+  test("extracts token usage from single entry", () => {
     const singleEntryPath = join(testDirectory, "single.jsonl");
     const entry = {
       message: {
@@ -63,15 +59,14 @@ describe("getTokenUsageFromSession", () => {
     writeFileSync(singleEntryPath, `${JSON.stringify(entry)}\n`);
 
     const result = getTokenUsageFromSession(singleEntryPath);
+    // Context = cache_read + cache_creation + input = 200 + 100 + 50 = 350
     expect(result).toEqual({
-      cacheCreationTokens: 100,
-      cacheReadTokens: 200,
-      inputTokens: 50,
+      contextTokens: 350,
       outputTokens: 75,
     } satisfies TokenUsage);
   });
 
-  test("sums token usage from multiple entries", () => {
+  test("tracks final context from multiple entries (not sum)", () => {
     const multiPath = join(testDirectory, "multi.jsonl");
     const entries = [
       {
@@ -114,10 +109,10 @@ describe("getTokenUsageFromSession", () => {
     );
 
     const result = getTokenUsageFromSession(multiPath);
+    // Context = LAST entry only: 0 + 500 + 10 = 510
+    // Output = summed: 75 + 100 + 50 = 225
     expect(result).toEqual({
-      cacheCreationTokens: 150,
-      cacheReadTokens: 1000,
-      inputTokens: 85,
+      contextTokens: 510,
       outputTokens: 225,
     } satisfies TokenUsage);
   });
@@ -145,10 +140,9 @@ describe("getTokenUsageFromSession", () => {
     );
 
     const result = getTokenUsageFromSession(mixedPath);
+    // Context = 100 + 200 + 50 = 350
     expect(result).toEqual({
-      cacheCreationTokens: 100,
-      cacheReadTokens: 200,
-      inputTokens: 50,
+      contextTokens: 350,
       outputTokens: 75,
     } satisfies TokenUsage);
   });
@@ -171,10 +165,10 @@ describe("getTokenUsageFromSession", () => {
     );
 
     const result = getTokenUsageFromSession(partialPath);
+    // Last entry only: cache_read=200, others default to 0, context=200
+    // Output summed: 75 + 0 = 75
     expect(result).toEqual({
-      cacheCreationTokens: 0,
-      cacheReadTokens: 200,
-      inputTokens: 50,
+      contextTokens: 200,
       outputTokens: 75,
     } satisfies TokenUsage);
   });
@@ -192,10 +186,9 @@ describe("getTokenUsageFromSession", () => {
     writeFileSync(malformedPath, content);
 
     const result = getTokenUsageFromSession(malformedPath);
+    // Context = input_tokens only (no cache fields) = 50
     expect(result).toEqual({
-      cacheCreationTokens: 0,
-      cacheReadTokens: 0,
-      inputTokens: 50,
+      contextTokens: 50,
       outputTokens: 75,
     } satisfies TokenUsage);
   });
@@ -237,10 +230,9 @@ describe("getTokenUsageFromSession", () => {
     );
 
     const result = getTokenUsageFromSession(realPath);
+    // Context = 1449 + 17761 + 9 = 19219
     expect(result).toEqual({
-      cacheCreationTokens: 1449,
-      cacheReadTokens: 17_761,
-      inputTokens: 9,
+      contextTokens: 19_219,
       outputTokens: 315,
     } satisfies TokenUsage);
   });
