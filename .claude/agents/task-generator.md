@@ -114,44 +114,7 @@ The "Next available task ID" is critical - the orchestrator uses this for the ne
 
 ## Task Template
 
-Follow the exact structure from `context/blocks/docs/task-template.md`:
-
-```markdown
-## Task: [Short descriptive name]
-
-**Story:** [STORY-XXX-slug](../stories/<story-id>.md)
-
-### Goal
-[One sentence: what should be true when this is done?]
-
-### Context
-[Why this matters, current state, what triggered this work]
-
-### Plan
-1. [First concrete action with file paths]
-2. [Second action with technical details]
-3. [Continue as needed]
-
-### Acceptance Criteria
-- [ ] [Specific, testable outcome]
-- [ ] [Another outcome]
-
-### Test Plan
-- [ ] [What tests to add/run]
-- [ ] [Manual verification if needed]
-
-### Scope
-- **In:** [What this includes]
-- **Out:** [What this explicitly excludes]
-
-### Notes
-[Technical considerations, risks, edge cases]
-
-### Related Documentation
-- @context/blocks/construct/[tool].md
-- @context/foundations/[domain]/[capability].md
-- **Gap:** [topic] - `[REVIEW]` (if created by subagent)
-```
+Follow the exact structure from @context/blocks/docs/task-template.md.
 
 **Note on Story Links:** When milestone is provided, use relative path `../stories/<story-id>.md`. For non-milestone tasks, use the full path from the story input.
 
