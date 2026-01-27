@@ -7,9 +7,19 @@
  */
 
 import type { RalphConfig } from "@tools/commands/ralph/types";
+import type { Subprocess } from "bun";
 
 import { hookNameToEventName } from "@tools/commands/ralph/hooks";
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+
+/**
+ * Minimal mock subprocess for testing Bun.spawn calls.
+ * Only includes fields used by executeNotifyAction.
+ */
+type MockSubprocess = Pick<
+  Subprocess,
+  "exitCode" | "exited" | "stderr" | "stdout"
+>;
 
 // Helper to create minimal valid RalphConfig
 function createConfig(ntfy: { server: string; topic: string }): RalphConfig {
@@ -58,7 +68,6 @@ describe("hookNameToEventName", () => {
 
 describe("executeNotifyAction CLI invocation", () => {
   // Track original Bun.spawn for restoration
-  // eslint-disable-next-line no-undef -- Bun is available at runtime
   const originalSpawn = Bun.spawn;
   let spawnCalls: Array<{ cmd: ReadonlyArray<string>; options: unknown }> = [];
 
@@ -68,7 +77,6 @@ describe("executeNotifyAction CLI invocation", () => {
 
   afterAll(() => {
     // Restore original spawn
-    // eslint-disable-next-line no-undef -- Bun is available at runtime
     Bun.spawn = originalSpawn;
   });
 
@@ -77,26 +85,28 @@ describe("executeNotifyAction CLI invocation", () => {
     const { executeNotifyAction } = await import("@tools/commands/ralph/hooks");
 
     // Create a mock spawn that records calls and returns success
-    const mockSpawn = mock((cmd: ReadonlyArray<string>, options: unknown) => {
-      spawnCalls.push({ cmd, options });
-      return {
-        exitCode: 0,
-        exited: Promise.resolve(0),
-        stderr: new ReadableStream({
-          start(controller) {
-            controller.close();
-          },
-        }),
-        stdout: new ReadableStream({
-          start(controller) {
-            controller.close();
-          },
-        }),
-      };
-    });
+    const mockSpawn = mock(
+      (cmd: ReadonlyArray<string>, options: unknown): MockSubprocess => {
+        spawnCalls.push({ cmd, options });
+        return {
+          exitCode: 0,
+          exited: Promise.resolve(0),
+          stderr: new ReadableStream({
+            start(controller) {
+              controller.close();
+            },
+          }),
+          stdout: new ReadableStream({
+            start(controller) {
+              controller.close();
+            },
+          }),
+        };
+      },
+    );
 
-    // eslint-disable-next-line no-undef, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- Testing requires mocking Bun.spawn
-    Bun.spawn = mockSpawn as any;
+    // Override Bun.spawn with mock (test-only mutation)
+    Object.assign(Bun, { spawn: mockSpawn });
 
     const didSend = await executeNotifyAction(
       "onMaxIterationsExceeded",
@@ -123,7 +133,7 @@ describe("executeNotifyAction CLI invocation", () => {
     const { executeNotifyAction } = await import("@tools/commands/ralph/hooks");
 
     // Mock spawn that returns non-zero exit
-    const mockSpawn = mock(() => {
+    const mockSpawn = mock((): MockSubprocess => {
       return {
         exitCode: 1,
         exited: Promise.resolve(1),
@@ -141,8 +151,8 @@ describe("executeNotifyAction CLI invocation", () => {
       };
     });
 
-    // eslint-disable-next-line no-undef, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- Testing requires mocking Bun.spawn
-    Bun.spawn = mockSpawn as any;
+    // Override Bun.spawn with mock (test-only mutation)
+    Object.assign(Bun, { spawn: mockSpawn });
 
     const didSend = await executeNotifyAction(
       "onMaxIterationsExceeded",
