@@ -138,17 +138,74 @@ function executeLogAction(hookName: string, context: HookContext): void {
 }
 
 /**
- * Execute notify action - send push notification via ntfy
+ * Execute notify action via aaa notify CLI
  *
- * Uses native fetch() to POST to the ntfy server.
- * Returns success status for caller to track notification failures.
+ * Uses Bun.spawn to call the aaa notify CLI with --event flag for event-based
+ * routing. Falls back to inline fetch if CLI is not available (ENOENT).
+ *
+ * @param hookName - Name of the hook being executed
+ * @param context - Hook context with message
+ * @param config - Ralph configuration containing ntfy settings (used for fallback)
+ * @returns true if notification was sent successfully, false otherwise
+ */
+async function executeNotifyAction(
+  hookName: string,
+  context: HookContext,
+  config: RalphConfig,
+): Promise<boolean> {
+  const eventName = hookNameToEventName(hookName);
+
+  console.log(
+    `[Hook:${hookName}] Sending notification via CLI --event ${eventName}`,
+  );
+
+  try {
+    // Use Bun.spawn to call aaa notify CLI
+    // eslint-disable-next-line no-undef -- Bun is available at runtime
+    const proc = Bun.spawn(
+      ["aaa", "notify", "--event", eventName, "--quiet", context.message],
+      { stderr: "pipe", stdout: "pipe" },
+    );
+
+    await proc.exited;
+
+    if (proc.exitCode === 0) {
+      return true;
+    }
+
+    // Non-zero exit - log error
+    const stderr = await new Response(proc.stderr).text();
+    console.log(
+      `[Hook:${hookName}] CLI notification failed (exit ${proc.exitCode}): ${stderr.trim()}`,
+    );
+    return false;
+  } catch (error) {
+    // Check if CLI not found (ENOENT)
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      console.log(
+        `[Hook:${hookName}] CLI not found, falling back to inline fetch`,
+      );
+      return executeNotifyFallback(hookName, context, config);
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`[Hook:${hookName}] Notification failed: ${message}`);
+    return false;
+  }
+}
+
+/**
+ * Fallback notification via inline fetch (when CLI not available)
+ *
+ * Uses native fetch() to POST to the ntfy server directly.
+ * This is the legacy implementation kept as fallback.
  *
  * @param hookName - Name of the hook being executed
  * @param context - Hook context with message
  * @param config - Ralph configuration containing ntfy settings
  * @returns true if notification was sent successfully, false otherwise
  */
-async function executeNotifyAction(
+async function executeNotifyFallback(
   hookName: string,
   context: HookContext,
   config: RalphConfig,
@@ -168,7 +225,7 @@ async function executeNotifyAction(
   const server = ntfy.server === "" ? "https://ntfy.sh" : ntfy.server;
   const url = `${server}/${ntfy.topic}`;
 
-  console.log(`[Hook:${hookName}] Sending notification to ${url}`);
+  console.log(`[Hook:${hookName}] Sending notification via fallback to ${url}`);
 
   try {
     const response = await fetch(url, {
@@ -236,6 +293,24 @@ async function executePauseAction(hookName: string): Promise<void> {
   });
 }
 
+/**
+ * Convert hook name to event name for aaa notify --event flag
+ *
+ * Maps camelCase hook names like "onMaxIterationsExceeded" to
+ * kebab-case event names like "ralph:maxIterationsExceeded"
+ *
+ * @param hookName - Name of the hook (e.g., "onMaxIterationsExceeded")
+ * @returns Event name for --event flag (e.g., "ralph:maxIterationsExceeded")
+ */
+function hookNameToEventName(hookName: string): string {
+  // Remove "on" prefix if present and lowercase first character
+  const withoutOn = hookName.startsWith("on")
+    ? hookName.slice(2).charAt(0).toLowerCase() + hookName.slice(3)
+    : hookName;
+
+  return `ralph:${withoutOn}`;
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -244,7 +319,9 @@ export {
   executeHook,
   executeLogAction,
   executeNotifyAction,
+  executeNotifyFallback,
   executePauseAction,
   type HookContext,
+  hookNameToEventName,
   type HookResult,
 };
