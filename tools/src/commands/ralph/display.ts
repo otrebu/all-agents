@@ -190,30 +190,25 @@ function formatDuration(ms: number): string {
  *
  * @param sessionPath - Optional session file path
  * @param diaryPath - Optional diary file path
- * @param innerWidth - Inner width for line formatting
+ * @param separatorWidth - Width of separator line above paths
  * @returns Array of formatted lines (empty if no paths)
  */
 function formatPathLines(
   sessionPath: string | undefined,
   diaryPath: string | undefined,
-  innerWidth: number,
+  separatorWidth: number,
 ): Array<string> {
   if (sessionPath === undefined && diaryPath === undefined) {
     return [];
   }
   const lines: Array<string> = [];
-  // Label "Session  " or "Diary    " = 9 chars, so max path = innerWidth - 9
-  const maxPathLength = innerWidth - 9;
-  lines.push("─".repeat(innerWidth));
+  lines.push("─".repeat(separatorWidth));
+  // Don't truncate paths - show full path for clickability/copyability
   if (sessionPath !== undefined) {
-    lines.push(
-      `${chalk.dim("Session")}  ${makeClickablePath(sessionPath, maxPathLength)}`,
-    );
+    lines.push(`${chalk.dim("Session")}  ${makeClickablePath(sessionPath)}`);
   }
   if (diaryPath !== undefined) {
-    lines.push(
-      `${chalk.dim("Diary")}    ${makeClickablePath(diaryPath, maxPathLength)}`,
-    );
+    lines.push(`${chalk.dim("Diary")}    ${makeClickablePath(diaryPath)}`);
   }
   return lines;
 }
