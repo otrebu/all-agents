@@ -638,6 +638,13 @@ async function runBuild(
         console.log(renderBuildPracticalSummary(summary));
       }
 
+      // Fire onMilestoneComplete hook
+      const milestone = getMilestoneFromSubtasks(subtasksFile);
+      // eslint-disable-next-line no-await-in-loop -- Must await before returning
+      await executeHook("onMilestoneComplete", {
+        message: `Milestone ${milestone} completed! All ${completedThisRun.length} subtasks done.`,
+      });
+
       // Mark summary as generated to prevent double execution on signal
       hasSummaryBeenGenerated = true;
       return;
@@ -731,6 +738,13 @@ async function runBuild(
       completedThisRun.push({
         attempts: currentAttempts,
         id: currentSubtask.id,
+      });
+
+      // Fire onSubtaskComplete hook
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      await executeHook("onSubtaskComplete", {
+        message: `Subtask ${currentSubtask.id} completed: ${currentSubtask.title}`,
+        subtaskId: currentSubtask.id,
       });
     }
 
