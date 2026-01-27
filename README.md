@@ -280,7 +280,7 @@ Claude Code extends with three mechanisms:
 
 | Agent                            | Description                                       | Stability    | Created    | Used By                     | Action |
 | :------------------------------- | :------------------------------------------------ | :----------- | :--------- | :-------------------------- | :----- |
-| `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | Requires context/ symlink |
+| `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | DONE (documented) |
 | `parallel-search`                | Multi-angle web research                          | beta         | 2025-11-19 | /parallel-search command    | DONE: CLI updated, agent now uses CLI |
 | `subtask-reviewer`               | Review subtasks using vertical slice test         | experimental | 2026-01-26 | ralph-plan skill            | REFACTOR: (1) rename subtasks-common.md → subtask-spec.md (2) DRY up agent to reference spec instead of duplicating vertical slice test + sizing modes |
 | `task-generator`                 | Generate technical tasks from stories             | experimental | 2026-01-23 | ralph-plan skill            | REFACTOR: remove embedded template (lines 119-154), just reference task-template.md |
@@ -289,7 +289,7 @@ Claude Code extends with three mechanisms:
 | `dependency-reviewer`            | Version compat, licenses, circular deps           | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
 | `documentation-reviewer`         | Docstrings, API docs, README gaps                 | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
 | `error-handling-reviewer`        | Swallowed exceptions, missing catch, async issues | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
-| `intent-alignment-reviewer`      | Code matches specification                        | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `intent-alignment-reviewer`      | Code matches specification                        | experimental | 2026-01-26 | parallel-code-review skill  | N/A - uses planning chain |
 | `maintainability-reviewer`       | Coupling, naming, DRY, SRP issues                 | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: reference @context/blocks/quality/coding-style.md |
 | `over-engineering-reviewer`      | YAGNI, premature abstraction                      | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
 | `performance-reviewer`           | O(n²), memory leaks, N+1 queries                  | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
