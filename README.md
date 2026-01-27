@@ -22,8 +22,6 @@ Shared AI configuration and research tools for Claude Code and Cursor. One setup
 - [Bun](https://bun.sh) (required)
 - [Claude Code](https://claude.ai/download) (Required for full agent/skill functionality. While the CLI tools work standalone, the core value comes from integrating with Claude Code's user config)
 - [gh CLI](https://cli.github.com) (optional, for GitHub search)
-- [Gemini CLI](https://github.com/google-gemini/gemini-cli) (optional, for Gemini research)
-
 ## Setup
 
 ### Option 1: Global User Config (Recommended)
@@ -79,9 +77,6 @@ aaa gh-search "react hooks typescript"
 
 # Multi-angle web research (up to 30K chars/result)
 aaa parallel-search --objective "RAG patterns" --queries "chunking" "retrieval"
-
-# Google Search via Gemini CLI
-aaa gemini-research "Next.js 15 features" --mode deep
 
 # Create numbered task/story files
 aaa task create my-feature
@@ -286,7 +281,7 @@ Claude Code extends with three mechanisms:
 | Agent                            | Description                                       | Stability    | Created    | Used By                     | Action |
 | :------------------------------- | :------------------------------------------------ | :----------- | :--------- | :-------------------------- | :----- |
 | `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | Requires context/ symlink |
-| `parallel-search`                | Multi-angle web research                          | beta         | 2025-11-19 | /parallel-search command    | FIX: (1) agent doesn't invoke CLI, just hallucinates (2) CLI should return formatted markdown like ralph build (3) add --verbose to show full report |
+| `parallel-search`                | Multi-angle web research                          | beta         | 2025-11-19 | /parallel-search command    | DONE: CLI updated, agent now uses CLI |
 | `subtask-reviewer`               | Review subtasks using vertical slice test         | experimental | 2026-01-26 | ralph-plan skill            | REFACTOR: (1) rename subtasks-common.md → subtask-spec.md (2) DRY up agent to reference spec instead of duplicating vertical slice test + sizing modes |
 | `task-generator`                 | Generate technical tasks from stories             | experimental | 2026-01-23 | ralph-plan skill            | REFACTOR: remove embedded template (lines 119-154), just reference task-template.md |
 | `accessibility-reviewer`         | WCAG, keyboard nav, ARIA, color contrast          | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: reference @context/blocks/quality/accessibility.md |
