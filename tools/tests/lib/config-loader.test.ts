@@ -25,12 +25,11 @@ describe("loadAaaConfig", () => {
     consoleWarnSpy?.mockRestore();
   });
 
-  test("returns defaults (merged with any legacy config) when primary config missing", () => {
+  test("returns defaults when config missing", () => {
     const configPath = join(temporaryDirectory, CONFIG_FILENAME);
     const config = loadAaaConfig(configPath);
 
-    // When primary config doesn't exist, loader may fall back to legacy files
-    // on the system. We just verify the structure is valid and has expected fields.
+    // When primary config doesn't exist, loader returns defaults
     expect(typeof config.debug).toBe("boolean");
     expect(config.notify).toBeDefined();
     expect(config.ralph?.build?.maxIterations).toBeDefined();

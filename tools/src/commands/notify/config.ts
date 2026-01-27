@@ -7,7 +7,6 @@
  * - isInQuietHours() - Check if current time is within quiet hours
  *
  * Primary config: aaa.config.json in project root
- * Legacy fallback: ~/.config/aaa/notify.json (handled by unified loader)
  */
 
 import {
@@ -18,7 +17,6 @@ import {
 } from "@tools/lib/config";
 import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 import type { NotifyConfig, QuietHoursConfig } from "./types";
@@ -28,11 +26,6 @@ import { notifyConfigSchema } from "./types";
 // =============================================================================
 // Constants
 // =============================================================================
-
-/**
- * Legacy path to notify config file (for backward compatibility)
- */
-const LEGACY_CONFIG_PATH = join(homedir(), ".config", "aaa", "notify.json");
 
 /**
  * Default notify configuration
@@ -56,20 +49,11 @@ const DEFAULT_NOTIFY_CONFIG: NotifyConfig = {
 /**
  * Get the config path for the current context
  *
- * Returns aaa.config.json in project root if it exists or if the legacy
- * path doesn't exist. Falls back to legacy path if only that exists.
+ * Returns aaa.config.json in project root.
  */
 function getConfigPath(): string {
   const projectRoot = findProjectRoot() ?? process.cwd();
-  const unifiedPath = join(projectRoot, CONFIG_FILENAME);
-
-  // Prefer unified config path if it exists or legacy doesn't exist
-  if (existsSync(unifiedPath) || !existsSync(LEGACY_CONFIG_PATH)) {
-    return unifiedPath;
-  }
-
-  // Fall back to legacy path only if it exists and unified doesn't
-  return LEGACY_CONFIG_PATH;
+  return join(projectRoot, CONFIG_FILENAME);
 }
 
 /**
@@ -119,15 +103,13 @@ function isInQuietHours(
  * Load notify configuration from unified aaa.config.json
  *
  * Loads configuration from the unified config loader and extracts the notify section.
- * Falls back to legacy ~/.config/aaa/notify.json via the unified loader's fallback mechanism.
  *
  * Resolution order (handled by unified loader):
  * 1. aaa.config.json in project root
- * 2. Legacy ~/.config/aaa/notify.json with deprecation warning
- * 3. Default configuration
+ * 2. Default configuration
  *
  * @param configPath - Optional override path (for testing only). When provided,
- *                     bypasses the unified loader and reads directly from the legacy file.
+ *                     bypasses the unified loader and reads directly from the file.
  *                     This is kept for backward compatibility with existing tests.
  * @returns NotifyConfig with all fields populated
  */
@@ -300,7 +282,6 @@ export {
   DEFAULT_NOTIFY_CONFIG,
   getConfigPath,
   isInQuietHours,
-  LEGACY_CONFIG_PATH,
   loadNotifyConfig,
   saveNotifyConfig,
 };

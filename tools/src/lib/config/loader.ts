@@ -11,15 +11,12 @@
 
 import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 
 import type {
   AaaConfig,
   HooksConfig,
   NotifySection,
-  Priority,
-  QuietHoursConfig,
   RalphSection,
   ResearchSection,
   ReviewSection,
@@ -45,22 +42,9 @@ const CONFIG_FILENAME = "aaa.config.json";
 /** Legacy Ralph config path (project root) */
 const LEGACY_RALPH_CONFIG = "ralph.config.json";
 
-/** Legacy notify config path (user home) */
-const LEGACY_NOTIFY_CONFIG = join(homedir(), ".config", "aaa", "notify.json");
-
 // =============================================================================
 // Types
 // =============================================================================
-
-/** Legacy notify config structure */
-interface LegacyNotifyConfig {
-  defaultPriority?: Priority;
-  enabled?: boolean;
-  quietHours?: QuietHoursConfig;
-  server?: string;
-  title?: string;
-  topic?: string;
-}
 
 /** Legacy ralph config structure */
 interface LegacyRalphConfig {
@@ -77,7 +61,7 @@ interface LegacyRalphConfig {
  *
  * Resolution order:
  * 1. aaa.config.json in project root
- * 2. Fallback to legacy files (ralph.config.json, ~/.config/aaa/notify.json) with deprecation warning
+ * 2. Fallback to legacy ralph.config.json with deprecation warning
  * 3. Use defaults if nothing found
  *
  * Error handling:
@@ -121,13 +105,11 @@ function loadAaaConfig(configPath?: string): AaaConfig {
     }
   }
 
-  // Try legacy config files
-  const legacyNotify = loadLegacyNotifyConfig();
+  // Try legacy ralph config file
   const legacyRalph = loadLegacyRalphConfig(projectRoot);
 
-  if (legacyRalph !== null || legacyNotify !== null) {
-    const merged: Partial<AaaConfig> = { ...legacyRalph, ...legacyNotify };
-    return mergeWithDefaults(merged);
+  if (legacyRalph !== null) {
+    return mergeWithDefaults(legacyRalph);
   }
 
   // No config found - return defaults
@@ -137,42 +119,6 @@ function loadAaaConfig(configPath?: string): AaaConfig {
 // =============================================================================
 // Legacy Config Loading
 // =============================================================================
-
-/**
- * Attempt to load legacy ~/.config/aaa/notify.json and convert to AaaConfig format
- *
- * @returns Partial AaaConfig with notify section, or null if not found
- */
-function loadLegacyNotifyConfig(): null | Partial<AaaConfig> {
-  if (!existsSync(LEGACY_NOTIFY_CONFIG)) {
-    return null;
-  }
-
-  try {
-    const content = readFileSync(LEGACY_NOTIFY_CONFIG, "utf8");
-    const parsed = JSON.parse(content) as LegacyNotifyConfig;
-
-    console.warn(
-      `Warning: ~/.config/aaa/notify.json is deprecated. Migrate to ${CONFIG_FILENAME}`,
-    );
-
-    // Map legacy format to new format
-    // Legacy has: topic, title, server, defaultPriority, quietHours, enabled
-    // New has: defaultTopic (not topic), same for others
-    const notify: NotifySection = {
-      defaultPriority: parsed.defaultPriority,
-      defaultTopic: parsed.topic,
-      enabled: parsed.enabled,
-      quietHours: parsed.quietHours,
-      server: parsed.server,
-      title: parsed.title,
-    };
-    return { notify };
-  } catch {
-    // Invalid JSON - skip legacy file
-    return null;
-  }
-}
 
 /**
  * Attempt to load legacy ralph.config.json and convert to AaaConfig format
@@ -337,4 +283,4 @@ function mergeWithDefaults(userConfig: Partial<AaaConfig>): AaaConfig {
 // Exports
 // =============================================================================
 
-export { CONFIG_FILENAME, LEGACY_NOTIFY_CONFIG, loadAaaConfig, mergeDeep };
+export { CONFIG_FILENAME, loadAaaConfig, mergeDeep };

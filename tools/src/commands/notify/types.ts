@@ -48,7 +48,7 @@ const quietHoursSchema = z.object({
 
 /**
  * Main configuration for the notify command
- * Stored at ~/.config/aaa/notify.json
+ * Stored in the notify section of aaa.config.json
  */
 interface NotifyConfig {
   /** Schema version for migrations */
