@@ -254,6 +254,20 @@ function generateSummaryAndExit(exitCode: number): void {
   process.exit(exitCode);
 }
 
+/**
+ * Get the latest commit hash from the repository
+ *
+ * @param projectRoot - Repository root path
+ * @returns Commit hash or null if git command fails
+ */
+function getLatestCommitHash(projectRoot: string): null | string {
+  const proc = Bun.spawnSync(["git", "rev-parse", "HEAD"], {
+    cwd: projectRoot,
+  });
+  if (proc.exitCode !== 0) return null;
+  return proc.stdout.toString("utf8").trim();
+}
+
 // =============================================================================
 // Build Loop Implementation
 // =============================================================================
@@ -308,10 +322,19 @@ function processHeadlessIteration(
   console.log(renderInvocationHeader("headless"));
   console.log();
 
+  // Use target project root for logs (not all-agents)
+  const projectRoot = findProjectRoot() ?? contextRoot;
+
+  // Capture commit hash before Claude invocation
+  const commitBefore = getLatestCommitHash(projectRoot);
+
   // Time Claude invocation for metrics
   const claudeStart = Date.now();
   const result = invokeClaudeHeadless({ prompt });
   const claudeMs = Date.now() - claudeStart;
+
+  // Capture commit hash after Claude invocation
+  const commitAfter = getLatestCommitHash(projectRoot);
 
   if (result === null) {
     console.error("Claude headless invocation failed or was interrupted");
@@ -330,12 +353,12 @@ function processHeadlessIteration(
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
-  // Use target project root for logs (not all-agents)
-  const projectRoot = findProjectRoot() ?? contextRoot;
   let hookResult: null | PostIterationResult = null;
   try {
     hookResult = runPostIterationHook({
       claudeMs,
+      commitAfter,
+      commitBefore,
       costUsd: result.cost,
       iterationNumber: currentAttempts,
       maxAttempts: maxIterations,
@@ -416,9 +439,15 @@ function processSupervisedIteration(
   console.log(renderInvocationHeader("supervised"));
   console.log();
 
+  // Use target project root for logs
+  const projectRoot = findProjectRoot() ?? contextRoot;
+
   // Derive PROGRESS.md location from subtasks.json location
   const subtasksDirectory = path.dirname(subtasksPath);
   const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
+
+  // Capture commit hash before Claude invocation
+  const commitBefore = getLatestCommitHash(projectRoot);
 
   // Capture start time for session discovery
   const startTime = Date.now();
@@ -433,6 +462,9 @@ function processSupervisedIteration(
     console.error("Supervised session failed");
     process.exit(chatResult.exitCode ?? 1);
   }
+
+  // Capture commit hash after Claude invocation
+  const commitAfter = getLatestCommitHash(projectRoot);
 
   // Calculate elapsed time for Claude invocation
   const claudeMs = Date.now() - startTime;
@@ -452,11 +484,10 @@ function processSupervisedIteration(
   // Run post-iteration hook if session was discovered
   let hookResult: null | PostIterationResult = null;
   if (discoveredSession !== null) {
-    // Use target project root for logs
-    const projectRoot = findProjectRoot() ?? contextRoot;
-
     hookResult = runPostIterationHook({
       claudeMs,
+      commitAfter,
+      commitBefore,
       iterationNumber: currentAttempts,
       maxAttempts: maxIterations,
       milestone,

@@ -52,6 +52,10 @@ interface LinesChangedResult {
 interface PostIterationOptions {
   /** Time spent in Claude Code invocation (ms) - passed from build.ts */
   claudeMs?: number;
+  /** Git commit hash after Claude invocation completed */
+  commitAfter?: null | string;
+  /** Git commit hash before Claude invocation started */
+  commitBefore?: null | string;
   /** Total cost in USD for this iteration */
   costUsd?: number;
   /** Current iteration attempt number (1 = first try) */
@@ -177,20 +181,21 @@ function generateSummary(
   }
 
   // Read and substitute placeholders in prompt template
+  // SESSION_CONTENT is substituted LAST to prevent template corruption if session contains {{
   let promptContent = readFileSync(promptPath, "utf8");
   promptContent = promptContent
     .replaceAll("{{SUBTASK_ID}}", subtask.id)
     .replaceAll("{{STATUS}}", status)
-    .replaceAll("{{SESSION_CONTENT}}", sessionContent)
     .replaceAll("{{SUBTASK_TITLE}}", subtask.title)
     .replaceAll("{{MILESTONE}}", milestone)
     .replaceAll("{{TASK_REF}}", subtask.taskRef)
-    .replaceAll("{{ITERATION_NUM}}", String(iterationNumber));
+    .replaceAll("{{ITERATION_NUM}}", String(iterationNumber))
+    .replaceAll("{{SESSION_CONTENT}}", sessionContent);
 
   // Invoke Haiku with 30 second timeout
   const result = invokeClaudeHaiku({ prompt: promptContent, timeout: 30_000 });
 
-  if (result === null) {
+  if (result === null || result.trim() === "") {
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
@@ -237,6 +242,54 @@ function generateSummary(
 // =============================================================================
 // Files Changed
 // =============================================================================
+
+/**
+ * Get lines added/removed between two commit hashes
+ *
+ * Uses git diff --numstat to count insertions and deletions
+ * across all commits in the range. This accurately measures
+ * what Claude committed during an iteration.
+ *
+ * @param repoRoot - Repository root path for git commands
+ * @param before - Commit hash before Claude invocation
+ * @param after - Commit hash after Claude invocation
+ * @returns LinesChangedResult with totals
+ */
+function getCommitRangeLines(
+  repoRoot: string,
+  before: null | string,
+  after: null | string,
+): LinesChangedResult {
+  if (before === null || after === null || before === after) {
+    return { linesAdded: 0, linesRemoved: 0 };
+  }
+
+  const proc = Bun.spawnSync(
+    ["git", "diff", "--numstat", `${before}..${after}`],
+    { cwd: repoRoot },
+  );
+
+  if (proc.exitCode !== 0) {
+    return { linesAdded: 0, linesRemoved: 0 };
+  }
+
+  // Parse numstat output
+  const output = proc.stdout.toString("utf8");
+  let added = 0;
+  let removed = 0;
+
+  for (const line of output.split("\n")) {
+    const parts = line.split("\t");
+    if (parts.length >= 2) {
+      const a = Number.parseInt(parts[0] ?? "", 10);
+      const r = Number.parseInt(parts[1] ?? "", 10);
+      if (!Number.isNaN(a)) added += a;
+      if (!Number.isNaN(r)) removed += r;
+    }
+  }
+
+  return { linesAdded: added, linesRemoved: removed };
+}
 
 /**
  * Get list of files changed during the iteration
@@ -435,6 +488,8 @@ function runPostIterationHook(
 
   const {
     claudeMs = 0,
+    commitAfter,
+    commitBefore,
     costUsd,
     iterationNumber = 1,
     milestone = "",
@@ -462,7 +517,21 @@ function runPostIterationHook(
   const toolCalls = sessionPath === null ? 0 : countToolCalls(sessionPath);
   const duration = sessionPath === null ? 0 : calculateDurationMs(sessionPath);
   const filesChanged = getFilesChanged(sessionPath, repoRoot);
-  const { linesAdded, linesRemoved } = getLinesChanged(repoRoot);
+
+  // If commits are different, use commit range diff to accurately measure what Claude committed
+  // If same (Claude didn't commit), fall back to staged+unstaged changes
+  const hasValidCommitRange =
+    commitBefore !== null &&
+    commitBefore !== undefined &&
+    commitBefore !== "" &&
+    commitAfter !== null &&
+    commitAfter !== undefined &&
+    commitAfter !== "" &&
+    commitBefore !== commitAfter;
+  const { linesAdded, linesRemoved } = hasValidCommitRange
+    ? getCommitRangeLines(repoRoot, commitBefore, commitAfter)
+    : getLinesChanged(repoRoot);
+
   const tokenUsage =
     sessionPath === null ? undefined : getTokenUsageFromSession(sessionPath);
   const metricsMs = Date.now() - metricsStart;

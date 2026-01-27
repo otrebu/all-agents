@@ -292,26 +292,27 @@ function formatTokenCount(count: number): string {
  * Format token usage as a display line
  *
  * @param tokenUsage - Token usage data from the iteration
- * @returns Formatted string like "Tokens  In: 42K  Out: 3K  Cache: 38K" or null if no tokens
+ * @returns Formatted string like "Ctx: 80K" or null if no tokens
  */
 function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
   if (tokenUsage === undefined) {
     return null;
   }
-  const totalTokens =
+
+  // Total context = what Claude "sees" (input + all cached)
+  const totalContext =
     tokenUsage.inputTokens +
-    tokenUsage.outputTokens +
-    tokenUsage.cacheReadTokens;
-  if (totalTokens === 0) {
+    tokenUsage.cacheReadTokens +
+    tokenUsage.cacheCreationTokens;
+
+  if (totalContext === 0) {
     return null;
   }
-  const inLabel = chalk.dim("In:");
-  const inValue = chalk.yellow(formatTokenCount(tokenUsage.inputTokens));
-  const outLabel = chalk.dim("Out:");
-  const outValue = chalk.yellow(formatTokenCount(tokenUsage.outputTokens));
-  const cacheLabel = chalk.dim("Cache:");
-  const cacheValue = chalk.yellow(formatTokenCount(tokenUsage.cacheReadTokens));
-  return `${chalk.dim("Tokens")}  ${inLabel} ${inValue}  ${outLabel} ${outValue}  ${cacheLabel} ${cacheValue}`;
+
+  const ctxLabel = chalk.dim("Ctx:");
+  const ctxValue = chalk.yellow(formatTokenCount(totalContext));
+
+  return `${ctxLabel} ${ctxValue}`;
 }
 
 // =============================================================================
