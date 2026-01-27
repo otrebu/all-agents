@@ -62,6 +62,8 @@ interface HooksConfig {
   onMaxIterationsExceeded?: Array<string>;
   /** Actions to execute when all subtasks in a milestone are done */
   onMilestoneComplete?: Array<string>;
+  /** Actions to execute when a subtask is completed */
+  onSubtaskComplete?: Array<string>;
   /** Actions to execute when pre-build validation fails */
   onValidationFail?: Array<string>;
 }
