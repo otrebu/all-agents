@@ -29,12 +29,13 @@ git diff <commitHash>^..<commitHash>
 ```
 
 ### 3. Planning Chain
-Trace the full chain from code back to Vision:
+Trace the chain from code back to Story:
 
 1. **Subtask** - The atomic implementation unit (from subtasks.json)
 2. **Task** - The technical "how" (via `taskRef` field → `docs/planning/milestones/<milestone>/tasks/TASK-NNN.md`)
 3. **Story** - The user-centric "what/who/why" (via Task's `storyRef` field → `docs/planning/milestones/<milestone>/stories/STORY-NNN.md`)
-4. **Vision** - What the app IS and WILL BECOME (`@docs/planning/VISION.md`)
+
+**Optional Context:** Vision (`@docs/planning/VISION.md`) provides high-level direction but is too abstract for meaningful drift detection. Use it only when needing to understand the broader product direction, not as a required analysis target.
 
 **Note:** Not all chains are complete. Tasks may be orphans (no Story parent). Validate what exists.
 
@@ -96,14 +97,13 @@ Code doesn't connect to the intended outcome.
 
 **Example:**
 ```
-Vision: "Users can manage their personal task lists"
 Story: "As a user, I want to create tasks so I can track my work"
 Task: "Implement task creation API"
 Subtask: "Add POST /tasks endpoint"
 
 Code: Endpoint works but doesn't associate tasks with users
 ```
-*Drift:* The implementation doesn't serve the Vision (personal task lists require user association).
+*Drift:* The implementation doesn't serve the Story (tracking "my work" requires user association).
 
 **Acceptable Variation:**
 - User association is a separate Subtask in the queue
@@ -214,7 +214,6 @@ Not all subtasks have complete chains. Validate what exists:
 | Subtask only | Just acceptance criteria |
 | Subtask + Task | Task description + Subtask criteria |
 | Subtask + Task + Story | Full chain from user need to implementation |
-| Full chain including Vision | Complete intention alignment |
 
 **If a parent is missing:** Note it in the summary but don't fail. Analyze what you can.
 
@@ -235,7 +234,6 @@ Not all subtasks have complete chains. Validate what exists:
 **Date:** <analysis date>
 
 ## Planning Chain
-- **Vision:** <brief vision reference or "N/A">
 - **Story:** <story-id and title or "N/A (orphan task)">
 - **Task:** <task-id and title>
 - **Subtask:** <subtask-id and title>
@@ -315,10 +313,9 @@ Options:
    a. Read the git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
    b. Read the subtask's `taskRef` to find parent Task
    c. Read the Task's `storyRef` to find parent Story (if exists)
-   d. Read @docs/planning/VISION.md for Vision context
-   e. Compare code changes against the full planning chain
-   f. Apply the "Don't Jump Ahead" guard
-   g. Determine if drift exists and what type
+   d. Compare code changes against the planning chain (Subtask → Task → Story)
+   e. Apply the "Don't Jump Ahead" guard
+   f. Determine if drift exists and what type
 3. Output summary to stdout
 4. Create task files for any detected drift in `docs/planning/tasks/`
 
