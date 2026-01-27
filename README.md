@@ -256,7 +256,7 @@ Claude Code extends with three mechanisms:
 
 | Command                            | Description                                 | Stability    | Created    | DRY | Refs/Depends                              | Action |
 | :--------------------------------- | :------------------------------------------ | :----------- | :--------- | :-- | :---------------------------------------- | :----- |
-| `/dev:git-commit`                  | Create conventional commits                 | stable       | 2025-11-18 | ✓   | @context/workflows/commit.md              | - |
+| `/dev:git-commit`                  | Create conventional commits                 | stable       | 2025-11-18 | ✓   | @context/workflows/commit.md              | FIX: add git pull/log/reset perms, pre-flight checks, clarify args |
 | `/dev:git-multiple-commits`        | Create multiple commits                     | stable       | 2025-11-18 | ✓   | @context/workflows/multiple-commits.md    | - |
 | `/dev:start-feature`               | Create/switch feature branches              | stable       | 2025-11-18 | ✓   | @context/workflows/start-feature.md       | - |
 | `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | - |
@@ -282,13 +282,11 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Sub-agents</strong> (20 agents)</summary>
+<summary><strong>Sub-agents</strong> (18 agents)</summary>
 
 | Agent                            | Description                                       | Stability    | Created    | Used By                     | Action |
 | :------------------------------- | :------------------------------------------------ | :----------- | :--------- | :-------------------------- | :----- |
 | `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | Requires context/ symlink |
-| `conversation-friction-analyzer` | Stage 1: Extract raw friction points from chats   | experimental | 2026-01-05 | analyze-friction skill      | NUKE - duplicate of self-improve |
-| `friction-pattern-abstractor`    | Stage 2: Group similar problems, find root causes | experimental | 2026-01-05 | analyze-friction skill      | NUKE - duplicate of self-improve |
 | `gemini-research`                | Web research via Gemini CLI                       | experimental | 2025-11-19 | /gemini-research command    | NUKE - doesn't work |
 | `parallel-search`                | Multi-angle web research                          | beta         | 2025-11-19 | /parallel-search command    | FIX: (1) agent doesn't invoke CLI, just hallucinates (2) CLI should return formatted markdown like ralph build (3) add --verbose to show full report |
 | `subtask-reviewer`               | Review subtasks using vertical slice test         | experimental | 2026-01-26 | ralph-plan skill            | REFACTOR: (1) rename subtasks-common.md → subtask-spec.md (2) DRY up agent to reference spec instead of duplicating vertical slice test + sizing modes |
@@ -309,11 +307,10 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Skills</strong> (13 skills)</summary>
+<summary><strong>Skills</strong> (12 skills)</summary>
 
 | Skill                  | Description                                    | Stability    |
 | :--------------------- | :--------------------------------------------- | :----------- |
-| `analyze-friction`     | 3-stage workflow: extract → abstract → approve | experimental |
 | `brainwriting`         | 5 parallel idea explorations, then synthesize  | beta         |
 | `dev-work-summary`     | Scan ~/dev for today's git work                | beta         |
 | `eval-test-skill`      | List and delete branches merged to main        | experimental |
