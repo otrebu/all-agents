@@ -316,6 +316,8 @@ function getFilesChanged(
  *
  * Uses git diff --numstat to count insertions and deletions.
  * Includes both staged and unstaged changes.
+ * Falls back to git show --numstat HEAD when no uncommitted changes exist
+ * (handles case where Claude already committed during the iteration).
  *
  * @param repoRoot - Repository root path for git commands
  * @returns LinesChangedResult with totals
@@ -344,6 +346,18 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     const unstagedResult = parseNumstat(unstaged);
     linesAdded += unstagedResult.linesAdded;
     linesRemoved += unstagedResult.linesRemoved;
+
+    // Fallback: if no uncommitted changes, get lines from the latest commit
+    // This handles the case where Claude already committed during the iteration
+    if (linesAdded === 0 && linesRemoved === 0) {
+      const headCommit = execSync("git show --numstat HEAD", {
+        cwd: repoRoot,
+        encoding: "utf8",
+      });
+
+      const headResult = parseNumstat(headCommit);
+      ({ linesAdded, linesRemoved } = headResult);
+    }
   } catch {
     // Git failed, return zeros
   }

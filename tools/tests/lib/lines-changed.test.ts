@@ -130,3 +130,65 @@ describe("getLinesChanged", () => {
     } satisfies LinesChangedResult);
   });
 });
+
+describe("parseNumstat with git show output", () => {
+  // git show --numstat HEAD includes commit metadata before the numstat lines
+  // The parseNumstat function should handle this by filtering out non-numstat lines
+
+  test("parses git show --numstat output (has commit metadata)", () => {
+    // Simulates the output format of `git show --numstat HEAD`
+    const output = [
+      "commit abc123def456789",
+      "Author: Test User <test@example.com>",
+      "Date:   Mon Jan 27 10:00:00 2026 +0000",
+      "",
+      "    feat(SUB-097): fix getLinesChanged fallback",
+      "",
+      "    Added git show --numstat HEAD fallback.",
+      "",
+      "10\t5\tsrc/foo.ts",
+      "20\t3\tsrc/bar.ts",
+    ].join("\n");
+
+    const result = parseNumstat(output);
+    expect(result).toEqual({
+      linesAdded: 30,
+      linesRemoved: 8,
+    } satisfies LinesChangedResult);
+  });
+
+  test("handles git show output with only binary files", () => {
+    const output = [
+      "commit abc123",
+      "Author: Test <test@test.com>",
+      "",
+      "    Add image",
+      "",
+      "-\t-\tassets/logo.png",
+    ].join("\n");
+
+    const result = parseNumstat(output);
+    expect(result).toEqual({
+      linesAdded: 0,
+      linesRemoved: 0,
+    } satisfies LinesChangedResult);
+  });
+
+  test("handles git show output with mixed text and binary files", () => {
+    const output = [
+      "commit abc123",
+      "",
+      "    Mixed changes",
+      "",
+      "15\t2\tREADME.md",
+      "-\t-\tassets/icon.svg",
+      "8\t0\tsrc/index.ts",
+    ].join("\n");
+
+    const result = parseNumstat(output);
+    expect(result).toEqual({
+      linesAdded: 23,
+      linesRemoved: 2,
+    } satisfies LinesChangedResult);
+  });
+});
