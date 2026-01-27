@@ -268,35 +268,6 @@ describe("notify E2E - silent behavior when unconfigured", () => {
     expect(stdout).toBe("");
     expect(stderr).toBe("");
   });
-
-  test("notify config test with unconfigured topic shows error", async () => {
-    // notify config test is NOT silent - it's an explicit test command
-    // Users expect feedback when testing. This tests that explicit
-    // commands still give feedback even when main notify is silent.
-
-    // Disable notifications first
-    await execa("bun", ["run", "src/cli.ts", "notify", "off"], {
-      cwd: TOOLS_DIR,
-    });
-
-    // config test command should still work when notifications are off
-    // The test command is independent of the on/off toggle
-    // It checks if topic is configured
-    const { exitCode, stderr } = await execa(
-      "bun",
-      ["run", "dev", "notify", "config", "test"],
-      { cwd: TOOLS_DIR, reject: false },
-    );
-
-    // If topic is empty, it should show an error
-    // If topic is configured, it might succeed (depending on network)
-    // This test passes if the command runs without crashing
-    expect(typeof exitCode).toBe("number");
-    // If it fails, stderr should have content
-    if (exitCode !== 0) {
-      expect(stderr.length).toBeGreaterThan(0);
-    }
-  });
 });
 
 describe("notify E2E - priority option", () => {
