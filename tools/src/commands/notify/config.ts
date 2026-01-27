@@ -2,13 +2,21 @@
  * Configuration management for the notify command
  *
  * This module provides:
- * - loadNotifyConfig() - Load notify config with defaults
- * - saveNotifyConfig() - Write config atomically
+ * - loadNotifyConfig() - Load notify config from unified aaa.config.json
+ * - saveNotifyConfig() - Write config to aaa.config.json (or legacy path for testing)
  * - isInQuietHours() - Check if current time is within quiet hours
  *
- * Config stored at ~/.config/aaa/notify.json
+ * Primary config: aaa.config.json in project root
+ * Legacy fallback: ~/.config/aaa/notify.json (handled by unified loader)
  */
 
+import {
+  CONFIG_FILENAME,
+  DEFAULT_NOTIFY,
+  loadAaaConfig,
+  type NotifySection,
+} from "@tools/lib/config";
+import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -22,12 +30,13 @@ import { notifyConfigSchema } from "./types";
 // =============================================================================
 
 /**
- * Path to notify config file
+ * Legacy path to notify config file (for backward compatibility)
  */
-const CONFIG_PATH = join(homedir(), ".config", "aaa", "notify.json");
+const LEGACY_CONFIG_PATH = join(homedir(), ".config", "aaa", "notify.json");
 
 /**
  * Default notify configuration
+ * Maps from unified config defaults to the legacy NotifyConfig interface
  */
 const DEFAULT_NOTIFY_CONFIG: NotifyConfig = {
   $schemaVersion: 1,
@@ -44,12 +53,22 @@ const DEFAULT_NOTIFY_CONFIG: NotifyConfig = {
 // =============================================================================
 
 /**
- * Get the default config path
+ * Get the config path for the current context
  *
- * Exposed for use in CLI commands and testing.
+ * Returns aaa.config.json in project root if it exists or if the legacy
+ * path doesn't exist. Falls back to legacy path if only that exists.
  */
 function getConfigPath(): string {
-  return CONFIG_PATH;
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const unifiedPath = join(projectRoot, CONFIG_FILENAME);
+
+  // Prefer unified config path if it exists or legacy doesn't exist
+  if (existsSync(unifiedPath) || !existsSync(LEGACY_CONFIG_PATH)) {
+    return unifiedPath;
+  }
+
+  // Fall back to legacy path only if it exists and unified doesn't
+  return LEGACY_CONFIG_PATH;
 }
 
 /**
@@ -96,16 +115,44 @@ function isInQuietHours(
 }
 
 /**
- * Load notify configuration from disk
+ * Load notify configuration from unified aaa.config.json
  *
- * Returns merged defaults if file is missing.
- * Validates with Zod schema before returning.
+ * Loads configuration from the unified config loader and extracts the notify section.
+ * Falls back to legacy ~/.config/aaa/notify.json via the unified loader's fallback mechanism.
  *
- * @param configPath - Optional override path (for testing)
+ * Resolution order (handled by unified loader):
+ * 1. aaa.config.json in project root
+ * 2. Legacy ~/.config/aaa/notify.json with deprecation warning
+ * 3. Default configuration
+ *
+ * @param configPath - Optional override path (for testing only). When provided,
+ *                     bypasses the unified loader and reads directly from the legacy file.
+ *                     This is kept for backward compatibility with existing tests.
  * @returns NotifyConfig with all fields populated
- * @throws Error if file exists but is invalid
  */
-function loadNotifyConfig(configPath: string = CONFIG_PATH): NotifyConfig {
+function loadNotifyConfig(configPath?: string): NotifyConfig {
+  // If a specific configPath is provided (testing scenario), use legacy loading
+  // This maintains backward compatibility with existing tests that pass explicit paths
+  if (configPath !== undefined) {
+    return loadNotifyConfigLegacy(configPath);
+  }
+
+  // Use unified config loader and extract notify section
+  const aaaConfig = loadAaaConfig();
+  const notify = aaaConfig.notify ?? DEFAULT_NOTIFY;
+
+  // Map the unified NotifySection to the NotifyConfig interface
+  return mapNotifySectionToConfig(notify);
+}
+
+/**
+ * Legacy config loading for backward compatibility with tests
+ *
+ * @internal
+ * @param configPath - Path to legacy notify.json
+ * @returns Parsed NotifyConfig object
+ */
+function loadNotifyConfigLegacy(configPath: string): NotifyConfig {
   if (!existsSync(configPath)) {
     return { ...DEFAULT_NOTIFY_CONFIG };
   }
@@ -139,26 +186,34 @@ function loadNotifyConfig(configPath: string = CONFIG_PATH): NotifyConfig {
 }
 
 /**
- * Save notify configuration to disk
+ * Map unified NotifySection to the legacy NotifyConfig interface
  *
- * Uses atomic write pattern:
- * 1. Creates parent directory if needed
- * 2. Writes formatted JSON with trailing newline
+ * Note: unified uses defaultTopic, legacy uses topic
  *
- * @param config - Configuration to save
- * @param configPath - Optional override path (for testing)
- * @throws Error if write fails
+ * @internal
  */
-function saveNotifyConfig(
-  config: NotifyConfig,
-  configPath: string = CONFIG_PATH,
-): void {
-  // Validate before saving
-  const result = notifyConfigSchema.safeParse(config);
-  if (!result.success) {
-    throw new Error(`Invalid config: ${result.error.message}`);
-  }
+function mapNotifySectionToConfig(notify: NotifySection): NotifyConfig {
+  return {
+    $schemaVersion: 1,
+    defaultPriority:
+      notify.defaultPriority ?? DEFAULT_NOTIFY_CONFIG.defaultPriority,
+    enabled: notify.enabled ?? DEFAULT_NOTIFY_CONFIG.enabled,
+    quietHours: notify.quietHours ?? DEFAULT_NOTIFY_CONFIG.quietHours,
+    server: notify.server ?? DEFAULT_NOTIFY_CONFIG.server,
+    title: notify.title ?? DEFAULT_NOTIFY_CONFIG.title,
+    topic: notify.defaultTopic ?? DEFAULT_NOTIFY_CONFIG.topic,
+  };
+}
 
+/**
+ * Save notify configuration to legacy path (for testing)
+ *
+ * @internal
+ */
+function saveLegacyNotifyConfig(
+  config: NotifyConfig,
+  configPath: string,
+): void {
   // Create parent directory if needed
   const dir = dirname(configPath);
   if (!existsSync(dir)) {
@@ -170,15 +225,80 @@ function saveNotifyConfig(
   writeFileSync(configPath, `${content}\n`, "utf8");
 }
 
+/**
+ * Save notify configuration to aaa.config.json
+ *
+ * Writes the notify section to the unified config file (aaa.config.json) in the
+ * project root. For backward compatibility with tests, an explicit configPath can
+ * be provided which writes to the legacy format.
+ *
+ * @param config - Configuration to save
+ * @param configPath - Optional override path (for testing). When provided, writes
+ *                     to that path in legacy format instead of unified config.
+ * @throws Error if write fails
+ */
+function saveNotifyConfig(config: NotifyConfig, configPath?: string): void {
+  // Validate before saving
+  const result = notifyConfigSchema.safeParse(config);
+  if (!result.success) {
+    throw new Error(`Invalid config: ${result.error.message}`);
+  }
+
+  // If explicit path provided (testing), use legacy format
+  if (configPath !== undefined) {
+    saveLegacyNotifyConfig(config, configPath);
+    return;
+  }
+
+  // Write to unified aaa.config.json
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const unifiedPath = join(projectRoot, CONFIG_FILENAME);
+
+  // Load existing config to preserve other sections
+  let existingConfig: Record<string, unknown> = {};
+  if (existsSync(unifiedPath)) {
+    try {
+      const content = readFileSync(unifiedPath, "utf8");
+      existingConfig = JSON.parse(content) as Record<string, unknown>;
+    } catch {
+      // If file exists but can't be parsed, start fresh
+    }
+  }
+
+  // Map NotifyConfig to NotifySection format
+  // Note: legacy uses topic, unified uses defaultTopic
+  const notifySection: NotifySection = {
+    defaultPriority: config.defaultPriority,
+    defaultTopic: config.topic,
+    enabled: config.enabled,
+    quietHours: config.quietHours,
+    server: config.server,
+    title: config.title,
+  };
+
+  // Merge notify section into existing config
+  existingConfig.notify = notifySection;
+
+  // Create parent directory if needed
+  const dir = dirname(unifiedPath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  // Write atomically with formatted JSON
+  const content = JSON.stringify(existingConfig, null, 2);
+  writeFileSync(unifiedPath, `${content}\n`, "utf8");
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
 
 export {
-  CONFIG_PATH,
   DEFAULT_NOTIFY_CONFIG,
   getConfigPath,
   isInQuietHours,
+  LEGACY_CONFIG_PATH,
   loadNotifyConfig,
   saveNotifyConfig,
 };
