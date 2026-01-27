@@ -186,6 +186,39 @@ function formatDuration(ms: number): string {
 }
 
 /**
+ * Generate clickable path lines for session and diary paths
+ *
+ * @param sessionPath - Optional session file path
+ * @param diaryPath - Optional diary file path
+ * @param innerWidth - Inner width for line formatting
+ * @returns Array of formatted lines (empty if no paths)
+ */
+function formatPathLines(
+  sessionPath: string | undefined,
+  diaryPath: string | undefined,
+  innerWidth: number,
+): Array<string> {
+  if (sessionPath === undefined && diaryPath === undefined) {
+    return [];
+  }
+  const lines: Array<string> = [];
+  // Label "Session  " or "Diary    " = 9 chars, so max path = innerWidth - 9
+  const maxPathLength = innerWidth - 9;
+  lines.push("─".repeat(innerWidth));
+  if (sessionPath !== undefined) {
+    lines.push(
+      `${chalk.dim("Session")}  ${makeClickablePath(sessionPath, maxPathLength)}`,
+    );
+  }
+  if (diaryPath !== undefined) {
+    lines.push(
+      `${chalk.dim("Diary")}    ${makeClickablePath(diaryPath, maxPathLength)}`,
+    );
+  }
+  return lines;
+}
+
+/**
  * Format current time as HH:MM:SS for display in iteration boxes
  *
  * @returns Formatted string like "14:32:17"
@@ -224,6 +257,10 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
   }
 }
 
+// =============================================================================
+// Markdown Rendering
+// =============================================================================
+
 /**
  * Format a token count as a human-readable string
  *
@@ -251,8 +288,34 @@ function formatTokenCount(count: number): string {
   return String(count);
 }
 
+/**
+ * Format token usage as a display line
+ *
+ * @param tokenUsage - Token usage data from the iteration
+ * @returns Formatted string like "Tokens  In: 42K  Out: 3K  Cache: 38K" or null if no tokens
+ */
+function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
+  if (tokenUsage === undefined) {
+    return null;
+  }
+  const totalTokens =
+    tokenUsage.inputTokens +
+    tokenUsage.outputTokens +
+    tokenUsage.cacheReadTokens;
+  if (totalTokens === 0) {
+    return null;
+  }
+  const inLabel = chalk.dim("In:");
+  const inValue = chalk.yellow(formatTokenCount(tokenUsage.inputTokens));
+  const outLabel = chalk.dim("Out:");
+  const outValue = chalk.yellow(formatTokenCount(tokenUsage.outputTokens));
+  const cacheLabel = chalk.dim("Cache:");
+  const cacheValue = chalk.yellow(formatTokenCount(tokenUsage.cacheReadTokens));
+  return `${chalk.dim("Tokens")}  ${inLabel} ${inValue}  ${outLabel} ${outValue}  ${cacheLabel} ${cacheValue}`;
+}
+
 // =============================================================================
-// Markdown Rendering
+// Status Box Rendering
 // =============================================================================
 
 /**
@@ -282,7 +345,7 @@ function getColoredStatus(status: IterationStatus): string {
 }
 
 // =============================================================================
-// Status Box Rendering
+// Iteration Box Types
 // =============================================================================
 
 /**
@@ -306,10 +369,6 @@ function getStatusBorderColor(
     }
   }
 }
-
-// =============================================================================
-// Iteration Box Types
-// =============================================================================
 
 /**
  * Create a clickable terminal path that opens in file manager/editor
@@ -529,6 +588,7 @@ function renderIterationEnd(data: IterationDisplayData): string {
     subtaskId,
     subtaskTitle,
     summary = "",
+    tokenUsage,
     toolCalls = 0,
   } = data;
 
@@ -569,6 +629,12 @@ function renderIterationEnd(data: IterationDisplayData): string {
     metricsLine,
   ];
 
+  // Add token usage line when present with non-zero values
+  const tokenLine = formatTokenLine(tokenUsage);
+  if (tokenLine !== null) {
+    lines.push(tokenLine);
+  }
+
   // Add summary if present
   if (summary !== "") {
     lines.push("");
@@ -593,21 +659,7 @@ function renderIterationEnd(data: IterationDisplayData): string {
   }
 
   // Add clickable paths section
-  // Label "Session  " or "Diary    " = 9 chars, so max path = innerWidth - 9
-  const maxPathLength = innerWidth - 9;
-  if (sessionPath !== undefined || diaryPath !== undefined) {
-    lines.push("─".repeat(innerWidth));
-    if (sessionPath !== undefined) {
-      lines.push(
-        `${chalk.dim("Session")}  ${makeClickablePath(sessionPath, maxPathLength)}`,
-      );
-    }
-    if (diaryPath !== undefined) {
-      lines.push(
-        `${chalk.dim("Diary")}    ${makeClickablePath(diaryPath, maxPathLength)}`,
-      );
-    }
-  }
+  lines.push(...formatPathLines(sessionPath, diaryPath, innerWidth));
 
   return boxen(lines.join("\n"), {
     borderColor: getStatusBorderColor(status),
