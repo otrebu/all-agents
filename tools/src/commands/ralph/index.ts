@@ -1,7 +1,6 @@
 import { Command } from "@commander-js/extra-typings";
 import { discoverMilestones, getMilestonePaths } from "@lib/milestones";
 import { findProjectRoot, getContextRoot } from "@tools/utils/paths";
-import { spawnSync } from "node:child_process";
 import {
   appendFileSync,
   existsSync,
@@ -20,8 +19,13 @@ import {
 } from "./claude";
 import {
   getPlanningLogPath as getMilestonePlanningLogPath,
+  loadSubtasksFile,
   ORPHAN_MILESTONE_ROOT,
 } from "./config";
+import {
+  type PlanSubtasksSummaryData,
+  renderPlanSubtasksSummary,
+} from "./display";
 import { runStatus } from "./status";
 
 /**
@@ -459,28 +463,27 @@ function invokeClaude(
     fullPrompt = `${extraContext}\n\n${promptContent}`;
   }
 
-  // Use spawnSync with argument array to avoid shell parsing entirely
+  // Use Bun.spawnSync with argument array to avoid shell parsing entirely
   // This prevents issues with special characters like parentheses in the prompt
   // --permission-mode bypassPermissions prevents inheriting plan mode from user settings
-  const result = spawnSync(
-    "claude",
+  const proc = Bun.spawnSync(
     [
+      "claude",
       "--permission-mode",
       "bypassPermissions",
       "--append-system-prompt",
       fullPrompt,
       `Please begin the ${sessionName} planning session following the instructions provided.`,
     ],
-    { stdio: "inherit" },
+    { stdio: ["inherit", "inherit", "inherit"] },
   );
 
-  if (result.error) {
-    console.error(`Failed to start Claude: ${result.error.message}`);
-    process.exit(1);
-  }
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
+  // Exit with non-zero exit code when process fails
+  // proc.exitCode: 0 = success, positive number = error, null = killed by signal
+  const { exitCode } = proc;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- exitCode can be 0, positive, or null
+  if (exitCode !== null && exitCode !== 0) {
+    process.exit(exitCode);
   }
 }
 
@@ -723,24 +726,12 @@ planCommand.addCommand(
             "context/workflows/ralph/planning/subtasks-from-source.md",
           );
 
-      // Helper to invoke Claude based on mode
-      function invoke(extraContext: string): void {
-        if (options.headless === true) {
-          // Use milestone path if resolved, otherwise fall back to orphan
-          const logFile = getPlanningLogPath(
-            resolvedMilestonePath ?? undefined,
-          );
-          invokeClaudeHeadless({
-            extraContext,
-            logFile,
-            promptPath,
-            sessionName: "subtasks",
-          });
-        } else {
-          // Default: supervised mode (user watches)
-          invokeClaudeChat(promptPath, "subtasks", extraContext);
-        }
-      }
+      // Collect source info for summary display
+      // Initialize with default that will be overwritten
+      let sourceInfo: PlanSubtasksSummaryData["source"] = {
+        text: "",
+        type: "text",
+      };
 
       // Build context string with all relevant info
       const contextParts: Array<string> = [];
@@ -749,20 +740,25 @@ planCommand.addCommand(
       if (hasTask && options.task !== undefined) {
         const taskPath = requireTask(options.task);
         contextParts.push(`Generating subtasks for task: ${taskPath}`);
+        sourceInfo = { path: taskPath, type: "file" };
       }
       // New source-based modes
       else if (hasReview) {
         contextParts.push(
           "Generating subtasks from review diary: logs/reviews.jsonl",
         );
+        sourceInfo = { path: "logs/reviews.jsonl", type: "review" };
       } else if (hasSource) {
         // Check if source is a file path or text
         if (existsSync(source)) {
           contextParts.push(`Generating subtasks from file: ${source}`);
+          sourceInfo = { path: source, type: "file" };
         } else {
           contextParts.push(`Generating subtasks from description: ${source}`);
+          sourceInfo = { text: source, type: "text" };
         }
       }
+      // Note: else case not needed - earlier validation ensures one of the above is true
 
       // Add optional metadata
       if (options.milestone !== undefined) {
@@ -785,7 +781,62 @@ planCommand.addCommand(
       contextParts.push(`Sizing mode: ${sizeMode}`);
       contextParts.push(`Sizing guidance: ${sizeDescriptions[sizeMode]}`);
 
-      invoke(contextParts.join("\n"));
+      const extraContext = contextParts.join("\n");
+
+      if (options.headless === true) {
+        // Headless mode with summary
+        const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
+        const result = invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "subtasks",
+        });
+
+        // Determine output path
+        const projectRoot = findProjectRoot() ?? process.cwd();
+        const outputPath =
+          resolvedMilestonePath !== undefined && resolvedMilestonePath !== null
+            ? path.join(resolvedMilestonePath, "subtasks.json")
+            : path.join(projectRoot, "docs/planning/subtasks.json");
+
+        // Try to load generated subtasks
+        const loadResult = ((): {
+          error?: string;
+          subtasks: Array<{ id: string; title: string }>;
+        } => {
+          try {
+            const file = loadSubtasksFile(outputPath);
+            return {
+              subtasks: file.subtasks.map((s) => ({
+                id: s.id,
+                title: s.title,
+              })),
+            };
+          } catch {
+            return { error: "No subtasks file found", subtasks: [] };
+          }
+        })();
+
+        // Render summary
+        console.log(
+          renderPlanSubtasksSummary({
+            costUsd: result.costUsd,
+            durationMs: result.durationMs,
+            error: loadResult.error,
+            milestone: options.milestone,
+            outputPath,
+            sessionId: result.sessionId,
+            sizeMode,
+            source: sourceInfo,
+            storyRef: options.story,
+            subtasks: loadResult.subtasks,
+          }),
+        );
+      } else {
+        // Default: supervised mode (user watches)
+        invokeClaudeChat(promptPath, "subtasks", extraContext);
+      }
     }),
 );
 

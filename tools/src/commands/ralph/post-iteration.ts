@@ -12,7 +12,6 @@
  * summary/diary is generated.
  */
 
-import { execSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -270,10 +269,11 @@ function getFilesChanged(
 
   // Secondary: add any uncommitted git changes
   try {
-    const staged = execSync("git diff --cached --name-only", {
-      cwd: repoRoot,
-      encoding: "utf8",
-    }).trim();
+    const stagedProc = Bun.spawnSync(
+      ["git", "diff", "--cached", "--name-only"],
+      { cwd: repoRoot },
+    );
+    const staged = stagedProc.stdout.toString("utf8").trim();
 
     if (staged !== "") {
       for (const file of staged.split("\n")) {
@@ -283,10 +283,10 @@ function getFilesChanged(
       }
     }
 
-    const unstaged = execSync("git diff --name-only", {
+    const unstagedProc = Bun.spawnSync(["git", "diff", "--name-only"], {
       cwd: repoRoot,
-      encoding: "utf8",
-    }).trim();
+    });
+    const unstaged = unstagedProc.stdout.toString("utf8").trim();
 
     if (unstaged !== "") {
       for (const file of unstaged.split("\n")) {
@@ -328,20 +328,20 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
 
   try {
     // Get staged changes
-    const staged = execSync("git diff --cached --numstat", {
+    const stagedProc = Bun.spawnSync(["git", "diff", "--cached", "--numstat"], {
       cwd: repoRoot,
-      encoding: "utf8",
     });
+    const staged = stagedProc.stdout.toString("utf8");
 
     const stagedResult = parseNumstat(staged);
     linesAdded += stagedResult.linesAdded;
     linesRemoved += stagedResult.linesRemoved;
 
     // Get unstaged changes
-    const unstaged = execSync("git diff --numstat", {
+    const unstagedProc = Bun.spawnSync(["git", "diff", "--numstat"], {
       cwd: repoRoot,
-      encoding: "utf8",
     });
+    const unstaged = unstagedProc.stdout.toString("utf8");
 
     const unstagedResult = parseNumstat(unstaged);
     linesAdded += unstagedResult.linesAdded;
@@ -350,10 +350,10 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     // Fallback: if no uncommitted changes, get lines from the latest commit
     // This handles the case where Claude already committed during the iteration
     if (linesAdded === 0 && linesRemoved === 0) {
-      const headCommit = execSync("git show --numstat HEAD", {
+      const headProc = Bun.spawnSync(["git", "show", "--numstat", "HEAD"], {
         cwd: repoRoot,
-        encoding: "utf8",
       });
+      const headCommit = headProc.stdout.toString("utf8");
 
       const headResult = parseNumstat(headCommit);
       ({ linesAdded, linesRemoved } = headResult);

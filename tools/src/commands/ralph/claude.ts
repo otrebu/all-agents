@@ -4,7 +4,6 @@
  * This module provides functions for spawning Claude sessions in different modes.
  * Extracted from index.ts to avoid circular dependencies with other ralph modules.
  */
-import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 /**
@@ -37,11 +36,9 @@ interface ClaudeResult {
  * Options for Haiku Claude invocation (lightweight model for summaries)
  */
 interface HaikuOptions {
-  /** Maximum buffer size for stdout in bytes (default: 10MB) */
-  maxBuffer?: number;
   /** The prompt to send to Claude Haiku */
   prompt: string;
-  /** Timeout in milliseconds (default: 30000ms) */
+  /** Timeout in milliseconds (default: 30000ms) - Note: not used with Bun.spawnSync */
   timeout?: number;
 }
 
@@ -49,8 +46,6 @@ interface HaikuOptions {
  * Options for headless Claude invocation
  */
 interface HeadlessOptions {
-  /** Maximum buffer size for stdout in bytes (default: 50MB) */
-  maxBuffer?: number;
   /** The prompt to send to Claude */
   prompt: string;
 }
@@ -112,33 +107,28 @@ function invokeClaudeChat(
 
   // Chat mode (no -p), stdio: inherit so user can watch AND type
   // --permission-mode bypassPermissions prevents inheriting plan mode from user settings
-  const result = spawnSync(
-    "claude",
+  const proc = Bun.spawnSync(
     [
+      "claude",
       "--permission-mode",
       "bypassPermissions",
       "--append-system-prompt",
       fullPrompt,
       `Please begin the ${sessionName} session.`,
     ],
-    { stdio: "inherit" },
+    { stdio: ["inherit", "inherit", "inherit"] },
   );
 
   // Handle signal interruption (Ctrl+C) gracefully
-  if (result.signal === "SIGINT" || result.signal === "SIGTERM") {
+  if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
     console.log("\nSession interrupted by user");
     return { exitCode: null, interrupted: true, success: true };
   }
 
-  if (result.error !== undefined) {
-    console.error(`Failed to start Claude: ${result.error.message}`);
-    return { exitCode: 1, interrupted: false, success: false };
-  }
-
   return {
-    exitCode: result.status,
+    exitCode: proc.exitCode,
     interrupted: false,
-    success: result.status === 0,
+    success: proc.exitCode === 0,
   };
 }
 
@@ -152,12 +142,14 @@ function invokeClaudeChat(
  * @returns The result string, or null if timed out/interrupted/failed
  */
 function invokeClaudeHaiku(options: HaikuOptions): null | string {
-  const { maxBuffer = 10 * 1024 * 1024, prompt, timeout = 30_000 } = options;
+  const { prompt } = options;
 
   // Haiku mode: -p with JSON output, specific model, and timeout
-  const result = spawnSync(
-    "claude",
+  // Note: Bun.spawnSync doesn't support timeout directly, so we use a simpler approach
+  // For long-running operations, the caller should handle timeouts at a higher level
+  const proc = Bun.spawnSync(
     [
+      "claude",
       "-p",
       prompt,
       "--model",
@@ -166,40 +158,25 @@ function invokeClaudeHaiku(options: HaikuOptions): null | string {
       "--output-format",
       "json",
     ],
-    {
-      encoding: "utf8",
-      maxBuffer,
-      stdio: ["ignore", "pipe", "inherit"],
-      timeout,
-    },
+    { stdio: ["ignore", "pipe", "inherit"] },
   );
 
-  // Handle timeout FIRST (timeout sends SIGTERM, so check error before signal)
-  if (result.error !== undefined) {
-    const errorWithCode = result.error as { code?: string } & Error;
-    if (errorWithCode.code === "ETIMEDOUT") {
-      console.log(`Haiku timed out after ${timeout / 1000}s`);
-      return null;
-    }
-    console.error(`Failed to start Claude Haiku: ${result.error.message}`);
-    return null;
-  }
-
-  // Handle signal interruption (Ctrl+C) - only after ruling out timeout
-  if (result.signal === "SIGINT" || result.signal === "SIGTERM") {
+  // Handle signal interruption (Ctrl+C)
+  if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
     console.log("\nHaiku session interrupted by user");
     return null;
   }
 
-  if (result.status !== 0) {
-    console.error(`Claude Haiku exited with code ${result.status}`);
+  if (proc.exitCode !== 0) {
+    console.error(`Claude Haiku exited with code ${proc.exitCode}`);
     return null;
   }
 
   // Parse JSON from stdout
   // Claude outputs JSON array - find the result entry
   try {
-    const parsed = JSON.parse(result.stdout) as
+    const stdout = proc.stdout.toString("utf8");
+    const parsed = JSON.parse(stdout) as
       | Array<ClaudeJsonOutput>
       | ClaudeJsonOutput;
     const output: ClaudeJsonOutput = Array.isArray(parsed)
@@ -225,39 +202,41 @@ function invokeClaudeHaiku(options: HaikuOptions): null | string {
  * @returns HeadlessResult with session info, or null if interrupted/failed
  */
 function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
-  const { maxBuffer = 50 * 1024 * 1024, prompt } = options;
+  const { prompt } = options;
 
   // Headless mode: -p with JSON output
   // CRITICAL: Use ['inherit', 'pipe', 'inherit'] to separate stderr from stdout
   // - stdin: inherit (allow input if needed)
   // - stdout: pipe (capture for JSON parsing)
   // - stderr: inherit (show progress to user, don't mix with JSON)
-  const result = spawnSync(
-    "claude",
-    ["-p", prompt, "--dangerously-skip-permissions", "--output-format", "json"],
-    { encoding: "utf8", maxBuffer, stdio: ["inherit", "pipe", "inherit"] },
+  const proc = Bun.spawnSync(
+    [
+      "claude",
+      "-p",
+      prompt,
+      "--dangerously-skip-permissions",
+      "--output-format",
+      "json",
+    ],
+    { stdio: ["inherit", "pipe", "inherit"] },
   );
 
   // Handle signal interruption (Ctrl+C)
-  if (result.signal === "SIGINT" || result.signal === "SIGTERM") {
+  if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
     console.log("\nSession interrupted by user");
     return null;
   }
 
-  if (result.error !== undefined) {
-    console.error(`Failed to start Claude: ${result.error.message}`);
-    return null;
-  }
-
-  if (result.status !== 0) {
-    console.error(`Claude exited with code ${result.status}`);
+  if (proc.exitCode !== 0) {
+    console.error(`Claude exited with code ${proc.exitCode}`);
     return null;
   }
 
   // Parse JSON from stdout (now clean without stderr contamination)
   // Claude outputs JSON array: [{type:"system",...}, {type:"assistant",...}, {type:"result",...}]
   // We need the last element with type:"result"
-  const parsed = JSON.parse(result.stdout) as
+  const stdout = proc.stdout.toString("utf8");
+  const parsed = JSON.parse(stdout) as
     | Array<ClaudeJsonOutput>
     | ClaudeJsonOutput;
   const output: ClaudeJsonOutput = Array.isArray(parsed)

@@ -4,6 +4,8 @@ export default [
   ...ubaEslintConfig,
   { ignores: ["node_modules/**", "dist/**"] },
   {
+    // Define Bun as a global for Bun runtime environment
+    languageOptions: { globals: { Bun: "readonly" } },
     rules: {
       // Disable no-console for CLI projects (as per TOOLING.md)
       "no-console": "off",

@@ -11,7 +11,6 @@
  * where encoded-path can be base64-encoded or dash-separated.
  */
 
-import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
@@ -147,10 +146,17 @@ function discoverRecentSession(
 
     // Find session files newer than the given timestamp, sorted by modification time (most recent first)
     // Using ls -t to sort by modification time, then head -1 to get most recent
-    const found = execSync(
+    const proc = Bun.spawnSync([
+      "bash",
+      "-c",
       `find "${projectsDirectory}" -name "*.jsonl" -type f -newermt "${afterDate}" -exec ls -t {} + 2>/dev/null | head -1`,
-      { encoding: "utf8" },
-    ).trim();
+    ]);
+
+    if (proc.exitCode !== 0) {
+      return null;
+    }
+
+    const found = proc.stdout.toString("utf8").trim();
 
     if (found === "") {
       return null;
@@ -284,12 +290,16 @@ function getSessionJsonlPath(
   const projectsDirectory = `${claudeDirectory}/projects`;
   if (existsSync(projectsDirectory)) {
     try {
-      const found = execSync(
+      const proc = Bun.spawnSync([
+        "bash",
+        "-c",
         `find "${projectsDirectory}" -name "${sessionId}.jsonl" -type f 2>/dev/null | head -1`,
-        { encoding: "utf8" },
-      ).trim();
-      if (found !== "") {
-        return found;
+      ]);
+      if (proc.exitCode === 0) {
+        const found = proc.stdout.toString("utf8").trim();
+        if (found !== "") {
+          return found;
+        }
       }
     } catch {
       // find failed, continue to fallbacks
