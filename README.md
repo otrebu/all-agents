@@ -148,15 +148,31 @@ aaa notify config test                # Send test notification
 #   --tags <tags>          Comma-separated tags/emojis
 #   -q, --quiet            Suppress output on success
 #   --dry-run              Show what would be sent without sending
+#   --event <name>         Event name for routing (e.g., ralph:milestoneComplete)
+#
+# Event routing (via aaa.config.json notify.events):
+#   Events map to topic/priority/tags in config. Example config:
+#   {
+#     "notify": {
+#       "defaultTopic": "my-alerts",
+#       "events": {
+#         "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
+#         "claude:stop": { "priority": "default" }
+#       }
+#     }
+#   }
+#
+#   aaa notify --event ralph:milestoneComplete 'Build done!'  # Routes to "builds" topic
+#   aaa notify --event unknown:event 'Test'                   # Falls back to defaultTopic
 #
 # Claude Code hook integration example (in ~/.claude/settings.json):
 #   "hooks": {
 #     "Stop": [{
-#       "hooks": [{ "type": "command", "command": "aaa notify 'Task complete'" }]
+#       "hooks": [{ "type": "command", "command": "aaa notify --event claude:stop 'Task complete' --quiet" }]
 #     }]
 #   }
 #
-# Config resolution: CLI flags → env vars → config file → defaults
+# Config resolution: CLI flags → event config → env vars → config file → defaults
 # Env vars: NTFY_TOPIC, NTFY_SERVER, NTFY_PRIORITY
 #
 # Note: Safe to add to hooks before running `aaa notify init` -
@@ -236,7 +252,7 @@ Claude Code extends with three mechanisms:
 **Stability:** `stable` = battle-tested | `beta` = works, may evolve | `experimental` = may break
 
 <details>
-<summary><strong>Slash Commands</strong> (21 commands)</summary>
+<summary><strong>Slash Commands</strong> (22 commands)</summary>
 
 | Command                            | Description                                 | Stability    |
 | :--------------------------------- | :------------------------------------------ | :----------- |
@@ -246,6 +262,7 @@ Claude Code extends with three mechanisms:
 | `/dev:complete-feature`            | Merge feature to main                       | stable       |
 | `/dev:code-review`                 | AI-assisted code review                     | beta         |
 | `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         |
+| `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental |
 | `/gh-search`                       | Search GitHub for code examples             | experimental |
 | `/gemini-research`                 | Google Search via Gemini                    | experimental |
 | `/parallel-search`                 | Multi-angle web research                    | beta         |
@@ -253,6 +270,7 @@ Claude Code extends with three mechanisms:
 | `/download`                        | Download URLs to markdown                   | beta         |
 | `/context:atomic-doc`              | Create/update atomic docs                   | beta         |
 | `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental |
+| `/meta:cli-feature-creator`        | Wizard for adding CLI features              | experimental |
 | `/meta:claude-code:create-skill`   | Create a new skill                          | beta         |
 | `/meta:claude-code:create-command` | Create a slash command                      | beta         |
 | `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         |
@@ -264,29 +282,50 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Sub-agents</strong> (5 agents)</summary>
+<summary><strong>Sub-agents</strong> (20 agents)</summary>
 
-| Agent                            | Description                                       | Stability    |
-| :------------------------------- | :------------------------------------------------ | :----------- |
-| `gemini-research`                | Web research via Gemini CLI                       | experimental |
-| `parallel-search`                | Multi-angle web research                          | beta         |
-| `conversation-friction-analyzer` | Stage 1: Extract raw friction points from chats   | experimental |
-| `friction-pattern-abstractor`    | Stage 2: Group similar problems, find root causes | experimental |
-| `maintainability-reviewer`       | Review code for coupling, naming, SRP issues      | experimental |
+| Agent                            | Description                                       | Stability    | Created    | Used By                     | Action |
+| :------------------------------- | :------------------------------------------------ | :----------- | :--------- | :-------------------------- | :----- |
+| `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | Requires context/ symlink |
+| `conversation-friction-analyzer` | Stage 1: Extract raw friction points from chats   | experimental | 2026-01-05 | analyze-friction skill      | NUKE - duplicate of self-improve |
+| `friction-pattern-abstractor`    | Stage 2: Group similar problems, find root causes | experimental | 2026-01-05 | analyze-friction skill      | NUKE - duplicate of self-improve |
+| `gemini-research`                | Web research via Gemini CLI                       | experimental | 2025-11-19 | /gemini-research command    | NUKE - doesn't work |
+| `parallel-search`                | Multi-angle web research                          | beta         | 2025-11-19 | /parallel-search command    | FIX: (1) agent doesn't invoke CLI, just hallucinates (2) CLI should return formatted markdown like ralph build (3) add --verbose to show full report |
+| `subtask-reviewer`               | Review subtasks using vertical slice test         | experimental | 2026-01-26 | ralph-plan skill            | REFACTOR: (1) rename subtasks-common.md → subtask-spec.md (2) DRY up agent to reference spec instead of duplicating vertical slice test + sizing modes |
+| `task-generator`                 | Generate technical tasks from stories             | experimental | 2026-01-23 | ralph-plan skill            | REFACTOR: remove embedded template (lines 119-154), just reference task-template.md |
+| `accessibility-reviewer`         | WCAG, keyboard nav, ARIA, color contrast          | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: reference @context/blocks/quality/accessibility.md |
+| `data-integrity-reviewer`        | Null checks, race conditions, schema violations   | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `dependency-reviewer`            | Version compat, licenses, circular deps           | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `documentation-reviewer`         | Docstrings, API docs, README gaps                 | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `error-handling-reviewer`        | Swallowed exceptions, missing catch, async issues | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `intent-alignment-reviewer`      | Code matches specification                        | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `maintainability-reviewer`       | Coupling, naming, DRY, SRP issues                 | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: reference @context/blocks/quality/coding-style.md |
+| `over-engineering-reviewer`      | YAGNI, premature abstraction                      | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `performance-reviewer`           | O(n²), memory leaks, N+1 queries                  | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `security-reviewer`              | OWASP Top 10, injection, XSS, auth, secrets       | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `test-coverage-reviewer`         | Missing tests, untested branches, assertions      | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: reference @context/blocks/test/testing.md |
+| `synthesizer`                    | Aggregate and dedupe findings from reviewers      | experimental | 2026-01-25 | parallel-code-review skill  | - |
 
 </details>
 
 <details>
-<summary><strong>Skills</strong> (6 skills)</summary>
+<summary><strong>Skills</strong> (13 skills)</summary>
 
-| Skill              | Description                                    | Stability    |
-| :----------------- | :--------------------------------------------- | :----------- |
-| `dev-work-summary` | Scan ~/dev for today's git work                | beta         |
-| `brainwriting`     | 5 parallel idea explorations, then synthesize  | beta         |
-| `task-create`      | Create task files                              | beta         |
-| `story-create`     | Create story files, prompt for linked tasks    | beta         |
-| `analyze-friction` | 3-stage workflow: extract → abstract → approve | experimental |
-| `eval-test-skill`  | List and delete branches merged to main        | experimental |
+| Skill                  | Description                                    | Stability    |
+| :--------------------- | :--------------------------------------------- | :----------- |
+| `analyze-friction`     | 3-stage workflow: extract → abstract → approve | experimental |
+| `brainwriting`         | 5 parallel idea explorations, then synthesize  | beta         |
+| `dev-work-summary`     | Scan ~/dev for today's git work                | beta         |
+| `eval-test-skill`      | List and delete branches merged to main        | experimental |
+| `parallel-code-review` | Orchestrate 11 reviewers in parallel           | experimental |
+| `ralph-build`          | Autonomous build loop for subtasks             | experimental |
+| `ralph-calibrate`      | Check intention drift, technical quality       | experimental |
+| `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental |
+| `ralph-review`         | Review auto-generated planning artifacts       | experimental |
+| `ralph-status`         | Display build progress and stats               | experimental |
+| `story-create`         | Create story files, prompt for linked tasks    | beta         |
+| `task-create`          | Create task files                              | beta         |
+| `walkthrough`          | Present items one at a time interactively      | experimental |
 
 </details>
 

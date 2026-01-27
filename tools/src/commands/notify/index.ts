@@ -14,6 +14,7 @@
 
 import * as p from "@clack/prompts";
 import { Command, Option } from "@commander-js/extra-typings";
+import { type EventConfig, loadAaaConfig } from "@tools/lib/config";
 import chalk from "chalk";
 import { existsSync } from "node:fs";
 import ora from "ora";
@@ -62,19 +63,65 @@ function formatQuietHours(config: NotifyConfig): string {
 }
 
 /**
- * Resolve final config by merging CLI > env > config > defaults
+ * Look up event-specific configuration from unified config
  *
- * Config resolution: CLI flags → env vars → config file → defaults
+ * @param eventName - Event name (e.g., "ralph:milestoneComplete")
+ * @returns Event config or undefined if event not found
+ */
+function getEventConfig(eventName: string): EventConfig | undefined {
+  const config = loadAaaConfig();
+  return config.notify?.events?.[eventName];
+}
+
+/**
+ * Merge tags from event config and CLI flag
+ *
+ * @param eventTags - Tags from event config (array)
+ * @param cliTags - Tags from CLI flag (comma-separated string)
+ * @returns Merged tags as comma-separated string or undefined
+ */
+function mergeTags(
+  eventTags: Array<string> | undefined,
+  cliTags: string | undefined,
+): string | undefined {
+  const allTags: Array<string> = [];
+
+  if (eventTags !== undefined && eventTags.length > 0) {
+    allTags.push(...eventTags);
+  }
+
+  if (cliTags !== undefined && cliTags !== "") {
+    // CLI tags are comma-separated
+    allTags.push(...cliTags.split(",").map((t) => t.trim()));
+  }
+
+  if (allTags.length === 0) {
+    return undefined;
+  }
+
+  // Deduplicate
+  return [...new Set(allTags)].join(",");
+}
+
+/**
+ * Resolve final config by merging CLI > event > env > config > defaults
+ *
+ * Config resolution: CLI flags → event config → env vars → config file → defaults
  */
 function resolveConfig(
   fileConfig: NotifyConfig,
   cliOptions: { priority?: string; title?: string },
+  eventConfig?: EventConfig,
 ): { priority: Priority; server: string; title: string; topic: string } {
   // Resolve priority with quiet hours fallback
   function resolvePriority(): Priority {
     // CLI flag has highest priority
     if (cliOptions.priority !== undefined) {
       return cliOptions.priority as Priority;
+    }
+    // Event config priority
+    if (eventConfig?.priority !== undefined) {
+      return eventConfig.priority;
     }
     // Env var
     const envPriority = process.env.NTFY_PRIORITY;
@@ -92,11 +139,19 @@ function resolveConfig(
     return fileConfig.defaultPriority;
   }
 
+  // Resolve topic: CLI (none) → event config → env var → file config
+  function resolveTopic(): string {
+    if (eventConfig?.topic !== undefined && eventConfig.topic !== "") {
+      return eventConfig.topic;
+    }
+    return process.env.NTFY_TOPIC ?? fileConfig.topic;
+  }
+
   return {
     priority: resolvePriority(),
     server: process.env.NTFY_SERVER ?? fileConfig.server,
     title: cliOptions.title ?? fileConfig.title,
-    topic: process.env.NTFY_TOPIC ?? fileConfig.topic,
+    topic: resolveTopic(),
   };
 }
 
@@ -118,6 +173,10 @@ notifyCommand
   .option("--tags <tags>", "Comma-separated tags/emojis")
   .option("-q, --quiet", "Suppress output on success")
   .option("--dry-run", "Show what would be sent without sending")
+  .option(
+    "--event <name>",
+    "Event name for routing (e.g., ralph:milestoneComplete)",
+  )
   .action(async (message, options) => {
     // If no message and no subcommand, show help
     if (message === undefined) {
@@ -126,21 +185,36 @@ notifyCommand
     }
 
     const fileConfig = loadNotifyConfig();
-    const resolved = resolveConfig(fileConfig, options);
+
+    // Look up event-specific config if --event provided
+    const eventConfig =
+      options.event === undefined ? undefined : getEventConfig(options.event);
+
+    const resolved = resolveConfig(fileConfig, options, eventConfig);
+
+    // Merge tags from event config and CLI flag
+    const mergedTags = mergeTags(eventConfig?.tags, options.tags);
 
     // --dry-run: show what would be sent without sending
     // This runs even when unconfigured to help debug config issues
     if (options.dryRun === true) {
       console.log(chalk.bold("Dry run - would send:"));
       console.log();
+      if (options.event === undefined) {
+        // No event specified, skip event line
+      } else {
+        const suffix =
+          eventConfig === undefined ? chalk.yellow(" (not found)") : "";
+        console.log(`  Event:    ${options.event}${suffix}`);
+      }
       console.log(
         `  Topic:    ${resolved.topic || chalk.yellow("(not configured)")}`,
       );
       console.log(`  Server:   ${resolved.server}`);
       console.log(`  Title:    ${resolved.title}`);
       console.log(`  Priority: ${resolved.priority}`);
-      if (options.tags !== undefined) {
-        console.log(`  Tags:     ${options.tags}`);
+      if (mergedTags !== undefined) {
+        console.log(`  Tags:     ${mergedTags}`);
       }
       console.log(`  Message:  ${message}`);
       return;
@@ -158,7 +232,7 @@ notifyCommand
         message,
         priority: resolved.priority,
         server: resolved.server,
-        tags: options.tags,
+        tags: mergedTags,
         title: resolved.title,
         topic: resolved.topic,
       });
