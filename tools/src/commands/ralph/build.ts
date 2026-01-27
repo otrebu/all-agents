@@ -369,6 +369,8 @@ function processHeadlessIteration(
         filesChanged: entry.filesChanged?.length ?? 0,
         iteration,
         keyFindings: entry.keyFindings,
+        linesAdded: entry.linesAdded,
+        linesRemoved: entry.linesRemoved,
         maxAttempts: maxIterations,
         remaining: postRemaining,
         sessionPath: sessionPath ?? undefined,
@@ -376,6 +378,7 @@ function processHeadlessIteration(
         subtaskId: currentSubtask.id,
         subtaskTitle: currentSubtask.title,
         summary: entry.summary,
+        tokenUsage: entry.tokenUsage,
         toolCalls: entry.toolCalls,
       }),
     );
@@ -478,6 +481,8 @@ function processSupervisedIteration(
           filesChanged: entry.filesChanged?.length ?? 0,
           iteration,
           keyFindings: entry.keyFindings,
+          linesAdded: entry.linesAdded,
+          linesRemoved: entry.linesRemoved,
           maxAttempts: maxIterations,
           remaining: postRemaining,
           sessionPath: sessionPath ?? undefined,
@@ -485,6 +490,7 @@ function processSupervisedIteration(
           subtaskId: currentSubtask.id,
           subtaskTitle: currentSubtask.title,
           summary: entry.summary,
+          tokenUsage: entry.tokenUsage,
           toolCalls: entry.toolCalls,
         }),
       );

@@ -20,7 +20,7 @@ import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
 import type { BuildPracticalSummary } from "./summary";
-import type { IterationStatus } from "./types";
+import type { IterationStatus, TokenUsage } from "./types";
 
 // Box width for iteration displays (defined early for marked config)
 const BOX_WIDTH = 68;
@@ -100,6 +100,8 @@ interface IterationDisplayData {
   subtaskTitle: string;
   /** Summary text */
   summary?: string;
+  /** Token usage from the iteration */
+  tokenUsage?: TokenUsage;
   /** Number of tool calls */
   toolCalls?: number;
 }
