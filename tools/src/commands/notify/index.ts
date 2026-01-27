@@ -112,7 +112,13 @@ function resolveConfig(
   fileConfig: NotifyConfig,
   cliOptions: { priority?: string; title?: string },
   eventConfig?: EventConfig,
-): { priority: Priority; server: string; title: string; topic: string } {
+): {
+  priority: Priority;
+  server: string;
+  title: string;
+  topic: string;
+  username: string;
+} {
   // Resolve priority with quiet hours fallback
   function resolvePriority(): Priority {
     // CLI flag has highest priority
@@ -152,6 +158,7 @@ function resolveConfig(
     server: process.env.NTFY_SERVER ?? fileConfig.server,
     title: cliOptions.title ?? fileConfig.title,
     topic: resolveTopic(),
+    username: fileConfig.username,
   };
 }
 
@@ -235,6 +242,7 @@ notifyCommand
         tags: mergedTags,
         title: resolved.title,
         topic: resolved.topic,
+        username: resolved.username,
       });
 
       // -q/--quiet: suppress output on success
@@ -374,6 +382,7 @@ notifyCommand
       server: server || DEFAULT_NOTIFY_CONFIG.server,
       title: DEFAULT_NOTIFY_CONFIG.title,
       topic,
+      username: DEFAULT_NOTIFY_CONFIG.username,
     };
 
     saveNotifyConfig(config);
@@ -389,6 +398,7 @@ notifyCommand
         server: config.server,
         title: config.title,
         topic: config.topic,
+        username: config.username,
       });
       spinner.succeed("Test notification sent!");
     } catch (error) {
@@ -612,6 +622,7 @@ configCommand
         server: config.server,
         title: config.title,
         topic: config.topic,
+        username: config.username,
       });
 
       console.log(`${chalk.green("✓")} Test notification sent (${result.id})`);

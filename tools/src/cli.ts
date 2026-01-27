@@ -115,6 +115,7 @@ program.addCommand(
       (v) => Number.parseInt(v, 10),
       5000,
     )
+    .option("-v, --verbose", "Show full report content instead of summary")
     .argument("[extraQueries...]", "Additional queries (positional)")
     .action(async (extraQueries, options) =>
       parallelSearchCommand({
@@ -123,6 +124,7 @@ program.addCommand(
         objective: options.objective,
         processor: options.processor,
         queries: [...(options.queries ?? []), ...extraQueries],
+        verbose: options.verbose,
       }),
     ),
 );

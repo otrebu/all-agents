@@ -77,6 +77,7 @@ aaa gh-search "react hooks typescript"
 
 # Multi-angle web research (up to 30K chars/result)
 aaa parallel-search --objective "RAG patterns" --queries "chunking" "retrieval"
+aaa parallel-search --objective "RAG patterns" --verbose  # Full report to stdout
 
 # Create numbered task/story files
 aaa task create my-feature

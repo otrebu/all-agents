@@ -1,3 +1,5 @@
+import { env } from "@tools/lib/config";
+
 import { NtfyNetworkError, NtfyRateLimitError, type Priority } from "./types";
 
 // =============================================================================
@@ -37,6 +39,8 @@ interface SendNotificationOptions {
   title?: string;
   /** ntfy topic */
   topic: string;
+  /** ntfy username for Basic Auth */
+  username?: string;
 }
 
 /**
@@ -92,14 +96,18 @@ const REQUEST_TIMEOUT_MS = 30_000;
 // Helper Functions
 // =============================================================================
 
+interface BuildHeadersOptions {
+  priority: Priority;
+  tags?: string;
+  title?: string;
+  username?: string;
+}
+
 /**
  * Build request headers from options
  */
-function buildHeaders(
-  priority: Priority,
-  title?: string,
-  tags?: string,
-): Record<string, string> {
+function buildHeaders(options: BuildHeadersOptions): Record<string, string> {
+  const { priority, tags, title, username } = options;
   const headers: Record<string, string> = {
     "Content-Type": "text/plain",
     Priority: String(PRIORITY_MAP[priority]),
@@ -111,6 +119,15 @@ function buildHeaders(
 
   if (tags !== undefined && tags.length > 0) {
     headers.Tags = tags;
+  }
+
+  // Add authentication if NTFY_PASSWORD is set (Basic Auth)
+  if (env.NTFY_PASSWORD !== undefined && env.NTFY_PASSWORD.length > 0) {
+    const user = username ?? "admin";
+    const credentials = Buffer.from(`${user}:${env.NTFY_PASSWORD}`).toString(
+      "base64",
+    );
+    headers.Authorization = `Basic ${credentials}`;
   }
 
   return headers;
@@ -335,10 +352,18 @@ async function performFetchAttempt(
 async function sendNotification(
   options: SendNotificationOptions,
 ): Promise<SendNotificationResult> {
-  const { message, priority = "default", server, tags, title, topic } = options;
+  const {
+    message,
+    priority = "default",
+    server,
+    tags,
+    title,
+    topic,
+    username,
+  } = options;
 
   const context: RequestContext = {
-    headers: buildHeaders(priority, title, tags),
+    headers: buildHeaders({ priority, tags, title, username }),
     message,
     url: `${server.replace(/\/$/, "")}/${topic}`,
   };

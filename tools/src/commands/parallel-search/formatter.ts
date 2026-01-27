@@ -51,6 +51,45 @@ function formatResults(
 }
 
 /**
+ * Format search results as a concise summary (default CLI output)
+ *
+ * Shows: query, result count, execution time, top domains, and key findings
+ * without the full excerpts. Use formatResults() for full report.
+ *
+ * @param results Array of search results
+ * @param metadata Search execution metadata
+ * @returns Formatted markdown summary string
+ */
+function formatSummary(
+  results: Array<SearchResult>,
+  metadata: SearchMetadata,
+): string {
+  const lines = [
+    "# Parallel Search Results\n",
+    `**Query:** ${metadata.objective}`,
+    `**Results:** ${metadata.resultCount}`,
+    `**Execution:** ${(metadata.executionTimeMs / 1000).toFixed(1)}s\n`,
+  ];
+
+  // Add domain summary
+  if (results.length > 0) {
+    lines.push(...formatDomainSummary(results));
+  }
+
+  // Add key findings (top 5 result titles with URLs)
+  if (results.length > 0) {
+    lines.push("**Key Findings:**");
+    const topResults = results.slice(0, 5);
+    for (const result of topResults) {
+      lines.push(`- [${result.title}](${result.url})`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Count results per domain
  * @param results Array of search results
  * @returns Map of domain to count
@@ -66,5 +105,5 @@ function getDomainCounts(results: Array<SearchResult>): Map<string, number> {
   return counts;
 }
 
-export { formatResults };
+export { formatResults, formatSummary };
 export { default as sanitizeForFilename } from "@lib/format";
