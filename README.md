@@ -252,7 +252,7 @@ Claude Code extends with three mechanisms:
 **Stability:** `stable` = battle-tested | `beta` = works, may evolve | `experimental` = may break
 
 <details>
-<summary><strong>Slash Commands</strong> (22 commands)</summary>
+<summary><strong>Slash Commands</strong> (21 commands)</summary>
 
 | Command                            | Description                                 | Stability    | Created    | DRY | Refs/Depends                              | Action |
 | :--------------------------------- | :------------------------------------------ | :----------- | :--------- | :-- | :---------------------------------------- | :----- |
@@ -264,7 +264,6 @@ Claude Code extends with three mechanisms:
 | `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | - |
 | `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental | 2026-01-25 | ✓   | @context/workflows/interrogate.md         | - |
 | `/gh-search`                       | Search GitHub for code examples             | experimental | 2025-11-19 | ✓   | aaa gh-search CLI                         | - |
-| `/gemini-research`                 | Google Search via Gemini                    | experimental | 2025-11-19 | ✓   | @context/blocks/construct/gemini-cli.md   | - |
 | `/parallel-search`                 | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md | - |
 | `/create-task`                     | Create numbered task file                   | beta         | 2025-12-02 | ✓   | @context/blocks/docs/task-management.md, aaa task create | - |
 | `/download`                        | Download URLs to markdown                   | beta         | 2025-12-03 | ✓   | aaa download CLI                          | - |
@@ -282,12 +281,11 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Sub-agents</strong> (18 agents)</summary>
+<summary><strong>Sub-agents</strong> (17 agents)</summary>
 
 | Agent                            | Description                                       | Stability    | Created    | Used By                     | Action |
 | :------------------------------- | :------------------------------------------------ | :----------- | :--------- | :-------------------------- | :----- |
 | `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | Requires context/ symlink |
-| `gemini-research`                | Web research via Gemini CLI                       | experimental | 2025-11-19 | /gemini-research command    | NUKE - doesn't work |
 | `parallel-search`                | Multi-angle web research                          | beta         | 2025-11-19 | /parallel-search command    | FIX: (1) agent doesn't invoke CLI, just hallucinates (2) CLI should return formatted markdown like ralph build (3) add --verbose to show full report |
 | `subtask-reviewer`               | Review subtasks using vertical slice test         | experimental | 2026-01-26 | ralph-plan skill            | REFACTOR: (1) rename subtasks-common.md → subtask-spec.md (2) DRY up agent to reference spec instead of duplicating vertical slice test + sizing modes |
 | `task-generator`                 | Generate technical tasks from stories             | experimental | 2026-01-23 | ralph-plan skill            | REFACTOR: remove embedded template (lines 119-154), just reference task-template.md |
