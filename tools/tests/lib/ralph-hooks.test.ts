@@ -58,6 +58,7 @@ describe("hookNameToEventName", () => {
 
 describe("executeNotifyAction CLI invocation", () => {
   // Track original Bun.spawn for restoration
+  // eslint-disable-next-line no-undef -- Bun is available at runtime
   const originalSpawn = Bun.spawn;
   let spawnCalls: Array<{ cmd: ReadonlyArray<string>; options: unknown }> = [];
 
@@ -67,6 +68,7 @@ describe("executeNotifyAction CLI invocation", () => {
 
   afterAll(() => {
     // Restore original spawn
+    // eslint-disable-next-line no-undef -- Bun is available at runtime
     Bun.spawn = originalSpawn;
   });
 
@@ -93,7 +95,7 @@ describe("executeNotifyAction CLI invocation", () => {
       };
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- Testing requires mocking Bun.spawn
+    // eslint-disable-next-line no-undef, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- Testing requires mocking Bun.spawn
     Bun.spawn = mockSpawn as any;
 
     const didSend = await executeNotifyAction(
@@ -139,7 +141,7 @@ describe("executeNotifyAction CLI invocation", () => {
       };
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- Testing requires mocking Bun.spawn
+    // eslint-disable-next-line no-undef, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- Testing requires mocking Bun.spawn
     Bun.spawn = mockSpawn as any;
 
     const didSend = await executeNotifyAction(

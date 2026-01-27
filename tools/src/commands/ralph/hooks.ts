@@ -161,6 +161,7 @@ async function executeNotifyAction(
 
   try {
     // Use Bun.spawn to call aaa notify CLI
+    // eslint-disable-next-line no-undef -- Bun is available at runtime
     const proc = Bun.spawn(
       ["aaa", "notify", "--event", eventName, "--quiet", context.message],
       { stderr: "pipe", stdout: "pipe" },
