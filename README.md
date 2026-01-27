@@ -288,13 +288,13 @@ Claude Code extends with three mechanisms:
 | `accessibility-reviewer`         | WCAG, keyboard nav, ARIA, color contrast          | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: reference @context/blocks/quality/accessibility.md |
 | `data-integrity-reviewer`        | Null checks, race conditions, schema violations   | experimental | 2026-01-25 | parallel-code-review skill  | DONE (DRYed up) |
 | `dependency-reviewer`            | Version compat, licenses, circular deps           | experimental | 2026-01-26 | parallel-code-review skill  | DONE (DRYed up) |
-| `documentation-reviewer`         | Docstrings, API docs, README gaps                 | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `documentation-reviewer`         | Docstrings, API docs, README gaps                 | experimental | 2026-01-26 | parallel-code-review skill  | DONE (DRYed up) |
 | `error-handling-reviewer`        | Swallowed exceptions, missing catch, async issues | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
 | `intent-alignment-reviewer`      | Code matches specification                        | experimental | 2026-01-26 | parallel-code-review skill  | N/A - uses planning chain |
 | `maintainability-reviewer`       | Coupling, naming, DRY, SRP issues                 | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: reference @context/blocks/quality/coding-style.md |
 | `over-engineering-reviewer`      | YAGNI, premature abstraction                      | experimental | 2026-01-26 | parallel-code-review skill  | DONE (DRYed up) |
-| `performance-reviewer`           | O(n²), memory leaks, N+1 queries                  | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
-| `security-reviewer`              | OWASP Top 10, injection, XSS, auth, secrets       | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `performance-reviewer`           | O(n²), memory leaks, N+1 queries                  | experimental | 2026-01-26 | parallel-code-review skill  | DONE (DRYed up) |
+| `security-reviewer`              | OWASP Top 10, injection, XSS, auth, secrets       | experimental | 2026-01-25 | parallel-code-review skill  | DONE (DRYed up) |
 | `test-coverage-reviewer`         | Missing tests, untested branches, assertions      | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: reference @context/blocks/test/testing.md |
 | `synthesizer`                    | Aggregate and dedupe findings from reviewers      | experimental | 2026-01-25 | parallel-code-review skill  | - |
 
