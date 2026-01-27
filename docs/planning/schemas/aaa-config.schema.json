@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aaa-config.schema.json",
+  "title": "AAA CLI Configuration",
+  "description": "Unified configuration schema for the aaa CLI - notify, ralph, review, and research commands",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for IDE support"
+    },
+    "debug": {
+      "type": "boolean",
+      "description": "Enable debug mode across all commands",
+      "default": false
+    },
+    "notify": {
+      "type": "object",
+      "description": "Notification configuration for ntfy.sh push notifications",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether notifications are enabled globally",
+          "default": true
+        },
+        "server": {
+          "type": "string",
+          "format": "uri",
+          "description": "ntfy server URL",
+          "default": "https://ntfy.sh"
+        },
+        "defaultTopic": {
+          "type": "string",
+          "description": "Default topic when not specified per-event"
+        },
+        "defaultPriority": {
+          "type": "string",
+          "enum": ["min", "low", "default", "high", "max"],
+          "description": "Default priority when not specified per-event",
+          "default": "default"
+        },
+        "title": {
+          "type": "string",
+          "description": "Default notification title"
+        },
+        "quietHours": {
+          "type": "object",
+          "description": "Quiet hours configuration - notifications sent with low priority (no sound) during these hours",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether quiet hours are enabled",
+              "default": false
+            },
+            "startHour": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 23,
+              "description": "Hour to start quiet hours (0-23)",
+              "default": 22
+            },
+            "endHour": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 23,
+              "description": "Hour to end quiet hours (0-23)",
+              "default": 8
+            }
+          },
+          "additionalProperties": false
+        },
+        "events": {
+          "type": "object",
+          "description": "Event-specific routing configuration",
+          "additionalProperties": {
+            "type": "object",
+            "description": "Configuration for a specific event",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "description": "Override topic for this event"
+              },
+              "priority": {
+                "type": "string",
+                "enum": ["min", "low", "default", "high", "max"],
+                "description": "Override priority for this event"
+              },
+              "tags": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Optional tags/emojis for the notification"
+              }
+            },
+            "additionalProperties": false
+          },
+          "examples": [
+            {
+              "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
+              "ralph:maxIterationsExceeded": { "topic": "critical", "priority": "max", "tags": ["warning"] },
+              "claude:stop": { "priority": "default" }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ralph": {
+      "type": "object",
+      "description": "Ralph autonomous build system configuration",
+      "properties": {
+        "build": {
+          "type": "object",
+          "description": "Build configuration",
+          "properties": {
+            "maxIterations": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Maximum iterations per subtask (0 = unlimited)",
+              "default": 3
+            },
+            "calibrateEvery": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Run calibration every N iterations (0 = disabled)",
+              "default": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "hooks": {
+          "type": "object",
+          "description": "Hook configuration - arrays of actions to execute on specific events",
+          "properties": {
+            "onIterationComplete": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["log", "notify", "pause"] },
+              "description": "Actions to execute after each build iteration completes"
+            },
+            "onSubtaskComplete": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["log", "notify", "pause"] },
+              "description": "Actions to execute when a subtask is completed"
+            },
+            "onMilestoneComplete": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["log", "notify", "pause"] },
+              "description": "Actions to execute when all subtasks in a milestone are done"
+            },
+            "onValidationFail": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["log", "notify", "pause"] },
+              "description": "Actions to execute when pre-build validation fails"
+            },
+            "onMaxIterationsExceeded": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["log", "notify", "pause"] },
+              "description": "Actions to execute when a subtask exceeds the retry limit"
+            }
+          },
+          "additionalProperties": false
+        },
+        "selfImprovement": {
+          "type": "object",
+          "description": "Self-improvement configuration for handling calibration suggestions",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["suggest", "autofix", "off"],
+              "description": "'suggest' creates task files for review, 'autofix' applies changes directly, 'off' skips analysis",
+              "default": "suggest"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "description": "Code review configuration",
+      "properties": {
+        "autoFixThreshold": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Severity threshold for auto-fix suggestions (1-5)"
+        },
+        "diaryPath": {
+          "type": "string",
+          "description": "Path to the review diary file"
+        }
+      },
+      "additionalProperties": false
+    },
+    "research": {
+      "type": "object",
+      "description": "Research command configuration",
+      "properties": {
+        "outputDir": {
+          "type": "string",
+          "description": "Output directory for research results",
+          "default": "docs/research"
+        },
+        "github": {
+          "type": "object",
+          "description": "GitHub search configuration",
+          "properties": {
+            "maxResults": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum number of results to fetch",
+              "default": 10
+            }
+          },
+          "additionalProperties": false
+        },
+        "parallel": {
+          "type": "object",
+          "description": "Parallel search configuration",
+          "properties": {
+            "maxResults": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum number of results to fetch",
+              "default": 15
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "$schema": "./docs/planning/schemas/aaa-config.schema.json",
+      "notify": {
+        "enabled": true,
+        "server": "https://ntfy.sh",
+        "defaultTopic": "my-project",
+        "defaultPriority": "high",
+        "quietHours": {
+          "enabled": true,
+          "startHour": 22,
+          "endHour": 8
+        },
+        "events": {
+          "ralph:maxIterationsExceeded": { "topic": "critical", "priority": "max", "tags": ["warning", "sos"] },
+          "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
+          "ralph:subtaskComplete": { "priority": "default" },
+          "claude:stop": { "topic": "claude", "priority": "default" },
+          "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
+        }
+      },
+      "ralph": {
+        "hooks": {
+          "onIterationComplete": ["log"],
+          "onSubtaskComplete": ["log", "notify"],
+          "onMilestoneComplete": ["log", "notify"],
+          "onValidationFail": ["log", "notify"],
+          "onMaxIterationsExceeded": ["log", "notify", "pause"]
+        },
+        "selfImprovement": {
+          "mode": "suggest"
+        },
+        "build": {
+          "maxIterations": 3,
+          "calibrateEvery": 0
+        }
+      },
+      "review": {
+        "autoFixThreshold": 3,
+        "diaryPath": "logs/reviews.jsonl"
+      },
+      "research": {
+        "outputDir": "docs/research",
+        "github": { "maxResults": 10 },
+        "parallel": { "maxResults": 15 }
+      },
+      "debug": false
+    }
+  ]
+}

@@ -254,30 +254,30 @@ Claude Code extends with three mechanisms:
 <details>
 <summary><strong>Slash Commands</strong> (22 commands)</summary>
 
-| Command                            | Description                                 | Stability    |
-| :--------------------------------- | :------------------------------------------ | :----------- |
-| `/dev:git-commit`                  | Create conventional commits                 | stable       |
-| `/dev:git-multiple-commits`        | Create multiple commits                     | stable       |
-| `/dev:start-feature`               | Create/switch feature branches              | stable       |
-| `/dev:complete-feature`            | Merge feature to main                       | stable       |
-| `/dev:code-review`                 | AI-assisted code review                     | beta         |
-| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         |
-| `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental |
-| `/gh-search`                       | Search GitHub for code examples             | experimental |
-| `/gemini-research`                 | Google Search via Gemini                    | experimental |
-| `/parallel-search`                 | Multi-angle web research                    | beta         |
-| `/create-task`                     | Create numbered task file                   | beta         |
-| `/download`                        | Download URLs to markdown                   | beta         |
-| `/context:atomic-doc`              | Create/update atomic docs                   | beta         |
-| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental |
-| `/meta:cli-feature-creator`        | Wizard for adding CLI features              | experimental |
-| `/meta:claude-code:create-skill`   | Create a new skill                          | beta         |
-| `/meta:claude-code:create-command` | Create a slash command                      | beta         |
-| `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         |
-| `/meta:claude-code:create-plugin`  | Scaffold a plugin                           | beta         |
-| `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental |
-| `/meta:how-to-prompt`              | Prompting guidance                          | stable       |
-| `/meta:optimize-prompt`            | Optimize prompts                            | stable       |
+| Command                            | Description                                 | Stability    | Action |
+| :--------------------------------- | :------------------------------------------ | :----------- | :----- |
+| `/dev:git-commit`                  | Create conventional commits                 | stable       | - |
+| `/dev:git-multiple-commits`        | Create multiple commits                     | stable       | - |
+| `/dev:start-feature`               | Create/switch feature branches              | stable       | - |
+| `/dev:complete-feature`            | Merge feature to main                       | stable       | - |
+| `/dev:code-review`                 | AI-assisted code review                     | beta         | - |
+| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | - |
+| `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental | - |
+| `/gh-search`                       | Search GitHub for code examples             | experimental | - |
+| `/gemini-research`                 | Google Search via Gemini                    | experimental | - |
+| `/parallel-search`                 | Multi-angle web research                    | beta         | - |
+| `/create-task`                     | Create numbered task file                   | beta         | - |
+| `/download`                        | Download URLs to markdown                   | beta         | - |
+| `/context:atomic-doc`              | Create/update atomic docs                   | beta         | - |
+| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | - |
+| `/meta:cli-feature-creator`        | Wizard for adding CLI features              | experimental | - |
+| `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | - |
+| `/meta:claude-code:create-command` | Create a slash command                      | beta         | - |
+| `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | - |
+| `/meta:claude-code:create-plugin`  | Scaffold a plugin                           | beta         | - |
+| `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental | - |
+| `/meta:how-to-prompt`              | Prompting guidance                          | stable       | - |
+| `/meta:optimize-prompt`            | Optimize prompts                            | stable       | - |
 
 </details>
 
@@ -406,10 +406,86 @@ bun run lint:fix      # Auto-fix
 
 ## Configuration
 
-Environment variables (create `tools/.env` from `.env.example`):
+### Config File (`aaa.config.json`)
+
+Create `aaa.config.json` in your project root for unified configuration across all `aaa` commands. The schema provides IDE autocompletion.
+
+```json
+{
+  "$schema": "./docs/planning/schemas/aaa-config.schema.json",
+
+  "notify": {
+    "enabled": true,
+    "server": "https://ntfy.sh",
+    "defaultTopic": "my-project",
+    "defaultPriority": "high",
+    "quietHours": {
+      "enabled": true,
+      "startHour": 22,
+      "endHour": 8
+    },
+    "events": {
+      "ralph:maxIterationsExceeded": { "topic": "critical", "priority": "max", "tags": ["warning", "sos"] },
+      "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
+      "ralph:subtaskComplete": { "priority": "default" },
+      "claude:stop": { "topic": "claude", "priority": "default" },
+      "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
+    }
+  },
+
+  "ralph": {
+    "hooks": {
+      "onIterationComplete": ["log"],
+      "onSubtaskComplete": ["log", "notify"],
+      "onMilestoneComplete": ["log", "notify"],
+      "onValidationFail": ["log", "notify"],
+      "onMaxIterationsExceeded": ["log", "notify", "pause"]
+    },
+    "selfImprovement": {
+      "mode": "suggest"
+    },
+    "build": {
+      "maxIterations": 3,
+      "calibrateEvery": 0
+    }
+  },
+
+  "review": {
+    "autoFixThreshold": 3,
+    "diaryPath": "logs/reviews.jsonl"
+  },
+
+  "research": {
+    "outputDir": "docs/research",
+    "github": { "maxResults": 10 },
+    "parallel": { "maxResults": 15 }
+  },
+
+  "debug": false
+}
+```
+
+**Config sections:**
+
+| Section    | Description                                        |
+| ---------- | -------------------------------------------------- |
+| `notify`   | Push notifications via ntfy.sh with event routing  |
+| `ralph`    | Autonomous build system hooks and settings         |
+| `review`   | Code review auto-fix threshold and diary location  |
+| `research` | Research output directory and result limits        |
+| `debug`    | Enable debug logging across all commands           |
+
+**Legacy config migration:** If you have `ralph.config.json` or `~/.config/aaa/notify.json`, the CLI will read them with a deprecation warning. Migrate to `aaa.config.json` for unified configuration.
+
+### Environment Variables
+
+Secrets should be stored in environment variables, not the config file. Create `tools/.env` from `.env.dev`:
 
 | Variable               | Required            | Description                              |
 | ---------------------- | ------------------- | ---------------------------------------- |
+| `NTFY_PASSWORD`        | No                  | ntfy password for authenticated topics   |
+| `NTFY_TOPIC`           | No                  | Override default topic via environment   |
+| `NTFY_SERVER`          | No                  | Override server URL via environment      |
 | `AAA_PARALLEL_API_KEY` | For parallel-search | [Get key](https://platform.parallel.ai/) |
 | `AAA_GITHUB_TOKEN`     | No                  | Falls back to `gh auth`                  |
 | `AAA_DEBUG`            | No                  | Enable verbose logging                   |
