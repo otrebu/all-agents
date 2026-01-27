@@ -181,6 +181,21 @@
           {
             "type": "command",
             "command": "afplay /System/Library/Sounds/Glass.aiff"
+          },
+          {
+            "type": "command",
+            "command": "aaa notify --event claude:stop 'Task complete' --quiet"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "aaa notify --event claude:permissionPrompt 'Permission needed' --quiet"
           }
         ]
       }

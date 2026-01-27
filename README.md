@@ -254,30 +254,30 @@ Claude Code extends with three mechanisms:
 <details>
 <summary><strong>Slash Commands</strong> (22 commands)</summary>
 
-| Command                            | Description                                 | Stability    | Action |
-| :--------------------------------- | :------------------------------------------ | :----------- | :----- |
-| `/dev:git-commit`                  | Create conventional commits                 | stable       | - |
-| `/dev:git-multiple-commits`        | Create multiple commits                     | stable       | - |
-| `/dev:start-feature`               | Create/switch feature branches              | stable       | - |
-| `/dev:complete-feature`            | Merge feature to main                       | stable       | - |
-| `/dev:code-review`                 | AI-assisted code review                     | beta         | - |
-| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | - |
-| `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental | - |
-| `/gh-search`                       | Search GitHub for code examples             | experimental | - |
-| `/gemini-research`                 | Google Search via Gemini                    | experimental | - |
-| `/parallel-search`                 | Multi-angle web research                    | beta         | - |
-| `/create-task`                     | Create numbered task file                   | beta         | - |
-| `/download`                        | Download URLs to markdown                   | beta         | - |
-| `/context:atomic-doc`              | Create/update atomic docs                   | beta         | - |
-| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | - |
-| `/meta:cli-feature-creator`        | Wizard for adding CLI features              | experimental | - |
-| `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | - |
-| `/meta:claude-code:create-command` | Create a slash command                      | beta         | - |
-| `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | - |
-| `/meta:claude-code:create-plugin`  | Scaffold a plugin                           | beta         | - |
-| `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental | - |
-| `/meta:how-to-prompt`              | Prompting guidance                          | stable       | - |
-| `/meta:optimize-prompt`            | Optimize prompts                            | stable       | - |
+| Command                            | Description                                 | Stability    | Created    | DRY | Refs/Depends                              | Action |
+| :--------------------------------- | :------------------------------------------ | :----------- | :--------- | :-- | :---------------------------------------- | :----- |
+| `/dev:git-commit`                  | Create conventional commits                 | stable       | 2025-11-18 | ✓   | @context/workflows/commit.md              | - |
+| `/dev:git-multiple-commits`        | Create multiple commits                     | stable       | 2025-11-18 | ✓   | @context/workflows/multiple-commits.md    | - |
+| `/dev:start-feature`               | Create/switch feature branches              | stable       | 2025-11-18 | ✓   | @context/workflows/start-feature.md       | - |
+| `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | - |
+| `/dev:code-review`                 | AI-assisted code review                     | beta         | 2025-11-18 | ✓   | parallel-code-review skill                | - |
+| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | - |
+| `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental | 2026-01-25 | ✓   | @context/workflows/interrogate.md         | - |
+| `/gh-search`                       | Search GitHub for code examples             | experimental | 2025-11-19 | ✓   | aaa gh-search CLI                         | - |
+| `/gemini-research`                 | Google Search via Gemini                    | experimental | 2025-11-19 | ✓   | @context/blocks/construct/gemini-cli.md   | - |
+| `/parallel-search`                 | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md | - |
+| `/create-task`                     | Create numbered task file                   | beta         | 2025-12-02 | ✓   | @context/blocks/docs/task-management.md, aaa task create | - |
+| `/download`                        | Download URLs to markdown                   | beta         | 2025-12-03 | ✓   | aaa download CLI                          | - |
+| `/context:atomic-doc`              | Create/update atomic docs                   | beta         | 2025-12-22 | ✓   | @context/blocks/docs/atomic-documentation.md | - |
+| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | - |
+| `/meta:cli-feature-creator`        | Wizard for adding CLI features              | experimental | 2026-01-23 | ✗   | Inline paths, no @context refs            | REFACTOR: extract to workflow |
+| `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | 2025-11-18 | ✓   | Python init script                        | - |
+| `/meta:claude-code:create-command` | Create a slash command                      | beta         | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md, WebFetch | - |
+| `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | 2025-11-18 | ✓   | @context/blocks/docs/prompting-agent-templates.md | - |
+| `/meta:claude-code:create-plugin`  | Scaffold a plugin                           | beta         | 2025-11-18 | ⚠️  | Node script: context/meta/create-plugin.ts | - |
+| `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md         | - |
+| `/meta:how-to-prompt`              | Prompting guidance                          | stable       | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md         | - |
+| `/meta:optimize-prompt`            | Optimize prompts                            | stable       | 2025-11-18 | ✓   | @context/blocks/docs/prompting-optimize.md | - |
 
 </details>
 
@@ -328,6 +328,53 @@ Claude Code extends with three mechanisms:
 | `walkthrough`          | Present items one at a time interactively      | experimental |
 
 </details>
+
+### Claude Code Notification Integration
+
+Get push notifications when Claude Code completes tasks or needs permission. Uses the `aaa notify` CLI with event routing.
+
+**Setup:**
+
+1. Configure your notify topic: `aaa notify init`
+2. The hooks in `.claude/settings.json` are pre-configured:
+
+```json
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [
+        { "type": "command", "command": "aaa notify --event claude:stop 'Task complete' --quiet" }
+      ]
+    }],
+    "Notification": [{
+      "matcher": "permission_prompt",
+      "hooks": [
+        { "type": "command", "command": "aaa notify --event claude:permissionPrompt 'Permission needed' --quiet" }
+      ]
+    }]
+  }
+}
+```
+
+**Event routing** uses `aaa.config.json` to customize notifications per event:
+
+```json
+{
+  "notify": {
+    "defaultTopic": "claude",
+    "events": {
+      "claude:stop": { "priority": "default" },
+      "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
+    }
+  }
+}
+```
+
+**Available events:**
+- `claude:stop` - Claude Code task completed
+- `claude:permissionPrompt` - Permission prompt requires action
+
+**Note:** Hooks are safe before running `aaa notify init` - they exit silently when unconfigured.
 
 ## Using with Cursor
 
