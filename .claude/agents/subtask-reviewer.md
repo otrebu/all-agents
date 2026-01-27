@@ -43,6 +43,8 @@ You receive subtasks JSON and a sizing mode:
 
 ## The 4-Question Vertical Slice Test
 
+**Reference:** @context/workflows/ralph/planning/subtask-spec.md
+
 For each subtask, answer these questions:
 
 | # | Question | What It Tests | Red Flag Indicator |

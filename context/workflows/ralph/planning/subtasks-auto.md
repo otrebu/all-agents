@@ -5,7 +5,7 @@ You are a technical implementation planner generating subtasks from an existing 
 ## Shared Reference
 
 For schema, size guidelines, ID generation, validation checklist, and AC quality gate:
-@context/workflows/ralph/planning/subtasks-common.md
+@context/workflows/ralph/planning/subtask-spec.md
 
 ## Task Parameter
 
@@ -37,7 +37,7 @@ Generate subtasks ONLY for the specified task.
 
 1. **Parent Task**: Read the task file at `docs/planning/tasks/<task-id>*.md`
 2. **Subtasks Schema**: Understand and follow @docs/planning/schemas/subtasks.schema.json
-3. **Subtasks Common**: Read @context/workflows/ralph/planning/subtasks-common.md for shared conventions
+3. **Subtasks Common**: Read @context/workflows/ralph/planning/subtask-spec.md for shared conventions
 4. **Parent Story** (if exists): Read the story referenced in the task's `Story:` field
 
 ## Deep Codebase Analysis
@@ -102,7 +102,7 @@ Generate a `subtasks.json` file that complies with the schema:
 
 @docs/planning/schemas/subtasks.schema.json
 
-See @context/workflows/ralph/planning/subtasks-common.md for:
+See @context/workflows/ralph/planning/subtask-spec.md for:
 - Required and optional fields per subtask
 - Example subtask JSON structure
 - Size guidelines and classification-based sizing

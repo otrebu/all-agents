@@ -5,7 +5,7 @@ You are a technical implementation planner generating subtasks from arbitrary in
 ## Shared Reference
 
 For subtask schema, size guidelines, ID generation, validation checklist, and AC quality gate:
-→ See @context/workflows/ralph/planning/subtasks-common.md
+→ See @context/workflows/ralph/planning/subtask-spec.md
 
 ## Input Sources
 
@@ -112,14 +112,14 @@ Answer these questions:
 
 ### Phase 3: Generate Subtasks
 
-For each actionable item, create a subtask following the schema in subtasks-common.md.
+For each actionable item, create a subtask following the schema in subtask-spec.md.
 
 **taskRef handling (specific to this workflow):**
 - If input references a specific TASK, use that
 - If generating from review findings or text, use a placeholder like `review-findings`
 - If `--story` provided, also set `storyRef`
 
-Apply the AC Quality Gate from subtasks-common.md before proceeding.
+Apply the AC Quality Gate from subtask-spec.md before proceeding.
 
 ### Phase 3b: Size Judgment
 
@@ -164,15 +164,15 @@ Result: 4/4 PASS → Proceed
 
 ### Phase 4: Size Validation
 
-Apply Size Guidelines from subtasks-common.md using the vertical slice test from Phase 3b.
+Apply Size Guidelines from subtask-spec.md using the vertical slice test from Phase 3b.
 
 ### Phase 5: ID Generation
 
-Follow ID Generation rules from subtasks-common.md (SUB-NNN pattern, globally unique).
+Follow ID Generation rules from subtask-spec.md (SUB-NNN pattern, globally unique).
 
 ### Phase 6: Validation
 
-Run through the Validation Checklist in subtasks-common.md before proceeding.
+Run through the Validation Checklist in subtask-spec.md before proceeding.
 
 ### Phase 6b: Doc Linking
 
