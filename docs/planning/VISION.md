@@ -548,6 +548,60 @@ Analyzes agent sessions for inefficiencies.
 
 **Approach:** LLM-as-judge with good prompt and context. See Section 8.4.
 
+#### Calibration Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         RALPH CALIBRATION SYSTEM                            │
+│                         `ralph calibrate <mode>`                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+                    ┌────────────────────────────────┐
+                    │        subtasks.json           │
+                    │  (completed subtasks with      │
+                    │   commitHash + sessionId)      │
+                    └────────────────────────────────┘
+                                     │
+         ┌───────────────────────────┼───────────────────────────┐
+         ▼                           ▼                           ▼
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│   INTENTION     │       │   TECHNICAL     │       │    IMPROVE      │
+│   DRIFT         │       │   DRIFT         │       │ (self-improve)  │
+└────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+         │                         │                         │
+         ▼                         ▼                         ▼
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│ READS:          │       │ READS:          │       │ READS:          │
+│ • git diffs     │       │ • git diffs     │       │ • session logs  │
+│   (commitHash)  │       │   (commitHash)  │       │   (~/.claude/   │
+│ • planning chain│       │ • CLAUDE.md     │       │   projects/     │
+│   Story→Task    │       │ • lint/ts config│       │   <sessionId>)  │
+│   →Subtask      │       │ • project stds  │       │                 │
+└────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+         │                         │                         │
+         ▼                         ▼                         ▼
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│ DETECTS:        │       │ DETECTS:        │       │ DETECTS:        │
+│ • Scope creep   │       │ • Missing tests │       │ • Tool misuse   │
+│ • Scope shortfal│       │ • Inconsistent  │       │   (Bash vs Read)│
+│ • Direction     │       │   patterns      │       │ • Wasted reads  │
+│   changes       │       │ • Missing error │       │ • Backtracking  │
+│ • Missing links │       │   handling      │       │ • Excessive     │
+│   to intent     │       │ • Type safety   │       │   iterations    │
+└────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+         │                         │                         │
+         └───────────────────────────┼───────────────────────────┘
+                                     │
+                                     ▼
+                    ┌────────────────────────────────┐
+                    │           OUTPUT               │
+                    │  • Markdown summary (stdout)   │
+                    │  • Task files for issues       │
+                    │    (docs/planning/tasks/)      │
+                    └────────────────────────────────┘
+```
+
 #### When It Runs
 
 - After N iterations (configurable: `--calibrate-every N`)
