@@ -415,18 +415,38 @@ notifyCommand
       );
     }
 
+    // Show current config
+    p.note(
+      `Server:   ${config.server}
+Topic:    ${config.topic}
+Username: ${config.username}
+Priority: ${config.defaultPriority}
+Quiet:    ${config.quietHours.enabled ? `${config.quietHours.startHour}:00 - ${config.quietHours.endHour}:00` : "disabled"}`,
+      "Configuration saved",
+    );
+
     // Show next steps
     p.note(
       `1. Install ntfy app on your phone (iOS/Android)
 2. Subscribe to topic: ${topic}
-3. Add hook to ~/.claude/settings.json:
+3. Set password in ~/.zshrc:
+   export NTFY_PASSWORD="your-password"
+
+4. Add hooks to ~/.claude/settings.json:
 
 {
   "hooks": {
     "Stop": [{
       "hooks": [{
         "type": "command",
-        "command": "aaa notify 'Task complete'"
+        "command": "aaa notify --event claude:stop --title 'Claude Code' 'Response ready - check terminal' --quiet"
+      }]
+    }],
+    "Notification": [{
+      "matcher": "permission_prompt",
+      "hooks": [{
+        "type": "command",
+        "command": "aaa notify --event claude:permissionPrompt --title 'Claude Code' 'Permission required - action needed' --quiet"
       }]
     }]
   }

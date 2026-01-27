@@ -73,6 +73,8 @@ interface NotifySection {
   server?: string;
   /** Default notification title */
   title?: string;
+  /** ntfy username for Basic Auth */
+  username?: string;
 }
 
 const notifySectionSchema = z.object({
@@ -83,6 +85,7 @@ const notifySectionSchema = z.object({
   quietHours: quietHoursSchema.optional(),
   server: z.string().url().optional(),
   title: z.string().optional(),
+  username: z.string().optional(),
 });
 
 // =============================================================================

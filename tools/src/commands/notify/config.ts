@@ -46,6 +46,7 @@ const DEFAULT_NOTIFY_CONFIG: NotifyConfig = {
   server: "https://ntfy.sh",
   title: "aaa notify",
   topic: "",
+  username: "admin",
 };
 
 // =============================================================================
@@ -202,6 +203,7 @@ function mapNotifySectionToConfig(notify: NotifySection): NotifyConfig {
     server: notify.server ?? DEFAULT_NOTIFY_CONFIG.server,
     title: notify.title ?? DEFAULT_NOTIFY_CONFIG.title,
     topic: notify.defaultTopic ?? DEFAULT_NOTIFY_CONFIG.topic,
+    username: notify.username ?? DEFAULT_NOTIFY_CONFIG.username,
   };
 }
 

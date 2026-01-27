@@ -80,6 +80,7 @@ describe("notify types", () => {
       server: "https://ntfy.sh",
       title: "aaa notify",
       topic: "my-topic",
+      username: "admin",
     };
 
     test("notifyConfigSchema accepts valid config", () => {

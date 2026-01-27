@@ -185,6 +185,7 @@ describe("notify config", () => {
         server: "https://custom.ntfy.sh",
         title: "Custom Title",
         topic: "my-custom-topic",
+        username: "admin",
       };
       writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
 
@@ -279,6 +280,7 @@ describe("notify config", () => {
         server: "https://ntfy.sh",
         title: "test",
         topic: "my-topic",
+        username: "admin",
       };
 
       saveNotifyConfig(config, configPath);

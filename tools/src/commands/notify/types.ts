@@ -65,6 +65,8 @@ interface NotifyConfig {
   title: string;
   /** ntfy topic (keep secret - it's your "password") */
   topic: string;
+  /** ntfy username for Basic Auth */
+  username: string;
 }
 
 /**
@@ -78,6 +80,7 @@ const notifyConfigSchema = z.object({
   server: z.string().url(),
   title: z.string().min(1),
   topic: z.string(),
+  username: z.string(),
 });
 
 // =============================================================================

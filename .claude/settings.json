@@ -180,11 +180,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "afplay /System/Library/Sounds/Glass.aiff"
-          },
-          {
-            "type": "command",
-            "command": "aaa notify --event claude:stop 'Task complete' --quiet"
+            "command": "aaa notify --event claude:stop --title 'Claude Code' 'Response ready - check terminal' --quiet"
           }
         ]
       }
@@ -195,7 +191,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "aaa notify --event claude:permissionPrompt 'Permission needed' --quiet"
+            "command": "aaa notify --event claude:permissionPrompt --title 'Claude Code' 'Permission required - action needed' --quiet"
           }
         ]
       }

@@ -1,0 +1,47 @@
+{
+  "notify": {
+    "defaultPriority": "high",
+    "defaultTopic": "ralph",
+    "enabled": true,
+    "quietHours": {
+      "enabled": true,
+      "endHour": 8,
+      "startHour": 22
+    },
+    "server": "http://100.92.35.100:8080",
+    "title": "aaa notify",
+    "username": "admin",
+    "events": {
+      "claude:stop": {
+        "topic": "claude-code",
+        "priority": "low",
+        "tags": ["question"]
+      },
+      "claude:permissionPrompt": {
+        "topic": "claude-code",
+        "priority": "high",
+        "tags": ["key"]
+      },
+      "ralph:subtaskComplete": {
+        "topic": "ralph",
+        "priority": "default",
+        "tags": ["white_check_mark"]
+      },
+      "ralph:milestoneComplete": {
+        "topic": "ralph",
+        "priority": "high",
+        "tags": ["tada"]
+      },
+      "ralph:maxIterationsExceeded": {
+        "topic": "ralph",
+        "priority": "high",
+        "tags": ["warning", "hammer"]
+      },
+      "ralph:validationFail": {
+        "topic": "ralph",
+        "priority": "high",
+        "tags": ["x"]
+      }
+    }
+  }
+}

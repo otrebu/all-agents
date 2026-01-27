@@ -17,6 +17,7 @@ export const DEFAULT_NOTIFY: NotifySection = {
   quietHours: { enabled: false, endHour: 8, startHour: 22 },
   server: "https://ntfy.sh",
   title: "aaa",
+  username: "admin",
 };
 
 /**

@@ -135,6 +135,7 @@ describe("notify unified config integration", () => {
         server: "https://ntfy.sh",
         title: "test",
         topic: "saved-topic",
+        username: "admin",
       };
 
       saveNotifyConfig(config);
@@ -173,6 +174,7 @@ describe("notify unified config integration", () => {
         server: "https://ntfy.sh",
         title: "test",
         topic: "my-topic",
+        username: "admin",
       };
       saveNotifyConfig(config);
 
@@ -195,6 +197,7 @@ describe("notify unified config integration", () => {
         server: "https://my.ntfy.sh",
         title: "My Notifications",
         topic: "round-trip-topic",
+        username: "admin",
       };
 
       saveNotifyConfig(config);
