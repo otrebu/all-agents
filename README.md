@@ -256,7 +256,7 @@ Claude Code extends with three mechanisms:
 | `/dev:git-multiple-commits`        | Create multiple commits                     | stable       | 2025-11-18 | ✓   | @context/workflows/multiple-commits.md    | FIX: (1) rename → /git-multiple-commits (2) add git reset perm (3) add inline context |
 | `/dev:start-feature`               | Create/switch feature branches              | stable       | 2025-11-18 | ✓   | @context/workflows/start-feature.md       | FIX: add git fetch perm, clarify $ARGUMENTS |
 | `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | FIX: (1) add git reset perm (2) remove branch deletion (3) trim Step 4 verbosity |
-| `/dev:code-review`                 | AI-assisted code review                     | beta         | 2025-11-18 | ✓   | parallel-code-review skill                | - |
+| `/dev:code-review`                 | AI-assisted code review                     | beta         | 2025-11-18 | ✓   | parallel-code-review skill                | NUKE - skill auto-triggers, command is redundant wrapper |
 | `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | - |
 | `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental | 2026-01-25 | ✓   | @context/workflows/interrogate.md         | - |
 | `/gh-search`                       | Search GitHub for code examples             | experimental | 2025-11-19 | ✓   | aaa gh-search CLI                         | - |
@@ -286,13 +286,13 @@ Claude Code extends with three mechanisms:
 | `subtask-reviewer`               | Review subtasks using vertical slice test         | experimental | 2026-01-26 | ralph-plan skill            | REFACTOR: (1) rename subtasks-common.md → subtask-spec.md (2) DRY up agent to reference spec instead of duplicating vertical slice test + sizing modes |
 | `task-generator`                 | Generate technical tasks from stories             | experimental | 2026-01-23 | ralph-plan skill            | REFACTOR: remove embedded template (lines 119-154), just reference task-template.md |
 | `accessibility-reviewer`         | WCAG, keyboard nav, ARIA, color contrast          | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: reference @context/blocks/quality/accessibility.md |
-| `data-integrity-reviewer`        | Null checks, race conditions, schema violations   | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
-| `dependency-reviewer`            | Version compat, licenses, circular deps           | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `data-integrity-reviewer`        | Null checks, race conditions, schema violations   | experimental | 2026-01-25 | parallel-code-review skill  | DONE (DRYed up) |
+| `dependency-reviewer`            | Version compat, licenses, circular deps           | experimental | 2026-01-26 | parallel-code-review skill  | DONE (DRYed up) |
 | `documentation-reviewer`         | Docstrings, API docs, README gaps                 | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
 | `error-handling-reviewer`        | Swallowed exceptions, missing catch, async issues | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
 | `intent-alignment-reviewer`      | Code matches specification                        | experimental | 2026-01-26 | parallel-code-review skill  | N/A - uses planning chain |
 | `maintainability-reviewer`       | Coupling, naming, DRY, SRP issues                 | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: reference @context/blocks/quality/coding-style.md |
-| `over-engineering-reviewer`      | YAGNI, premature abstraction                      | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
+| `over-engineering-reviewer`      | YAGNI, premature abstraction                      | experimental | 2026-01-26 | parallel-code-review skill  | DONE (DRYed up) |
 | `performance-reviewer`           | O(n²), memory leaks, N+1 queries                  | experimental | 2026-01-26 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
 | `security-reviewer`              | OWASP Top 10, injection, XSS, auth, secrets       | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: find/create atomic doc, DRY up |
 | `test-coverage-reviewer`         | Missing tests, untested branches, assertions      | experimental | 2026-01-25 | parallel-code-review skill  | REFACTOR: reference @context/blocks/test/testing.md |
