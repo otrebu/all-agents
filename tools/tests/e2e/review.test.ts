@@ -96,3 +96,97 @@ describe("review E2E - flag validation", () => {
     expect(stdout).toContain("--headless");
   });
 });
+
+describe("review E2E - diff target flags", () => {
+  test("--help shows all diff target flags", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "review", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--base <branch>");
+    expect(stdout).toContain("--range <range>");
+    expect(stdout).toContain("--staged-only");
+    expect(stdout).toContain("--unstaged-only");
+  });
+
+  test("multiple diff target flags shows mutual exclusion error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "review", "--base", "main", "--staged-only"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Cannot specify multiple diff target flags");
+  });
+
+  test("--range and --unstaged-only shows mutual exclusion error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "review", "--range", "main..HEAD", "--unstaged-only"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Cannot specify multiple diff target flags");
+  });
+
+  test("invalid --range format shows error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "review", "--range", "invalid-format"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Invalid --range format");
+    expect(stderr).toContain("<from>..<to>");
+  });
+
+  test("--base flag is accepted (shows mode prompt)", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "review", "--base", "main"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Code Review Mode Selection");
+  });
+
+  test("--staged-only flag is accepted (shows mode prompt)", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "review", "--staged-only"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Code Review Mode Selection");
+  });
+
+  test("--unstaged-only flag is accepted (shows mode prompt)", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "review", "--unstaged-only"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Code Review Mode Selection");
+  });
+
+  test("--range with valid format is accepted (shows mode prompt)", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "review", "--range", "main..HEAD"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Code Review Mode Selection");
+  });
+});

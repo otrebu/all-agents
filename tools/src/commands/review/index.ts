@@ -17,6 +17,118 @@ import { formatDuration, renderMarkdown } from "../ralph/display";
 import { calculatePriority, FindingsArraySchema } from "./types";
 
 /**
+ * Diff target configuration for code review
+ *
+ * Specifies which code changes to review. Only one option can be active.
+ *
+ * Variants:
+ * - base: git diff <branch>...HEAD
+ * - range: git diff <from>..<to>
+ * - default: git diff HEAD, fallback to origin/main...HEAD
+ * - staged: git diff --cached
+ * - unstaged: git diff (working tree only)
+ */
+type DiffTarget =
+  | { branch: string; type: "base" }
+  | { from: string; to: string; type: "range" }
+  | { type: "default" }
+  | { type: "staged" }
+  | { type: "unstaged" };
+
+/**
+ * Options for diff target validation
+ */
+interface DiffTargetValidationOptions {
+  base: string | undefined;
+  range: string | undefined;
+  stagedOnly: boolean | undefined;
+  unstagedOnly: boolean | undefined;
+}
+
+/**
+ * Build the git diff command based on diff target configuration
+ *
+ * @param diffTarget - The diff target configuration
+ * @returns Git diff command string
+ */
+function buildDiffCommand(diffTarget: DiffTarget): string {
+  switch (diffTarget.type) {
+    case "base": {
+      return `git diff ${diffTarget.branch}...HEAD`;
+    }
+    case "range": {
+      return `git diff ${diffTarget.from}..${diffTarget.to}`;
+    }
+    case "staged": {
+      return "git diff --cached";
+    }
+    case "unstaged": {
+      return "git diff";
+    }
+    default: {
+      return "git diff HEAD";
+    }
+  }
+}
+
+/**
+ * Validate diff target options are mutually exclusive and parse into DiffTarget
+ *
+ * @param options - The diff target options from CLI
+ * @returns Validation result with DiffTarget if valid, or error message if invalid
+ */
+function validateDiffTargetOptions(
+  options: DiffTargetValidationOptions,
+): { diffTarget: DiffTarget; valid: true } | { error: string; valid: false } {
+  const flagCount = [
+    options.base !== undefined,
+    options.range !== undefined,
+    options.stagedOnly === true,
+    options.unstagedOnly === true,
+  ].filter(Boolean).length;
+
+  if (flagCount > 1) {
+    return {
+      error:
+        "Cannot specify multiple diff target flags (--base, --range, --staged-only, --unstaged-only)",
+      valid: false,
+    };
+  }
+
+  if (options.base !== undefined) {
+    return { diffTarget: { branch: options.base, type: "base" }, valid: true };
+  }
+
+  if (options.range !== undefined) {
+    // Parse range format: from..to
+    const rangeMatch = /^(?<from>[^.]+)\.\.(?<to>[^.]+)$/.exec(options.range);
+    const fromReference = rangeMatch?.groups?.from;
+    const toReference = rangeMatch?.groups?.to;
+    if (fromReference === undefined || toReference === undefined) {
+      return {
+        error:
+          "Invalid --range format. Expected: <from>..<to> (e.g., main..feature)",
+        valid: false,
+      };
+    }
+    return {
+      diffTarget: { from: fromReference, to: toReference, type: "range" },
+      valid: true,
+    };
+  }
+
+  if (options.stagedOnly === true) {
+    return { diffTarget: { type: "staged" }, valid: true };
+  }
+
+  if (options.unstagedOnly === true) {
+    return { diffTarget: { type: "unstaged" }, valid: true };
+  }
+
+  return { diffTarget: { type: "default" }, valid: true };
+}
+
+/**
  * Review command - orchestrate parallel code review using specialized agents
  *
  * Modes:
@@ -40,6 +152,10 @@ const reviewCommand = new Command("review")
     "--require-approval",
     "Pause after triage to show fix summary and require confirmation (requires --headless)",
   )
+  .option("--base <branch>", "Compare HEAD against specified branch")
+  .option("--range <range>", "Compare specific commits (format: from..to)")
+  .option("--staged-only", "Review only staged changes")
+  .option("--unstaged-only", "Review only unstaged changes")
   .action((options) => {
     // Validate: --dry-run requires --headless
     if (options.dryRun === true && options.headless !== true) {
@@ -65,14 +181,37 @@ const reviewCommand = new Command("review")
       process.exit(1);
     }
 
+    // Validate: diff target flags are mutually exclusive
+    const diffTargetOptions = {
+      base: options.base,
+      range: options.range,
+      stagedOnly: options.stagedOnly,
+      unstagedOnly: options.unstagedOnly,
+    };
+    const diffTargetResult = validateDiffTargetOptions(diffTargetOptions);
+    if (!diffTargetResult.valid) {
+      console.error(chalk.red(`Error: ${diffTargetResult.error}`));
+      console.log(
+        "\nDiff target flags are mutually exclusive. Use only one of:",
+      );
+      console.log("  --base <branch>      Compare HEAD against branch");
+      console.log("  --range <from>..<to> Compare specific commits");
+      console.log("  --staged-only        Review only staged changes");
+      console.log("  --unstaged-only      Review only unstaged changes");
+      process.exit(1);
+    }
+
     // Determine mode and execute
+    const { diffTarget } = diffTargetResult as { diffTarget: DiffTarget };
+
     if (options.headless === true) {
       void runHeadlessReview(
         options.dryRun === true,
         options.requireApproval === true,
+        diffTarget,
       );
     } else if (options.supervised === true) {
-      runSupervisedReview();
+      runSupervisedReview(diffTarget);
     } else {
       // No mode specified - prompt user to choose
       promptForMode();
@@ -295,6 +434,16 @@ function writeDiaryEntry(entry: ReviewDiaryEntry, projectRoot: string): void {
 const AUTO_FIX_THRESHOLD = 3;
 
 /**
+ * Options for building a headless review prompt
+ */
+interface HeadlessPromptOptions {
+  diffTarget: DiffTarget;
+  isDryRun: boolean;
+  isRequireApproval: boolean;
+  skillPath: string;
+}
+
+/**
  * Auto-triage findings by severity × confidence
  *
  * Categorizes findings into:
@@ -344,21 +493,21 @@ function autoTriageFindings(
  * Creates a prompt that instructs Claude to run the parallel code review
  * and output findings in a parseable JSON format.
  *
- * @param skillPath - Path to the code-review skill
- * @param isDryRun - Whether this is a dry-run (affects instructions)
- * @param isRequireApproval - Whether approval is required before fixes (also skips fixes)
+ * @param options - Configuration options for the prompt
  * @returns Formatted prompt for headless Claude invocation
  */
-function buildHeadlessReviewPrompt(
-  skillPath: string,
-  isDryRun: boolean,
-  isRequireApproval: boolean,
-): string {
+function buildHeadlessReviewPrompt(options: HeadlessPromptOptions): string {
+  const { diffTarget, isDryRun, isRequireApproval, skillPath } = options;
   const skillContent = readFileSync(skillPath, "utf8");
 
   const fixInstructions = getFixInstructions(isDryRun, isRequireApproval);
+  const diffCommand = buildDiffCommand(diffTarget);
+  const diffInstructions =
+    diffTarget.type === "default"
+      ? ""
+      : `\n\nIMPORTANT: Use this specific git diff command to gather changes: \`${diffCommand}\``;
 
-  return `Execute the parallel code review workflow defined below.
+  return `Execute the parallel code review workflow defined below.${diffInstructions}
 
 CRITICAL: After completing the review, output findings in this exact JSON format at the END of your response:
 
@@ -692,10 +841,12 @@ function renderFindingsSummary(
  *
  * @param isDryRun - If true, preview fixes without applying
  * @param requireApproval - If true, pause after triage for user confirmation
+ * @param diffTarget - The diff target configuration
  */
 async function runHeadlessReview(
   isDryRun: boolean,
   isRequireApproval: boolean,
+  diffTarget: DiffTarget,
 ): Promise<void> {
   if (isDryRun) {
     console.log(chalk.bold("Starting headless code review (dry-run)...\n"));
@@ -727,11 +878,12 @@ async function runHeadlessReview(
   }
 
   // Build the prompt
-  const prompt = buildHeadlessReviewPrompt(
-    skillPath,
+  const prompt = buildHeadlessReviewPrompt({
+    diffTarget,
     isDryRun,
     isRequireApproval,
-  );
+    skillPath,
+  });
 
   console.log(chalk.dim("Invoking Claude in headless mode...\n"));
 
@@ -969,8 +1121,10 @@ function runReviewStatus(): void {
  *
  * Spawns a Claude chat session with the code-review skill.
  * User watches execution and can intervene.
+ *
+ * @param diffTarget - The diff target configuration
  */
-function runSupervisedReview(): void {
+function runSupervisedReview(diffTarget: DiffTarget): void {
   console.log(chalk.bold("Starting supervised code review...\n"));
 
   // Find project root and skill prompt
@@ -991,6 +1145,13 @@ function runSupervisedReview(): void {
   // Use the skill file as the prompt path
   const promptPath = skillPath;
 
+  // Build diff command instruction
+  const diffCommand = buildDiffCommand(diffTarget);
+  const diffInstruction =
+    diffTarget.type === "default"
+      ? "1. Gather the diff of current changes"
+      : `1. Gather changes using: \`${diffCommand}\``;
+
   // Invoke Claude in chat/supervised mode
   // User can watch and type during the session
   const result = invokeClaudeChat(
@@ -999,7 +1160,7 @@ function runSupervisedReview(): void {
     `Execute the parallel code review workflow as defined in this skill document.
 
 Run all phases:
-1. Gather the diff of current changes
+${diffInstruction}
 2. Invoke all reviewer agents in parallel
 3. Synthesize the findings
 4. Present findings for triage
@@ -1040,3 +1201,6 @@ reviewCommand.addCommand(
 );
 
 export default reviewCommand;
+
+// Export types and utilities for testing
+export { buildDiffCommand, type DiffTarget, validateDiffTargetOptions };

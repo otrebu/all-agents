@@ -116,6 +116,10 @@ aaa review --supervised                     # Watch execution, can intervene
 aaa review --headless                       # Fully autonomous with auto-triage
 aaa review --headless --dry-run             # Preview findings without fixes
 aaa review --headless --require-approval    # Pause after triage for user confirmation
+aaa review --base main                      # Review changes vs main branch
+aaa review --range abc123..def456           # Review specific commit range
+aaa review --staged-only                    # Review only staged changes
+aaa review --unstaged-only                  # Review only unstaged changes
 aaa review status                           # Show review history and statistics
 #
 # Skill: /dev:code-review | Full docs: docs/planning/VISION.md Section 3.4
@@ -300,7 +304,7 @@ Claude Code extends with three mechanisms:
 | `doc-analyze`          | Tiered doc analysis (T1: Haiku lookup, T2: Sonnet gaps, T3: Opus deep) | experimental | 2026-01-28 | ✓   | -           | - |
 | `gh-search`            | Search GitHub for code examples and patterns   | experimental | 2026-01-28 | ✓   | `aaa gh-search` | - |
 | `interrogate-on-changes` | Surface decisions, alternatives, confidence  | experimental | 2026-01-28 | ✓   | -           | - |
-| `code-review`          | Orchestrate 11 reviewers in parallel           | experimental | 2026-01-25 | ✗   | `aaa review` | REWRITE: (1) ~~rename → code-review~~ DONE (2) ~~add triage agent that PICKS not just aggregates~~ DONE (3) ~~add approval gate before changes~~ DONE (4) add flexible diff targets (branch vs main, between commits) (5) add ralph hooks integration |
+| `code-review`          | Orchestrate 11 reviewers in parallel           | experimental | 2026-01-25 | ✗   | `aaa review` | REWRITE: (1) ~~rename → code-review~~ DONE (2) ~~add triage agent that PICKS not just aggregates~~ DONE (3) ~~add approval gate before changes~~ DONE (4) ~~add flexible diff targets (branch vs main, between commits)~~ DONE (5) add ralph hooks integration |
 | `ralph-build`          | Autonomous build loop for subtasks             | experimental | 2026-01-23 | ✓   | `aaa ralph build` | FIX: pre-build-validation.md should ref subtask-spec.md for sizing (vertical slice test, small/medium/large modes, 2-5 AC threshold) — keep only alignment checks (scope_creep, unfaithful) |
 | `ralph-calibrate`      | Check intention drift, technical quality       | experimental | 2026-01-23 | ✓   | `aaa ralph calibrate` | ✓ KEEP (complementary to code-review: calibrate = drift from our docs, review = general quality) |
 | `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental | 2026-01-23 | ✓   | `aaa ralph plan` | FIX: (1) add argument-hint frontmatter (2) clarify --task mode in docs (3) add --1-to-1 flag for direct tasks→subtasks mapping (no decomposition) |
