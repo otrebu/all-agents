@@ -15,7 +15,7 @@ Check the ARGUMENTS:
 
 Launch a **subagent** with fresh context to analyze the roadmap for gaps.
 
-Follow @context/workflows/ralph/planning/roadmap-gap-analysis.md completely.
+Follow @context/workflows/ralph/review/roadmap-gap-auto.md completely.
 
 ### `gap stories <milestone>`
 
@@ -23,7 +23,7 @@ Launch a **subagent** with fresh context to analyze stories for gaps.
 
 If no milestone provided, ask user: "Which milestone should I analyze? (e.g., milestone-1)"
 
-Follow @context/workflows/ralph/planning/story-gap-analysis.md completely.
+Follow @context/workflows/ralph/review/stories-gap-auto.md completely.
 
 ### `stories <milestone>`
 
