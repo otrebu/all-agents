@@ -210,11 +210,7 @@ interface RalphConfig {
   /** ntfy push notification configuration */
   ntfy?: NtfyConfig;
   /** Opencode provider configuration */
-  opencode?: {
-    agent?: string;
-    extraFlags?: Array<string>;
-    model?: string;
-  };
+  opencode?: { agent?: string; extraFlags?: Array<string>; model?: string };
   /** Default AI provider for builds */
   provider?: string;
   /** Self-improvement configuration */
