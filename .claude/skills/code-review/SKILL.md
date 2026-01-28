@@ -1,5 +1,5 @@
 ---
-name: parallel-code-review
+name: code-review
 description: Orchestrate parallel code review using specialized reviewer agents. Spawns 11 reviewers in parallel, synthesizes findings, and presents for triage. Use when user wants comprehensive multi-agent code review.
 allowed-tools: Task, Bash, Read, Glob, AskUserQuestion
 ---

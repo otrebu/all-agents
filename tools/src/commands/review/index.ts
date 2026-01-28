@@ -23,7 +23,7 @@ import { calculatePriority, FindingsArraySchema } from "./types";
  * - supervised: User watches execution, can intervene
  * - headless: Fully autonomous with auto-triage
  *
- * @see .claude/skills/parallel-code-review/SKILL.md
+ * @see .claude/skills/code-review/SKILL.md
  * @see docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md
  */
 
@@ -327,7 +327,7 @@ function autoTriageFindings(
  * Creates a prompt that instructs Claude to run the parallel code review
  * and output findings in a parseable JSON format.
  *
- * @param skillPath - Path to the parallel-code-review skill
+ * @param skillPath - Path to the code-review skill
  * @param isDryRun - Whether this is a dry-run (affects instructions)
  * @returns Formatted prompt for headless Claude invocation
  */
@@ -577,7 +577,7 @@ function renderFindingsSummary(
 /**
  * Run review in headless mode
  *
- * Invokes Claude headless with the parallel-code-review skill.
+ * Invokes Claude headless with the code-review skill.
  * Parses JSON findings, auto-triages by severity/confidence,
  * applies fixes (unless dry-run), and logs all decisions.
  *
@@ -593,17 +593,14 @@ function runHeadlessReview(isDryRun: boolean): void {
 
   // Find project root and skill prompt
   const projectRoot = findProjectRoot();
-  const skillPath = join(
-    projectRoot,
-    ".claude/skills/parallel-code-review/SKILL.md",
-  );
+  const skillPath = join(projectRoot, ".claude/skills/code-review/SKILL.md");
 
   // Check if skill file exists
   if (!existsSync(skillPath)) {
     console.error(chalk.red(`Error: Skill not found at ${skillPath}`));
     console.log(
       chalk.dim(
-        "\nEnsure the parallel-code-review skill is installed in .claude/skills/",
+        "\nEnsure the code-review skill is installed in .claude/skills/",
       ),
     );
     process.exit(1);
@@ -824,7 +821,7 @@ function runReviewStatus(): void {
 /**
  * Run review in supervised mode
  *
- * Spawns a Claude chat session with the parallel-code-review skill.
+ * Spawns a Claude chat session with the code-review skill.
  * User watches execution and can intervene.
  */
 function runSupervisedReview(): void {
@@ -832,17 +829,14 @@ function runSupervisedReview(): void {
 
   // Find project root and skill prompt
   const projectRoot = findProjectRoot();
-  const skillPath = join(
-    projectRoot,
-    ".claude/skills/parallel-code-review/SKILL.md",
-  );
+  const skillPath = join(projectRoot, ".claude/skills/code-review/SKILL.md");
 
   // Check if skill file exists
   if (!existsSync(skillPath)) {
     console.error(chalk.red(`Error: Skill not found at ${skillPath}`));
     console.log(
       chalk.dim(
-        "\nEnsure the parallel-code-review skill is installed in .claude/skills/",
+        "\nEnsure the code-review skill is installed in .claude/skills/",
       ),
     );
     process.exit(1);
