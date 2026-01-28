@@ -13,6 +13,15 @@ Orchestrates a multi-agent code review using specialized reviewers running in pa
 - `--intent <description|@file>` - Optional intent for alignment check
 - `--quick` - Only run security and data-integrity reviewers
 
+### Diff Target Flags (mutually exclusive)
+
+- `--base <branch>` - Compare HEAD against specified branch (e.g., `--base main`)
+- `--range <from>..<to>` - Compare specific commits (e.g., `--range abc123..def456`)
+- `--staged-only` - Review only staged changes (`git diff --cached`)
+- `--unstaged-only` - Review only unstaged changes (`git diff`)
+
+If no diff target flag is specified, default behavior applies (see Phase 1).
+
 ## Overview
 
 | Phase | Action | Purpose |
@@ -45,14 +54,35 @@ All reviewers output findings in the standard JSON format defined in @.claude/ag
 
 ### Phase 1: Gather Diff
 
-Get the code changes to review:
+Get the code changes to review based on the diff target argument provided:
 
+**If `--base <branch>` is specified:**
 ```bash
-# Get staged and unstaged changes
+git diff <branch>...HEAD
+```
+
+**If `--range <from>..<to>` is specified:**
+```bash
+git diff <from>..<to>
+```
+
+**If `--staged-only` is specified:**
+```bash
+git diff --cached
+```
+
+**If `--unstaged-only` is specified:**
+```bash
+git diff
+```
+
+**Default behavior (no diff target flag):**
+```bash
+# First, try staged and unstaged changes
 git diff HEAD
 ```
 
-If no changes exist, check for commits not pushed:
+If no changes exist with default behavior, check for commits not pushed:
 
 ```bash
 # Changes since last push/merge
