@@ -56,12 +56,16 @@ interface HookConfig {
  * Hook configuration container
  */
 interface HooksConfig {
+  /** Actions to execute when a critical severity finding is detected during code review */
+  onCriticalFinding?: Array<string>;
   /** Actions to execute after each build iteration completes */
   onIterationComplete?: Array<string>;
   /** Actions to execute when a subtask exceeds the retry limit */
   onMaxIterationsExceeded?: Array<string>;
   /** Actions to execute when all subtasks in a milestone are done */
   onMilestoneComplete?: Array<string>;
+  /** Actions to execute when code review completes */
+  onReviewComplete?: Array<string>;
   /** Actions to execute when a subtask is completed */
   onSubtaskComplete?: Array<string>;
   /** Actions to execute when pre-build validation fails */
