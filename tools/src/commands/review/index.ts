@@ -14,6 +14,7 @@ import type {
 
 import { invokeClaudeChat, invokeClaudeHeadless } from "../ralph/claude";
 import { formatDuration, renderMarkdown } from "../ralph/display";
+import { executeHook, type HookContext } from "../ralph/hooks";
 import { calculatePriority, FindingsArraySchema } from "./types";
 
 /**
@@ -985,6 +986,34 @@ async function runHeadlessReview(
       `\nDiary entry logged to logs/reviews.jsonl (${diaryEntry.findings} findings, ${diaryEntry.fixed} fixed)`,
     ),
   );
+
+  // Execute onReviewComplete hook after triage
+  const criticalCount = findings.filter(
+    (f) => f.severity === "critical",
+  ).length;
+  const reviewCompleteContext: HookContext = {
+    criticalCount,
+    findingCount: findings.length,
+    message: `Code review complete: ${findings.length} findings, ${criticalCount} critical`,
+    sessionId: result.sessionId,
+  };
+  await executeHook("onReviewComplete", reviewCompleteContext);
+
+  // Execute onCriticalFinding hook for critical findings with high confidence
+  const criticalFindings = findings.filter(
+    (f) => f.severity === "critical" && f.confidence >= 0.9,
+  );
+  for (const finding of criticalFindings) {
+    const criticalContext: HookContext = {
+      criticalCount,
+      file: finding.file,
+      findingCount: findings.length,
+      message: `Critical finding: ${finding.description.slice(0, 100)} in ${finding.file}`,
+      sessionId: result.sessionId,
+    };
+    // eslint-disable-next-line no-await-in-loop -- Critical findings processed sequentially
+    await executeHook("onCriticalFinding", criticalContext);
+  }
 }
 
 /**

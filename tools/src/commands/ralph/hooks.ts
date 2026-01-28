@@ -27,8 +27,16 @@ import { loadRalphConfig } from "./config";
  * Context passed to hook execution
  */
 interface HookContext {
+  /** Number of critical severity findings (for review hooks) */
+  criticalCount?: number;
+  /** File path (for onCriticalFinding hook) */
+  file?: string;
+  /** Total number of findings (for review hooks) */
+  findingCount?: number;
   /** Human-readable message describing what triggered the hook */
   message: string;
+  /** Claude Code session ID (for traceability) */
+  sessionId?: string;
   /** Optional subtask ID for context */
   subtaskId?: string;
 }
