@@ -287,7 +287,7 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Skills</strong> (17 skills)</summary>
+<summary><strong>Skills</strong> (16 skills)</summary>
 
 | Skill                  | Description                                    | Stability    | Created    | DRY | CLI Sibling | Action |
 | :--------------------- | :--------------------------------------------- | :----------- | :--------- | :-- | :---------- | :----- |
@@ -296,7 +296,6 @@ Claude Code extends with three mechanisms:
 | `context-atomic-doc`   | Create/update atomic docs (blocks, foundations, stacks) | experimental | 2026-01-28 | ✓   | -           | - |
 | `dev-work-summary`     | Scan ~/dev for today's git work                | beta         | 2025-11-18 | ✓   | -           | ✓ KEEP |
 | `doc-analyze`          | Tiered doc analysis (T1: Haiku lookup, T2: Sonnet gaps, T3: Opus deep) | experimental | 2026-01-28 | ✓   | -           | - |
-| `eval-test-skill`      | List and delete branches merged to main        | experimental | 2025-12-24 | ✗   | -           | NUKE (placeholder name, use /dev:complete-feature instead) |
 | `gh-search`            | Search GitHub for code examples and patterns   | experimental | 2026-01-28 | ✓   | `aaa gh-search` | - |
 | `interrogate-on-changes` | Surface decisions, alternatives, confidence  | experimental | 2026-01-28 | ✓   | -           | - |
 | `parallel-code-review` | Orchestrate 11 reviewers in parallel           | experimental | 2026-01-25 | ✗   | `aaa review` | REWRITE: (1) rename → code-review (2) add triage agent that PICKS not just aggregates (3) add approval gate before changes (4) add flexible diff targets (branch vs main, between commits) (5) add ralph hooks integration |

@@ -32,6 +32,15 @@ cleanup() {
   for pid in "${PIDS[@]:-}"; do
     kill "$pid" 2>/dev/null || true
   done
+
+  # Clean up eval-test-* artifacts created during the run
+  echo "Removing eval-test-* artifacts..."
+  rm -rf "$ROOT_DIR/.claude/skills/eval-test-"* 2>/dev/null || true
+  rm -f "$ROOT_DIR/.claude/agents/eval-test-"* 2>/dev/null || true
+  rm -f "$ROOT_DIR/.claude/commands/eval-test-"* 2>/dev/null || true
+  rm -f "$ROOT_DIR/.cursor/rules/eval-test-"* 2>/dev/null || true
+  rm -f "$ROOT_DIR/context/blocks/"*/eval-test-* 2>/dev/null || true
+
   # Don't remove TMP_DIR immediately - let user inspect if needed
   echo "Temp dir: $TMP_DIR"
 }

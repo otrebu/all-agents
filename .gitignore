@@ -34,3 +34,10 @@ docs/research/downloads/
 
 **/*.built.md
 .claude/chrome/chrome-native-host
+
+# Eval script test artifacts (auto-generated during eval.sh runs)
+.claude/skills/eval-test-*
+.claude/agents/eval-test-*
+.claude/commands/eval-test-*
+.cursor/rules/eval-test-*
+context/blocks/*/eval-test-*
