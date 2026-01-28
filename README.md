@@ -253,7 +253,7 @@ Claude Code extends with three mechanisms:
 | `/dev:git-multiple-commits`        | Create multiple commits                     | stable       | 2025-11-18 | ✓   | @context/workflows/multiple-commits.md    | FIX: (1) rename → /git-multiple-commits (2) add git reset perm (3) add inline context |
 | `/dev:start-feature`               | Create/switch feature branches              | stable       | 2025-11-18 | ✓   | @context/workflows/start-feature.md       | FIX: add git fetch perm, clarify $ARGUMENTS |
 | `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | FIX: (1) add git reset perm (2) remove branch deletion (3) trim Step 4 verbosity |
-| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | REFACTOR: split into 4 atomic docs |
+| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | DONE |
 | `/parallel-search`                 | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md | - |
 | `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | INTEGRATE into doc-analysis |
 | `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | 2025-11-18 | ✗   | Python init script                        | FIX: wrong script path, step numbering |
