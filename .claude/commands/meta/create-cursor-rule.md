@@ -1,6 +1,8 @@
 ---
+name: meta:create-cursor-rule
 description: Create a Cursor rules file (.mdc)
 argument-hint: [rule-name] [description]
+allowed-tools: Read, Write, Bash(mkdir:*)
 ---
 
 # Create Cursor Rule
@@ -15,7 +17,7 @@ Create a Cursor rules file in `.cursor/rules/` directory following MDC format.
 2. **Create Directory**: Ensure `.cursor/rules/` exists in the appropriate scope (root or subdirectory).
 3. **Create File**: Generate `[name].mdc` using the **Template Structure** below.
 4. **Write Content**:
-   - 🛑 MUST follow `@context/meta/PROMPTING.md` standards.
+   - 🛑 MUST follow @context/blocks/docs/prompting.md standards.
    - Keep context minimal and high-signal.
    - Use direct, imperative instructions.
 5. **Review**: Verify metadata (`globs`, `description`) and content structure.

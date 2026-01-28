@@ -1,12 +1,16 @@
 ---
-name: skill-creator
+name: meta:claude-code:create-skill
 description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-allowed-tools: Bash(python3 ./plugins/meta-work/skills/skill-creator/scripts/init_skill.py*)
+allowed-tools: Bash(python3 ./.claude/commands/meta/claude-code/init_skill.py*)
 ---
 
 # Skill Creator for Claude Code
 
-Guide for creating skills in Claude Code's skill directory.
+Create skills in Claude Code's skill directory.
+
+**References:**
+- @context/blocks/docs/prompting.md - Writing standards
+- @context/blocks/construct/claude-code-permissions.md - allowed-tools configuration
 
 ## About Skills
 
@@ -17,7 +21,7 @@ Skills are modular packages providing specialized knowledge, workflows, and tool
 1. Specialized workflows - Multi-step procedures
 2. Tool integrations - File formats, APIs
 3. Domain expertise - Schemas, business logic
-4. Bundled resources - Scripts, references, assets
+4. Bundled resources - Scripts, references, templates
 
 ## Core Principles
 
@@ -90,7 +94,7 @@ skill-name/
 - Examples: `reference.md`, `api_docs.md`, `workflows.md`
 - **Note:** These are individual files at root, NOT in a `references/` subdirectory
 
-**Templates** (`templates/`) - Files used in output, not loaded to context
+**Templates** (`templates/`) - Files used as assets/starting points
 
 - Templates, boilerplate code, starter files
 - Used in final output by copying/modifying
@@ -183,13 +187,13 @@ Skip if skill exists.
 Run init script from repo root:
 
 ```bash
-python3 ./skills/skill-creator/scripts/init_skill.py <skill-name> --path <output-directory>
+python3 ./.claude/commands/meta/claude-code/init_skill.py <skill-name> --path <output-directory>
 ```
 
 Example:
 
 ```bash
-python3 ./skills/skill-creator/scripts/init_skill.py brainwriting --path ./.claude/skills
+python3 ./.claude/commands/meta/claude-code/init_skill.py brainwriting --path ./.claude/skills
 ```
 
 Creates:
@@ -219,6 +223,8 @@ Delete unused example files.
 - `description`: What it does + when to use. Specific, comprehensive, direct. Claude uses this to choose from 100+ skills.
 
 **Body**: Instructions for using skill and resources.
+
+### Step 5: Validate Skill
 
 Script will:
 
