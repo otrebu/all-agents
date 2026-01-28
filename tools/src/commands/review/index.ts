@@ -1,3 +1,4 @@
+import * as p from "@clack/prompts";
 import { Command } from "@commander-js/extra-typings";
 import chalk from "chalk";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -35,11 +36,24 @@ const reviewCommand = new Command("review")
     "--dry-run",
     "Preview what would be fixed without making changes (requires --headless)",
   )
+  .option(
+    "--require-approval",
+    "Pause after triage to show fix summary and require confirmation (requires --headless)",
+  )
   .action((options) => {
     // Validate: --dry-run requires --headless
     if (options.dryRun === true && options.headless !== true) {
       console.error(chalk.red("Error: --dry-run requires --headless mode"));
       console.log("\nUsage: aaa review --headless --dry-run");
+      process.exit(1);
+    }
+
+    // Validate: --require-approval requires --headless
+    if (options.requireApproval === true && options.headless !== true) {
+      console.error(
+        chalk.red("Error: --require-approval requires --headless mode"),
+      );
+      console.log("\nUsage: aaa review --headless --require-approval");
       process.exit(1);
     }
 
@@ -53,7 +67,10 @@ const reviewCommand = new Command("review")
 
     // Determine mode and execute
     if (options.headless === true) {
-      runHeadlessReview(options.dryRun === true);
+      void runHeadlessReview(
+        options.dryRun === true,
+        options.requireApproval === true,
+      );
     } else if (options.supervised === true) {
       runSupervisedReview();
     } else {
@@ -329,17 +346,17 @@ function autoTriageFindings(
  *
  * @param skillPath - Path to the code-review skill
  * @param isDryRun - Whether this is a dry-run (affects instructions)
+ * @param isRequireApproval - Whether approval is required before fixes (also skips fixes)
  * @returns Formatted prompt for headless Claude invocation
  */
 function buildHeadlessReviewPrompt(
   skillPath: string,
   isDryRun: boolean,
+  isRequireApproval: boolean,
 ): string {
   const skillContent = readFileSync(skillPath, "utf8");
 
-  const dryRunInstructions = isDryRun
-    ? `\n\nIMPORTANT: This is a DRY-RUN. Do NOT apply any fixes. Only report findings.`
-    : `\n\nAuto-fix high-confidence findings (priority >= ${AUTO_FIX_THRESHOLD}). Skip lower priority findings.`;
+  const fixInstructions = getFixInstructions(isDryRun, isRequireApproval);
 
   return `Execute the parallel code review workflow defined below.
 
@@ -365,13 +382,33 @@ CRITICAL: After completing the review, output findings in this exact JSON format
 }
 </review-findings>
 
-${dryRunInstructions}
+${fixInstructions}
 
 ---
 ${skillContent}
 ---
 
 Start by gathering the diff and invoking reviewers.`;
+}
+
+/**
+ * Get fix instructions based on mode flags
+ *
+ * @param isDryRun - Whether this is a dry-run
+ * @param isRequireApproval - Whether approval is required before fixes
+ * @returns Instructions string for the prompt
+ */
+function getFixInstructions(
+  isDryRun: boolean,
+  isRequireApproval: boolean,
+): string {
+  if (isDryRun) {
+    return `\n\nIMPORTANT: This is a DRY-RUN. Do NOT apply any fixes. Only report findings.`;
+  }
+  if (isRequireApproval) {
+    return `\n\nIMPORTANT: APPROVAL REQUIRED mode. Do NOT apply any fixes yet. Only report findings. User will review and approve before fixes are applied.`;
+  }
+  return `\n\nAuto-fix high-confidence findings (priority >= ${AUTO_FIX_THRESHOLD}). Skip lower priority findings.`;
 }
 
 /**
@@ -449,6 +486,78 @@ function parseReviewFindings(
     console.error(chalk.red("Error parsing findings JSON:"), error);
     return null;
   }
+}
+
+/**
+ * Display fix summary and prompt user for approval
+ *
+ * Shows the number of findings to fix and affected files.
+ * Returns true if user approves, false if user aborts.
+ *
+ * @param findings - Array of findings to fix
+ * @param decisions - Triage decisions for each finding
+ * @returns Promise that resolves to true if approved, false if aborted
+ */
+async function promptForApproval(
+  findings: Array<Finding>,
+  decisions: Array<TriageDecision>,
+): Promise<boolean> {
+  const toFix = decisions.filter((d) => d.action === "fix");
+  const toSkip = decisions.filter((d) => d.action === "skip");
+
+  // Collect unique files affected by findings to fix
+  const affectedFiles = new Set<string>();
+  for (const decision of toFix) {
+    const finding = findings.find((f) => f.id === decision.id);
+    if (finding !== undefined) {
+      affectedFiles.add(finding.file);
+    }
+  }
+
+  // Display summary
+  console.log(
+    chalk.bold(
+      "\n═══════════════════════════════════════════════════════════════════",
+    ),
+  );
+  console.log(chalk.bold("                      Approval Required"));
+  console.log(
+    chalk.bold(
+      "═══════════════════════════════════════════════════════════════════\n",
+    ),
+  );
+
+  console.log(chalk.bold("Fix Summary:"));
+  console.log(
+    `  ${chalk.green("●")} Findings to fix: ${chalk.green.bold(String(toFix.length))}`,
+  );
+  console.log(
+    `  ${chalk.yellow("●")} Findings to skip: ${chalk.yellow.bold(String(toSkip.length))}`,
+  );
+  console.log(
+    `  ${chalk.cyan("●")} Files affected: ${chalk.cyan.bold(String(affectedFiles.size))}`,
+  );
+
+  if (affectedFiles.size > 0) {
+    console.log(chalk.bold("\nFiles to be modified:"));
+    for (const file of affectedFiles) {
+      console.log(`  ${chalk.dim("•")} ${chalk.cyan(file)}`);
+    }
+  }
+
+  console.log();
+
+  // Prompt for confirmation
+  const confirmed = await p.confirm({
+    initialValue: true,
+    message: "Proceed with applying fixes?",
+  });
+
+  if (p.isCancel(confirmed)) {
+    return false;
+  }
+
+  return confirmed;
 }
 
 /**
@@ -582,11 +691,22 @@ function renderFindingsSummary(
  * applies fixes (unless dry-run), and logs all decisions.
  *
  * @param isDryRun - If true, preview fixes without applying
+ * @param requireApproval - If true, pause after triage for user confirmation
  */
-function runHeadlessReview(isDryRun: boolean): void {
+async function runHeadlessReview(
+  isDryRun: boolean,
+  isRequireApproval: boolean,
+): Promise<void> {
   if (isDryRun) {
     console.log(chalk.bold("Starting headless code review (dry-run)...\n"));
     console.log(chalk.dim("Findings will be displayed but not auto-fixed.\n"));
+  } else if (isRequireApproval) {
+    console.log(
+      chalk.bold("Starting headless code review (approval required)...\n"),
+    );
+    console.log(
+      chalk.dim("Findings will be collected. Fixes require approval.\n"),
+    );
   } else {
     console.log(chalk.bold("Starting headless code review...\n"));
   }
@@ -607,7 +727,11 @@ function runHeadlessReview(isDryRun: boolean): void {
   }
 
   // Build the prompt
-  const prompt = buildHeadlessReviewPrompt(skillPath, isDryRun);
+  const prompt = buildHeadlessReviewPrompt(
+    skillPath,
+    isDryRun,
+    isRequireApproval,
+  );
 
   console.log(chalk.dim("Invoking Claude in headless mode...\n"));
 
@@ -666,6 +790,28 @@ function runHeadlessReview(isDryRun: boolean): void {
   console.log(`${chalk.dim("Duration:")} ${formatDuration(result.duration)}`);
   console.log(`${chalk.dim("Cost:")} $${result.cost.toFixed(4)}`);
   console.log(`${chalk.dim("Session:")} ${result.sessionId}`);
+
+  // If approval required, prompt user before proceeding
+  if (isRequireApproval) {
+    const isApproved = await promptForApproval(findings, decisions);
+
+    if (!isApproved) {
+      console.log(chalk.yellow("\nReview aborted by user. No fixes applied."));
+      console.log(chalk.dim("Diary entry not logged."));
+      return;
+    }
+
+    console.log(
+      chalk.green(
+        "\nApproved! In approval mode, fixes must be applied manually.",
+      ),
+    );
+    console.log(
+      chalk.dim(
+        "Run `aaa review --headless` (without --require-approval) to auto-fix findings.",
+      ),
+    );
+  }
 
   // Build diary entry
   const diaryEntry: ReviewDiaryEntry = {
