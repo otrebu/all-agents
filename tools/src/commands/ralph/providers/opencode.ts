@@ -104,42 +104,35 @@ function createOpencodeProvider(
         ? `${options.extraContext}\n\n${promptContent}`
         : promptContent;
 
-      // Create a temporary file for the prompt
-      const temporaryFile = `/tmp/opencode-prompt-${Date.now()}.txt`;
-      try {
-        const fs = require("node:fs");
-        fs.writeFileSync(temporaryFile, fullPrompt);
-
-        const proc = Bun.spawnSync(
-          [command, "run", temporaryFile],
-          {
-            cwd: options.cwd,
-            stdio: ["inherit", "inherit", "inherit"],
-          },
-        );
-
-        // Handle signal interruption (Ctrl+C) gracefully
-        if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
-          console.log("\nSession interrupted by user");
-          return { exitCode: null, interrupted: true, success: true };
-        }
-
-        return {
-          exitCode: proc.exitCode,
-          interrupted: false,
-          success: proc.exitCode === 0,
-        };
-      } finally {
-        // Clean up temp file
-        try {
-          const fs = require("node:fs");
-          if (fs.existsSync(temporaryFile)) {
-            fs.unlinkSync(temporaryFile);
-          }
-        } catch {
-          // Ignore cleanup errors
-        }
+      // Build args with model if specified
+      const args = [command, "run"];
+      
+      // Add model if specified
+      const modelToUse = options.model ?? defaultModel;
+      if (modelToUse) {
+        args.push("--model", modelToUse);
       }
+      
+      // Pass prompt content directly as argument (not via temp file)
+      // This avoids opencode's permission prompts for file access
+      args.push(fullPrompt);
+
+      const proc = Bun.spawnSync(args, {
+        cwd: options.cwd,
+        stdio: ["inherit", "inherit", "inherit"],
+      });
+
+      // Handle signal interruption (Ctrl+C) gracefully
+      if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
+        console.log("\nSession interrupted by user");
+        return { exitCode: null, interrupted: true, success: true };
+      }
+
+      return {
+        exitCode: proc.exitCode,
+        interrupted: false,
+        success: proc.exitCode === 0,
+      };
     },
 
     invokeHeadless(options: HeadlessOptions): HeadlessResult | null {
