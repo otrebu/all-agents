@@ -1,6 +1,6 @@
 /**
  * Gemini CLI provider adapter for Ralph
- * 
+ *
  * Implements the AIProvider interface for Google Gemini CLI.
  * Status: STUB - Implementation pending
  */
@@ -20,53 +20,52 @@ import { registerProvider } from "./index";
 /**
  * Gemini provider implementation
  * Status: STUB - Full implementation pending
- * 
+ *
  * Note: Gemini uses binary session storage (not human-readable)
  * and does not provide cost tracking in output.
  */
 class GeminiProvider implements AIProvider {
   readonly command = "gemini";
   readonly name = "gemini";
-  
+
   private config: GeminiProviderConfig;
-  
+
   constructor(config: GeminiProviderConfig = {}) {
     this.config = config;
   }
-  
+
   getContextFileNames(): Array<string> {
     // Gemini does not support GEMINI.md context files
     return ["AGENTS.md"];
   }
-  
+
   getDefaultModel(): string {
     return this.config.model ?? "gemini-2.5-flash-lite";
   }
-  
-  invokeChat(options: ChatOptions): ProviderResult {
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  invokeChat(_options: ChatOptions): ProviderResult {
     // TODO: Implement gemini chat mode
     console.warn("Gemini chat mode not yet implemented");
-    return {
-      exitCode: 1,
-      interrupted: false,
-      success: false,
-    };
+    return { exitCode: 1, interrupted: false, success: false };
   }
-  
-  invokeHeadless(options: HeadlessOptions): HeadlessResult | null {
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  invokeHeadless(_options: HeadlessOptions): HeadlessResult | null {
     // TODO: Implement gemini headless mode
     // Command: gemini -p "prompt" --output-format json [--sandbox]
     // Note: No cost tracking in output, rate limit: 60 req/min (free tier)
     console.warn("Gemini headless mode not yet implemented");
     return null;
   }
-  
-  invokeLightweight(options: LightweightOptions): null | string {
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  invokeLightweight(_options: LightweightOptions): null | string {
     // TODO: Implement lightweight mode
     console.warn("Gemini lightweight mode not yet implemented");
     return null;
   }
-  
+
   isAvailable(): boolean {
     try {
       const proc = Bun.spawnSync(["which", this.command]);
@@ -75,21 +74,25 @@ class GeminiProvider implements AIProvider {
       return false;
     }
   }
-  
-  isValidModel(_model: string): boolean {
+
+  isValidModel(): boolean {
     return true;
   }
 }
 
-export function createGeminiProvider(config?: GeminiProviderConfig): GeminiProvider {
+function createGeminiProvider(config?: GeminiProviderConfig): GeminiProvider {
   return new GeminiProvider(config);
 }
 
-export function register(): void {
-  registerProvider("gemini", (config) => createGeminiProvider(config as GeminiProviderConfig));
+function registerGemini(): void {
+  registerProvider("gemini", (config) =>
+    createGeminiProvider(config as GeminiProviderConfig),
+  );
 }
 
 // Auto-register
-register();
+registerGemini();
+
+export { createGeminiProvider, registerGemini as register };
 
 export default GeminiProvider;

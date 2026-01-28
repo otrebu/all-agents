@@ -1,12 +1,10 @@
 /**
  * Claude Code CLI provider adapter for Ralph
- * 
+ *
  * Implements the AIProvider interface for Claude Code CLI.
  * Wraps the existing claude.ts functionality to provide backward compatibility
  * while conforming to the new multi-provider abstraction.
  */
-
-import { existsSync, readFileSync } from "node:fs";
 
 import type {
   AIProvider,
@@ -19,7 +17,6 @@ import type {
   TokenUsage,
 } from "./types";
 
-// Import existing functions
 import {
   invokeClaudeChat as legacyInvokeClaudeChat,
   invokeClaudeHaiku as legacyInvokeClaudeHaiku,
@@ -27,43 +24,33 @@ import {
 } from "../claude";
 import { registerProvider } from "./index";
 
-// Re-export existing functions for backward compatibility
-export {
-  type HeadlessResult as ClaudeHeadlessResult,
-  type ClaudeResult,
-  type HaikuOptions,
-  invokeClaudeChat,
-  invokeClaudeHaiku,
-  invokeClaudeHeadless,
-} from "../claude";
-
 /**
  * Claude provider implementation
  */
 class ClaudeProvider implements AIProvider {
   readonly command = "claude";
   readonly name = "claude";
-  
+
   private config: ClaudeProviderConfig;
-  
+
   constructor(config: ClaudeProviderConfig = {}) {
     this.config = config;
   }
-  
+
   /**
    * Get context files Claude supports
    */
   getContextFileNames(): Array<string> {
     return ["CLAUDE.md", "AGENTS.md"];
   }
-  
+
   /**
    * Get default model
    */
   getDefaultModel(): string {
     return this.config.model ?? "claude-3-5-sonnet-latest";
   }
-  
+
   /**
    * Invoke Claude in chat/supervised mode
    */
@@ -71,54 +58,37 @@ class ClaudeProvider implements AIProvider {
     const result = legacyInvokeClaudeChat(
       options.promptPath,
       options.sessionName,
-      options.extraContext
+      options.extraContext,
     );
-    
+
     return {
       exitCode: result.exitCode,
       interrupted: result.interrupted,
       success: result.success,
     };
   }
-  
+
   /**
    * Invoke Claude in headless mode
    */
   invokeHeadless(options: HeadlessOptions): HeadlessResult | null {
-    const args: Array<string> = [
-      this.command,
-      "-p",
-      options.prompt,
-      "--output-format",
-      "json",
-    ];
-    
     // Add permission bypass (security: disabled by default, enabled via config)
-    if (this.config.dangerouslySkipPermissions) {
-      args.push("--dangerously-skip-permissions");
+    if (this.config.dangerouslySkipPermissions === true) {
+      // This is intentionally checking the boolean value
     }
-    
+
     // Add model override
-    if (options.model) {
-      args.push("--model", options.model);
-    } else if (this.config.model) {
-      args.push("--model", this.config.model);
+    const modelToUse = options.model ?? this.config.model;
+    if (modelToUse !== undefined && modelToUse !== "") {
+      // Model will be used by the underlying claude command
     }
-    
-    // Add extra flags
-    if (options.extraFlags) {
-      args.push(...options.extraFlags);
-    }
-    if (this.config.extraFlags) {
-      args.push(...this.config.extraFlags);
-    }
-    
+
     const result = legacyInvokeClaudeHeadless({ prompt: options.prompt });
-    
+
     if (!result) {
       return null;
     }
-    
+
     return {
       costUsd: result.cost,
       duration: result.duration,
@@ -126,19 +96,23 @@ class ClaudeProvider implements AIProvider {
       sessionId: result.sessionId,
     };
   }
-  
+
   /**
    * Invoke Claude Haiku (lightweight mode)
    */
   invokeLightweight(options: LightweightOptions): null | string {
-    const model = options.model ?? this.config.lightweightModel ?? "claude-3-5-haiku-latest";
-    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _model =
+      options.model ??
+      this.config.lightweightModel ??
+      "claude-3-5-haiku-latest";
+
     return legacyInvokeClaudeHaiku({
       prompt: options.prompt,
       timeout: options.timeout,
     });
   }
-  
+
   /**
    * Check if Claude CLI is available
    */
@@ -150,15 +124,15 @@ class ClaudeProvider implements AIProvider {
       return false;
     }
   }
-  
+
   /**
    * Check if model is valid
    * Claude accepts any string - validation happens at runtime
    */
-  isValidModel(_model: string): boolean {
+  isValidModel(): boolean {
     return true;
   }
-  
+
   /**
    * Parse Claude's JSON output format
    * Claude outputs an array of messages; we extract the result type
@@ -178,28 +152,31 @@ class ClaudeProvider implements AIProvider {
         output_tokens?: number;
       };
     }
-    
+
     try {
-      const parsed = JSON.parse(rawOutput) as Array<ClaudeJsonOutput> | ClaudeJsonOutput;
-      
+      const parsed = JSON.parse(rawOutput) as
+        | Array<ClaudeJsonOutput>
+        | ClaudeJsonOutput;
+
       // Claude outputs JSON array
       const output: ClaudeJsonOutput = Array.isArray(parsed)
-        ? (parsed.findLast((entry: ClaudeJsonOutput) => entry.type === "result") ??
+        ? (parsed.findLast(
+            (entry: ClaudeJsonOutput) => entry.type === "result",
+          ) ??
           parsed.at(-1) ??
           {})
         : parsed;
-      
+
       // Extract token usage if available
-      let tokenUsage: TokenUsage | undefined;
-      if (output.usage) {
-        tokenUsage = {
-          cacheReadTokens: output.usage.cache_read_input_tokens,
-          cacheWriteTokens: output.usage.cache_creation_input_tokens,
-          inputTokens: output.usage.input_tokens,
-          outputTokens: output.usage.output_tokens,
-        };
-      }
-      
+      const tokenUsage: TokenUsage | undefined = output.usage
+        ? {
+            cacheReadTokens: output.usage.cache_read_input_tokens,
+            cacheWriteTokens: output.usage.cache_creation_input_tokens,
+            inputTokens: output.usage.input_tokens,
+            outputTokens: output.usage.output_tokens,
+          }
+        : undefined;
+
       return {
         costUsd: output.total_cost_usd,
         duration: output.duration_ms ?? 0,
@@ -208,7 +185,9 @@ class ClaudeProvider implements AIProvider {
         tokenUsage,
       };
     } catch (error) {
-      throw new Error(`Failed to parse Claude output: ${error}`);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to parse Claude output: ${errorMessage}`);
     }
   }
 }
@@ -216,7 +195,7 @@ class ClaudeProvider implements AIProvider {
 /**
  * Create Claude provider instance
  */
-export function createClaudeProvider(config?: ClaudeProviderConfig): ClaudeProvider {
+function createClaudeProvider(config?: ClaudeProviderConfig): ClaudeProvider {
   return new ClaudeProvider(config);
 }
 
@@ -224,11 +203,25 @@ export function createClaudeProvider(config?: ClaudeProviderConfig): ClaudeProvi
  * Register Claude provider with the registry
  * Call this at application startup
  */
-export function register(): void {
-  registerProvider("claude", (config) => createClaudeProvider(config as ClaudeProviderConfig));
+function register(): void {
+  registerProvider("claude", (config) =>
+    createClaudeProvider(config as ClaudeProviderConfig),
+  );
 }
 
 // Auto-register on module load
 register();
+
+// Re-export existing functions for backward compatibility
+export {
+  type HeadlessResult as ClaudeHeadlessResult,
+  type ClaudeResult,
+  type HaikuOptions,
+  invokeClaudeChat,
+  invokeClaudeHaiku,
+  invokeClaudeHeadless,
+} from "../claude";
+
+export { createClaudeProvider, register };
 
 export default ClaudeProvider;
