@@ -245,7 +245,7 @@ Claude Code extends with three mechanisms:
 **Stability:** `stable` = battle-tested | `beta` = works, may evolve | `experimental` = may break
 
 <details>
-<summary><strong>Slash Commands</strong> (10 commands)</summary>
+<summary><strong>Slash Commands</strong> (9 commands)</summary>
 
 | Command                            | Description                                 | Stability    | Created    | DRY | Refs/Depends                              | Action |
 | :--------------------------------- | :------------------------------------------ | :----------- | :--------- | :-- | :---------------------------------------- | :----- |
@@ -255,7 +255,6 @@ Claude Code extends with three mechanisms:
 | `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | FIX: (1) add git reset perm (2) remove branch deletion (3) trim Step 4 verbosity |
 | `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | REFACTOR: split into 4 atomic docs |
 | `/parallel-search`                 | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md | - |
-| `/context:atomic-doc`              | Create/update atomic docs                   | beta         | 2025-12-22 | ✗   | @context/blocks/docs/atomic-documentation.md | CONVERT TO SKILL |
 | `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | INTEGRATE into doc-analysis |
 | `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | 2025-11-18 | ✗   | Python init script                        | FIX: wrong script path, step numbering |
 | `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | 2025-11-18 | ✗   | @context/blocks/docs/prompting-agent-templates.md | FIX: wrong URL, add frontmatter docs |
@@ -268,7 +267,7 @@ Claude Code extends with three mechanisms:
 
 | Agent                            | Description                                       | Stability    | Created    | Used By                     | Action |
 | :------------------------------- | :------------------------------------------------ | :----------- | :--------- | :-------------------------- | :----- |
-| `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | NUKE: replace with skill - update task-generator to spawn general-purpose + invoke /atomic-doc skill |
+| `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | DONE (skill created: context-atomic-doc) |
 | `parallel-search`                | Multi-angle web research                          | beta         | 2025-11-19 | /parallel-search command    | DONE (agent fixed) |
 | `subtask-reviewer`               | Review subtasks using vertical slice test         | experimental | 2026-01-26 | ralph-plan skill            | DONE (DRYed up) |
 | `task-generator`                 | Generate technical tasks from stories             | experimental | 2026-01-23 | ralph-plan skill            | DONE (DRYed up) |
@@ -288,12 +287,13 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Skills</strong> (15 skills)</summary>
+<summary><strong>Skills</strong> (16 skills)</summary>
 
 | Skill                  | Description                                    | Stability    | Created    | DRY | CLI Sibling | Action |
 | :--------------------- | :--------------------------------------------- | :----------- | :--------- | :-- | :---------- | :----- |
 | `aaa-feature-wizard`   | Wizard for adding new aaa CLI commands         | experimental | 2026-01-28 | ✓   | -           | - |
 | `brainwriting`         | 5 parallel idea explorations, then synthesize  | beta         | 2025-11-19 | ✓   | -           | ✓ KEEP (add note: "for product vision use ralph-plan vision") |
+| `context-atomic-doc`   | Create/update atomic docs (blocks, foundations, stacks) | experimental | 2026-01-28 | ✓   | -           | - |
 | `dev-work-summary`     | Scan ~/dev for today's git work                | beta         | 2025-11-18 | ✓   | -           | ✓ KEEP |
 | `eval-test-skill`      | List and delete branches merged to main        | experimental | 2025-12-24 | ✗   | -           | NUKE (placeholder name, use /dev:complete-feature instead) |
 | `gh-search`            | Search GitHub for code examples and patterns   | experimental | 2026-01-28 | ✓   | `aaa gh-search` | - |

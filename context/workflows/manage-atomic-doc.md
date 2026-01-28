@@ -23,6 +23,31 @@ See @context/blocks/docs/maintenance.md for composition patterns & when to split
 
 ## Workflow
 
+### 0. Index Check (Phase 0)
+
+**MANDATORY before creating new docs.**
+
+1. **Read the index:** Check @context/README.md to see what already exists
+   ```bash
+   cat context/README.md
+   ```
+
+2. **Search for existing coverage:**
+   ```bash
+   grep -r "keyword" context/
+   ls context/blocks/{domain}/ context/foundations/{domain}/
+   ```
+
+3. **If topic is unfamiliar:**
+   - Do web research first to understand the tool/concept
+   - Identify official documentation, best practices, common patterns
+   - Note gotchas and edge cases from community resources
+
+4. **Decision:**
+   - If doc exists → Update existing (skip to Phase 1 with `update` path)
+   - If similar doc exists → Consider extending vs creating new
+   - If no coverage → Proceed to Phase 1 Discovery
+
 ### 1. Discovery
 
 **Determine content type:**
