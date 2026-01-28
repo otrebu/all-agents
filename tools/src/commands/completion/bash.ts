@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape -- Template literals generate bash code requiring \$ literals */
 /**
  * Bash completion script generator for aaa CLI
  *
@@ -6,6 +7,7 @@
  * - While-loop to find subcommand chain (skips flags)
  * - $prev check for flag value completion (highest priority)
  * - Dynamic completions via `aaa __complete <type>`
+ * - Dynamic provider/model completion via `aaa ralph completion`
  * - Falls back to file completion via -o bashdefault -o default
  */
 export default function generateBashCompletion(): string {
@@ -14,55 +16,106 @@ export default function generateBashCompletion(): string {
 # Install: source <(aaa completion bash)
 # Or add to ~/.bashrc: source <(aaa completion bash)
 
+# Dynamic provider completion - lists installed providers
+_aaa_ralph_providers() {
+    local providers_output
+    providers_output=\`aaa ralph completion --providers 2>/dev/null\`
+    if [[ -z "\$providers_output" ]]; then
+        # Fallback to static list if dynamic completion fails
+        providers_output="claude opencode cursor gemini codex"
+    fi
+    COMPREPLY=(\$(compgen -W "\$providers_output" -- "\$cur"))
+}
+
+# Dynamic model completion for a specific provider
+_aaa_ralph_models() {
+    local provider="\$1"
+    local models_output
+    models_output=\`aaa ralph completion --models "\$provider" 2>/dev/null\`
+    COMPREPLY=(\$(compgen -W "\$models_output" -- "\$cur"))
+}
+
+# Check if --provider was specified in current command line
+_aaa_ralph_get_provider() {
+    local i
+    for ((i=1; i<\$COMP_CWORD; i++)); do
+        if [[ "\${COMP_WORDS[i]}" == "--provider" && \$((i+1)) -lt \$COMP_CWORD ]]; then
+            echo "\${COMP_WORDS[i+1]}"
+            return
+        fi
+    done
+}
+
 _aaa_completions() {
     local cur prev
     cur="\${COMP_WORDS[COMP_CWORD]}"
     prev="\${COMP_WORDS[COMP_CWORD-1]}"
 
     # PHASE 1: Flag value completion (highest priority)
-    case "$prev" in
+    case "\$prev" in
         --mode)
-            COMPREPLY=($(compgen -W "quick deep code" -- "$cur"))
+            COMPREPLY=(\$(compgen -W "quick deep code" -- "\$cur"))
             return
             ;;
         --processor)
-            COMPREPLY=($(compgen -W "base pro" -- "$cur"))
+            COMPREPLY=(\$(compgen -W "base pro" -- "\$cur"))
+            return
+            ;;
+        --provider)
+            _aaa_ralph_providers
+            return
+            ;;
+        --model)
+            local provider
+            provider=\$(_aaa_ralph_get_provider)
+            if [[ -n "\$provider" ]]; then
+                _aaa_ralph_models "\$provider"
+            else
+                # No provider specified, suggest common models
+                COMPREPLY=(\$(compgen -W "claude-3-5-sonnet-latest claude-3-5-haiku-latest gpt-4o composer-1" -- "\$cur"))
+            fi
             return
             ;;
         --milestone)
-            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
+            local milestones_output
+            milestones_output=\`aaa __complete milestone 2>/dev/null\`
+            COMPREPLY=(\$(compgen -W "\$milestones_output" -- "\$cur"))
             return
             ;;
         --story)
-            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
+            local stories_output
+            stories_output=\`aaa __complete story 2>/dev/null\`
+            COMPREPLY=(\$(compgen -W "\$stories_output" -- "\$cur"))
             return
             ;;
         --task)
-            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
+            local tasks_output
+            tasks_output=\`aaa __complete task 2>/dev/null\`
+            COMPREPLY=(\$(compgen -W "\$tasks_output" -- "\$cur"))
             return
             ;;
         --subtasks)
             # Complete .json files
-            COMPREPLY=($(compgen -f -X '!*.json' -- "$cur"))
+            COMPREPLY=(\$(compgen -f -X '!*.json' -- "\$cur"))
             return
             ;;
         --size)
-            COMPREPLY=($(compgen -W "small medium large" -- "$cur"))
+            COMPREPLY=(\$(compgen -W "small medium large" -- "\$cur"))
             return
             ;;
         -o|--output)
             # File path completion
-            COMPREPLY=($(compgen -f -- "$cur"))
+            COMPREPLY=(\$(compgen -f -- "\$cur"))
             return
             ;;
         -d|--dir)
             # Directory completion
-            COMPREPLY=($(compgen -d -- "$cur"))
+            COMPREPLY=(\$(compgen -d -- "\$cur"))
             return
             ;;
         -t|--target)
             # Directory completion
-            COMPREPLY=($(compgen -d -- "$cur"))
+            COMPREPLY=(\$(compgen -d -- "\$cur"))
             return
             ;;
         -l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations)
@@ -74,11 +127,11 @@ _aaa_completions() {
             return
             ;;
         --priority)
-            COMPREPLY=($(compgen -W "min low default high max" -- "$cur"))
+            COMPREPLY=(\$(compgen -W "min low default high max" -- "\$cur"))
             return
             ;;
         --quiet-enabled)
-            COMPREPLY=($(compgen -W "true false" -- "$cur"))
+            COMPREPLY=(\$(compgen -W "true false" -- "\$cur"))
             return
             ;;
     esac
@@ -87,15 +140,15 @@ _aaa_completions() {
     local cmd="" subcmd="" subsubcmd=""
     local i=1
     local skip_next=false
-    while [[ $i -lt $COMP_CWORD ]]; do
+    while [[ \$i -lt \$COMP_CWORD ]]; do
         local word="\${COMP_WORDS[i]}"
-        if [[ "$skip_next" == "true" ]]; then
+        if [[ "\$skip_next" == "true" ]]; then
             skip_next=false
             ((i++))
             continue
         fi
-        case "$word" in
-            --mode|--processor|--milestone|--story|--task|--subtasks|--size|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
+        case "\$word" in
+            --mode|--processor|--provider|--model|--milestone|--story|--task|--subtasks|--size|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
                 # Flag that takes a value - skip next word
                 skip_next=true
                 ;;
@@ -103,12 +156,12 @@ _aaa_completions() {
                 # Other flags (boolean) - skip
                 ;;
             *)
-                if [[ -z "$cmd" ]]; then
-                    cmd="$word"
-                elif [[ -z "$subcmd" ]]; then
-                    subcmd="$word"
-                elif [[ -z "$subsubcmd" ]]; then
-                    subsubcmd="$word"
+                if [[ -z "\$cmd" ]]; then
+                    cmd="\$word"
+                elif [[ -z "\$subcmd" ]]; then
+                    subcmd="\$word"
+                elif [[ -z "\$subsubcmd" ]]; then
+                    subsubcmd="\$word"
                 fi
                 ;;
         esac
@@ -116,98 +169,110 @@ _aaa_completions() {
     done
 
     # PHASE 3: Complete flags if typing a dash
-    if [[ "$cur" == -* ]]; then
-        case "$cmd" in
+    if [[ "\$cur" == -* ]]; then
+        case "\$cmd" in
+            download)
+                COMPREPLY=(\$(compgen -W "-o --output -d --dir" -- "\$cur"))
+                return
+                ;;
             extract-conversations)
-                COMPREPLY=($(compgen -W "-l --limit -o --output -s --skip" -- "$cur"))
+                COMPREPLY=(\$(compgen -W "-l --limit -o --output -s --skip" -- "\$cur"))
                 return
                 ;;
             gemini-research)
-                COMPREPLY=($(compgen -W "--mode" -- "$cur"))
+                COMPREPLY=(\$(compgen -W "--mode" -- "\$cur"))
                 return
                 ;;
             parallel-search)
-                COMPREPLY=($(compgen -W "--objective --queries --processor --max-results --max-chars" -- "$cur"))
+                COMPREPLY=(\$(compgen -W "--objective --queries --processor --max-results --max-chars" -- "\$cur"))
                 return
                 ;;
             setup|uninstall)
-                COMPREPLY=($(compgen -W "--user --project" -- "$cur"))
+                COMPREPLY=(\$(compgen -W "--user --project" -- "\$cur"))
                 return
                 ;;
             sync-context)
-                COMPREPLY=($(compgen -W "-t --target -w --watch" -- "$cur"))
+                COMPREPLY=(\$(compgen -W "-t --target -w --watch" -- "\$cur"))
                 return
                 ;;
             task)
-                if [[ "$subcmd" == "create" ]]; then
-                    COMPREPLY=($(compgen -W "-d --dir -s --story" -- "$cur"))
+                if [[ "\$subcmd" == "create" ]]; then
+                    COMPREPLY=(\$(compgen -W "-d --dir -s --story" -- "\$cur"))
                 fi
                 return
                 ;;
             story)
-                if [[ "$subcmd" == "create" ]]; then
-                    COMPREPLY=($(compgen -W "-d --dir" -- "$cur"))
+                if [[ "\$subcmd" == "create" ]]; then
+                    COMPREPLY=(\$(compgen -W "-d --dir" -- "\$cur"))
                 fi
                 return
                 ;;
             ralph)
-                case "$subcmd" in
+                case "\$subcmd" in
                     build)
-                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless --max-iterations --validate-first" -- "$cur"))
+                        COMPREPLY=(\$(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless -S --skip-summary -q --quiet --max-iterations --calibrate-every --validate-first --provider --model" -- "\$cur"))
                         return
                         ;;
                     plan)
-                        case "$subsubcmd" in
+                        case "\$subsubcmd" in
+                            vision|roadmap)
+                                COMPREPLY=(\$(compgen -W "--provider --model" -- "\$cur"))
+                                return
+                                ;;
                             stories)
-                                COMPREPLY=($(compgen -W "--milestone -a --auto -s --supervised -H --headless" -- "$cur"))
+                                COMPREPLY=(\$(compgen -W "--milestone -s --supervised -H --headless --provider --model" -- "\$cur"))
                                 return
                                 ;;
                             tasks)
-                                COMPREPLY=($(compgen -W "--story --milestone -a --auto -s --supervised -H --headless" -- "$cur"))
+                                COMPREPLY=(\$(compgen -W "--story --milestone -s --supervised -H --headless --provider --model" -- "\$cur"))
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--review --task --story --milestone --size -s --supervised -H --headless" -- "$cur"))
+                                COMPREPLY=(\$(compgen -W "--review --task --story --milestone --size -s --supervised -H --headless --provider --model" -- "\$cur"))
                                 return
                                 ;;
                         esac
                         ;;
                     milestones)
-                        COMPREPLY=($(compgen -W "--json" -- "$cur"))
+                        COMPREPLY=(\$(compgen -W "--json" -- "\$cur"))
                         return
                         ;;
                     status)
-                        COMPREPLY=($(compgen -W "--subtasks" -- "$cur"))
+                        COMPREPLY=(\$(compgen -W "--subtasks" -- "\$cur"))
                         return
                         ;;
                     calibrate)
-                        COMPREPLY=($(compgen -W "--force --review" -- "$cur"))
+                        COMPREPLY=(\$(compgen -W "--subtasks --force --review --provider --model" -- "\$cur"))
                         return
                         ;;
                     review)
                         # All review commands are supervised-only (no headless)
                         ;;
+                    completion)
+                        COMPREPLY=(\$(compgen -W "--providers --models --flags" -- "\$cur"))
+                        return
+                        ;;
                 esac
                 ;;
             review)
-                if [[ -z "$subcmd" ]]; then
-                    COMPREPLY=($(compgen -W "-s --supervised -H --headless --dry-run" -- "$cur"))
+                if [[ -z "\$subcmd" ]]; then
+                    COMPREPLY=(\$(compgen -W "-s --supervised -H --headless --dry-run" -- "\$cur"))
                 fi
                 return
                 ;;
             notify)
-                if [[ -z "$subcmd" ]]; then
-                    COMPREPLY=($(compgen -W "-t --title -p --priority --tags -q --quiet --dry-run --event" -- "$cur"))
-                elif [[ "$subcmd" == "config" ]]; then
-                    case "$subsubcmd" in
+                if [[ -z "\$subcmd" ]]; then
+                    COMPREPLY=(\$(compgen -W "-t --title -p --priority --tags -q --quiet --dry-run --event" -- "\$cur"))
+                elif [[ "\$subcmd" == "config" ]]; then
+                    case "\$subsubcmd" in
                         set)
-                            COMPREPLY=($(compgen -W "--topic --server --title --priority --quiet-start --quiet-end --quiet-enabled" -- "$cur"))
+                            COMPREPLY=(\$(compgen -W "--topic --server --title --priority --quiet-start --quiet-end --quiet-enabled" -- "\$cur"))
                             ;;
                         show)
-                            COMPREPLY=($(compgen -W "--json" -- "$cur"))
+                            COMPREPLY=(\$(compgen -W "--json" -- "\$cur"))
                             ;;
                         test)
-                            COMPREPLY=($(compgen -W "-m --message" -- "$cur"))
+                            COMPREPLY=(\$(compgen -W "-m --message" -- "\$cur"))
                             ;;
                     esac
                 fi
@@ -215,55 +280,55 @@ _aaa_completions() {
                 ;;
         esac
         # Global flags
-        COMPREPLY=($(compgen -W "-h --help -V --version" -- "$cur"))
+        COMPREPLY=(\$(compgen -W "-h --help -V --version" -- "\$cur"))
         return
     fi
 
     # PHASE 4: Command/subcommand completion
-    case "$cmd" in
+    case "\$cmd" in
         "")
             # Top-level commands
-            COMPREPLY=($(compgen -W "extract-conversations gh-search gemini-research notify parallel-search setup uninstall sync-context task story ralph review completion" -- "$cur"))
+            COMPREPLY=(\$(compgen -W "download extract-conversations gh-search gemini-research notify parallel-search setup uninstall sync-context task story ralph review completion" -- "\$cur"))
             ;;
         task)
-            if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "create" -- "$cur"))
+            if [[ -z "\$subcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "create" -- "\$cur"))
             fi
             ;;
         story)
-            if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "create" -- "$cur"))
+            if [[ -z "\$subcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "create" -- "\$cur"))
             fi
             ;;
         ralph)
-            if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "build plan review milestones status calibrate" -- "$cur"))
-            elif [[ "$subcmd" == "plan" && -z "$subsubcmd" ]]; then
-                COMPREPLY=($(compgen -W "vision roadmap stories tasks subtasks" -- "$cur"))
-            elif [[ "$subcmd" == "review" && -z "$subsubcmd" ]]; then
-                COMPREPLY=($(compgen -W "stories roadmap gap tasks" -- "$cur"))
-            elif [[ "$subcmd" == "review" && "$subsubcmd" == "gap" ]]; then
+            if [[ -z "\$subcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "build plan review milestones status calibrate completion" -- "\$cur"))
+            elif [[ "\$subcmd" == "plan" && -z "\$subsubcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "vision roadmap stories tasks subtasks" -- "\$cur"))
+            elif [[ "\$subcmd" == "review" && -z "\$subsubcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "stories roadmap gap tasks" -- "\$cur"))
+            elif [[ "\$subcmd" == "review" && "\$subsubcmd" == "gap" ]]; then
                 # ralph review gap subcommands
-                COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
-            elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then
-                COMPREPLY=($(compgen -W "intention technical improve all" -- "$cur"))
+                COMPREPLY=(\$(compgen -W "roadmap stories" -- "\$cur"))
+            elif [[ "\$subcmd" == "calibrate" && -z "\$subsubcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "intention technical improve all" -- "\$cur"))
             fi
             ;;
         review)
-            if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "status" -- "$cur"))
+            if [[ -z "\$subcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "status" -- "\$cur"))
             fi
             ;;
         notify)
-            if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "init on off status config" -- "$cur"))
-            elif [[ "$subcmd" == "config" && -z "$subsubcmd" ]]; then
-                COMPREPLY=($(compgen -W "set show test" -- "$cur"))
+            if [[ -z "\$subcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "init on off status config" -- "\$cur"))
+            elif [[ "\$subcmd" == "config" && -z "\$subsubcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "set show test" -- "\$cur"))
             fi
             ;;
         completion)
-            if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "bash zsh fish" -- "$cur"))
+            if [[ -z "\$subcmd" ]]; then
+                COMPREPLY=(\$(compgen -W "bash zsh fish" -- "\$cur"))
             fi
             ;;
     esac

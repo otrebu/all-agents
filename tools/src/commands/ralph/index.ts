@@ -16,6 +16,7 @@ import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
 } from "./claude";
+import { completionCommand } from "./completion";
 import {
   getPlanningLogPath as getMilestonePlanningLogPath,
   loadRalphConfig,
@@ -1485,5 +1486,8 @@ calibrateCommand.addCommand(
 );
 
 ralphCommand.addCommand(calibrateCommand);
+
+// ralph completion - dynamic shell completion
+ralphCommand.addCommand(completionCommand);
 
 export default ralphCommand;

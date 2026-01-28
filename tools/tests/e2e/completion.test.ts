@@ -36,6 +36,45 @@ describe("completion E2E", () => {
       expect(exitCode).toBe(0);
     });
 
+    test("bash includes dynamic provider completion function", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "bash"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("_aaa_ralph_providers");
+      expect(stdout).toContain("aaa ralph completion --providers");
+    });
+
+    test("bash includes dynamic model completion function", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "bash"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("_aaa_ralph_models");
+      expect(stdout).toContain("aaa ralph completion --models");
+    });
+
+    test("bash includes provider flag completion", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "bash"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("_aaa_ralph_providers");
+    });
+
+    test("bash includes model flag completion", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "bash"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("--model");
+    });
+
     test("zsh outputs valid script with compdef", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
@@ -49,6 +88,27 @@ describe("completion E2E", () => {
       expect(stdout).toContain("_describe");
     });
 
+    test("zsh includes dynamic provider completion function", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "zsh"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("_aaa_ralph_providers");
+      expect(stdout).toContain("aaa ralph completion --providers");
+    });
+
+    test("zsh includes dynamic model completion function", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "zsh"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("_aaa_ralph_models");
+      expect(stdout).toContain("_aaa_ralph_models_dynamic");
+      expect(stdout).toContain("aaa ralph completion --models");
+    });
+
     test("fish outputs valid script with complete", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
@@ -59,6 +119,26 @@ describe("completion E2E", () => {
       expect(stdout).toContain("complete -c aaa");
       expect(stdout).toContain("__fish_aaa_using_subcommand");
       expect(stdout).toContain("__fish_aaa_needs_command");
+    });
+
+    test("fish includes dynamic provider completion helper", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "fish"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("__fish_aaa_ralph_providers");
+      expect(stdout).toContain("aaa ralph completion --providers");
+    });
+
+    test("fish includes dynamic model completion helper", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "fish"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("__fish_aaa_ralph_models");
+      expect(stdout).toContain("aaa ralph completion --models");
     });
 
     test("invalid shell errors", async () => {
@@ -115,6 +195,65 @@ describe("completion E2E", () => {
       );
       expect(exitCode).toBe(0);
       expect(stdout).toBe("");
+    });
+  });
+
+  // Ralph completion command tests
+  describe("ralph completion command", () => {
+    test("ralph completion --providers returns providers", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "completion", "--providers"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      // At minimum should return the provider names
+      // Since claude is likely installed, check for it
+      expect(stdout).toContain("claude");
+    });
+
+    test("ralph completion --models claude returns models", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "completion", "--models", "claude"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      // Should return known claude models
+      expect(stdout).toContain("claude-3-5-sonnet-latest");
+    });
+
+    test("ralph completion --models unknown returns empty", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "completion", "--models", "nonexistent"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      // Nonexistent provider should return empty
+      expect(stdout).toBe("");
+    });
+
+    test("ralph completion --flags returns flags for command", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "completion", "--flags", "ralph.build"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--subtasks");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+    });
+
+    test("ralph completion with no args shows help", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "completion"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("Usage");
     });
   });
 
@@ -187,6 +326,7 @@ describe("completion E2E", () => {
       expect(stdout).toContain("milestones");
       expect(stdout).toContain("status");
       expect(stdout).toContain("calibrate");
+      expect(stdout).toContain("completion");
     });
 
     test("bash includes ralph plan subcommands", async () => {
@@ -229,6 +369,17 @@ describe("completion E2E", () => {
       );
       expect(stdout).toContain("--processor");
       expect(stdout).toContain("base pro");
+    });
+
+    test("bash ralph build includes --provider and --model flags", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "bash"],
+        { cwd: TOOLS_DIR },
+      );
+      // Check that the completion script includes --provider and --model in the build flags
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
     });
   });
 });

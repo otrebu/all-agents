@@ -7,6 +7,7 @@
  * - _arguments with state machine for nested commands
  * - _describe for command descriptions
  * - Dynamic completions via `aaa __complete <type>`
+ * - Dynamic provider/model completion via `aaa ralph completion`
  */
 export default function generateZshCompletion(): string {
   return `#compdef aaa
@@ -16,8 +17,56 @@ export default function generateZshCompletion(): string {
 # For oh-my-zsh: aaa completion zsh > ~/.oh-my-zsh/completions/_aaa
 # Note: Works with lazy compinit (zinit, etc.) - compdef is deferred if not available
 
+# Dynamic provider completion function
+_aaa_ralph_providers() {
+    local -a providers
+    # Read providers from dynamic completion command, split by newlines
+    providers=("\${(@f)\$(aaa ralph completion --providers 2>/dev/null)}")
+    if [[ \${#providers} -eq 0 ]]; then
+        # Fallback to static list if dynamic completion fails
+        providers=(claude opencode cursor gemini codex)
+    fi
+    _describe -t providers 'providers' providers
+}
+
+# Dynamic model completion function for a specific provider
+_aaa_ralph_models() {
+    local provider="\$1"
+    local -a models
+    models=("\${(@f)\$(aaa ralph completion --models "\$provider" 2>/dev/null)}")
+    if [[ \${#models} -eq 0 ]]; then
+        # Fallback to common models
+        models=(claude-3-5-sonnet-latest claude-3-5-haiku-latest gpt-4o composer-1)
+    fi
+    _describe -t models 'models' models
+}
+
+# Get provider from current command line context
+_aaa_ralph_get_provider() {
+    local i
+    for ((i=1; i<\$#words; i++)); do
+        if [[ "\${words[i]}" == "--provider" && \$((i+1)) -le \$#words ]]; then
+            echo "\${words[i+1]}"
+            return
+        fi
+    done
+}
+
+# Dynamic model completion that checks for --provider
+_aaa_ralph_models_dynamic() {
+    local provider
+    provider=\$(_aaa_ralph_get_provider)
+    if [[ -n "\$provider" ]]; then
+        _aaa_ralph_models "\$provider"
+    else
+        # Fallback without provider context
+        local -a models=(claude-3-5-sonnet-latest claude-3-5-haiku-latest gpt-4o composer-1)
+        _describe -t models 'models' models
+    fi
+}
+
 _aaa() {
-    local curcontext="$curcontext" state line
+    local curcontext="\$curcontext" state line
     typeset -A opt_args
 
     _arguments -C \\
@@ -26,10 +75,11 @@ _aaa() {
         '1: :->command' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         command)
             local -a commands
             commands=(
+                'download:Download URLs, extract text, save as markdown'
                 'extract-conversations:Extract Claude Code conversation history'
                 'gh-search:Search GitHub for code examples'
                 'gemini-research:Google Search via Gemini CLI'
@@ -47,7 +97,13 @@ _aaa() {
             _describe 'command' commands
             ;;
         args)
-            case $words[1] in
+            case \$words[1] in
+                download)
+                    _arguments \\
+                        '(-o --output)'{-o,--output}'[Output filename]:filename:_files' \\
+                        '(-d --dir)'{-d,--dir}'[Output directory]:directory:_files -/' \\
+                        '*:url:_urls'
+                    ;;
                 extract-conversations)
                     _arguments \\
                         '(-l --limit)'{-l,--limit}'[Number of recent conversations]:number:' \\
@@ -119,12 +175,12 @@ _aaa_task() {
         '1: :->subcmd' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         subcmd)
             _describe 'subcommand' subcommands
             ;;
         args)
-            case $words[1] in
+            case \$words[1] in
                 create)
                     _arguments \\
                         '(-d --dir)'{-d,--dir}'[Custom tasks directory]:directory:_files -/' \\
@@ -146,12 +202,12 @@ _aaa_story() {
         '1: :->subcmd' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         subcmd)
             _describe 'subcommand' subcommands
             ;;
         args)
-            case $words[1] in
+            case \$words[1] in
                 create)
                     _arguments \\
                         '(-d --dir)'{-d,--dir}'[Custom stories directory]:directory:_files -/' \\
@@ -182,12 +238,12 @@ _aaa_notify() {
         '1: :->subcmd_or_msg' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         subcmd_or_msg)
             _describe 'subcommand' subcommands
             ;;
         args)
-            case $words[1] in
+            case \$words[1] in
                 config)
                     _aaa_notify_config
                     ;;
@@ -208,12 +264,12 @@ _aaa_notify_config() {
         '1: :->subcmd' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         subcmd)
             _describe 'subcommand' subcommands
             ;;
         args)
-            case $words[1] in
+            case \$words[1] in
                 set)
                     _arguments \\
                         '--topic[Set ntfy topic]:topic:' \\
@@ -244,18 +300,19 @@ _aaa_ralph() {
         'milestones:List available milestones'
         'status:Display build status and progress'
         'calibrate:Run calibration checks'
+        'completion:Dynamic shell completion helpers'
     )
 
     _arguments -C \\
         '1: :->subcmd' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         subcmd)
             _describe 'subcommand' subcommands
             ;;
         args)
-            case $words[1] in
+            case \$words[1] in
                 build)
                     _arguments \\
                         '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
@@ -263,8 +320,13 @@ _aaa_ralph() {
                         '(-i --interactive)'{-i,--interactive}'[Pause between iterations (legacy)]' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch each iteration]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '(-S --skip-summary)'{-S,--skip-summary}'[Skip Haiku summary generation]' \\
+                        '(-q --quiet)'{-q,--quiet}'[Suppress terminal summary output]' \\
                         '--max-iterations[Max retry attempts]:number:' \\
-                        '--validate-first[Run pre-build validation]'
+                        '--calibrate-every[Run calibration every N iterations]:number:' \\
+                        '--validate-first[Run pre-build validation]' \\
+                        '--provider[AI provider]:provider:_aaa_ralph_providers' \\
+                        '--model[Model to use]:model:_aaa_ralph_models_dynamic'
                     ;;
                 plan)
                     _aaa_ralph_plan
@@ -280,9 +342,18 @@ _aaa_ralph() {
                     ;;
                 calibrate)
                     _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
                         '--force[Skip approval]' \\
                         '--review[Require approval]' \\
+                        '--provider[AI provider]:provider:_aaa_ralph_providers' \\
+                        '--model[Model to use]:model:_aaa_ralph_models_dynamic' \\
                         '1:subcommand:(intention technical improve all)'
+                    ;;
+                completion)
+                    _arguments \\
+                        '--providers[List installed providers]' \\
+                        '--models[List models for provider]:provider:' \\
+                        '--flags[List flags for command]:command:'
                     ;;
             esac
             ;;
@@ -303,27 +374,33 @@ _aaa_ralph_plan() {
         '1: :->subcmd' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         subcmd)
             _describe 'subcommand' subcommands
             ;;
         args)
-            case $words[1] in
+            case \$words[1] in
                 vision|roadmap)
-                    # No additional arguments
+                    _arguments \\
+                        '--provider[AI provider]:provider:_aaa_ralph_providers' \\
+                        '--model[Model to use]:model:_aaa_ralph_models_dynamic'
                     ;;
                 stories)
                     _arguments \\
                         '--milestone[Milestone path]:milestone:_files -/' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_ralph_providers' \\
+                        '--model[Model to use]:model:_aaa_ralph_models_dynamic'
                     ;;
                 tasks)
                     _arguments \\
                         '--story[Story path]:story:_files -g "*.md"' \\
                         '--milestone[Milestone path]:milestone:_files -/' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_ralph_providers' \\
+                        '--model[Model to use]:model:_aaa_ralph_models_dynamic'
                     ;;
                 subtasks)
                     _arguments \\
@@ -334,7 +411,9 @@ _aaa_ralph_plan() {
                         '--milestone[Target milestone]:milestone:_files -/' \\
                         '--size[Slice thickness]:size:(small medium large)' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_ralph_providers' \\
+                        '--model[Model to use]:model:_aaa_ralph_models_dynamic'
                     ;;
             esac
             ;;
@@ -354,13 +433,13 @@ _aaa_ralph_review() {
         '1: :->subcmd' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         subcmd)
             _describe 'subcommand' subcommands
             ;;
         args)
             # All review commands are supervised-only (no headless)
-            case $words[1] in
+            case \$words[1] in
                 stories)
                     _arguments '--milestone[Milestone path]:milestone:_files -/'
                     ;;
@@ -389,12 +468,12 @@ _aaa_ralph_review_gap() {
         '1: :->subcmd' \\
         '*:: :->args'
 
-    case $state in
+    case \$state in
         subcmd)
             _describe 'subcommand' subcommands
             ;;
         args)
-            case $words[1] in
+            case \$words[1] in
                 roadmap)
                     # Gap analysis is supervised-only (no headless)
                     ;;
@@ -419,7 +498,7 @@ _aaa_review() {
         '--dry-run[Preview findings without fixing (requires --headless)]' \\
         '1: :->subcmd'
 
-    case $state in
+    case \$state in
         subcmd)
             _describe 'subcommand' subcommands
             ;;
