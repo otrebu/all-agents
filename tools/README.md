@@ -340,6 +340,19 @@ aaa ralph build --validate-first
 
 # Print prompt without executing
 aaa ralph build -p
+
+# Multi-CLI Provider Support (choose your AI CLI)
+aaa ralph build --provider claude              # Default - Claude Code
+aaa ralph build --provider cursor              # Cursor Composer Agent
+aaa ralph build --provider gemini              # Google Gemini CLI
+aaa ralph build --provider codex               # OpenAI Codex CLI
+aaa ralph build --provider opencode            # Opencode multi-provider
+
+# Provider with specific model
+aaa ralph build --provider claude --model claude-3-opus-20240229
+aaa ralph build --provider cursor --model composer-1
+aaa ralph build --provider gemini --model gemini-2.5-pro
+aaa ralph build --provider codex --model gpt-5.1-codex-max
 ```
 
 **Status command:**
@@ -516,6 +529,79 @@ AAA_PARALLEL_API_KEY=your_api_key_here
 
 - Requires `AAA_PARALLEL_API_KEY` in `.env`
 - Get API key from parallel-search provider
+
+### Multi-CLI Provider Configuration
+
+Configure AI providers in `aaa.config.json` (project root):
+
+```json
+{
+  "ralph": {
+    "provider": "claude",
+    
+    "claude": {
+      "model": "claude-3-opus-20240229",
+      "dangerouslySkipPermissions": false
+    },
+    
+    "cursor": {
+      "model": "composer-1",
+      "dangerouslyAllowForceWrites": false
+    },
+    
+    "gemini": {
+      "model": "gemini-2.5-pro",
+      "rateLimitRpm": 60
+    },
+    
+    "codex": {
+      "model": "gpt-5.1-codex-max",
+      "sandbox": "workspace-write"
+    },
+    
+    "opencode": {
+      "model": "claude/claude-3-opus"
+    }
+  }
+}
+```
+
+**Environment Variables:**
+
+```bash
+# Provider selection
+export RALPH_PROVIDER=cursor
+
+# Claude-specific
+export RALPH_CLAUDE_MODEL=claude-3-opus-20240229
+export RALPH_CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS=true
+
+# Cursor-specific (security)
+export RALPH_CURSOR_DANGEROUSLY_ALLOW_FORCE_WRITES=true
+
+# Gemini-specific
+export RALPH_GEMINI_MODEL=gemini-2.5-pro
+```
+
+**Installing Provider CLIs:**
+
+```bash
+# Claude Code (default)
+npm install -g @anthropic-ai/claude-code
+
+# Opencode
+npm install -g opencode
+
+# Gemini CLI
+npm install -g @google/gemini-cli
+
+# Codex CLI
+npm install -g @openai/codex
+
+# Cursor Agent - Enable in Cursor IDE settings
+```
+
+See [docs/multi-cli-providers.md](../docs/multi-cli-providers.md) for full documentation.
 
 ### Claude Code Integration
 
