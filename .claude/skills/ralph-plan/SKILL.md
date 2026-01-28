@@ -161,9 +161,10 @@ Then follow ALL phases in the workflow file you just read.
 2. If no source and no `--review` flag, ask the user what source to use
 3. Optionally accept `--milestone <name>` to set target milestone
 4. Optionally accept `--story <ref>` to link subtasks to a story
-5. Read the source and extract actionable items
-6. Generate subtasks following the schema and sizing constraints from the workflow
-7. Write to `docs/planning/milestones/<milestone>/subtasks.json` (append or create)
+5. Optionally accept `--1-to-1` flag to bypass decomposition/sizing logic (one input item → one subtask)
+6. Read the source and extract actionable items
+7. Generate subtasks following the schema and sizing constraints from the workflow (unless `--1-to-1` is set)
+8. Write to `docs/planning/milestones/<milestone>/subtasks.json` (append or create)
 
 Begin the session with:
 
@@ -343,6 +344,7 @@ Generate subtasks from any source: file, text description, or review diary.
 ```
 /ralph-plan subtasks <source>
 /ralph-plan subtasks --review
+/ralph-plan subtasks <source> --1-to-1
 ```
 
 ### Input Sources
@@ -357,6 +359,7 @@ Generate subtasks from any source: file, text description, or review diary.
 
 - `--milestone <name>` - Target milestone for subtasks.json location
 - `--story <ref>` - Link subtasks to a parent story
+- `--1-to-1` - Direct mapping mode: bypass decomposition/sizing logic and map each input item directly to one subtask
 
 ### What Happens
 
@@ -372,6 +375,18 @@ Generate subtasks from any source: file, text description, or review diary.
 - Subtasks must be completable in 15-30 tool calls
 - IDs are globally unique (SUB-NNN format)
 - Uses supervised mode by default (user watches generation)
+
+### When to Use `--1-to-1`
+
+Use the `--1-to-1` flag when:
+- **Tasks are already well-scoped** - Each input item is already the right size for a subtask
+- **You want predictable output** - One input item → one subtask, no splitting or merging
+- **Importing from external sources** - Converting issue tracker items or PR descriptions directly
+
+Do NOT use when:
+- Input items vary wildly in scope (some huge, some tiny)
+- You want intelligent sizing and decomposition
+- Items need to be grouped or split for optimal context window usage
 
 ## CLI Equivalent
 

@@ -39,6 +39,7 @@ If `--review` flag is set, parse `logs/reviews.jsonl` for findings.
 | `--review` | Yes* | Parse review diary instead of source |
 | `--milestone <name>` | No | Target milestone for output location |
 | `--story <ref>` | No | Link subtasks to parent story |
+| `--1-to-1` | No | Direct mapping mode: skip sizing/splitting, one input → one subtask |
 
 *One of `<source>` or `--review` is required.
 
@@ -123,7 +124,11 @@ For each actionable item, create a subtask following the schema in subtask-spec.
 
 Apply the AC Quality Gate from subtask-spec.md before proceeding.
 
+**`--1-to-1` mode:** When this flag is set, each parsed input item maps directly to exactly one subtask. Do not decompose large items or merge small ones. Trust that the input is already appropriately scoped.
+
 ### Phase 3b: Size Judgment
+
+**Skip this phase if `--1-to-1` flag is set.** In 1-to-1 mode, trust that input items are already appropriately scoped.
 
 **Purpose:** Validate each subtask's scope using the vertical slice test before proceeding.
 
@@ -165,6 +170,8 @@ Result: 4/4 PASS → Proceed
 ```
 
 ### Phase 4: Size Validation
+
+**Skip this phase if `--1-to-1` flag is set.** In 1-to-1 mode, no resizing is performed.
 
 Apply Size Guidelines from subtask-spec.md using the vertical slice test from Phase 3b.
 
@@ -272,6 +279,8 @@ All generated subtasks are written to a draft file first. This enables Phase 8 r
 
 This phase always runs. There is no `--no-review` flag.
 
+**`--1-to-1` mode behavior:** Review still runs for validation, but merge/split suggestions are informational only. The 1-to-1 mapping is preserved regardless of sizing findings.
+
 #### Step 1: Invoke Haiku Subtask Reviewer
 
 Spawn the subtask-reviewer agent to analyze all pending subtasks:
@@ -330,6 +339,8 @@ Opus reviews the Haiku findings and applies suggestions:
 - Opus uses judgment to accept, modify, or reject suggestions
 - Priority: avoid context window overflow (split) > reduce overhead (merge)
 - When uncertain, err on keeping subtasks separate
+
+**`--1-to-1` mode:** Skip triage actions. All subtasks pass through unchanged regardless of sizing findings. Log findings for informational purposes but do not apply merge/split actions.
 
 #### Step 4: Write Final Output
 
@@ -418,4 +429,19 @@ aaa ralph plan subtasks "Fix null safety in parsing" --story STORY-001
 
 # From review diary
 aaa ralph plan subtasks --review --milestone 002-ralph
+
+# Direct 1-to-1 mapping (skip decomposition/sizing)
+aaa ralph plan subtasks ./well-scoped-items.md --milestone 002-ralph --1-to-1
 ```
+
+### When to Use `--1-to-1`
+
+Use `--1-to-1` when:
+- **Tasks are already well-scoped** - Each input item is already the right size for a subtask
+- **You want predictable output** - One input item → one subtask, no splitting or merging
+- **Importing from external sources** - Converting issue tracker items or PR descriptions directly
+
+Do NOT use when:
+- Input items vary wildly in scope (some huge, some tiny)
+- You want intelligent sizing and decomposition
+- Items need to be grouped or split for optimal context window usage
