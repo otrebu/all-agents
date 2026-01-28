@@ -30,7 +30,6 @@ _aaa() {
         command)
             local -a commands
             commands=(
-                'download:Download URLs, extract text, save as markdown'
                 'extract-conversations:Extract Claude Code conversation history'
                 'gh-search:Search GitHub for code examples'
                 'gemini-research:Google Search via Gemini CLI'
@@ -49,12 +48,6 @@ _aaa() {
             ;;
         args)
             case $words[1] in
-                download)
-                    _arguments \\
-                        '(-o --output)'{-o,--output}'[Output filename]:filename:_files' \\
-                        '(-d --dir)'{-d,--dir}'[Output directory]:directory:_files -/' \\
-                        '*:url:_urls'
-                    ;;
                 extract-conversations)
                     _arguments \\
                         '(-l --limit)'{-l,--limit}'[Number of recent conversations]:number:' \\

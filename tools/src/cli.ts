@@ -11,7 +11,6 @@ import {
   handleCompletion,
   isCompletionMode,
 } from "./commands/completion/index";
-import downloadCommand from "./commands/download";
 import extractConversationsCommand from "./commands/extract-conversations";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
@@ -35,21 +34,6 @@ const program = new Command()
   .name("aaa")
   .description("All-Agents CLI Toolkit")
   .version(packageJson.version);
-
-program.addCommand(
-  new Command("download")
-    .description("Download URLs, extract text, save as markdown")
-    .argument("<urls...>", "URLs to download")
-    .option(
-      "-o, --output <name>",
-      "Output filename (auto-generated if omitted)",
-    )
-    .option(
-      "-d, --dir <path>",
-      "Output directory (default: docs/research/downloads)",
-    )
-    .action(downloadCommand),
-);
 
 program.addCommand(
   new Command("extract-conversations")

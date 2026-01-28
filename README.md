@@ -83,9 +83,6 @@ aaa parallel-search --objective "RAG patterns" --verbose  # Full report to stdou
 aaa task create my-feature
 aaa story create my-story
 
-# Download URLs and convert to markdown
-aaa download <urls...> [-o name] [-d dir]
-
 # Ralph - Autonomous Development Framework
 #
 # "Humans on the loop, not in it." Engineers design specs; agents implement.
@@ -248,7 +245,7 @@ Claude Code extends with three mechanisms:
 **Stability:** `stable` = battle-tested | `beta` = works, may evolve | `experimental` = may break
 
 <details>
-<summary><strong>Slash Commands</strong> (21 commands)</summary>
+<summary><strong>Slash Commands</strong> (13 commands)</summary>
 
 | Command                            | Description                                 | Stability    | Created    | DRY | Refs/Depends                              | Action |
 | :--------------------------------- | :------------------------------------------ | :----------- | :--------- | :-- | :---------------------------------------- | :----- |
@@ -256,23 +253,16 @@ Claude Code extends with three mechanisms:
 | `/dev:git-multiple-commits`        | Create multiple commits                     | stable       | 2025-11-18 | ✓   | @context/workflows/multiple-commits.md    | FIX: (1) rename → /git-multiple-commits (2) add git reset perm (3) add inline context |
 | `/dev:start-feature`               | Create/switch feature branches              | stable       | 2025-11-18 | ✓   | @context/workflows/start-feature.md       | FIX: add git fetch perm, clarify $ARGUMENTS |
 | `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | FIX: (1) add git reset perm (2) remove branch deletion (3) trim Step 4 verbosity |
-| `/dev:code-review`                 | AI-assisted code review                     | beta         | 2025-11-18 | ✓   | parallel-code-review skill                | NUKE - skill auto-triggers, command is redundant wrapper |
-| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | REFACTOR: split into 4 atomic docs: (1) text-consistency.md - contradictions, definitional drift → planning reviews (2) code-prose-consistency.md - function/API mismatches → tech docs (3) code-code-consistency.md - style drift, imports → code review (4) planning-consistency.md - vision/roadmap/story contradictions → ralph-review. Command refs all 4, each consumer refs only needed ones |
-| `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental | 2026-01-25 | ✓   | @context/workflows/interrogate.md         | CONVERT TO SKILL: (1) create skill with auto-triggers ("interrogate", "what decisions", "hardest part", "alternatives") (2) expand targets: unstaged/staged/range (3) delete command after |
-| `/gh-search`                       | Search GitHub for code examples             | experimental | 2025-11-19 | ✗   | aaa gh-search CLI                         | CONVERT TO SKILL: (1) DRY - ref @context/blocks/construct/gh-search.md (2) add Write perm (3) *test result quality, may need test fixes (4) delete command after |
+| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | REFACTOR: split into 4 atomic docs |
+| `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental | 2026-01-25 | ✓   | @context/workflows/interrogate.md         | CONVERT TO SKILL |
+| `/gh-search`                       | Search GitHub for code examples             | experimental | 2025-11-19 | ✗   | aaa gh-search CLI                         | CONVERT TO SKILL |
 | `/parallel-search`                 | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md | - |
-| `/create-task`                     | Create numbered task file                   | beta         | 2025-12-02 | ✓   | @context/blocks/docs/task-management.md, aaa task create | NUKE - skill auto-triggers, command is redundant |
-| `/download`                        | Download URLs to markdown                   | beta         | 2025-12-03 | ✓   | aaa download CLI                          | NUKE - zero usage, WebFetch+Write sufficient, delete CLI too |
-| `/context:atomic-doc`              | Create/update atomic docs                   | beta         | 2025-12-22 | ✗   | @context/blocks/docs/atomic-documentation.md | NUKE: (1) create skill instead (auto-triggers: "create atomic doc", "add a block") (2) fix manage-atomic-doc.md workflow: add index check first + research step (3) skill serves both manual + automated use |
-| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | REFACTOR → INTEGRATE: becomes Tier 3 of new doc-analysis component. Create context/workflows/ralph/components/doc-analysis.md (T1: Haiku lookup, T2: Sonnet gaps, T3: this). Add /doc-analyze skill. Hook into subtasks-from-source, stories-auto, tasks-auto. |
-| `/meta:cli-feature-creator`        | Wizard for adding CLI features              | experimental | 2026-01-23 | ✗   | Inline paths, no @context refs            | CONVERT TO SKILL: (1) rename - terrible name (2) add frontmatter (3) extract to context/workflows/aaa-cli-feature.md (4) ref @tools/CLAUDE.md (5) add test step (6) split: separate entry points for ralph vs non-ralph commands (7) audit against CLI best practices (8) auto-triggers: "add aaa command", "create CLI feature" |
-| `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | 2025-11-18 | ✗   | Python init script                        | FIX: (1) CRITICAL - fix wrong script path (2) fix step numbering bug (4→6) (3) add @context refs (4) update frontmatter docs with new fields (5) align templates/assets terminology with init_skill.py |
-| `/meta:claude-code:create-command` | Create a slash command                      | beta         | 2025-11-18 | ✗   | @context/blocks/docs/prompting.md, WebFetch | NUKE - merge into create-skill (commands/skills now equivalent per Anthropic docs) |
-| `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | 2025-11-18 | ✗   | @context/blocks/docs/prompting-agent-templates.md | FIX: (1) fix wrong URL (/context/ → /docs/) (2) add complete frontmatter docs (name, description, model, tools, disallowedTools, skills, hooks) (3) add allowed-tools: WebFetch (4) add when-to-use section (agents vs skills) |
-| `/meta:claude-code:create-plugin`  | Scaffold a plugin                           | beta         | 2025-11-18 | ⚠️  | Node script: context/meta/create-plugin.ts | NUKE - superseded by official plugin-dev:create-plugin. Delete command + script. Install: `/plugin install plugin-dev@claude-plugins-official` |
-| `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md         | FIX: (1) add allowed-tools: Write, Bash(mkdir) (2) fix inconsistent ref (line 18 says @context/meta/PROMPTING.md, should match line 10) |
-| `/meta:how-to-prompt`              | Prompting guidance                          | stable       | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md         | NUKE - just read the doc directly. *Review: ensure prompting.md is referenced in create-skill, create-agent, and other meta commands |
-| `/meta:optimize-prompt`            | Optimize prompts                            | stable       | 2025-11-18 | ✓   | @context/blocks/docs/prompting-optimize.md | NUKE - generic advice Claude already knows. Consider also deleting prompting-optimize.md |
+| `/context:atomic-doc`              | Create/update atomic docs                   | beta         | 2025-12-22 | ✗   | @context/blocks/docs/atomic-documentation.md | CONVERT TO SKILL |
+| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | INTEGRATE into doc-analysis |
+| `/meta:cli-feature-creator`        | Wizard for adding CLI features              | experimental | 2026-01-23 | ✗   | Inline paths, no @context refs            | CONVERT TO SKILL |
+| `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | 2025-11-18 | ✗   | Python init script                        | FIX: wrong script path, step numbering |
+| `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | 2025-11-18 | ✗   | @context/blocks/docs/prompting-agent-templates.md | FIX: wrong URL, add frontmatter docs |
+| `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md         | FIX: add allowed-tools |
 
 </details>
 
@@ -303,20 +293,20 @@ Claude Code extends with three mechanisms:
 <details>
 <summary><strong>Skills</strong> (12 skills)</summary>
 
-| Skill                  | Description                                    | Stability    | Action |
-| :--------------------- | :--------------------------------------------- | :----------- | :----- |
-| `brainwriting`         | 5 parallel idea explorations, then synthesize  | beta         | - |
-| `dev-work-summary`     | Scan ~/dev for today's git work                | beta         | - |
-| `eval-test-skill`      | List and delete branches merged to main        | experimental | - |
-| `parallel-code-review` | Orchestrate 11 reviewers in parallel           | experimental | - |
-| `ralph-build`          | Autonomous build loop for subtasks             | experimental | - |
-| `ralph-calibrate`      | Check intention drift, technical quality       | experimental | - |
-| `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental | - |
-| `ralph-review`         | Review auto-generated planning artifacts       | experimental | FIX: tasks gap analysis missing ("coming soon") - create workflow to check tasks cover story ACs |
-| `ralph-status`         | Display build progress and stats               | experimental | - |
-| `story-create`         | Create story files, prompt for linked tasks    | beta         | - |
-| `task-create`          | Create task files                              | beta         | - |
-| `walkthrough`          | Present items one at a time interactively      | experimental | - |
+| Skill                  | Description                                    | Stability    | Created    | DRY | CLI Sibling | Action |
+| :--------------------- | :--------------------------------------------- | :----------- | :--------- | :-- | :---------- | :----- |
+| `brainwriting`         | 5 parallel idea explorations, then synthesize  | beta         | 2025-11-19 | ✓   | -           | ✓ KEEP (add note: "for product vision use ralph-plan vision") |
+| `dev-work-summary`     | Scan ~/dev for today's git work                | beta         | 2025-11-18 | ✓   | -           | ✓ KEEP |
+| `eval-test-skill`      | List and delete branches merged to main        | experimental | -          | -   | -           | - |
+| `parallel-code-review` | Orchestrate 11 reviewers in parallel           | experimental | -          | -   | -           | - |
+| `ralph-build`          | Autonomous build loop for subtasks             | experimental | -          | -   | `aaa ralph build` | - |
+| `ralph-calibrate`      | Check intention drift, technical quality       | experimental | -          | -   | `aaa ralph calibrate` | - |
+| `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental | -          | -   | `aaa ralph plan` | - |
+| `ralph-review`         | Review auto-generated planning artifacts       | experimental | -          | -   | -           | FIX: tasks gap analysis missing |
+| `ralph-status`         | Display build progress and stats               | experimental | -          | -   | `aaa ralph status` | - |
+| `story-create`         | Create story files, prompt for linked tasks    | beta         | -          | -   | -           | - |
+| `task-create`          | Create task files                              | beta         | -          | -   | -           | - |
+| `walkthrough`          | Present items one at a time interactively      | experimental | -          | -   | -           | - |
 
 </details>
 

@@ -43,7 +43,6 @@ function __fish_aaa_needs_command
 end
 
 # Top-level commands
-complete -c aaa -n __fish_aaa_needs_command -a download -d 'Download URLs, extract text, save as markdown'
 complete -c aaa -n __fish_aaa_needs_command -a extract-conversations -d 'Extract Claude Code conversation history'
 complete -c aaa -n __fish_aaa_needs_command -a gh-search -d 'Search GitHub for code examples'
 complete -c aaa -n __fish_aaa_needs_command -a gemini-research -d 'Google Search via Gemini CLI'
@@ -60,10 +59,6 @@ complete -c aaa -n __fish_aaa_needs_command -a completion -d 'Generate shell com
 # Global options
 complete -c aaa -s h -l help -d 'Show help'
 complete -c aaa -s V -l version -d 'Show version'
-
-# download options
-complete -c aaa -n '__fish_aaa_using_subcommand download' -s o -l output -d 'Output filename' -r
-complete -c aaa -n '__fish_aaa_using_subcommand download' -s d -l dir -d 'Output directory' -ra '(__fish_complete_directories)'
 
 # extract-conversations options
 complete -c aaa -n '__fish_aaa_using_subcommand extract-conversations' -s l -l limit -d 'Number of recent conversations' -r

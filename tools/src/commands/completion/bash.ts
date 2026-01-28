@@ -118,10 +118,6 @@ _aaa_completions() {
     # PHASE 3: Complete flags if typing a dash
     if [[ "$cur" == -* ]]; then
         case "$cmd" in
-            download)
-                COMPREPLY=($(compgen -W "-o --output -d --dir" -- "$cur"))
-                return
-                ;;
             extract-conversations)
                 COMPREPLY=($(compgen -W "-l --limit -o --output -s --skip" -- "$cur"))
                 return
@@ -227,7 +223,7 @@ _aaa_completions() {
     case "$cmd" in
         "")
             # Top-level commands
-            COMPREPLY=($(compgen -W "download extract-conversations gh-search gemini-research notify parallel-search setup uninstall sync-context task story ralph review completion" -- "$cur"))
+            COMPREPLY=($(compgen -W "extract-conversations gh-search gemini-research notify parallel-search setup uninstall sync-context task story ralph review completion" -- "$cur"))
             ;;
         task)
             if [[ -z "$subcmd" ]]; then
