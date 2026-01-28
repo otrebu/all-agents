@@ -118,6 +118,38 @@ Then follow ALL phases in the workflow file you just read.
 - Don't batch all tasks at the end
 - This protects against crashes/disconnects
 
+### If argument is `tasks <story-id> --auto`:
+
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/tasks-auto.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full auto-generation workflow.
+
+1. A story ID must be provided (e.g., `/ralph-plan tasks STORY-001-auth --auto`)
+2. Find the story file in `docs/planning/milestones/*/stories/<story-id>.md`
+3. If the story is not found, report error and list available stories
+4. Analyze the codebase for patterns relevant to the story
+5. Generate task files automatically following the workflow
+
+**Auto mode outputs:**
+- Task files are created without interaction
+- Summary reports what was generated
+- No incremental saving prompts (all tasks saved at once)
+
+### If argument is `tasks --milestone <name> --auto`:
+
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/tasks-milestone.md` (relative to project root). DO NOT proceed without reading this file first - it contains the parallel agent orchestration workflow.
+
+1. A milestone name must be provided (e.g., `/ralph-plan tasks --milestone ralph --auto`)
+2. Discover all stories in `docs/planning/milestones/<name>/stories/`
+3. If no stories found, report error with available milestones
+4. Calculate starting task ID by scanning ALL existing task directories
+5. Spawn parallel `task-generator` subagents (one per story)
+6. Each agent generates tasks for its story independently
+7. Report summary of all generated tasks
+
+**Parallelization benefits:**
+- Faster: Multiple stories processed concurrently
+- Better quality: Smaller context per agent
+- Consistent: Same patterns applied across all stories
+
 ### If argument is `subtasks` (with required source):
 
 **MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-from-source.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full workflow you MUST follow.
