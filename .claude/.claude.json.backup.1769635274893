@@ -41,7 +41,7 @@
     "guest-passes": 292,
     "agent-flag": 562
   },
-  "promptQueueUseCount": 12544,
+  "promptQueueUseCount": 12545,
   "cachedStatsigGates": {
     "tengu_disable_bypass_permissions_mode": false,
     "tengu_tool_pear": false,
@@ -133,7 +133,7 @@
     "tengu_cork_m4q": false,
     "tengu_plum_vx3": false,
     "tengu_compact_cache_prefix": false,
-    "tengu_marble_anvil": false,
+    "tengu_marble_anvil": true,
     "tengu_tst_kx7": false,
     "tengu_coral_fern": false
   },
@@ -1044,7 +1044,7 @@
         "referral_link": "https://claude.ai/referral/itKfdrYVZA"
       },
       "referrer_reward": null,
-      "timestamp": 1769614136297
+      "timestamp": 1769635274795
     }
   },
   "lastReleaseNotesSeen": "2.1.22",
@@ -1090,16 +1090,16 @@
       "lastUsedAt": 1768219281338
     },
     "dev:start-feature": {
-      "usageCount": 3,
-      "lastUsedAt": 1769603073302
+      "usageCount": 4,
+      "lastUsedAt": 1769622983193
     },
     "dev:code-review": {
       "usageCount": 1,
       "lastUsedAt": 1768227139698
     },
     "ralph-plan": {
-      "usageCount": 9,
-      "lastUsedAt": 1769603361993
+      "usageCount": 10,
+      "lastUsedAt": 1769623045254
     },
     "ralph-review": {
       "usageCount": 5,
@@ -1126,8 +1126,8 @@
       "lastUsedAt": 1769084314563
     },
     "dev:complete-feature": {
-      "usageCount": 2,
-      "lastUsedAt": 1769602790754
+      "usageCount": 3,
+      "lastUsedAt": 1769621455314
     },
     "walkthrough": {
       "usageCount": 5,
