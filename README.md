@@ -299,15 +299,15 @@ Claude Code extends with three mechanisms:
 | `eval-test-skill`      | List and delete branches merged to main        | experimental | 2025-12-24 | ✗   | -           | NUKE (placeholder name, use /dev:complete-feature instead) |
 | `gh-search`            | Search GitHub for code examples and patterns   | experimental | 2026-01-28 | ✓   | `aaa gh-search` | - |
 | `interrogate-on-changes` | Surface decisions, alternatives, confidence  | experimental | 2026-01-28 | ✓   | -           | - |
-| `parallel-code-review` | Orchestrate 11 reviewers in parallel           | experimental | -          | -   | -           | - |
-| `ralph-build`          | Autonomous build loop for subtasks             | experimental | -          | -   | `aaa ralph build` | - |
-| `ralph-calibrate`      | Check intention drift, technical quality       | experimental | -          | -   | `aaa ralph calibrate` | - |
-| `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental | -          | -   | `aaa ralph plan` | - |
-| `ralph-review`         | Review auto-generated planning artifacts       | experimental | -          | -   | -           | FIX: tasks gap analysis missing |
-| `ralph-status`         | Display build progress and stats               | experimental | -          | -   | `aaa ralph status` | - |
-| `story-create`         | Create story files, prompt for linked tasks    | beta         | -          | -   | -           | - |
-| `task-create`          | Create task files                              | beta         | -          | -   | -           | - |
-| `walkthrough`          | Present items one at a time interactively      | experimental | -          | -   | -           | - |
+| `parallel-code-review` | Orchestrate 11 reviewers in parallel           | experimental | 2026-01-25 | ✗   | `aaa review` | REWRITE: (1) rename → code-review (2) add triage agent that PICKS not just aggregates (3) add approval gate before changes (4) add flexible diff targets (branch vs main, between commits) (5) add ralph hooks integration |
+| `ralph-build`          | Autonomous build loop for subtasks             | experimental | 2026-01-23 | ✓   | `aaa ralph build` | FIX: pre-build-validation.md should ref subtask-spec.md for sizing (vertical slice test, small/medium/large modes, 2-5 AC threshold) — keep only alignment checks (scope_creep, unfaithful) |
+| `ralph-calibrate`      | Check intention drift, technical quality       | experimental | 2026-01-23 | ✓   | `aaa ralph calibrate` | ✓ KEEP (complementary to code-review: calibrate = drift from our docs, review = general quality) |
+| `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental | 2026-01-23 | ✓   | `aaa ralph plan` | FIX: (1) add argument-hint frontmatter (2) clarify --task mode in docs (3) add --1-to-1 flag for direct tasks→subtasks mapping (no decomposition) |
+| `ralph-review`         | Review auto-generated planning artifacts       | experimental | 2026-01-23 | ✓   | -           | FIX: Coverage gaps — Tasks: QR+GA+auto all missing. Subtasks: GA+auto missing. Vision: all missing (low priority). CLI: expose --headless flag (auto workflows exist but not accessible). Consolidate duplicate gap workflows (planning/ vs review/). |
+| `ralph-status`         | Display build progress and stats               | experimental | 2026-01-23 | ✓   | `aaa ralph status` | ✓ KEEP |
+| `story-create`         | Create story files, prompt for linked tasks    | beta         | 2026-01-06 | ✓   | `aaa story create` | ✓ KEEP (add note: "for guided planning use /ralph-plan stories") |
+| `task-create`          | Create task files                              | beta         | 2025-12-03 | ✓   | `aaa task create` | FIX: document --dir flag in skill workflow for milestone-scoped tasks |
+| `walkthrough`          | Present items one at a time interactively      | experimental | 2026-01-26 | ✓   | -           | ✓ KEEP |
 
 </details>
 
