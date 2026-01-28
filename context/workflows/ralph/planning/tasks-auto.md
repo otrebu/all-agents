@@ -54,6 +54,8 @@ This analysis informs:
 
 Follow the doc lookup workflow for each task. In auto mode, spawn subagent for missing docs and flag `[REVIEW]`.
 
+**Component reference:** The doc lookup process is part of the tiered doc-analysis system. See @context/workflows/ralph/components/doc-analysis.md for T1 (index lookup) and T2 (gap creation) patterns used here.
+
 ## Your Task
 
 Generate task files in `docs/planning/tasks/` that translate the story's acceptance criteria into concrete development work.

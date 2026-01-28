@@ -195,9 +195,10 @@ Before finalizing stories, verify compliance with @context/blocks/docs/story-tem
 2. Read @docs/planning/ROADMAP.md completely
 3. Find the specified milestone in the roadmap
 4. Extract deliverables and success criteria for that milestone
-5. Generate stories that cover all deliverables
-6. Create story files in `docs/planning/milestones/<milestone>/stories/`
-7. Ensure each story follows the template format exactly
+5. **[Future]** Run doc-analysis T1 lookup to identify relevant atomic docs (see @context/workflows/ralph/components/doc-analysis.md)
+6. Generate stories that cover all deliverables
+7. Create story files in `docs/planning/milestones/<milestone>/stories/`
+8. Ensure each story follows the template format exactly
 
 ## Output
 

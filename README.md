@@ -255,7 +255,7 @@ Claude Code extends with three mechanisms:
 | `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | FIX: (1) add git reset perm (2) remove branch deletion (3) trim Step 4 verbosity |
 | `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | DONE |
 | `/parallel-search`                 | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md | - |
-| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | INTEGRATE into doc-analysis |
+| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | DONE (INTEGRATED) |
 | `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | 2025-11-18 | ✗   | Python init script                        | FIX: wrong script path, step numbering |
 | `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | 2025-11-18 | ✗   | @context/blocks/docs/prompting-agent-templates.md | FIX: wrong URL, add frontmatter docs |
 | `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md         | FIX: add allowed-tools |
@@ -287,7 +287,7 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Skills</strong> (16 skills)</summary>
+<summary><strong>Skills</strong> (17 skills)</summary>
 
 | Skill                  | Description                                    | Stability    | Created    | DRY | CLI Sibling | Action |
 | :--------------------- | :--------------------------------------------- | :----------- | :--------- | :-- | :---------- | :----- |
@@ -295,6 +295,7 @@ Claude Code extends with three mechanisms:
 | `brainwriting`         | 5 parallel idea explorations, then synthesize  | beta         | 2025-11-19 | ✓   | -           | ✓ KEEP (add note: "for product vision use ralph-plan vision") |
 | `context-atomic-doc`   | Create/update atomic docs (blocks, foundations, stacks) | experimental | 2026-01-28 | ✓   | -           | - |
 | `dev-work-summary`     | Scan ~/dev for today's git work                | beta         | 2025-11-18 | ✓   | -           | ✓ KEEP |
+| `doc-analyze`          | Tiered doc analysis (T1: Haiku lookup, T2: Sonnet gaps, T3: Opus deep) | experimental | 2026-01-28 | ✓   | -           | - |
 | `eval-test-skill`      | List and delete branches merged to main        | experimental | 2025-12-24 | ✗   | -           | NUKE (placeholder name, use /dev:complete-feature instead) |
 | `gh-search`            | Search GitHub for code examples and patterns   | experimental | 2026-01-28 | ✓   | `aaa gh-search` | - |
 | `interrogate-on-changes` | Surface decisions, alternatives, confidence  | experimental | 2026-01-28 | ✓   | -           | - |

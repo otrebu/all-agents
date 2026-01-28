@@ -64,6 +64,8 @@ If `--review` flag is set, parse `logs/reviews.jsonl` for findings.
 
 **Purpose:** Before codebase analysis, identify relevant atomic documentation that informs subtask boundaries and implementation context.
 
+**Reference:** @context/workflows/ralph/components/doc-analysis.md (Tier 1: Index Lookup)
+
 **Process (Haiku subagent):**
 
 1. **Extract technologies/concepts** from parsed input
@@ -177,6 +179,8 @@ Run through the Validation Checklist in subtask-spec.md before proceeding.
 ### Phase 6b: Doc Linking
 
 **Purpose:** Create missing atomic documentation flagged during Phase 1b, ensuring subtasks have complete context.
+
+**Reference:** @context/workflows/ralph/components/doc-analysis.md (Tier 2: Gap Creation)
 
 **Input:** `missingDocs` array from Phase 1b containing `{ concept, reason }` entries.
 
