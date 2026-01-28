@@ -81,42 +81,18 @@ Subtask: "Add email validation, phone validation, and CAPTCHA"
 
 **Criteria:** All acceptance criteria should map to Task requirements.
 
-### 2. Too Broad
+### 2. Sizing Validation
 
-**Definition:** The subtask tries to accomplish too much for a single iteration.
+For sizing issues (`too_broad`, `too_narrow`), apply the rules from:
+**@context/workflows/ralph/planning/subtask-spec.md**
 
-**Check for:**
-- More than 5-7 acceptance criteria
-- Description mentions multiple distinct features
-- Would require touching many unrelated files
-- Estimated to take more than one focused session
+Key validation points from the spec:
+- **Vertical Slice Test** - 4 questions that determine if subtask is properly scoped
+- **Subtask Scope Rules** - 1-3 files, 2-5 AC, 15-30 tool calls
+- **Signs Too Large** - Fails "One pass?" question, multiple unrelated changes
+- **Signs Too Small** - Single-line changes, no end-to-end value
 
-**Example of too broad:**
-```
-Subtask: "Implement complete user authentication system including login, logout, registration, password reset, email verification, and session management"
-```
-*This should be split into 6+ separate subtasks.*
-
-**Criteria:** A subtask should be completable in one focused session (~2-4 hours of work).
-
-### 3. Too Narrow
-
-**Definition:** The subtask is so small it doesn't add meaningful value independently.
-
-**Check for:**
-- Single-line changes that should be part of a larger subtask
-- Changes that can't be tested in isolation
-- Work that makes no sense without another subtask completing first
-
-**Example of too narrow:**
-```
-Subtask: "Add import statement for JWT library"
-```
-*This should be part of the subtask that uses the JWT library.*
-
-**Criteria:** A subtask should produce a testable, meaningful change.
-
-### 4. Faithful Implementation
+### 3. Faithful Implementation
 
 **Definition:** The subtask accurately reflects what the Task/Story intends.
 
@@ -178,6 +154,7 @@ When any validation check fails:
 **Required fields for `aligned: false`:**
 - `reason`: Specific description of what's wrong
 - `issue_type`: One of: `scope_creep`, `too_broad`, `too_narrow`, `unfaithful`
+  - For `too_broad`/`too_narrow`: cite specific rules from subtask-spec.md
 - `suggestion`: Actionable fix recommendation
 
 ## Examples
