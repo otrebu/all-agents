@@ -1,6 +1,7 @@
 ---
 name: ralph-plan
 description: Interactive vision planning using Socratic method. Use when user asks to "ralph plan vision", "plan a vision", "ralph plan roadmap", "ralph plan stories", "ralph plan tasks", or needs to define product vision/roadmap/stories/tasks through guided dialogue.
+argument-hint: <vision|roadmap|stories|tasks|subtasks> [options]
 ---
 
 # Ralph Plan
