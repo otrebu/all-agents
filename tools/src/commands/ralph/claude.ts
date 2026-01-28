@@ -235,24 +235,37 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
   // Parse JSON from stdout (now clean without stderr contamination)
   // Claude outputs JSON array: [{type:"system",...}, {type:"assistant",...}, {type:"result",...}]
   // We need the last element with type:"result"
-  const stdout = proc.stdout.toString("utf8");
-  const parsed = JSON.parse(stdout) as
-    | Array<ClaudeJsonOutput>
-    | ClaudeJsonOutput;
-  const output: ClaudeJsonOutput = Array.isArray(parsed)
-    ? (parsed.findLast(
-        (entry) => (entry as { type?: string }).type === "result",
-      ) ??
-      parsed.at(-1) ??
-      {})
-    : parsed;
+  try {
+    const stdout = proc.stdout.toString("utf8");
+    const parsed = JSON.parse(stdout) as
+      | Array<ClaudeJsonOutput>
+      | ClaudeJsonOutput;
+    const output: ClaudeJsonOutput = Array.isArray(parsed)
+      ? (parsed.findLast(
+          (entry) => (entry as { type?: string }).type === "result",
+        ) ??
+        parsed.at(-1) ??
+        {})
+      : parsed;
 
-  return {
-    cost: output.total_cost_usd ?? 0,
-    duration: output.duration_ms ?? 0,
-    result: output.result ?? "",
-    sessionId: output.session_id ?? "",
-  };
+    return {
+      cost: output.total_cost_usd ?? 0,
+      duration: output.duration_ms ?? 0,
+      result: output.result ?? "",
+      sessionId: output.session_id ?? "",
+    };
+  } catch (error) {
+    // Handle invalid JSON from Claude CLI (known issue: https://github.com/anthropics/claude-code/issues/19060)
+    // The CLI sometimes returns empty or invalid responses due to rate limiting, network issues, or API timeouts
+    const preview = proc.stdout.toString("utf8").slice(0, 500);
+    console.error("Failed to parse Claude JSON output.");
+    console.error(
+      "Parse error:",
+      error instanceof Error ? error.message : String(error),
+    );
+    console.error("Stdout preview:", preview || "(empty)");
+    return null;
+  }
 }
 
 export {

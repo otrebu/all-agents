@@ -1,8 +1,8 @@
 {
   "notify": {
     "defaultPriority": "high",
-    "defaultTopic": "ralph",
-    "enabled": false,
+    "defaultTopic": "ralph-build",
+    "enabled": true,
     "quietHours": {
       "enabled": true,
       "endHour": 8,
@@ -10,5 +10,16 @@
     },
     "server": "http://100.92.35.100:8080",
     "title": "aaa notify"
+  },
+  "ralph": {
+    "hooks": {
+      "onIterationComplete": ["log"],
+      "onMilestoneComplete": ["log", "notify"],
+      "onValidationFail": ["log", "notify"],
+      "onMaxIterationsExceeded": ["log", "notify", "pause"]
+    },
+    "selfImprovement": {
+      "mode": "suggest"
+    }
   }
 }

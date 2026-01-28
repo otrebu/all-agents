@@ -211,14 +211,14 @@ function runImproveCheck(options: CalibrateOptions): boolean {
   }
 
   // Load config and check selfImprovement mode
-  const configPath = path.join(contextRoot, "ralph.config.json");
-  const config = loadRalphConfig(configPath);
+  // Uses unified config loader (no explicit path needed)
+  const config = loadRalphConfig();
   // Mode is "suggest", "autofix", or "off"
   const selfImproveMode = (config.selfImprovement?.mode ?? "suggest") as string;
 
   // Check for "off" mode - skip analysis entirely
   if (selfImproveMode === "off") {
-    console.log("Self-improvement analysis is disabled in ralph.config.json");
+    console.log("Self-improvement analysis is disabled in aaa.config.json");
     return true;
   }
 
@@ -238,13 +238,14 @@ function runImproveCheck(options: CalibrateOptions): boolean {
   const promptContent = readFileSync(promptPath, "utf8");
 
   // Build the prompt with context
+  const unifiedConfigPath = path.join(contextRoot, "aaa.config.json");
   const prompt = `Execute self-improvement analysis.
 
 Follow the instructions in @${promptPath}
 
 Subtasks file: @${subtasksPath}
 
-Config file: @${configPath}
+Config file: @${unifiedConfigPath}
 
 Session IDs to analyze: ${sessionIds}
 
@@ -338,7 +339,8 @@ function runIntentionCheck(options: CalibrateOptions): boolean {
   }
 
   // Load config and determine approval mode
-  const config = loadRalphConfig(path.join(contextRoot, "ralph.config.json"));
+  // Uses unified config loader (no explicit path needed)
+  const config = loadRalphConfig();
   const approvalMode = getApprovalMode(config, options);
   console.log(`Approval mode: ${approvalMode}`);
 
@@ -428,7 +430,8 @@ function runTechnicalCheck(options: CalibrateOptions): boolean {
   }
 
   // Load config and determine approval mode
-  const config = loadRalphConfig(path.join(contextRoot, "ralph.config.json"));
+  // Uses unified config loader (no explicit path needed)
+  const config = loadRalphConfig();
   const approvalMode = getApprovalMode(config, options);
 
   // Read the prompt file

@@ -6,15 +6,16 @@
  * - Notify action: Send push notifications via ntfy
  * - Pause action: Interactive pause with TTY check
  *
- * Hooks are configured in ralph.config.json and triggered at specific points
+ * Hooks are configured in aaa.config.json and triggered at specific points
  * in the build lifecycle (onIterationComplete, onMaxIterationsExceeded, etc.)
  *
  * @see docs/planning/schemas/ralph-config.schema.json
  */
 
+import { loadAaaConfig } from "@tools/lib/config";
 import * as readline from "node:readline";
 
-import type { HookAction, RalphConfig } from "./types";
+import type { HookAction } from "./types";
 
 import { loadRalphConfig } from "./config";
 
@@ -99,7 +100,7 @@ async function executeHook(
         }
         case "notify": {
           // eslint-disable-next-line no-await-in-loop -- Actions must execute in order
-          await executeNotifyAction(hookName, context, config);
+          await executeNotifyAction(hookName, context);
           actionsExecuted.push("notify");
           break;
         }
@@ -145,13 +146,11 @@ function executeLogAction(hookName: string, context: HookContext): void {
  *
  * @param hookName - Name of the hook being executed
  * @param context - Hook context with message
- * @param config - Ralph configuration containing ntfy settings (used for fallback)
  * @returns true if notification was sent successfully, false otherwise
  */
 async function executeNotifyAction(
   hookName: string,
   context: HookContext,
-  config: RalphConfig,
 ): Promise<boolean> {
   const eventName = hookNameToEventName(hookName);
 
@@ -184,7 +183,7 @@ async function executeNotifyAction(
       console.log(
         `[Hook:${hookName}] CLI not found, falling back to inline fetch`,
       );
-      return executeNotifyFallback(hookName, context, config);
+      return executeNotifyFallback(hookName, context);
     }
 
     const message = error instanceof Error ? error.message : String(error);
@@ -197,32 +196,36 @@ async function executeNotifyAction(
  * Fallback notification via inline fetch (when CLI not available)
  *
  * Uses native fetch() to POST to the ntfy server directly.
- * This is the legacy implementation kept as fallback.
+ * Gets notification config from unified aaa.config.json (notify section).
  *
  * @param hookName - Name of the hook being executed
  * @param context - Hook context with message
- * @param config - Ralph configuration containing ntfy settings
  * @returns true if notification was sent successfully, false otherwise
  */
 async function executeNotifyFallback(
   hookName: string,
   context: HookContext,
-  config: RalphConfig,
 ): Promise<boolean> {
-  const { ntfy } = config;
+  // Get notify config from unified config instead of legacy ntfy section
+  const { notify } = loadAaaConfig();
 
-  // Check if ntfy is configured
+  // Check if notify is configured with a topic
   if (
-    ntfy?.topic === undefined ||
-    ntfy.topic === "" ||
-    ntfy.topic === "your-ntfy-topic"
+    notify?.defaultTopic === undefined ||
+    notify.defaultTopic === "" ||
+    notify.defaultTopic === "your-ntfy-topic"
   ) {
-    console.log(`[Hook:${hookName}] notify action: ntfy topic not configured`);
+    console.log(
+      `[Hook:${hookName}] notify action: notify.defaultTopic not configured in aaa.config.json`,
+    );
     return false;
   }
 
-  const server = ntfy.server === "" ? "https://ntfy.sh" : ntfy.server;
-  const url = `${server}/${ntfy.topic}`;
+  const server =
+    notify.server === undefined || notify.server === ""
+      ? "https://ntfy.sh"
+      : notify.server;
+  const url = `${server}/${notify.defaultTopic}`;
 
   console.log(`[Hook:${hookName}] Sending notification via fallback to ${url}`);
 

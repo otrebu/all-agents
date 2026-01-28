@@ -147,16 +147,6 @@ interface IterationTiming {
 }
 
 /**
- * ntfy push notification configuration
- */
-interface NtfyConfig {
-  /** ntfy server URL */
-  server: string;
-  /** ntfy topic to publish to */
-  topic: string;
-}
-
-/**
  * Extended configuration for post-iteration hooks
  */
 interface PostIterationHookConfig extends HookConfig {
@@ -175,13 +165,14 @@ interface PostIterationHookConfig extends HookConfig {
 }
 
 /**
- * Root structure of ralph.config.json
+ * Root structure of ralph config section in aaa.config.json
+ *
+ * Note: Notification config (formerly ntfy) is now in the top-level
+ * notify section of aaa.config.json, not here.
  */
 interface RalphConfig {
   /** Hook configuration */
   hooks?: HooksConfig;
-  /** ntfy push notification configuration */
-  ntfy?: NtfyConfig;
   /** Self-improvement configuration */
   selfImprovement?: SelfImprovementConfig;
 }
@@ -311,7 +302,6 @@ export {
   type IterationStatus,
   type IterationTiming,
   normalizeStatus,
-  type NtfyConfig,
   type PostIterationHookConfig,
   type RalphConfig,
   type SelfImprovementConfig,

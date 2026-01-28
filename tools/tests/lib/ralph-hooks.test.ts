@@ -6,11 +6,19 @@
  * - executeNotifyAction CLI invocation pattern
  */
 
-import type { RalphConfig } from "@tools/commands/ralph/types";
 import type { Subprocess } from "bun";
 
 import { hookNameToEventName } from "@tools/commands/ralph/hooks";
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import * as configLoader from "@tools/lib/config/loader";
+import {
+  afterAll,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from "bun:test";
 
 /**
  * Minimal mock subprocess for testing Bun.spawn calls.
@@ -20,11 +28,6 @@ type MockSubprocess = Pick<
   Subprocess,
   "exitCode" | "exited" | "stderr" | "stdout"
 >;
-
-// Helper to create minimal valid RalphConfig
-function createConfig(ntfy: { server: string; topic: string }): RalphConfig {
-  return { hooks: {}, ntfy, selfImprovement: { mode: "suggest" } };
-}
 
 describe("hookNameToEventName", () => {
   test("converts onMaxIterationsExceeded to ralph:maxIterationsExceeded", () => {
@@ -108,11 +111,9 @@ describe("executeNotifyAction CLI invocation", () => {
     // Override Bun.spawn with mock (test-only mutation)
     Object.assign(Bun, { spawn: mockSpawn });
 
-    const didSend = await executeNotifyAction(
-      "onMaxIterationsExceeded",
-      { message: "Test message" },
-      createConfig({ server: "", topic: "test" }),
-    );
+    const didSend = await executeNotifyAction("onMaxIterationsExceeded", {
+      message: "Test message",
+    });
 
     expect(didSend).toBe(true);
     expect(spawnCalls.length).toBe(1);
@@ -154,11 +155,9 @@ describe("executeNotifyAction CLI invocation", () => {
     // Override Bun.spawn with mock (test-only mutation)
     Object.assign(Bun, { spawn: mockSpawn });
 
-    const didSend = await executeNotifyAction(
-      "onMaxIterationsExceeded",
-      { message: "Test message" },
-      createConfig({ server: "", topic: "test" }),
-    );
+    const didSend = await executeNotifyAction("onMaxIterationsExceeded", {
+      message: "Test message",
+    });
 
     expect(didSend).toBe(false);
   });
@@ -171,33 +170,67 @@ describe("executeNotifyFallback", () => {
     globalThis.fetch = originalFetch;
   });
 
-  test("returns false when ntfy topic not configured", async () => {
+  test("returns false when notify.defaultTopic not configured", async () => {
+    // Mock the unified config loader to return empty topic
+    const loadAaaConfigSpy = spyOn(
+      configLoader,
+      "loadAaaConfig",
+    ).mockReturnValue({
+      debug: false,
+      notify: { defaultTopic: "", server: "" },
+      ralph: {},
+      research: {},
+      review: {},
+    });
+
     const { executeNotifyFallback } =
       await import("@tools/commands/ralph/hooks");
 
-    const didSend = await executeNotifyFallback(
-      "onMaxIterationsExceeded",
-      { message: "Test message" },
-      createConfig({ server: "", topic: "" }),
-    );
+    const didSend = await executeNotifyFallback("onMaxIterationsExceeded", {
+      message: "Test message",
+    });
 
     expect(didSend).toBe(false);
+    loadAaaConfigSpy.mockRestore();
   });
 
-  test("returns false when ntfy topic is placeholder", async () => {
+  test("returns false when notify.defaultTopic is placeholder", async () => {
+    // Mock the unified config loader to return placeholder topic
+    const loadAaaConfigSpy = spyOn(
+      configLoader,
+      "loadAaaConfig",
+    ).mockReturnValue({
+      debug: false,
+      notify: { defaultTopic: "your-ntfy-topic", server: "" },
+      ralph: {},
+      research: {},
+      review: {},
+    });
+
     const { executeNotifyFallback } =
       await import("@tools/commands/ralph/hooks");
 
-    const didSend = await executeNotifyFallback(
-      "onMaxIterationsExceeded",
-      { message: "Test message" },
-      createConfig({ server: "", topic: "your-ntfy-topic" }),
-    );
+    const didSend = await executeNotifyFallback("onMaxIterationsExceeded", {
+      message: "Test message",
+    });
 
     expect(didSend).toBe(false);
+    loadAaaConfigSpy.mockRestore();
   });
 
   test("sends notification via fetch when configured", async () => {
+    // Mock the unified config loader
+    const loadAaaConfigSpy = spyOn(
+      configLoader,
+      "loadAaaConfig",
+    ).mockReturnValue({
+      debug: false,
+      notify: { defaultTopic: "test-topic", server: "https://test.ntfy.sh" },
+      ralph: {},
+      research: {},
+      review: {},
+    });
+
     const { executeNotifyFallback } =
       await import("@tools/commands/ralph/hooks");
 
@@ -215,20 +248,31 @@ describe("executeNotifyFallback", () => {
       },
     ) as unknown as typeof fetch;
 
-    const didSend = await executeNotifyFallback(
-      "onMaxIterationsExceeded",
-      { message: "Test message" },
-      createConfig({ server: "https://test.ntfy.sh", topic: "test-topic" }),
-    );
+    const didSend = await executeNotifyFallback("onMaxIterationsExceeded", {
+      message: "Test message",
+    });
 
     expect(didSend).toBe(true);
     expect(didCallFetch).toBe(true);
     expect(fetchUrl).toBe("https://test.ntfy.sh/test-topic");
     expect(fetchOptions.method).toBe("POST");
     expect(fetchOptions.body).toBe("Test message");
+    loadAaaConfigSpy.mockRestore();
   });
 
   test("uses default server when not specified", async () => {
+    // Mock the unified config loader with empty server
+    const loadAaaConfigSpy = spyOn(
+      configLoader,
+      "loadAaaConfig",
+    ).mockReturnValue({
+      debug: false,
+      notify: { defaultTopic: "test-topic", server: "" },
+      ralph: {},
+      research: {},
+      review: {},
+    });
+
     const { executeNotifyFallback } =
       await import("@tools/commands/ralph/hooks");
 
@@ -242,12 +286,11 @@ describe("executeNotifyFallback", () => {
       },
     ) as unknown as typeof fetch;
 
-    await executeNotifyFallback(
-      "onMaxIterationsExceeded",
-      { message: "Test message" },
-      createConfig({ server: "", topic: "test-topic" }),
-    );
+    await executeNotifyFallback("onMaxIterationsExceeded", {
+      message: "Test message",
+    });
 
     expect(fetchUrl).toBe("https://ntfy.sh/test-topic");
+    loadAaaConfigSpy.mockRestore();
   });
 });

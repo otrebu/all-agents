@@ -196,14 +196,17 @@ function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
 
 /**
  * Render the configuration section
+ *
+ * Checks for unified aaa.config.json with ralph section.
+ * Shows "Found" if the file exists (config loader provides defaults).
  */
 function renderConfigSection(configPath: string): void {
   console.log(chalk.bold("Configuration"));
   console.log("─────────────");
   if (existsSync(configPath)) {
-    console.log(`  Config: ${chalk.green("Found")} (ralph.config.json)`);
+    console.log(`  Config: ${chalk.green("Found")} (aaa.config.json)`);
   } else {
-    console.log(`  Config: ${chalk.dim("Not found")}`);
+    console.log(`  Config: ${chalk.dim("Not found")} (using defaults)`);
   }
   console.log();
 }
@@ -341,7 +344,7 @@ function renderSubtasksSection(subtasksPath: string): void {
  * Run the Ralph status command
  *
  * Displays:
- * - Config status (ralph.config.json present or not)
+ * - Config status (aaa.config.json present or not)
  * - Subtasks queue info (milestone, progress bar, last completed, next pending)
  * - Iteration diary stats (iterations, success rate, avg tool calls)
  *
@@ -349,7 +352,7 @@ function renderSubtasksSection(subtasksPath: string): void {
  * @param contextRoot - Root directory for finding config and logs
  */
 function runStatus(subtasksPath: string, contextRoot: string): void {
-  const configPath = join(contextRoot, "ralph.config.json");
+  const configPath = join(contextRoot, "aaa.config.json");
   // Derive log directory from subtasks file location
   const logsDirectory = getMilestoneLogsDirectory(subtasksPath);
 
