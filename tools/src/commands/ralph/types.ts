@@ -175,8 +175,48 @@ interface PostIterationHookConfig extends HookConfig {
  * notify section of aaa.config.json, not here.
  */
 interface RalphConfig {
+  /** Claude provider configuration */
+  claude?: {
+    dangerouslySkipPermissions?: boolean;
+    extraFlags?: Array<string>;
+    lightweightModel?: string;
+    model?: string;
+  };
+  /** Codex provider configuration */
+  codex?: {
+    extraFlags?: Array<string>;
+    model?: string;
+    outputSchema?: string;
+    sandbox?: "danger-full-access" | "read-only" | "workspace-write";
+  };
+  /** Cursor provider configuration */
+  cursor?: {
+    dangerouslyAllowForceWrites?: boolean;
+    extraFlags?: Array<string>;
+    model?: string;
+    sandbox?: "disabled" | "enabled";
+  };
+  /** Gemini provider configuration */
+  gemini?: {
+    extraFlags?: Array<string>;
+    model?: string;
+    rateLimitRpm?: number;
+    sandbox?: boolean;
+  };
   /** Hook configuration */
   hooks?: HooksConfig;
+  /** Default model for the provider */
+  model?: string;
+  /** ntfy push notification configuration */
+  ntfy?: NtfyConfig;
+  /** Opencode provider configuration */
+  opencode?: {
+    agent?: string;
+    extraFlags?: Array<string>;
+    model?: string;
+  };
+  /** Default AI provider for builds */
+  provider?: string;
   /** Self-improvement configuration */
   selfImprovement?: SelfImprovementConfig;
 }
