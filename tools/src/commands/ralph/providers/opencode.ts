@@ -4,6 +4,7 @@
  * Implements the AIProvider interface for Opencode CLI.
  */
 
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 import type {
@@ -105,33 +106,33 @@ function createOpencodeProvider(
         : promptContent;
 
       // Build args with model if specified
-      const args = [command, "run"];
+      const spawnArguments = ["run"];
       
       // Add model if specified
       const modelToUse = options.model ?? defaultModel;
       if (modelToUse) {
-        args.push("--model", modelToUse);
+        spawnArguments.push("--model", modelToUse);
       }
-      
-      // Pass prompt content directly as argument (not via temp file)
-      // This avoids opencode's permission prompts for file access
-      args.push(fullPrompt);
 
-      const proc = Bun.spawnSync(args, {
+      // Use spawnSync with stdin input to keep session interactive
+      // Passing prompt via stdin allows opencode to stay in interactive mode
+      // vs passing as argument which processes it as one-shot
+      const proc = spawnSync(command, spawnArguments, {
         cwd: options.cwd,
-        stdio: ["inherit", "inherit", "inherit"],
+        input: fullPrompt,
+        stdio: ["pipe", "inherit", "inherit"],
       });
 
       // Handle signal interruption (Ctrl+C) gracefully
-      if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
+      if (proc.signal === "SIGINT" || proc.signal === "SIGTERM") {
         console.log("\nSession interrupted by user");
         return { exitCode: null, interrupted: true, success: true };
       }
 
       return {
-        exitCode: proc.exitCode,
+        exitCode: proc.status,
         interrupted: false,
-        success: proc.exitCode === 0,
+        success: proc.status === 0,
       };
     },
 

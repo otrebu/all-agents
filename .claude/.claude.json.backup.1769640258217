@@ -1,5 +1,5 @@
 {
-  "numStartups": 566,
+  "numStartups": 567,
   "installMethod": "native",
   "autoUpdates": false,
   "verbose": true,
@@ -26,13 +26,13 @@
     "image-paste": 549,
     "tab-toggle-thinking": 164,
     "ultrathink-keyword": 411,
-    "custom-agents": 552,
+    "custom-agents": 567,
     "permissions": 566,
     "custom-commands": 556,
     "git-worktrees": 561,
     "rename-conversation": 564,
     "config-thinking-mode": 347,
-    "desktop-app": 552,
+    "desktop-app": 567,
     "web-app": 553,
     "mobile-app": 553,
     "install-slack-app": 565,
@@ -123,7 +123,7 @@
     "tengu_attribution_header": true,
     "tengu_permission_explainer": false,
     "tengu_brass_pebble": false,
-    "tengu_cache_plum_violet": false,
+    "tengu_cache_plum_violet": true,
     "tengu_file_write_optimization": false,
     "tengu_scarf_coffee": false,
     "tengu_keybinding_customization_release": true,
@@ -1032,7 +1032,7 @@
     "d74b6be6-105f-46f9-9594-427666cab00b": {
       "hasAccess": false,
       "hasAccessNotAsDefault": false,
-      "timestamp": 1769614136397
+      "timestamp": 1769639008631
     }
   },
   "passesEligibilityCache": {
@@ -1044,7 +1044,7 @@
         "referral_link": "https://claude.ai/referral/itKfdrYVZA"
       },
       "referrer_reward": null,
-      "timestamp": 1769622746732
+      "timestamp": 1769639008537
     }
   },
   "lastReleaseNotesSeen": "2.1.22",
@@ -1098,8 +1098,8 @@
       "lastUsedAt": 1768227139698
     },
     "ralph-plan": {
-      "usageCount": 10,
-      "lastUsedAt": 1769623045254
+      "usageCount": 11,
+      "lastUsedAt": 1769640112234
     },
     "ralph-review": {
       "usageCount": 5,
