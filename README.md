@@ -100,11 +100,6 @@ aaa ralph review gap tasks --story # Gap analysis of tasks
 aaa ralph review gap subtasks      # Gap analysis of subtask queue
 aaa ralph calibrate intention      # Check for drift
 #
-# Build completion generates BUILD-SUMMARY-{timestamp}.md with:
-# - Completed subtasks and their summaries
-# - Git commit range for `git diff` review
-# - Stats: completed, failed, cost, duration, files changed
-#
 # Skills: /ralph-plan, /ralph-build, /ralph-review, /ralph-calibrate, /ralph-status
 # Full docs: docs/ralph/README.md | Design spec: docs/planning/VISION.md
 

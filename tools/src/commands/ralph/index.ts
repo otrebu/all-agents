@@ -337,10 +337,7 @@ ralphCommand.addCommand(
       "-S, --skip-summary",
       "Skip Haiku summary generation in headless mode",
     )
-    .option(
-      "-q, --quiet",
-      "Suppress terminal summary output (still writes BUILD-SUMMARY file)",
-    )
+    .option("-q, --quiet", "Suppress terminal summary output")
     .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
     .option(
       "--calibrate-every <n>",
