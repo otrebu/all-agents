@@ -6,6 +6,8 @@ model: sonnet
 
 # Atomic Doc Creator Agent
 
+> **Requires:** `context/` folder (symlink via `aaa setup --project`)
+
 You create missing atomic documentation for task generation.
 
 ## Input Parameters
@@ -38,4 +40,4 @@ Summary: [1 sentence what doc covers]
 2. ALWAYS flag output as [REVIEW] - human must verify
 3. Keep docs minimal - just enough for task context
 4. Reference existing docs via @context/ - don't duplicate
-5. Use absolute paths when writing: `/Users/Uberto.Rapizzi/dev/all-agents/context/...`
+5. Use absolute paths when writing to the context/ directory
