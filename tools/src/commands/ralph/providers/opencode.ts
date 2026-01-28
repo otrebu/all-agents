@@ -4,7 +4,6 @@
  * Implements the AIProvider interface for Opencode CLI.
  */
 
-import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 import type {
@@ -96,43 +95,49 @@ function createOpencodeProvider(
         `Starting ${options.sessionName} session with Opencode (supervised mode)...`,
       );
       console.log(`Prompt: ${options.promptPath}`);
-      if (options.extraContext) {
+      const hasExtraContext =
+        options.extraContext !== undefined && options.extraContext !== "";
+      if (hasExtraContext) {
         console.log(`Context: ${options.extraContext}`);
       }
       console.log();
 
-      const fullPrompt = options.extraContext
+      const fullPrompt = hasExtraContext
         ? `${options.extraContext}\n\n${promptContent}`
         : promptContent;
 
-      // Build args with model if specified
-      const spawnArguments = ["run"];
-      
+      // Build args - pass prompt as argument like Codex does
+      const args = [command, "run"];
+
       // Add model if specified
       const modelToUse = options.model ?? defaultModel;
-      if (modelToUse) {
-        spawnArguments.push("--model", modelToUse);
+      if (modelToUse !== undefined && modelToUse !== "") {
+        args.push("--model", modelToUse);
       }
 
-      // Use spawnSync with stdin input to keep session interactive
-      // Passing prompt via stdin allows opencode to stay in interactive mode
-      // vs passing as argument which processes it as one-shot
-      const proc = spawnSync(command, spawnArguments, {
-        cwd: options.cwd,
-        input: fullPrompt,
-        stdio: ["pipe", "inherit", "inherit"],
-      });
+      // Pass prompt as argument (not via stdin) for interactive mode
+      args.push(fullPrompt);
+
+      // Use script command to create a PTY for TUI applications
+      // This gives opencode proper terminal control for interactive mode
+      const proc = Bun.spawnSync(
+        ["script", "-q", "/dev/null", ...args],
+        {
+          cwd: options.cwd,
+          stdio: ["inherit", "inherit", "inherit"],
+        }
+      );
 
       // Handle signal interruption (Ctrl+C) gracefully
-      if (proc.signal === "SIGINT" || proc.signal === "SIGTERM") {
+      if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
         console.log("\nSession interrupted by user");
         return { exitCode: null, interrupted: true, success: true };
       }
 
       return {
-        exitCode: proc.status,
+        exitCode: proc.exitCode,
         interrupted: false,
-        success: proc.status === 0,
+        success: proc.exitCode === 0,
       };
     },
 
@@ -141,12 +146,12 @@ function createOpencodeProvider(
 
       // Add model if specified
       const modelToUse = options.model ?? defaultModel;
-      if (modelToUse) {
+      if (modelToUse !== undefined && modelToUse !== "") {
         args.push("--model", modelToUse);
       }
 
       // Add extra flags if provided
-      if (options.extraFlags) {
+      if (options.extraFlags !== undefined && options.extraFlags.length > 0) {
         args.push(...options.extraFlags);
       }
 
@@ -218,7 +223,7 @@ function parseOpencodeOutput(stdout: string): HeadlessResult | null {
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-    if (!trimmedLine) continue;
+    if (trimmedLine === "") continue;
 
     try {
       const event = JSON.parse(trimmedLine) as OpencodeEvent;
@@ -226,7 +231,7 @@ function parseOpencodeOutput(stdout: string): HeadlessResult | null {
       switch (event.type) {
         case "message.part.updated": {
           const partEvent = event as MessagePartUpdatedEvent;
-          if (partEvent.properties?.part?.text) {
+          if (partEvent.properties?.part?.text !== undefined) {
             resultText += partEvent.properties.part.text;
           }
           break;
@@ -242,10 +247,10 @@ function parseOpencodeOutput(stdout: string): HeadlessResult | null {
           if (messageEvent.properties?.info?.tokens?.output !== undefined) {
             outputTokens = messageEvent.properties.info.tokens.output;
           }
-          if (messageEvent.properties?.info?.time?.created) {
+          if (messageEvent.properties?.info?.time?.created !== undefined) {
             startTime = messageEvent.properties.info.time.created;
           }
-          if (messageEvent.properties?.info?.time?.completed) {
+          if (messageEvent.properties?.info?.time?.completed !== undefined) {
             endTime = messageEvent.properties.info.time.completed;
           }
           break;
@@ -255,6 +260,10 @@ function parseOpencodeOutput(stdout: string): HeadlessResult | null {
           sessionId = sessionEvent.id ?? "";
           break;
         }
+        default: {
+          // Ignore other event types
+          break;
+        }
       }
     } catch {
       // Skip malformed JSON lines
@@ -262,13 +271,13 @@ function parseOpencodeOutput(stdout: string): HeadlessResult | null {
     }
   }
 
-  if (!sessionId) {
+  if (sessionId === "") {
     return null;
   }
 
   // Calculate duration
   let duration = 0;
-  if (startTime && endTime) {
+  if (startTime !== undefined && endTime !== undefined) {
     duration =
       new Date(endTime).getTime() - new Date(startTime).getTime();
   }
