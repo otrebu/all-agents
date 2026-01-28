@@ -2,7 +2,7 @@
   "notify": {
     "defaultPriority": "high",
     "defaultTopic": "ralph-build",
-    "enabled": true,
+    "enabled": false,
     "quietHours": {
       "enabled": true,
       "endHour": 8,
@@ -13,10 +13,22 @@
   },
   "ralph": {
     "hooks": {
-      "onIterationComplete": ["log"],
-      "onMilestoneComplete": ["log", "notify"],
-      "onValidationFail": ["log", "notify"],
-      "onMaxIterationsExceeded": ["log", "notify", "pause"]
+      "onIterationComplete": [
+        "log"
+      ],
+      "onMilestoneComplete": [
+        "log",
+        "notify"
+      ],
+      "onValidationFail": [
+        "log",
+        "notify"
+      ],
+      "onMaxIterationsExceeded": [
+        "log",
+        "notify",
+        "pause"
+      ]
     },
     "selfImprovement": {
       "mode": "suggest"

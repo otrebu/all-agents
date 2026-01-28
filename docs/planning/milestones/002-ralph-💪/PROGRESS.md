@@ -418,3 +418,145 @@
   - Modified: context/workflows/ralph/planning/stories-auto.md (noted future T1 integration)
   - Modified: context/workflows/ralph/planning/tasks-auto.md (added component reference)
   - Modified: README.md (plan-multi-agent → DONE, added doc-analyze skill)
+
+### SUB-124
+- **Problem:** The eval-test-skill was a placeholder skill committed accidentally by eval.sh; eval script needed cleanup logic to prevent future accidental commits
+- **Changes:** Deleted .claude/skills/eval-test-skill/ directory and its README.md entry (17→16 skills). Added eval-test-* patterns to .gitignore to prevent future accidental commits. Updated eval.sh cleanup() function to remove eval-test-* artifacts after each run.
+- **Files:**
+  - Deleted: .claude/skills/eval-test-skill/SKILL.md
+  - Modified: README.md (removed skill from table, updated count)
+  - Modified: .gitignore (added eval-test-* patterns for skills, agents, commands, rules, blocks)
+  - Modified: .claude/scripts/eval.sh (added artifact cleanup to cleanup() function)
+
+### SUB-125
+- **Problem:** The parallel-code-review skill name exposed an implementation detail ('parallel') rather than describing the primary function (code review)
+- **Changes:** Renamed skill folder from .claude/skills/parallel-code-review/ to .claude/skills/code-review/. Updated SKILL.md frontmatter name field from 'parallel-code-review' to 'code-review'. Updated all references in tools/src/commands/review/index.ts (skill path, JSDoc comments). Updated README.md Skills table (skill name) and Sub-agents table (12 references from 'parallel-code-review skill' to 'code-review skill').
+- **Files:**
+  - Renamed: .claude/skills/parallel-code-review/SKILL.md → .claude/skills/code-review/SKILL.md
+  - Modified: tools/src/commands/review/index.ts (skill path and comments)
+  - Modified: README.md (skill name and sub-agent references)
+
+### SUB-126
+- **Problem:** Need a triage agent specification to intelligently curate code review findings from the synthesizer
+- **Changes:** Created .claude/agents/code-review/triage.md with specification for triage agent. Agent defines: (1) selection criteria for must-review items (critical severity, high+high confidence, security issues, multiple flaggers), (2) root cause grouping logic (location proximity, description similarity, pattern matching), (3) filtering criteria for low-value noise (low severity + low confidence + style-only). Spec references @context/blocks/patterns/triage.md for core pattern. Input is synthesized findings JSON; output includes selected/grouped/filtered findings with reasons.
+- **Files:**
+  - Created: .claude/agents/code-review/triage.md
+
+### SUB-127
+- **Problem:** The code-review skill needed to integrate the new triage agent between synthesis and user presentation
+- **Changes:** Added Phase 3.5 (Triage Filtering) to code-review SKILL.md that invokes the triage agent via Task tool after synthesizer. Updated workflow to: (1) invoke triage agent with synthesized findings, (2) display triage summary showing "X findings selected, Y grouped by root cause, Z filtered", (3) present only selected findings in Phase 4, (4) update completion summary with triage statistics. Also added grouped findings display format showing root cause and recommendation. Updated review diary format to include triage data. Added triage agent to README.md Sub-agents table (17→18 agents).
+- **Files:**
+  - Modified: .claude/skills/code-review/SKILL.md (Phase 3.5 Triage, updated Phase 4 presentation)
+  - Modified: README.md (added triage agent to table, marked code-review skill item 2 as DONE)
+
+### SUB-128
+- **Problem:** Need an approval gate in headless code review mode to let users review triage decisions before fixes are applied
+- **Changes:** Added --require-approval flag to aaa review --headless that pauses after triage to show fix summary. When used, Claude reports findings without applying fixes (like dry-run). Displays: findings to fix count, findings to skip count, and affected files list. User can approve to proceed or abort without changes. Added promptForApproval() function using @clack/prompts confirm. Added getFixInstructions() helper to select prompt instructions based on mode. Added validation requiring --headless when --require-approval is specified. Created 7 E2E tests for flag validation and help output.
+- **Files:**
+  - Modified: tools/src/commands/review/index.ts (added --require-approval flag, promptForApproval, getFixInstructions)
+  - Created: tools/tests/e2e/review.test.ts (7 E2E tests)
+  - Modified: README.md (added flag to CLI examples, marked item 3 as DONE in Skills table)
+
+### SUB-129
+- **Problem:** Code review CLI needed flexible diff target options to control what code changes are reviewed
+- **Changes:** Added 4 mutually exclusive CLI flags: --base <branch> (compares HEAD against branch using git diff branch...HEAD), --range <from>..<to> (compares specific commits using git diff from..to), --staged-only (reviews only staged changes using git diff --cached), --unstaged-only (reviews only unstaged changes using git diff). Added DiffTarget type, validateDiffTargetOptions() for validation with mutual exclusion, and buildDiffCommand() to generate git commands. Both runHeadlessReview() and runSupervisedReview() now accept and use diffTarget. Added 8 E2E tests and 15 unit tests. Updated README with new flag examples.
+- **Files:**
+  - Modified: tools/src/commands/review/index.ts (added DiffTarget type, validation, buildDiffCommand, flags)
+  - Created: tools/tests/lib/review-diff-target.test.ts (15 unit tests)
+  - Modified: tools/tests/e2e/review.test.ts (8 new E2E tests)
+  - Modified: README.md (added new flags to CLI examples, marked item 4 as DONE in Skills table)
+
+### SUB-130
+- **Problem:** The code-review SKILL.md needed to document the flexible diff target flags added to the CLI in SUB-129
+- **Changes:** Added "Diff Target Flags (mutually exclusive)" section to the Arguments area documenting --base, --range, --staged-only, and --unstaged-only flags. Updated Phase 1 (Gather Diff) to show conditional git diff commands for each argument type, with clear default behavior section that matches the CLI implementation.
+- **Files:**
+  - Modified: .claude/skills/code-review/SKILL.md (added Diff Target Flags section, updated Phase 1 instructions)
+
+### SUB-131
+- **Problem:** Need review hook points in Ralph config schema to trigger actions on code review events
+- **Changes:** Added onReviewComplete and onCriticalFinding hook definitions to both the Ralph config JSON schema and the HooksConfig TypeScript interface. These hooks follow the existing pattern (accepting log, notify, pause actions) and will be consumed by the review CLI in SUB-132.
+- **Files:**
+  - Modified: docs/planning/schemas/ralph-config.schema.json (added 2 new hook definitions)
+  - Modified: tools/src/commands/ralph/types.ts (added hooks to HooksConfig interface)
+
+### SUB-132
+- **Problem:** Need to wire review hooks to code review CLI for Ralph build integration
+- **Changes:** Added hook execution calls to runHeadlessReview() in the code review CLI. onReviewComplete fires after triage completes with findingCount, criticalCount, and sessionId in the hook context. onCriticalFinding fires for each critical severity finding with confidence >= 0.9, including file path in context. Extended HookContext type to support review-specific fields (findingCount, criticalCount, sessionId, file). Hooks gracefully no-op when not configured (executeHook defaults to log action). Added 10 unit tests verifying hook integration via static code analysis.
+- **Files:**
+  - Modified: tools/src/commands/review/index.ts (added hook execution after triage)
+  - Modified: tools/src/commands/ralph/hooks.ts (extended HookContext with review fields)
+  - Created: tools/tests/lib/review-hooks.test.ts (10 unit tests)
+
+### SUB-133
+- **Problem:** pre-build-validation.md duplicated sizing rules (too_broad, too_narrow) that already exist in subtask-spec.md
+- **Changes:** Replaced inline sizing rule definitions with a reference to @context/workflows/ralph/planning/subtask-spec.md. Kept Scope Creep and Faithful Implementation sections since they are unique alignment checks. Added note that sizing issues should cite specific rules from the spec.
+- **Files:**
+  - Modified: context/workflows/ralph/building/pre-build-validation.md (10 insertions, 33 deletions)
+
+### SUB-134
+- **Problem:** The ralph-plan skill lacked an argument-hint frontmatter field, making it unclear what arguments users should provide
+- **Changes:** Added `argument-hint: <vision|roadmap|stories|tasks|subtasks> [options]` to the YAML frontmatter in SKILL.md. Format follows existing patterns from gh-search and interrogate-on-changes skills (angle brackets for required choice, square brackets for optional parts).
+- **Files:**
+  - Modified: .claude/skills/ralph-plan/SKILL.md (added argument-hint field)
+
+### SUB-135
+- **Problem:** The ralph-plan skill execution instructions only covered interactive mode for tasks, missing auto mode instructions
+- **Changes:** Added two new execution instruction sections to ralph-plan SKILL.md: (1) "If argument is `tasks <story-id> --auto`" for single-story auto generation - reads tasks-auto.md workflow, generates task files without interaction; (2) "If argument is `tasks --milestone <name> --auto`" for milestone-wide parallel generation - reads tasks-milestone.md workflow, spawns parallel task-generator subagents. Both sections follow the established pattern with MANDATORY FIRST STEP file reads and numbered process steps.
+- **Files:**
+  - Modified: .claude/skills/ralph-plan/SKILL.md (added 32 lines of auto mode execution instructions)
+
+### SUB-136
+- **Problem:** Subtasks generation lacked an option to bypass decomposition/sizing logic when tasks are already well-scoped
+- **Changes:** Added --1-to-1 flag to subtasks generation that maps each input item directly to one subtask without splitting or merging. Updated SKILL.md with: invocation example, --1-to-1 in Optional Flags table, "When to Use" section with guidelines. Updated subtasks-from-source.md workflow: added flag to Parameters table, added skip instructions for Phase 3b (Size Judgment) and Phase 4 (Size Validation), made Phase 8 triage findings informational-only in 1-to-1 mode.
+- **Files:**
+  - Modified: .claude/skills/ralph-plan/SKILL.md (added --1-to-1 documentation in subtasks section)
+  - Modified: context/workflows/ralph/planning/subtasks-from-source.md (added flag handling throughout workflow)
+
+### SUB-137
+- **Problem:** The ralph review commands (stories, roadmap, subtasks, gap *) were supervised-only with no --headless option, even though workflow files already documented this pattern
+- **Changes:** Added -H/--headless option to all 5 ralph review commands: stories, roadmap, subtasks, gap roadmap, and gap stories. When headless mode is used, commands run invokeClaudeHeadless() with JSON output and file logging instead of invokeClaudeChat(). Also updated milestone validation in stories and gap stories commands to use requireMilestone() for consistent error handling. Updated 5 E2E tests to verify --headless flag presence (changed from checking for "supervised only" to checking for "--headless").
+- **Files:**
+  - Modified: tools/src/commands/ralph/index.ts (added --headless to 5 review commands)
+  - Modified: tools/tests/e2e/ralph.test.ts (updated 5 tests, added 1 new test)
+
+### SUB-138
+- **Problem:** Need a workflow file for reviewing task definitions against parent stories
+- **Changes:** Created context/workflows/ralph/review/tasks-review-auto.md for reviewing task definitions. Includes five quality dimensions: Goal clarity, Plan concreteness, AC testability, Scope boundaries, Story alignment. Follows stories-review-auto.md pattern with per-task analysis table, cross-task analysis (coverage, overlaps, dependencies, gaps), and structured output format. References chunked-presentation.md for interactive mode. Documents CLI invocation: aaa ralph review tasks --story <path>.
+- **Files:**
+  - Created: context/workflows/ralph/review/tasks-review-auto.md
+
+### SUB-139
+- **Problem:** Need a workflow file for gap analysis of task coverage against story acceptance criteria
+- **Changes:** Created context/workflows/ralph/review/tasks-gap-auto.md for cold analysis of task coverage. Includes four gap analysis dimensions: Coverage check (story AC to task mapping), Missing tasks (work not addressed), Technical unknowns (spike candidates), Dependencies (order constraints). Follows stories-gap-auto.md pattern with coverage matrix, dependency map, technical spike candidates table. References chunked-presentation.md for interactive mode. Documents CLI invocation: aaa ralph review gap tasks --story <path>.
+- **Files:**
+  - Created: context/workflows/ralph/review/tasks-gap-auto.md
+
+### SUB-140
+- **Problem:** Need CLI commands for Tasks review and gap analysis to complete the workflow integration
+- **Changes:** Added two new ralph review commands to the CLI: `aaa ralph review tasks --story <path>` for reviewing tasks and `aaa ralph review gap tasks --story <path>` for gap analysis. Both commands support --headless flag and invoke the correct workflow files (tasks-review-auto.md and tasks-gap-auto.md). Added 5 E2E tests (2 for tasks, 2 for gap tasks, 1 for gap --help). Updated README.md with new command examples.
+- **Files:**
+  - Modified: tools/src/commands/ralph/index.ts (added tasks and gap tasks commands)
+  - Modified: tools/tests/e2e/ralph.test.ts (added 5 E2E tests)
+  - Modified: README.md (added command examples)
+
+### SUB-141
+- **Problem:** Need a workflow file for gap analysis of subtask queue coverage against parent tasks
+- **Changes:** Created context/workflows/ralph/review/subtasks-gap-auto.md for cold analysis of subtask queue coverage. Includes four gap analysis dimensions: Coverage check (task AC to subtask mapping), AC verification (testability and completeness), Dependency analysis (order and blocking issues), Risk assessment (build loop failure risks). Follows the pattern from tasks-gap-auto.md and stories-gap-auto.md. References chunked-presentation.md for interactive mode. Documents CLI invocation: aaa ralph review gap subtasks --subtasks <path>.
+- **Files:**
+  - Created: context/workflows/ralph/review/subtasks-gap-auto.md
+
+### SUB-142
+- **Problem:** Need CLI command to invoke the Subtasks Gap Analysis workflow
+- **Changes:** Added `aaa ralph review gap subtasks --subtasks <path>` command to the CLI. Command invokes subtasks-gap-auto.md workflow for cold analysis of subtask queue coverage. Supports --headless mode for JSON output and file logging. Added 2 E2E tests (help output, required option validation) and updated gap --help test to include subtasks. Updated README.md with command example.
+- **Files:**
+  - Modified: tools/src/commands/ralph/index.ts (added gap subtasks subcommand)
+  - Modified: tools/tests/e2e/ralph.test.ts (added 3 test assertions)
+  - Modified: README.md (added command example)
+
+### SUB-143
+- **Problem:** Duplicate gap workflows existed in planning/ and review/ directories
+- **Changes:** Replaced planning/roadmap-gap-analysis.md and planning/story-gap-analysis.md with references to their canonical versions in review/. The planning/ files now contain brief redirect notes pointing to review/roadmap-gap-auto.md and review/stories-gap-auto.md respectively. Updated ralph-review SKILL.md to reference the review/ versions instead of the planning/ versions.
+- **Files:**
+  - Modified: context/workflows/ralph/planning/roadmap-gap-analysis.md (replaced 205 lines with 17-line reference)
+  - Modified: context/workflows/ralph/planning/story-gap-analysis.md (replaced 222 lines with 17-line reference)
+  - Modified: .claude/skills/ralph-review/SKILL.md (updated 2 path references)

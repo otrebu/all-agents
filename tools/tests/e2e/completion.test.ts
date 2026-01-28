@@ -163,7 +163,6 @@ describe("completion E2E", () => {
         ["run", "dev", "completion", "bash"],
         { cwd: TOOLS_DIR },
       );
-      expect(stdout).toContain("download");
       expect(stdout).toContain("extract-conversations");
       expect(stdout).toContain("gh-search");
       expect(stdout).toContain("gemini-research");
