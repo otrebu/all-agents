@@ -1001,6 +1001,32 @@ gapCommand.addCommand(
     }),
 );
 
+// ralph review gap subtasks --subtasks <path> - subtasks gap analysis
+gapCommand.addCommand(
+  new Command("subtasks")
+    .description("Cold analysis of subtask queue for gaps and risks")
+    .requiredOption("--subtasks <path>", "Subtasks file path to analyze")
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      const promptPath = getReviewPromptPath(contextRoot, "subtasks", true);
+      const extraContext = `Gap analysis of subtasks file: ${options.subtasks}`;
+
+      if (options.headless === true) {
+        // Subtasks mode doesn't have direct milestone, use orphan fallback
+        const logFile = getPlanningLogPath();
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "subtasks-gap",
+        });
+      } else {
+        invokeClaudeChat(promptPath, "subtasks-gap", extraContext);
+      }
+    }),
+);
+
 reviewCommand.addCommand(gapCommand);
 
 // ralph review tasks --story <path> - review tasks for a story
