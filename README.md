@@ -263,7 +263,7 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Sub-agents</strong> (17 agents)</summary>
+<summary><strong>Sub-agents</strong> (18 agents)</summary>
 
 | Agent                            | Description                                       | Stability    | Created    | Used By                     | Action |
 | :------------------------------- | :------------------------------------------------ | :----------- | :--------- | :-------------------------- | :----- |
@@ -283,6 +283,7 @@ Claude Code extends with three mechanisms:
 | `security-reviewer`              | OWASP Top 10, injection, XSS, auth, secrets       | experimental | 2026-01-25 | code-review skill  | DONE (DRYed up) |
 | `test-coverage-reviewer`         | Missing tests, untested branches, assertions      | experimental | 2026-01-25 | code-review skill  | DONE (DRYed up) |
 | `synthesizer`                    | Aggregate and dedupe findings from reviewers      | experimental | 2026-01-25 | code-review skill  | - |
+| `triage`                         | Curate findings: select must-review, group by root cause, filter noise | experimental | 2026-01-28 | code-review skill  | - |
 
 </details>
 
@@ -298,7 +299,7 @@ Claude Code extends with three mechanisms:
 | `doc-analyze`          | Tiered doc analysis (T1: Haiku lookup, T2: Sonnet gaps, T3: Opus deep) | experimental | 2026-01-28 | ✓   | -           | - |
 | `gh-search`            | Search GitHub for code examples and patterns   | experimental | 2026-01-28 | ✓   | `aaa gh-search` | - |
 | `interrogate-on-changes` | Surface decisions, alternatives, confidence  | experimental | 2026-01-28 | ✓   | -           | - |
-| `code-review`          | Orchestrate 11 reviewers in parallel           | experimental | 2026-01-25 | ✗   | `aaa review` | REWRITE: (1) ~~rename → code-review~~ DONE (2) add triage agent that PICKS not just aggregates (3) add approval gate before changes (4) add flexible diff targets (branch vs main, between commits) (5) add ralph hooks integration |
+| `code-review`          | Orchestrate 11 reviewers in parallel           | experimental | 2026-01-25 | ✗   | `aaa review` | REWRITE: (1) ~~rename → code-review~~ DONE (2) ~~add triage agent that PICKS not just aggregates~~ DONE (3) add approval gate before changes (4) add flexible diff targets (branch vs main, between commits) (5) add ralph hooks integration |
 | `ralph-build`          | Autonomous build loop for subtasks             | experimental | 2026-01-23 | ✓   | `aaa ralph build` | FIX: pre-build-validation.md should ref subtask-spec.md for sizing (vertical slice test, small/medium/large modes, 2-5 AC threshold) — keep only alignment checks (scope_creep, unfaithful) |
 | `ralph-calibrate`      | Check intention drift, technical quality       | experimental | 2026-01-23 | ✓   | `aaa ralph calibrate` | ✓ KEEP (complementary to code-review: calibrate = drift from our docs, review = general quality) |
 | `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental | 2026-01-23 | ✓   | `aaa ralph plan` | FIX: (1) add argument-hint frontmatter (2) clarify --task mode in docs (3) add --1-to-1 flag for direct tasks→subtasks mapping (no decomposition) |

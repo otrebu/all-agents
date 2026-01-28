@@ -20,7 +20,8 @@ Orchestrates a multi-agent code review using specialized reviewers running in pa
 | 1 | Gather Diff | Get code changes to review |
 | 2 | Invoke Reviewers | Spawn 11 specialized agents in parallel |
 | 3 | Synthesize | Aggregate and dedupe findings |
-| 4 | Triage | Present findings for FIX/SKIP/FALSE POSITIVE decisions |
+| 3.5 | Triage | Filter noise, identify must-review items, group by root cause |
+| 4 | Present | Present selected findings for FIX/SKIP/FALSE POSITIVE decisions |
 
 ## Reviewer Agents
 
@@ -213,27 +214,80 @@ The synthesizer outputs:
 - Sorted findings array (highest priority first)
 - By-file grouping for navigation
 
-### Phase 4: Triage Findings
+### Phase 3.5: Triage Filtering
 
-Present findings to user in chunks of 3-5 findings at a time, starting with highest priority.
+After synthesis, invoke the triage agent to curate findings:
+
+```
+Task: triage agent
+  - subagent_type: "triage"
+  - prompt: |
+      Curate these synthesized findings. Identify must-review items, group by root cause, filter noise.
+
+      <synthesized-findings>
+      {synthesizer output JSON}
+      </synthesized-findings>
+```
+
+The triage agent returns:
+- `triage.selected`: Count of findings marked for review
+- `triage.grouped`: Count of root cause groups identified
+- `triage.filtered`: Count of findings filtered out (logged, not presented)
+- `findings`: Array with `selected: true/false` and `selectionReason`
+- `groups`: Root cause groups with recommendations
+- `filtered`: Findings excluded from review (for transparency)
+
+**Display triage summary to user:**
+
+```markdown
+## Triage Summary
+
+**X findings selected, Y grouped by root cause, Z filtered**
+
+- Selected: X findings require review (critical, high+confident, security, multi-flagged)
+- Grouped: Y findings share N root causes (fixes may address multiple issues)
+- Filtered: Z low-value findings logged but hidden (low severity + low confidence + style-only)
+```
+
+**Important:** Filtered findings are NOT presented for FIX/SKIP decisions - they are logged in the filtered array for transparency but hidden from interactive triage.
+
+### Phase 4: Present Selected Findings
+
+Present **selected findings only** (where `selected: true`) to user in chunks of 3-5 findings at a time.
+
+**Presentation order:**
+1. Critical severity - always first
+2. Root cause groups - show group representative, mention member count
+3. High + high confidence - next priority
+4. Multiple flaggers - independent confirmation is valuable
+5. Remaining selected - by priority score
 
 For each chunk, display:
 
 ```markdown
-## Review Findings (Showing N-M of Total)
+## Review Findings (Showing N-M of X selected)
 
 ### Finding 1: [severity] in [file]:[line]
 
 **Reviewer:** [agent name]
 **Confidence:** [0-1]
+**Selection Reason:** [why this finding was selected]
 **Description:** [issue description]
 **Suggested Fix:**
 ```[language]
 [code snippet if available]
 ```
 
-### Finding 2: ...
+### Finding 2 (Group: null-checks, 3 related): [severity] in [file]:[line]
+
+**Root Cause:** [Consistent missing null checks across utility functions]
+**Group Recommendation:** [Consider adding a null-safe utility or enabling strict null checks]
+**Reviewer:** [agent name]
+**Description:** [issue description]
+...
 ```
+
+**For grouped findings:** Show the group name, member count, root cause, and recommendation. Fixing the root cause often addresses all grouped findings.
 
 Use AskUserQuestion for triage decisions:
 
@@ -258,13 +312,18 @@ After each batch:
 
 ### Completion
 
-After all findings triaged, output summary:
+After all selected findings triaged, output summary:
 
 ```markdown
 ## Code Review Complete
 
-**Findings Summary:**
-- Total findings: N
+**Triage Summary:**
+- Reviewed: N findings (from X total)
+- Selected: N (critical, high+confident, security, multi-flagged)
+- Grouped: N (sharing M root causes)
+- Filtered: N (low-value noise, logged for transparency)
+
+**Decisions on Selected Findings:**
 - Fixed: X
 - Skipped: Y
 - False positives: Z
@@ -280,6 +339,10 @@ After all findings triaged, output summary:
 **False Positives (for calibration):**
 1. [file:line] - [brief description]
 2. ...
+
+**Filtered Findings (not reviewed):**
+- N findings were filtered due to low severity + low confidence + style-only
+- See `filtered` array in review log for details
 ```
 
 ## Review Diary
@@ -290,14 +353,24 @@ If `logs/reviews.jsonl` exists or should be created, append entry:
 {
   "timestamp": "2024-01-15T10:30:00Z",
   "mode": "parallel",
-  "findingsCount": 12,
-  "fixed": 8,
-  "skipped": 3,
-  "falsePositives": 1,
-  "decisions": [
+  "triage": {
+    "total": 12,
+    "selected": 8,
+    "grouped": 2,
+    "filtered": 4
+  },
+  "decisions": {
+    "fixed": 5,
+    "skipped": 2,
+    "falsePositives": 1
+  },
+  "actions": [
     { "id": "abc123", "action": "FIX" },
     { "id": "def456", "action": "SKIP", "reason": "tech debt" },
     { "id": "ghi789", "action": "FALSE_POSITIVE" }
+  ],
+  "filtered": [
+    { "id": "jkl012", "reason": "low severity + low confidence + style-only" }
   ]
 }
 ```
