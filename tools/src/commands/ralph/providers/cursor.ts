@@ -18,78 +18,74 @@ import type {
 import { registerProvider } from "./index";
 
 /**
- * Cursor provider implementation
+ * Create Cursor provider instance
  * Status: STUB - Full implementation pending
  */
-class CursorProvider implements AIProvider {
-  readonly command = "agent";
-  readonly name = "cursor";
+function createCursorProvider(config: CursorProviderConfig = {}): AIProvider {
+  const command = "agent";
+  const name = "cursor";
 
-  private config: CursorProviderConfig;
+  return {
+    command,
 
-  constructor(config: CursorProviderConfig = {}) {
-    this.config = config;
-  }
+    getContextFileNames(): Array<string> {
+      return [".cursor/rules/", "AGENTS.md", "CLAUDE.md"];
+    },
 
-  getContextFileNames(): Array<string> {
-    return [".cursor/rules/", "AGENTS.md", "CLAUDE.md"];
-  }
+    getDefaultModel(): string {
+      return config.model ?? "composer-1";
+    },
 
-  getDefaultModel(): string {
-    return this.config.model ?? "composer-1";
-  }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    invokeChat(_options: ChatOptions): ProviderResult {
+      // TODO: Implement cursor chat mode
+      console.warn("Cursor chat mode not yet implemented");
+      return { exitCode: 1, interrupted: false, success: false };
+    },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  invokeChat(_options: ChatOptions): ProviderResult {
-    // TODO: Implement cursor chat mode
-    console.warn("Cursor chat mode not yet implemented");
-    return { exitCode: 1, interrupted: false, success: false };
-  }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    invokeHeadless(_options: HeadlessOptions): HeadlessResult | null {
+      // TODO: Implement cursor headless mode
+      // Command: agent -p [--force] --output-format json [--model ...]
+      // Note: --force flag required for file modifications (security concern)
+      console.warn("Cursor headless mode not yet implemented");
+      return null;
+    },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  invokeHeadless(_options: HeadlessOptions): HeadlessResult | null {
-    // TODO: Implement cursor headless mode
-    // Command: agent -p [--force] --output-format json [--model ...]
-    // Note: --force flag required for file modifications (security concern)
-    console.warn("Cursor headless mode not yet implemented");
-    return null;
-  }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    invokeLightweight(_options: LightweightOptions): null | string {
+      // TODO: Implement lightweight mode
+      console.warn("Cursor lightweight mode not yet implemented");
+      return null;
+    },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  invokeLightweight(_options: LightweightOptions): null | string {
-    // TODO: Implement lightweight mode
-    console.warn("Cursor lightweight mode not yet implemented");
-    return null;
-  }
+    isAvailable(): boolean {
+      try {
+        const proc = Bun.spawnSync(["which", command]);
+        return proc.exitCode === 0;
+      } catch {
+        return false;
+      }
+    },
 
-  isAvailable(): boolean {
-    try {
-      const proc = Bun.spawnSync(["which", this.command]);
-      return proc.exitCode === 0;
-    } catch {
-      return false;
-    }
-  }
+    isValidModel(): boolean {
+      // Cursor supports multiple models, validation happens at runtime
+      return true;
+    },
 
-  isValidModel(): boolean {
-    // Cursor supports multiple models, validation happens at runtime
-    return true;
-  }
+    name,
+  };
 }
 
-function createCursorProvider(config?: CursorProviderConfig): CursorProvider {
-  return new CursorProvider(config);
-}
-
-function registerCursor(): void {
+function register(): void {
   registerProvider("cursor", (config) =>
     createCursorProvider(config as CursorProviderConfig),
   );
 }
 
 // Auto-register
-registerCursor();
+register();
 
-export { createCursorProvider, registerCursor as register };
+export { createCursorProvider, register };
 
-export default CursorProvider;
+export default createCursorProvider;

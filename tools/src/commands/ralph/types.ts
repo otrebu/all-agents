@@ -27,6 +27,10 @@ interface BuildOptions {
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
+  /** Model to use with the provider */
+  model?: string;
+  /** AI provider to use */
+  provider: string;
   /** Suppress terminal summary output (still writes BUILD-SUMMARY file) */
   quiet: boolean;
   /** Skip Haiku summary generation in headless mode to reduce latency and cost */

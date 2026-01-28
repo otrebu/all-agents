@@ -20,7 +20,7 @@ import * as readline from "node:readline";
 import type { BuildOptions, Subtask } from "./types";
 
 import { runCalibrate } from "./calibrate";
-import { buildPrompt, invokeClaudeChat, invokeClaudeHeadless } from "./claude";
+import { buildPrompt } from "./claude";
 import {
   countRemaining,
   getMilestoneFromSubtasks,
@@ -40,6 +40,7 @@ import {
   type PostIterationResult,
   runPostIterationHook,
 } from "./post-iteration";
+import { getProvider } from "./providers";
 import { discoverRecentSession } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
@@ -65,7 +66,9 @@ interface HeadlessIterationContext {
   currentSubtask: Subtask;
   iteration: number;
   maxIterations: number;
+  model?: string;
   prompt: string;
+  provider: string;
   remaining: number;
   shouldSkipSummary: boolean;
   subtasksPath: string;
@@ -113,6 +116,8 @@ interface SupervisedIterationContext {
   currentSubtask: Subtask;
   iteration: number;
   maxIterations: number;
+  model?: string;
+  provider: string;
   remaining: number;
   subtasksPath: string;
 }
@@ -313,7 +318,9 @@ function processHeadlessIteration(
     currentSubtask,
     iteration,
     maxIterations,
+    model,
     prompt,
+    provider: providerName,
     remaining,
     shouldSkipSummary,
     subtasksPath,
@@ -325,13 +332,16 @@ function processHeadlessIteration(
   // Use target project root for logs (not all-agents)
   const projectRoot = findProjectRoot() ?? contextRoot;
 
-  // Capture commit hash before Claude invocation
+  // Get provider instance
+  const provider = getProvider(providerName);
+
+  // Capture commit hash before invocation
   const commitBefore = getLatestCommitHash(projectRoot);
 
-  // Time Claude invocation for metrics
-  const claudeStart = Date.now();
-  const result = invokeClaudeHeadless({ prompt });
-  const claudeMs = Date.now() - claudeStart;
+  // Time provider invocation for metrics
+  const providerStart = Date.now();
+  const result = provider.invokeHeadless({ model, prompt });
+  const providerMs = Date.now() - providerStart;
 
   // Capture commit hash after Claude invocation
   const commitAfter = getLatestCommitHash(projectRoot);
@@ -356,10 +366,10 @@ function processHeadlessIteration(
   let hookResult: null | PostIterationResult = null;
   try {
     hookResult = runPostIterationHook({
-      claudeMs,
+      claudeMs: providerMs,
       commitAfter,
       commitBefore,
-      costUsd: result.cost,
+      costUsd: result.costUsd ?? 0,
       iterationNumber: currentAttempts,
       maxAttempts: maxIterations,
       milestone,
@@ -386,7 +396,7 @@ function processHeadlessIteration(
     console.log(
       renderIterationEnd({
         attempt: currentAttempts,
-        costUsd: result.cost,
+        costUsd: result.costUsd ?? 0,
         diaryPath,
         durationMs: result.duration,
         filesChanged: entry.filesChanged?.length ?? 0,
@@ -408,7 +418,7 @@ function processHeadlessIteration(
   }
 
   return {
-    costUsd: result.cost,
+    costUsd: result.costUsd ?? 0,
     didComplete,
     durationMs: result.duration,
     hookResult,
@@ -432,6 +442,8 @@ function processSupervisedIteration(
     currentSubtask,
     iteration,
     maxIterations,
+    model,
+    provider: providerName,
     remaining,
     subtasksPath,
   } = context;
@@ -446,28 +458,32 @@ function processSupervisedIteration(
   const subtasksDirectory = path.dirname(subtasksPath);
   const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
 
-  // Capture commit hash before Claude invocation
+  // Get provider instance
+  const provider = getProvider(providerName);
+
+  // Capture commit hash before invocation
   const commitBefore = getLatestCommitHash(projectRoot);
 
   // Capture start time for session discovery
   const startTime = Date.now();
 
-  const chatResult = invokeClaudeChat(
-    path.join(contextRoot, ITERATION_PROMPT_PATH),
-    "build iteration",
-    `Subtasks file: @${subtasksPath}\n\nContext files:\n@${path.join(contextRoot, "CLAUDE.md")}\n@${progressPath}`,
-  );
+  const chatResult = provider.invokeChat({
+    extraContext: `Subtasks file: @${subtasksPath}\n\nContext files:\n@${path.join(contextRoot, "CLAUDE.md")}\n@${progressPath}`,
+    model,
+    promptPath: path.join(contextRoot, ITERATION_PROMPT_PATH),
+    sessionName: "build iteration",
+  });
 
   if (!chatResult.success && !chatResult.interrupted) {
     console.error("Supervised session failed");
     process.exit(chatResult.exitCode ?? 1);
   }
 
-  // Capture commit hash after Claude invocation
+  // Capture commit hash after invocation
   const commitAfter = getLatestCommitHash(projectRoot);
 
-  // Calculate elapsed time for Claude invocation
-  const claudeMs = Date.now() - startTime;
+  // Calculate elapsed time for provider invocation
+  const providerMs = Date.now() - startTime;
 
   console.log("\nSupervised session completed");
 
@@ -485,7 +501,7 @@ function processSupervisedIteration(
   let hookResult: null | PostIterationResult = null;
   if (discoveredSession !== null) {
     hookResult = runPostIterationHook({
-      claudeMs,
+      claudeMs: providerMs,
       commitAfter,
       commitBefore,
       iterationNumber: currentAttempts,
@@ -508,7 +524,7 @@ function processSupervisedIteration(
         renderIterationEnd({
           attempt: currentAttempts,
           diaryPath,
-          durationMs: claudeMs,
+          durationMs: providerMs,
           filesChanged: entry.filesChanged?.length ?? 0,
           iteration,
           keyFindings: entry.keyFindings,
@@ -614,6 +630,8 @@ async function runBuild(
     interactive: isInteractive,
     maxIterations,
     mode,
+    model,
+    provider,
     quiet: isQuiet,
     skipSummary: shouldSkipSummary,
     subtasksPath,
@@ -736,7 +754,9 @@ async function runBuild(
         currentSubtask,
         iteration,
         maxIterations,
+        model,
         prompt,
+        provider,
         remaining,
         shouldSkipSummary,
         subtasksPath,
@@ -754,6 +774,8 @@ async function runBuild(
         currentSubtask,
         iteration,
         maxIterations,
+        model,
+        provider,
         remaining,
         subtasksPath,
       });

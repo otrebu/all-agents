@@ -41,7 +41,7 @@
     "guest-passes": 292,
     "agent-flag": 562
   },
-  "promptQueueUseCount": 12542,
+  "promptQueueUseCount": 12545,
   "cachedStatsigGates": {
     "tengu_disable_bypass_permissions_mode": false,
     "tengu_tool_pear": false,
@@ -1044,11 +1044,11 @@
         "referral_link": "https://claude.ai/referral/itKfdrYVZA"
       },
       "referrer_reward": null,
-      "timestamp": 1769614136297
+      "timestamp": 1769622746732
     }
   },
   "lastReleaseNotesSeen": "2.1.22",
-  "lastPlanModeUse": 1769603417660,
+  "lastPlanModeUse": 1769618209771,
   "feedbackSurveyState": {
     "lastShownTime": 1769604639600
   },
@@ -1090,8 +1090,8 @@
       "lastUsedAt": 1768219281338
     },
     "dev:start-feature": {
-      "usageCount": 3,
-      "lastUsedAt": 1769603073302
+      "usageCount": 4,
+      "lastUsedAt": 1769622983193
     },
     "dev:code-review": {
       "usageCount": 1,
@@ -1126,8 +1126,8 @@
       "lastUsedAt": 1769084314563
     },
     "dev:complete-feature": {
-      "usageCount": 2,
-      "lastUsedAt": 1769602790754
+      "usageCount": 3,
+      "lastUsedAt": 1769621455314
     },
     "walkthrough": {
       "usageCount": 5,

@@ -27,7 +27,7 @@
     "tab-toggle-thinking": 164,
     "ultrathink-keyword": 411,
     "custom-agents": 552,
-    "permissions": 556,
+    "permissions": 566,
     "custom-commands": 556,
     "git-worktrees": 561,
     "rename-conversation": 564,
@@ -41,7 +41,7 @@
     "guest-passes": 292,
     "agent-flag": 562
   },
-  "promptQueueUseCount": 12542,
+  "promptQueueUseCount": 12545,
   "cachedStatsigGates": {
     "tengu_disable_bypass_permissions_mode": false,
     "tengu_tool_pear": false,
@@ -209,36 +209,38 @@
         "version": null,
         "packageManager": null
       },
-      "lastCost": 0.964111,
-      "lastAPIDuration": 106091,
-      "lastAPIDurationWithoutRetries": 106077,
-      "lastToolDuration": 125366,
-      "lastDuration": 2990984,
-      "lastLinesAdded": 1,
+      "lastCost": 0.42718900000000004,
+      "lastAPIDuration": 103567,
+      "lastAPIDurationWithoutRetries": 103554,
+      "lastToolDuration": 6611,
+      "lastDuration": 14596238,
+      "lastLinesAdded": 0,
       "lastLinesRemoved": 0,
-      "lastTotalInputTokens": 28214,
-      "lastTotalOutputTokens": 3361,
-      "lastTotalCacheCreationInputTokens": 75192,
-      "lastTotalCacheReadInputTokens": 768468,
+      "lastTotalInputTokens": 5629,
+      "lastTotalOutputTokens": 3987,
+      "lastTotalCacheCreationInputTokens": 28490,
+      "lastTotalCacheReadInputTokens": 294485,
       "lastModelUsage": {
         "claude-haiku-4-5-20251001": {
-          "inputTokens": 28207,
-          "outputTokens": 117,
+          "inputTokens": 5549,
+          "outputTokens": 187,
           "cacheReadInputTokens": 0,
           "cacheCreationInputTokens": 0,
           "webSearchRequests": 0,
-          "costUSD": 0.028792
+          "costUSD": 0.006484
         },
         "claude-opus-4-5-20251101": {
-          "inputTokens": 7,
-          "outputTokens": 3244,
-          "cacheReadInputTokens": 768468,
-          "cacheCreationInputTokens": 75192,
+          "inputTokens": 80,
+          "outputTokens": 3800,
+          "cacheReadInputTokens": 294485,
+          "cacheCreationInputTokens": 28490,
           "webSearchRequests": 0,
-          "costUSD": 0.9353189999999999
+          "costUSD": 0.42070500000000005
         }
       },
-      "lastSessionId": "1ee7716e-82ee-43d5-aab6-bce8eb34280d"
+      "lastSessionId": "3bbcf66b-5e55-4974-ac66-7923091cbfdb",
+      "lastFpsAverage": 0.41,
+      "lastFpsLow1Pct": 44.93
     },
     "/Users/Uberto.Rapizzi/dev/BillingManager": {
       "allowedTools": [],
@@ -1042,11 +1044,11 @@
         "referral_link": "https://claude.ai/referral/itKfdrYVZA"
       },
       "referrer_reward": null,
-      "timestamp": 1769614136297
+      "timestamp": 1769622746732
     }
   },
   "lastReleaseNotesSeen": "2.1.22",
-  "lastPlanModeUse": 1769603417660,
+  "lastPlanModeUse": 1769618209771,
   "feedbackSurveyState": {
     "lastShownTime": 1769604639600
   },
@@ -1124,8 +1126,8 @@
       "lastUsedAt": 1769084314563
     },
     "dev:complete-feature": {
-      "usageCount": 2,
-      "lastUsedAt": 1769602790754
+      "usageCount": 3,
+      "lastUsedAt": 1769621455314
     },
     "walkthrough": {
       "usageCount": 5,
