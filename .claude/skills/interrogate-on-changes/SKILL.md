@@ -1,24 +1,39 @@
 ---
-description: Interrogate code changes to surface decisions, alternatives, and confidence levels.
+name: dev:interrogate
+description: Interrogate code changes to surface decisions, alternatives, and confidence levels. Use when user asks to "interrogate", "what decisions", "hardest part", "alternatives", or wants to understand the reasoning behind code changes.
 allowed-tools: Bash(git diff:*), Bash(git show:*), Bash(gh pr diff:*)
-argument-hint: <changes|commit|pr> [--quick|--skeptical]
+argument-hint: <unstaged|staged|changes|commit|pr> [--quick|--skeptical]
 ---
 
 # Interrogate Code Changes
+
+Ask "why" instead of just reading code. Surfaces assumptions, decisions, and confidence levels.
+
+## Workflow
 
 @context/workflows/interrogate.md
 
 ## Input: $ARGUMENTS
 
 Parse arguments to determine:
-- **Target:** `changes` (default), `commit <hash>`, or `pr <number>`
+- **Target:** `unstaged` (default), `staged`, `changes` (staged+unstaged), `commit <hash>`, `pr <number>`, or `range <ref1>..<ref2>`
 - **Mode:** `--quick` (minimal output) or `--skeptical` (extra validation)
 
 ## Gather Context
 
 Based on target, gather the code diff:
 
-### Target: changes (default)
+### Target: unstaged (default)
+```bash
+git diff
+```
+
+### Target: staged
+```bash
+git diff --cached
+```
+
+### Target: changes
 ```bash
 git diff HEAD
 ```
@@ -31,6 +46,11 @@ git show <hash>
 ### Target: pr <number>
 ```bash
 gh pr diff <number>
+```
+
+### Target: range <ref1>..<ref2>
+```bash
+git diff <ref1>..<ref2>
 ```
 
 ## Execute Interrogation

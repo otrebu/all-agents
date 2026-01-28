@@ -245,7 +245,7 @@ Claude Code extends with three mechanisms:
 **Stability:** `stable` = battle-tested | `beta` = works, may evolve | `experimental` = may break
 
 <details>
-<summary><strong>Slash Commands</strong> (13 commands)</summary>
+<summary><strong>Slash Commands</strong> (10 commands)</summary>
 
 | Command                            | Description                                 | Stability    | Created    | DRY | Refs/Depends                              | Action |
 | :--------------------------------- | :------------------------------------------ | :----------- | :--------- | :-- | :---------------------------------------- | :----- |
@@ -254,12 +254,9 @@ Claude Code extends with three mechanisms:
 | `/dev:start-feature`               | Create/switch feature branches              | stable       | 2025-11-18 | ✓   | @context/workflows/start-feature.md       | FIX: add git fetch perm, clarify $ARGUMENTS |
 | `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | FIX: (1) add git reset perm (2) remove branch deletion (3) trim Step 4 verbosity |
 | `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | REFACTOR: split into 4 atomic docs |
-| `/dev:interrogate`                 | Surface decisions, alternatives, confidence | experimental | 2026-01-25 | ✓   | @context/workflows/interrogate.md         | CONVERT TO SKILL |
-| `/gh-search`                       | Search GitHub for code examples             | experimental | 2025-11-19 | ✗   | aaa gh-search CLI                         | CONVERT TO SKILL |
 | `/parallel-search`                 | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md | - |
 | `/context:atomic-doc`              | Create/update atomic docs                   | beta         | 2025-12-22 | ✗   | @context/blocks/docs/atomic-documentation.md | CONVERT TO SKILL |
 | `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | INTEGRATE into doc-analysis |
-| `/meta:cli-feature-creator`        | Wizard for adding CLI features              | experimental | 2026-01-23 | ✗   | Inline paths, no @context refs            | CONVERT TO SKILL |
 | `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | 2025-11-18 | ✗   | Python init script                        | FIX: wrong script path, step numbering |
 | `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | 2025-11-18 | ✗   | @context/blocks/docs/prompting-agent-templates.md | FIX: wrong URL, add frontmatter docs |
 | `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md         | FIX: add allowed-tools |
@@ -291,13 +288,16 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Skills</strong> (12 skills)</summary>
+<summary><strong>Skills</strong> (15 skills)</summary>
 
 | Skill                  | Description                                    | Stability    | Created    | DRY | CLI Sibling | Action |
 | :--------------------- | :--------------------------------------------- | :----------- | :--------- | :-- | :---------- | :----- |
+| `aaa-feature-wizard`   | Wizard for adding new aaa CLI commands         | experimental | 2026-01-28 | ✓   | -           | - |
 | `brainwriting`         | 5 parallel idea explorations, then synthesize  | beta         | 2025-11-19 | ✓   | -           | ✓ KEEP (add note: "for product vision use ralph-plan vision") |
 | `dev-work-summary`     | Scan ~/dev for today's git work                | beta         | 2025-11-18 | ✓   | -           | ✓ KEEP |
-| `eval-test-skill`      | List and delete branches merged to main        | experimental | -          | -   | -           | - |
+| `eval-test-skill`      | List and delete branches merged to main        | experimental | 2025-12-24 | ✗   | -           | NUKE (placeholder name, use /dev:complete-feature instead) |
+| `gh-search`            | Search GitHub for code examples and patterns   | experimental | 2026-01-28 | ✓   | `aaa gh-search` | - |
+| `interrogate-on-changes` | Surface decisions, alternatives, confidence  | experimental | 2026-01-28 | ✓   | -           | - |
 | `parallel-code-review` | Orchestrate 11 reviewers in parallel           | experimental | -          | -   | -           | - |
 | `ralph-build`          | Autonomous build loop for subtasks             | experimental | -          | -   | `aaa ralph build` | - |
 | `ralph-calibrate`      | Check intention drift, technical quality       | experimental | -          | -   | `aaa ralph calibrate` | - |
