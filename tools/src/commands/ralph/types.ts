@@ -27,6 +27,10 @@ interface BuildOptions {
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
+  /** Model to use with the provider */
+  model?: string;
+  /** AI provider to use */
+  provider: string;
   /** Suppress terminal summary output */
   quiet: boolean;
   /** Skip Haiku summary generation in headless mode to reduce latency and cost */
@@ -207,8 +211,6 @@ interface RalphConfig {
   hooks?: HooksConfig;
   /** Default model for the provider */
   model?: string;
-  /** ntfy push notification configuration */
-  ntfy?: NtfyConfig;
   /** Opencode provider configuration */
   opencode?: { agent?: string; extraFlags?: Array<string>; model?: string };
   /** Default AI provider for builds */

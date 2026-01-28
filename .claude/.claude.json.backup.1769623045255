@@ -1,0 +1,1152 @@
+{
+  "numStartups": 566,
+  "installMethod": "native",
+  "autoUpdates": false,
+  "verbose": true,
+  "editorMode": "vim",
+  "hasSeenTasksHint": true,
+  "tipsHistory": {
+    "new-user-warmup": 7,
+    "plan-mode-for-complex-tasks": 1,
+    "memory-command": 564,
+    "theme-command": 563,
+    "stickers-command": 422,
+    "shift-enter": 565,
+    "prompt-queue": 55,
+    "enter-to-steer-in-relatime": 549,
+    "todo-list": 549,
+    "ide-upsell-external-terminal": 565,
+    "# for memory": 180,
+    "install-github-app": 90,
+    "drag-and-drop-images": 561,
+    "paste-images-mac": 561,
+    "double-esc-code-restore": 561,
+    "continue": 564,
+    "shift-tab": 564,
+    "image-paste": 549,
+    "tab-toggle-thinking": 164,
+    "ultrathink-keyword": 411,
+    "custom-agents": 552,
+    "permissions": 566,
+    "custom-commands": 556,
+    "git-worktrees": 561,
+    "rename-conversation": 564,
+    "config-thinking-mode": 347,
+    "desktop-app": 552,
+    "web-app": 553,
+    "mobile-app": 553,
+    "install-slack-app": 565,
+    "btw-side-question": 350,
+    "colorterm-truecolor": 330,
+    "guest-passes": 292,
+    "agent-flag": 562
+  },
+  "promptQueueUseCount": 12545,
+  "cachedStatsigGates": {
+    "tengu_disable_bypass_permissions_mode": false,
+    "tengu_tool_pear": false,
+    "tengu_web_tasks": true,
+    "tengu_show_extra_usage_bar": true,
+    "tengu_log_1p_events": true,
+    "tengu_enable_versioned_plugins": false,
+    "tengu_gha_plugin_code_review": false,
+    "code_slack_app_install_banner": false,
+    "tengu_vscode_review_upsell": false,
+    "tengu_sumi": true,
+    "tengu_react_vulnerability_warning": false,
+    "tengu_c4w_usage_limit_notifications_enabled": true,
+    "tengu_thinkback": false,
+    "tengu_tool_result_persistence": true,
+    "tengu_ant_attribution_header_new": true,
+    "tengu_clawd_openfire": false,
+    "tengu_prompt_suggestion": true,
+    "tengu_year_end_2025_campaign_promo": false,
+    "tengu_streaming_tool_execution2": false,
+    "tengu_session_memory": false
+  },
+  "cachedDynamicConfigs": {
+    "tengu_1p_event_batch_config": {
+      "scheduledDelayMillis": 5000,
+      "maxExportBatchSize": 200,
+      "maxQueueSize": 8192
+    },
+    "tengu-top-of-feed-tip": {
+      "tip": "",
+      "color": ""
+    }
+  },
+  "cachedGrowthBookFeatures": {
+    "tengu_pid_based_version_locking": true,
+    "strawberry_granite_flag": "OFF",
+    "persimmon_marble_flag": "OFF",
+    "doorbell_bottle": "inherit",
+    "tengu_mcp_tool_search": true,
+    "tengu_disable_bypass_permissions_mode": false,
+    "tengu_tool_pear": false,
+    "tengu_c4w_usage_limit_notifications_enabled": true,
+    "tengu_thinkback": false,
+    "tengu_sumi": true,
+    "tengu_react_vulnerability_warning": false,
+    "tengu_ant_attribution_header_new": true,
+    "tengu_tool_result_persistence": true,
+    "tengu_prompt_suggestion": true,
+    "tengu_accept_with_feedback": true,
+    "tengu_tool_search_unsupported_models": [
+      "haiku"
+    ],
+    "tengu_1p_event_batch_config": {
+      "scheduledDelayMillis": 5000,
+      "maxExportBatchSize": 200,
+      "maxQueueSize": 8192
+    },
+    "tengu_event_sampling_config": {},
+    "tengu-top-of-feed-tip": {
+      "tip": "",
+      "color": ""
+    },
+    "tengu_scratch": false,
+    "tengu_log_segment_events": false,
+    "tengu_log_datadog_events": true,
+    "tengu_streaming_tool_execution2": false,
+    "tengu_post_compact_survey": false,
+    "tengu_code_diff_cli": true,
+    "enhanced_telemetry_beta": false,
+    "tengu_chrome_auto_enable": false,
+    "tengu_compact_streaming_retry": false,
+    "tengu_session_memory": false,
+    "tengu_bash_haiku_prefetch": true,
+    "tengu_plan_mode_interview_phase": false,
+    "tengu_keybinding_customization": false,
+    "tengu_claudeai_mcp_connectors": true,
+    "tengu_plank_river_frost": "user_intent",
+    "tengu_sm_compact": false,
+    "tengu_attribution_header": true,
+    "tengu_permission_explainer": false,
+    "tengu_brass_pebble": false,
+    "tengu_cache_plum_violet": false,
+    "tengu_file_write_optimization": false,
+    "tengu_scarf_coffee": false,
+    "tengu_keybinding_customization_release": true,
+    "tengu_marble_kite": false,
+    "tengu_kv7_prompt_sort": false,
+    "tengu_pr_status_cli": true,
+    "tengu_cork_m4q": false,
+    "tengu_plum_vx3": false,
+    "tengu_compact_cache_prefix": false,
+    "tengu_marble_anvil": false,
+    "tengu_tst_kx7": false,
+    "tengu_coral_fern": false
+  },
+  "respectGitignore": false,
+  "hasSeenStashHint": true,
+  "firstStartTime": "2025-12-01T06:38:20.562Z",
+  "userID": "2a644d04c1af1d6f98604db001f585528f938673a96e74e0a701d455e429ae41",
+  "sonnet45MigrationComplete": true,
+  "opus45MigrationComplete": true,
+  "githubRepoPaths": {
+    "otrebu/all-agents": [
+      "/Users/Uberto.Rapizzi/dev/all-agents/tools",
+      "/Users/Uberto.Rapizzi/dev/all-agents"
+    ],
+    "jt-jersey-ltd/billingmanager": [
+      "/Users/Uberto.Rapizzi/dev/BillingManager/packages/data",
+      "/Users/Uberto.Rapizzi/dev/BillingManager"
+    ],
+    "otrebu/uba-eslint-config": [
+      "/Users/Uberto.Rapizzi/dev/uba-eslint-config"
+    ],
+    "otrebu/at-reference": [
+      "/Users/Uberto.Rapizzi/dev/at-reference"
+    ],
+    "shoshin-labs/places-user-stories": [
+      "/Users/Uberto.Rapizzi/dev/personal/places-user-stories"
+    ],
+    "factoryjersey/places5": [
+      "/Users/Uberto.Rapizzi/dev/personal/places5/packages/data",
+      "/Users/Uberto.Rapizzi/dev/personal/places5"
+    ],
+    "otrebu/at-ref": [
+      "/Users/Uberto.Rapizzi/dev/at-reference"
+    ],
+    "otrebu/ralph": [
+      "/Users/Uberto.Rapizzi/dev/ralph"
+    ],
+    "otrebu/ralph-2": [
+      "/Users/Uberto.Rapizzi/dev/ralph-2"
+    ],
+    "otrebu/dotfiles": [
+      "/Users/Uberto.Rapizzi/.local/share/chezmoi"
+    ]
+  },
+  "changelogLastFetched": 1769602735694,
+  "claudeCodeFirstTokenDate": "2025-03-24T19:51:39.544336Z",
+  "shiftEnterKeyBindingInstalled": true,
+  "projects": {
+    "/Users/Uberto.Rapizzi/dev/all-agents": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": true,
+      "hasClaudeMdExternalIncludesWarningShown": true,
+      "exampleFiles": [
+        "cli.ts",
+        "index.ts",
+        "paths.ts",
+        "task.test.ts",
+        "create-agent.md"
+      ],
+      "hasCompletedProjectOnboarding": true,
+      "lastTotalWebSearchRequests": 0,
+      "exampleFilesGeneratedAt": 1769603397175,
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastCost": 0.42718900000000004,
+      "lastAPIDuration": 103567,
+      "lastAPIDurationWithoutRetries": 103554,
+      "lastToolDuration": 6611,
+      "lastDuration": 14596238,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 5629,
+      "lastTotalOutputTokens": 3987,
+      "lastTotalCacheCreationInputTokens": 28490,
+      "lastTotalCacheReadInputTokens": 294485,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 5549,
+          "outputTokens": 187,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.006484
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 80,
+          "outputTokens": 3800,
+          "cacheReadInputTokens": 294485,
+          "cacheCreationInputTokens": 28490,
+          "webSearchRequests": 0,
+          "costUSD": 0.42070500000000005
+        }
+      },
+      "lastSessionId": "3bbcf66b-5e55-4974-ac66-7923091cbfdb",
+      "lastFpsAverage": 0.41,
+      "lastFpsLow1Pct": 44.93
+    },
+    "/Users/Uberto.Rapizzi/dev/BillingManager": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "playwright": {
+          "type": "stdio",
+          "command": "npx",
+          "args": [
+            "@playwright/mcp@latest"
+          ],
+          "env": {}
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "imports.ts",
+        "cdrs.ts",
+        "import.ts",
+        "divisions.tsx",
+        "router.ts"
+      ],
+      "exampleFilesGeneratedAt": 1769041863983,
+      "lastTotalWebSearchRequests": 0,
+      "hasCompletedProjectOnboarding": true,
+      "lastCost": 5.016298249999998,
+      "lastAPIDuration": 923449,
+      "lastToolDuration": 710907,
+      "lastDuration": 2604225,
+      "lastLinesAdded": 1661,
+      "lastLinesRemoved": 1110,
+      "lastTotalInputTokens": 35669,
+      "lastTotalOutputTokens": 61870,
+      "lastTotalCacheCreationInputTokens": 345753,
+      "lastTotalCacheReadInputTokens": 2878004,
+      "lastSessionId": "56134aa0-f385-468e-a558-92a78cc65ab4",
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastAPIDurationWithoutRetries": 923385,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 25165,
+          "outputTokens": 1028,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 37507,
+          "webSearchRequests": 0,
+          "costUSD": 0.07718875000000001
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 10504,
+          "outputTokens": 60842,
+          "cacheReadInputTokens": 2878004,
+          "cacheCreationInputTokens": 308246,
+          "webSearchRequests": 0,
+          "costUSD": 4.939109499999999
+        }
+      },
+      "lastFpsAverage": 9.99,
+      "lastFpsLow1Pct": 9.7
+    },
+    "/Users/Uberto.Rapizzi/dev/uba-eslint-config": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "I notice that the provided file list contains only configuration files, workflow files, dependency files, and documentation. There are no actual application source code files (like `.ts`, `.js`, `.py`, etc. in `src/` or similar directories) that would represent core application logic.",
+        "",
+        "Based on the constraint to return exactly five filenames from what's available, and selecting the most frequently modified files that have the broadest relevance to the project's functionality:",
+        "",
+        "package.json",
+        "ci.yml",
+        "release.config.js",
+        "CHANGELOG.md",
+        "pnpm-lock.yaml"
+      ],
+      "exampleFilesGeneratedAt": 1764678653923,
+      "hasCompletedProjectOnboarding": true,
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 0.5714397499999999,
+      "lastAPIDuration": 106741,
+      "lastToolDuration": 57232,
+      "lastDuration": 2421788,
+      "lastLinesAdded": 29,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 5812,
+      "lastTotalOutputTokens": 2946,
+      "lastTotalCacheCreationInputTokens": 146821,
+      "lastTotalCacheReadInputTokens": 476450,
+      "lastSessionId": "396fcca7-24b7-4e19-85ad-f20a7830ad59"
+    },
+    "/Users/Uberto.Rapizzi/dev": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 0.1186995,
+      "lastAPIDuration": 44143,
+      "lastToolDuration": 3,
+      "lastDuration": 85093,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 2,
+      "lastTotalInputTokens": 1095,
+      "lastTotalOutputTokens": 1143,
+      "lastTotalCacheCreationInputTokens": 2482,
+      "lastTotalCacheReadInputTokens": 150330,
+      "lastSessionId": "f6dbeefd-39b0-4d16-80c6-2f24b24f9344",
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastAPIDurationWithoutRetries": 44138,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 1027,
+          "outputTokens": 96,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.001507
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 68,
+          "outputTokens": 1047,
+          "cacheReadInputTokens": 150330,
+          "cacheCreationInputTokens": 2482,
+          "webSearchRequests": 0,
+          "costUSD": 0.11719249999999999
+        }
+      }
+    },
+    "/Users/Uberto.Rapizzi": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 81,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastTotalWebSearchRequests": 13,
+      "lastCost": 4.1040443500000015,
+      "lastAPIDuration": 743424,
+      "lastToolDuration": 741386,
+      "lastDuration": 2223709,
+      "lastLinesAdded": 169,
+      "lastLinesRemoved": 112,
+      "lastTotalInputTokens": 168134,
+      "lastTotalOutputTokens": 37736,
+      "lastTotalCacheCreationInputTokens": 324025,
+      "lastTotalCacheReadInputTokens": 1932765,
+      "lastSessionId": "b1174a26-5ad8-4141-b008-71c0f793b792",
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastAPIDurationWithoutRetries": 743357,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 134439,
+          "outputTokens": 5548,
+          "cacheReadInputTokens": 62971,
+          "cacheCreationInputTokens": 25532,
+          "webSearchRequests": 0,
+          "costUSD": 0.20039110000000002
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 33695,
+          "outputTokens": 32188,
+          "cacheReadInputTokens": 1869794,
+          "cacheCreationInputTokens": 298493,
+          "webSearchRequests": 13,
+          "costUSD": 3.9036532500000005
+        }
+      },
+      "hasCompletedProjectOnboarding": true,
+      "lastFpsAverage": 6.57,
+      "lastFpsLow1Pct": 37.22
+    },
+    "/Users/Uberto.Rapizzi/dev/at-reference": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "compiler.ts",
+        "cli.ts",
+        "extension.ts",
+        "parser.ts",
+        "validator.ts"
+      ],
+      "exampleFilesGeneratedAt": 1766414493477,
+      "lastTotalWebSearchRequests": 2,
+      "hasCompletedProjectOnboarding": true,
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastCost": 5.0516979000000015,
+      "lastAPIDuration": 734238,
+      "lastAPIDurationWithoutRetries": 734015,
+      "lastToolDuration": 489439,
+      "lastDuration": 2323000,
+      "lastLinesAdded": 128,
+      "lastLinesRemoved": 8,
+      "lastTotalInputTokens": 75131,
+      "lastTotalOutputTokens": 23403,
+      "lastTotalCacheCreationInputTokens": 200474,
+      "lastTotalCacheReadInputTokens": 6669896,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 69523,
+          "outputTokens": 5059,
+          "cacheReadInputTokens": 58564,
+          "cacheCreationInputTokens": 22849,
+          "webSearchRequests": 0,
+          "costUSD": 0.12923565
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 5608,
+          "outputTokens": 18344,
+          "cacheReadInputTokens": 6611332,
+          "cacheCreationInputTokens": 177625,
+          "webSearchRequests": 2,
+          "costUSD": 4.922462250000002
+        }
+      },
+      "lastSessionId": "5d08f61c-abcc-4d06-b61f-627321928e50"
+    },
+    "/Users/Uberto.Rapizzi/dev/.dotfiles": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "I don't have any file modification data to analyze. The lists of files modified by the user and other users are both empty. ",
+        "",
+        "To provide five frequently modified core application logic files, I would need actual git history data showing:",
+        "- Filenames with their modification counts",
+        "- Which user made each modification",
+        "- The file paths and types",
+        "",
+        "Please provide the file modification data and I'll analyze it to return the five most relevant core application logic files."
+      ],
+      "exampleFilesGeneratedAt": 1764883138096,
+      "lastCost": 0.1744196,
+      "lastAPIDuration": 77718,
+      "lastToolDuration": 2994,
+      "lastDuration": 115691,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 2836,
+      "lastTotalOutputTokens": 3093,
+      "lastTotalCacheCreationInputTokens": 26104,
+      "lastTotalCacheReadInputTokens": 92822,
+      "lastTotalWebSearchRequests": 0,
+      "lastSessionId": "907a3bb6-06ed-4c44-b466-a9ec02ba6c9a"
+    },
+    "/Users/Uberto.Rapizzi/Documents/uby_knowledge_vault": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 3,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 1.6279378999999998,
+      "lastAPIDuration": 369687,
+      "lastToolDuration": 97519,
+      "lastDuration": 85895449,
+      "lastLinesAdded": 224,
+      "lastLinesRemoved": 102,
+      "lastTotalInputTokens": 46565,
+      "lastTotalOutputTokens": 21838,
+      "lastTotalCacheCreationInputTokens": 184342,
+      "lastTotalCacheReadInputTokens": 1068454,
+      "lastSessionId": "508e0385-437a-4a28-ae18-aa03b5cff288",
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastAPIDurationWithoutRetries": 369676,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 42229,
+          "outputTokens": 11011,
+          "cacheReadInputTokens": 347739,
+          "cacheCreationInputTokens": 61794,
+          "webSearchRequests": 0,
+          "costUSD": 0.2093004
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 4336,
+          "outputTokens": 10827,
+          "cacheReadInputTokens": 720715,
+          "cacheCreationInputTokens": 122548,
+          "webSearchRequests": 0,
+          "costUSD": 1.4186375
+        }
+      },
+      "hasCompletedProjectOnboarding": true
+    },
+    "/Users/Uberto.Rapizzi/dev/personal/places-user-stories": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "I notice that all the files in your list were modified by \"other users\" with no files modified by the current user. Additionally, all listed files appear to be documentation, configuration, or system files (.DS_Store), not core application logic files.",
+        "",
+        "Based on the available data, I cannot identify five filenames representing core application logic. The git history provided only contains documentation files (markdown and PDF), design documents, and system files—no actual source code or application logic files.",
+        "",
+        "To provide a meaningful answer, I would need git history that includes source code files such as:",
+        "- `.py`, `.js`, `.ts`, `.java`, `.go` files, etc.",
+        "- Core business logic modules",
+        "- Database models or schemas",
+        "- API handlers or controllers",
+        "",
+        "Could you provide the actual source code file modifications from the git history?"
+      ],
+      "exampleFilesGeneratedAt": 1764947175279,
+      "lastCost": 4.053198150000001,
+      "lastAPIDuration": 1315848,
+      "lastToolDuration": 835171,
+      "lastDuration": 1853949,
+      "lastLinesAdded": 1257,
+      "lastLinesRemoved": 1100,
+      "lastTotalInputTokens": 29633,
+      "lastTotalOutputTokens": 58239,
+      "lastTotalCacheCreationInputTokens": 640187,
+      "lastTotalCacheReadInputTokens": 2424603,
+      "lastTotalWebSearchRequests": 0,
+      "lastSessionId": "e9565ea3-b5a1-44cf-837e-ca79a08fe459"
+    },
+    "/Users/Uberto.Rapizzi/dev/personal/places5": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "I don't have any files to analyze in your request. Both the \"Files modified by user\" and \"Files modified by other users\" sections are empty.",
+        "",
+        "Please provide a list of files with their modification counts in this format:",
+        "",
+        "```",
+        "filename.ext: N",
+        "anotherfile.ext: M",
+        "```",
+        "",
+        "Once you provide the file list, I'll return exactly five frequently modified core application logic filenames as requested."
+      ],
+      "hasCompletedProjectOnboarding": true,
+      "lastTotalWebSearchRequests": 0,
+      "exampleFilesGeneratedAt": 1765057063206,
+      "lastCost": 0.29458265,
+      "lastAPIDuration": 109116,
+      "lastToolDuration": 39368,
+      "lastDuration": 725711,
+      "lastLinesAdded": 21,
+      "lastLinesRemoved": 2,
+      "lastTotalInputTokens": 17775,
+      "lastTotalOutputTokens": 4168,
+      "lastTotalCacheCreationInputTokens": 72401,
+      "lastTotalCacheReadInputTokens": 688998,
+      "lastSessionId": "3d289628-57c8-4a80-928e-975126d2720f"
+    },
+    "/Users/Uberto.Rapizzi/dev/personal": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastCost": 0.019067,
+      "lastAPIDuration": 12791,
+      "lastAPIDurationWithoutRetries": 12791,
+      "lastToolDuration": 0,
+      "lastDuration": 14584,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 13633,
+      "lastTotalOutputTokens": 324,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 12766,
+          "outputTokens": 116,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.013346
+        },
+        "claude-sonnet-4-5-20250929": {
+          "inputTokens": 867,
+          "outputTokens": 208,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.005721
+        }
+      },
+      "lastSessionId": "de1b5a15-3675-4bb0-be3b-130e1d121092"
+    },
+    "/Users/Uberto.Rapizzi/dev/tides": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastCost": 0.007304000000000001,
+      "lastAPIDuration": 4890,
+      "lastAPIDurationWithoutRetries": 4886,
+      "lastToolDuration": 0,
+      "lastDuration": 27527,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 6464,
+      "lastTotalOutputTokens": 168,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 6464,
+          "outputTokens": 168,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.007304000000000001
+        }
+      },
+      "lastSessionId": "ad27beeb-a2c5-4147-9814-802f70ec3f12"
+    },
+    "/Users/Uberto.Rapizzi/dev/pacman/pacman_with_ralph": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "main.ts",
+        "labyrinth.ts",
+        "prd.json",
+        "progress.md",
+        "prd.json"
+      ],
+      "exampleFilesGeneratedAt": 1767715186260
+    },
+    "/Users/Uberto.Rapizzi/.claude": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastCost": 0.0017800000000000001,
+      "lastAPIDuration": 3474,
+      "lastAPIDurationWithoutRetries": 3470,
+      "lastToolDuration": 0,
+      "lastDuration": 5693,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 735,
+      "lastTotalOutputTokens": 209,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 735,
+          "outputTokens": 209,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0017800000000000001
+        }
+      },
+      "lastSessionId": "e248168e-ba2f-49a7-b9b2-83b7dcae9da6"
+    },
+    "/Users/Uberto.Rapizzi/dev/ralph": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "hasCompletedProjectOnboarding": true,
+      "lastCost": 14.884387200000004,
+      "lastAPIDuration": 2357174,
+      "lastAPIDurationWithoutRetries": 2357060,
+      "lastToolDuration": 1801006,
+      "lastDuration": 14512441,
+      "lastLinesAdded": 2581,
+      "lastLinesRemoved": 398,
+      "lastTotalInputTokens": 430399,
+      "lastTotalOutputTokens": 120229,
+      "lastTotalCacheCreationInputTokens": 1057536,
+      "lastTotalCacheReadInputTokens": 12689826,
+      "lastTotalWebSearchRequests": 8,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 425820,
+          "outputTokens": 16269,
+          "cacheReadInputTokens": 607827,
+          "cacheCreationInputTokens": 207211,
+          "webSearchRequests": 7,
+          "costUSD": 0.8969614499999999
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 4579,
+          "outputTokens": 103960,
+          "cacheReadInputTokens": 12081999,
+          "cacheCreationInputTokens": 850325,
+          "webSearchRequests": 1,
+          "costUSD": 13.987425750000003
+        }
+      },
+      "lastSessionId": "59a286a4-e2ec-4261-a37f-4c09022c23d6"
+    },
+    "/Users/Uberto.Rapizzi/dev/ralph-2": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastCost": 3.244129799999999,
+      "lastAPIDuration": 695302,
+      "lastAPIDurationWithoutRetries": 677898,
+      "lastToolDuration": 849,
+      "lastDuration": 65176778,
+      "lastLinesAdded": 301,
+      "lastLinesRemoved": 36,
+      "lastTotalInputTokens": 13775,
+      "lastTotalOutputTokens": 22497,
+      "lastTotalCacheCreationInputTokens": 215650,
+      "lastTotalCacheReadInputTokens": 2708045,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 13097,
+          "outputTokens": 1329,
+          "cacheReadInputTokens": 10443,
+          "cacheCreationInputTokens": 1172,
+          "webSearchRequests": 0,
+          "costUSD": 0.022251300000000005
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 678,
+          "outputTokens": 21168,
+          "cacheReadInputTokens": 2697602,
+          "cacheCreationInputTokens": 214478,
+          "webSearchRequests": 0,
+          "costUSD": 3.221878499999999
+        }
+      },
+      "lastSessionId": "392d28ec-9c61-4891-85a7-822ca8766ca3"
+    },
+    "/Users/Uberto.Rapizzi/.local/share/chezmoi": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastCost": 14.417559099999993,
+      "lastAPIDuration": 3046348,
+      "lastAPIDurationWithoutRetries": 3046202,
+      "lastToolDuration": 1051635,
+      "lastDuration": 3226226,
+      "lastLinesAdded": 570,
+      "lastLinesRemoved": 451,
+      "lastTotalInputTokens": 594423,
+      "lastTotalOutputTokens": 138644,
+      "lastTotalCacheCreationInputTokens": 1012056,
+      "lastTotalCacheReadInputTokens": 8065653,
+      "lastTotalWebSearchRequests": 31,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 500006,
+          "outputTokens": 17810,
+          "cacheReadInputTokens": 282121,
+          "cacheCreationInputTokens": 43952,
+          "webSearchRequests": 0,
+          "costUSD": 0.6722080999999996
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 94417,
+          "outputTokens": 120834,
+          "cacheReadInputTokens": 7783532,
+          "cacheCreationInputTokens": 968104,
+          "webSearchRequests": 31,
+          "costUSD": 13.745351
+        }
+      },
+      "lastSessionId": "61225202-d9ac-432c-8ada-b8f0051b162b",
+      "hasCompletedProjectOnboarding": true
+    },
+    "/Users/Uberto.Rapizzi/Downloads": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      },
+      "lastCost": 0.27468875,
+      "lastAPIDuration": 49798,
+      "lastAPIDurationWithoutRetries": 49786,
+      "lastToolDuration": 41434,
+      "lastDuration": 174680,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 13100,
+      "lastTotalOutputTokens": 1808,
+      "lastTotalCacheCreationInputTokens": 23469,
+      "lastTotalCacheReadInputTokens": 151431,
+      "lastTotalWebSearchRequests": 0,
+      "lastModelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 13032,
+          "outputTokens": 314,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.014601999999999999
+        },
+        "claude-opus-4-5-20251101": {
+          "inputTokens": 68,
+          "outputTokens": 1494,
+          "cacheReadInputTokens": 151431,
+          "cacheCreationInputTokens": 23469,
+          "webSearchRequests": 0,
+          "costUSD": 0.26008675
+        }
+      },
+      "lastSessionId": "4109bb67-5a84-473a-a0c7-ba5f2f75686c"
+    }
+  },
+  "hasCompletedOnboarding": true,
+  "lastOnboardingVersion": "2.1.19",
+  "hasShownOpus45Notice": {
+    "d74b6be6-105f-46f9-9594-427666cab00b": true
+  },
+  "s1mAccessCache": {
+    "d74b6be6-105f-46f9-9594-427666cab00b": {
+      "hasAccess": false,
+      "hasAccessNotAsDefault": false,
+      "timestamp": 1769614136397
+    }
+  },
+  "passesEligibilityCache": {
+    "d74b6be6-105f-46f9-9594-427666cab00b": {
+      "eligible": true,
+      "referral_code_details": {
+        "code": "itKfdrYVZA",
+        "campaign": "claude_code_guest_pass",
+        "referral_link": "https://claude.ai/referral/itKfdrYVZA"
+      },
+      "referrer_reward": null,
+      "timestamp": 1769622746732
+    }
+  },
+  "lastReleaseNotesSeen": "2.1.22",
+  "lastPlanModeUse": 1769618209771,
+  "feedbackSurveyState": {
+    "lastShownTime": 1769604639600
+  },
+  "autoUpdatesProtectedForNative": true,
+  "githubActionSetupCount": 1,
+  "bypassPermissionsModeAccepted": true,
+  "officialMarketplaceAutoInstallAttempted": true,
+  "officialMarketplaceAutoInstalled": true,
+  "thinkingMigrationComplete": true,
+  "hasCompletedClaudeInChromeOnboarding": true,
+  "anonymousId": "claudecode.v1.034e907b-c3b7-48f8-ae21-d686ebc7c21b",
+  "passesUpsellSeenCount": 2,
+  "hasVisitedPasses": true,
+  "groveConfigCache": {
+    "938fa8b0-cac5-4399-8857-b17cf3d5d30f": {
+      "grove_enabled": true,
+      "timestamp": 1769602731393
+    }
+  },
+  "skillUsage": {
+    "ralph-wiggum:ralph-loop": {
+      "usageCount": 3,
+      "lastUsedAt": 1767859914647
+    },
+    "ralph-wiggum:help": {
+      "usageCount": 1,
+      "lastUsedAt": 1767859879243
+    },
+    "dev:git-commit": {
+      "usageCount": 29,
+      "lastUsedAt": 1769602036991
+    },
+    "dev:doc-drift-check": {
+      "usageCount": 1,
+      "lastUsedAt": 1767864668133
+    },
+    "story-create": {
+      "usageCount": 2,
+      "lastUsedAt": 1768219281338
+    },
+    "dev:start-feature": {
+      "usageCount": 4,
+      "lastUsedAt": 1769622983193
+    },
+    "dev:code-review": {
+      "usageCount": 1,
+      "lastUsedAt": 1768227139698
+    },
+    "ralph-plan": {
+      "usageCount": 9,
+      "lastUsedAt": 1769603361993
+    },
+    "ralph-review": {
+      "usageCount": 5,
+      "lastUsedAt": 1769168062517
+    },
+    "dev:git-multiple-commits": {
+      "usageCount": 5,
+      "lastUsedAt": 1769094701452
+    },
+    "gh-search": {
+      "usageCount": 1,
+      "lastUsedAt": 1768997819098
+    },
+    "context:atomic-doc": {
+      "usageCount": 2,
+      "lastUsedAt": 1769597314096
+    },
+    "init": {
+      "usageCount": 1,
+      "lastUsedAt": 1769028626797
+    },
+    "task-create": {
+      "usageCount": 3,
+      "lastUsedAt": 1769084314563
+    },
+    "dev:complete-feature": {
+      "usageCount": 3,
+      "lastUsedAt": 1769621455314
+    },
+    "walkthrough": {
+      "usageCount": 5,
+      "lastUsedAt": 1769617413859
+    }
+  },
+  "opusProMigrationComplete": true,
+  "cachedChromeExtensionInstalled": true,
+  "hasUsedBackslashReturn": true,
+  "subscriptionNoticeCount": 0,
+  "hasAvailableSubscription": false,
+  "oauthAccount": {
+    "accountUuid": "938fa8b0-cac5-4399-8857-b17cf3d5d30f",
+    "emailAddress": "dev@uberto.me",
+    "organizationUuid": "d74b6be6-105f-46f9-9594-427666cab00b",
+    "hasExtraUsageEnabled": false,
+    "displayName": "Uby",
+    "organizationRole": "admin",
+    "workspaceRole": null,
+    "organizationName": "Uberto"
+  }
+}

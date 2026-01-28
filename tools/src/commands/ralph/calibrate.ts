@@ -36,6 +36,10 @@ interface CalibrateOptions {
   contextRoot: string;
   /** Skip approval even if config says 'suggest' */
   force?: boolean;
+  /** Model to use with the provider */
+  model?: string;
+  /** AI provider to use */
+  provider?: string;
   /** Require approval even if config says 'autofix' */
   review?: boolean;
   /** Path to subtasks.json file */

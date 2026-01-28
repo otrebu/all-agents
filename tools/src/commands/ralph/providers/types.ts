@@ -247,6 +247,9 @@ export interface OpencodeProviderConfig extends BaseProviderConfig {
   /** Agent to use (e.g., 'build', 'plan') */
   agent?: string;
 
+  /** Lightweight model for summaries */
+  lightweightModel?: string;
+
   /** Server mode port (if using persistent server) */
   serverPort?: number;
 }

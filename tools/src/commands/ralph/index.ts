@@ -15,10 +15,10 @@ import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
-  invokeClaudeHeadless as invokeClaudeHeadlessFromModule,
 } from "./claude";
 import {
   getPlanningLogPath as getMilestonePlanningLogPath,
+  loadRalphConfig,
   loadSubtasksFile,
   ORPHAN_MILESTONE_ROOT,
 } from "./config";
@@ -26,6 +26,11 @@ import {
   type PlanSubtasksSummaryData,
   renderPlanSubtasksSummary,
 } from "./display";
+import {
+  getProvider,
+  initializeProviders,
+  isProviderAvailable,
+} from "./providers";
 import { runStatus } from "./status";
 
 /**
@@ -205,6 +210,21 @@ interface HeadlessWithLoggingResult {
 }
 
 /**
+ * Options for provider-based chat mode
+ */
+interface ProviderChatOptions {
+  extraContext?: string;
+  model?: string;
+  promptPath: string;
+  providerName: string;
+  sessionName: string;
+}
+
+// =============================================================================
+// Planning Log Helpers
+// =============================================================================
+
+/**
  * Get planning log file path for a milestone
  *
  * When a milestone path is provided, logs are written to:
@@ -225,6 +245,28 @@ function getPlanningLogPath(milestonePath?: string): string {
   return getMilestonePlanningLogPath(
     path.join(projectRoot, ORPHAN_MILESTONE_ROOT),
   );
+}
+
+// =============================================================================
+// Provider Configuration Helpers
+// =============================================================================
+
+/**
+ * Get provider-specific configuration from Ralph config
+ * Uses a map to avoid nested ternary expressions
+ */
+function getProviderConfig(
+  config: ReturnType<typeof loadRalphConfig>,
+  providerName: string,
+): { model?: string } | undefined {
+  const providerConfigMap: Record<string, { model?: string } | undefined> = {
+    claude: config.claude,
+    codex: config.codex,
+    cursor: config.cursor,
+    gemini: config.gemini,
+    opencode: config.opencode,
+  };
+  return providerConfigMap[providerName];
 }
 
 /**
@@ -248,12 +290,31 @@ function invokeClaudeChat(
 }
 
 /**
- * Headless mode wrapper: Run Claude with JSON output and file logging
- * Reads prompt from file, invokes Claude headless, and logs results.
- * Exits process on failure.
+ * Provider-based chat mode wrapper: Spawn interactive chat session using selected provider
  */
-function invokeClaudeHeadless(
+function invokeProviderChat(options: ProviderChatOptions): void {
+  const { extraContext, model, promptPath, providerName, sessionName } =
+    options;
+  const provider = getProvider(providerName);
+  const result = provider.invokeChat({
+    extraContext,
+    model,
+    promptPath,
+    sessionName,
+  });
+
+  if (!result.success && !result.interrupted) {
+    process.exit(result.exitCode ?? 1);
+  }
+}
+
+/**
+ * Provider-based headless mode wrapper: Run provider with JSON output and file logging
+ */
+function invokeProviderHeadless(
+  providerName: string,
   options: HeadlessWithLoggingOptions,
+  model?: string,
 ): HeadlessWithLoggingResult {
   const { extraContext, logFile, promptPath, sessionName } = options;
 
@@ -265,7 +326,9 @@ function invokeClaudeHeadless(
   const promptContent = readFileSync(promptPath, "utf8");
   const fullPrompt = buildPrompt(promptContent, extraContext);
 
-  console.log(`Running ${sessionName} in headless mode...`);
+  console.log(
+    `Running ${sessionName} in headless mode with ${providerName}...`,
+  );
   console.log(`Prompt: ${promptPath}`);
   console.log(`Log file: ${logFile}`);
   if (extraContext !== undefined && extraContext !== "") {
@@ -273,10 +336,13 @@ function invokeClaudeHeadless(
   }
   console.log();
 
-  const result = invokeClaudeHeadlessFromModule({ prompt: fullPrompt });
+  const provider = getProvider(providerName);
+  const result = provider.invokeHeadless({ model, prompt: fullPrompt });
 
   if (result === null) {
-    console.error("Claude headless invocation failed or was interrupted");
+    console.error(
+      `${providerName} headless invocation failed or was interrupted`,
+    );
     process.exit(1);
   }
 
@@ -287,7 +353,7 @@ function invokeClaudeHeadless(
   }
 
   const logEntry = {
-    costUsd: result.cost,
+    costUsd: result.costUsd ?? 0,
     durationMs: result.duration,
     extraContext: extraContext ?? "",
     result: result.result,
@@ -300,14 +366,13 @@ function invokeClaudeHeadless(
 
   console.log(`Session completed: ${result.sessionId || "unknown"}`);
   console.log(
-    `Duration: ${Math.round(result.duration / 1000)}s | Cost: $${result.cost}`,
+    `Duration: ${Math.round(result.duration / 1000)}s | Cost: $${result.costUsd ?? 0}`,
   );
   console.log();
 
   return {
-    costUsd: result.cost,
+    costUsd: result.costUsd ?? 0,
     durationMs: result.duration,
-    // numTurns not available from the module's HeadlessResult
     numTurns: 0,
     result: result.result,
     sessionId: result.sessionId,
@@ -345,6 +410,11 @@ ralphCommand.addCommand(
       "0",
     )
     .option("--validate-first", "Run pre-build validation before building")
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
     .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
@@ -398,6 +468,21 @@ ralphCommand.addCommand(
       // Determine execution mode: headless or supervised (default)
       const mode = options.headless === true ? "headless" : "supervised";
 
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
+      // Initialize providers
+      await initializeProviders();
+
+      // Validate provider
+      if (!isProviderAvailable(providerName)) {
+        console.error(`Provider '${providerName}' is not installed`);
+        process.exit(1);
+      }
+
       // Map CLI options to BuildOptions and call runBuild()
       await runBuild(
         {
@@ -405,6 +490,8 @@ ralphCommand.addCommand(
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
+          model,
+          provider: providerName,
           quiet: options.quiet === true,
           skipSummary: options.skipSummary === true,
           subtasksPath,
@@ -490,13 +577,39 @@ planCommand.addCommand(
     .description(
       "Start interactive vision planning session using Socratic method",
     )
-    .action(() => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
+
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
+      // Validate provider
+      if (!isProviderAvailable(providerName)) {
+        console.error(`Provider '${providerName}' is not installed`);
+        process.exit(1);
+      }
+
       const promptPath = path.join(
         contextRoot,
         "context/workflows/ralph/planning/vision-interactive.md",
       );
-      invokeClaude(promptPath, "vision");
+      invokeProviderChat({
+        model,
+        promptPath,
+        providerName,
+        sessionName: "vision",
+      });
     }),
 );
 
@@ -504,13 +617,39 @@ planCommand.addCommand(
 planCommand.addCommand(
   new Command("roadmap")
     .description("Start interactive roadmap planning session")
-    .action(() => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
+
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
+      // Validate provider
+      if (!isProviderAvailable(providerName)) {
+        console.error(`Provider '${providerName}' is not installed`);
+        process.exit(1);
+      }
+
       const promptPath = path.join(
         contextRoot,
         "context/workflows/ralph/planning/roadmap-interactive.md",
       );
-      invokeClaude(promptPath, "roadmap");
+      invokeProviderChat({
+        model,
+        promptPath,
+        providerName,
+        sessionName: "roadmap",
+      });
     }),
 );
 
@@ -524,9 +663,29 @@ planCommand.addCommand(
     )
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
+
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
+      // Validate provider
+      if (!isProviderAvailable(providerName)) {
+        console.error(`Provider '${providerName}' is not installed`);
+        process.exit(1);
+      }
 
       // Determine if using auto prompt (non-interactive generation)
       const isAutoMode =
@@ -537,18 +696,29 @@ planCommand.addCommand(
       // Determine execution mode
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "stories",
-        });
+        invokeProviderHeadless(
+          providerName,
+          { extraContext, logFile, promptPath, sessionName: "stories" },
+          model,
+        );
       } else if (options.supervised === true) {
         // Supervised mode: user watches chat
-        invokeClaudeChat(promptPath, "stories", extraContext);
+        invokeProviderChat({
+          extraContext,
+          model,
+          promptPath,
+          providerName,
+          sessionName: "stories",
+        });
       } else {
         // Interactive mode (default): full interactive session
-        invokeClaude(promptPath, "stories", extraContext);
+        invokeProviderChat({
+          extraContext,
+          model,
+          promptPath,
+          providerName,
+          sessionName: "stories",
+        });
       }
     }),
 );
@@ -566,7 +736,12 @@ planCommand.addCommand(
     )
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const hasStory = options.story !== undefined;
       const hasMilestone = options.milestone !== undefined;
 
@@ -590,6 +765,21 @@ planCommand.addCommand(
       }
 
       const contextRoot = getContextRoot();
+
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
+      // Validate provider
+      if (!isProviderAvailable(providerName)) {
+        console.error(`Provider '${providerName}' is not installed`);
+        process.exit(1);
+      }
 
       // Determine if using auto prompt
       const isAutoMode =
@@ -617,14 +807,24 @@ planCommand.addCommand(
 
         if (options.headless === true) {
           const logFile = getPlanningLogPath(milestonePath);
-          invokeClaudeHeadless({
+          invokeProviderHeadless(
+            providerName,
+            {
+              extraContext,
+              logFile,
+              promptPath,
+              sessionName: "tasks-milestone",
+            },
+            model,
+          );
+        } else {
+          invokeProviderChat({
             extraContext,
-            logFile,
+            model,
             promptPath,
+            providerName,
             sessionName: "tasks-milestone",
           });
-        } else {
-          invokeClaudeChat(promptPath, "tasks-milestone", extraContext);
         }
         return;
       }
@@ -643,14 +843,19 @@ planCommand.addCommand(
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        invokeProviderHeadless(
+          providerName,
+          { extraContext, logFile, promptPath, sessionName: "tasks" },
+          model,
+        );
+      } else if (options.supervised === true) {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "tasks",
         });
-      } else if (options.supervised === true) {
-        invokeClaudeChat(promptPath, "tasks", extraContext);
       } else {
         invokeClaude(promptPath, "tasks", extraContext);
       }
@@ -679,7 +884,13 @@ planCommand.addCommand(
       "Supervised mode: watch chat, can intervene (default)",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((source: string | undefined, options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    // eslint-disable-next-line complexity
+    .action(async (source: string | undefined, options) => {
       const hasSource = source !== undefined && source !== "";
       const hasReview = options.review === true;
       const hasTask = options.task !== undefined;
@@ -707,6 +918,21 @@ planCommand.addCommand(
       }
 
       const contextRoot = getContextRoot();
+
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
+      // Validate provider
+      if (!isProviderAvailable(providerName)) {
+        console.error(`Provider '${providerName}' is not installed`);
+        process.exit(1);
+      }
 
       // Resolve milestone path if provided (used for log file location)
       const resolvedMilestonePath =
@@ -783,12 +1009,11 @@ planCommand.addCommand(
       if (options.headless === true) {
         // Headless mode with summary
         const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
-        const result = invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "subtasks",
-        });
+        const result = invokeProviderHeadless(
+          providerName,
+          { extraContext, logFile, promptPath, sessionName: "subtasks" },
+          model,
+        );
 
         // Determine output path
         const projectRoot = findProjectRoot() ?? process.cwd();
@@ -832,7 +1057,13 @@ planCommand.addCommand(
         );
       } else {
         // Default: supervised mode (user watches)
-        invokeClaudeChat(promptPath, "subtasks", extraContext);
+        invokeProviderChat({
+          extraContext,
+          model,
+          promptPath,
+          providerName,
+          sessionName: "subtasks",
+        });
       }
     }),
 );
@@ -877,7 +1108,7 @@ reviewCommand.addCommand(
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
+        invokeProviderHeadless("claude", {
           extraContext,
           logFile,
           promptPath,
@@ -901,7 +1132,7 @@ reviewCommand.addCommand(
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        invokeProviderHeadless("claude", {
           extraContext,
           logFile,
           promptPath,
@@ -930,7 +1161,7 @@ gapCommand.addCommand(
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        invokeProviderHeadless("claude", {
           extraContext,
           logFile,
           promptPath,
@@ -959,7 +1190,7 @@ gapCommand.addCommand(
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
+        invokeProviderHeadless("claude", {
           extraContext,
           logFile,
           promptPath,
@@ -986,7 +1217,7 @@ gapCommand.addCommand(
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        invokeProviderHeadless("claude", {
           extraContext,
           logFile,
           promptPath,
@@ -1012,7 +1243,7 @@ gapCommand.addCommand(
       if (options.headless === true) {
         // Subtasks mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        invokeProviderHeadless("claude", {
           extraContext,
           logFile,
           promptPath,
@@ -1041,7 +1272,7 @@ reviewCommand.addCommand(
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        invokeProviderHeadless("claude", {
           extraContext,
           logFile,
           promptPath,
@@ -1070,7 +1301,7 @@ reviewCommand.addCommand(
       if (options.headless === true) {
         // Subtasks review doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        invokeProviderHeadless("claude", {
           extraContext,
           logFile,
           promptPath,
@@ -1157,7 +1388,13 @@ function resolveCalibrateSubtasksPath(
  */
 function runCalibrateSubcommand(
   subcommand: CalibrateSubcommand,
-  options: { force?: boolean; review?: boolean; subtasks: string },
+  options: {
+    force?: boolean;
+    model?: string;
+    provider?: string;
+    review?: boolean;
+    subtasks: string;
+  },
 ): void {
   const contextRoot = getContextRoot();
   const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
@@ -1168,6 +1405,8 @@ function runCalibrateSubcommand(
   const didSucceed = runCalibrate(subcommand, {
     contextRoot,
     force: options.force,
+    model: options.model,
+    provider: options.provider,
     review: options.review,
     subtasksPath: resolvedSubtasksPath,
   });
@@ -1184,6 +1423,11 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
     .action((options) => {
       runCalibrateSubcommand("intention", options);
     }),
@@ -1196,6 +1440,11 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
     .action((options) => {
       runCalibrateSubcommand("technical", options);
     }),
@@ -1208,6 +1457,11 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
     .action((options) => {
       runCalibrateSubcommand("improve", options);
     }),
@@ -1220,6 +1474,11 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
     .action((options) => {
       runCalibrateSubcommand("all", options);
     }),
