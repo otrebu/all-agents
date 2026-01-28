@@ -133,7 +133,7 @@
     "tengu_cork_m4q": false,
     "tengu_plum_vx3": false,
     "tengu_compact_cache_prefix": false,
-    "tengu_marble_anvil": false,
+    "tengu_marble_anvil": true,
     "tengu_tst_kx7": false,
     "tengu_coral_fern": false
   },
@@ -1032,7 +1032,7 @@
     "d74b6be6-105f-46f9-9594-427666cab00b": {
       "hasAccess": false,
       "hasAccessNotAsDefault": false,
-      "timestamp": 1769614136397
+      "timestamp": 1769635274891
     }
   },
   "passesEligibilityCache": {
@@ -1044,7 +1044,7 @@
         "referral_link": "https://claude.ai/referral/itKfdrYVZA"
       },
       "referrer_reward": null,
-      "timestamp": 1769622746732
+      "timestamp": 1769635274795
     }
   },
   "lastReleaseNotesSeen": "2.1.22",
