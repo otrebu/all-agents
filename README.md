@@ -95,6 +95,8 @@ aaa ralph build --headless         # Headless mode with JSON capture
 aaa ralph build --quiet            # Suppress terminal summary (still writes file)
 aaa ralph status --subtasks        # Show progress
 aaa ralph review subtasks          # Review before building
+aaa ralph review tasks --story     # Review tasks for a story
+aaa ralph review gap tasks --story # Gap analysis of tasks
 aaa ralph calibrate intention      # Check for drift
 #
 # Build completion generates BUILD-SUMMARY-{timestamp}.md with:

@@ -253,6 +253,7 @@ describe("ralph E2E", () => {
       expect(exitCode).toBe(0);
       expect(stdout).toContain("roadmap");
       expect(stdout).toContain("stories");
+      expect(stdout).toContain("tasks");
     });
 
     test("ralph review gap roadmap --help shows options", async () => {
@@ -315,6 +316,48 @@ describe("ralph E2E", () => {
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--subtasks");
       expect(stdout).toContain("--headless");
+    });
+
+    test("ralph review tasks --help shows options", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "tasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--story");
+      expect(stdout).toContain("--headless");
+    });
+
+    test("ralph review tasks requires --story option", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "tasks"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("required option '--story <path>'");
+    });
+
+    test("ralph review gap tasks --help shows options", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "gap", "tasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--story");
+      expect(stdout).toContain("--headless");
+    });
+
+    test("ralph review gap tasks requires --story option", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "gap", "tasks"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("required option '--story <path>'");
     });
   });
 });

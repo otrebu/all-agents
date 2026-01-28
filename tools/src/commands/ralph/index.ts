@@ -974,7 +974,61 @@ gapCommand.addCommand(
     }),
 );
 
+// ralph review gap tasks --story <path> - tasks gap analysis
+gapCommand.addCommand(
+  new Command("tasks")
+    .description("Cold analysis of tasks for gaps and risks")
+    .requiredOption("--story <path>", "Story path to analyze tasks for")
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      const storyPath = requireStory(options.story);
+      const promptPath = getReviewPromptPath(contextRoot, "tasks", true);
+      const extraContext = `Gap analysis of tasks for story: ${storyPath}`;
+
+      if (options.headless === true) {
+        // Story mode doesn't have direct milestone, use orphan fallback
+        const logFile = getPlanningLogPath();
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "tasks-gap",
+        });
+      } else {
+        invokeClaudeChat(promptPath, "tasks-gap", extraContext);
+      }
+    }),
+);
+
 reviewCommand.addCommand(gapCommand);
+
+// ralph review tasks --story <path> - review tasks for a story
+reviewCommand.addCommand(
+  new Command("tasks")
+    .description("Review tasks for a story")
+    .requiredOption("--story <path>", "Story path to review tasks for")
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      const storyPath = requireStory(options.story);
+      const promptPath = getReviewPromptPath(contextRoot, "tasks", false);
+      const extraContext = `Reviewing tasks for story: ${storyPath}`;
+
+      if (options.headless === true) {
+        // Story mode doesn't have direct milestone, use orphan fallback
+        const logFile = getPlanningLogPath();
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "tasks-review",
+        });
+      } else {
+        invokeClaudeChat(promptPath, "tasks-review", extraContext);
+      }
+    }),
+);
 
 // ralph review subtasks --subtasks <path> - review subtask queue
 reviewCommand.addCommand(
