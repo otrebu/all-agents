@@ -864,35 +864,55 @@ function getReviewPromptPath(
 }
 
 // ralph review stories --milestone <path> - review stories for a milestone
-// Note: All review commands are supervised-only (no --headless) because
-// review is inherently about dialogue and feedback. See VISION.md Section 3.1.
 reviewCommand.addCommand(
   new Command("stories")
-    .description("Review stories for a milestone (supervised only)")
+    .description("Review stories for a milestone")
     .requiredOption(
       "--milestone <path>",
       "Milestone path to review stories for",
     )
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
       const contextRoot = getContextRoot();
+      const milestonePath = requireMilestone(options.milestone);
       const promptPath = getReviewPromptPath(contextRoot, "stories", false);
-      const extraContext = `Reviewing stories for milestone: ${options.milestone}`;
-      invokeClaudeChat(promptPath, "stories-review", extraContext);
+      const extraContext = `Reviewing stories for milestone: ${milestonePath}`;
+
+      if (options.headless === true) {
+        const logFile = getPlanningLogPath(milestonePath);
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "stories-review",
+        });
+      } else {
+        invokeClaudeChat(promptPath, "stories-review", extraContext);
+      }
     }),
 );
 
 // ralph review roadmap - review roadmap quality
-// Note: All review commands are supervised-only (no --headless).
 reviewCommand.addCommand(
   new Command("roadmap")
-    .description(
-      "Review roadmap milestones for quality and completeness (supervised only)",
-    )
-    .action(() => {
+    .description("Review roadmap milestones for quality and completeness")
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .action((options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "roadmap", false);
       const extraContext = "Reviewing roadmap for quality and completeness";
-      invokeClaudeChat(promptPath, "roadmap-review", extraContext);
+
+      if (options.headless === true) {
+        const logFile = getPlanningLogPath();
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "roadmap-review",
+        });
+      } else {
+        invokeClaudeChat(promptPath, "roadmap-review", extraContext);
+      }
     }),
 );
 
@@ -902,50 +922,66 @@ const gapCommand = new Command("gap").description(
 );
 
 // ralph review gap roadmap - roadmap gap analysis
-// Note: Gap analysis is supervised-only (no --headless) because it produces
-// questions requiring human judgment. See VISION.md Section 3.1.
 gapCommand.addCommand(
   new Command("roadmap")
-    .description(
-      "Cold analysis of roadmap for gaps and risks (supervised only)",
-    )
-    .action(() => {
+    .description("Cold analysis of roadmap for gaps and risks")
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .action((options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "roadmap", true);
       const extraContext = "Gap analysis of roadmap for risks and blind spots";
-      invokeClaudeChat(promptPath, "roadmap-gap", extraContext);
+
+      if (options.headless === true) {
+        const logFile = getPlanningLogPath();
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "roadmap-gap",
+        });
+      } else {
+        invokeClaudeChat(promptPath, "roadmap-gap", extraContext);
+      }
     }),
 );
 
 // ralph review gap stories --milestone <path> - stories gap analysis
-// Note: Gap analysis is supervised-only (no --headless) because it produces
-// questions requiring human judgment. See VISION.md Section 3.1.
 gapCommand.addCommand(
   new Command("stories")
-    .description(
-      "Cold analysis of stories for gaps and risks (supervised only)",
-    )
+    .description("Cold analysis of stories for gaps and risks")
     .requiredOption(
       "--milestone <path>",
       "Milestone path to analyze stories for",
     )
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
       const contextRoot = getContextRoot();
+      const milestonePath = requireMilestone(options.milestone);
       const promptPath = getReviewPromptPath(contextRoot, "stories", true);
-      const extraContext = `Gap analysis of stories for milestone: ${options.milestone}`;
-      invokeClaudeChat(promptPath, "stories-gap", extraContext);
+      const extraContext = `Gap analysis of stories for milestone: ${milestonePath}`;
+
+      if (options.headless === true) {
+        const logFile = getPlanningLogPath(milestonePath);
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "stories-gap",
+        });
+      } else {
+        invokeClaudeChat(promptPath, "stories-gap", extraContext);
+      }
     }),
 );
 
 reviewCommand.addCommand(gapCommand);
 
 // ralph review subtasks --subtasks <path> - review subtask queue
-// Note: All review commands are supervised-only (no --headless) because
-// review is inherently about dialogue and feedback. See VISION.md Section 3.1.
 reviewCommand.addCommand(
   new Command("subtasks")
-    .description("Review subtask queue before building (supervised only)")
+    .description("Review subtask queue before building")
     .requiredOption("--subtasks <path>", "Subtasks file path to review")
+    .option("-H, --headless", "Headless mode: JSON output + file logging")
     .action((options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
@@ -953,7 +989,19 @@ reviewCommand.addCommand(
         "context/workflows/ralph/review/subtasks-review-auto.md",
       );
       const extraContext = `Reviewing subtasks file: ${options.subtasks}`;
-      invokeClaudeChat(promptPath, "subtasks-review", extraContext);
+
+      if (options.headless === true) {
+        // Subtasks review doesn't have direct milestone, use orphan fallback
+        const logFile = getPlanningLogPath();
+        invokeClaudeHeadless({
+          extraContext,
+          logFile,
+          promptPath,
+          sessionName: "subtasks-review",
+        });
+      } else {
+        invokeClaudeChat(promptPath, "subtasks-review", extraContext);
+      }
     }),
 );
 

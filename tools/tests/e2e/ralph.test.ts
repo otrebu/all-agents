@@ -223,27 +223,25 @@ describe("ralph E2E", () => {
       expect(stdout).toContain("tasks");
     });
 
-    test("ralph review stories --help shows supervised-only", async () => {
+    test("ralph review stories --help shows options", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "stories", "--help"],
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("supervised only");
       expect(stdout).toContain("milestone");
-      expect(stdout).not.toContain("--headless");
+      expect(stdout).toContain("--headless");
     });
 
-    test("ralph review roadmap --help shows supervised-only", async () => {
+    test("ralph review roadmap --help shows options", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "roadmap", "--help"],
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("supervised only");
-      expect(stdout).not.toContain("--headless");
+      expect(stdout).toContain("--headless");
     });
 
     test("ralph review gap --help shows gap subcommands", async () => {
@@ -257,27 +255,25 @@ describe("ralph E2E", () => {
       expect(stdout).toContain("stories");
     });
 
-    test("ralph review gap roadmap --help shows supervised-only", async () => {
+    test("ralph review gap roadmap --help shows options", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "gap", "roadmap", "--help"],
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("supervised only");
-      expect(stdout).not.toContain("--headless");
+      expect(stdout).toContain("--headless");
     });
 
-    test("ralph review gap stories --help shows supervised-only", async () => {
+    test("ralph review gap stories --help shows options", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "gap", "stories", "--help"],
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("supervised only");
       expect(stdout).toContain("milestone");
-      expect(stdout).not.toContain("--headless");
+      expect(stdout).toContain("--headless");
     });
 
     test("ralph review stories requires milestone option", async () => {
@@ -308,6 +304,17 @@ describe("ralph E2E", () => {
       );
       expect(exitCode).toBe(1);
       expect(stderr).toContain("required option '--subtasks <path>'");
+    });
+
+    test("ralph review subtasks --help shows options", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "subtasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--subtasks");
+      expect(stdout).toContain("--headless");
     });
   });
 });
