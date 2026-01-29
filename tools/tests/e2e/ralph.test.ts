@@ -88,7 +88,7 @@ describe("ralph E2E", () => {
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("subtasks-path");
+    expect(stdout).toContain("--subtasks");
   });
 
   test("ralph calibrate without subcommand shows usage", async () => {
@@ -149,7 +149,7 @@ describe("ralph E2E", () => {
       { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("--milestone file not found: nonexistent");
+    expect(stderr).toContain("milestone not found: nonexistent");
   });
 
   // Three-mode system tests
@@ -412,7 +412,7 @@ describe("iteration-summary prompt placeholder substitution", () => {
     const testValues = {
       ITERATION_NUM: "2",
       MILESTONE: "test-milestone",
-      SESSION_JSONL_PATH: "tmp-test-session.jsonl",
+      SESSION_CONTENT: "tmp-test-session.jsonl",
       STATUS: "success",
       SUBTASK_ID: "task-test-001",
       SUBTASK_TITLE: "Test Subtask Title",
@@ -430,7 +430,7 @@ PROMPT_TEMPLATE=$(cat "${promptPath}")
 SUBSTITUTED_PROMPT="$PROMPT_TEMPLATE"
 SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{SUBTASK_ID}}|${testValues.SUBTASK_ID}|g")
 SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{STATUS}}|${testValues.STATUS}|g")
-SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{SESSION_JSONL_PATH}}|${testValues.SESSION_JSONL_PATH}|g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{SESSION_CONTENT}}|${testValues.SESSION_CONTENT}|g")
 SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{SUBTASK_TITLE}}|${testValues.SUBTASK_TITLE}|g")
 SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{MILESTONE}}|${testValues.MILESTONE}|g")
 SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s|{{TASK_REF}}|${testValues.TASK_REF}|g")
@@ -458,7 +458,7 @@ echo "$SUBSTITUTED_PROMPT"
       // Verify the substituted value appears in the output
       expect(stdout).toContain(value);
       // Verify no unsubstituted placeholders remain (for required fields)
-      if (["SESSION_JSONL_PATH", "STATUS", "SUBTASK_ID"].includes(key)) {
+      if (["SESSION_CONTENT", "STATUS", "SUBTASK_ID"].includes(key)) {
         // These appear multiple times in the template, verify substitution happened
         expect(stdout).not.toContain(`\`{{${key}}}\``);
       }
@@ -476,7 +476,7 @@ echo "$SUBSTITUTED_PROMPT"
 
     // Test values with paths containing slashes - use # delimiter in sed
     const testValues = {
-      SESSION_JSONL_PATH: "/home/user/.claude/projects/test-path/session.jsonl",
+      SESSION_CONTENT: "/home/user/.claude/projects/test-path/session.jsonl",
       STATUS: "success",
       SUBTASK_ID: "task-015-04",
     };
@@ -492,7 +492,7 @@ PROMPT_TEMPLATE=$(cat "${promptPath}")
 SUBSTITUTED_PROMPT="$PROMPT_TEMPLATE"
 SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s#{{SUBTASK_ID}}#${testValues.SUBTASK_ID}#g")
 SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s#{{STATUS}}#${testValues.STATUS}#g")
-SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s#{{SESSION_JSONL_PATH}}#${testValues.SESSION_JSONL_PATH}#g")
+SUBSTITUTED_PROMPT=$(echo "$SUBSTITUTED_PROMPT" | sed "s#{{SESSION_CONTENT}}#${testValues.SESSION_CONTENT}#g")
 
 echo "$SUBSTITUTED_PROMPT"
 `;
@@ -507,7 +507,7 @@ echo "$SUBSTITUTED_PROMPT"
 
     expect(exitCode).toBe(0);
     expect(stdout).toContain(testValues.SUBTASK_ID);
-    expect(stdout).toContain(testValues.SESSION_JSONL_PATH);
+    expect(stdout).toContain(testValues.SESSION_CONTENT);
     expect(stdout).toContain(`"subtaskId": "${testValues.SUBTASK_ID}"`);
   });
 });
@@ -670,7 +670,7 @@ model=$(json_query "$CONFIG_PATH" ".hooks.postIteration.model" "haiku")
 prompt_content=$(cat "$PROMPT_PATH")
 prompt_content=$(echo "$prompt_content" | sed "s|{{SUBTASK_ID}}|$SUBTASK_ID|g")
 prompt_content=$(echo "$prompt_content" | sed "s|{{STATUS}}|$STATUS|g")
-prompt_content=$(echo "$prompt_content" | sed "s|{{SESSION_JSONL_PATH}}||g")
+prompt_content=$(echo "$prompt_content" | sed "s|{{SESSION_CONTENT}}||g")
 
 # Call claude (mock) and capture output
 output=$(claude --model "$model" --output-format json -p "$prompt_content" 2>&1)
@@ -723,7 +723,7 @@ echo "$output"
     // Should have placeholders that get substituted
     expect(promptContent).toContain("{{SUBTASK_ID}}");
     expect(promptContent).toContain("{{STATUS}}");
-    expect(promptContent).toContain("{{SESSION_JSONL_PATH}}");
+    expect(promptContent).toContain("{{SESSION_CONTENT}}");
 
     // Should specify JSON output format for structured response
     expect(promptContent).toContain("Output a JSON object");
@@ -1956,7 +1956,7 @@ describe("post-iteration-hook diary entry integration test", () => {
       ),
       `# Iteration Summary Generator
 Generate a JSON summary for subtask {{SUBTASK_ID}} with status {{STATUS}}.
-Session log: {{SESSION_JSONL_PATH}}
+Session log: {{SESSION_CONTENT}}
 Output: {"subtaskId":"{{SUBTASK_ID}}","status":"{{STATUS}}","summary":"Test summary","keyFindings":[]}`,
     );
 
@@ -2651,7 +2651,7 @@ describe("subtasks schema validation", () => {
     // Load the test output generated by subtasks-auto.md prompt
     const testOutputPath = join(
       CONTEXT_ROOT,
-      "docs/planning/milestones/ralph/test-fixtures/subtasks-auto-test-output.json",
+      "docs/planning/milestones/001-ralph/test-fixtures/subtasks-auto-test-output.json",
     );
     const testOutputContent = readFileSync(testOutputPath, "utf8");
     const testOutput = JSON.parse(testOutputContent) as object;
@@ -2696,7 +2696,7 @@ describe("subtasks schema validation", () => {
       existsSync(
         join(
           CONTEXT_ROOT,
-          "docs/planning/milestones/ralph/test-fixtures",
+          "docs/planning/milestones/001-ralph/test-fixtures",
           fixture,
         ),
       ),
@@ -2705,7 +2705,7 @@ describe("subtasks schema validation", () => {
     for (const fixture of existingFixtures) {
       const fixturePath = join(
         CONTEXT_ROOT,
-        "docs/planning/milestones/ralph/test-fixtures",
+        "docs/planning/milestones/001-ralph/test-fixtures",
         fixture,
       );
 

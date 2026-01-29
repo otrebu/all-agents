@@ -531,42 +531,34 @@ describe("Provider System", () => {
       expect(typeof provider.invokeLightweight).toBe("function");
     });
 
-    it("should return failure for unimplemented invoke methods", () => {
-      // Test non-claude providers which have stub implementations
-      const stubProviders = ["opencode", "cursor", "gemini", "codex"] as const;
+    it("should return failure when CLI not available", () => {
+      // Test non-claude providers which have real implementations
+      // When the CLI isn't available, invokeChat should return failure
+      // and invokeHeadless should return null
+      // Skip providers that are actually available in this environment
+      const providers = ["opencode", "cursor", "gemini", "codex"] as const;
 
-      for (const name of stubProviders) {
+      for (const name of providers) {
         const provider = getProvider(name);
 
-        // Capture console.warn calls
-        const warnings: Array<string> = [];
-        const warnSpy = spyOn(console, "warn").mockImplementation(
-          (message: string) => {
-            warnings.push(message);
-          },
-        );
-
-        try {
-          // invokeChat should return failure for stubs
-          const chatResult = provider.invokeChat({
-            promptPath: "/tmp/test.md",
-            sessionName: "test",
-          });
-
-          expect(chatResult.success).toBe(false);
-          expect(chatResult.exitCode).toBe(1);
-          expect(chatResult.interrupted).toBe(false);
-
-          // invokeHeadless should return null for stubs
-          const headlessResult = provider.invokeHeadless({ prompt: "test" });
-
-          expect(headlessResult).toBeNull();
-
-          // Verify warnings were issued
-          expect(warnings.length).toBeGreaterThan(0);
-        } finally {
-          warnSpy.mockRestore();
+        // Skip if CLI is available - we're testing unavailable behavior
+        if (provider.isAvailable()) {
+          continue;
         }
+
+        // invokeChat should return failure when CLI not available
+        const chatResult = provider.invokeChat({
+          promptPath: "/tmp/test.md",
+          sessionName: "test",
+        });
+
+        expect(chatResult.success).toBe(false);
+        expect(chatResult.interrupted).toBe(false);
+
+        // invokeHeadless should return null when CLI not available
+        const headlessResult = provider.invokeHeadless({ prompt: "test" });
+
+        expect(headlessResult).toBeNull();
       }
     });
   });

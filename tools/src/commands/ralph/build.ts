@@ -326,14 +326,15 @@ function processHeadlessIteration(
     subtasksPath,
   } = context;
 
-  console.log(renderInvocationHeader("headless"));
+  console.log(renderInvocationHeader("headless", providerName));
   console.log();
 
   // Use target project root for logs (not all-agents)
   const projectRoot = findProjectRoot() ?? contextRoot;
 
-  // Get provider instance
-  const provider = getProvider(providerName);
+  // Get provider instance with model config
+  const providerConfig = model !== undefined && model !== "" ? { model } : undefined;
+  const provider = getProvider(providerName, providerConfig);
 
   // Capture commit hash before invocation
   const commitBefore = getLatestCommitHash(projectRoot);
@@ -352,7 +353,7 @@ function processHeadlessIteration(
   }
 
   // Display result with markdown rendering
-  console.log(`\n${renderResponseHeader()}`);
+  console.log(`\n${renderResponseHeader(providerName)}`);
   console.log(renderMarkdown(result.result));
   console.log();
 
@@ -448,7 +449,7 @@ function processSupervisedIteration(
     subtasksPath,
   } = context;
 
-  console.log(renderInvocationHeader("supervised"));
+  console.log(renderInvocationHeader("supervised", providerName));
   console.log();
 
   // Use target project root for logs
@@ -458,8 +459,9 @@ function processSupervisedIteration(
   const subtasksDirectory = path.dirname(subtasksPath);
   const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
 
-  // Get provider instance
-  const provider = getProvider(providerName);
+  // Get provider instance with model config
+  const providerConfig = model !== undefined && model !== "" ? { model } : undefined;
+  const provider = getProvider(providerName, providerConfig);
 
   // Capture commit hash before invocation
   const commitBefore = getLatestCommitHash(projectRoot);
@@ -839,7 +841,7 @@ function runPeriodicCalibration(options: PeriodicCalibrationOptions): void {
     console.log(
       `\n=== Running calibration (every ${calibrateEvery} iterations) ===\n`,
     );
-    runCalibrate("all", { contextRoot, subtasksPath });
+    void runCalibrate("all", { contextRoot, subtasksPath });
   }
 }
 

@@ -7,7 +7,7 @@
   "subtasks": [
     {
       "id": "SUB-001",
-      "taskRef": "TASK-001",
+      "taskRef": "001-setup-semantic-release",
       "storyRef": null,
       "title": "Install semantic-release and required plugins",
       "description": "Install semantic-release and plugins (@semantic-release/changelog, @semantic-release/git, @semantic-release/npm) as dev dependencies. These provide the core release automation, changelog generation, git operations, and npm publishing capabilities.",
@@ -26,7 +26,7 @@
     },
     {
       "id": "SUB-002",
-      "taskRef": "TASK-001",
+      "taskRef": "001-setup-semantic-release",
       "storyRef": null,
       "title": "Create .releaserc.json configuration",
       "description": "Create .releaserc.json configuration file with branches (main), plugins array with changelog, git, npm plugins configured, and commit message parsing for conventional commits.",
@@ -44,7 +44,7 @@
     },
     {
       "id": "SUB-003",
-      "taskRef": "TASK-001",
+      "taskRef": "001-setup-semantic-release",
       "storyRef": null,
       "title": "Add release script and documentation",
       "description": "Add release script to package.json and document the release process in README.md. Include dry-run instructions and explain how conventional commits map to version bumps.",
@@ -62,7 +62,7 @@
     },
     {
       "id": "SUB-004",
-      "taskRef": "TASK-001",
+      "taskRef": "001-setup-semantic-release",
       "storyRef": null,
       "title": "Verify semantic-release with dry-run",
       "description": "Run semantic-release in dry-run mode to verify the configuration works correctly. Ensure changelog generation, version bump detection, and git tag creation work as expected.",

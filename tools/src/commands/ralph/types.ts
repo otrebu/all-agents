@@ -287,12 +287,26 @@ interface SubtasksFile {
 /**
  * Token usage for an iteration
  * Tracks token consumption from Claude Code session
+ *
+ * This type is designed to be compatible with both provider formats:
+ * - Claude-style: contextTokens, outputTokens
+ * - Generic/opencode-style: inputTokens, outputTokens
+ *
+ * Use contextTokens ?? inputTokens pattern when reading values.
  */
 interface TokenUsage {
-  /** Final context window size (input + cached tokens at last API call) */
-  contextTokens: number;
+  /** Cached input tokens read */
+  cacheReadTokens?: number;
+  /** Cached input tokens written */
+  cacheWriteTokens?: number;
+  /** Final context window size (Claude-style) - use contextTokens ?? inputTokens */
+  contextTokens?: number;
+  /** Input/prompt tokens (generic provider format) */
+  inputTokens?: number;
   /** Output tokens generated (summed across all API calls for cost tracking) */
-  outputTokens: number;
+  outputTokens?: number;
+  /** Reasoning tokens (for models that support it) */
+  reasoningTokens?: number;
 }
 
 // =============================================================================

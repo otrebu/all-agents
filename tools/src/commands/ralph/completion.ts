@@ -135,6 +135,55 @@ function getCommandFlags(commandPath: Array<string>): Array<string> {
       "--model",
     ],
     "ralph.plan.vision": ["--provider", "--model"],
+    "ralph.review.gap.roadmap": [
+      "-H",
+      "--headless",
+      "--provider",
+      "--model",
+    ],
+    "ralph.review.gap.stories": [
+      "--milestone",
+      "-H",
+      "--headless",
+      "--provider",
+      "--model",
+    ],
+    "ralph.review.gap.subtasks": [
+      "--subtasks",
+      "-H",
+      "--headless",
+      "--provider",
+      "--model",
+    ],
+    "ralph.review.gap.tasks": [
+      "--story",
+      "-H",
+      "--headless",
+      "--provider",
+      "--model",
+    ],
+    "ralph.review.roadmap": ["-H", "--headless", "--provider", "--model"],
+    "ralph.review.stories": [
+      "--milestone",
+      "-H",
+      "--headless",
+      "--provider",
+      "--model",
+    ],
+    "ralph.review.subtasks": [
+      "--subtasks",
+      "-H",
+      "--headless",
+      "--provider",
+      "--model",
+    ],
+    "ralph.review.tasks": [
+      "--story",
+      "-H",
+      "--headless",
+      "--provider",
+      "--model",
+    ],
   };
 
   // Try exact match first

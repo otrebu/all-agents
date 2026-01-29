@@ -12,10 +12,7 @@ import path from "node:path";
 
 import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
-import {
-  buildPrompt,
-  invokeClaudeChat as invokeClaudeChatFromModule,
-} from "./claude";
+import { buildPrompt } from "./claude";
 import { completionCommand } from "./completion";
 import {
   getPlanningLogPath as getMilestonePlanningLogPath,
@@ -268,26 +265,6 @@ function getProviderConfig(
     opencode: config.opencode,
   };
   return providerConfigMap[providerName];
-}
-
-/**
- * Supervised mode wrapper: Spawn interactive chat session
- * Uses the claude.ts module function and exits process on failure.
- */
-function invokeClaudeChat(
-  promptPath: string,
-  sessionName: string,
-  extraContext?: string,
-): void {
-  const result = invokeClaudeChatFromModule(
-    promptPath,
-    sessionName,
-    extraContext,
-  );
-
-  if (!result.success && !result.interrupted) {
-    process.exit(result.exitCode ?? 1);
-  }
 }
 
 /**
@@ -1101,22 +1078,46 @@ reviewCommand.addCommand(
       "Milestone path to review stories for",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
       const promptPath = getReviewPromptPath(contextRoot, "stories", false);
       const extraContext = `Reviewing stories for milestone: ${milestonePath}`;
 
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeProviderHeadless("claude", {
+        invokeProviderHeadless(
+          providerName,
+          {
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "stories-review",
+          },
+          model,
+        );
+      } else {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "stories-review",
         });
-      } else {
-        invokeClaudeChat(promptPath, "stories-review", extraContext);
       }
     }),
 );
@@ -1126,21 +1127,45 @@ reviewCommand.addCommand(
   new Command("roadmap")
     .description("Review roadmap milestones for quality and completeness")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "roadmap", false);
       const extraContext = "Reviewing roadmap for quality and completeness";
 
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
       if (options.headless === true) {
         const logFile = getPlanningLogPath();
-        invokeProviderHeadless("claude", {
+        invokeProviderHeadless(
+          providerName,
+          {
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "roadmap-review",
+          },
+          model,
+        );
+      } else {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "roadmap-review",
         });
-      } else {
-        invokeClaudeChat(promptPath, "roadmap-review", extraContext);
       }
     }),
 );
@@ -1155,21 +1180,45 @@ gapCommand.addCommand(
   new Command("roadmap")
     .description("Cold analysis of roadmap for gaps and risks")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "roadmap", true);
       const extraContext = "Gap analysis of roadmap for risks and blind spots";
 
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
       if (options.headless === true) {
         const logFile = getPlanningLogPath();
-        invokeProviderHeadless("claude", {
+        invokeProviderHeadless(
+          providerName,
+          {
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "roadmap-gap",
+          },
+          model,
+        );
+      } else {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "roadmap-gap",
         });
-      } else {
-        invokeClaudeChat(promptPath, "roadmap-gap", extraContext);
       }
     }),
 );
@@ -1183,22 +1232,46 @@ gapCommand.addCommand(
       "Milestone path to analyze stories for",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
       const promptPath = getReviewPromptPath(contextRoot, "stories", true);
       const extraContext = `Gap analysis of stories for milestone: ${milestonePath}`;
 
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeProviderHeadless("claude", {
+        invokeProviderHeadless(
+          providerName,
+          {
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "stories-gap",
+          },
+          model,
+        );
+      } else {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "stories-gap",
         });
-      } else {
-        invokeClaudeChat(promptPath, "stories-gap", extraContext);
       }
     }),
 );
@@ -1209,23 +1282,47 @@ gapCommand.addCommand(
     .description("Cold analysis of tasks for gaps and risks")
     .requiredOption("--story <path>", "Story path to analyze tasks for")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const storyPath = requireStory(options.story);
       const promptPath = getReviewPromptPath(contextRoot, "tasks", true);
       const extraContext = `Gap analysis of tasks for story: ${storyPath}`;
 
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeProviderHeadless("claude", {
+        invokeProviderHeadless(
+          providerName,
+          {
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "tasks-gap",
+          },
+          model,
+        );
+      } else {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "tasks-gap",
         });
-      } else {
-        invokeClaudeChat(promptPath, "tasks-gap", extraContext);
       }
     }),
 );
@@ -1236,22 +1333,46 @@ gapCommand.addCommand(
     .description("Cold analysis of subtask queue for gaps and risks")
     .requiredOption("--subtasks <path>", "Subtasks file path to analyze")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "subtasks", true);
       const extraContext = `Gap analysis of subtasks file: ${options.subtasks}`;
 
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
       if (options.headless === true) {
         // Subtasks mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeProviderHeadless("claude", {
+        invokeProviderHeadless(
+          providerName,
+          {
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "subtasks-gap",
+          },
+          model,
+        );
+      } else {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "subtasks-gap",
         });
-      } else {
-        invokeClaudeChat(promptPath, "subtasks-gap", extraContext);
       }
     }),
 );
@@ -1264,23 +1385,47 @@ reviewCommand.addCommand(
     .description("Review tasks for a story")
     .requiredOption("--story <path>", "Story path to review tasks for")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const storyPath = requireStory(options.story);
       const promptPath = getReviewPromptPath(contextRoot, "tasks", false);
       const extraContext = `Reviewing tasks for story: ${storyPath}`;
 
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeProviderHeadless("claude", {
+        invokeProviderHeadless(
+          providerName,
+          {
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "tasks-review",
+          },
+          model,
+        );
+      } else {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "tasks-review",
         });
-      } else {
-        invokeClaudeChat(promptPath, "tasks-review", extraContext);
       }
     }),
 );
@@ -1291,7 +1436,12 @@ reviewCommand.addCommand(
     .description("Review subtask queue before building")
     .requiredOption("--subtasks <path>", "Subtasks file path to review")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use (claude, opencode, cursor, gemini, codex)",
+    )
+    .option("--model <name>", "Model to use with the provider")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
@@ -1299,17 +1449,36 @@ reviewCommand.addCommand(
       );
       const extraContext = `Reviewing subtasks file: ${options.subtasks}`;
 
+      // Initialize providers
+      await initializeProviders();
+
+      // Determine provider and model
+      const config = loadRalphConfig();
+      const providerName = options.provider ?? config.provider ?? "claude";
+      const providerConfig = getProviderConfig(config, providerName);
+      const model = options.model ?? providerConfig?.model;
+
       if (options.headless === true) {
         // Subtasks review doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeProviderHeadless("claude", {
+        invokeProviderHeadless(
+          providerName,
+          {
+            extraContext,
+            logFile,
+            promptPath,
+            sessionName: "subtasks-review",
+          },
+          model,
+        );
+      } else {
+        invokeProviderChat({
           extraContext,
-          logFile,
+          model,
           promptPath,
+          providerName,
           sessionName: "subtasks-review",
         });
-      } else {
-        invokeClaudeChat(promptPath, "subtasks-review", extraContext);
       }
     }),
 );
@@ -1387,7 +1556,7 @@ function resolveCalibrateSubtasksPath(
 /**
  * Helper to run calibrate subcommand and exit on failure
  */
-function runCalibrateSubcommand(
+async function runCalibrateSubcommand(
   subcommand: CalibrateSubcommand,
   options: {
     force?: boolean;
@@ -1396,14 +1565,14 @@ function runCalibrateSubcommand(
     review?: boolean;
     subtasks: string;
   },
-): void {
+): Promise<void> {
   const contextRoot = getContextRoot();
   const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
     options.subtasks,
     contextRoot,
   );
 
-  const didSucceed = runCalibrate(subcommand, {
+  const didSucceed = await runCalibrate(subcommand, {
     contextRoot,
     force: options.force,
     model: options.model,
@@ -1429,8 +1598,8 @@ calibrateCommand.addCommand(
       "AI provider to use (claude, opencode, cursor, gemini, codex)",
     )
     .option("--model <name>", "Model to use with the provider")
-    .action((options) => {
-      runCalibrateSubcommand("intention", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("intention", options);
     }),
 );
 
@@ -1446,8 +1615,8 @@ calibrateCommand.addCommand(
       "AI provider to use (claude, opencode, cursor, gemini, codex)",
     )
     .option("--model <name>", "Model to use with the provider")
-    .action((options) => {
-      runCalibrateSubcommand("technical", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("technical", options);
     }),
 );
 
@@ -1463,8 +1632,8 @@ calibrateCommand.addCommand(
       "AI provider to use (claude, opencode, cursor, gemini, codex)",
     )
     .option("--model <name>", "Model to use with the provider")
-    .action((options) => {
-      runCalibrateSubcommand("improve", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("improve", options);
     }),
 );
 
@@ -1480,8 +1649,8 @@ calibrateCommand.addCommand(
       "AI provider to use (claude, opencode, cursor, gemini, codex)",
     )
     .option("--model <name>", "Model to use with the provider")
-    .action((options) => {
-      runCalibrateSubcommand("all", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("all", options);
     }),
 );
 

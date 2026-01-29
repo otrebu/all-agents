@@ -294,12 +294,15 @@ function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
     return null;
   }
 
-  if (tokenUsage.contextTokens === 0) {
+  // Use contextTokens ?? inputTokens pattern for provider compatibility
+  const contextTokens = tokenUsage.contextTokens ?? tokenUsage.inputTokens ?? 0;
+
+  if (contextTokens === 0) {
     return null;
   }
 
   const ctxLabel = chalk.dim("Ctx:");
-  const ctxValue = chalk.yellow(formatTokenCount(tokenUsage.contextTokens));
+  const ctxValue = chalk.yellow(formatTokenCount(contextTokens));
 
   return `${ctxLabel} ${ctxValue}`;
 }
@@ -539,13 +542,17 @@ function renderBuildSummary(data: BuildSummaryData): string {
 }
 
 /**
- * Render a styled separator for Claude invocation
+ * Render a styled separator for provider invocation
  *
  * @param mode - "headless" or "supervised" execution mode
- * @returns Styled line like "──────────── Invoking Claude (headless) ────────────"
+ * @param providerName - Name of the provider (defaults to "Provider")
+ * @returns Styled line like "──────────── Invoking claude (headless) ────────────"
  */
-function renderInvocationHeader(mode: "headless" | "supervised"): string {
-  const label = ` Invoking Claude (${mode}) `;
+function renderInvocationHeader(
+  mode: "headless" | "supervised",
+  providerName = "Provider",
+): string {
+  const label = ` Invoking ${providerName} (${mode}) `;
   const lineChar = "─";
   const totalWidth = BOX_WIDTH;
   const sideLength = Math.floor((totalWidth - label.length) / 2);
@@ -876,12 +883,13 @@ function renderProgressBar(
 }
 
 /**
- * Render a styled separator for Claude response output
+ * Render a styled separator for provider response output
  *
- * @returns Styled line like "──────────────── Claude Response ────────────────"
+ * @param providerName - Name of the provider (defaults to "Provider")
+ * @returns Styled line like "──────────────── claude Response ────────────────"
  */
-function renderResponseHeader(): string {
-  const label = " Claude Response ";
+function renderResponseHeader(providerName = "Provider"): string {
+  const label = ` ${providerName} Response `;
   const lineChar = "─";
   const totalWidth = BOX_WIDTH;
   const labelLength = label.length;

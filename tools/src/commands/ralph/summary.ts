@@ -149,12 +149,12 @@ function generateBuildSummary(
         failedCount += 1;
       }
       // Aggregate token usage - track max context, sum outputs
+      // Use contextTokens ?? inputTokens pattern for provider compatibility
       if (entry.tokenUsage !== undefined) {
-        maxContextTokens = Math.max(
-          maxContextTokens,
-          entry.tokenUsage.contextTokens,
-        );
-        totalOutputTokens += entry.tokenUsage.outputTokens;
+        const contextTokens =
+          entry.tokenUsage.contextTokens ?? entry.tokenUsage.inputTokens ?? 0;
+        maxContextTokens = Math.max(maxContextTokens, contextTokens);
+        totalOutputTokens += entry.tokenUsage.outputTokens ?? 0;
       }
       // Aggregate line counts
       totalLinesAdded += entry.linesAdded ?? 0;

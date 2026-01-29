@@ -22,8 +22,8 @@ import type {
   Subtask,
 } from "./types";
 
-import { invokeClaudeHaiku } from "./claude";
 import { getIterationLogPath } from "./config";
+import { getProvider, hasProvider } from "./providers";
 import {
   calculateDurationMs,
   countToolCalls,
@@ -111,11 +111,11 @@ interface SummaryResult {
 }
 
 // =============================================================================
-// Lines Changed
+// Summary Generation
 // =============================================================================
 
 /**
- * Generate iteration summary using Claude Haiku
+ * Generate iteration summary using a lightweight model
  *
  * Uses the iteration-summary.md prompt template with placeholder substitution.
  * Falls back to a default summary if Haiku fails or times out.
@@ -192,8 +192,9 @@ function generateSummary(
     .replaceAll("{{ITERATION_NUM}}", String(iterationNumber))
     .replaceAll("{{SESSION_CONTENT}}", sessionContent);
 
-  // Invoke Haiku with 30 second timeout
-  const result = invokeClaudeHaiku({ prompt: promptContent, timeout: 30_000 });
+  // Invoke lightweight model with 30 second timeout
+  // Use Claude's Haiku if available, otherwise skip summary
+  const result = invokeLightweightModel(promptContent, 30_000);
 
   if (result === null || result.trim() === "") {
     return {
@@ -417,6 +418,42 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
 
   return { linesAdded, linesRemoved };
 }
+
+// =============================================================================
+// Lightweight Model Helper
+// =============================================================================
+
+/**
+ * Invoke a lightweight model for summary generation
+ *
+ * Uses Claude's Haiku if available (via provider.invokeLightweight).
+ * Returns null if no lightweight model is available.
+ *
+ * @param prompt - The prompt to send
+ * @param timeout - Timeout in milliseconds
+ * @returns Result string or null if unavailable/failed
+ */
+function invokeLightweightModel(prompt: string, timeout: number): null | string {
+  // Try Claude first (most cost-effective lightweight option)
+  if (hasProvider("claude")) {
+    try {
+      const provider = getProvider("claude");
+      if (provider.invokeLightweight) {
+        return provider.invokeLightweight({ prompt, timeout });
+      }
+    } catch {
+      // Claude not available, fall through
+    }
+  }
+
+  // Could add other providers here in the future (e.g., opencode with lightweight model)
+  // For now, return null if Claude is not available
+  return null;
+}
+
+// =============================================================================
+// Numstat Parsing
+// =============================================================================
 
 /**
  * Parse git diff --numstat output to sum lines added/removed

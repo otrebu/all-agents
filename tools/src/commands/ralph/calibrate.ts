@@ -17,12 +17,12 @@ import path from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
-import { invokeClaudeHeadless } from "./claude";
 import {
   getCompletedSubtasks,
   loadRalphConfig,
   loadSubtasksFile,
 } from "./config";
+import { getProvider, initializeProviders } from "./providers";
 
 // =============================================================================
 // Types
@@ -144,19 +144,19 @@ function loadSubtasksFileOrNull(subtasksPath: string): null | SubtasksFile {
  * @param options - Calibrate options
  * @returns true if all checks succeeded
  */
-function runCalibrate(
+async function runCalibrate(
   subcommand: CalibrateSubcommand,
   options: CalibrateOptions,
-): boolean {
+): Promise<boolean> {
   switch (subcommand) {
     case "all": {
-      const isIntentionOk = runIntentionCheck(options);
+      const isIntentionOk = await runIntentionCheck(options);
       console.log();
 
-      const isTechnicalOk = runTechnicalCheck(options);
+      const isTechnicalOk = await runTechnicalCheck(options);
       console.log();
 
-      const isImproveOk = runImproveCheck(options);
+      const isImproveOk = await runImproveCheck(options);
 
       return isIntentionOk && isTechnicalOk && isImproveOk;
     }
@@ -193,7 +193,7 @@ function runCalibrate(
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-function runImproveCheck(options: CalibrateOptions): boolean {
+async function runImproveCheck(options: CalibrateOptions): Promise<boolean> {
   console.log("=== Running Self-Improvement Analysis ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -283,9 +283,19 @@ Handle improvements based on the mode above.
 
 ${promptContent}`;
 
-  // Run Claude for analysis
-  console.log("Invoking Claude for self-improvement analysis...");
-  const result = invokeClaudeHeadless({ prompt });
+  // Run provider for analysis
+  const providerName = options.provider ?? "claude";
+  console.log(`Invoking ${providerName} for self-improvement analysis...`);
+
+  // Initialize providers
+  await initializeProviders();
+
+  const providerConfig =
+    options.model !== undefined && options.model !== ""
+      ? { model: options.model }
+      : undefined;
+  const provider = getProvider(providerName, providerConfig);
+  const result = provider.invokeHeadless({ model: options.model, prompt });
 
   if (result === null) {
     console.error("Self-improvement analysis failed or was interrupted");
@@ -312,7 +322,7 @@ ${promptContent}`;
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-function runIntentionCheck(options: CalibrateOptions): boolean {
+async function runIntentionCheck(options: CalibrateOptions): Promise<boolean> {
   console.log("=== Running Intention Drift Check ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -373,9 +383,19 @@ If drift is detected, create task files in docs/planning/tasks/ as specified in 
 
 ${promptContent}`;
 
-  // Run Claude for analysis
-  console.log("Invoking Claude for intention drift analysis...");
-  const result = invokeClaudeHeadless({ prompt });
+  // Run provider for analysis
+  const providerName = options.provider ?? "claude";
+  console.log(`Invoking ${providerName} for intention drift analysis...`);
+
+  // Initialize providers
+  await initializeProviders();
+
+  const providerConfig =
+    options.model !== undefined && options.model !== ""
+      ? { model: options.model }
+      : undefined;
+  const provider = getProvider(providerName, providerConfig);
+  const result = provider.invokeHeadless({ model: options.model, prompt });
 
   if (result === null) {
     console.error("Intention drift analysis failed or was interrupted");
@@ -402,7 +422,7 @@ ${promptContent}`;
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-function runTechnicalCheck(options: CalibrateOptions): boolean {
+async function runTechnicalCheck(options: CalibrateOptions): Promise<boolean> {
   console.log("=== Running Technical Drift Check ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -457,9 +477,19 @@ Analyze code quality issues in completed subtasks and output a summary to stdout
 
 ${promptContent}`;
 
-  // Run Claude for analysis
-  console.log("Invoking Claude for technical drift analysis...");
-  const result = invokeClaudeHeadless({ prompt });
+  // Run provider for analysis
+  const providerName = options.provider ?? "claude";
+  console.log(`Invoking ${providerName} for technical drift analysis...`);
+
+  // Initialize providers
+  await initializeProviders();
+
+  const providerConfig =
+    options.model !== undefined && options.model !== ""
+      ? { model: options.model }
+      : undefined;
+  const provider = getProvider(providerName, providerConfig);
+  const result = provider.invokeHeadless({ model: options.model, prompt });
 
   if (result === null) {
     console.error("Technical drift analysis failed or was interrupted");
