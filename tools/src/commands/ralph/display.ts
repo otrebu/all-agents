@@ -11,11 +11,12 @@
  * @see tools/lib/log.ts for logging utilities
  */
 
-import boxen, { type Options as BoxenOptions } from "boxen";
+import boxenLib, { type Options as BoxenOptions } from "boxen";
 import chalk from "chalk";
 import { marked, type MarkedExtension } from "marked";
 // @ts-expect-error - marked-terminal has no types for v7
 import { markedTerminal } from "marked-terminal";
+import stringWidth from "string-width";
 import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
@@ -146,6 +147,23 @@ interface PlanSubtasksSummaryData {
 // =============================================================================
 
 /**
+ * Ensure a number is valid for display (handle NaN, Infinity, undefined)
+ *
+ * @param value - Number to validate
+ * @param defaultValue - Default value if invalid (default 0)
+ * @returns Valid number (never NaN or Infinity)
+ */
+function ensureValidNumber(
+  value: number | undefined,
+  defaultValue = 0,
+): number {
+  if (value === undefined || !Number.isFinite(value)) {
+    return defaultValue;
+  }
+  return value;
+}
+
+/**
  * Format a duration in milliseconds as a human-readable string
  *
  * @param ms - Duration in milliseconds
@@ -157,7 +175,7 @@ interface PlanSubtasksSummaryData {
  * formatDuration(3723000) // "1h 2m 3s"
  */
 function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
+  const seconds = Math.floor(ensureValidNumber(ms) / 1000);
 
   if (seconds < 60) {
     return `${seconds}s`;
@@ -203,12 +221,15 @@ function formatPathLines(
   }
   const lines: Array<string> = [];
   lines.push("─".repeat(separatorWidth));
-  // Don't truncate paths - show full path for clickability/copyability
+  // Show full paths - let them wrap naturally, don't truncate
+  const home = process.env.HOME ?? "";
   if (sessionPath !== undefined) {
-    lines.push(`${chalk.dim("Session")}  ${makeClickablePath(sessionPath)}`);
+    const displayPath = sessionPath.replace(home, "~");
+    lines.push(`${chalk.dim("Session")}  ${displayPath}`);
   }
   if (diaryPath !== undefined) {
-    lines.push(`${chalk.dim("Diary")}    ${makeClickablePath(diaryPath)}`);
+    const displayPath = diaryPath.replace(home, "~");
+    lines.push(`${chalk.dim("Diary")}    ${displayPath}`);
   }
   return lines;
 }
@@ -252,10 +273,6 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
   }
 }
 
-// =============================================================================
-// Markdown Rendering
-// =============================================================================
-
 /**
  * Format a token count as a human-readable string
  *
@@ -268,20 +285,25 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
  * formatTokenCount(1234567) // "1.2M"
  */
 function formatTokenCount(count: number): string {
-  if (count >= 1_000_000) {
-    const millions = count / 1_000_000;
+  const safeCount = ensureValidNumber(count);
+  if (safeCount >= 1_000_000) {
+    const millions = safeCount / 1_000_000;
     return millions >= 10
       ? `${Math.round(millions)}M`
       : `${millions.toFixed(1)}M`;
   }
-  if (count >= 1000) {
-    const thousands = count / 1000;
+  if (safeCount >= 1000) {
+    const thousands = safeCount / 1000;
     return thousands >= 10
       ? `${Math.round(thousands)}K`
       : `${thousands.toFixed(1)}K`;
   }
-  return String(count);
+  return String(safeCount);
 }
+
+// =============================================================================
+// Markdown Rendering
+// =============================================================================
 
 /**
  * Format token usage as a display line
@@ -294,19 +316,16 @@ function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
     return null;
   }
 
-  if (tokenUsage.contextTokens === 0) {
+  const contextTokens = ensureValidNumber(tokenUsage.contextTokens);
+  if (contextTokens === 0) {
     return null;
   }
 
   const ctxLabel = chalk.dim("Ctx:");
-  const ctxValue = chalk.yellow(formatTokenCount(tokenUsage.contextTokens));
+  const ctxValue = chalk.yellow(formatTokenCount(contextTokens));
 
   return `${ctxLabel} ${ctxValue}`;
 }
-
-// =============================================================================
-// Status Box Rendering
-// =============================================================================
 
 /**
  * Apply color to status text based on iteration outcome
@@ -335,7 +354,7 @@ function getColoredStatus(status: IterationStatus): string {
 }
 
 // =============================================================================
-// Iteration Box Types
+// Status Box Rendering
 // =============================================================================
 
 /**
@@ -359,6 +378,10 @@ function getStatusBorderColor(
     }
   }
 }
+
+// =============================================================================
+// Iteration Box Types
+// =============================================================================
 
 /**
  * Create a clickable terminal path that opens in file manager/editor
@@ -408,39 +431,49 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
  * @returns Formatted boxen box string
  */
 function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
-  const { commitRange, remaining, stats, subtasks } = summary;
+  const { commitRange, stats, subtasks } = summary;
   const innerWidth = BOX_WIDTH - 4;
+
+  // Sanitize all numeric values to prevent boxen crashes
+  const completed = ensureValidNumber(stats.completed);
+  const failed = ensureValidNumber(stats.failed);
+  const costUsd = ensureValidNumber(stats.costUsd);
+  const durationMs = ensureValidNumber(stats.durationMs);
+  const filesChanged = ensureValidNumber(stats.filesChanged);
+  const linesAdded = ensureValidNumber(stats.linesAdded);
+  const linesRemoved = ensureValidNumber(stats.linesRemoved);
+  const remaining = ensureValidNumber(summary.remaining);
 
   const lines: Array<string> = [];
 
   // Stats line 1: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12    Lines  +42/-3
   const completedLabel = chalk.dim("Completed");
   const completedValue =
-    stats.completed > 0
-      ? chalk.green.bold(String(stats.completed))
-      : chalk.dim("0");
+    completed > 0 ? chalk.green.bold(String(completed)) : chalk.dim("0");
   const failedLabel = chalk.dim("Failed");
   const failedValue =
-    stats.failed > 0 ? chalk.red.bold(String(stats.failed)) : chalk.dim("0");
+    failed > 0 ? chalk.red.bold(String(failed)) : chalk.dim("0");
   const costLabel = chalk.dim("Cost");
-  const costValue = chalk.magenta(`$${stats.costUsd.toFixed(2)}`);
+  const costValue = chalk.magenta(`$${costUsd.toFixed(2)}`);
   const durationLabel = chalk.dim("Duration");
-  const durationValue = chalk.cyan(formatDuration(stats.durationMs));
+  const durationValue = chalk.cyan(formatDuration(durationMs));
   const filesLabel = chalk.dim("Files");
-  const filesValue = chalk.blue(String(stats.filesChanged));
+  const filesValue = chalk.blue(String(filesChanged));
   const linesLabel = chalk.dim("Lines");
-  const linesValue = `${chalk.green(`+${stats.linesAdded}`)}/${chalk.red(`-${stats.linesRemoved}`)}`;
+  const linesValue = `${chalk.green(`+${linesAdded}`)}/${chalk.red(`-${linesRemoved}`)}`;
 
   const statsLine = `${completedLabel} ${completedValue}   ${failedLabel} ${failedValue}   ${costLabel} ${costValue}   ${durationLabel} ${durationValue}   ${filesLabel} ${filesValue}   ${linesLabel} ${linesValue}`;
   lines.push(statsLine);
 
   // Stats line 2: Tokens - MaxCtx: 120K  Out: 7K
-  const totalTokens = stats.maxContextTokens + stats.outputTokens;
+  const maxContextTokens = ensureValidNumber(stats.maxContextTokens);
+  const outputTokens = ensureValidNumber(stats.outputTokens);
+  const totalTokens = maxContextTokens + outputTokens;
   if (totalTokens > 0) {
     const ctxLabel = chalk.dim("MaxCtx:");
-    const ctxValue = chalk.yellow(formatTokenCount(stats.maxContextTokens));
+    const ctxValue = chalk.yellow(formatTokenCount(maxContextTokens));
     const outLabel = chalk.dim("Out:");
-    const outValue = chalk.yellow(formatTokenCount(stats.outputTokens));
+    const outValue = chalk.yellow(formatTokenCount(outputTokens));
     const tokensLine = `${chalk.dim("Tokens")}  ${ctxLabel} ${ctxValue}  ${outLabel} ${outValue}`;
     lines.push(tokensLine);
   }
@@ -482,7 +515,7 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
       : chalk.green("All subtasks complete!");
   lines.push(remainingText);
 
-  return boxen(lines.join("\n"), {
+  return renderSafeBox(lines.join("\n"), {
     borderColor: stats.failed > 0 ? "yellow" : "green",
     borderStyle: "double",
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
@@ -528,7 +561,7 @@ function renderBuildSummary(data: BuildSummaryData): string {
 
   const lines = [row1, row2];
 
-  return boxen(lines.join("\n"), {
+  return renderSafeBox(lines.join("\n"), {
     borderColor: "white",
     borderStyle: "double",
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
@@ -559,25 +592,27 @@ function renderInvocationHeader(mode: "headless" | "supervised"): string {
  */
 function renderIterationEnd(data: IterationDisplayData): string {
   const {
-    attempt,
-    costUsd = 0,
     diaryPath,
-    durationMs = 0,
-    filesChanged = 0,
-    iteration,
     keyFindings = [],
-    linesAdded = 0,
-    linesRemoved = 0,
-    maxAttempts,
-    remaining,
     sessionPath,
     status = "retrying",
     subtaskId,
     subtaskTitle,
     summary = "",
     tokenUsage,
-    toolCalls = 0,
   } = data;
+
+  // Sanitize ALL numeric values to prevent boxen crashes
+  const attempt = ensureValidNumber(data.attempt, 1);
+  const iteration = ensureValidNumber(data.iteration, 1);
+  const maxAttempts = ensureValidNumber(data.maxAttempts, 1);
+  const costUsd = ensureValidNumber(data.costUsd);
+  const durationMs = ensureValidNumber(data.durationMs);
+  const filesChanged = ensureValidNumber(data.filesChanged);
+  const linesAdded = ensureValidNumber(data.linesAdded);
+  const linesRemoved = ensureValidNumber(data.linesRemoved);
+  const remaining = ensureValidNumber(data.remaining);
+  const toolCalls = ensureValidNumber(data.toolCalls);
 
   const attemptText =
     maxAttempts > 0
@@ -648,7 +683,7 @@ function renderIterationEnd(data: IterationDisplayData): string {
   // Add clickable paths section
   lines.push(...formatPathLines(sessionPath, diaryPath, innerWidth));
 
-  return boxen(lines.join("\n"), {
+  return renderSafeBox(lines.join("\n"), {
     borderColor: getStatusBorderColor(status),
     borderStyle: "round",
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
@@ -658,22 +693,17 @@ function renderIterationEnd(data: IterationDisplayData): string {
   });
 }
 
-// =============================================================================
-// Text Formatting
-// =============================================================================
-
 /**
  * Render iteration START box (cyan border, shows iteration/subtask/attempt)
  */
 function renderIterationStart(data: IterationDisplayData): string {
-  const {
-    attempt,
-    iteration,
-    maxAttempts,
-    remaining,
-    subtaskId,
-    subtaskTitle,
-  } = data;
+  const { subtaskId, subtaskTitle } = data;
+
+  // Sanitize numeric values to prevent boxen crashes
+  const attempt = ensureValidNumber(data.attempt, 1);
+  const iteration = ensureValidNumber(data.iteration, 1);
+  const maxAttempts = ensureValidNumber(data.maxAttempts, 1);
+  const remaining = ensureValidNumber(data.remaining);
 
   const attemptText =
     maxAttempts > 0
@@ -693,7 +723,7 @@ function renderIterationStart(data: IterationDisplayData): string {
     `${attemptText}${" ".repeat(Math.max(1, padding))}${remainingText}`,
   ];
 
-  return boxen(lines.join("\n"), {
+  return renderSafeBox(lines.join("\n"), {
     borderColor: "cyan",
     borderStyle: "round",
     dimBorder: true,
@@ -705,7 +735,7 @@ function renderIterationStart(data: IterationDisplayData): string {
 }
 
 // =============================================================================
-// Clickable Paths
+// Text Formatting
 // =============================================================================
 
 /**
@@ -721,7 +751,7 @@ function renderMarkdown(markdown: string): string {
 }
 
 // =============================================================================
-// Plan Subtasks Summary
+// Clickable Paths
 // =============================================================================
 
 /**
@@ -832,7 +862,7 @@ function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
   const title = hasSubtasks ? "Subtasks Generated" : "Subtasks Generation";
   const borderColor = error === undefined ? "green" : "yellow";
 
-  return boxen(lines.join("\n"), {
+  return renderSafeBox(lines.join("\n"), {
     borderColor,
     borderStyle: "double",
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
@@ -843,10 +873,8 @@ function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
 }
 
 // =============================================================================
-// Iteration Box Rendering
+// Plan Subtasks Summary
 // =============================================================================
-
-// BOX_WIDTH defined at top of file for marked config
 
 /**
  * Render a progress bar showing completion status
@@ -875,6 +903,12 @@ function renderProgressBar(
   return `[${filled}${empty}] ${completed}/${total} (${percentage}%)`;
 }
 
+// =============================================================================
+// Iteration Box Rendering
+// =============================================================================
+
+// BOX_WIDTH defined at top of file for marked config
+
 /**
  * Render a styled separator for Claude response output
  *
@@ -887,6 +921,28 @@ function renderResponseHeader(): string {
   const labelLength = label.length;
   const sideLength = Math.floor((totalWidth - labelLength) / 2);
   return `${lineChar.repeat(sideLength)}${chalk.cyan(label)}${lineChar.repeat(sideLength)}`;
+}
+
+/**
+ * Safe boxen wrapper that catches width-related crashes
+ *
+ * Boxen can crash with RangeError when content width exceeds box width.
+ * This wrapper catches such errors and provides a plain-text fallback.
+ *
+ * @param content - Content to display in box
+ * @param options - Boxen options
+ * @returns Boxed content or plain fallback on error
+ */
+function renderSafeBox(content: string, options: BoxenOptions): string {
+  try {
+    return boxenLib(content, options);
+  } catch {
+    // Fallback: return content with simple border
+    const title = options.title ?? "";
+    const width = Math.min(68, Math.max(title.length + 4, 40));
+    const border = "─".repeat(width);
+    return `${border}\n${title}\n${border}\n${content}\n${border}`;
+  }
 }
 
 /**
@@ -924,11 +980,29 @@ function renderStatusBox(title: string, lines: Array<string>): string {
  * @param maxLength - Maximum length (default 50)
  * @returns Truncated text with "..." if it was too long
  */
-function truncate(text: string, maxLength = 50): string {
-  if (text.length <= maxLength) {
+/**
+ * Truncate text based on display width (handles emojis + ANSI codes)
+ *
+ * Uses string-width to properly measure visual width, not string length.
+ * This prevents boxen crashes when emojis/ANSI make str.length != display width.
+ */
+function truncate(text: string, maxWidth = 50): string {
+  const width = stringWidth(text);
+  if (width <= maxWidth) {
     return text;
   }
-  return `${text.slice(0, maxLength - 3)}...`;
+  // Truncate character by character until we fit
+  let result = "";
+  let currentWidth = 0;
+  for (const char of text) {
+    const charWidth = stringWidth(char);
+    if (currentWidth + charWidth + 3 > maxWidth) {
+      return `${result}...`;
+    }
+    result += char;
+    currentWidth += charWidth;
+  }
+  return `${result}...`;
 }
 
 /**

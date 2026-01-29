@@ -743,10 +743,17 @@ async function runBuild(
       });
 
       if (headlessResult === null) {
-        process.exit(1);
+        // Claude invocation failed (API error, rate limit, network issue)
+        // Treat as failed attempt - will retry on next iteration
+        console.log(
+          chalk.yellow(
+            "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
+          ),
+        );
+        didComplete = false;
+      } else {
+        ({ didComplete } = headlessResult);
       }
-
-      ({ didComplete } = headlessResult);
     } else {
       const supervisedResult = processSupervisedIteration({
         contextRoot,
@@ -759,10 +766,17 @@ async function runBuild(
       });
 
       if (supervisedResult === null) {
-        process.exit(1);
+        // Claude invocation failed (API error, rate limit, network issue)
+        // Treat as failed attempt - will retry on next iteration
+        console.log(
+          chalk.yellow(
+            "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
+          ),
+        );
+        didComplete = false;
+      } else {
+        ({ didComplete } = supervisedResult);
       }
-
-      ({ didComplete } = supervisedResult);
 
       if (didComplete) {
         console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
