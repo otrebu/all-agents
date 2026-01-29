@@ -146,6 +146,24 @@ interface PlanSubtasksSummaryData {
 // =============================================================================
 
 /**
+ * Ensure a number is valid for display (handle NaN, Infinity, undefined)
+ *
+ * Used to prevent boxen crashes when display data contains invalid numbers.
+ * This is especially important for providers like codex that may return
+ * incomplete data or undefined fields.
+ *
+ * @param value - Number to validate
+ * @param defaultValue - Default value to use if invalid (default 0)
+ * @returns Valid number (never NaN or Infinity)
+ */
+function ensureValidNumber(value: number | undefined, defaultValue = 0): number {
+  if (value === undefined || !Number.isFinite(value)) {
+    return defaultValue;
+  }
+  return value;
+}
+
+/**
  * Format a duration in milliseconds as a human-readable string
  *
  * @param ms - Duration in milliseconds
@@ -157,7 +175,8 @@ interface PlanSubtasksSummaryData {
  * formatDuration(3723000) // "1h 2m 3s"
  */
 function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
+  const safeMs = ensureValidNumber(ms);
+  const seconds = Math.floor(safeMs / 1000);
 
   if (seconds < 60) {
     return `${seconds}s`;
@@ -268,19 +287,20 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
  * formatTokenCount(1234567) // "1.2M"
  */
 function formatTokenCount(count: number): string {
-  if (count >= 1_000_000) {
-    const millions = count / 1_000_000;
+  const safeCount = ensureValidNumber(count);
+  if (safeCount >= 1_000_000) {
+    const millions = safeCount / 1_000_000;
     return millions >= 10
       ? `${Math.round(millions)}M`
       : `${millions.toFixed(1)}M`;
   }
-  if (count >= 1000) {
-    const thousands = count / 1000;
+  if (safeCount >= 1000) {
+    const thousands = safeCount / 1000;
     return thousands >= 10
       ? `${Math.round(thousands)}K`
       : `${thousands.toFixed(1)}K`;
   }
-  return String(count);
+  return String(safeCount);
 }
 
 /**
@@ -295,7 +315,9 @@ function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
   }
 
   // Use contextTokens ?? inputTokens pattern for provider compatibility
-  const contextTokens = tokenUsage.contextTokens ?? tokenUsage.inputTokens ?? 0;
+  const contextTokens = ensureValidNumber(
+    tokenUsage.contextTokens ?? tokenUsage.inputTokens,
+  );
 
   if (contextTokens === 0) {
     return null;
@@ -411,39 +433,49 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
  * @returns Formatted boxen box string
  */
 function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
-  const { commitRange, remaining, stats, subtasks } = summary;
+  const { commitRange, stats, subtasks } = summary;
   const innerWidth = BOX_WIDTH - 4;
+
+  // Sanitize all numeric values from stats to prevent boxen crashes
+  const completed = ensureValidNumber(stats.completed);
+  const failed = ensureValidNumber(stats.failed);
+  const costUsd = ensureValidNumber(stats.costUsd);
+  const durationMs = ensureValidNumber(stats.durationMs);
+  const filesChanged = ensureValidNumber(stats.filesChanged);
+  const linesAdded = ensureValidNumber(stats.linesAdded);
+  const linesRemoved = ensureValidNumber(stats.linesRemoved);
+  const maxContextTokens = ensureValidNumber(stats.maxContextTokens);
+  const outputTokens = ensureValidNumber(stats.outputTokens);
+  const remaining = ensureValidNumber(summary.remaining);
 
   const lines: Array<string> = [];
 
   // Stats line 1: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12    Lines  +42/-3
   const completedLabel = chalk.dim("Completed");
   const completedValue =
-    stats.completed > 0
-      ? chalk.green.bold(String(stats.completed))
-      : chalk.dim("0");
+    completed > 0 ? chalk.green.bold(String(completed)) : chalk.dim("0");
   const failedLabel = chalk.dim("Failed");
   const failedValue =
-    stats.failed > 0 ? chalk.red.bold(String(stats.failed)) : chalk.dim("0");
+    failed > 0 ? chalk.red.bold(String(failed)) : chalk.dim("0");
   const costLabel = chalk.dim("Cost");
-  const costValue = chalk.magenta(`$${stats.costUsd.toFixed(2)}`);
+  const costValue = chalk.magenta(`$${costUsd.toFixed(2)}`);
   const durationLabel = chalk.dim("Duration");
-  const durationValue = chalk.cyan(formatDuration(stats.durationMs));
+  const durationValue = chalk.cyan(formatDuration(durationMs));
   const filesLabel = chalk.dim("Files");
-  const filesValue = chalk.blue(String(stats.filesChanged));
+  const filesValue = chalk.blue(String(filesChanged));
   const linesLabel = chalk.dim("Lines");
-  const linesValue = `${chalk.green(`+${stats.linesAdded}`)}/${chalk.red(`-${stats.linesRemoved}`)}`;
+  const linesValue = `${chalk.green(`+${linesAdded}`)}/${chalk.red(`-${linesRemoved}`)}`;
 
   const statsLine = `${completedLabel} ${completedValue}   ${failedLabel} ${failedValue}   ${costLabel} ${costValue}   ${durationLabel} ${durationValue}   ${filesLabel} ${filesValue}   ${linesLabel} ${linesValue}`;
   lines.push(statsLine);
 
   // Stats line 2: Tokens - MaxCtx: 120K  Out: 7K
-  const totalTokens = stats.maxContextTokens + stats.outputTokens;
+  const totalTokens = maxContextTokens + outputTokens;
   if (totalTokens > 0) {
     const ctxLabel = chalk.dim("MaxCtx:");
-    const ctxValue = chalk.yellow(formatTokenCount(stats.maxContextTokens));
+    const ctxValue = chalk.yellow(formatTokenCount(maxContextTokens));
     const outLabel = chalk.dim("Out:");
-    const outValue = chalk.yellow(formatTokenCount(stats.outputTokens));
+    const outValue = chalk.yellow(formatTokenCount(outputTokens));
     const tokensLine = `${chalk.dim("Tokens")}  ${ctxLabel} ${ctxValue}  ${outLabel} ${outValue}`;
     lines.push(tokensLine);
   }
@@ -486,7 +518,7 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
   lines.push(remainingText);
 
   return boxen(lines.join("\n"), {
-    borderColor: stats.failed > 0 ? "yellow" : "green",
+    borderColor: failed > 0 ? "yellow" : "green",
     borderStyle: "double",
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
     title: "Build Summary",
@@ -499,14 +531,13 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
  * Render build summary box (at end of all iterations)
  */
 function renderBuildSummary(data: BuildSummaryData): string {
-  const {
-    completed,
-    failed,
-    totalCostUsd,
-    totalDurationMs,
-    totalFilesChanged,
-    totalIterations,
-  } = data;
+  // Sanitize all numeric values
+  const completed = ensureValidNumber(data.completed);
+  const failed = ensureValidNumber(data.failed);
+  const totalCostUsd = ensureValidNumber(data.totalCostUsd);
+  const totalDurationMs = ensureValidNumber(data.totalDurationMs);
+  const totalFilesChanged = ensureValidNumber(data.totalFilesChanged);
+  const totalIterations = ensureValidNumber(data.totalIterations);
 
   // Format labels
   const iterationsLabel = chalk.dim("Iterations");
@@ -566,25 +597,27 @@ function renderInvocationHeader(
  */
 function renderIterationEnd(data: IterationDisplayData): string {
   const {
-    attempt,
-    costUsd = 0,
     diaryPath,
-    durationMs = 0,
-    filesChanged = 0,
-    iteration,
     keyFindings = [],
-    linesAdded = 0,
-    linesRemoved = 0,
-    maxAttempts,
-    remaining,
     sessionPath,
     status = "retrying",
-    subtaskId,
-    subtaskTitle,
+    subtaskId = "???",
+    subtaskTitle = "Unknown",
     summary = "",
     tokenUsage,
-    toolCalls = 0,
   } = data;
+
+  // Sanitize all numeric values to prevent NaN/Infinity issues
+  const attempt = ensureValidNumber(data.attempt, 1);
+  const costUsd = ensureValidNumber(data.costUsd);
+  const durationMs = ensureValidNumber(data.durationMs);
+  const filesChanged = ensureValidNumber(data.filesChanged);
+  const iteration = ensureValidNumber(data.iteration, 1);
+  const linesAdded = ensureValidNumber(data.linesAdded);
+  const linesRemoved = ensureValidNumber(data.linesRemoved);
+  const maxAttempts = ensureValidNumber(data.maxAttempts);
+  const remaining = ensureValidNumber(data.remaining);
+  const toolCalls = ensureValidNumber(data.toolCalls);
 
   const attemptText =
     maxAttempts > 0
@@ -595,7 +628,7 @@ function renderIterationEnd(data: IterationDisplayData): string {
   const innerWidth = BOX_WIDTH - 4;
   const leftPart = attemptText;
   const rightPart = `${remaining} remaining`;
-  const padding = innerWidth - leftPart.length - rightPart.length;
+  const padding = Math.max(1, innerWidth - leftPart.length - rightPart.length);
 
   // Status icon and colored status
   const statusIcons: Record<IterationStatus, string> = {
@@ -606,7 +639,7 @@ function renderIterationEnd(data: IterationDisplayData): string {
   const statusIcon = statusIcons[status];
   const statusColored = getColoredStatus(status);
 
-  // Format metrics
+  // Format metrics - formatDuration already sanitizes durationMs
   const durationText = chalk.cyan(formatDuration(durationMs));
   const costText = chalk.magenta(`$${costUsd.toFixed(2)}`);
   const callsText = chalk.blue(`${toolCalls} calls`);
@@ -615,10 +648,11 @@ function renderIterationEnd(data: IterationDisplayData): string {
 
   const metricsLine = `${statusIcon} ${statusColored}    ${durationText}    ${costText}    ${callsText}    ${filesText}    ${linesText}`;
 
-  // Build content lines
+  // Build content lines - subtaskId already has "???" default from destructuring
+  const titleMaxLength = Math.max(10, innerWidth - subtaskId.length - 2);
   const lines = [
-    `${chalk.cyan.bold(subtaskId)}  ${truncate(subtaskTitle, innerWidth - subtaskId.length - 2)}`,
-    `${attemptText}${" ".repeat(Math.max(1, padding))}${remainingText}`,
+    `${chalk.cyan.bold(subtaskId)}  ${truncate(subtaskTitle, titleMaxLength)}`,
+    `${attemptText}${" ".repeat(padding)}${remainingText}`,
     "─".repeat(innerWidth),
     metricsLine,
   ];
@@ -673,14 +707,13 @@ function renderIterationEnd(data: IterationDisplayData): string {
  * Render iteration START box (cyan border, shows iteration/subtask/attempt)
  */
 function renderIterationStart(data: IterationDisplayData): string {
-  const {
-    attempt,
-    iteration,
-    maxAttempts,
-    remaining,
-    subtaskId,
-    subtaskTitle,
-  } = data;
+  const { subtaskId = "???", subtaskTitle = "Unknown" } = data;
+
+  // Sanitize all numeric values to prevent NaN/Infinity issues
+  const attempt = ensureValidNumber(data.attempt, 1);
+  const iteration = ensureValidNumber(data.iteration, 1);
+  const maxAttempts = ensureValidNumber(data.maxAttempts);
+  const remaining = ensureValidNumber(data.remaining);
 
   const attemptText =
     maxAttempts > 0
@@ -693,11 +726,13 @@ function renderIterationStart(data: IterationDisplayData): string {
   const innerWidth = BOX_WIDTH - 4;
   const leftPart = attemptText;
   const rightPart = `${remaining} remaining`;
-  const padding = innerWidth - leftPart.length - rightPart.length;
+  const padding = Math.max(1, innerWidth - leftPart.length - rightPart.length);
 
+  // subtaskId already has "???" default from destructuring
+  const titleMaxLength = Math.max(10, innerWidth - subtaskId.length - 2);
   const lines = [
-    `${chalk.cyan.bold(subtaskId)}  ${truncate(subtaskTitle, innerWidth - subtaskId.length - 2)}`,
-    `${attemptText}${" ".repeat(Math.max(1, padding))}${remainingText}`,
+    `${chalk.cyan.bold(subtaskId)}  ${truncate(subtaskTitle, titleMaxLength)}`,
+    `${attemptText}${" ".repeat(padding)}${remainingText}`,
   ];
 
   return boxen(lines.join("\n"), {
@@ -742,8 +777,6 @@ function renderMarkdown(markdown: string): string {
  */
 function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
   const {
-    costUsd,
-    durationMs,
     error,
     milestone,
     outputPath,
@@ -752,6 +785,10 @@ function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
     storyRef,
     subtasks,
   } = data;
+
+  // Sanitize numeric values
+  const costUsd = ensureValidNumber(data.costUsd);
+  const durationMs = ensureValidNumber(data.durationMs);
 
   const innerWidth = BOX_WIDTH - 4;
   const lines: Array<string> = [];
