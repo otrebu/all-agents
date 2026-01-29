@@ -178,6 +178,7 @@ function handleCompletion(): void {
             "extract-conversations",
             "gh-search",
             "gemini-research",
+            "notify",
             "parallel-search",
             "setup",
             "uninstall",
@@ -185,6 +186,7 @@ function handleCompletion(): void {
             "task",
             "story",
             "ralph",
+            "review",
             "completion",
           ].join("\n"),
         );

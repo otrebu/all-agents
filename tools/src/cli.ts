@@ -11,12 +11,13 @@ import {
   handleCompletion,
   isCompletionMode,
 } from "./commands/completion/index";
-import downloadCommand from "./commands/download";
 import extractConversationsCommand from "./commands/extract-conversations";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
+import notifyCommand from "./commands/notify/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
 import ralphCommand from "./commands/ralph/index";
+import reviewCommand from "./commands/review/index";
 import setupCommand from "./commands/setup/index";
 import createStoryCommand from "./commands/story";
 import runSyncContextCli from "./commands/sync-context";
@@ -33,21 +34,6 @@ const program = new Command()
   .name("aaa")
   .description("All-Agents CLI Toolkit")
   .version(packageJson.version);
-
-program.addCommand(
-  new Command("download")
-    .description("Download URLs, extract text, save as markdown")
-    .argument("<urls...>", "URLs to download")
-    .option(
-      "-o, --output <name>",
-      "Output filename (auto-generated if omitted)",
-    )
-    .option(
-      "-d, --dir <path>",
-      "Output directory (default: docs/research/downloads)",
-    )
-    .action(downloadCommand),
-);
 
 program.addCommand(
   new Command("extract-conversations")
@@ -113,6 +99,7 @@ program.addCommand(
       (v) => Number.parseInt(v, 10),
       5000,
     )
+    .option("-v, --verbose", "Show full report content instead of summary")
     .argument("[extraQueries...]", "Additional queries (positional)")
     .action(async (extraQueries, options) =>
       parallelSearchCommand({
@@ -121,6 +108,7 @@ program.addCommand(
         objective: options.objective,
         processor: options.processor,
         queries: [...(options.queries ?? []), ...extraQueries],
+        verbose: options.verbose,
       }),
     ),
 );
@@ -198,6 +186,12 @@ program.addCommand(storyCommand);
 
 // Ralph - autonomous development framework
 program.addCommand(ralphCommand);
+
+// Review - parallel multi-agent code review
+program.addCommand(reviewCommand);
+
+// Notify - push notifications via ntfy.sh
+program.addCommand(notifyCommand);
 
 // Shell completion
 program.addCommand(completionCommand);

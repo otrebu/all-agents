@@ -4,6 +4,8 @@ export default [
   ...ubaEslintConfig,
   { ignores: ["node_modules/**", "dist/**"] },
   {
+    // Define Bun as a global for Bun runtime environment
+    languageOptions: { globals: { Bun: "readonly" } },
     rules: {
       // Disable no-console for CLI projects (as per TOOLING.md)
       "no-console": "off",
@@ -15,6 +17,11 @@ export default [
       // Tell eslint-plugin-import that bun:test and ajv subpaths are valid modules
       "import/core-modules": ["bun:test", "ajv/dist/2020"],
     },
+  },
+  {
+    // marked-terminal's ESM build can't be parsed by eslint-plugin-import
+    files: ["src/commands/ralph/display.ts"],
+    settings: { "import/core-modules": ["marked-terminal"] },
   },
   {
     // ajv/dist/2020 types aren't resolvable by eslint-typescript parser

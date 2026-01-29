@@ -10,7 +10,7 @@ These inputs must be provided for the summary to be generated:
 
 - **Subtask ID:** `{{SUBTASK_ID}}` - The ID of the subtask that was processed (e.g., "task-015-04")
 - **Status:** `{{STATUS}}` - The iteration status: "success", "failure", or "partial"
-- **Session JSONL Path:** `{{SESSION_JSONL_PATH}}` - Path to the Claude session JSONL file containing the iteration transcript
+- **Session Content:** The session transcript is provided below in the "Session Content" section
 
 ### Optional Context Fields
 
@@ -23,11 +23,13 @@ These inputs provide additional context when available:
 
 ## Task
 
-1. If `{{SESSION_JSONL_PATH}}` is provided and exists, read the session JSONL to understand what happened during the iteration
+1. Review the session content provided in the "Session Content" section below
 2. Extract the key activities and outcomes from the session
 3. Generate a brief summary suitable for a push notification
 
 ## Output Format
+
+**IMPORTANT:** Output ONLY valid JSON. No explanatory text, no markdown code fences around the JSON, just the raw JSON object.
 
 Output a JSON object with these fields:
 
@@ -87,10 +89,16 @@ Partial:
 
 ## Instructions
 
-1. Parse the session JSONL if available to understand iteration activities
+1. Parse the session content provided below
 2. Determine the overall status from the session outcome
 3. Identify 2-4 key findings from the work done
 4. Write a summary that captures the essential outcome in 1-3 sentences
 5. Output the JSON structure above
 
 Keep the summary actionable and scannable - this will appear in mobile notifications.
+
+## Session Content
+
+```jsonl
+{{SESSION_CONTENT}}
+```

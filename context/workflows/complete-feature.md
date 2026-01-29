@@ -29,29 +29,7 @@ FEATURE_BRANCH=$(git branch --show-current)
 
 ### 4. Interrogation Checkpoint (Optional)
 
-Before squashing and merging, consider running the interrogation workflow to surface assumptions and confidence levels:
-
-```bash
-/dev:interrogate changes
-```
-
-**When this is most valuable:**
-- Substantial changes (multiple files, new features, complex logic)
-- AI-generated or pair-programmed code
-- Changes you want documented understanding of before merge
-- When you're uncertain about trade-offs or alternatives
-
-**Quick option for small changes:**
-```bash
-/dev:interrogate changes --quick
-```
-
-**Extra validation for AI code:**
-```bash
-/dev:interrogate changes --skeptical
-```
-
-This step is optional but recommended for non-trivial changes. It helps surface the "why" behind decisions before the commit history is squashed.
+For non-trivial changes, consider `/dev:interrogate changes` before squashing to surface assumptions and confidence levels.
 
 ### 5. Squash Commits
 
@@ -98,29 +76,12 @@ If FF fails (main moved ahead), rebase feature branch on main first.
 git push origin main  # or master
 ```
 
-### 10. Delete Feature Branch?
-
-Ask user:
-
-**Local:**
-
-```bash
-git branch -d $FEATURE_BRANCH
-```
-
-**Remote:**
-
-```bash
-git push origin --delete $FEATURE_BRANCH
-```
-
-### 11. Confirm Completion
+### 10. Confirm Completion
 
 Output:
 
 - Merged branch: `<feature-branch-name>`
 - Push status
-- Deletion status (if applicable)
 
 ## Constraints
 
@@ -129,7 +90,6 @@ Output:
 - Pull main before merge
 - Verify clean working dir before branch switch
 - Never force push to main
-- Always ask before deleting branches
 - **DO NOT add AI signatures/co-author footers to commits**
 
 ## Example
@@ -141,5 +101,4 @@ User: "Finish user-auth feature"
 3. `git reset --soft main && git commit -m "feat(auth): add user auth" -m "- login/logout\n- session handling"`
 4. `git checkout main && git pull origin main`
 5. `git merge --ff-only feature/user-auth && git push origin main`
-6. Ask: Delete branch? → User confirms
-7. Output: "Feature 'user-auth' merged to main, pushed, branch deleted"
+6. Output: "Feature 'user-auth' merged to main, pushed"

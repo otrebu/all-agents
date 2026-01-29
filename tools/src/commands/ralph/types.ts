@@ -27,6 +27,10 @@ interface BuildOptions {
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
+  /** Suppress terminal summary output */
+  quiet: boolean;
+  /** Skip Haiku summary generation in headless mode to reduce latency and cost */
+  skipSummary: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
   /** Run pre-build validation before starting */
@@ -52,12 +56,18 @@ interface HookConfig {
  * Hook configuration container
  */
 interface HooksConfig {
+  /** Actions to execute when a critical severity finding is detected during code review */
+  onCriticalFinding?: Array<string>;
   /** Actions to execute after each build iteration completes */
   onIterationComplete?: Array<string>;
   /** Actions to execute when a subtask exceeds the retry limit */
   onMaxIterationsExceeded?: Array<string>;
   /** Actions to execute when all subtasks in a milestone are done */
   onMilestoneComplete?: Array<string>;
+  /** Actions to execute when code review completes */
+  onReviewComplete?: Array<string>;
+  /** Actions to execute when a subtask is completed */
+  onSubtaskComplete?: Array<string>;
   /** Actions to execute when pre-build validation fails */
   onValidationFail?: Array<string>;
 }
@@ -79,8 +89,14 @@ interface IterationDiaryEntry {
   iterationNum?: number;
   /** Key findings or insights from this iteration */
   keyFindings?: Array<string>;
+  /** Number of lines added during this iteration */
+  linesAdded?: number;
+  /** Number of lines removed during this iteration */
+  linesRemoved?: number;
   /** Name of the milestone this subtask belongs to */
   milestone?: string;
+  /** Execution mode: 'headless' or 'supervised' */
+  mode?: "headless" | "supervised";
   /** Claude Code session ID */
   sessionId: string;
   /** Outcome of this iteration */
@@ -93,8 +109,22 @@ interface IterationDiaryEntry {
   taskRef?: string;
   /** ISO 8601 timestamp when this iteration completed */
   timestamp: string;
+  /** Timing breakdown for this iteration */
+  timing?: IterationTiming;
+  /** Token usage for this iteration */
+  tokenUsage?: TokenUsage;
   /** Number of tool calls made during this iteration */
   toolCalls?: number;
+  /**
+   * Entry type discriminator for daily log files.
+   * Allows iteration, planning, and subtask-review entries to coexist in the same
+   * milestone-scoped daily JSONL file while being distinguishable.
+   *
+   * - 'iteration': Build iteration diary entry (Ralph build)
+   * - 'planning': Planning session log (Ralph plan)
+   * - 'subtask-review': Subtask sizing review findings (subtask-reviewer agent)
+   */
+  type?: "iteration" | "planning" | "subtask-review";
 }
 
 /**
@@ -106,13 +136,18 @@ interface IterationDiaryEntry {
 type IterationStatus = "completed" | "failed" | "retrying";
 
 /**
- * ntfy push notification configuration
+ * Timing breakdown for an iteration
+ * Tracks where time is spent during a Ralph build iteration
  */
-interface NtfyConfig {
-  /** ntfy server URL */
-  server: string;
-  /** ntfy topic to publish to */
-  topic: string;
+interface IterationTiming {
+  /** Time spent in Claude Code invocation (ms) */
+  claudeMs: number;
+  /** Time spent in post-iteration hook (ms) */
+  hookMs: number;
+  /** Time spent collecting metrics (ms) */
+  metricsMs: number;
+  /** Time spent generating Haiku summary (ms) */
+  summaryMs: number;
 }
 
 /**
@@ -134,13 +169,14 @@ interface PostIterationHookConfig extends HookConfig {
 }
 
 /**
- * Root structure of ralph.config.json
+ * Root structure of ralph config section in aaa.config.json
+ *
+ * Note: Notification config (formerly ntfy) is now in the top-level
+ * notify section of aaa.config.json, not here.
  */
 interface RalphConfig {
   /** Hook configuration */
   hooks?: HooksConfig;
-  /** ntfy push notification configuration */
-  ntfy?: NtfyConfig;
   /** Self-improvement configuration */
   selfImprovement?: SelfImprovementConfig;
 }
@@ -152,10 +188,6 @@ interface SelfImprovementConfig {
   /** Mode for handling self-improvement suggestions */
   mode: "autofix" | "off" | "suggest";
 }
-
-// =============================================================================
-// Subtask Types (matches subtasks.schema.json)
-// =============================================================================
 
 /**
  * Individual subtask in the work queue
@@ -188,6 +220,10 @@ interface Subtask {
   title: string;
 }
 
+// =============================================================================
+// Subtask Types (matches subtasks.schema.json)
+// =============================================================================
+
 /**
  * Subtask metadata for queue-level information
  */
@@ -208,6 +244,17 @@ interface SubtasksFile {
   metadata?: SubtaskMetadata;
   /** The queue of subtasks for autonomous agents to process */
   subtasks: Array<Subtask>;
+}
+
+/**
+ * Token usage for an iteration
+ * Tracks token consumption from Claude Code session
+ */
+interface TokenUsage {
+  /** Final context window size (input + cached tokens at last API call) */
+  contextTokens: number;
+  /** Output tokens generated (summed across all API calls for cost tracking) */
+  outputTokens: number;
 }
 
 // =============================================================================
@@ -257,12 +304,13 @@ export {
   type HooksConfig,
   type IterationDiaryEntry,
   type IterationStatus,
+  type IterationTiming,
   normalizeStatus,
-  type NtfyConfig,
   type PostIterationHookConfig,
   type RalphConfig,
   type SelfImprovementConfig,
   type Subtask,
   type SubtaskMetadata,
   type SubtasksFile,
+  type TokenUsage,
 };

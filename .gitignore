@@ -1,17 +1,21 @@
 node_modules/
 dist/
+tmp/
 .env
 .DS_Store
 coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+logs/
 
 bin/aaa
 
 # Claude Code internals (session/debug state)
 .claude/*.json
 .claude/*.json.backup
+.claude/*.json.backup.*
+.claude/plugins/installed_plugins.json
 .claude/debug/
 .claude/file-history/
 .claude/history.jsonl
@@ -26,7 +30,19 @@ bin/aaa
 .claude/image-cache/
 .claude/chrome/
 .claude/paste-cache/
+.claude/cache/
+.claude/tasks/
 docs/research/downloads/
+
+# Ralph build artifacts (auto-generated)
+**/BUILD-SUMMARY-*.md
 
 **/*.built.md
 .claude/chrome/chrome-native-host
+
+# Eval script test artifacts (auto-generated during eval.sh runs)
+.claude/skills/eval-test-*
+.claude/agents/eval-test-*
+.claude/commands/eval-test-*
+.cursor/rules/eval-test-*
+context/blocks/*/eval-test-*

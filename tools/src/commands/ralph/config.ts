@@ -2,7 +2,7 @@
  * Configuration and subtask file management for Ralph autonomous build system
  *
  * This module provides:
- * - loadRalphConfig() - Load ralph.config.json with defaults
+ * - loadRalphConfig() - Load Ralph config from unified aaa.config.json
  * - loadSubtasksFile() / saveSubtasksFile() - Read/write subtasks.json
  * - Query helpers for subtask status and progress
  *
@@ -10,7 +10,9 @@
  * @see docs/planning/schemas/subtasks.schema.json
  */
 
+import { DEFAULT_RALPH, loadAaaConfig } from "@tools/lib/config";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
@@ -19,13 +21,18 @@ import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 // =============================================================================
 
 /**
- * Default Ralph configuration when ralph.config.json is missing
+ * Default Ralph configuration
+ *
+ * Note: This is kept for backward compatibility. The actual defaults come from
+ * the unified config loader (DEFAULT_RALPH in lib/config/defaults.ts).
+ * The values are kept in sync to ensure consistent behavior.
  */
 const DEFAULT_CONFIG: RalphConfig = {
   hooks: {
     onIterationComplete: ["log"],
     onMaxIterationsExceeded: ["log", "notify", "pause"],
     onMilestoneComplete: ["log", "notify"],
+    onSubtaskComplete: ["log"],
     onValidationFail: ["log", "notify"],
   },
   selfImprovement: { mode: "suggest" },
@@ -70,6 +77,20 @@ function getMilestoneFromSubtasks(subtasksFile: SubtasksFile): string {
 // =============================================================================
 
 /**
+ * Get the path to the daily log file for a milestone
+ *
+ * Returns a path in the format: {milestoneRoot}/logs/{YYYY-MM-DD}.jsonl
+ * Uses UTC date to ensure consistency across time zones.
+ *
+ * @param milestoneRoot - Root directory of the milestone (e.g., docs/planning/milestones/002-ralph)
+ * @returns Full path to the daily JSONL log file
+ */
+function getMilestoneLogPath(milestoneRoot: string): string {
+  const utcDate = new Date().toISOString().split("T")[0];
+  return join(milestoneRoot, "logs", `${utcDate}.jsonl`);
+}
+
+/**
  * Get the next subtask to work on
  *
  * Returns the first pending subtask in queue order, or null if all done.
@@ -92,15 +113,58 @@ function getPendingSubtasks(subtasks: Array<Subtask>): Array<Subtask> {
 }
 
 /**
- * Load Ralph configuration from ralph.config.json
+ * Load Ralph configuration from unified aaa.config.json
  *
- * Returns default configuration if the file doesn't exist.
- * Throws if the file exists but contains invalid JSON.
+ * Loads configuration from the unified config loader and extracts the ralph section.
+ * Falls back to legacy ralph.config.json via the unified loader's fallback mechanism.
  *
- * @param configPath - Path to ralph.config.json (default: "ralph.config.json")
+ * Resolution order (handled by unified loader):
+ * 1. aaa.config.json in project root
+ * 2. Legacy ralph.config.json with deprecation warning
+ * 3. Default configuration
+ *
+ * @param configPath - Optional override path (for testing only). When provided,
+ *                     bypasses the unified loader and reads directly from the legacy file.
+ *                     This is kept for backward compatibility with existing tests.
  * @returns Parsed RalphConfig object
  */
-function loadRalphConfig(configPath = "ralph.config.json"): RalphConfig {
+function loadRalphConfig(configPath?: string): RalphConfig {
+  // If a specific configPath is provided (testing scenario), use legacy loading
+  // This maintains backward compatibility with existing tests that pass explicit paths
+  if (configPath !== undefined) {
+    return loadRalphConfigLegacy(configPath);
+  }
+
+  // Use unified config loader and extract ralph section
+  const aaaConfig = loadAaaConfig();
+  const ralph = aaaConfig.ralph ?? DEFAULT_RALPH;
+
+  // Map the unified RalphSection to the RalphConfig interface
+  // The interfaces are compatible but we need to ensure proper typing
+  return {
+    hooks: ralph.hooks
+      ? {
+          onIterationComplete: ralph.hooks.onIterationComplete,
+          onMaxIterationsExceeded: ralph.hooks.onMaxIterationsExceeded,
+          onMilestoneComplete: ralph.hooks.onMilestoneComplete,
+          onSubtaskComplete: ralph.hooks.onSubtaskComplete,
+          onValidationFail: ralph.hooks.onValidationFail,
+        }
+      : DEFAULT_CONFIG.hooks,
+    // Map unified SelfImprovementConfig to ralph's SelfImprovementConfig
+    // Ensure mode has a value (unified config has it optional, ralph requires it)
+    selfImprovement: { mode: ralph.selfImprovement?.mode ?? "suggest" },
+  };
+}
+
+/**
+ * Legacy config loading for backward compatibility with tests
+ *
+ * @internal
+ * @param configPath - Path to ralph.config.json
+ * @returns Parsed RalphConfig object
+ */
+function loadRalphConfigLegacy(configPath: string): RalphConfig {
   if (!existsSync(configPath)) {
     return DEFAULT_CONFIG;
   }
@@ -150,6 +214,63 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
   }
 }
 
+// =============================================================================
+// Log Path Helpers
+// =============================================================================
+
+/**
+ * Default milestone for orphaned logs (when milestone cannot be determined)
+ */
+const ORPHAN_MILESTONE_ROOT = "docs/planning/milestones/_orphan";
+
+/**
+ * Get the path to the iteration log file for a subtasks file
+ *
+ * Derives the milestone root from the subtasks.json parent directory.
+ * Falls back to _orphan/logs/ if the milestone cannot be determined.
+ *
+ * @param subtasksPath - Path to the subtasks.json file
+ * @returns Full path to the daily iteration JSONL log file
+ *
+ * @example
+ * // subtasksPath: docs/planning/milestones/002-ralph/subtasks.json
+ * // returns: docs/planning/milestones/002-ralph/logs/2026-01-26.jsonl
+ *
+ * @example
+ * // subtasksPath: "" (empty)
+ * // returns: docs/planning/milestones/_orphan/logs/2026-01-26.jsonl
+ */
+function getIterationLogPath(subtasksPath: string): string {
+  if (!subtasksPath) {
+    return getMilestoneLogPath(ORPHAN_MILESTONE_ROOT);
+  }
+
+  const milestoneRoot = dirname(subtasksPath);
+
+  // If dirname returns "." or empty, route to orphan
+  if (!milestoneRoot || milestoneRoot === ".") {
+    return getMilestoneLogPath(ORPHAN_MILESTONE_ROOT);
+  }
+
+  return getMilestoneLogPath(milestoneRoot);
+}
+
+/**
+ * Get the path to the planning log file for a milestone
+ *
+ * Used by planning commands (ralph plan) to log planning activity.
+ *
+ * @param milestonePath - Root directory of the milestone
+ * @returns Full path to the daily planning JSONL log file
+ *
+ * @example
+ * // milestonePath: docs/planning/milestones/002-ralph
+ * // returns: docs/planning/milestones/002-ralph/logs/2026-01-26.jsonl
+ */
+function getPlanningLogPath(milestonePath: string): string {
+  return getMilestoneLogPath(milestonePath);
+}
+
 /**
  * Save subtasks file to disk with formatted JSON
  *
@@ -171,10 +292,14 @@ export {
   countRemaining,
   DEFAULT_CONFIG,
   getCompletedSubtasks,
+  getIterationLogPath,
   getMilestoneFromSubtasks,
+  getMilestoneLogPath,
   getNextSubtask,
   getPendingSubtasks,
+  getPlanningLogPath,
   loadRalphConfig,
   loadSubtasksFile,
+  ORPHAN_MILESTONE_ROOT,
   saveSubtasksFile,
 };

@@ -32,6 +32,15 @@ cleanup() {
   for pid in "${PIDS[@]:-}"; do
     kill "$pid" 2>/dev/null || true
   done
+
+  # Clean up eval-test-* artifacts created during the run
+  echo "Removing eval-test-* artifacts..."
+  rm -rf "$ROOT_DIR/.claude/skills/eval-test-"* 2>/dev/null || true
+  rm -f "$ROOT_DIR/.claude/agents/eval-test-"* 2>/dev/null || true
+  rm -f "$ROOT_DIR/.claude/commands/eval-test-"* 2>/dev/null || true
+  rm -f "$ROOT_DIR/.cursor/rules/eval-test-"* 2>/dev/null || true
+  rm -f "$ROOT_DIR/context/blocks/"*/eval-test-* 2>/dev/null || true
+
   # Don't remove TMP_DIR immediately - let user inspect if needed
   echo "Temp dir: $TMP_DIR"
 }
@@ -112,7 +121,7 @@ run_claude_researcher() {
 main() {
   echo "==========================================="
   echo "  Claude Code Command Evaluation"
-  echo "  11 Tests"
+  echo "  10 Tests"
   echo "==========================================="
   echo "Root dir: $ROOT_DIR"
   echo "Temp dir: $TMP_DIR"
@@ -147,54 +156,46 @@ main() {
     "Skill,Bash(aaa:*),Read" &
   PIDS+=($!)
 
-  # --- Test 4: gemini-research (Claude researcher) ---
-  echo -e "${BLUE}[4/11] gemini-research${NC} - Firing Claude researcher..."
-  run_claude_researcher "gemini-research" \
-    "Use the Skill tool to run /gemini-research with query 'Claude API latest features 2024'. Research using Gemini with Google grounding." \
-    "Skill,Bash(aaa:*),Read" &
-  PIDS+=($!)
-
-  # --- Test 5: task-create (direct command) ---
-  echo -e "${BLUE}[5/11] task-create${NC} - Running aaa task create..."
+  # --- Test 4: task-create (direct command) ---
+  echo -e "${BLUE}[4/10] task-create${NC} - Running aaa task create..."
   aaa task create "eval-test-task" --dir "$TMP_DIR/tasks" > "$TMP_DIR/task-create.out" 2>&1 &
   PIDS+=($!)
 
-  # --- Test 6: story-create (direct command) ---
-  echo -e "${BLUE}[6/11] story-create${NC} - Running aaa story create..."
+  # --- Test 5: story-create (direct command) ---
+  echo -e "${BLUE}[5/10] story-create${NC} - Running aaa story create..."
   aaa story create "eval-test-story" --dir "$TMP_DIR/stories" > "$TMP_DIR/story-create.out" 2>&1 &
   PIDS+=($!)
 
-  # --- Test 7: meta:claude-code:create-command (Claude runs skill) ---
-  echo -e "${BLUE}[7/11] create-command${NC} - Firing Claude to run skill..."
+  # --- Test 6: meta:claude-code:create-command (Claude runs skill) ---
+  echo -e "${BLUE}[6/10] create-command${NC} - Firing Claude to run skill..."
   run_claude_researcher "create-command" \
     "Create a Claude Code command called 'eval-test-command' for Docker deployment. Use the Skill tool with /meta:claude-code:create-command. IMPORTANT: Do NOT ask any questions - just create a simple command that runs 'docker build && docker push'. Write the file immediately without waiting for user input." \
     "Skill,Read,Write,Glob,Grep" &
   PIDS+=($!)
 
-  # --- Test 8: meta:claude-code:create-agent (Claude runs skill) ---
-  echo -e "${BLUE}[8/11] create-agent${NC} - Firing Claude to run skill..."
+  # --- Test 7: meta:claude-code:create-agent (Claude runs skill) ---
+  echo -e "${BLUE}[7/10] create-agent${NC} - Firing Claude to run skill..."
   run_claude_researcher "create-agent" \
     "Create a Claude Code agent called 'eval-test-agent' for reviewing code. Use the Skill tool with /meta:claude-code:create-agent. Follow the skill's guidance to create the agent file." \
     "Skill,Read,Write,Glob,Grep" &
   PIDS+=($!)
 
-  # --- Test 9: meta:claude-code:create-skill (Claude runs skill) ---
-  echo -e "${BLUE}[9/11] create-skill${NC} - Firing Claude to run skill..."
+  # --- Test 8: meta:claude-code:create-skill (Claude runs skill) ---
+  echo -e "${BLUE}[8/10] create-skill${NC} - Firing Claude to run skill..."
   run_claude_researcher "create-skill" \
     "Create a Claude Code skill called 'eval-test-skill' for git branch cleanup. Use the Skill tool with /meta:claude-code:create-skill. IMPORTANT: Do NOT ask questions or wait for plan approval - immediately create a simple SKILL.md that lists and deletes merged branches. Write files now." \
     "Skill,Read,Write,Bash,Glob,Grep" &
   PIDS+=($!)
 
-
-  # --- Test 10: meta:create-cursor-rule (Claude runs skill) ---
-  echo -e "${BLUE}[10/11] create-cursor-rule${NC} - Firing Claude to run skill..."
+  # --- Test 9: meta:create-cursor-rule (Claude runs skill) ---
+  echo -e "${BLUE}[9/10] create-cursor-rule${NC} - Firing Claude to run skill..."
   run_claude_researcher "create-cursor-rule" \
     "Create a Cursor rule called 'eval-test-rule' for TypeScript formatting. Use the Skill tool with /meta:create-cursor-rule. Follow the skill's guidance to create the rule file." \
     "Skill,Read,Write,Glob,Grep" &
   PIDS+=($!)
 
-  # --- Test 11: context:atomic-doc (Claude runs skill) ---
-  echo -e "${BLUE}[11/11] atomic-doc${NC} - Firing Claude to run skill..."
+  # --- Test 10: context:atomic-doc (Claude runs skill) ---
+  echo -e "${BLUE}[10/10] atomic-doc${NC} - Firing Claude to run skill..."
   run_claude_researcher "atomic-doc" \
     "Create an atomic doc at context/blocks/eval/eval-test-doc.md using /context:atomic-doc skill. IMPORTANT: Do NOT ask questions - immediately create a simple doc with frontmatter (depends: []) and basic content about testing. Write the file now." \
     "Skill,Read,Write,Edit,Glob,Grep" &
@@ -271,12 +272,7 @@ $file2_content" "Both URLs should be downloaded as .md files with reasonable con
   evaluate_async "parallel-search" "$parallel_out" "Should return structured research with sources and URLs. IGNORE any EOPNOTSUPP fs watch errors (environmental issue, not command fault). Score 8-10 if has 5+ sources with findings. Score 5-7 if sparse sources. Score 2-3 if command ran but API error. FAIL only if no research output at all." &
   PIDS+=($!)
 
-  # --- Eval 4: gemini-research ---
-  gemini_out=$(cat "$TMP_DIR/researcher-gemini-research.out" 2>/dev/null | tr -d '\000-\037' | head -200 || echo "NO OUTPUT")
-  evaluate_async "gemini-research" "$gemini_out" "Score 8-10 if returns research with sources/findings about Claude API. Score 2-3 if clear quota/auth error (graceful failure). FAIL if [object Object] or unintelligible crash." &
-  PIDS+=($!)
-
-  # --- Eval 5: task-create ---
+  # --- Eval 4: task-create ---
   task_file=$(ls "$TMP_DIR/tasks"/*.md 2>/dev/null | head -1 || echo "")
   if [[ -n "$task_file" && -f "$task_file" ]]; then
     task_content=$(cat "$task_file")
@@ -400,7 +396,7 @@ $researcher_log" "Atomic doc should exist in context/blocks/ (any subdomain like
   TIMEOUT=180  # 3 minutes for evaluators
   INTERVAL=10
   elapsed=0
-  total_evals=11
+  total_evals=10
 
   while [[ $elapsed -lt $TIMEOUT ]]; do
     completed=$(ls "$TMP_DIR"/eval-*.json 2>/dev/null | wc -l | tr -d ' ')

@@ -8,33 +8,24 @@ Analyze this document section by section. For each section, check all applicable
 
 ## Inconsistency Categories
 
-### Text Inconsistencies
+Detailed patterns, examples, and detection methods are in the atomic docs:
 
-1. **Contradictory statements** - Where the document says X in one place and not-X elsewhere
-2. **Numerical inconsistencies** - Conflicting figures, dates, quantities, version numbers
-3. **Temporal inconsistencies** - Timeline contradictions, "before/after" conflicts
-4. **Definitional drift** - Where a term is used inconsistently throughout the document
-5. **Logical impossibilities** - Statements that can't both be true simultaneously
+| Category | Reference | Covers |
+|----------|-----------|--------|
+| Text Inconsistencies (1-5) | @context/blocks/quality/text-consistency.md | Contradictions, numbers, timelines, definitions, logic |
+| Code vs Prose (6-13) | @context/blocks/quality/code-prose-consistency.md | Libraries, functions, params, returns, config, APIs, errors |
+| Code-to-Code (14-19) | @context/blocks/quality/code-code-consistency.md | Style drift, imports, error handling, types, versions, init |
+| Planning Artifacts | @context/blocks/quality/planning-consistency.md | Vision/roadmap/story/task hierarchy alignment |
 
-### Code vs Prose Inconsistencies
+### Quick Category Reference
 
-6. **Library/package mismatches** - Text mentions libX but code imports/uses libY
-7. **Function/method name mismatches** - Text describes `doThing()` but code shows `performThing()`
-8. **Parameter mismatches** - Text says "pass the user ID" but code passes email
-9. **Return value mismatches** - Text says "returns a list" but code expects an object
-10. **Configuration mismatches** - Text says "set timeout to 30s" but code shows 60
-11. **Variable/constant naming** - Text references `MAX_RETRIES` but code uses `maxRetryCount`
-12. **API endpoint mismatches** - Text says `/api/v2/users` but code calls `/api/v1/user`
-13. **Error handling mismatches** - Text describes one error type, code catches another
+**Text Inconsistencies (1-5):** Contradictory statements, numerical inconsistencies, temporal inconsistencies, definitional drift, logical impossibilities
 
-### Code-to-Code Inconsistencies
+**Code vs Prose (6-13):** Library mismatches, function name mismatches, parameter mismatches, return value mismatches, configuration mismatches, variable naming, API endpoint mismatches, error handling mismatches
 
-14. **Style drift across examples** - One example uses async/await, another uses callbacks for the same API
-15. **Import inconsistencies** - Different import paths or aliases across examples
-16. **Inconsistent error handling patterns** - Try/catch in one example, .catch() in another
-17. **Type annotation inconsistencies** - One example uses `string`, another uses `String` or omits types
-18. **Dependency version mismatches** - Different versions referenced across examples
-19. **Initialization pattern inconsistencies** - Different ways of instantiating the same object/class
+**Code-to-Code (14-19):** Style drift across examples, import inconsistencies, error handling patterns, type annotations, dependency versions, initialization patterns
+
+**Planning Artifacts:** Vision-roadmap alignment, roadmap-story mapping, story-task scope, task-subtask boundaries, AC conflicts, timeline dependencies
 
 ---
 

@@ -32,6 +32,16 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Actions to execute when a subtask exceeds the retry limit"
+        },
+        "onReviewComplete": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Actions to execute when code review completes"
+        },
+        "onCriticalFinding": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Actions to execute when a critical severity finding is detected during code review"
         }
       },
       "additionalProperties": false

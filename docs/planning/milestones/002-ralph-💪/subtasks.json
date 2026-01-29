@@ -1,584 +1,1628 @@
 {
-  "$schema": "../schemas/subtasks.schema.json",
+  "$schema": "../../../schemas/subtasks.schema.json",
   "metadata": {
-    "scope": "story",
-    "storyRef": "STORY-001"
+    "scope": "milestone",
+    "milestoneRef": "002-ralph-💪"
   },
   "subtasks": [
     {
-      "id": "SUB-012",
-      "taskRef": "TASK-014",
-      "storyRef": "STORY-001",
-      "title": "Create interrogate workflow doc",
-      "description": "Create context/workflows/interrogate.md defining the interrogation workflow. Document the 3 core questions (hardest decision, rejected alternatives, lowest confidence), --quick mode (minimal output), --skeptical mode (extra validation), and output format (structured table with confidence levels, rejected alternatives, assumptions).",
+      "id": "SUB-074",
+      "taskRef": "notify-command",
+      "title": "Create notify types and Zod schemas",
+      "description": "Create tools/src/commands/notify/types.ts with NotifyConfig interface, QuietHoursConfig, Priority type, and Zod schemas for validation. Include error classes (NtfyError, NtfyValidationError, NtfyNetworkError, NtfyRateLimitError) following the pattern from parallel-search/types.ts.",
       "done": true,
-      "completedAt": "2026-01-25T12:00:00Z",
-      "commitHash": "3d744ddc8b4143968c18c6c7b9fb5c9430a4fa79",
-      "sessionId": "ralph-build-iteration",
+      "completedAt": "2026-01-26T21:45:00Z",
+      "commitHash": "931dc64eeec45165edb6c7f46799844851306d97",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        "context/workflows/interrogate.md exists",
-        "Document defines 3 core questions with explanations",
-        "Document specifies --quick mode behavior",
-        "Document specifies --skeptical mode behavior",
-        "Output format section shows structured table example"
+        "types.ts exists at tools/src/commands/notify/types.ts",
+        "NotifyConfig interface matches plan schema (enabled, server, topic, title, defaultPriority, quietHours)",
+        "Priority type includes: min, low, default, high, max",
+        "Zod schema validates config structure",
+        "Error classes extend Error with proper name properties",
+        "Unit test tools/tests/lib/notify-types.test.ts passes"
       ],
       "filesToRead": [
-        "context/workflows/code-review.md",
-        "context/workflows/complete-feature.md",
-        "docs/planning/milestones/002-ralph-💪/tasks/TASK-014-interrogation-workflow.md"
-      ]
-    },
-    {
-      "id": "SUB-013",
-      "taskRef": "TASK-014",
-      "storyRef": "STORY-001",
-      "title": "Create interrogate skill command",
-      "description": "Create .claude/commands/dev/interrogate.md skill that loads the interrogate workflow. Support args for target [changes|commit|pr] and modes [--quick|--skeptical]. The skill gathers git context and applies the workflow questions.",
-      "done": true,
-      "completedAt": "2026-01-25T12:30:00Z",
-      "commitHash": "df2a2cfc812326bf2fa6bae40ae5216ed1540027",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/commands/dev/interrogate.md exists with proper frontmatter",
-        "Skill accepts target argument (changes, commit, pr)",
-        "Skill accepts --quick and --skeptical mode flags",
-        "Skill loads @context/workflows/interrogate.md",
-        "Skill gathers appropriate git context based on target"
-      ],
-      "filesToRead": [
-        ".claude/commands/dev/code-review.md",
-        ".claude/commands/dev/git-commit.md",
-        "context/workflows/interrogate.md"
-      ]
-    },
-    {
-      "id": "SUB-014",
-      "taskRef": "TASK-014",
-      "storyRef": "STORY-001",
-      "title": "Integrate interrogation into complete-feature workflow",
-      "description": "Update context/workflows/complete-feature.md to add interrogation as an optional pre-merge checkpoint. Add a step suggesting '/dev:interrogate changes' before creating PR, especially for substantial changes.",
-      "done": true,
-      "completedAt": "2026-01-25T13:00:00Z",
-      "commitHash": "af1954efdee6fcd0c1e6b7cd9dd247884184a42a",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "complete-feature.md has interrogation checkpoint section",
-        "Checkpoint is marked as optional/recommended",
-        "Instructions show how to run /dev:interrogate",
-        "Mentions when interrogation is most valuable (substantial changes, AI code)"
-      ],
-      "filesToRead": [
-        "context/workflows/complete-feature.md",
-        "context/workflows/dev-lifecycle-simple.md"
-      ]
-    },
-    {
-      "id": "SUB-015",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create code-review agents directory and Finding types",
-      "description": "Create .claude/agents/code-review/ directory structure. Create types.md documenting the Finding interface schema: id (hash), reviewer (agent name), severity (critical|high|medium|low), file, line?, description, suggestedFix?, confidence (0-1). This becomes the contract for all reviewer agents.",
-      "done": true,
-      "completedAt": "2026-01-25T22:35:00Z",
-      "commitHash": "9015ef22ff21cd978099242664312ac772886c9b",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/ directory exists",
-        "types.md documents Finding interface with all fields",
-        "Schema includes severity enum values",
-        "Schema includes confidence range (0-1)",
-        "Example Finding JSON is included"
-      ],
-      "filesToRead": [
-        ".claude/agents/coding-style-reviewer.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
-      ]
-    },
-    {
-      "id": "SUB-016",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create security-reviewer agent",
-      "description": "Create .claude/agents/code-review/security-reviewer.md agent focused on OWASP Top 10, injection vulnerabilities, authentication issues, secrets exposure, and XSS. Agent reads git diff, analyzes for security issues, outputs findings in JSON format per types.md schema.",
-      "done": true,
-      "completedAt": "2026-01-25T22:45:00Z",
-      "commitHash": "7a3361dc9a1c9535d6e97cd1d2c8d5350cca4432",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/security-reviewer.md exists",
-        "Agent has proper frontmatter (name, description, model)",
-        "Agent focuses on security-specific issues (OWASP, injection, auth, secrets, XSS)",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent includes confidence scoring logic"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/coding-style-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-017",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create data-integrity-reviewer agent",
-      "description": "Create .claude/agents/code-review/data-integrity-reviewer.md agent focused on null checks, array boundary conditions, race conditions, and data validation. Agent analyzes code for data integrity issues and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-25T22:55:00Z",
-      "commitHash": "e8603b504b47f1b1052a53a4a7ae7028b8a656d9",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/data-integrity-reviewer.md exists",
-        "Agent focuses on null checks, boundaries, race conditions",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent provides confidence scores based on certainty of issue"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-018",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create error-handling-reviewer agent",
-      "description": "Create .claude/agents/code-review/error-handling-reviewer.md agent focused on swallowed exceptions, missing catch blocks, incomplete error recovery, and logging gaps. Agent identifies error handling issues and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-25T23:05:00Z",
-      "commitHash": "ee2513fad34861df52a73c35766e4772dd92a526",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/error-handling-reviewer.md exists",
-        "Agent focuses on exceptions, catch blocks, recovery paths",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent distinguishes between missing handlers and weak handlers"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-019",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create test-coverage-reviewer agent",
-      "description": "Create .claude/agents/code-review/test-coverage-reviewer.md agent focused on missing tests, untested edge cases, and insufficient test assertions. Agent analyzes test files relative to implementation and outputs findings per schema.",
-      "done": true,
-      "completedAt": "2026-01-25T23:15:00Z",
-      "commitHash": "bad0d26e096d422ac610840d402b03399b048bea",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/test-coverage-reviewer.md exists",
-        "Agent identifies missing test files for new code",
-        "Agent identifies untested branches and edge cases",
-        "Agent outputs findings in JSON format matching Finding schema"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md",
-        "context/blocks/test/vitest.md"
-      ]
-    },
-    {
-      "id": "SUB-020",
-      "taskRef": "TASK-015",
-      "storyRef": "STORY-001",
-      "title": "Create synthesizer agent",
-      "description": "Create .claude/agents/code-review/synthesizer.md agent that aggregates findings from multiple reviewers. Synthesizer dedupes similar findings (same file+line+issue), ranks by severity × confidence, groups by file, and outputs consolidated report.",
-      "done": true,
-      "completedAt": "2026-01-25T23:25:00Z",
-      "commitHash": "5aad2a374ba72b5fbe22347799ee3c157fb8901c",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/synthesizer.md exists",
-        "Agent accepts findings JSON from multiple reviewers",
-        "Agent dedupes findings with same file+line+description",
-        "Agent ranks findings by severity × confidence product",
-        "Agent outputs consolidated report with grouped findings"
-      ],
-      "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
-      ]
-    },
-    {
-      "id": "SUB-021",
-      "taskRef": "TASK-016",
-      "storyRef": "STORY-001",
-      "title": "Rename coding-style-reviewer to maintainability-reviewer",
-      "description": "Move .claude/agents/coding-style-reviewer.md to .claude/agents/code-review/maintainability-reviewer.md. Update description to focus on coupling, naming conventions, Single Responsibility Principle, and code organization. Update any references in settings.json or elsewhere.",
-      "done": true,
-      "completedAt": "2026-01-25T23:10:00Z",
-      "commitHash": "430ac5c09fba5377f2f6e3ec3b6337c699b8decc",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/agents/code-review/maintainability-reviewer.md exists",
-        "Original coding-style-reviewer.md is removed",
-        "Agent description focuses on coupling, naming, SRP",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Any references in .claude/settings.json are updated"
-      ],
-      "filesToRead": [
-        ".claude/agents/coding-style-reviewer.md",
-        ".claude/settings.json",
-        ".claude/agents/code-review/types.md"
-      ]
-    },
-    {
-      "id": "SUB-022",
-      "taskRef": "TASK-016",
-      "storyRef": "STORY-001",
-      "title": "Update code-review workflow for parallel agents",
-      "description": "Update context/workflows/code-review.md to include parallel agent orchestration. Add section explaining how to invoke multiple reviewers in parallel using Task tool, how findings are synthesized, and how triage actions work (FIX/SKIP/FALSE POSITIVE).",
-      "done": true,
-      "completedAt": "2026-01-25T23:45:00Z",
-      "commitHash": "591140415b2e9a855fae26e10a35ced1c2650815",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "code-review.md has parallel orchestration section",
-        "Document explains Task tool parallel invocation",
-        "Document references Finding schema from types.md",
-        "Document defines triage actions (FIX, SKIP, FALSE POSITIVE)",
-        "Document shows synthesizer invocation pattern"
-      ],
-      "filesToRead": [
-        "context/workflows/code-review.md",
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/synthesizer.md"
-      ]
-    },
-    {
-      "id": "SUB-023",
-      "taskRef": "TASK-016",
-      "storyRef": "STORY-001",
-      "title": "Create parallel-code-review skill",
-      "description": "Create .claude/skills/parallel-code-review/SKILL.md that orchestrates parallel reviewer agents. Skill spawns reviewers via Task tool, collects findings, invokes synthesizer, and presents findings one at a time with triage options.",
-      "done": true,
-      "completedAt": "2026-01-25T23:05:38Z",
-      "commitHash": "fc25f8d14b0708e6074766aa76ce200b872f55ab",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        ".claude/skills/parallel-code-review/SKILL.md exists",
-        "Skill has proper frontmatter (name, description)",
-        "Skill invokes reviewers in parallel using Task tool",
-        "Skill invokes synthesizer with collected findings",
-        "Skill presents findings with chunked presentation",
-        "Skill handles FIX/SKIP/FALSE POSITIVE responses"
-      ],
-      "filesToRead": [
-        ".claude/skills/brainwriting/SKILL.md",
-        "context/workflows/code-review.md",
-        ".claude/agents/code-review/synthesizer.md"
-      ]
-    },
-    {
-      "id": "SUB-024",
-      "taskRef": "TASK-016",
-      "storyRef": "STORY-001",
-      "title": "Update code-review command to use new skill",
-      "description": "Update .claude/commands/dev/code-review.md to load the new parallel-code-review skill instead of the simple workflow. The command becomes a thin wrapper that invokes the skill.",
-      "done": true,
-      "completedAt": "2026-01-25T23:35:00Z",
-      "commitHash": "9ef9879dc09a3b653bf7ea42c36f8aa830958f84",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "code-review.md command loads parallel-code-review skill",
-        "Command passes through any arguments to the skill",
-        "/dev:code-review invocation triggers parallel review"
-      ],
-      "filesToRead": [
-        ".claude/commands/dev/code-review.md",
-        ".claude/skills/parallel-code-review/SKILL.md"
-      ]
-    },
-    {
-      "id": "SUB-025",
-      "taskRef": "TASK-017",
-      "storyRef": "STORY-001",
-      "title": "Create review CLI types",
-      "description": "Create tools/src/commands/review/types.ts with Finding interface (matching agent schema), ReviewDiaryEntry interface (timestamp, mode, findings count, fixed/skipped/falsePositives counts, decisions array), and ReviewResult interface for CLI output.",
-      "done": true,
-      "completedAt": "2026-01-25T23:45:00Z",
-      "commitHash": "6e57b11db99d94a5596ad17115e5b9af1a88c4a3",
-      "sessionId": "ralph-build-iteration",
-      "acceptanceCriteria": [
-        "tools/src/commands/review/types.ts exists",
-        "Finding interface matches agent schema exactly",
-        "ReviewDiaryEntry has all fields from story spec",
-        "ReviewResult interface defined for CLI output",
-        "Types are properly exported"
-      ],
-      "filesToRead": [
+        "tools/src/commands/parallel-search/types.ts",
         "tools/src/commands/ralph/types.ts",
-        ".claude/agents/code-review/types.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+        ".claude/plans/hashed-wiggling-gem.md"
       ]
     },
     {
-      "id": "SUB-026",
-      "taskRef": "TASK-017",
-      "storyRef": "STORY-001",
-      "title": "Create review CLI command structure",
-      "description": "Create tools/src/commands/review/index.ts with main review command. Implement mode selection: bare 'review' prompts for mode, --supervised runs chat mode, --headless runs autonomous mode, --headless --dry-run previews without fixing. Add status subcommand placeholder.",
-      "done": false,
+      "id": "SUB-075",
+      "taskRef": "notify-command",
+      "title": "Create notify config management module",
+      "description": "Create tools/src/commands/notify/config.ts with loadNotifyConfig(), saveNotifyConfig(), and isInQuietHours() functions. Config stored at ~/.config/aaa/notify.json. Follow patterns from ralph/config.ts for file operations and defaults merging.",
+      "done": true,
+      "completedAt": "2026-01-26T22:30:00Z",
+      "commitHash": "6fa72fea1aaa126c970d675a5b05357b0ff0ca07",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        "tools/src/commands/review/index.ts exists",
-        "Command registered in CLI entry point",
-        "'aaa review' prompts for supervised vs headless",
-        "'aaa review --supervised' flag works",
-        "'aaa review --headless' flag works",
-        "'aaa review --headless --dry-run' flag works",
-        "'aaa review status' subcommand exists (placeholder)"
+        "config.ts exists at tools/src/commands/notify/config.ts",
+        "loadNotifyConfig() returns merged defaults if file missing",
+        "saveNotifyConfig() writes with atomic write pattern",
+        "isInQuietHours() handles overnight spans (22:00-08:00) correctly",
+        "isInQuietHours() handles same-day spans correctly",
+        "DEFAULT_NOTIFY_CONFIG constant exported with sensible defaults",
+        "Unit test tools/tests/lib/notify-config.test.ts passes with temp dir"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/notify/types.ts",
+        ".claude/plans/hashed-wiggling-gem.md"
+      ],
+      "blockedBy": ["SUB-074"]
+    },
+    {
+      "id": "SUB-076",
+      "taskRef": "notify-command",
+      "title": "Create ntfy HTTP client module",
+      "description": "Create tools/src/commands/notify/client.ts with sendNotification() function that POSTs to ntfy.sh API. Include retry logic (2 retries, exponential backoff), timeout handling (30s), and priority mapping (name to numeric 1-5). Handle errors by throwing typed error classes.",
+      "done": true,
+      "completedAt": "2026-01-26T23:15:00Z",
+      "commitHash": "5102b5d",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "client.ts exists at tools/src/commands/notify/client.ts",
+        "sendNotification() accepts message, title, priority, topic, server",
+        "Priority names (min, low, default, high, max) map to numeric (1-5)",
+        "Retries on 429, 500, 502, 503, 504 with exponential backoff",
+        "Throws NtfyNetworkError on connection failure",
+        "Throws NtfyRateLimitError on 429",
+        "Unit test tools/tests/lib/notify-client.test.ts passes with mocked fetch"
+      ],
+      "filesToRead": [
+        "tools/src/commands/parallel-search/parallel-client.ts",
+        "tools/src/commands/notify/types.ts",
+        ".claude/plans/hashed-wiggling-gem.md"
+      ],
+      "blockedBy": ["SUB-074"]
+    },
+    {
+      "id": "SUB-077",
+      "taskRef": "notify-command",
+      "title": "Create notify CLI command with subcommands and docs",
+      "description": "Create tools/src/commands/notify/index.ts with Commander.js command structure: notify <message>, notify on, notify off, notify status, notify config (set/show/test). Register in tools/src/cli.ts. Follow patterns from ralph/index.ts for subcommand structure. Update README.md with command documentation.",
+      "done": true,
+      "completedAt": "2026-01-26T23:59:00Z",
+      "commitHash": "d48569d43e5fe2b3f012053e3d567a3df95d117d",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "index.ts exists at tools/src/commands/notify/index.ts",
+        "aaa notify --help shows all subcommands",
+        "aaa notify <message> sends notification with config resolution (CLI > env > config > defaults)",
+        "aaa notify on/off toggles enabled flag in config",
+        "aaa notify status shows current configuration status",
+        "aaa notify config set --topic <topic> works",
+        "aaa notify config show displays config",
+        "aaa notify config test sends test notification",
+        "Registered in tools/src/cli.ts",
+        "E2E test tools/tests/e2e/notify.test.ts passes",
+        "README.md CLI Tools section documents aaa notify command",
+        "All subcommands and flags documented in README",
+        "Claude Code hook integration example in README"
       ],
       "filesToRead": [
         "tools/src/commands/ralph/index.ts",
-        "tools/src/index.ts",
-        "tools/src/commands/review/types.ts"
+        "tools/src/cli.ts",
+        "tools/src/commands/notify/config.ts",
+        "tools/src/commands/notify/client.ts",
+        "README.md",
+        ".claude/plans/hashed-wiggling-gem.md"
+      ],
+      "blockedBy": ["SUB-075", "SUB-076"]
+    },
+    {
+      "id": "SUB-078",
+      "taskRef": "notify-command",
+      "title": "Add notify init wizard command",
+      "description": "Add interactive init command to tools/src/commands/notify/index.ts that prompts for topic, server URL, quiet hours configuration, sends test notification, and shows next steps. Use ora for spinner during test notification.",
+      "done": true,
+      "completedAt": "2026-01-27T00:30:00Z",
+      "commitHash": "ff4a546ad996e13b1198a2b3910c8fef2dd51ea3",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "aaa notify init prompts for topic name (required)",
+        "aaa notify init prompts for server URL with default https://ntfy.sh",
+        "aaa notify init asks about quiet hours and prompts start/end if enabled",
+        "aaa notify init sends test notification and reports success/failure",
+        "aaa notify init shows next steps (install app, subscribe to topic, add hook)",
+        "aaa notify init warns if config already exists",
+        "E2E test added for init command flow"
+      ],
+      "filesToRead": [
+        "tools/src/commands/notify/index.ts",
+        "tools/src/commands/setup/index.ts",
+        ".claude/plans/hashed-wiggling-gem.md"
+      ],
+      "blockedBy": ["SUB-077"]
+    },
+    {
+      "id": "SUB-079",
+      "taskRef": "notify-command",
+      "title": "Add silent behavior when unconfigured",
+      "description": "Implement silent exit (exit 0, no output) when topic is empty or notifications disabled. This makes notify safe to include in Claude Code hooks before running init - it just does nothing until configured.",
+      "done": true,
+      "completedAt": "2026-01-27T01:15:00Z",
+      "commitHash": "7eb2ce5315f86c796c7def5bdc44e121acfefc2e",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "aaa notify 'test' with empty topic exits 0 silently (no output)",
+        "aaa notify 'test' with notifications disabled exits 0 silently",
+        "E2E test verifies silent behavior with missing config file",
+        "E2E test verifies silent behavior with empty topic in config"
+      ],
+      "filesToRead": [
+        "tools/src/commands/notify/index.ts",
+        ".claude/plans/hashed-wiggling-gem.md"
+      ],
+      "blockedBy": ["SUB-077"]
+    },
+    {
+      "id": "SUB-080",
+      "taskRef": "notify-command",
+      "title": "Add --dry-run and --quiet flags",
+      "description": "Add --dry-run flag to aaa notify <message> that shows what would be sent without sending. Add -q/--quiet flag to suppress output on success. These are UX enhancements for testing and scripting.",
+      "done": true,
+      "completedAt": "2026-01-27T01:45:00Z",
+      "commitHash": "83dd463",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "aaa notify 'test' --dry-run outputs notification details without sending",
+        "--dry-run shows: topic, server, title, priority, message",
+        "-q/--quiet flag suppresses output on success",
+        "E2E test verifies dry-run output format",
+        "README updated with --dry-run and --quiet flag documentation"
+      ],
+      "filesToRead": [
+        "tools/src/commands/notify/index.ts",
+        "README.md",
+        ".claude/plans/hashed-wiggling-gem.md"
+      ],
+      "blockedBy": ["SUB-079"]
+    },
+    {
+      "id": "SUB-081",
+      "taskRef": "token-usage-display",
+      "title": "Add TokenUsage type and session extraction function",
+      "description": "Add TokenUsage interface to types.ts with fields: inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens. Add getTokenUsageFromSession(sessionPath: string): TokenUsage function to session.ts that reads session JSONL, parses each line for \"usage\":{...} objects, and sums input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens across all entries.",
+      "done": true,
+      "completedAt": "2026-01-27T02:30:00Z",
+      "commitHash": "f76f864f2bbdcd5a3807166484924a02c422cd5c",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "TokenUsage interface exists in tools/src/commands/ralph/types.ts with 4 numeric fields",
+        "getTokenUsageFromSession() exists in tools/src/commands/ralph/session.ts",
+        "Function returns {inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0} for missing/empty files",
+        "Function correctly sums usage fields from session JSONL lines",
+        "Unit test tools/tests/lib/session-tokens.test.ts passes with mock session data"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/session.ts",
+        ".claude/plans/melodic-wobbling-hamster.md"
       ]
     },
     {
-      "id": "SUB-027",
-      "taskRef": "TASK-017",
-      "storyRef": "STORY-001",
-      "title": "Implement review supervised mode",
-      "description": "Implement supervised mode in tools/src/commands/review/index.ts. Reuse invokeClaudeChat() from ralph/claude.ts to spawn chat session with review prompt. User watches execution and can intervene. Display uses ralph display utilities.",
-      "done": false,
+      "id": "SUB-082",
+      "taskRef": "token-usage-display",
+      "title": "Integrate token usage into diary entries, summary, and display",
+      "description": "Wire up token usage end-to-end: (1) Add optional tokenUsage field to IterationDiaryEntry in types.ts, (2) Call getTokenUsageFromSession() in post-iteration.ts during metrics collection and include in diary entry, (3) Extend BuildStats in summary.ts with token aggregation, (4) Display token totals in renderBuildPracticalSummary() in display.ts with format like 'Tokens 42K' or 'In: 35K Out: 7K Cache: 28K'.",
+      "done": true,
+      "completedAt": "2026-01-27T03:30:00Z",
+      "commitHash": "e8ef125b12ffd72c23443204fb46aedd1b44b4c3",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        "Supervised mode invokes Claude in chat mode",
-        "Review prompt is loaded and passed to Claude",
-        "User can watch and type during session",
-        "Display matches Ralph supervised mode style"
+        "IterationDiaryEntry in types.ts includes optional tokenUsage?: TokenUsage field",
+        "runPostIterationHook() in post-iteration.ts calls getTokenUsageFromSession() and adds tokenUsage to diary entry",
+        "BuildStats in summary.ts includes token aggregation fields (inputTokens, outputTokens, cacheReadTokens)",
+        "generateBuildSummary() aggregates token usage from diary entries",
+        "renderBuildPracticalSummary() displays token totals in stats line",
+        "Token counts display as readable numbers (e.g., '42K' or '42,312')",
+        "E2E verification: run ralph build iteration, check diary entry has tokenUsage, verify display shows tokens"
       ],
       "filesToRead": [
-        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/ralph/summary.ts",
         "tools/src/commands/ralph/display.ts",
-        "tools/src/commands/review/index.ts"
-      ]
+        "tools/src/commands/ralph/session.ts",
+        ".claude/plans/melodic-wobbling-hamster.md"
+      ],
+      "blockedBy": ["SUB-081"]
     },
     {
-      "id": "SUB-028",
-      "taskRef": "TASK-017",
-      "storyRef": "STORY-001",
-      "title": "Implement review headless mode",
-      "description": "Implement headless mode in tools/src/commands/review/index.ts. Reuse invokeClaudeHeadless() from ralph/claude.ts. Parse JSON findings from output, auto-triage by severity/confidence, apply fixes unless dry-run. Log all decisions.",
-      "done": false,
+      "id": "SUB-083",
+      "taskRef": "lines-changed-display",
+      "title": "Add linesAdded/linesRemoved to types and extract from git",
+      "description": "Add linesAdded and linesRemoved fields to IterationDiaryEntry in types.ts. In post-iteration.ts, extend getFilesChanged() (or add a new getLinesChanged() function) to run 'git diff --numstat' and parse the output to sum insertions/deletions. Return line counts alongside filesChanged. Update runPostIterationHook() to include linesAdded/linesRemoved in the diary entry.",
+      "done": true,
+      "completedAt": "2026-01-27T04:30:00Z",
+      "commitHash": "29a3d8233ca0f1847562a4274209c96541f7e4ca",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        "Headless mode invokes Claude with -p flag",
-        "JSON findings are parsed from output",
-        "Auto-triage categorizes by severity × confidence",
-        "Fixes are applied (unless --dry-run)",
-        "All decisions are logged for diary"
+        "IterationDiaryEntry in types.ts has optional linesAdded?: number and linesRemoved?: number fields",
+        "post-iteration.ts extracts line stats from 'git diff --numstat' output",
+        "Line stats are summed across all changed files (handles multi-file output)",
+        "Binary files (shown as '-' in numstat) are excluded from counts",
+        "Diary entry written by runPostIterationHook() includes linesAdded/linesRemoved",
+        "Unit test tools/tests/lib/lines-changed.test.ts verifies numstat parsing"
       ],
       "filesToRead": [
-        "tools/src/commands/ralph/claude.ts",
-        "tools/src/commands/ralph/build.ts",
-        "tools/src/commands/review/index.ts"
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/post-iteration.ts",
+        ".claude/plans/indexed-toasting-ocean.md"
       ]
     },
     {
-      "id": "SUB-029",
-      "taskRef": "TASK-017",
-      "storyRef": "STORY-001",
-      "title": "Implement review diary logging",
-      "description": "Implement diary logging for review command. Write ReviewDiaryEntry to logs/reviews.jsonl after each review run. Include timestamp, mode, findings count, fixed/skipped/falsePositives, and full decisions array. Implement 'aaa review status' to read and display diary.",
-      "done": false,
+      "id": "SUB-084",
+      "taskRef": "lines-changed-display",
+      "title": "Display lines changed in iteration box and build summary",
+      "description": "Add linesAdded and linesRemoved fields to IterationDisplayData interface in display.ts. Update renderIterationEnd() metrics line to show '+N/-M lines' with green/red coloring. Update BuildStats in summary.ts to include linesAdded/linesRemoved totals. Update generateBuildSummary() to aggregate line counts from diary entries. Update renderBuildPracticalSummary() to display aggregated line stats.",
+      "done": true,
+      "completedAt": "2026-01-27T05:15:00Z",
+      "commitHash": "fe3e9fdc40fd2e88a19e5f7a005ccf89518a2a1e",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        "logs/reviews.jsonl created if doesn't exist",
-        "ReviewDiaryEntry appended after each run",
-        "Entry includes all specified fields",
-        "'aaa review status' reads and displays diary entries",
-        "Status shows summary statistics"
+        "IterationDisplayData in display.ts has optional linesAdded?: number and linesRemoved?: number fields",
+        "renderIterationEnd() shows line changes as '+N/-M lines' with chalk.green for additions, chalk.red for deletions",
+        "BuildStats in summary.ts includes linesAdded: number and linesRemoved: number fields",
+        "generateBuildSummary() aggregates linesAdded and linesRemoved from diary entries",
+        "renderBuildPracticalSummary() displays line stats in the stats line",
+        "E2E verification: run ralph build --max-iterations 1 and verify lines appear in output"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/summary.ts",
+        "tools/src/commands/ralph/types.ts",
+        ".claude/plans/indexed-toasting-ocean.md"
+      ],
+      "blockedBy": ["SUB-083"]
+    },
+    {
+      "id": "SUB-085",
+      "taskRef": "unified-config",
+      "title": "Create unified AaaConfig types and Zod schemas",
+      "description": "Create tools/src/lib/config/types.ts with AaaConfig interface that unifies notify, ralph, review, and research config under one root schema. Include nested interfaces (NotifySection, RalphSection, ReviewSection, ResearchSection) and Zod schemas for validation. Define event routing types for the notify.events map (topic, priority, tags per event).",
+      "done": true,
+      "completedAt": "2026-01-27T06:15:00Z",
+      "commitHash": "4ab0765",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "types.ts exists at tools/src/lib/config/types.ts",
+        "AaaConfig interface matches plan schema structure (notify, ralph, review, research, debug sections)",
+        "NotifySection includes events map with EventConfig type (topic, priority, tags)",
+        "Zod schemas validate each section independently and combined",
+        "Unit test tools/tests/lib/config-types.test.ts verifies schema validation"
+      ],
+      "filesToRead": [
+        "tools/src/commands/notify/types.ts",
+        "tools/src/commands/ralph/types.ts",
+        ".claude/plans/linked-snuggling-locket.md",
+        "context/foundations/security/secrets-env-typed.md"
+      ]
+    },
+    {
+      "id": "SUB-086",
+      "taskRef": "unified-config",
+      "title": "Create unified config defaults and typed env",
+      "description": "Create tools/src/lib/config/defaults.ts with DEFAULT_AAA_CONFIG constant covering all sections with sensible defaults. Create tools/src/lib/config/env.ts with Zod-validated environment variables (NTFY_PASSWORD, NTFY_TOPIC, NTFY_SERVER) following secrets-env-typed.md pattern. Environment validation should warn but not exit on missing optional vars.",
+      "done": true,
+      "completedAt": "2026-01-27T11:30:00Z",
+      "commitHash": "bf3724b6bc9ba57c2f4ce4b9d0bae9d7bee064e9",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "defaults.ts exists at tools/src/lib/config/defaults.ts with DEFAULT_AAA_CONFIG",
+        "env.ts exists at tools/src/lib/config/env.ts with envSchema Zod validation",
+        "env.ts exports typed env object with all optional secrets",
+        "NTFY_PASSWORD, NTFY_TOPIC, NTFY_SERVER handled as optional env vars",
+        "Unit test tools/tests/lib/config-env.test.ts verifies env parsing with mock values"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/types.ts",
+        "context/foundations/security/secrets-env-typed.md",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-085"]
+    },
+    {
+      "id": "SUB-087",
+      "taskRef": "unified-config",
+      "title": "Create unified config loader with fallback",
+      "description": "Create tools/src/lib/config/loader.ts with loadAaaConfig() that: (1) looks for aaa.config.json in project root, (2) falls back to legacy files (ralph.config.json, ~/.config/aaa/notify.json) with deprecation warning, (3) deep merges with defaults, (4) validates with Zod, (5) returns config with safeParse (warn + use defaults on invalid). Create barrel export in tools/src/lib/config/index.ts.",
+      "done": true,
+      "completedAt": "2026-01-27T12:30:00Z",
+      "commitHash": "43ef7793c3006d2b371e5260c0e76e6276c48af8",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "loader.ts exists at tools/src/lib/config/loader.ts",
+        "loadAaaConfig() returns DEFAULT_AAA_CONFIG when no config file exists",
+        "loadAaaConfig() logs deprecation warning when loading from legacy files",
+        "Invalid config JSON logs warning and returns defaults (no throw)",
+        "Deep merge correctly handles nested objects (notify.quietHours, ralph.hooks)",
+        "index.ts barrel exports loadAaaConfig, DEFAULT_AAA_CONFIG, env",
+        "Unit test tools/tests/lib/config-loader.test.ts passes with temp files"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/types.ts",
+        "tools/src/lib/config/defaults.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/notify/config.ts",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-086"]
+    },
+    {
+      "id": "SUB-088",
+      "taskRef": "unified-config",
+      "title": "Add --event flag to notify command",
+      "description": "Extend tools/src/commands/notify/index.ts to add --event <name> option that looks up event-specific config from aaa.config.json notify.events map. Event lookup should fall back to defaults (defaultTopic, defaultPriority) if event not found. Integrate with the new unified config loader.",
+      "done": true,
+      "completedAt": "2026-01-27T13:15:00Z",
+      "commitHash": "7db490c3523ee779a9ccfa9fb6e41598dfec427f",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "aaa notify --event ralph:milestoneComplete 'test' routes to event-specific topic/priority/tags",
+        "Unknown event falls back to notify.defaultTopic and notify.defaultPriority",
+        "Event tags are merged with --tags CLI flag if both provided",
+        "E2E test tools/tests/e2e/notify-event.test.ts verifies event routing",
+        "README.md updated with --event flag documentation"
+      ],
+      "filesToRead": [
+        "tools/src/commands/notify/index.ts",
+        "tools/src/lib/config/loader.ts",
+        "README.md",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-087"]
+    },
+    {
+      "id": "SUB-089",
+      "taskRef": "unified-config",
+      "title": "Update Ralph hooks to use notify CLI",
+      "description": "Refactor tools/src/commands/ralph/hooks.ts executeNotifyAction() to use Bun.spawn(['aaa', 'notify', '--event', eventName, '--quiet', message]) instead of inline fetch. Map hook names to event names (onMaxIterationsExceeded → ralph:maxIterationsExceeded). Keep inline fetch as fallback if CLI not available.",
+      "done": true,
+      "completedAt": "2026-01-27T14:15:00Z",
+      "commitHash": "1b2f9b082c4fbfde5c7b8bf9f4a0ab6d66c69329",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "executeNotifyAction() uses Bun.spawn to call aaa notify CLI",
+        "Hook names map correctly to event names (camelCase to kebab-case pattern)",
+        "Notification uses --quiet flag to suppress CLI output",
+        "Fallback to inline fetch if spawn fails with ENOENT",
+        "Unit test tools/tests/lib/ralph-hooks.test.ts verifies CLI invocation pattern"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/hooks.ts",
+        "tools/src/commands/notify/index.ts",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-088"]
+    },
+    {
+      "id": "SUB-090",
+      "taskRef": "unified-config",
+      "title": "Wire onMilestoneComplete and onSubtaskComplete hooks",
+      "description": "Add hook execution to tools/src/commands/ralph/build.ts: (1) onMilestoneComplete when remaining === 0 at end of build loop, (2) onSubtaskComplete when didComplete === true after iteration. Use executeHook from hooks.ts with appropriate context messages.",
+      "done": true,
+      "completedAt": "2026-01-27T14:45:00Z",
+      "commitHash": "137c8a4422e65fb9d0c7b4c297d8ac521ccf0bd4",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "onMilestoneComplete hook fires when all subtasks complete (remaining === 0)",
+        "onSubtaskComplete hook fires when individual subtask completes (didComplete === true)",
+        "Hook context includes subtaskId and descriptive message",
+        "Hooks respect configuration in aaa.config.json ralph.hooks section",
+        "E2E test verifies hooks fire (mock notify to avoid real notifications)"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/hooks.ts",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-089"]
+    },
+    {
+      "id": "SUB-091",
+      "taskRef": "unified-config",
+      "title": "Update Ralph config to use unified loader",
+      "description": "Refactor tools/src/commands/ralph/config.ts to use loadAaaConfig() from tools/src/lib/config. Extract ralph section from unified config. Remove standalone ralph.config.json loading logic. Maintain backward compatibility with legacy file via unified loader fallback.",
+      "done": true,
+      "completedAt": "2026-01-27T15:30:00Z",
+      "commitHash": "188a7384fbac87040258ffeb3c65a824c8bda8a6",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "loadRalphConfig() calls loadAaaConfig() and extracts .ralph section",
+        "Legacy ralph.config.json still works via unified loader fallback",
+        "DEFAULT_CONFIG remains unchanged for behavior consistency",
+        "Existing ralph build commands work unchanged",
+        "Unit test verifies config loading from unified source"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/lib/config/loader.ts",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-087"]
+    },
+    {
+      "id": "SUB-092",
+      "taskRef": "unified-config",
+      "title": "Update notify config to use unified loader",
+      "description": "Refactor tools/src/commands/notify/config.ts to use loadAaaConfig() from tools/src/lib/config. Extract notify section from unified config. Handle legacy ~/.config/aaa/notify.json via unified loader fallback. Update saveNotifyConfig to write to unified location with migration path.",
+      "done": true,
+      "completedAt": "2026-01-27T16:30:00Z",
+      "commitHash": "bb52c55ab41b415c24c8db1b7e5110bc0a08acd1",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "loadNotifyConfig() calls loadAaaConfig() and extracts .notify section",
+        "Legacy ~/.config/aaa/notify.json still works via unified loader fallback",
+        "saveNotifyConfig() writes notify section to aaa.config.json (not legacy path)",
+        "aaa notify init creates aaa.config.json instead of legacy file",
+        "Unit test verifies config loading from unified source"
+      ],
+      "filesToRead": [
+        "tools/src/commands/notify/config.ts",
+        "tools/src/lib/config/loader.ts",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-087"]
+    },
+    {
+      "id": "SUB-093",
+      "taskRef": "unified-config",
+      "title": "Replace Node.js spawn/exec with Bun.spawn in Ralph",
+      "description": "Replace execSync/spawnSync from node:child_process with Bun.spawn/Bun.spawnSync in: ralph/index.ts, ralph/claude.ts, ralph/session.ts, ralph/post-iteration.ts. Use Bun.spawn for async operations and Bun.spawnSync for synchronous ones. Maintain identical behavior and error handling.",
+      "done": true,
+      "completedAt": "2026-01-27T19:00:00Z",
+      "commitHash": "bd6b4efff52693e209f86d56b5870cb0840a502a",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "No imports from 'node:child_process' in ralph/*.ts files",
+        "Bun.spawnSync used for synchronous git operations and claude invocations",
+        "Bun.spawn used for async notifications",
+        "Error handling preserved (exit codes, stderr capture)",
+        "E2E tests pass unchanged (behavior identical)"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/session.ts",
+        "tools/src/commands/ralph/post-iteration.ts",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-089"]
+    },
+    {
+      "id": "SUB-094",
+      "taskRef": "unified-config",
+      "title": "Create aaa.config.json schema and example file",
+      "description": "Create docs/planning/schemas/aaa-config.schema.json with full JSON Schema for the unified config. Create .env.dev template file (committed, no secrets) documenting available env vars. Update README.md with config file documentation and example.",
+      "done": true,
+      "completedAt": "2026-01-27T20:15:00Z",
+      "commitHash": "371b48b",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "aaa-config.schema.json exists at docs/planning/schemas/aaa-config.schema.json",
+        "Schema validates the complete config structure from plan",
+        ".env.dev exists at project root with NTFY_PASSWORD, NTFY_TOPIC, NTFY_SERVER placeholders",
+        "README.md has 'Configuration' section documenting aaa.config.json",
+        "Example config in README matches plan format"
+      ],
+      "filesToRead": [
+        "docs/planning/schemas/ralph-config.schema.json",
+        "README.md",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-085"]
+    },
+    {
+      "id": "SUB-095",
+      "taskRef": "unified-config",
+      "title": "Update Claude Code hooks in settings.json",
+      "description": "Update .claude/settings.json to add notification hooks for Stop and permission_prompt events. Use aaa notify --event claude:stop and aaa notify --event claude:permissionPrompt with --quiet flag. Document the hooks in README.md Claude Code integration section.",
+      "done": true,
+      "completedAt": "2026-01-27T21:00:00Z",
+      "commitHash": "eb17d899eab7f1d42d8616c6b3d6b43ac992b412",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        ".claude/settings.json hooks.Stop uses aaa notify --event claude:stop",
+        "hooks.Notification entry for permission_prompt uses aaa notify --event claude:permissionPrompt",
+        "--quiet flag used to suppress notification output in terminal",
+        "README.md documents Claude Code notification integration",
+        "Existing Stop hook (afplay) preserved as separate entry"
+      ],
+      "filesToRead": [
+        ".claude/settings.json",
+        "README.md",
+        ".claude/plans/linked-snuggling-locket.md"
+      ],
+      "blockedBy": ["SUB-088"]
+    },
+    {
+      "id": "SUB-096",
+      "taskRef": "iteration-metrics-display",
+      "title": "Pass linesAdded/linesRemoved/tokenUsage to renderIterationEnd",
+      "description": "Fix data pass-through in build.ts: Both headless mode (lines 364-380) and supervised mode (lines 474-490) call renderIterationEnd() but don't pass linesAdded, linesRemoved, or tokenUsage from the diary entry. Add these three fields to both renderIterationEnd() calls.",
+      "done": true,
+      "completedAt": "2026-01-27T17:15:00Z",
+      "commitHash": "20dec9bd2a824a9acf8dcbc094d89f853d46f460",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "Headless mode renderIterationEnd() call includes linesAdded: entry.linesAdded",
+        "Headless mode renderIterationEnd() call includes linesRemoved: entry.linesRemoved",
+        "Headless mode renderIterationEnd() call includes tokenUsage: entry.tokenUsage",
+        "Supervised mode renderIterationEnd() call includes same three fields",
+        "TypeScript compiles with no errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-097",
+      "taskRef": "iteration-metrics-display",
+      "title": "Fix getLinesChanged to fall back to git show --numstat HEAD",
+      "description": "In post-iteration.ts, the getLinesChanged() function uses 'git diff --cached' and 'git diff' which return empty after Claude commits. Add fallback: when both diffs return 0 lines, run 'git show --numstat HEAD' to get the commit's line changes and parse with existing parseNumstat().",
+      "done": true,
+      "completedAt": "2026-01-27T17:45:00Z",
+      "commitHash": "ddc09ebc6788773de837c09e156383049bd542fd",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "getLinesChanged() returns non-zero values after commit is made",
+        "Fallback runs 'git show --numstat HEAD' when staged+unstaged diff is zero",
+        "parseNumstat() is reused for commit diff output",
+        "Binary files (- entries) still excluded from counts",
+        "Unit test tools/tests/lib/lines-changed.test.ts updated to cover fallback case"
       ],
       "filesToRead": [
         "tools/src/commands/ralph/post-iteration.ts",
-        "tools/src/commands/ralph/status.ts",
-        "tools/src/commands/review/types.ts"
+        "tools/tests/lib/lines-changed.test.ts"
       ]
     },
     {
-      "id": "SUB-030",
-      "taskRef": "TASK-017",
-      "storyRef": "STORY-001",
-      "title": "Add review shell completions",
-      "description": "Update tools/src/commands/completion/bash.ts, zsh.ts, and fish.ts to include 'review' command completions. Add --supervised, --headless, --dry-run flags and 'status' subcommand.",
-      "done": false,
+      "id": "SUB-098",
+      "taskRef": "iteration-metrics-display",
+      "title": "Add tokenUsage to IterationDisplayData and render in iteration box",
+      "description": "In display.ts: (1) Add optional tokenUsage?: TokenUsage field to IterationDisplayData interface. (2) In renderIterationEnd(), add a second metrics line showing token usage when present and non-zero. Format: 'Tokens  In: 42K  Out: 3K  Cache: 38K' using existing formatTokenCount().",
+      "done": true,
+      "completedAt": "2026-01-27T18:30:00Z",
+      "commitHash": "b732a7b240e11f2b9717fd0ee8a3260ae34788de",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        "bash.ts includes review command completion",
-        "zsh.ts includes review command completion",
-        "fish.ts includes review command completion",
-        "All three include --supervised, --headless, --dry-run flags",
-        "All three include status subcommand"
+        "IterationDisplayData interface has tokenUsage?: TokenUsage field",
+        "TokenUsage type is imported from ./types.ts",
+        "renderIterationEnd() extracts tokenUsage from data parameter",
+        "Token line rendered only when tokenUsage present with non-zero values",
+        "Token counts formatted using formatTokenCount() for '42K'/'1.2M' style",
+        "Line format: 'Tokens  In: <value>  Out: <value>  Cache: <value>'"
       ],
       "filesToRead": [
-        "tools/src/commands/completion/bash.ts",
-        "tools/src/commands/completion/zsh.ts",
-        "tools/src/commands/completion/fish.ts"
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/types.ts"
+      ],
+      "blockedBy": ["SUB-096"]
+    },
+    {
+      "id": "SUB-099",
+      "taskRef": "review-code-quality",
+      "title": "Delete friction analysis system files",
+      "description": "Delete the friction analysis system which duplicates ralph calibrate improve functionality. Remove: .claude/agents/conversation-friction-analyzer.md, .claude/agents/friction-pattern-abstractor.md, .claude/skills/analyze-friction/ folder. Verify no remaining references with grep. Update README.md agents table to mark as deleted.",
+      "done": true,
+      "completedAt": "2026-01-27T21:45:00Z",
+      "commitHash": "63378470357367bb5c48ebc1e96aa4ceae347cdf",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        ".claude/agents/conversation-friction-analyzer.md does not exist",
+        ".claude/agents/friction-pattern-abstractor.md does not exist",
+        ".claude/skills/analyze-friction/ directory does not exist",
+        "grep -r 'friction-analyzer|friction-pattern' .claude/ returns no matches",
+        "README.md Sub-agents table no longer lists conversation-friction-analyzer or friction-pattern-abstractor"
+      ],
+      "filesToRead": [
+        ".claude/agents/conversation-friction-analyzer.md",
+        ".claude/agents/friction-pattern-abstractor.md",
+        "README.md"
       ]
     },
     {
-      "id": "SUB-031",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create over-engineering-reviewer agent",
-      "description": "Create .claude/agents/code-review/over-engineering-reviewer.md agent focused on YAGNI violations, premature abstraction, unnecessary complexity, and over-configurability. Agent identifies over-engineering and outputs findings per schema.",
-      "done": false,
+      "id": "SUB-100",
+      "taskRef": "review-code-quality",
+      "title": "Delete gemini-research agent and command",
+      "description": "Delete the gemini-research agent which doesn't work (doesn't invoke CLI, just hallucinates). Remove: .claude/agents/gemini-research.md, .claude/commands/gemini-research.md. Evaluate tools/src/commands/gemini-research/ - keep CLI if it works standalone. Update README.md agents table to mark as deleted.",
+      "done": true,
+      "completedAt": "2026-01-27T22:00:00Z",
+      "commitHash": "876c1cd518cd73ffcbe35432eacba333cc71fd02",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        ".claude/agents/code-review/over-engineering-reviewer.md exists",
-        "Agent focuses on YAGNI, premature abstraction, complexity",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent provides specific examples of simpler alternatives"
+        ".claude/agents/gemini-research.md does not exist",
+        ".claude/commands/gemini-research.md does not exist",
+        "grep -r 'gemini-research' .claude/agents/ .claude/commands/ returns no matches",
+        "README.md Sub-agents table no longer lists gemini-research",
+        "CLI tools/src/commands/gemini-research/ is evaluated (keep if works, delete if broken)"
       ],
       "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
+        ".claude/agents/gemini-research.md",
+        ".claude/commands/gemini-research.md",
+        "tools/src/commands/gemini-research/index.ts",
+        "README.md"
       ]
     },
     {
-      "id": "SUB-032",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create performance-reviewer agent",
-      "description": "Create .claude/agents/code-review/performance-reviewer.md agent focused on N+1 queries, memory leaks, algorithm complexity, and inefficient patterns. Agent identifies performance issues and outputs findings per schema.",
-      "done": false,
+      "id": "SUB-101",
+      "taskRef": "review-code-quality",
+      "title": "Update README.md agents table for atomic-doc-creator and intent-alignment-reviewer",
+      "description": "Update README.md Sub-agents table: (1) Change atomic-doc-creator Action from 'Requires context/ symlink' to 'DONE (documented)' since the agent already documents this requirement. (2) Change intent-alignment-reviewer Action from 'REFACTOR: find/create atomic doc' to 'N/A - uses planning chain' since it doesn't use atomic docs.",
+      "done": true,
+      "completedAt": "2026-01-27T22:15:00Z",
+      "commitHash": "9b1bf61924bd0bcfc916b6bdf7ccd769ba8b222f",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        ".claude/agents/code-review/performance-reviewer.md exists",
-        "Agent focuses on N+1, memory, algorithms, inefficiency",
-        "Agent outputs findings in JSON format matching Finding schema",
-        "Agent suggests specific performance improvements"
+        "README.md atomic-doc-creator row has Action 'DONE (documented)'",
+        "README.md intent-alignment-reviewer row has Action 'N/A - uses planning chain'",
+        "No other rows in Sub-agents table are modified"
       ],
       "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
+        "README.md",
+        ".claude/agents/atomic-doc-creator.md",
+        ".claude/agents/code-review/intent-alignment-reviewer.md"
       ]
     },
     {
-      "id": "SUB-033",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create accessibility-reviewer agent",
-      "description": "Create .claude/agents/code-review/accessibility-reviewer.md agent focused on WCAG compliance for frontend code. Agent should skip non-frontend files. Identifies missing ARIA, color contrast, keyboard navigation issues.",
-      "done": false,
+      "id": "SUB-102",
+      "taskRef": "review-code-quality",
+      "title": "Fix parallel-search agent to invoke CLI",
+      "description": "Fix .claude/agents/parallel-search.md so it actually invokes the aaa parallel-search CLI via Bash tool instead of hallucinating results. Update process section to: (1) Parse research question, (2) Generate 3-5 query angles, (3) MUST invoke CLI via Bash: aaa parallel-search --objective '<objective>' --queries '<q1>' '<q2>' '<q3>', (4) Read generated report from docs/research/parallel/, (5) Synthesize and return findings.",
+      "done": true,
+      "completedAt": "2026-01-27T22:30:00Z",
+      "commitHash": "bc101fba55bf2f4e490b032859d5481f0b25e407",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        ".claude/agents/code-review/accessibility-reviewer.md exists",
-        "Agent focuses on WCAG, ARIA, color contrast, keyboard nav",
-        "Agent skips non-frontend files (detect by extension/path)",
-        "Agent outputs findings in JSON format matching Finding schema"
+        ".claude/agents/parallel-search.md contains Bash tool invocation pattern",
+        "Agent explicitly states 'MUST invoke CLI' with example command",
+        "Process mentions reading report from docs/research/parallel/",
+        "README.md parallel-search row Action updated to 'DONE (agent fixed)'"
       ],
       "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
+        ".claude/agents/parallel-search.md",
+        "tools/src/commands/parallel-search/index.ts",
+        "README.md"
       ]
     },
     {
-      "id": "SUB-034",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create documentation-reviewer agent",
-      "description": "Create .claude/agents/code-review/documentation-reviewer.md agent focused on missing/outdated documentation, README gaps, missing JSDoc/TSDoc comments, and changelog omissions. Agent identifies doc issues and outputs findings per schema.",
-      "done": false,
+      "id": "SUB-103",
+      "taskRef": "review-code-quality",
+      "title": "Fix parallel-search CLI to return formatted output",
+      "description": "Update tools/src/commands/parallel-search/index.ts to return formatted markdown to stdout like ralph build does. Add --verbose flag to show full report content. Default behavior: show summary + file paths. This makes the CLI usable for the agent to read results directly.",
+      "done": true,
+      "completedAt": "2026-01-27T22:45:00Z",
+      "commitHash": "93c1235184d5a4279e11f0509752d64f40787125",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        ".claude/agents/code-review/documentation-reviewer.md exists",
-        "Agent identifies missing docs for public APIs",
-        "Agent identifies outdated docs that don't match code",
-        "Agent outputs findings in JSON format matching Finding schema"
+        "aaa parallel-search outputs formatted markdown summary to stdout",
+        "aaa parallel-search --verbose shows full report content",
+        "Default output includes: summary, key findings, file path to full report",
+        "README.md CLI section documents --verbose flag",
+        "Unit test verifies stdout output format"
       ],
       "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
+        "tools/src/commands/parallel-search/index.ts",
+        "tools/src/commands/parallel-search/formatter.ts",
+        "tools/src/commands/ralph/display.ts",
+        "README.md"
       ]
     },
     {
-      "id": "SUB-035",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create dependency-reviewer agent",
-      "description": "Create .claude/agents/code-review/dependency-reviewer.md agent focused on outdated dependencies, known vulnerabilities, license compatibility, and unnecessary dependencies. Agent checks package.json and outputs findings per schema.",
-      "done": false,
+      "id": "SUB-104",
+      "taskRef": "review-code-quality",
+      "title": "Rename subtasks-common.md to subtask-spec.md",
+      "description": "Rename context/workflows/ralph/planning/subtasks-common.md to subtask-spec.md for clarity. Update all references in: context/workflows/ralph/planning/subtasks-auto.md, context/workflows/ralph/planning/subtasks-from-source.md, .claude/agents/subtask-reviewer.md.",
+      "done": true,
+      "completedAt": "2026-01-27T23:15:00Z",
+      "commitHash": "0d7a2fd39df13a0ee3abc29b50c04f845df0710d",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        ".claude/agents/code-review/dependency-reviewer.md exists",
-        "Agent identifies outdated dependencies",
-        "Agent flags known vulnerabilities (can suggest npm audit)",
-        "Agent outputs findings in JSON format matching Finding schema"
+        "context/workflows/ralph/planning/subtask-spec.md exists",
+        "context/workflows/ralph/planning/subtasks-common.md does not exist",
+        "subtasks-auto.md references subtask-spec.md",
+        "subtasks-from-source.md references subtask-spec.md",
+        ".claude/agents/subtask-reviewer.md references subtask-spec.md",
+        "grep -r 'subtasks-common' context/ .claude/ returns no matches"
       ],
       "filesToRead": [
-        ".claude/agents/code-review/types.md",
-        ".claude/agents/code-review/security-reviewer.md"
+        "context/workflows/ralph/planning/subtasks-common.md",
+        "context/workflows/ralph/planning/subtasks-auto.md",
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        ".claude/agents/subtask-reviewer.md"
       ]
     },
     {
-      "id": "SUB-036",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Create intent-alignment-reviewer agent",
-      "description": "Create .claude/agents/code-review/intent-alignment-reviewer.md agent that verifies code matches stated requirements. Agent requires intent input (description or file reference) and checks implementation alignment. Outputs findings per schema.",
-      "done": false,
+      "id": "SUB-105",
+      "taskRef": "review-code-quality",
+      "title": "Create atomic docs for quality patterns (data-integrity, dependencies, simplicity)",
+      "description": "Create 3 atomic documentation files in context/blocks/quality/: data-integrity.md (null checks, race conditions, validation patterns), dependencies.md (version compat, licenses, circular deps patterns), simplicity.md (YAGNI, premature abstraction checks). Extract domain knowledge from corresponding reviewer agents.",
+      "done": true,
+      "completedAt": "2026-01-27T23:45:00Z",
+      "commitHash": "61096ea",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        ".claude/agents/code-review/intent-alignment-reviewer.md exists",
-        "Agent requires intent parameter (description or @file)",
-        "Agent compares implementation to stated intent",
-        "Agent identifies gaps and deviations",
-        "Agent outputs findings in JSON format matching Finding schema"
+        "context/blocks/quality/data-integrity.md exists with null checks, race conditions, validation patterns",
+        "context/blocks/quality/dependencies.md exists with version compat, licenses, circular deps patterns",
+        "context/blocks/quality/simplicity.md exists with YAGNI, premature abstraction checks",
+        "Each doc follows atomic documentation structure from context/blocks/docs/atomic-documentation.md"
       ],
       "filesToRead": [
-        ".claude/agents/code-review/types.md",
+        ".claude/agents/code-review/data-integrity-reviewer.md",
+        ".claude/agents/code-review/dependency-reviewer.md",
+        ".claude/agents/code-review/over-engineering-reviewer.md",
+        "context/blocks/docs/atomic-documentation.md"
+      ]
+    },
+    {
+      "id": "SUB-106",
+      "taskRef": "review-code-quality",
+      "title": "Create atomic docs for performance, security, and documentation standards",
+      "description": "Create 3 atomic documentation files: context/blocks/quality/performance.md (N+1, memory leak, complexity patterns), context/blocks/security/secure-coding.md (OWASP Top 10 patterns), context/blocks/docs/documentation-standards.md (JSDoc/TSDoc, README patterns). Extract domain knowledge from corresponding reviewer agents.",
+      "done": true,
+      "completedAt": "2026-01-27T23:55:00Z",
+      "commitHash": "908cbe606a783d9eeed842862e2586c2d9b0bea8",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "context/blocks/quality/performance.md exists with N+1, memory leak, complexity patterns",
+        "context/blocks/security/secure-coding.md exists with OWASP Top 10 patterns",
+        "context/blocks/docs/documentation-standards.md exists with JSDoc/TSDoc, README patterns",
+        "Each doc follows atomic documentation structure from context/blocks/docs/atomic-documentation.md"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/performance-reviewer.md",
         ".claude/agents/code-review/security-reviewer.md",
-        "context/workflows/code-review.md"
+        ".claude/agents/code-review/documentation-reviewer.md",
+        "context/blocks/docs/atomic-documentation.md"
       ]
     },
     {
-      "id": "SUB-037",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Update atomic-documentation with lessons placement",
-      "description": "Update context/blocks/docs/atomic-documentation.md to add 'Where Lessons Go' decision tree. Document that project-specific lessons go in docs/{folder}/, reusable lessons go in context/blocks/ as Gotchas sections. Clarify context/ vs docs/ distinction.",
-      "done": false,
+      "id": "SUB-107",
+      "taskRef": "review-code-quality",
+      "title": "DRY up subtask-reviewer agent",
+      "description": "Reduce .claude/agents/subtask-reviewer.md from ~245 lines to ~80 lines by referencing subtask-spec.md instead of duplicating content. Remove: vertical slice test (lines 44-69), sizing modes (lines 56-64), signs too large/small. Keep: merge candidate detection, split candidate suggestions, JSON output format (all unique to this agent).",
+      "done": true,
+      "completedAt": "2026-01-27T12:30:00Z",
+      "commitHash": "dfc463392d96edff7bc11dfb8fea82340936c75d",
+      "sessionId": "unknown",
       "acceptanceCriteria": [
-        "atomic-documentation.md has 'Where Lessons Go' section",
-        "Decision tree matches story specification",
-        "Examples show project-specific vs reusable placement",
-        "Clarifies that no separate lessons/ folder exists"
+        ".claude/agents/subtask-reviewer.md is under 120 lines",
+        "Agent references @context/workflows/ralph/planning/subtask-spec.md for vertical slice test",
+        "Agent references subtask-spec.md for sizing modes",
+        "Merge candidate detection logic is preserved",
+        "Split candidate suggestions logic is preserved",
+        "JSON output format is preserved",
+        "Agent still functions correctly with sample subtasks JSON input"
       ],
       "filesToRead": [
+        ".claude/agents/subtask-reviewer.md",
+        "context/workflows/ralph/planning/subtask-spec.md"
+      ],
+      "blockedBy": ["SUB-104"]
+    },
+    {
+      "id": "SUB-108",
+      "taskRef": "review-code-quality",
+      "title": "DRY up task-generator agent",
+      "description": "Reduce .claude/agents/task-generator.md by removing embedded template (lines 119-154). Replace with reference to context/blocks/docs/task-template.md. The agent should describe process but not duplicate the template content.",
+      "done": true,
+      "completedAt": "2026-01-27T12:45:00Z",
+      "commitHash": "b16ce2ad810b8f3dc8f4891ba4f02fc45151f4bb",
+      "sessionId": "ralph-iteration-SUB-108",
+      "acceptanceCriteria": [
+        ".claude/agents/task-generator.md no longer contains embedded task template",
+        "Agent references @context/blocks/docs/task-template.md for template",
+        "Agent file is notably shorter (template was ~35 lines)",
+        "Agent still describes the process correctly"
+      ],
+      "filesToRead": [
+        ".claude/agents/task-generator.md",
+        "context/blocks/docs/task-template.md"
+      ]
+    },
+    {
+      "id": "SUB-109",
+      "taskRef": "review-code-quality",
+      "title": "DRY up code reviewer agents (data-integrity, dependency, over-engineering)",
+      "description": "Update 3 code reviewer agents to reference new atomic docs: data-integrity-reviewer.md -> reference data-integrity.md, dependency-reviewer.md -> reference dependencies.md, over-engineering-reviewer.md -> reference simplicity.md. Each agent should keep: role definition, output format, severity guidelines, examples.",
+      "done": true,
+      "completedAt": "2026-01-27T13:00:00Z",
+      "commitHash": "d2a4764670f3fa71b4a50cbd3a0038ac94a1afbf",
+      "sessionId": "ralph-iteration-SUB-109",
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/data-integrity-reviewer.md references @context/blocks/quality/data-integrity.md",
+        ".claude/agents/code-review/dependency-reviewer.md references @context/blocks/quality/dependencies.md",
+        ".claude/agents/code-review/over-engineering-reviewer.md references @context/blocks/quality/simplicity.md",
+        "Each agent is reduced by at least 30% in line count",
+        "README.md reviewer rows updated to 'DONE (DRYed up)'"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/data-integrity-reviewer.md",
+        ".claude/agents/code-review/dependency-reviewer.md",
+        ".claude/agents/code-review/over-engineering-reviewer.md"
+      ],
+      "blockedBy": ["SUB-105"]
+    },
+    {
+      "id": "SUB-110",
+      "taskRef": "review-code-quality",
+      "title": "DRY up code reviewer agents (performance, security, documentation)",
+      "description": "Update 3 code reviewer agents to reference new atomic docs: performance-reviewer.md -> reference performance.md, security-reviewer.md -> reference secure-coding.md, documentation-reviewer.md -> reference documentation-standards.md. Each agent should keep: role definition, output format, severity guidelines, examples.",
+      "done": true,
+      "completedAt": "2026-01-27T13:45:00Z",
+      "commitHash": "ef253e551a002ce3e0134b1cea5839d775940d1c",
+      "sessionId": "ralph-iteration-SUB-110",
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/performance-reviewer.md references @context/blocks/quality/performance.md",
+        ".claude/agents/code-review/security-reviewer.md references @context/blocks/security/secure-coding.md",
+        ".claude/agents/code-review/documentation-reviewer.md references @context/blocks/docs/documentation-standards.md",
+        "Each agent is reduced by at least 30% in line count",
+        "README.md reviewer rows updated to 'DONE (DRYed up)'"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/performance-reviewer.md",
+        ".claude/agents/code-review/security-reviewer.md",
+        ".claude/agents/code-review/documentation-reviewer.md"
+      ],
+      "blockedBy": ["SUB-106"]
+    },
+    {
+      "id": "SUB-111",
+      "taskRef": "review-code-quality",
+      "title": "DRY up code reviewer agents with existing atomic docs",
+      "description": "Update 3 code reviewer agents that already have atomic docs to reference them. Update: accessibility-reviewer.md -> reference @context/blocks/quality/accessibility.md, maintainability-reviewer.md -> reference @context/blocks/quality/coding-style.md, test-coverage-reviewer.md -> reference @context/blocks/test/testing.md. Each agent should keep role, output format, severity, examples.",
+      "done": true,
+      "completedAt": "2026-01-27T17:35:00Z",
+      "commitHash": "e2170cbce29d79bf0f41f3ce92d1c2232b404855",
+      "sessionId": "ralph-iteration-SUB-111",
+      "acceptanceCriteria": [
+        ".claude/agents/code-review/accessibility-reviewer.md references @context/blocks/quality/accessibility.md",
+        ".claude/agents/code-review/maintainability-reviewer.md references @context/blocks/quality/coding-style.md",
+        ".claude/agents/code-review/test-coverage-reviewer.md references @context/blocks/test/testing.md",
+        "Each agent is reduced by at least 30% in line count",
+        "README.md rows updated to 'DONE (DRYed up)'"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/accessibility-reviewer.md",
+        ".claude/agents/code-review/maintainability-reviewer.md",
+        ".claude/agents/code-review/test-coverage-reviewer.md",
+        "context/blocks/quality/accessibility.md",
+        "context/blocks/quality/coding-style.md",
+        "context/blocks/test/testing.md"
+      ]
+    },
+    {
+      "id": "SUB-112",
+      "taskRef": "review-code-quality",
+      "title": "Update intention-drift calibration to trace only to Story level",
+      "description": "Update context/workflows/ralph/calibration/intention-drift.md to only trace the planning chain up to Story level, not Vision. Vision is too abstract for meaningful intention drift analysis. Remove Vision from the planning chain trace but keep it as optional context if available.",
+      "done": true,
+      "completedAt": "2026-01-27T23:45:00Z",
+      "commitHash": "c8aa47acc4b5f309a84307a2768874512276a5f4",
+      "sessionId": "ralph-iteration-SUB-112",
+      "acceptanceCriteria": [
+        "intention-drift.md planning chain section traces: Subtask -> Task -> Story (not Vision)",
+        "Vision is mentioned as optional additional context, not required",
+        "Analysis still detects scope creep, shortfall, direction change",
+        "No breaking changes to drift task generation"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/calibration/intention-drift.md"
+      ]
+    },
+    {
+      "id": "SUB-113",
+      "taskRef": "review-code-quality",
+      "title": "Update technical-drift calibration to verify filesToRead guidance",
+      "description": "Update context/workflows/ralph/calibration/technical-drift.md to require reading filesToRead from the subtask being analyzed and verifying code follows the atomic docs guidance referenced there. This ensures the agent checks code against the documented standards, not just general patterns.",
+      "done": true,
+      "completedAt": "2026-01-27T15:30:00Z",
+      "commitHash": "7c9af1aaa50c7fe5f5bccd753b2ff85017e57309",
+      "sessionId": "ralph-iteration-SUB-113",
+      "acceptanceCriteria": [
+        "technical-drift.md requires reading subtask's filesToRead array",
+        "Workflow checks if filesToRead contains atomic docs (@context/ paths)",
+        "Analysis verifies code follows guidance from referenced atomic docs",
+        "Drift detection includes 'does not follow atomic doc guidance' as a drift pattern"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/calibration/technical-drift.md"
+      ]
+    },
+    {
+      "id": "SUB-114",
+      "taskRef": "review-code-quality",
+      "title": "Clean up VISION.md TODO comment",
+      "description": "Remove TODO comment block (lines 605-611) from docs/planning/VISION.md. This cleanup should be done after calibration improvements (SUB-112, SUB-113) are implemented.",
+      "done": true,
+      "completedAt": "2026-01-27T16:00:00Z",
+      "commitHash": "bedb16f79f164a1fe9912237aecefcf785394b9a",
+      "sessionId": "ralph-iteration-SUB-114",
+      "acceptanceCriteria": [
+        "docs/planning/VISION.md does not contain TODO comment block at lines 605-611",
+        "No other content in VISION.md is modified",
+        "File remains valid markdown"
+      ],
+      "filesToRead": [
+        "docs/planning/VISION.md"
+      ],
+      "blockedBy": ["SUB-112", "SUB-113"]
+    },
+    {
+      "id": "SUB-115",
+      "taskRef": "review-code-quality",
+      "title": "Verify all deletions and refactors with test commands",
+      "description": "Run verification commands from the plan to ensure all changes work correctly. Test: (1) grep for deleted references, (2) parallel-search agent invokes CLI, (3) code review skill works with DRYed agents, (4) new atomic docs exist. Update README.md agents table with final status for all rows.",
+      "done": true,
+      "completedAt": "2026-01-27T23:59:00Z",
+      "commitHash": "d7454927c41339c483f90552ae3448f9fc71eabc",
+      "sessionId": "ralph-iteration-SUB-115",
+      "acceptanceCriteria": [
+        "grep -r 'friction-analyzer|friction-pattern|gemini-research' .claude/ returns no matches",
+        "grep -r 'subtasks-common' context/ returns no matches",
+        "ls context/blocks/quality/ shows new atomic docs",
+        "ls context/blocks/security/ shows secure-coding.md",
+        "All README.md Sub-agents table Action columns updated to final status"
+      ],
+      "filesToRead": [
+        "README.md"
+      ],
+      "blockedBy": ["SUB-099", "SUB-100", "SUB-104", "SUB-105", "SUB-106", "SUB-109", "SUB-110", "SUB-111"]
+    },
+    {
+      "id": "SUB-116",
+      "taskRef": "config-cleanup",
+      "title": "Remove legacy ~/.config/aaa/notify.json support",
+      "description": "Remove the legacy notify config path (~/.config/aaa/notify.json) from the unified config loader. This path was deprecated when the unified aaa.config.json was introduced. Delete: loadLegacyNotifyConfig() function, LEGACY_NOTIFY_CONFIG constant, the fallback logic that calls it. Update tests to remove acknowledgment of legacy fallback. Clean up comments referencing the legacy path.",
+      "done": true,
+      "completedAt": "2026-01-27T16:45:00Z",
+      "commitHash": "80fbdc802b17f94f010cb143f25f740496027281",
+      "sessionId": "ralph-iteration-SUB-116",
+      "acceptanceCriteria": [
+        "LEGACY_NOTIFY_CONFIG constant removed from tools/src/lib/config/loader.ts",
+        "loadLegacyNotifyConfig() function removed from tools/src/lib/config/loader.ts",
+        "Fallback logic at lines 125-131 simplified to only check legacy ralph.config.json",
+        "LEGACY_NOTIFY_CONFIG export removed from line 340",
+        "Comments referencing ~/.config/aaa/notify.json removed from notify/config.ts and notify/types.ts",
+        "Test 'returns defaults (merged with any legacy config)' updated to 'returns defaults when config missing'",
+        "grep -r '\\.config/aaa/notify' tools/ returns no matches",
+        "TypeScript compiles with no errors",
+        "Existing tests pass"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/loader.ts",
+        "tools/src/commands/notify/config.ts",
+        "tools/src/commands/notify/types.ts",
+        "tools/tests/lib/config-loader.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-117",
+      "taskRef": "slash-commands-cleanup",
+      "title": "NUKE 8 redundant commands and update all refs",
+      "description": "Delete 8 commands that are now redundant (skills auto-trigger or duplicates): code-review, create-task, download (+CLI+tests), create-command, create-plugin (+script), how-to-prompt, optimize-prompt (+doc). Update all references in README.md, cli.ts, completion scripts, and other docs. Verify skill coverage exists for replaced commands.",
+      "done": true,
+      "completedAt": "2026-01-28T10:30:00Z",
+      "commitHash": "0148f79b38c5558034e98bfe39a255b16c675186",
+      "sessionId": "ralph-iteration-SUB-117",
+      "acceptanceCriteria": [
+        ".claude/commands/dev/code-review.md does not exist",
+        ".claude/commands/create-task.md does not exist",
+        ".claude/commands/download.md does not exist",
+        "tools/src/commands/download.ts does not exist",
+        ".claude/commands/meta/claude-code/create-command.md does not exist",
+        ".claude/commands/meta/claude-code/create-plugin.md does not exist",
+        ".claude/commands/meta/claude-code/create-plugin.ts does not exist",
+        ".claude/commands/meta/how-to-prompt.md does not exist",
+        ".claude/commands/meta/optimize-prompt.md does not exist",
+        "context/blocks/docs/prompting-optimize.md does not exist",
+        "grep -r 'code-review|create-task|download|create-command|create-plugin|how-to-prompt|optimize-prompt' .claude/commands/ returns no matches",
+        "tools/src/cli.ts has no download import or registration",
+        "README.md Commands table has 8 fewer rows (13 remaining)",
+        "TypeScript compiles with no errors"
+      ],
+      "filesToRead": [
+        ".claude/commands/dev/code-review.md",
+        ".claude/commands/create-task.md",
+        ".claude/commands/download.md",
+        ".claude/commands/meta/claude-code/create-plugin.md",
+        ".claude/commands/meta/how-to-prompt.md",
+        ".claude/commands/meta/optimize-prompt.md",
+        "tools/src/cli.ts",
+        "README.md"
+      ]
+    },
+    {
+      "id": "SUB-118",
+      "taskRef": "slash-commands-cleanup",
+      "title": "FIX 4 git commands: permissions, pre-flight, verbosity",
+      "description": "Fix all 4 git-related commands: (1) git-commit: add Bash(git pull:*), Bash(git log:*), Bash(git reset:*) permissions, add pre-flight checks to workflow; (2) git-multiple-commits: fix name field (git-commit -> dev:git-multiple-commits), add Bash(git reset:*); (3) start-feature: add Bash(git fetch:*), add argument-hint, improve $ARGUMENTS handling; (4) complete-feature: add Bash(git reset:*), remove Step 10 branch deletion from workflow, trim Step 4 verbosity.",
+      "done": true,
+      "completedAt": "2026-01-28T11:45:00Z",
+      "commitHash": "f90a7117f9eb13b706830cb576376861ff7641ce",
+      "sessionId": "ralph-iteration-SUB-118",
+      "acceptanceCriteria": [
+        ".claude/commands/dev/git-commit.md has Bash(git pull:*), Bash(git log:*), Bash(git reset:*) in allowed-tools",
+        "context/workflows/commit.md has pre-flight checks section",
+        ".claude/commands/dev/git-multiple-commits.md has name: dev:git-multiple-commits",
+        ".claude/commands/dev/git-multiple-commits.md has Bash(git reset:*) in allowed-tools",
+        ".claude/commands/dev/start-feature.md has Bash(git fetch:*) in allowed-tools",
+        ".claude/commands/dev/start-feature.md has argument-hint field",
+        ".claude/commands/dev/complete-feature.md has Bash(git reset:*) in allowed-tools",
+        "context/workflows/complete-feature.md Step 10 does not exist or is not branch deletion",
+        "context/workflows/complete-feature.md Step 4 is under 10 lines"
+      ],
+      "filesToRead": [
+        ".claude/commands/dev/git-commit.md",
+        ".claude/commands/dev/git-multiple-commits.md",
+        ".claude/commands/dev/start-feature.md",
+        ".claude/commands/dev/complete-feature.md",
+        "context/workflows/commit.md",
+        "context/workflows/complete-feature.md"
+      ]
+    },
+    {
+      "id": "SUB-119",
+      "taskRef": "slash-commands-cleanup",
+      "title": "FIX 3 meta commands: create-skill, create-agent, create-cursor-rule",
+      "description": "Fix 3 meta commands: (1) create-skill: CRITICAL fix script path (./plugins/meta-work/... -> ./.claude/commands/meta/claude-code/init_skill.py), fix step numbering (4->6 jump), add @context refs for prompting.md and claude-code-permissions.md, document all frontmatter fields, align templates->assets terminology; (2) create-agent: fix URL (/context/ -> /docs/), add complete frontmatter docs (8 fields), add allowed-tools: WebFetch, add when-to-use section; (3) create-cursor-rule: add allowed-tools Write/Bash(mkdir:*), fix ref @context/meta/PROMPTING.md -> @context/blocks/docs/prompting.md.",
+      "done": true,
+      "completedAt": "2026-01-28T12:30:00Z",
+      "commitHash": "57c1113efd91a981849fbef89c24cfddf01eca85",
+      "sessionId": "ralph-iteration-SUB-119",
+      "acceptanceCriteria": [
+        ".claude/commands/meta/claude-code/create-skill.md has correct script path ./.claude/commands/meta/claude-code/init_skill.py",
+        ".claude/commands/meta/claude-code/create-skill.md steps are numbered 1-6 without gaps",
+        ".claude/commands/meta/claude-code/create-skill.md references @context/blocks/docs/prompting.md",
+        ".claude/commands/meta/claude-code/create-skill.md references @context/blocks/construct/claude-code-permissions.md",
+        ".claude/commands/meta/claude-code/create-agent.md has correct URL (code.claude.com/docs/)",
+        ".claude/commands/meta/claude-code/create-agent.md documents all 8 frontmatter fields (name, description, tools, disallowedTools, model, permissionMode, skills, hooks)",
+        ".claude/commands/meta/claude-code/create-agent.md has allowed-tools including WebFetch",
+        ".claude/commands/meta/claude-code/create-agent.md has when-to-use section",
+        ".claude/commands/meta/create-cursor-rule.md has allowed-tools: Write, Bash(mkdir:*)",
+        ".claude/commands/meta/create-cursor-rule.md has consistent ref @context/blocks/docs/prompting.md"
+      ],
+      "filesToRead": [
+        ".claude/commands/meta/claude-code/create-skill.md",
+        ".claude/commands/meta/claude-code/create-agent.md",
+        ".claude/commands/meta/create-cursor-rule.md",
+        ".claude/commands/meta/claude-code/init_skill.py",
+        "context/blocks/docs/prompting.md",
+        "context/blocks/construct/claude-code-permissions.md"
+      ]
+    },
+    {
+      "id": "SUB-120",
+      "taskRef": "slash-commands-cleanup",
+      "title": "CONVERT 3 commands to skills: interrogate, gh-search, cli-feature-creator",
+      "description": "Convert 3 commands to skills: (1) interrogate -> interrogate-on-changes skill with auto-triggers ('interrogate', 'what decisions', 'hardest part', 'alternatives'), expand targets to unstaged/staged/range; (2) gh-search -> gh-search skill referencing @context/blocks/construct/gh-search.md, add Write permission; (3) cli-feature-creator -> aaa-feature-wizard skill with new name, extract to context/workflows/aaa-cli-feature.md, add test step, split ralph vs non-ralph entry points, add auto-triggers ('add aaa command', 'create CLI feature'). Delete original command files after creating skills.",
+      "done": true,
+      "completedAt": "2026-01-28T13:15:00Z",
+      "commitHash": "5af81bfd35f73f13c84c16dc0cc65f0fededed3b",
+      "sessionId": "ralph-iteration-SUB-120",
+      "acceptanceCriteria": [
+        ".claude/skills/interrogate-on-changes/SKILL.md exists with auto-triggers: interrogate, what decisions, hardest part, alternatives",
+        ".claude/skills/interrogate-on-changes/SKILL.md supports targets: unstaged, staged, range, changes, commit, pr",
+        ".claude/commands/dev/interrogate.md does not exist",
+        ".claude/skills/gh-search/SKILL.md exists and references @context/blocks/construct/gh-search.md",
+        ".claude/skills/gh-search/SKILL.md has Write in allowed-tools",
+        ".claude/commands/gh-search.md does not exist",
+        ".claude/skills/aaa-feature-wizard/SKILL.md exists with auto-triggers: add aaa command, create CLI feature",
+        "context/workflows/aaa-cli-feature.md exists and references @tools/CLAUDE.md",
+        ".claude/commands/meta/cli-feature-creator.md does not exist",
+        "README.md Skills table includes 3 new skills"
+      ],
+      "filesToRead": [
+        ".claude/commands/dev/interrogate.md",
+        "context/workflows/interrogate.md",
+        ".claude/commands/gh-search.md",
+        "context/blocks/construct/gh-search.md",
+        ".claude/commands/meta/cli-feature-creator.md",
+        "tools/CLAUDE.md",
+        ".claude/skills/ralph-build/SKILL.md"
+      ]
+    },
+    {
+      "id": "SUB-121",
+      "taskRef": "slash-commands-cleanup",
+      "title": "Create atomic-doc skill with Phase 0 index check",
+      "description": "Replace atomic-doc command with skill: (1) Create .claude/skills/context-atomic-doc/SKILL.md with auto-triggers ('create atomic doc', 'add a block', 'add a foundation', 'setup a stack'); (2) Update context/workflows/manage-atomic-doc.md to add Phase 0 (index check + research step before creation); (3) Delete .claude/commands/context/atomic-doc.md after skill is verified working.",
+      "done": true,
+      "completedAt": "2026-01-28T14:30:00Z",
+      "commitHash": "af61eb13a505701029cbaf5b995bc4695a1dc65e",
+      "sessionId": "ralph-iteration-SUB-121",
+      "acceptanceCriteria": [
+        ".claude/skills/context-atomic-doc/SKILL.md exists",
+        "SKILL.md has auto-triggers: create atomic doc, add a block, add a foundation, setup a stack",
+        "SKILL.md references @context/workflows/manage-atomic-doc.md",
+        "context/workflows/manage-atomic-doc.md has Phase 0 section before Discovery",
+        "Phase 0 includes: check context/README.md index, research step for unfamiliar topics",
+        ".claude/commands/context/atomic-doc.md does not exist",
+        "README.md Skills table includes context-atomic-doc"
+      ],
+      "filesToRead": [
+        ".claude/commands/context/atomic-doc.md",
+        "context/workflows/manage-atomic-doc.md",
         "context/blocks/docs/atomic-documentation.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+        "context/README.md",
+        ".claude/skills/task-create/SKILL.md"
       ]
     },
     {
-      "id": "SUB-038",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Update VISION.md with Code Review Mode",
-      "description": "Add Section 3.4 'Code Review Mode' to docs/planning/VISION.md. Document parallel multi-agent review, 12 specialized reviewers list, trust gradient modes (Interactive/Supervised/Headless), interrogation workflow, and diary logging.",
-      "done": false,
+      "id": "SUB-122",
+      "taskRef": "slash-commands-cleanup",
+      "title": "Split consistency-check into 4 atomic docs",
+      "description": "Refactor consistency-check command by creating 4 atomic docs from consistency-checker.md categories: (1) text-consistency.md (categories 1-5: definitional drift, contradictions) for planning reviews; (2) code-prose-consistency.md (categories 6-13: function/API mismatches) for tech docs; (3) code-code-consistency.md (categories 14-19: style drift, imports) for code review; (4) planning-consistency.md (NEW: vision/roadmap/story contradictions) for ralph-review. Update consistency-check command to reference all 4 docs.",
+      "done": true,
+      "completedAt": "2026-01-28T15:45:00Z",
+      "commitHash": "2c0e48fab7e25af0d7ac0a0aa0693b4956a45794",
+      "sessionId": "ralph-iteration-SUB-122",
       "acceptanceCriteria": [
-        "VISION.md has Section 3.4 Code Review Mode",
-        "Section lists all 12 reviewer agents",
-        "Section documents trust gradient for review",
-        "Section mentions interrogation workflow",
-        "Section references logs/reviews.jsonl diary"
+        "context/blocks/quality/text-consistency.md exists with categories 1-5 from consistency-checker.md",
+        "context/blocks/quality/code-prose-consistency.md exists with categories 6-13 from consistency-checker.md",
+        "context/blocks/quality/code-code-consistency.md exists with categories 14-19 from consistency-checker.md",
+        "context/blocks/quality/planning-consistency.md exists with vision/roadmap/story consistency checks",
+        "Each doc follows atomic documentation structure from context/blocks/docs/atomic-documentation.md",
+        ".claude/commands/dev/consistency-check.md references all 4 new docs",
+        "context/workflows/consistency-checker.md is updated or replaced with refs to 4 docs",
+        "README.md consistency-check row Action updated to DONE"
       ],
       "filesToRead": [
-        "docs/planning/VISION.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+        "context/workflows/consistency-checker.md",
+        ".claude/commands/dev/consistency-check.md",
+        "context/blocks/docs/atomic-documentation.md",
+        "context/blocks/quality/data-integrity.md"
       ]
     },
     {
-      "id": "SUB-039",
-      "taskRef": "TASK-018",
-      "storyRef": "STORY-001",
-      "title": "Update ROADMAP.md with code review milestone",
-      "description": "Update docs/planning/ROADMAP.md to add or integrate code review milestone. List key deliverables: 12 reviewer agents, aaa review CLI, /dev:code-review skill, /dev:interrogate workflow, diary logging. Note dependency on Ralph patterns.",
-      "done": false,
+      "id": "SUB-123",
+      "taskRef": "slash-commands-cleanup",
+      "title": "Create doc-analysis component and integrate plan-multi-agent",
+      "description": "Create tiered doc-analysis component integrating plan-multi-agent: (1) Create context/workflows/ralph/components/doc-analysis.md with 3 tiers: T1 Haiku lookup (existing task-doc-lookup), T2 Sonnet gaps (existing atomic-doc-creator), T3 Opus analysis (current plan-multi-agent); (2) Create .claude/skills/doc-analyze/SKILL.md skill; (3) Hook component into subtasks-from-source.md, stories-auto.md, tasks-auto.md. The original plan-multi-agent command becomes the T3 entry point.",
+      "done": true,
+      "completedAt": "2026-01-28T16:30:00Z",
+      "commitHash": "0f98c245a5db271d837091de3296e89ed049b5e5",
+      "sessionId": "ralph-iteration-SUB-123",
       "acceptanceCriteria": [
-        "ROADMAP.md has code review section/milestone",
-        "Deliverables list matches story specification",
-        "Dependencies on Ralph milestone noted",
-        "Section follows existing roadmap format"
+        "context/workflows/ralph/components/doc-analysis.md exists with 3 tiers",
+        "T1 section references Haiku model for index lookup",
+        "T2 section references atomic-doc-creator pattern",
+        "T3 section contains Opus parallel analysis (from plan-multi-agent)",
+        ".claude/skills/doc-analyze/SKILL.md exists with auto-triggers",
+        "context/workflows/ralph/planning/subtasks-from-source.md references doc-analysis.md",
+        "context/workflows/ralph/planning/stories-auto.md references doc-analysis.md (if exists) or is noted for future",
+        "context/workflows/ralph/planning/tasks-auto.md references doc-analysis.md (if exists) or is noted for future",
+        "README.md plan-multi-agent row Action updated to DONE (INTEGRATED)"
       ],
       "filesToRead": [
-        "docs/planning/ROADMAP.md",
-        "docs/planning/milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md"
+        ".claude/commands/context/plan-multi-agent.md",
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        ".claude/agents/atomic-doc-creator.md",
+        ".claude/skills/ralph-plan/SKILL.md"
+      ]
+    },
+    {
+      "id": "SUB-124",
+      "taskRef": "skills-cleanup",
+      "title": "NUKE eval-test-skill and fix eval script cleanup",
+      "description": "Delete the eval-test-skill placeholder skill and fix the eval script so it cleans up test artifacts after running. The skill was created as a test artifact by eval.sh but ended up committed. Add .gitignore patterns for eval-test-* artifacts.",
+      "done": true,
+      "completedAt": "2026-01-28T12:30:00Z",
+      "commitHash": "fe22f2f4129f7f51a49b3a4605a67389c12130ca",
+      "sessionId": "not-tracked",
+      "acceptanceCriteria": [
+        "Directory .claude/skills/eval-test-skill/ does not exist: test ! -d .claude/skills/eval-test-skill",
+        "No reference to eval-test-skill in README.md: ! grep -q 'eval-test-skill' README.md",
+        ".gitignore includes eval-test-* pattern: grep -q 'eval-test-' .gitignore",
+        "Eval script still passes when run"
+      ],
+      "filesToRead": [
+        ".claude/skills/eval-test-skill/SKILL.md",
+        ".claude/scripts/eval.sh",
+        "README.md",
+        ".gitignore"
+      ]
+    },
+    {
+      "id": "SUB-125",
+      "taskRef": "skills-cleanup",
+      "title": "Rename parallel-code-review skill to code-review",
+      "description": "Rename the skill folder from .claude/skills/parallel-code-review/ to .claude/skills/code-review/ and update all references. The name 'parallel' is an implementation detail, not the primary function.",
+      "done": true,
+      "completedAt": "2026-01-28T12:30:00Z",
+      "commitHash": "4cf2452d8ecb8020a4fcae916db5e14d5e61600f",
+      "sessionId": "ae7fa67c-df29-4768-9dbd-e49204e0bcc8",
+      "acceptanceCriteria": [
+        "Folder .claude/skills/code-review/ exists with SKILL.md: test -f .claude/skills/code-review/SKILL.md",
+        "Folder .claude/skills/parallel-code-review/ does not exist: test ! -d .claude/skills/parallel-code-review",
+        "No references to parallel-code-review in .claude or README: ! grep -r 'parallel-code-review' .claude README.md | grep -v backup",
+        "aaa review --help works (finds skill at new path)"
+      ],
+      "filesToRead": [
+        ".claude/skills/parallel-code-review/SKILL.md",
+        "tools/src/commands/review/index.ts",
+        "README.md"
+      ]
+    },
+    {
+      "id": "SUB-126",
+      "taskRef": "skills-cleanup",
+      "title": "Create triage agent specification for code review",
+      "description": "Design the triage agent that intelligently picks and curates findings from the synthesizer output. The agent should identify must-review items, group related findings by root cause, and filter low-value noise. Reference context/blocks/patterns/triage.md for the triage pattern.",
+      "done": true,
+      "completedAt": "2026-01-28T12:45:00Z",
+      "commitHash": "a8cfc20ca9a50a18f85e585f3f2e927660b78211",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "Agent spec file exists: test -f .claude/agents/code-review/triage.md",
+        "Spec defines input format (synthesized findings JSON)",
+        "Spec defines output format (selected, grouped, filtered findings)",
+        "Spec documents picking criteria: grep -q 'severity\\|confidence\\|root.cause' .claude/agents/code-review/triage.md",
+        "Spec references triage pattern: grep -q 'context/blocks/patterns/triage.md' .claude/agents/code-review/triage.md"
+      ],
+      "filesToRead": [
+        ".claude/agents/code-review/synthesizer.md",
+        "context/blocks/patterns/triage.md",
+        ".claude/agents/code-review/types.md"
+      ],
+      "blockedBy": ["SUB-125"]
+    },
+    {
+      "id": "SUB-127",
+      "taskRef": "skills-cleanup",
+      "title": "Integrate triage agent into code review workflow",
+      "description": "Update the code-review skill to invoke the triage agent after synthesis. Add Phase 3.5: Triage filtering between synthesis and user triage. User should see 'X findings selected, Y grouped, Z filtered' summary.",
+      "done": true,
+      "completedAt": "2026-01-28T21:45:00Z",
+      "commitHash": "db1a716ce5b6f2211476e814b4eaac4cb60b99a7",
+      "sessionId": "ccc35de3-a11c-4fe6-ad7b-b18b3bcbc0dc",
+      "acceptanceCriteria": [
+        "SKILL.md workflow includes triage phase: grep -q 'triage\\|Triage' .claude/skills/code-review/SKILL.md",
+        "Skill invokes triage agent via Task tool after synthesizer",
+        "User sees triage summary with selected/grouped/filtered counts",
+        "Filtered findings are logged but not presented for FIX/SKIP decisions"
+      ],
+      "filesToRead": [
+        ".claude/skills/code-review/SKILL.md",
+        ".claude/agents/code-review/triage.md"
+      ],
+      "blockedBy": ["SUB-125", "SUB-126"]
+    },
+    {
+      "id": "SUB-128",
+      "taskRef": "skills-cleanup",
+      "title": "Add approval gate CLI flag to code review",
+      "description": "Add --require-approval flag to aaa review --headless that pauses after triage to show fix summary and requires explicit confirmation before applying changes.",
+      "done": true,
+      "completedAt": "2026-01-28T12:30:00Z",
+      "commitHash": "cda382a",
+      "sessionId": "c2a76db4-7fe8-4d29-8c1a-f9e9e2e9e8e9",
+      "acceptanceCriteria": [
+        "aaa review --help shows --require-approval flag",
+        "aaa review --headless --require-approval pauses after triage with summary",
+        "Summary shows: N findings to fix, files affected",
+        "User must confirm to proceed with fixes",
+        "User can abort without applying fixes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/review/index.ts",
+        "tools/src/commands/review/types.ts"
+      ],
+      "blockedBy": ["SUB-125"]
+    },
+    {
+      "id": "SUB-129",
+      "taskRef": "skills-cleanup",
+      "title": "Add flexible diff target flags to code review CLI",
+      "description": "Add CLI flags to control what code changes are reviewed: --base <branch>, --range <from>..<to>, --staged-only, --unstaged-only. Flags are mutually exclusive.",
+      "done": true,
+      "completedAt": "2026-01-28T18:58:30Z",
+      "commitHash": "9d61e36",
+      "sessionId": "ralph-build-iteration",
+      "acceptanceCriteria": [
+        "aaa review --help shows --base, --range, --staged-only, --unstaged-only flags",
+        "--base <branch> compares HEAD against specified branch",
+        "--range <from>..<to> compares specific commits",
+        "--staged-only reviews only staged changes",
+        "--unstaged-only reviews only unstaged changes",
+        "Error if more than one flag specified"
+      ],
+      "filesToRead": [
+        "tools/src/commands/review/index.ts",
+        ".claude/skills/code-review/SKILL.md"
+      ],
+      "blockedBy": ["SUB-125"]
+    },
+    {
+      "id": "SUB-130",
+      "taskRef": "skills-cleanup",
+      "title": "Update code-review SKILL.md for flexible diff targets",
+      "description": "Update the skill's Phase 1 (Gather Diff) to accept optional arguments for diff target specification, matching the CLI flags. Document --base, --range, --staged-only, --unstaged-only in Arguments section.",
+      "done": true,
+      "completedAt": "2026-01-28T12:30:00Z",
+      "commitHash": "726005a",
+      "sessionId": "d9cb9f90-e0db-4e25-b398-ae25cc2b1b00",
+      "acceptanceCriteria": [
+        "SKILL.md Arguments section documents diff target flags",
+        "Phase 1 instructions show how to handle each argument type",
+        "Default behavior unchanged: try HEAD, then origin/main...HEAD",
+        "grep 'base\\|range\\|staged' .claude/skills/code-review/SKILL.md returns matches"
+      ],
+      "filesToRead": [
+        ".claude/skills/code-review/SKILL.md",
+        "tools/src/commands/review/index.ts"
+      ],
+      "blockedBy": ["SUB-125", "SUB-129"]
+    },
+    {
+      "id": "SUB-131",
+      "taskRef": "skills-cleanup",
+      "title": "Define review hook points in ralph config schema",
+      "description": "Add review-related hook points to the Ralph config schema that can trigger on review events: onReviewComplete, onCriticalFinding. Follow existing ralph hooks pattern (log, notify, pause).",
+      "done": true,
+      "completedAt": "2026-01-28T12:15:00Z",
+      "commitHash": "540ac9c5165a00e456c94d430df586ad34c87594",
+      "sessionId": "75ef7ef3-a1ef-4851-b93a-c8e4d79f58e2",
+      "acceptanceCriteria": [
+        "Ralph config schema includes review hook definitions",
+        "Hook points defined: onReviewComplete, onCriticalFinding",
+        "Schema validates hook actions: log, notify, pause",
+        "Types updated in tools/src/commands/ralph/types.ts"
+      ],
+      "filesToRead": [
+        "docs/planning/schemas/ralph-config.schema.json",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/hooks.ts"
+      ]
+    },
+    {
+      "id": "SUB-132",
+      "taskRef": "skills-cleanup",
+      "title": "Integrate review hooks with ralph build",
+      "description": "Add hook execution calls to the code review CLI that trigger Ralph hooks when configured. onReviewComplete fires after triage, onCriticalFinding fires for critical severity findings.",
+      "done": true,
+      "completedAt": "2026-01-28T14:30:00Z",
+      "commitHash": "1efbc70f11d856f3f947fdad46b89bfa8ab325f7",
+      "sessionId": "e6f91ac4-8ec9-4847-b287-5aa1f3b39e3c",
+      "acceptanceCriteria": [
+        "runHeadlessReview() calls executeHook('onReviewComplete', ...) after triage",
+        "Critical findings (severity=critical, confidence>=0.9) trigger onCriticalFinding hook",
+        "Hooks only fire if ralph config has them configured (graceful no-op otherwise)",
+        "Hook context includes: findingCount, criticalCount, sessionId"
+      ],
+      "filesToRead": [
+        "tools/src/commands/review/index.ts",
+        "tools/src/commands/ralph/hooks.ts"
+      ],
+      "blockedBy": ["SUB-125", "SUB-131"]
+    },
+    {
+      "id": "SUB-133",
+      "taskRef": "skills-cleanup",
+      "title": "Refactor pre-build-validation to reference subtask-spec.md",
+      "description": "Update pre-build-validation.md to remove duplicated sizing rules (too_broad, too_narrow) and reference subtask-spec.md instead. Keep only alignment checks (scope_creep, unfaithful). Fix AC count inconsistency (5-7 vs 2-5).",
+      "done": true,
+      "completedAt": "2026-01-28T15:42:00Z",
+      "commitHash": "7a0603168ead182b8b4b10a5ad089b1b5055faaf",
+      "sessionId": "opus-ralph-iteration-sub133",
+      "acceptanceCriteria": [
+        "pre-build-validation.md references subtask-spec.md for sizing: grep -q 'subtask-spec.md' context/workflows/ralph/building/pre-build-validation.md",
+        "Scope Creep section preserved: grep -q 'Scope Creep\\|scope_creep' context/workflows/ralph/building/pre-build-validation.md",
+        "Faithful Implementation section preserved: grep -q 'Faithful\\|unfaithful' context/workflows/ralph/building/pre-build-validation.md",
+        "Sizing rules reference spec instead of duplicating: grep -q '@context/workflows/ralph/planning/subtask-spec.md' context/workflows/ralph/building/pre-build-validation.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/building/pre-build-validation.md",
+        "context/workflows/ralph/planning/subtask-spec.md"
+      ]
+    },
+    {
+      "id": "SUB-134",
+      "taskRef": "skills-cleanup",
+      "title": "Add argument-hint frontmatter to ralph-plan skill",
+      "description": "Add the argument-hint YAML frontmatter field to ralph-plan SKILL.md to show users what arguments to provide. Format: <vision|roadmap|stories|tasks|subtasks> [options]",
+      "done": true,
+      "completedAt": "2026-01-28T12:30:00Z",
+      "commitHash": "127fe963581fd90480a8e4807c3354463d90fbed",
+      "sessionId": "a53daeba-8dd6-484c-a5c2-6a8dad8f8b14",
+      "acceptanceCriteria": [
+        "argument-hint field exists in SKILL.md frontmatter: grep -q 'argument-hint:' .claude/skills/ralph-plan/SKILL.md",
+        "Hint shows subcommand options (vision, roadmap, stories, tasks, subtasks)",
+        "Format follows existing patterns (angle brackets for required, square for optional)"
+      ],
+      "filesToRead": [
+        ".claude/skills/ralph-plan/SKILL.md",
+        ".claude/skills/gh-search/SKILL.md",
+        ".claude/skills/interrogate-on-changes/SKILL.md"
+      ]
+    },
+    {
+      "id": "SUB-135",
+      "taskRef": "skills-cleanup",
+      "title": "Add execution instructions for tasks --auto mode",
+      "description": "Add execution instructions in ralph-plan SKILL.md for tasks --auto mode (both single-story auto and milestone-wide auto). Currently the execution section only covers interactive mode.",
+      "done": true,
+      "completedAt": "2026-01-28T10:45:00Z",
+      "commitHash": "6a9bed9",
+      "sessionId": "f39aab6f-af0b-4f2a-85d1-a3f6f9ba46f9",
+      "acceptanceCriteria": [
+        "SKILL.md has execution instructions for tasks <story-id> --auto",
+        "SKILL.md has execution instructions for tasks --milestone <name> --auto",
+        "grep -q 'tasks.*--auto' .claude/skills/ralph-plan/SKILL.md returns match",
+        "Mode distinction (interactive vs auto) is clear"
+      ],
+      "filesToRead": [
+        ".claude/skills/ralph-plan/SKILL.md",
+        "context/workflows/ralph/planning/tasks-interactive.md",
+        "context/workflows/ralph/planning/tasks-auto.md"
+      ]
+    },
+    {
+      "id": "SUB-136",
+      "taskRef": "skills-cleanup",
+      "title": "Add --1-to-1 flag for direct task-to-subtask mapping",
+      "description": "Add support for --1-to-1 flag in subtasks generation that bypasses decomposition/sizing logic and maps each task directly to one subtask. Useful when tasks are already well-scoped.",
+      "done": true,
+      "completedAt": "2026-01-28T15:30:00Z",
+      "commitHash": "eae861bee00d8927c663d08ae504e70a5de68113",
+      "sessionId": "0e22c7b4-8282-4fff-9e9e-a21b2b5a2cca",
+      "acceptanceCriteria": [
+        "--1-to-1 flag documented in SKILL.md subtasks section: grep -q '\\-\\-1-to-1' .claude/skills/ralph-plan/SKILL.md",
+        "subtasks-from-source.md workflow handles --1-to-1 flag",
+        "When --1-to-1 is set, sizing/splitting logic is skipped",
+        "Documentation explains when to use this flag"
+      ],
+      "filesToRead": [
+        ".claude/skills/ralph-plan/SKILL.md",
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        "context/workflows/ralph/planning/subtask-spec.md"
+      ]
+    },
+    {
+      "id": "SUB-137",
+      "taskRef": "skills-cleanup",
+      "title": "Expose --headless flag on ralph review commands",
+      "description": "Add --headless option to all review commands (ralph review stories, roadmap, subtasks, gap *). The workflow files already document this pattern but CLI doesn't expose it.",
+      "done": true,
+      "completedAt": "2026-01-28T14:30:00Z",
+      "commitHash": "f15e0342d52bb2a2a6955751cafecc4f83fa9bb9",
+      "sessionId": "unknown",
+      "acceptanceCriteria": [
+        "ralph review stories --milestone <path> --headless invokes headless mode",
+        "ralph review roadmap --headless invokes headless mode",
+        "ralph review subtasks --subtasks <path> --headless invokes headless mode",
+        "ralph review gap roadmap --headless invokes headless mode",
+        "ralph review gap stories --milestone <path> --headless invokes headless mode",
+        "aaa ralph review stories --help shows --headless option"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "context/workflows/ralph/review/stories-review-auto.md"
+      ]
+    },
+    {
+      "id": "SUB-138",
+      "taskRef": "skills-cleanup",
+      "title": "Add Tasks Quality Review workflow",
+      "description": "Create context/workflows/ralph/review/tasks-review-auto.md for reviewing task definitions against parent stories. Pattern after stories-review-auto.md. Include dimensions: Goal clarity, Plan concreteness, AC testability, Scope boundaries, Story alignment.",
+      "done": true,
+      "completedAt": "2026-01-28T15:30:00Z",
+      "commitHash": "9739c9210d852e42b8b4bc92cf1364b538bccb43",
+      "sessionId": "ba3b7e61-b7f6-46ae-a6c9-04be63f57dd9",
+      "acceptanceCriteria": [
+        "File exists: test -f context/workflows/ralph/review/tasks-review-auto.md",
+        "Contains review dimensions for tasks: grep -q 'Goal clarity\\|Plan.*concrete\\|AC.*testab' context/workflows/ralph/review/tasks-review-auto.md",
+        "References chunked-presentation.md for interactive mode",
+        "Documents CLI invocation: aaa ralph review tasks --story <story>"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/review/stories-review-auto.md",
+        "context/blocks/docs/task-template.md"
+      ]
+    },
+    {
+      "id": "SUB-139",
+      "taskRef": "skills-cleanup",
+      "title": "Add Tasks Gap Analysis workflow",
+      "description": "Create context/workflows/ralph/review/tasks-gap-auto.md for cold analysis of task coverage against story acceptance criteria. Pattern after stories-gap-auto.md.",
+      "done": true,
+      "completedAt": "2026-01-28T12:45:00Z",
+      "commitHash": "62c7661b464cf61c8ba473cf9c3c55e4ed43f4ac",
+      "sessionId": "62c7661-session",
+      "acceptanceCriteria": [
+        "File exists: test -f context/workflows/ralph/review/tasks-gap-auto.md",
+        "Contains gap analysis dimensions: Coverage, Missing tasks, Technical unknowns, Dependencies",
+        "References chunked-presentation.md for interactive mode",
+        "Documents CLI invocation: aaa ralph review gap tasks --story <story>"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/review/stories-gap-auto.md"
+      ]
+    },
+    {
+      "id": "SUB-140",
+      "taskRef": "skills-cleanup",
+      "title": "Add CLI commands for Tasks review",
+      "description": "Add ralph review tasks and ralph review gap tasks commands to the CLI, following the pattern of stories review commands.",
+      "done": true,
+      "completedAt": "2026-01-28T14:30:00Z",
+      "commitHash": "8cc68b91cc189a26de7f9801207838f8933a6e00",
+      "sessionId": "not-available",
+      "acceptanceCriteria": [
+        "aaa ralph review tasks --story <path> command exists",
+        "aaa ralph review gap tasks --story <path> command exists",
+        "Both commands invoke correct workflow files",
+        "Help text shows both commands under ralph review --help"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": ["SUB-138", "SUB-139"]
+    },
+    {
+      "id": "SUB-141",
+      "taskRef": "skills-cleanup",
+      "title": "Add Subtasks Gap Analysis workflow",
+      "description": "Create context/workflows/ralph/review/subtasks-gap-auto.md for cold analysis of subtask queue coverage against parent tasks/stories. Pattern after existing gap workflows.",
+      "done": true,
+      "completedAt": "2026-01-28T12:15:00Z",
+      "commitHash": "4bea51abea9805c71ba8e0398b24bd0e389ac608",
+      "sessionId": "b56c4ceb-cafa-4d2d-abda-b2af9a3515cb",
+      "acceptanceCriteria": [
+        "File exists: test -f context/workflows/ralph/review/subtasks-gap-auto.md",
+        "Contains gap analysis dimensions: Coverage check, AC verification, Dependency analysis, Risk assessment",
+        "References chunked-presentation.md for interactive mode",
+        "Documents CLI invocation: aaa ralph review gap subtasks --subtasks <path>"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/review/subtasks-review-auto.md",
+        "context/workflows/ralph/review/stories-gap-auto.md"
+      ]
+    },
+    {
+      "id": "SUB-142",
+      "taskRef": "skills-cleanup",
+      "title": "Add CLI command for Subtasks Gap Analysis",
+      "description": "Add ralph review gap subtasks command to the CLI to invoke the new subtasks gap analysis workflow.",
+      "done": true,
+      "completedAt": "2026-01-28T14:30:00Z",
+      "commitHash": "018b46c8458cfc028df8b3d4a82bba9cb7c14406",
+      "sessionId": "a6f9e3c8-1234-4567-89ab-cdef01234567",
+      "acceptanceCriteria": [
+        "aaa ralph review gap subtasks --subtasks <path> command exists",
+        "Command invokes subtasks-gap-auto.md workflow",
+        "Help text shows command under ralph review gap --help"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": ["SUB-141"]
+    },
+    {
+      "id": "SUB-143",
+      "taskRef": "skills-cleanup",
+      "title": "Consolidate duplicate gap workflows (planning/ vs review/)",
+      "description": "Consolidate planning/roadmap-gap-analysis.md and planning/story-gap-analysis.md into references to the review/ versions. The planning/ versions are redundant with the auto-mode versions. Low priority.",
+      "done": true,
+      "completedAt": "2026-01-28T10:15:00Z",
+      "commitHash": "85b67d01996c6cd1786f93239ecd3818eb9e41ff",
+      "sessionId": "not-available",
+      "acceptanceCriteria": [
+        "planning/roadmap-gap-analysis.md replaced with reference to review/roadmap-gap-auto.md",
+        "planning/story-gap-analysis.md replaced with reference to review/stories-gap-auto.md",
+        "No functional change to gap analysis behavior",
+        "Skill file updated if it references old paths"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/roadmap-gap-analysis.md",
+        "context/workflows/ralph/review/roadmap-gap-auto.md",
+        ".claude/skills/ralph-review/SKILL.md"
       ]
     }
   ]

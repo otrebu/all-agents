@@ -9,10 +9,9 @@
  * Note: Originally ported from tools/src/commands/ralph/scripts/status.sh (now deleted)
  */
 
-import { findProjectRoot } from "@tools/utils/paths";
 import chalk from "chalk";
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 import type { IterationDiaryEntry, Subtask } from "./types";
 
@@ -107,15 +106,78 @@ function getLastCompletedSubtask(subtasks: Array<Subtask>): null | Subtask {
 }
 
 /**
- * Read and parse iteration diary JSONL file
+ * Derive the milestone log directory from subtasks path
+ *
+ * @param subtasksPath - Path to subtasks.json file
+ * @returns Path to the milestone logs directory
  */
-function readIterationDiary(diaryPath: string): Array<IterationDiaryEntry> {
-  if (!existsSync(diaryPath)) {
+function getMilestoneLogsDirectory(subtasksPath: string): string {
+  // Get the milestone root from subtasks.json parent directory
+  const milestoneRoot = dirname(subtasksPath);
+
+  // If we got a valid milestone directory, return its logs subdirectory
+  if (milestoneRoot && milestoneRoot !== ".") {
+    return join(milestoneRoot, "logs");
+  }
+
+  // Fallback to _orphan milestone for orphaned logs
+  return "docs/planning/milestones/_orphan/logs";
+}
+
+/**
+ * Read and parse iteration diary from a logs directory
+ *
+ * Globs all *.jsonl files in the logs directory and aggregates entries.
+ * Entries are sorted by timestamp for consistent stats calculation.
+ *
+ * @param logsDirectory - Path to the logs directory (e.g., milestones/002-ralph/logs)
+ * @returns Array of diary entries sorted by timestamp
+ */
+function readIterationDiary(logsDirectory: string): Array<IterationDiaryEntry> {
+  if (!existsSync(logsDirectory)) {
     return [];
   }
 
   try {
-    const content = readFileSync(diaryPath, "utf8");
+    // Get all .jsonl files in the logs directory
+    const files = readdirSync(logsDirectory)
+      .filter((file) => file.endsWith(".jsonl"))
+      .map((file) => join(logsDirectory, file));
+
+    if (files.length === 0) {
+      return [];
+    }
+
+    // Aggregate entries from all files
+    const allEntries: Array<IterationDiaryEntry> = [];
+    for (const file of files) {
+      const entries = readSingleDiaryFile(file);
+      allEntries.push(...entries);
+    }
+
+    // Sort entries by timestamp for consistent stats
+    allEntries.sort((a, b) => {
+      const dateA = new Date(a.timestamp).getTime();
+      const dateB = new Date(b.timestamp).getTime();
+      return dateA - dateB;
+    });
+
+    return allEntries;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Read and parse a single JSONL file into diary entries
+ */
+function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
+  if (!existsSync(filePath)) {
+    return [];
+  }
+
+  try {
+    const content = readFileSync(filePath, "utf8");
     const lines = content.trim().split("\n").filter(Boolean);
 
     return lines
@@ -134,14 +196,17 @@ function readIterationDiary(diaryPath: string): Array<IterationDiaryEntry> {
 
 /**
  * Render the configuration section
+ *
+ * Checks for unified aaa.config.json with ralph section.
+ * Shows "Found" if the file exists (config loader provides defaults).
  */
 function renderConfigSection(configPath: string): void {
   console.log(chalk.bold("Configuration"));
   console.log("─────────────");
   if (existsSync(configPath)) {
-    console.log(`  Config: ${chalk.green("Found")} (ralph.config.json)`);
+    console.log(`  Config: ${chalk.green("Found")} (aaa.config.json)`);
   } else {
-    console.log(`  Config: ${chalk.dim("Not found")}`);
+    console.log(`  Config: ${chalk.dim("Not found")} (using defaults)`);
   }
   console.log();
 }
@@ -183,17 +248,17 @@ function renderHeader(): void {
 
 /**
  * Render the iteration stats section
+ *
+ * @param logsDirectory - Path to the logs directory containing .jsonl files
  */
-function renderIterationSection(diaryPath: string): void {
+function renderIterationSection(logsDirectory: string): void {
   console.log(chalk.bold("Iteration Stats"));
   console.log("───────────────");
 
-  if (existsSync(diaryPath)) {
-    renderDiaryStats(diaryPath);
+  if (existsSync(logsDirectory)) {
+    renderDiaryStats(logsDirectory);
   } else {
-    console.log(
-      chalk.dim("  No iteration diary found at: logs/iterations.jsonl"),
-    );
+    console.log(chalk.dim(`  No iteration logs found at: ${logsDirectory}`));
   }
 
   console.log();
@@ -279,7 +344,7 @@ function renderSubtasksSection(subtasksPath: string): void {
  * Run the Ralph status command
  *
  * Displays:
- * - Config status (ralph.config.json present or not)
+ * - Config status (aaa.config.json present or not)
  * - Subtasks queue info (milestone, progress bar, last completed, next pending)
  * - Iteration diary stats (iterations, success rate, avg tool calls)
  *
@@ -287,15 +352,14 @@ function renderSubtasksSection(subtasksPath: string): void {
  * @param contextRoot - Root directory for finding config and logs
  */
 function runStatus(subtasksPath: string, contextRoot: string): void {
-  const configPath = path.join(contextRoot, "ralph.config.json");
-  // Use target project root for logs (not all-agents)
-  const projectRoot = findProjectRoot() ?? contextRoot;
-  const diaryPath = path.join(projectRoot, "logs/iterations.jsonl");
+  const configPath = join(contextRoot, "aaa.config.json");
+  // Derive log directory from subtasks file location
+  const logsDirectory = getMilestoneLogsDirectory(subtasksPath);
 
   renderHeader();
   renderConfigSection(configPath);
   renderSubtasksSection(subtasksPath);
-  renderIterationSection(diaryPath);
+  renderIterationSection(logsDirectory);
 }
 
 // =============================================================================
@@ -303,4 +367,4 @@ function runStatus(subtasksPath: string, contextRoot: string): void {
 // =============================================================================
 
 export default runStatus;
-export { runStatus };
+export { getMilestoneLogsDirectory, readIterationDiary, runStatus };

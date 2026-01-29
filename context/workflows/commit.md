@@ -8,6 +8,14 @@ Create a conventional commit message for the changes.
 
 Never sign commits as author/co-author. No AI signatures.
 
+## Pre-flight Checks
+
+Before committing, verify the repository state:
+
+1. **Check for merge conflicts:** `git status` - abort if conflicts exist
+2. **Verify branch:** `git branch --show-current` - confirm you're on expected branch
+3. **If on main:** `git pull origin main` first to avoid diverged history
+
 ## Workflow
 
 1. `git status` + `git diff HEAD` - review changes

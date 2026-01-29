@@ -1,6 +1,7 @@
 ---
 name: ralph-plan
 description: Interactive vision planning using Socratic method. Use when user asks to "ralph plan vision", "plan a vision", "ralph plan roadmap", "ralph plan stories", "ralph plan tasks", or needs to define product vision/roadmap/stories/tasks through guided dialogue.
+argument-hint: <vision|roadmap|stories|tasks|subtasks> [options]
 ---
 
 # Ralph Plan
@@ -117,6 +118,69 @@ Then follow ALL phases in the workflow file you just read.
 - Don't batch all tasks at the end
 - This protects against crashes/disconnects
 
+### If argument is `tasks <story-id> --auto`:
+
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/tasks-auto.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full auto-generation workflow.
+
+1. A story ID must be provided (e.g., `/ralph-plan tasks STORY-001-auth --auto`)
+2. Find the story file in `docs/planning/milestones/*/stories/<story-id>.md`
+3. If the story is not found, report error and list available stories
+4. Analyze the codebase for patterns relevant to the story
+5. Generate task files automatically following the workflow
+
+**Auto mode outputs:**
+- Task files are created without interaction
+- Summary reports what was generated
+- No incremental saving prompts (all tasks saved at once)
+
+### If argument is `tasks --milestone <name> --auto`:
+
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/tasks-milestone.md` (relative to project root). DO NOT proceed without reading this file first - it contains the parallel agent orchestration workflow.
+
+1. A milestone name must be provided (e.g., `/ralph-plan tasks --milestone ralph --auto`)
+2. Discover all stories in `docs/planning/milestones/<name>/stories/`
+3. If no stories found, report error with available milestones
+4. Calculate starting task ID by scanning ALL existing task directories
+5. Spawn parallel `task-generator` subagents (one per story)
+6. Each agent generates tasks for its story independently
+7. Report summary of all generated tasks
+
+**Parallelization benefits:**
+- Faster: Multiple stories processed concurrently
+- Better quality: Smaller context per agent
+- Consistent: Same patterns applied across all stories
+
+### If argument is `subtasks` (with required source):
+
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-from-source.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full workflow you MUST follow.
+
+1. A source must be provided - either:
+   - A file path (e.g., `/ralph-plan subtasks ./review-findings.md`)
+   - A text description (e.g., `/ralph-plan subtasks "Fix array bounds check"`)
+   - The `--review` flag to parse `logs/reviews.jsonl`
+2. If no source and no `--review` flag, ask the user what source to use
+3. Optionally accept `--milestone <name>` to set target milestone
+4. Optionally accept `--story <ref>` to link subtasks to a story
+5. Optionally accept `--1-to-1` flag to bypass decomposition/sizing logic (one input item → one subtask)
+6. Read the source and extract actionable items
+7. Generate subtasks following the schema and sizing constraints from the workflow (unless `--1-to-1` is set)
+8. Write to `docs/planning/milestones/<milestone>/subtasks.json` (append or create)
+
+Begin the session with:
+
+---
+
+"I'll generate subtasks from the provided source.
+
+**Source:** [file path / text / review diary]
+**Target:** [milestone / story if provided]
+
+Let me read and analyze the source to extract actionable items..."
+
+---
+
+Then follow ALL steps in the workflow file you just read.
+
 ### If no argument or unknown argument:
 
 Show the usage documentation below.
@@ -137,6 +201,7 @@ Show the usage documentation below.
 | `roadmap` | Start interactive roadmap planning session |
 | `stories` | Start interactive stories planning session for a milestone |
 | `tasks` | Start interactive tasks planning session for a story |
+| `subtasks` | Generate subtasks from any source (file, text, or review diary) |
 
 ## Vision Planning
 
@@ -270,6 +335,59 @@ aaa ralph plan tasks --milestone <name> --auto
 - Focus is on technical implementation, not user outcomes
 - References specific files and patterns from the codebase
 
+## Subtasks Planning
+
+Generate subtasks from any source: file, text description, or review diary.
+
+### Invocation
+
+```
+/ralph-plan subtasks <source>
+/ralph-plan subtasks --review
+/ralph-plan subtasks <source> --1-to-1
+```
+
+### Input Sources
+
+| Source Type | Example |
+|-------------|---------|
+| File path | `/ralph-plan subtasks ./review-findings.md` |
+| Text description | `/ralph-plan subtasks "Fix array bounds check"` |
+| Review diary | `/ralph-plan subtasks --review` |
+
+### Optional Flags
+
+- `--milestone <name>` - Target milestone for subtasks.json location
+- `--story <ref>` - Link subtasks to a parent story
+- `--1-to-1` - Direct mapping mode: bypass decomposition/sizing logic and map each input item directly to one subtask
+
+### What Happens
+
+1. Reads the source (file content, text, or logs/reviews.jsonl)
+2. Extracts actionable items from the source
+3. Generates subtasks following schema and sizing constraints
+4. Validates each subtask fits single context window
+5. Writes to `docs/planning/milestones/<milestone>/subtasks.json`
+
+### Important Notes
+
+- Each subtask should touch 1-3 files (not counting tests)
+- Subtasks must be completable in 15-30 tool calls
+- IDs are globally unique (SUB-NNN format)
+- Uses supervised mode by default (user watches generation)
+
+### When to Use `--1-to-1`
+
+Use the `--1-to-1` flag when:
+- **Tasks are already well-scoped** - Each input item is already the right size for a subtask
+- **You want predictable output** - One input item → one subtask, no splitting or merging
+- **Importing from external sources** - Converting issue tracker items or PR descriptions directly
+
+Do NOT use when:
+- Input items vary wildly in scope (some huge, some tiny)
+- You want intelligent sizing and decomposition
+- Items need to be grouped or split for optimal context window usage
+
 ## CLI Equivalent
 
 This skill provides the same functionality as:
@@ -280,6 +398,8 @@ aaa ralph plan roadmap
 aaa ralph plan stories --milestone <name>
 aaa ralph plan tasks --story <story-id>           # Single story
 aaa ralph plan tasks --milestone <name> --auto    # All stories in milestone
+aaa ralph plan subtasks <source> --milestone <name>   # From file/text
+aaa ralph plan subtasks --review --milestone <name>   # From review diary
 ```
 
 ## References
@@ -289,4 +409,6 @@ aaa ralph plan tasks --milestone <name> --auto    # All stories in milestone
 - **Stories prompt:** `context/workflows/ralph/planning/stories-interactive.md`
 - **Tasks prompt:** `context/workflows/ralph/planning/tasks-interactive.md`
 - **Tasks milestone prompt:** `context/workflows/ralph/planning/tasks-milestone.md`
+- **Subtasks from source:** `context/workflows/ralph/planning/subtasks-from-source.md`
+- **Subtasks from task:** `context/workflows/ralph/planning/subtasks-auto.md`
 - **Task generator agent:** `.claude/agents/task-generator.md`

@@ -11,13 +11,22 @@
  * where encoded-path can be base64-encoded or dash-separated.
  */
 
-import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
+
+import type { TokenUsage } from "./types";
 
 // =============================================================================
 // Session Analysis
 // =============================================================================
+
+/**
+ * Result from discovering a recent session
+ */
+interface DiscoveredSession {
+  path: string;
+  sessionId: string;
+}
 
 /**
  * Calculate iteration duration from session JSONL timestamps
@@ -109,6 +118,68 @@ function countToolCalls(sessionPath: string): number {
 }
 
 /**
+ * Discover the most recent Claude session file created after a given timestamp
+ *
+ * This is useful for supervised mode where we need to find the session file
+ * after the user completes their work in Claude chat mode.
+ *
+ * Uses `find` with `-newermt` to locate session files created after the timestamp.
+ * Returns the most recent session file if multiple match.
+ *
+ * @param afterTimestamp - Unix timestamp in milliseconds (Date.now())
+ * @returns Session info { sessionId, path } or null if not found
+ */
+function discoverRecentSession(
+  afterTimestamp: number,
+): DiscoveredSession | null {
+  const home = homedir();
+  const claudeDirectory = process.env.CLAUDE_CONFIG_DIR ?? `${home}/.claude`;
+  const projectsDirectory = `${claudeDirectory}/projects`;
+
+  if (!existsSync(projectsDirectory)) {
+    return null;
+  }
+
+  try {
+    // Convert timestamp to ISO date format for find -newermt
+    const afterDate = new Date(afterTimestamp).toISOString();
+
+    // Find session files newer than the given timestamp, sorted by modification time (most recent first)
+    // Using ls -t to sort by modification time, then head -1 to get most recent
+    const proc = Bun.spawnSync([
+      "bash",
+      "-c",
+      `find "${projectsDirectory}" -name "*.jsonl" -type f -newermt "${afterDate}" -exec ls -t {} + 2>/dev/null | head -1`,
+    ]);
+
+    if (proc.exitCode !== 0) {
+      return null;
+    }
+
+    const found = proc.stdout.toString("utf8").trim();
+
+    if (found === "") {
+      return null;
+    }
+
+    // Extract session ID from path (filename without .jsonl extension)
+    const sessionId = found.split("/").pop()?.replace(".jsonl", "") ?? "";
+
+    if (sessionId === "") {
+      return null;
+    }
+
+    return { path: found, sessionId };
+  } catch {
+    return null;
+  }
+}
+
+// =============================================================================
+// Path Discovery
+// =============================================================================
+
+/**
  * Extract timestamp from a JSONL line
  *
  * Parses JSON and extracts the timestamp field.
@@ -126,6 +197,10 @@ function extractTimestamp(line: string): null | string {
     return match?.groups?.timestamp ?? null;
   }
 }
+
+// =============================================================================
+// Session Discovery
+// =============================================================================
 
 /**
  * Extract file paths from Write and Edit tool calls in a session
@@ -188,10 +263,6 @@ function getFilesFromSession(sessionPath: string): Array<string> {
   }
 }
 
-// =============================================================================
-// Path Discovery
-// =============================================================================
-
 /**
  * Find the session JSONL file path for a given session ID
  *
@@ -219,12 +290,16 @@ function getSessionJsonlPath(
   const projectsDirectory = `${claudeDirectory}/projects`;
   if (existsSync(projectsDirectory)) {
     try {
-      const found = execSync(
+      const proc = Bun.spawnSync([
+        "bash",
+        "-c",
         `find "${projectsDirectory}" -name "${sessionId}.jsonl" -type f 2>/dev/null | head -1`,
-        { encoding: "utf8" },
-      ).trim();
-      if (found !== "") {
-        return found;
+      ]);
+      if (proc.exitCode === 0) {
+        const found = proc.stdout.toString("utf8").trim();
+        if (found !== "") {
+          return found;
+        }
       }
     } catch {
       // find failed, continue to fallbacks
@@ -259,6 +334,76 @@ function getSessionJsonlPath(
   return null;
 }
 
+/**
+ * Extract token usage from a session JSONL file
+ *
+ * Tracks the FINAL context window size (last API request's context) instead
+ * of summing across all requests. This reflects what Claude "sees" at the end
+ * of the iteration, similar to what Claude Code CLI shows.
+ *
+ * Output tokens are still summed for cost tracking.
+ *
+ * @param sessionPath - Path to session JSONL file
+ * @returns Token usage with final context size, or zeros if file not found/invalid
+ */
+function getTokenUsageFromSession(sessionPath: string): TokenUsage {
+  const emptyUsage: TokenUsage = { contextTokens: 0, outputTokens: 0 };
+
+  if (!existsSync(sessionPath)) {
+    return emptyUsage;
+  }
+
+  try {
+    const content = readFileSync(sessionPath, "utf8");
+    const lines = content.split("\n").filter((line) => line.trim());
+
+    // Track final context window (what Claude sees at end of iteration)
+    let contextTokens = 0;
+    // Sum outputs for cost tracking
+    let outputTokens = 0;
+
+    for (const line of lines) {
+      // Skip lines without usage data
+      if (!line.includes('"usage"')) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      try {
+        const parsed = JSON.parse(line) as {
+          message?: {
+            usage?: {
+              cache_creation_input_tokens?: number;
+              cache_read_input_tokens?: number;
+              input_tokens?: number;
+              output_tokens?: number;
+            };
+          };
+        };
+
+        const usage = parsed.message?.usage;
+        if (usage !== undefined) {
+          // Context for THIS request = cached + non-cached input
+          // Overwrite each time so we end up with the LAST request's context
+          contextTokens =
+            (usage.cache_read_input_tokens ?? 0) +
+            (usage.cache_creation_input_tokens ?? 0) +
+            (usage.input_tokens ?? 0);
+
+          // Sum outputs for cost tracking
+          outputTokens += usage.output_tokens ?? 0;
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    return { contextTokens, outputTokens };
+  } catch {
+    return emptyUsage;
+  }
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -266,6 +411,9 @@ function getSessionJsonlPath(
 export {
   calculateDurationMs,
   countToolCalls,
+  discoverRecentSession,
   getFilesFromSession,
   getSessionJsonlPath,
+  getTokenUsageFromSession,
 };
+export type { DiscoveredSession };

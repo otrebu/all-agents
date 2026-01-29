@@ -6,7 +6,7 @@ import { debug } from "@tools/env";
 import { getOutputDir } from "@tools/utils/paths";
 import ora from "ora";
 
-import { formatResults } from "./formatter";
+import { formatResults, formatSummary } from "./formatter";
 import executeSearch from "./parallel-client";
 import {
   AuthError,
@@ -21,6 +21,7 @@ interface ParallelSearchOptions {
   objective: string;
   processor?: "base" | "pro";
   queries?: Array<string>;
+  verbose?: boolean;
 }
 
 interface ParallelSearchResult {
@@ -83,6 +84,7 @@ async function performParallelSearch(
   const processor = options.processor ?? "pro";
   const maxResults = options.maxResults ?? 15;
   const maxChars = options.maxChars ?? 5000;
+  const isVerbose = options.verbose ?? false;
 
   log.header("\n🔍 Parallel Search\n");
 
@@ -118,12 +120,13 @@ async function performParallelSearch(
 
   spinner.succeed(`Found ${results.length} results`);
 
-  // Format and output results
-  const report = formatResults(results, {
+  // Format results
+  const metadata = {
     executionTimeMs,
     objective: options.objective,
     resultCount: results.length,
-  });
+  };
+  const report = formatResults(results, metadata);
 
   // Save research output
   const { jsonPath, mdPath } = await saveResearchOutput({
@@ -133,7 +136,13 @@ async function performParallelSearch(
     topic: options.objective,
   });
 
-  log.plain(`\n${report}`);
+  // Output: full report with --verbose, summary by default
+  if (isVerbose) {
+    log.plain(`\n${report}`);
+  } else {
+    const summary = formatSummary(results, metadata);
+    log.plain(`\n${summary}`);
+  }
 
   log.success(`\nSearch completed in ${(executionTimeMs / 1000).toFixed(1)}s`);
   log.plain("");

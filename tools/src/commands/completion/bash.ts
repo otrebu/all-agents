@@ -46,6 +46,10 @@ _aaa_completions() {
             COMPREPLY=($(compgen -f -X '!*.json' -- "$cur"))
             return
             ;;
+        --size)
+            COMPREPLY=($(compgen -W "small medium large" -- "$cur"))
+            return
+            ;;
         -o|--output)
             # File path completion
             COMPREPLY=($(compgen -f -- "$cur"))
@@ -69,6 +73,14 @@ _aaa_completions() {
             # Free text - no completion
             return
             ;;
+        --priority)
+            COMPREPLY=($(compgen -W "min low default high max" -- "$cur"))
+            return
+            ;;
+        --quiet-enabled)
+            COMPREPLY=($(compgen -W "true false" -- "$cur"))
+            return
+            ;;
     esac
 
     # PHASE 2: Find subcommand chain (skip flags and their values)
@@ -83,7 +95,7 @@ _aaa_completions() {
             continue
         fi
         case "$word" in
-            --mode|--processor|--milestone|--story|--task|--subtasks|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
+            --mode|--processor|--milestone|--story|--task|--subtasks|--size|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
                 # Flag that takes a value - skip next word
                 skip_next=true
                 ;;
@@ -106,10 +118,6 @@ _aaa_completions() {
     # PHASE 3: Complete flags if typing a dash
     if [[ "$cur" == -* ]]; then
         case "$cmd" in
-            download)
-                COMPREPLY=($(compgen -W "-o --output -d --dir" -- "$cur"))
-                return
-                ;;
             extract-conversations)
                 COMPREPLY=($(compgen -W "-l --limit -o --output -s --skip" -- "$cur"))
                 return
@@ -159,7 +167,7 @@ _aaa_completions() {
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--task -s --supervised -H --headless" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--review --task --story --milestone --size -s --supervised -H --headless" -- "$cur"))
                                 return
                                 ;;
                         esac
@@ -181,6 +189,30 @@ _aaa_completions() {
                         ;;
                 esac
                 ;;
+            review)
+                if [[ -z "$subcmd" ]]; then
+                    COMPREPLY=($(compgen -W "-s --supervised -H --headless --dry-run" -- "$cur"))
+                fi
+                return
+                ;;
+            notify)
+                if [[ -z "$subcmd" ]]; then
+                    COMPREPLY=($(compgen -W "-t --title -p --priority --tags -q --quiet --dry-run --event" -- "$cur"))
+                elif [[ "$subcmd" == "config" ]]; then
+                    case "$subsubcmd" in
+                        set)
+                            COMPREPLY=($(compgen -W "--topic --server --title --priority --quiet-start --quiet-end --quiet-enabled" -- "$cur"))
+                            ;;
+                        show)
+                            COMPREPLY=($(compgen -W "--json" -- "$cur"))
+                            ;;
+                        test)
+                            COMPREPLY=($(compgen -W "-m --message" -- "$cur"))
+                            ;;
+                    esac
+                fi
+                return
+                ;;
         esac
         # Global flags
         COMPREPLY=($(compgen -W "-h --help -V --version" -- "$cur"))
@@ -191,7 +223,7 @@ _aaa_completions() {
     case "$cmd" in
         "")
             # Top-level commands
-            COMPREPLY=($(compgen -W "download extract-conversations gh-search gemini-research parallel-search setup uninstall sync-context task story ralph completion" -- "$cur"))
+            COMPREPLY=($(compgen -W "extract-conversations gh-search gemini-research notify parallel-search setup uninstall sync-context task story ralph review completion" -- "$cur"))
             ;;
         task)
             if [[ -z "$subcmd" ]]; then
@@ -215,6 +247,18 @@ _aaa_completions() {
                 COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
             elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "intention technical improve all" -- "$cur"))
+            fi
+            ;;
+        review)
+            if [[ -z "$subcmd" ]]; then
+                COMPREPLY=($(compgen -W "status" -- "$cur"))
+            fi
+            ;;
+        notify)
+            if [[ -z "$subcmd" ]]; then
+                COMPREPLY=($(compgen -W "init on off status config" -- "$cur"))
+            elif [[ "$subcmd" == "config" && -z "$subsubcmd" ]]; then
+                COMPREPLY=($(compgen -W "set show test" -- "$cur"))
             fi
             ;;
         completion)

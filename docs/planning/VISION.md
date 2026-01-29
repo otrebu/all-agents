@@ -55,6 +55,22 @@ docs/planning/
               └── stories/
 ```
 
+## 2b. User Personas & Stories
+
+The core philosophy of "humans on the loop, not in it" is realized through these user-centric features:
+
+| Feature | Persona | User Story |
+|---------|---------|------------|
+| **Building Mode** (Ralph Iterations) | Developer embracing "humans on loop" | Autonomously implement subtasks with validation so I can focus on oversight rather than writing code |
+| **Intention Drift Detection** | Tech lead overseeing autonomous dev | Detect when code diverges from intended behavior so I can correct course before drift compounds |
+| **Interactive Vision Planning** | Tech lead starting new project | Collaboratively define product vision with AI guidance to establish clear direction |
+| **Automated Planning Pipeline** | Developer with established vision | Auto-generate stories, tasks, subtasks to quickly build work queue without manual documentation |
+| **Self-Improvement Analysis** | Framework maintainer | Analyze session logs for inefficiencies to continuously improve prompts, skills, and docs |
+| **Hooks & Notifications** | Developer running long builds | Be notified of key events with checkpoints so I can stay informed without watching terminal |
+| **Progress & Status** | Developer monitoring builds | Clear visibility into progress and iteration history without reading code diffs |
+| **Technical Standards Enforcement** | Developer maintaining quality | Detect when code violates documented standards so I can maintain consistency |
+| **Interactive Planning Guidance** | Developer refining structure | AI-guided sessions with Socratic questioning to collaboratively define artifacts |
+
 ### subtasks.json
 
 Flexible scope—place at milestone level (build whole milestone) or story level (build just that story). JSON format for better AI parseability.
@@ -307,6 +323,77 @@ LLM judges: Does subtask faithfully implement parent intent? Not too broad, not 
 
 **Graceful degradation:** Validates only what exists. Partial chains (e.g., Task → Subtask without Story) still validated at available levels.
 
+### 3.4 Code Review Mode
+
+Parallel multi-agent code review with trust gradient. Complementary to Ralph: Ralph builds with quality from the start, Code Review verifies quality before merging.
+
+#### Trust Gradient for Review
+
+Same execution modes as Ralph, applied to code review:
+
+| Mode | Command | Behavior |
+|------|---------|----------|
+| **Interactive** | `/dev:code-review` (skill) | Human in loop, full conversation |
+| **Supervised** | `aaa review --supervised` | Autopilot, can stop manually |
+| **Headless** | `aaa review --headless` | Auto-triage, auto-fix, logs |
+
+#### 12 Specialized Reviewer Agents
+
+All agents output findings in standardized JSON format (see `.claude/agents/code-review/types.md`):
+
+| Agent | Focus |
+|-------|-------|
+| `security-reviewer` | OWASP Top 10, injection, auth, secrets, XSS |
+| `data-integrity-reviewer` | Null checks, boundaries, race conditions |
+| `error-handling-reviewer` | Swallowed exceptions, recovery, logging gaps |
+| `test-coverage-reviewer` | Missing tests, untested edge cases |
+| `over-engineering-reviewer` | YAGNI, premature abstraction |
+| `performance-reviewer` | N+1 queries, memory leaks, algorithms |
+| `accessibility-reviewer` | WCAG compliance (frontend only) |
+| `documentation-reviewer` | Missing/outdated docs, README gaps |
+| `maintainability-reviewer` | Coupling, naming, SRP violations |
+| `dependency-reviewer` | Outdated deps, vulnerabilities, licenses |
+| `intent-alignment-reviewer` | Code matches stated requirements |
+| `synthesizer` | Aggregates, dedupes, ranks findings |
+
+#### Interrogation Workflow
+
+Ask AI "why" instead of reading code. Surfaces assumptions and confidence levels.
+
+**Command:** `/dev:interrogate [changes|commit|pr]`
+
+**Core Questions:**
+1. What was the hardest decision?
+2. What alternatives did you reject?
+3. What are you least confident about?
+
+**Modes:**
+- Default: Full analysis with structured output
+- `--quick`: Just the 3 critical questions
+- `--skeptical`: Extra validation for AI-generated code
+
+Integrated into `complete-feature.md` as optional pre-merge checkpoint.
+
+#### Review Diary
+
+All review sessions log to `logs/reviews.jsonl`:
+
+```json
+{
+  "timestamp": "2026-01-25T10:00:00Z",
+  "mode": "headless",
+  "findings": 12,
+  "fixed": 8,
+  "skipped": 3,
+  "falsePositives": 1,
+  "decisions": [
+    { "id": "abc", "severity": "critical", "action": "fix", "confidence": 0.95 }
+  ]
+}
+```
+
+View review history: `aaa review status`
+
 ### Building Mode (Ralph Iterations)
 
 Autonomous implementation. Triggered by bash command:
@@ -460,6 +547,60 @@ Analyzes agent sessions for inefficiencies.
 | `off` | Skips self-improvement analysis entirely | Quick iterations, cost reduction, debugging |
 
 **Approach:** LLM-as-judge with good prompt and context. See Section 8.4.
+
+#### Calibration Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         RALPH CALIBRATION SYSTEM                            │
+│                         `ralph calibrate <mode>`                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+                    ┌────────────────────────────────┐
+                    │        subtasks.json           │
+                    │  (completed subtasks with      │
+                    │   commitHash + sessionId)      │
+                    └────────────────────────────────┘
+                                     │
+         ┌───────────────────────────┼───────────────────────────┐
+         ▼                           ▼                           ▼
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│   INTENTION     │       │   TECHNICAL     │       │    IMPROVE      │
+│   DRIFT         │       │   DRIFT         │       │ (self-improve)  │
+└────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+         │                         │                         │
+         ▼                         ▼                         ▼
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│ READS:          │       │ READS:          │       │ READS:          │
+│ • git diffs     │       │ • git diffs     │       │ • session logs  │
+│   (commitHash)  │       │   (commitHash)  │       │   (~/.claude/   │
+│ • planning chain│       │ • CLAUDE.md     │       │   projects/     │
+│   Story→Task    │       │ • lint/ts config│       │   <sessionId>)  │
+│   →Subtask      │       │ • project stds  │       │                 │
+└────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+         │                         │                         │
+         ▼                         ▼                         ▼
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│ DETECTS:        │       │ DETECTS:        │       │ DETECTS:        │
+│ • Scope creep   │       │ • Missing tests │       │ • Tool misuse   │
+│ • Scope shortfal│       │ • Inconsistent  │       │   (Bash vs Read)│
+│ • Direction     │       │   patterns      │       │ • Wasted reads  │
+│   changes       │       │ • Missing error │       │ • Backtracking  │
+│ • Missing links │       │   handling      │       │ • Excessive     │
+│   to intent     │       │ • Type safety   │       │   iterations    │
+└────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+         │                         │                         │
+         └───────────────────────────┼───────────────────────────┘
+                                     │
+                                     ▼
+                    ┌────────────────────────────────┐
+                    │           OUTPUT               │
+                    │  • Markdown summary (stdout)   │
+                    │  • Task files for issues       │
+                    │    (docs/planning/tasks/)      │
+                    └────────────────────────────────┘
+```
 
 #### When It Runs
 

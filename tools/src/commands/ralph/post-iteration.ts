@@ -12,18 +12,24 @@
  * summary/diary is generated.
  */
 
-import { execSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import type { IterationDiaryEntry, IterationStatus, Subtask } from "./types";
+import type {
+  IterationDiaryEntry,
+  IterationStatus,
+  IterationTiming,
+  Subtask,
+} from "./types";
 
 import { invokeClaudeHaiku } from "./claude";
+import { getIterationLogPath } from "./config";
 import {
   calculateDurationMs,
   countToolCalls,
   getFilesFromSession,
   getSessionJsonlPath,
+  getTokenUsageFromSession,
 } from "./session";
 
 // =============================================================================
@@ -31,9 +37,25 @@ import {
 // =============================================================================
 
 /**
+ * Result from getLinesChanged()
+ */
+interface LinesChangedResult {
+  /** Total lines added across all files */
+  linesAdded: number;
+  /** Total lines removed across all files */
+  linesRemoved: number;
+}
+
+/**
  * Options for running the post-iteration hook
  */
 interface PostIterationOptions {
+  /** Time spent in Claude Code invocation (ms) - passed from build.ts */
+  claudeMs?: number;
+  /** Git commit hash after Claude invocation completed */
+  commitAfter?: null | string;
+  /** Git commit hash before Claude invocation started */
+  commitBefore?: null | string;
   /** Total cost in USD for this iteration */
   costUsd?: number;
   /** Current iteration attempt number (1 = first try) */
@@ -42,16 +64,22 @@ interface PostIterationOptions {
   maxAttempts?: number;
   /** Name of the milestone this subtask belongs to */
   milestone?: string;
+  /** Execution mode: 'headless' or 'supervised' */
+  mode?: "headless" | "supervised";
   /** Number of remaining subtasks after this iteration */
   remaining?: number;
   /** Repository root path for session discovery */
   repoRoot: string;
   /** Claude session ID (required - hook is skipped without this) */
   sessionId: string;
+  /** Skip Haiku summary generation to reduce latency and cost */
+  skipSummary?: boolean;
   /** The iteration status */
   status: IterationStatus;
   /** The subtask that was processed */
   subtask: Subtask;
+  /** Path to the subtasks.json file - used to derive milestone-scoped log path */
+  subtasksPath: string;
 }
 
 /**
@@ -66,6 +94,10 @@ interface PostIterationResult {
   sessionPath: null | string;
 }
 
+// =============================================================================
+// Summary Generation
+// =============================================================================
+
 /**
  * Result from Haiku summary generation
  */
@@ -74,10 +106,12 @@ interface SummaryResult {
   keyFindings: Array<string>;
   /** Brief summary of what happened */
   summary: string;
+  /** Time spent generating summary (ms) */
+  summaryMs: number;
 }
 
 // =============================================================================
-// Summary Generation
+// Lines Changed
 // =============================================================================
 
 /**
@@ -85,10 +119,11 @@ interface SummaryResult {
  *
  * Uses the iteration-summary.md prompt template with placeholder substitution.
  * Falls back to a default summary if Haiku fails or times out.
+ * When skipSummary is true, returns a placeholder summary immediately.
  *
  * @param options - PostIterationOptions containing subtask and session info
  * @param sessionPath - Path to session JSONL file
- * @returns SummaryResult with summary text and key findings
+ * @returns SummaryResult with summary text, key findings, and timing
  */
 function generateSummary(
   options: PostIterationOptions,
@@ -98,15 +133,28 @@ function generateSummary(
     iterationNumber = 1,
     milestone = "",
     repoRoot,
+    skipSummary: shouldSkipSummary = false,
     status,
     subtask,
   } = options;
+
+  const summaryStart = Date.now();
+
+  // Skip Haiku if skipSummary is true
+  if (shouldSkipSummary) {
+    return {
+      keyFindings: [],
+      summary: `[skipped] Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+      summaryMs: Date.now() - summaryStart,
+    };
+  }
 
   // Skip Haiku if no session (Haiku can't read files in -p mode anyway)
   if (sessionPath === null) {
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+      summaryMs: Date.now() - summaryStart,
     };
   }
 
@@ -117,6 +165,7 @@ function generateSummary(
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+      summaryMs: Date.now() - summaryStart,
     };
   }
 
@@ -132,23 +181,25 @@ function generateSummary(
   }
 
   // Read and substitute placeholders in prompt template
+  // SESSION_CONTENT is substituted LAST to prevent template corruption if session contains {{
   let promptContent = readFileSync(promptPath, "utf8");
   promptContent = promptContent
     .replaceAll("{{SUBTASK_ID}}", subtask.id)
     .replaceAll("{{STATUS}}", status)
-    .replaceAll("{{SESSION_CONTENT}}", sessionContent)
     .replaceAll("{{SUBTASK_TITLE}}", subtask.title)
     .replaceAll("{{MILESTONE}}", milestone)
     .replaceAll("{{TASK_REF}}", subtask.taskRef)
-    .replaceAll("{{ITERATION_NUM}}", String(iterationNumber));
+    .replaceAll("{{ITERATION_NUM}}", String(iterationNumber))
+    .replaceAll("{{SESSION_CONTENT}}", sessionContent);
 
   // Invoke Haiku with 30 second timeout
   const result = invokeClaudeHaiku({ prompt: promptContent, timeout: 30_000 });
 
-  if (result === null) {
+  if (result === null || result.trim() === "") {
     return {
       keyFindings: [],
       summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
+      summaryMs: Date.now() - summaryStart,
     };
   }
 
@@ -179,17 +230,66 @@ function generateSummary(
     return {
       keyFindings: parsed.keyFindings ?? [],
       summary: parsed.summary ?? `Iteration ${status} for ${subtask.id}`,
+      summaryMs: Date.now() - summaryStart,
     };
   } catch {
     // Use the raw result as summary, truncated
     const summary = result.slice(0, 200);
-    return { keyFindings: [], summary };
+    return { keyFindings: [], summary, summaryMs: Date.now() - summaryStart };
   }
 }
 
 // =============================================================================
 // Files Changed
 // =============================================================================
+
+/**
+ * Get lines added/removed between two commit hashes
+ *
+ * Uses git diff --numstat to count insertions and deletions
+ * across all commits in the range. This accurately measures
+ * what Claude committed during an iteration.
+ *
+ * @param repoRoot - Repository root path for git commands
+ * @param before - Commit hash before Claude invocation
+ * @param after - Commit hash after Claude invocation
+ * @returns LinesChangedResult with totals
+ */
+function getCommitRangeLines(
+  repoRoot: string,
+  before: null | string,
+  after: null | string,
+): LinesChangedResult {
+  if (before === null || after === null || before === after) {
+    return { linesAdded: 0, linesRemoved: 0 };
+  }
+
+  const proc = Bun.spawnSync(
+    ["git", "diff", "--numstat", `${before}..${after}`],
+    { cwd: repoRoot },
+  );
+
+  if (proc.exitCode !== 0) {
+    return { linesAdded: 0, linesRemoved: 0 };
+  }
+
+  // Parse numstat output
+  const output = proc.stdout.toString("utf8");
+  let added = 0;
+  let removed = 0;
+
+  for (const line of output.split("\n")) {
+    const parts = line.split("\t");
+    if (parts.length >= 2) {
+      const a = Number.parseInt(parts[0] ?? "", 10);
+      const r = Number.parseInt(parts[1] ?? "", 10);
+      if (!Number.isNaN(a)) added += a;
+      if (!Number.isNaN(r)) removed += r;
+    }
+  }
+
+  return { linesAdded: added, linesRemoved: removed };
+}
 
 /**
  * Get list of files changed during the iteration
@@ -222,10 +322,11 @@ function getFilesChanged(
 
   // Secondary: add any uncommitted git changes
   try {
-    const staged = execSync("git diff --cached --name-only", {
-      cwd: repoRoot,
-      encoding: "utf8",
-    }).trim();
+    const stagedProc = Bun.spawnSync(
+      ["git", "diff", "--cached", "--name-only"],
+      { cwd: repoRoot },
+    );
+    const staged = stagedProc.stdout.toString("utf8").trim();
 
     if (staged !== "") {
       for (const file of staged.split("\n")) {
@@ -235,10 +336,10 @@ function getFilesChanged(
       }
     }
 
-    const unstaged = execSync("git diff --name-only", {
+    const unstagedProc = Bun.spawnSync(["git", "diff", "--name-only"], {
       cwd: repoRoot,
-      encoding: "utf8",
-    }).trim();
+    });
+    const unstaged = unstagedProc.stdout.toString("utf8").trim();
 
     if (unstaged !== "") {
       for (const file of unstaged.split("\n")) {
@@ -263,6 +364,104 @@ function getFilesChanged(
   return filtered.slice(0, 50);
 }
 
+/**
+ * Get lines added/removed during the iteration
+ *
+ * Uses git diff --numstat to count insertions and deletions.
+ * Includes both staged and unstaged changes.
+ * Falls back to git show --numstat HEAD when no uncommitted changes exist
+ * (handles case where Claude already committed during the iteration).
+ *
+ * @param repoRoot - Repository root path for git commands
+ * @returns LinesChangedResult with totals
+ */
+function getLinesChanged(repoRoot: string): LinesChangedResult {
+  let linesAdded = 0;
+  let linesRemoved = 0;
+
+  try {
+    // Get staged changes
+    const stagedProc = Bun.spawnSync(["git", "diff", "--cached", "--numstat"], {
+      cwd: repoRoot,
+    });
+    const staged = stagedProc.stdout.toString("utf8");
+
+    const stagedResult = parseNumstat(staged);
+    linesAdded += stagedResult.linesAdded;
+    linesRemoved += stagedResult.linesRemoved;
+
+    // Get unstaged changes
+    const unstagedProc = Bun.spawnSync(["git", "diff", "--numstat"], {
+      cwd: repoRoot,
+    });
+    const unstaged = unstagedProc.stdout.toString("utf8");
+
+    const unstagedResult = parseNumstat(unstaged);
+    linesAdded += unstagedResult.linesAdded;
+    linesRemoved += unstagedResult.linesRemoved;
+
+    // Fallback: if no uncommitted changes, get lines from the latest commit
+    // This handles the case where Claude already committed during the iteration
+    if (linesAdded === 0 && linesRemoved === 0) {
+      const headProc = Bun.spawnSync(["git", "show", "--numstat", "HEAD"], {
+        cwd: repoRoot,
+      });
+      const headCommit = headProc.stdout.toString("utf8");
+
+      const headResult = parseNumstat(headCommit);
+      ({ linesAdded, linesRemoved } = headResult);
+    }
+  } catch {
+    // Git failed, return zeros
+  }
+
+  return { linesAdded, linesRemoved };
+}
+
+/**
+ * Parse git diff --numstat output to sum lines added/removed
+ *
+ * @param numstatOutput - Raw output from git diff --numstat
+ * @returns LinesChangedResult with totals
+ */
+function parseNumstat(numstatOutput: string): LinesChangedResult {
+  let linesAdded = 0;
+  let linesRemoved = 0;
+
+  const lines = numstatOutput.split("\n").filter((line) => line.trim() !== "");
+
+  for (const line of lines) {
+    // Format: "insertions\tdeletions\tfilename"
+    // Binary files show as "-\t-\tfilename"
+    const parts = line.split("\t");
+    const added = parts[0];
+    const removed = parts[1];
+
+    // Skip if parts are missing or binary files (shown as "-")
+    if (
+      added === undefined ||
+      removed === undefined ||
+      added === "-" ||
+      removed === "-"
+    ) {
+      // eslint-disable-next-line no-continue -- skip invalid lines
+      continue;
+    }
+
+    const addedNumber = Number.parseInt(added, 10);
+    const removedNumber = Number.parseInt(removed, 10);
+
+    if (!Number.isNaN(addedNumber)) {
+      linesAdded += addedNumber;
+    }
+    if (!Number.isNaN(removedNumber)) {
+      linesRemoved += removedNumber;
+    }
+  }
+
+  return { linesAdded, linesRemoved };
+}
+
 // =============================================================================
 // Main Hook
 // =============================================================================
@@ -275,9 +474,9 @@ function getFilesChanged(
  *
  * The hook:
  * 1. Finds the session JSONL file
- * 2. Generates a summary using Haiku
- * 3. Collects metrics (tool calls, duration, files changed)
- * 4. Writes a diary entry to logs/iterations.jsonl
+ * 2. Generates a summary using Haiku (with timing)
+ * 3. Collects metrics (tool calls, duration, files changed) with timing
+ * 4. Writes a diary entry to logs/iterations.jsonl with timing breakdown
  *
  * @param options - PostIterationOptions with session and subtask info
  * @returns Result with diary entry and paths, or null if hook was skipped
@@ -285,14 +484,21 @@ function getFilesChanged(
 function runPostIterationHook(
   options: PostIterationOptions,
 ): null | PostIterationResult {
+  const hookStart = Date.now();
+
   const {
+    claudeMs = 0,
+    commitAfter,
+    commitBefore,
     costUsd,
     iterationNumber = 1,
     milestone = "",
+    mode,
     repoRoot,
     sessionId,
     status,
     subtask,
+    subtasksPath,
   } = options;
 
   // Skip hook if no session ID (supervised mode has no session capture)
@@ -306,10 +512,40 @@ function runPostIterationHook(
   // Generate summary using Haiku (silent - no console output)
   const summaryResult = generateSummary(options, sessionPath);
 
-  // Collect metrics
+  // Collect metrics with timing
+  const metricsStart = Date.now();
   const toolCalls = sessionPath === null ? 0 : countToolCalls(sessionPath);
   const duration = sessionPath === null ? 0 : calculateDurationMs(sessionPath);
   const filesChanged = getFilesChanged(sessionPath, repoRoot);
+
+  // If commits are different, use commit range diff to accurately measure what Claude committed
+  // If same (Claude didn't commit), fall back to staged+unstaged changes
+  const hasValidCommitRange =
+    commitBefore !== null &&
+    commitBefore !== undefined &&
+    commitBefore !== "" &&
+    commitAfter !== null &&
+    commitAfter !== undefined &&
+    commitAfter !== "" &&
+    commitBefore !== commitAfter;
+  const { linesAdded, linesRemoved } = hasValidCommitRange
+    ? getCommitRangeLines(repoRoot, commitBefore, commitAfter)
+    : getLinesChanged(repoRoot);
+
+  const tokenUsage =
+    sessionPath === null ? undefined : getTokenUsageFromSession(sessionPath);
+  const metricsMs = Date.now() - metricsStart;
+
+  // Calculate hook total time
+  const hookMs = Date.now() - hookStart;
+
+  // Build timing breakdown
+  const timing: IterationTiming = {
+    claudeMs,
+    hookMs,
+    metricsMs,
+    summaryMs: summaryResult.summaryMs,
+  };
 
   // Build diary entry
   const timestamp = new Date().toISOString();
@@ -320,18 +556,24 @@ function runPostIterationHook(
     filesChanged,
     iterationNum: iterationNumber,
     keyFindings: summaryResult.keyFindings,
+    linesAdded,
+    linesRemoved,
     milestone,
+    mode,
     sessionId,
     status,
     subtaskId: subtask.id,
     summary: summaryResult.summary,
     taskRef: subtask.taskRef,
     timestamp,
+    timing,
+    tokenUsage,
     toolCalls,
+    type: "iteration",
   };
 
-  // Write to diary
-  const diaryPath = `${repoRoot}/logs/iterations.jsonl`;
+  // Write to diary - use milestone-scoped path
+  const diaryPath = getIterationLogPath(subtasksPath);
   writeDiaryEntry(diaryEntry, diaryPath);
 
   return { diaryPath, entry: diaryEntry, sessionPath };
@@ -375,6 +617,9 @@ function writeDiaryEntry(entry: IterationDiaryEntry, diaryPath: string): void {
 export {
   generateSummary,
   getFilesChanged,
+  getLinesChanged,
+  type LinesChangedResult,
+  parseNumstat,
   type PostIterationOptions,
   type PostIterationResult,
   runPostIterationHook,

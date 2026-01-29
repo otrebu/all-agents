@@ -30,10 +30,10 @@ _aaa() {
         command)
             local -a commands
             commands=(
-                'download:Download URLs, extract text, save as markdown'
                 'extract-conversations:Extract Claude Code conversation history'
                 'gh-search:Search GitHub for code examples'
                 'gemini-research:Google Search via Gemini CLI'
+                'notify:Push notifications via ntfy'
                 'parallel-search:Multi-angle web research'
                 'setup:Setup all-agents for user or project'
                 'uninstall:Uninstall all-agents'
@@ -41,18 +41,13 @@ _aaa() {
                 'task:Task management utilities'
                 'story:Story management utilities'
                 'ralph:Autonomous development framework'
+                'review:Run parallel multi-agent code review'
                 'completion:Generate shell completion scripts'
             )
             _describe 'command' commands
             ;;
         args)
             case $words[1] in
-                download)
-                    _arguments \\
-                        '(-o --output)'{-o,--output}'[Output filename]:filename:_files' \\
-                        '(-d --dir)'{-d,--dir}'[Output directory]:directory:_files -/' \\
-                        '*:url:_urls'
-                    ;;
                 extract-conversations)
                     _arguments \\
                         '(-l --limit)'{-l,--limit}'[Number of recent conversations]:number:' \\
@@ -97,8 +92,14 @@ _aaa() {
                 story)
                     _aaa_story
                     ;;
+                notify)
+                    _aaa_notify
+                    ;;
                 ralph)
                     _aaa_ralph
+                    ;;
+                review)
+                    _aaa_review
                     ;;
                 completion)
                     _arguments '1:shell:(bash zsh fish)'
@@ -155,6 +156,79 @@ _aaa_story() {
                     _arguments \\
                         '(-d --dir)'{-d,--dir}'[Custom stories directory]:directory:_files -/' \\
                         '1:name:'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_aaa_notify() {
+    local -a subcommands
+    subcommands=(
+        'init:Interactive first-time setup'
+        'on:Enable notifications'
+        'off:Disable notifications'
+        'status:Show current notification status'
+        'config:Configuration management'
+    )
+
+    _arguments -C \\
+        '(-t --title)'{-t,--title}'[Notification title]:title:' \\
+        '(-p --priority)'{-p,--priority}'[Priority level]:priority:(min low default high max)' \\
+        '--tags[Comma-separated tags/emojis]:tags:' \\
+        '(-q --quiet)'{-q,--quiet}'[Suppress output on success]' \\
+        '--dry-run[Show what would be sent without sending]' \\
+        '--event[Event name for routing]:event:' \\
+        '1: :->subcmd_or_msg' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd_or_msg)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                config)
+                    _aaa_notify_config
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_aaa_notify_config() {
+    local -a subcommands
+    subcommands=(
+        'set:Set configuration values'
+        'show:Display current configuration'
+        'test:Send a test notification'
+    )
+
+    _arguments -C \\
+        '1: :->subcmd' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                set)
+                    _arguments \\
+                        '--topic[Set ntfy topic]:topic:' \\
+                        '--server[Set ntfy server URL]:url:' \\
+                        '--title[Set default notification title]:title:' \\
+                        '--priority[Set default priority]:priority:(min low default high max)' \\
+                        '--quiet-start[Set quiet hours start (0-23)]:hour:' \\
+                        '--quiet-end[Set quiet hours end (0-23)]:hour:' \\
+                        '--quiet-enabled[Enable/disable quiet hours]:bool:(true false)'
+                    ;;
+                show)
+                    _arguments '--json[Output as JSON]'
+                    ;;
+                test)
+                    _arguments '(-m --message)'{-m,--message}'[Custom test message]:message:'
                     ;;
             esac
             ;;
@@ -253,9 +327,12 @@ _aaa_ralph_plan() {
                     ;;
                 subtasks)
                     _arguments \\
-                        '--task[Task file]:task:_files -g "*.md"' \\
-                        '--story[Story path]:story:_files -g "*.md" -/' \\
-                        '--milestone[Milestone path]:milestone:_files -/' \\
+                        '1:source:_files' \\
+                        '--review[Parse logs/reviews.jsonl for findings]' \\
+                        '--task[Task file (legacy)]:task:_files -g "*.md"' \\
+                        '--story[Link subtasks to parent story]:story:' \\
+                        '--milestone[Target milestone]:milestone:_files -/' \\
+                        '--size[Slice thickness]:size:(small medium large)' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
@@ -326,6 +403,25 @@ _aaa_ralph_review_gap() {
                     _arguments '--milestone[Milestone path]:milestone:_files -/'
                     ;;
             esac
+            ;;
+    esac
+}
+
+_aaa_review() {
+    local -a subcommands
+    subcommands=(
+        'status:Display review history and statistics'
+    )
+
+    _arguments -C \\
+        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch execution]' \\
+        '(-H --headless)'{-H,--headless}'[Headless mode: fully autonomous]' \\
+        '--dry-run[Preview findings without fixing (requires --headless)]' \\
+        '1: :->subcmd'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
             ;;
     esac
 }

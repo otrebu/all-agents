@@ -12,6 +12,15 @@
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
+### 2026-01-26
+
+#### SUB-067
+- **Problem:** No module for build summary functionality - types and functions for aggregating Ralph build results were needed
+- **Changes:** Created summary.ts with BuildPracticalSummary module containing types and aggregation functions
+- **Files:**
+  - `tools/src/commands/ralph/summary.ts` - New module with BuildPracticalSummary, CompletedSubtaskInfo, BuildStats, CommitRange types; generateBuildSummary(), getCommitRange(), writeBuildSummaryFile() functions
+  - `tools/tests/lib/summary.test.ts` - 14 unit tests covering all summary functions
+
 ### 2026-01-22
 
 #### SUB-024

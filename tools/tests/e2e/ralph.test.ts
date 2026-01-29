@@ -65,6 +65,7 @@ describe("ralph E2E", () => {
     // Three-mode system flags
     expect(stdout).toContain("--supervised");
     expect(stdout).toContain("--headless");
+    expect(stdout).toContain("--skip-summary");
   });
 
   test("ralph build with missing subtasks shows error", async () => {
@@ -222,27 +223,25 @@ describe("ralph E2E", () => {
       expect(stdout).toContain("tasks");
     });
 
-    test("ralph review stories --help shows supervised-only", async () => {
+    test("ralph review stories --help shows options", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "stories", "--help"],
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("supervised only");
       expect(stdout).toContain("milestone");
-      expect(stdout).not.toContain("--headless");
+      expect(stdout).toContain("--headless");
     });
 
-    test("ralph review roadmap --help shows supervised-only", async () => {
+    test("ralph review roadmap --help shows options", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "roadmap", "--help"],
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("supervised only");
-      expect(stdout).not.toContain("--headless");
+      expect(stdout).toContain("--headless");
     });
 
     test("ralph review gap --help shows gap subcommands", async () => {
@@ -254,29 +253,29 @@ describe("ralph E2E", () => {
       expect(exitCode).toBe(0);
       expect(stdout).toContain("roadmap");
       expect(stdout).toContain("stories");
+      expect(stdout).toContain("tasks");
+      expect(stdout).toContain("subtasks");
     });
 
-    test("ralph review gap roadmap --help shows supervised-only", async () => {
+    test("ralph review gap roadmap --help shows options", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "gap", "roadmap", "--help"],
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("supervised only");
-      expect(stdout).not.toContain("--headless");
+      expect(stdout).toContain("--headless");
     });
 
-    test("ralph review gap stories --help shows supervised-only", async () => {
+    test("ralph review gap stories --help shows options", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "gap", "stories", "--help"],
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("supervised only");
       expect(stdout).toContain("milestone");
-      expect(stdout).not.toContain("--headless");
+      expect(stdout).toContain("--headless");
     });
 
     test("ralph review stories requires milestone option", async () => {
@@ -303,6 +302,80 @@ describe("ralph E2E", () => {
       const { exitCode, stderr } = await execa(
         "bun",
         ["run", "dev", "ralph", "review", "subtasks"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("required option '--subtasks <path>'");
+    });
+
+    test("ralph review subtasks --help shows options", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "subtasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--subtasks");
+      expect(stdout).toContain("--headless");
+    });
+
+    test("ralph review tasks --help shows options", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "tasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--story");
+      expect(stdout).toContain("--headless");
+    });
+
+    test("ralph review tasks requires --story option", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "tasks"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("required option '--story <path>'");
+    });
+
+    test("ralph review gap tasks --help shows options", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "gap", "tasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--story");
+      expect(stdout).toContain("--headless");
+    });
+
+    test("ralph review gap tasks requires --story option", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "gap", "tasks"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("required option '--story <path>'");
+    });
+
+    test("ralph review gap subtasks --help shows options", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "gap", "subtasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--subtasks");
+      expect(stdout).toContain("--headless");
+    });
+
+    test("ralph review gap subtasks requires --subtasks option", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "review", "gap", "subtasks"],
         { cwd: TOOLS_DIR, reject: false },
       );
       expect(exitCode).toBe(1);
@@ -1845,9 +1918,17 @@ describe("post-iteration-hook diary entry integration test", () => {
   test("diary entry created after mock iteration with correct schema", async () => {
     const { writeFileSync } = await import("node:fs");
 
-    // Create logs directory
-    const logsDirectory = join(temporaryDirectory, "logs");
+    // Create milestone-scoped logs directory (new structure: {milestone}/logs/{date}.jsonl)
+    const milestoneRoot = join(
+      temporaryDirectory,
+      "docs/planning/milestones/mock-milestone",
+    );
+    const logsDirectory = join(milestoneRoot, "logs");
     mkdirSync(logsDirectory, { recursive: true });
+
+    // Get today's date in UTC for the log filename
+    const utcDate = new Date().toISOString().split("T")[0];
+    const diaryFileName = `${utcDate}.jsonl`;
 
     // Create a minimal ralph.config.json
     writeFileSync(
@@ -1856,7 +1937,7 @@ describe("post-iteration-hook diary entry integration test", () => {
         hooks: {
           postIteration: {
             actions: ["log"],
-            diaryPath: join(logsDirectory, "iterations.jsonl"),
+            diaryPath: join(logsDirectory, diaryFileName),
             enabled: true,
             model: "haiku",
           },
@@ -1895,7 +1976,8 @@ export PATH="${temporaryDirectory}:$PATH"
 
 REPO_ROOT="${temporaryDirectory}"
 CONFIG_PATH="$REPO_ROOT/ralph.config.json"
-DIARY_PATH="$REPO_ROOT/logs/iterations.jsonl"
+# Milestone-scoped diary path: {milestone}/logs/{date}.jsonl
+DIARY_PATH="${join(logsDirectory, diaryFileName)}"
 
 # Test parameters (simulating a mock iteration)
 SUBTASK_ID="mock-subtask-001"
@@ -1953,8 +2035,8 @@ echo "DIARY_PATH: $DIARY_PATH"
     expect(exitCode).toBe(0);
     expect(stdout).toContain("Diary entry written successfully");
 
-    // Step 2: Verify logs/iterations.jsonl was updated
-    const diaryPath = join(logsDirectory, "iterations.jsonl");
+    // Step 2: Verify milestone-scoped logs/{date}.jsonl was updated
+    const diaryPath = join(logsDirectory, diaryFileName);
     expect(existsSync(diaryPath)).toBe(true);
 
     // Read the diary file
@@ -2037,11 +2119,17 @@ echo "DIARY_PATH: $DIARY_PATH"
   test("multiple iterations append to same diary file", async () => {
     const { writeFileSync } = await import("node:fs");
 
-    // Create logs directory
-    const logsDirectory = join(temporaryDirectory, "logs");
+    // Create milestone-scoped logs directory (new structure: {milestone}/logs/{date}.jsonl)
+    const milestoneRoot = join(
+      temporaryDirectory,
+      "docs/planning/milestones/mock-milestone",
+    );
+    const logsDirectory = join(milestoneRoot, "logs");
     mkdirSync(logsDirectory, { recursive: true });
 
-    const diaryPath = join(logsDirectory, "iterations.jsonl");
+    // Get today's date in UTC for the log filename
+    const utcDate = new Date().toISOString().split("T")[0];
+    const diaryPath = join(logsDirectory, `${utcDate}.jsonl`);
 
     // Create a test script that appends multiple entries using node (jq may not be available)
     const testScript = `#!/bin/bash

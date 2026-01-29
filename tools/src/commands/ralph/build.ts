@@ -12,6 +12,7 @@
  */
 
 import { findProjectRoot } from "@tools/utils/paths";
+import chalk from "chalk";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as readline from "node:readline";
@@ -27,7 +28,7 @@ import {
   loadSubtasksFile,
 } from "./config";
 import {
-  renderBuildSummary,
+  renderBuildPracticalSummary,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
@@ -39,6 +40,9 @@ import {
   type PostIterationResult,
   runPostIterationHook,
 } from "./post-iteration";
+import { discoverRecentSession } from "./session";
+import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
+import { generateBuildSummary } from "./summary";
 
 // =============================================================================
 // Constants
@@ -63,6 +67,7 @@ interface HeadlessIterationContext {
   maxIterations: number;
   prompt: string;
   remaining: number;
+  shouldSkipSummary: boolean;
   subtasksPath: string;
 }
 
@@ -87,15 +92,57 @@ interface PeriodicCalibrationOptions {
 }
 
 /**
+ * Context for summary generation (populated during build)
+ * Used by signal handlers to generate summary on interrupt
+ */
+interface SummaryContext {
+  /** Subtasks completed during this build run */
+  completedThisRun: Array<{ attempts: number; id: string }>;
+  /** Suppress terminal summary output */
+  quiet: boolean;
+  /** Path to subtasks file */
+  subtasksPath: string;
+}
+
+/**
  * Context for supervised iteration processing
  */
 interface SupervisedIterationContext {
   contextRoot: string;
+  currentAttempts: number;
+  currentSubtask: Subtask;
+  iteration: number;
+  maxIterations: number;
+  remaining: number;
   subtasksPath: string;
 }
 
+/**
+ * Result from supervised iteration processing
+ */
+interface SupervisedIterationResult {
+  didComplete: boolean;
+  hookResult: null | PostIterationResult;
+}
+
 // =============================================================================
-// Interactive Prompts
+// Module-Level State for Signal Handling
+// =============================================================================
+
+/**
+ * Flag to prevent double summary generation
+ * Set to true after summary is generated (normal completion or interrupt)
+ */
+let hasSummaryBeenGenerated = false;
+
+/**
+ * Context for summary generation (set by runBuild, used by signal handlers)
+ * Null until runBuild initializes it
+ */
+let summaryContext: null | SummaryContext = null;
+
+// =============================================================================
+// Build Helpers
 // =============================================================================
 
 /**
@@ -141,9 +188,116 @@ After completing ONE subtask:
   return buildPrompt(promptContent, extraContext);
 }
 
+/**
+ * Generate summary and exit with the specified code
+ *
+ * Generates a practical build summary from diary entries and completed subtasks,
+ * writes the summary file, displays it to the terminal, and exits.
+ * Prevents double execution via hasSummaryBeenGenerated flag.
+ *
+ * @param exitCode - Exit code to use (130 for SIGINT, 143 for SIGTERM)
+ */
+function generateSummaryAndExit(exitCode: number): void {
+  // Prevent double execution
+  if (hasSummaryBeenGenerated) {
+    process.exit(exitCode);
+    return;
+  }
+  hasSummaryBeenGenerated = true;
+
+  // If no context available, can't generate summary
+  if (summaryContext === null) {
+    console.log("\n\nBuild interrupted before any iterations completed.");
+    process.exit(exitCode);
+    return;
+  }
+
+  const { completedThisRun, quiet: isQuiet, subtasksPath } = summaryContext;
+
+  // If nothing was completed this run, just exit
+  if (completedThisRun.length === 0) {
+    if (!isQuiet) {
+      console.log("\n\nBuild interrupted. No subtasks completed this run.");
+    }
+    process.exit(exitCode);
+    return;
+  }
+
+  if (!isQuiet) {
+    console.log("\n\nGenerating build summary before exit...\n");
+  }
+
+  try {
+    // Read diary entries for summary generation
+    const logsDirectory = getMilestoneLogsDirectory(subtasksPath);
+    const diaryEntries = readIterationDiary(logsDirectory);
+
+    // Load current subtasks file for remaining count
+    const subtasksFile = loadSubtasksFile(subtasksPath);
+
+    // Generate the summary
+    const summary = generateBuildSummary(
+      completedThisRun,
+      diaryEntries,
+      subtasksFile,
+    );
+
+    // Render summary to terminal (unless quiet mode)
+    if (!isQuiet) {
+      console.log(renderBuildPracticalSummary(summary));
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to generate summary: ${message}`);
+  }
+
+  process.exit(exitCode);
+}
+
+/**
+ * Get the latest commit hash from the repository
+ *
+ * @param projectRoot - Repository root path
+ * @returns Commit hash or null if git command fails
+ */
+function getLatestCommitHash(projectRoot: string): null | string {
+  const proc = Bun.spawnSync(["git", "rev-parse", "HEAD"], {
+    cwd: projectRoot,
+  });
+  if (proc.exitCode !== 0) return null;
+  return proc.stdout.toString("utf8").trim();
+}
+
 // =============================================================================
 // Build Loop Implementation
 // =============================================================================
+
+/**
+ * Check if max iterations exceeded and handle failure
+ *
+ * @returns true if exceeded and should exit, false to continue
+ */
+async function handleMaxIterationsExceeded(
+  currentAttempts: number,
+  maxIterations: number,
+  subtaskId: string,
+): Promise<boolean> {
+  if (maxIterations <= 0 || currentAttempts <= maxIterations) {
+    return false;
+  }
+
+  console.error(
+    `\nError: Max iterations (${maxIterations}) exceeded for subtask: ${subtaskId}`,
+  );
+  console.error(`Subtask failed after ${maxIterations} attempts`);
+
+  await executeHook("onMaxIterationsExceeded", {
+    message: `Subtask ${subtaskId} failed after ${maxIterations} attempts`,
+    subtaskId,
+  });
+
+  return true;
+}
 
 /**
  * Process a single headless iteration
@@ -161,13 +315,26 @@ function processHeadlessIteration(
     maxIterations,
     prompt,
     remaining,
+    shouldSkipSummary,
     subtasksPath,
   } = context;
 
   console.log(renderInvocationHeader("headless"));
   console.log();
 
+  // Use target project root for logs (not all-agents)
+  const projectRoot = findProjectRoot() ?? contextRoot;
+
+  // Capture commit hash before Claude invocation
+  const commitBefore = getLatestCommitHash(projectRoot);
+
+  // Time Claude invocation for metrics
+  const claudeStart = Date.now();
   const result = invokeClaudeHeadless({ prompt });
+  const claudeMs = Date.now() - claudeStart;
+
+  // Capture commit hash after Claude invocation
+  const commitAfter = getLatestCommitHash(projectRoot);
 
   if (result === null) {
     console.error("Claude headless invocation failed or was interrupted");
@@ -186,19 +353,32 @@ function processHeadlessIteration(
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
-  // Use target project root for logs (not all-agents)
-  const projectRoot = findProjectRoot() ?? contextRoot;
-  const hookResult = runPostIterationHook({
-    costUsd: result.cost,
-    iterationNumber: currentAttempts,
-    maxAttempts: maxIterations,
-    milestone,
-    remaining: postRemaining,
-    repoRoot: projectRoot,
-    sessionId: result.sessionId,
-    status: iterationStatus,
-    subtask: currentSubtask,
-  });
+  let hookResult: null | PostIterationResult = null;
+  try {
+    hookResult = runPostIterationHook({
+      claudeMs,
+      commitAfter,
+      commitBefore,
+      costUsd: result.cost,
+      iterationNumber: currentAttempts,
+      maxAttempts: maxIterations,
+      milestone,
+      mode: "headless",
+      remaining: postRemaining,
+      repoRoot: projectRoot,
+      sessionId: result.sessionId,
+      skipSummary: shouldSkipSummary,
+      status: iterationStatus,
+      subtask: currentSubtask,
+      subtasksPath,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(
+      chalk.yellow(`⚠ Post-iteration hook failed: ${errorMessage}`),
+    );
+    // Continue without hook result - build loop proceeds
+  }
 
   // Display iteration end box
   if (hookResult !== null) {
@@ -212,6 +392,8 @@ function processHeadlessIteration(
         filesChanged: entry.filesChanged?.length ?? 0,
         iteration,
         keyFindings: entry.keyFindings,
+        linesAdded: entry.linesAdded,
+        linesRemoved: entry.linesRemoved,
         maxAttempts: maxIterations,
         remaining: postRemaining,
         sessionPath: sessionPath ?? undefined,
@@ -219,6 +401,7 @@ function processHeadlessIteration(
         subtaskId: currentSubtask.id,
         subtaskTitle: currentSubtask.title,
         summary: entry.summary,
+        tokenUsage: entry.tokenUsage,
         toolCalls: entry.toolCalls,
       }),
     );
@@ -235,19 +418,39 @@ function processHeadlessIteration(
 /**
  * Process a single supervised iteration
  *
- * @returns true if successful, false if failed
+ * Captures session timing, discovers session file after completion,
+ * and runs post-iteration hook to generate metrics and diary entry.
+ *
+ * @returns Result with completion status and hook result, or null on failure
  */
 function processSupervisedIteration(
   context: SupervisedIterationContext,
-): boolean {
-  const { contextRoot, subtasksPath } = context;
+): null | SupervisedIterationResult {
+  const {
+    contextRoot,
+    currentAttempts,
+    currentSubtask,
+    iteration,
+    maxIterations,
+    remaining,
+    subtasksPath,
+  } = context;
 
   console.log(renderInvocationHeader("supervised"));
   console.log();
 
+  // Use target project root for logs
+  const projectRoot = findProjectRoot() ?? contextRoot;
+
   // Derive PROGRESS.md location from subtasks.json location
   const subtasksDirectory = path.dirname(subtasksPath);
   const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
+
+  // Capture commit hash before Claude invocation
+  const commitBefore = getLatestCommitHash(projectRoot);
+
+  // Capture start time for session discovery
+  const startTime = Date.now();
 
   const chatResult = invokeClaudeChat(
     path.join(contextRoot, ITERATION_PROMPT_PATH),
@@ -260,9 +463,77 @@ function processSupervisedIteration(
     process.exit(chatResult.exitCode ?? 1);
   }
 
+  // Capture commit hash after Claude invocation
+  const commitAfter = getLatestCommitHash(projectRoot);
+
+  // Calculate elapsed time for Claude invocation
+  const claudeMs = Date.now() - startTime;
+
   console.log("\nSupervised session completed");
-  return true;
+
+  // Discover the session file created during the interactive session
+  const discoveredSession = discoverRecentSession(startTime);
+
+  // Reload subtasks to check completion status
+  const postIterationSubtasks = loadSubtasksFile(subtasksPath);
+  const postRemaining = countRemaining(postIterationSubtasks.subtasks);
+  const didComplete = postRemaining < remaining;
+  const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
+  const iterationStatus = didComplete ? "completed" : "retrying";
+
+  // Run post-iteration hook if session was discovered
+  let hookResult: null | PostIterationResult = null;
+  if (discoveredSession !== null) {
+    hookResult = runPostIterationHook({
+      claudeMs,
+      commitAfter,
+      commitBefore,
+      iterationNumber: currentAttempts,
+      maxAttempts: maxIterations,
+      milestone,
+      mode: "supervised",
+      remaining: postRemaining,
+      repoRoot: projectRoot,
+      sessionId: discoveredSession.sessionId,
+      skipSummary: true,
+      status: iterationStatus,
+      subtask: currentSubtask,
+      subtasksPath,
+    });
+
+    // Display iteration end box with metrics
+    if (hookResult !== null) {
+      const { diaryPath, entry, sessionPath } = hookResult;
+      console.log(
+        renderIterationEnd({
+          attempt: currentAttempts,
+          diaryPath,
+          durationMs: claudeMs,
+          filesChanged: entry.filesChanged?.length ?? 0,
+          iteration,
+          keyFindings: entry.keyFindings,
+          linesAdded: entry.linesAdded,
+          linesRemoved: entry.linesRemoved,
+          maxAttempts: maxIterations,
+          remaining: postRemaining,
+          sessionPath: sessionPath ?? undefined,
+          status: iterationStatus,
+          subtaskId: currentSubtask.id,
+          subtaskTitle: currentSubtask.title,
+          summary: entry.summary,
+          tokenUsage: entry.tokenUsage,
+          toolCalls: entry.toolCalls,
+        }),
+      );
+    }
+  }
+
+  return { didComplete, hookResult };
 }
+
+// =============================================================================
+// Interactive Prompts
+// =============================================================================
 
 /**
  * Prompt user to continue to next iteration
@@ -305,6 +576,26 @@ async function promptContinue(): Promise<boolean> {
 }
 
 /**
+ * Register signal handlers for graceful shutdown
+ *
+ * SIGINT (Ctrl+C): exit code 130
+ * SIGTERM: exit code 143
+ */
+function registerSignalHandlers(): void {
+  process.on("SIGINT", () => {
+    generateSummaryAndExit(130);
+  });
+
+  process.on("SIGTERM", () => {
+    generateSummaryAndExit(143);
+  });
+}
+
+// =============================================================================
+// Build Loop Implementation
+// =============================================================================
+
+/**
  * Run the build loop
  *
  * Iterates through subtasks, invoking Claude for each until all are done
@@ -323,9 +614,14 @@ async function runBuild(
     interactive: isInteractive,
     maxIterations,
     mode,
+    quiet: isQuiet,
+    skipSummary: shouldSkipSummary,
     subtasksPath,
     validateFirst: shouldValidateFirst,
   } = options;
+
+  // Register signal handlers for graceful summary on interrupt
+  registerSignalHandlers();
 
   // Validate subtasks file exists
   if (!existsSync(subtasksPath)) {
@@ -337,12 +633,11 @@ async function runBuild(
   // Track retry attempts per subtask ID
   const attempts = new Map<string, number>();
 
-  // Build summary tracking
-  let totalCompleted = 0;
-  let totalFailed = 0;
-  let totalCost = 0;
-  let totalDuration = 0;
-  const allFilesChanged = new Set<string>();
+  // Track subtasks completed during this build run
+  const completedThisRun: Array<{ attempts: number; id: string }> = [];
+
+  // Initialize summary context for signal handlers
+  summaryContext = { completedThisRun, quiet: isQuiet, subtasksPath };
 
   // Optional pre-build validation (TODO: implement in SUB-025/26)
   if (shouldValidateFirst) {
@@ -362,17 +657,33 @@ async function runBuild(
 
     // Check if all subtasks are complete
     if (remaining === 0) {
-      console.log("\n");
-      console.log(
-        renderBuildSummary({
-          completed: totalCompleted,
-          failed: totalFailed,
-          totalCostUsd: totalCost,
-          totalDurationMs: totalDuration,
-          totalFilesChanged: allFilesChanged.size,
-          totalIterations: iteration - 1,
-        }),
+      if (!isQuiet) {
+        console.log("\n");
+      }
+
+      // Generate practical summary
+      const logsDirectory = getMilestoneLogsDirectory(subtasksPath);
+      const diaryEntries = readIterationDiary(logsDirectory);
+      const summary = generateBuildSummary(
+        completedThisRun,
+        diaryEntries,
+        subtasksFile,
       );
+
+      // Render practical summary to terminal (unless quiet mode)
+      if (!isQuiet) {
+        console.log(renderBuildPracticalSummary(summary));
+      }
+
+      // Fire onMilestoneComplete hook
+      const milestone = getMilestoneFromSubtasks(subtasksFile);
+      // eslint-disable-next-line no-await-in-loop -- Must await before returning
+      await executeHook("onMilestoneComplete", {
+        message: `Milestone ${milestone} completed! All ${completedThisRun.length} subtasks done.`,
+      });
+
+      // Mark summary as generated to prevent double execution on signal
+      hasSummaryBeenGenerated = true;
       return;
     }
 
@@ -388,22 +699,14 @@ async function runBuild(
     const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
     attempts.set(currentSubtask.id, currentAttempts);
 
-    // Check if we've exceeded max iterations for this subtask (0 = unlimited)
-    if (maxIterations > 0 && currentAttempts > maxIterations) {
-      totalFailed += 1;
-
-      console.error(
-        `\nError: Max iterations (${maxIterations}) exceeded for subtask: ${currentSubtask.id}`,
-      );
-      console.error(`Subtask failed after ${maxIterations} attempts`);
-
-      // Execute onMaxIterationsExceeded hook
-      // eslint-disable-next-line no-await-in-loop -- Hook must complete before exit
-      await executeHook("onMaxIterationsExceeded", {
-        message: `Subtask ${currentSubtask.id} failed after ${maxIterations} attempts`,
-        subtaskId: currentSubtask.id,
-      });
-
+    // Check if we've exceeded max iterations for this subtask
+    // eslint-disable-next-line no-await-in-loop -- Must check before continuing
+    const didExceedMaxIterations = await handleMaxIterationsExceeded(
+      currentAttempts,
+      maxIterations,
+      currentSubtask.id,
+    );
+    if (didExceedMaxIterations) {
       process.exit(1);
     }
 
@@ -424,8 +727,10 @@ async function runBuild(
     const prompt = buildIterationPrompt(contextRoot, subtasksPath);
 
     // Invoke Claude based on mode
+    let didComplete = false;
+
     if (mode === "headless") {
-      const iterationResult = processHeadlessIteration({
+      const headlessResult = processHeadlessIteration({
         contextRoot,
         currentAttempts,
         currentSubtask,
@@ -433,41 +738,65 @@ async function runBuild(
         maxIterations,
         prompt,
         remaining,
+        shouldSkipSummary,
         subtasksPath,
       });
 
-      if (iterationResult === null) {
-        process.exit(1);
-      }
-
-      // Track build totals
-      totalCost += iterationResult.costUsd;
-      totalDuration += iterationResult.durationMs;
-      if (iterationResult.didComplete) {
-        totalCompleted += 1;
-        // Reset attempts for completed subtask
-        attempts.delete(currentSubtask.id);
-      }
-      // Note: totalFailed is only incremented when max iterations exceeded (line 386)
-
-      // Track files changed
-      if (iterationResult.hookResult?.entry.filesChanged) {
-        for (const file of iterationResult.hookResult.entry.filesChanged) {
-          allFilesChanged.add(file);
-        }
+      if (headlessResult === null) {
+        // Claude invocation failed (API error, rate limit, network issue)
+        // Treat as failed attempt - will retry on next iteration
+        console.log(
+          chalk.yellow(
+            "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
+          ),
+        );
+        didComplete = false;
+      } else {
+        ({ didComplete } = headlessResult);
       }
     } else {
-      processSupervisedIteration({ contextRoot, subtasksPath });
-    }
+      const supervisedResult = processSupervisedIteration({
+        contextRoot,
+        currentAttempts,
+        currentSubtask,
+        iteration,
+        maxIterations,
+        remaining,
+        subtasksPath,
+      });
 
-    // For supervised mode, reload subtasks to check if current one was completed
-    if (mode === "supervised") {
-      const updatedSubtasks = loadSubtasksFile(subtasksPath);
-      const newRemaining = countRemaining(updatedSubtasks.subtasks);
+      if (supervisedResult === null) {
+        // Claude invocation failed (API error, rate limit, network issue)
+        // Treat as failed attempt - will retry on next iteration
+        console.log(
+          chalk.yellow(
+            "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
+          ),
+        );
+        didComplete = false;
+      } else {
+        ({ didComplete } = supervisedResult);
+      }
 
-      if (newRemaining < remaining) {
+      if (didComplete) {
         console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
       }
+    }
+
+    // Handle completion tracking
+    if (didComplete) {
+      attempts.delete(currentSubtask.id);
+      completedThisRun.push({
+        attempts: currentAttempts,
+        id: currentSubtask.id,
+      });
+
+      // Fire onSubtaskComplete hook
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      await executeHook("onSubtaskComplete", {
+        message: `Subtask ${currentSubtask.id} completed: ${currentSubtask.title}`,
+        subtaskId: currentSubtask.id,
+      });
     }
 
     // Interactive mode: prompt for continuation

@@ -11,15 +11,17 @@
  * @see tools/lib/log.ts for logging utilities
  */
 
-import boxen, { type Options as BoxenOptions } from "boxen";
+import boxenLib, { type Options as BoxenOptions } from "boxen";
 import chalk from "chalk";
 import { marked, type MarkedExtension } from "marked";
 // @ts-expect-error - marked-terminal has no types for v7
 import { markedTerminal } from "marked-terminal";
+import stringWidth from "string-width";
 import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
-import type { IterationStatus } from "./types";
+import type { BuildPracticalSummary } from "./summary";
+import type { IterationStatus, TokenUsage } from "./types";
 
 // Box width for iteration displays (defined early for marked config)
 const BOX_WIDTH = 68;
@@ -81,6 +83,10 @@ interface IterationDisplayData {
   iteration: number;
   /** Key findings bullets */
   keyFindings?: Array<string>;
+  /** Number of lines added */
+  linesAdded?: number;
+  /** Number of lines removed */
+  linesRemoved?: number;
   /** Maximum retry attempts */
   maxAttempts: number;
   /** Remaining subtasks count */
@@ -95,13 +101,67 @@ interface IterationDisplayData {
   subtaskTitle: string;
   /** Summary text */
   summary?: string;
+  /** Token usage from the iteration */
+  tokenUsage?: TokenUsage;
   /** Number of tool calls */
   toolCalls?: number;
+}
+
+/**
+ * Data for plan subtasks summary box (headless mode output)
+ */
+interface PlanSubtasksSummaryData {
+  /** Total cost in USD */
+  costUsd: number;
+  /** Duration in milliseconds */
+  durationMs: number;
+  /** Error message if generation failed */
+  error?: string;
+  /** Target milestone name */
+  milestone?: string;
+  /** Path where subtasks.json was written */
+  outputPath: string;
+  /** Claude session ID */
+  sessionId: string;
+  /** Sizing mode used */
+  sizeMode: "large" | "medium" | "small";
+  /** Source of the subtasks */
+  source: {
+    /** Number of findings (for review mode) */
+    findingsCount?: number;
+    /** File path (for file or review mode) */
+    path?: string;
+    /** Description text (for text mode) */
+    text?: string;
+    /** Source type */
+    type: "file" | "review" | "text";
+  };
+  /** Reference to parent story */
+  storyRef?: string;
+  /** Generated subtasks (empty on error) */
+  subtasks: Array<{ id: string; title: string }>;
 }
 
 // =============================================================================
 // Status Coloring
 // =============================================================================
+
+/**
+ * Ensure a number is valid for display (handle NaN, Infinity, undefined)
+ *
+ * @param value - Number to validate
+ * @param defaultValue - Default value if invalid (default 0)
+ * @returns Valid number (never NaN or Infinity)
+ */
+function ensureValidNumber(
+  value: number | undefined,
+  defaultValue = 0,
+): number {
+  if (value === undefined || !Number.isFinite(value)) {
+    return defaultValue;
+  }
+  return value;
+}
 
 /**
  * Format a duration in milliseconds as a human-readable string
@@ -115,7 +175,7 @@ interface IterationDisplayData {
  * formatDuration(3723000) // "1h 2m 3s"
  */
 function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
+  const seconds = Math.floor(ensureValidNumber(ms) / 1000);
 
   if (seconds < 60) {
     return `${seconds}s`;
@@ -143,9 +203,36 @@ function formatDuration(ms: number): string {
   return `${hours}h ${remainingMinutes}m ${remainingSeconds}s`;
 }
 
-// =============================================================================
-// Progress Bar Rendering
-// =============================================================================
+/**
+ * Generate clickable path lines for session and diary paths
+ *
+ * @param sessionPath - Optional session file path
+ * @param diaryPath - Optional diary file path
+ * @param separatorWidth - Width of separator line above paths
+ * @returns Array of formatted lines (empty if no paths)
+ */
+function formatPathLines(
+  sessionPath: string | undefined,
+  diaryPath: string | undefined,
+  separatorWidth: number,
+): Array<string> {
+  if (sessionPath === undefined && diaryPath === undefined) {
+    return [];
+  }
+  const lines: Array<string> = [];
+  lines.push("─".repeat(separatorWidth));
+  // Show full paths - let them wrap naturally, don't truncate
+  const home = process.env.HOME ?? "";
+  if (sessionPath !== undefined) {
+    const displayPath = sessionPath.replace(home, "~");
+    lines.push(`${chalk.dim("Session")}  ${displayPath}`);
+  }
+  if (diaryPath !== undefined) {
+    const displayPath = diaryPath.replace(home, "~");
+    lines.push(`${chalk.dim("Diary")}    ${displayPath}`);
+  }
+  return lines;
+}
 
 /**
  * Format current time as HH:MM:SS for display in iteration boxes
@@ -186,9 +273,59 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
   }
 }
 
+/**
+ * Format a token count as a human-readable string
+ *
+ * @param count - Number of tokens
+ * @returns Formatted string like "42K" or "1.2M" or "532"
+ *
+ * @example
+ * formatTokenCount(532) // "532"
+ * formatTokenCount(42312) // "42K"
+ * formatTokenCount(1234567) // "1.2M"
+ */
+function formatTokenCount(count: number): string {
+  const safeCount = ensureValidNumber(count);
+  if (safeCount >= 1_000_000) {
+    const millions = safeCount / 1_000_000;
+    return millions >= 10
+      ? `${Math.round(millions)}M`
+      : `${millions.toFixed(1)}M`;
+  }
+  if (safeCount >= 1000) {
+    const thousands = safeCount / 1000;
+    return thousands >= 10
+      ? `${Math.round(thousands)}K`
+      : `${thousands.toFixed(1)}K`;
+  }
+  return String(safeCount);
+}
+
 // =============================================================================
 // Markdown Rendering
 // =============================================================================
+
+/**
+ * Format token usage as a display line
+ *
+ * @param tokenUsage - Token usage data from the iteration
+ * @returns Formatted string like "Ctx: 80K" or null if no tokens
+ */
+function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
+  if (tokenUsage === undefined) {
+    return null;
+  }
+
+  const contextTokens = ensureValidNumber(tokenUsage.contextTokens);
+  if (contextTokens === 0) {
+    return null;
+  }
+
+  const ctxLabel = chalk.dim("Ctx:");
+  const ctxValue = chalk.yellow(formatTokenCount(contextTokens));
+
+  return `${ctxLabel} ${ctxValue}`;
+}
 
 /**
  * Apply color to status text based on iteration outcome
@@ -285,6 +422,110 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
 }
 
 /**
+ * Render practical build summary box (at end of build run or on interrupt)
+ *
+ * Shows: stats (completed/failed/cost/duration/files), git commit range with diff command,
+ * bullet list of completed subtasks with summaries and retry counts, and remaining count.
+ *
+ * @param summary - BuildPracticalSummary with stats, subtasks, commitRange, remaining
+ * @returns Formatted boxen box string
+ */
+function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
+  const { commitRange, stats, subtasks } = summary;
+  const innerWidth = BOX_WIDTH - 4;
+
+  // Sanitize all numeric values to prevent boxen crashes
+  const completed = ensureValidNumber(stats.completed);
+  const failed = ensureValidNumber(stats.failed);
+  const costUsd = ensureValidNumber(stats.costUsd);
+  const durationMs = ensureValidNumber(stats.durationMs);
+  const filesChanged = ensureValidNumber(stats.filesChanged);
+  const linesAdded = ensureValidNumber(stats.linesAdded);
+  const linesRemoved = ensureValidNumber(stats.linesRemoved);
+  const remaining = ensureValidNumber(summary.remaining);
+
+  const lines: Array<string> = [];
+
+  // Stats line 1: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12    Lines  +42/-3
+  const completedLabel = chalk.dim("Completed");
+  const completedValue =
+    completed > 0 ? chalk.green.bold(String(completed)) : chalk.dim("0");
+  const failedLabel = chalk.dim("Failed");
+  const failedValue =
+    failed > 0 ? chalk.red.bold(String(failed)) : chalk.dim("0");
+  const costLabel = chalk.dim("Cost");
+  const costValue = chalk.magenta(`$${costUsd.toFixed(2)}`);
+  const durationLabel = chalk.dim("Duration");
+  const durationValue = chalk.cyan(formatDuration(durationMs));
+  const filesLabel = chalk.dim("Files");
+  const filesValue = chalk.blue(String(filesChanged));
+  const linesLabel = chalk.dim("Lines");
+  const linesValue = `${chalk.green(`+${linesAdded}`)}/${chalk.red(`-${linesRemoved}`)}`;
+
+  const statsLine = `${completedLabel} ${completedValue}   ${failedLabel} ${failedValue}   ${costLabel} ${costValue}   ${durationLabel} ${durationValue}   ${filesLabel} ${filesValue}   ${linesLabel} ${linesValue}`;
+  lines.push(statsLine);
+
+  // Stats line 2: Tokens - MaxCtx: 120K  Out: 7K
+  const maxContextTokens = ensureValidNumber(stats.maxContextTokens);
+  const outputTokens = ensureValidNumber(stats.outputTokens);
+  const totalTokens = maxContextTokens + outputTokens;
+  if (totalTokens > 0) {
+    const ctxLabel = chalk.dim("MaxCtx:");
+    const ctxValue = chalk.yellow(formatTokenCount(maxContextTokens));
+    const outLabel = chalk.dim("Out:");
+    const outValue = chalk.yellow(formatTokenCount(outputTokens));
+    const tokensLine = `${chalk.dim("Tokens")}  ${ctxLabel} ${ctxValue}  ${outLabel} ${outValue}`;
+    lines.push(tokensLine);
+  }
+
+  // Git commit range
+  if (commitRange.startHash !== null && commitRange.endHash !== null) {
+    lines.push("");
+    lines.push(chalk.dim("Git changes:"));
+    const diffCmd = `git diff ${commitRange.startHash}^..${commitRange.endHash}`;
+    lines.push(`  ${chalk.yellow(diffCmd)}`);
+  }
+
+  // Completed subtasks with summaries
+  if (subtasks.length > 0) {
+    lines.push("");
+    lines.push(chalk.dim("Completed:"));
+    for (const subtask of subtasks) {
+      const retryNote =
+        subtask.attempts > 1
+          ? chalk.yellow(` (${subtask.attempts} attempts)`)
+          : "";
+      const idPart = chalk.cyan(subtask.id);
+      const summaryPart = truncate(subtask.summary, innerWidth - 20);
+      lines.push(`  • ${idPart}${retryNote}`);
+      if (
+        subtask.summary !== "" &&
+        subtask.summary !== `Completed ${subtask.id}`
+      ) {
+        lines.push(`    ${chalk.dim(summaryPart)}`);
+      }
+    }
+  }
+
+  // Remaining count
+  lines.push("");
+  const remainingText =
+    remaining > 0
+      ? `${chalk.yellow(String(remaining))} subtasks remaining`
+      : chalk.green("All subtasks complete!");
+  lines.push(remainingText);
+
+  return renderSafeBox(lines.join("\n"), {
+    borderColor: stats.failed > 0 ? "yellow" : "green",
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: "Build Summary",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+/**
  * Render build summary box (at end of all iterations)
  */
 function renderBuildSummary(data: BuildSummaryData): string {
@@ -320,7 +561,7 @@ function renderBuildSummary(data: BuildSummaryData): string {
 
   const lines = [row1, row2];
 
-  return boxen(lines.join("\n"), {
+  return renderSafeBox(lines.join("\n"), {
     borderColor: "white",
     borderStyle: "double",
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
@@ -351,22 +592,27 @@ function renderInvocationHeader(mode: "headless" | "supervised"): string {
  */
 function renderIterationEnd(data: IterationDisplayData): string {
   const {
-    attempt,
-    costUsd = 0,
     diaryPath,
-    durationMs = 0,
-    filesChanged = 0,
-    iteration,
     keyFindings = [],
-    maxAttempts,
-    remaining,
     sessionPath,
     status = "retrying",
     subtaskId,
     subtaskTitle,
     summary = "",
-    toolCalls = 0,
+    tokenUsage,
   } = data;
+
+  // Sanitize ALL numeric values to prevent boxen crashes
+  const attempt = ensureValidNumber(data.attempt, 1);
+  const iteration = ensureValidNumber(data.iteration, 1);
+  const maxAttempts = ensureValidNumber(data.maxAttempts, 1);
+  const costUsd = ensureValidNumber(data.costUsd);
+  const durationMs = ensureValidNumber(data.durationMs);
+  const filesChanged = ensureValidNumber(data.filesChanged);
+  const linesAdded = ensureValidNumber(data.linesAdded);
+  const linesRemoved = ensureValidNumber(data.linesRemoved);
+  const remaining = ensureValidNumber(data.remaining);
+  const toolCalls = ensureValidNumber(data.toolCalls);
 
   const attemptText =
     maxAttempts > 0
@@ -393,8 +639,9 @@ function renderIterationEnd(data: IterationDisplayData): string {
   const costText = chalk.magenta(`$${costUsd.toFixed(2)}`);
   const callsText = chalk.blue(`${toolCalls} calls`);
   const filesText = chalk.blue(`${filesChanged} files`);
+  const linesText = `${chalk.green(`+${linesAdded}`)}/${chalk.red(`-${linesRemoved}`)}`;
 
-  const metricsLine = `${statusIcon} ${statusColored}    ${durationText}    ${costText}    ${callsText}    ${filesText}`;
+  const metricsLine = `${statusIcon} ${statusColored}    ${durationText}    ${costText}    ${callsText}    ${filesText}    ${linesText}`;
 
   // Build content lines
   const lines = [
@@ -403,6 +650,12 @@ function renderIterationEnd(data: IterationDisplayData): string {
     "─".repeat(innerWidth),
     metricsLine,
   ];
+
+  // Add token usage line when present with non-zero values
+  const tokenLine = formatTokenLine(tokenUsage);
+  if (tokenLine !== null) {
+    lines.push(tokenLine);
+  }
 
   // Add summary if present
   if (summary !== "") {
@@ -428,23 +681,9 @@ function renderIterationEnd(data: IterationDisplayData): string {
   }
 
   // Add clickable paths section
-  // Label "Session  " or "Diary    " = 9 chars, so max path = innerWidth - 9
-  const maxPathLength = innerWidth - 9;
-  if (sessionPath !== undefined || diaryPath !== undefined) {
-    lines.push("─".repeat(innerWidth));
-    if (sessionPath !== undefined) {
-      lines.push(
-        `${chalk.dim("Session")}  ${makeClickablePath(sessionPath, maxPathLength)}`,
-      );
-    }
-    if (diaryPath !== undefined) {
-      lines.push(
-        `${chalk.dim("Diary")}    ${makeClickablePath(diaryPath, maxPathLength)}`,
-      );
-    }
-  }
+  lines.push(...formatPathLines(sessionPath, diaryPath, innerWidth));
 
-  return boxen(lines.join("\n"), {
+  return renderSafeBox(lines.join("\n"), {
     borderColor: getStatusBorderColor(status),
     borderStyle: "round",
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
@@ -454,22 +693,17 @@ function renderIterationEnd(data: IterationDisplayData): string {
   });
 }
 
-// =============================================================================
-// Text Formatting
-// =============================================================================
-
 /**
  * Render iteration START box (cyan border, shows iteration/subtask/attempt)
  */
 function renderIterationStart(data: IterationDisplayData): string {
-  const {
-    attempt,
-    iteration,
-    maxAttempts,
-    remaining,
-    subtaskId,
-    subtaskTitle,
-  } = data;
+  const { subtaskId, subtaskTitle } = data;
+
+  // Sanitize numeric values to prevent boxen crashes
+  const attempt = ensureValidNumber(data.attempt, 1);
+  const iteration = ensureValidNumber(data.iteration, 1);
+  const maxAttempts = ensureValidNumber(data.maxAttempts, 1);
+  const remaining = ensureValidNumber(data.remaining);
 
   const attemptText =
     maxAttempts > 0
@@ -489,7 +723,7 @@ function renderIterationStart(data: IterationDisplayData): string {
     `${attemptText}${" ".repeat(Math.max(1, padding))}${remainingText}`,
   ];
 
-  return boxen(lines.join("\n"), {
+  return renderSafeBox(lines.join("\n"), {
     borderColor: "cyan",
     borderStyle: "round",
     dimBorder: true,
@@ -501,7 +735,7 @@ function renderIterationStart(data: IterationDisplayData): string {
 }
 
 // =============================================================================
-// Clickable Paths
+// Text Formatting
 // =============================================================================
 
 /**
@@ -517,10 +751,130 @@ function renderMarkdown(markdown: string): string {
 }
 
 // =============================================================================
-// Iteration Box Rendering
+// Clickable Paths
 // =============================================================================
 
-// BOX_WIDTH defined at top of file for marked config
+/**
+ * Render plan subtasks summary box (for headless mode output)
+ *
+ * Shows: stats (created/duration/cost), source info, configuration,
+ * subtask list (truncated if many), output path, and next step.
+ *
+ * @param data - PlanSubtasksSummaryData with generation results
+ * @returns Formatted boxen box string
+ */
+function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
+  const {
+    costUsd,
+    durationMs,
+    error,
+    milestone,
+    outputPath,
+    sizeMode,
+    source,
+    storyRef,
+    subtasks,
+  } = data;
+
+  const innerWidth = BOX_WIDTH - 4;
+  const lines: Array<string> = [];
+
+  // Stats line: Created N   Duration Xs   Cost $X.XX
+  const hasSubtasks = subtasks.length > 0;
+  const createdPart = hasSubtasks
+    ? `${chalk.dim("Created")} ${chalk.cyan.bold(String(subtasks.length))}   `
+    : "";
+  const durationPart = `${chalk.dim("Duration")} ${chalk.cyan(formatDuration(durationMs))}`;
+  const costPart = `${chalk.dim("Cost")} ${chalk.magenta(`$${costUsd.toFixed(2)}`)}`;
+  lines.push(`${createdPart}${durationPart}   ${costPart}`);
+
+  // Separator
+  lines.push("─".repeat(innerWidth));
+
+  // Source info
+  const sourceLabels: Record<
+    PlanSubtasksSummaryData["source"]["type"],
+    string
+  > = {
+    file: "Source (file):",
+    review: "Source (review):",
+    text: "Source (text):",
+  };
+  const sourceLabel = sourceLabels[source.type];
+
+  if (source.type === "text" && source.text !== undefined) {
+    const truncatedText = truncate(source.text, innerWidth - 16);
+    lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
+  } else if (source.path !== undefined) {
+    const pathDisplay =
+      source.type === "review" && source.findingsCount !== undefined
+        ? `${source.path} (${source.findingsCount} findings)`
+        : source.path;
+    lines.push(`${chalk.dim(sourceLabel)} ${pathDisplay}`);
+  }
+
+  // Configuration: milestone, size mode, story ref
+  if (milestone !== undefined) {
+    lines.push(`${chalk.dim("Milestone:")} ${milestone}`);
+  }
+  lines.push(`${chalk.dim("Size mode:")} ${sizeMode}`);
+  if (storyRef !== undefined) {
+    lines.push(`${chalk.dim("Story:")} ${storyRef}`);
+  }
+
+  // Separator before subtasks or error
+  lines.push("─".repeat(innerWidth));
+
+  if (error === undefined && hasSubtasks) {
+    // Success state - list subtasks
+    lines.push(chalk.dim("Subtasks:"));
+    const maxDisplay = 8;
+    const displaySubtasks = subtasks.slice(0, maxDisplay);
+    for (const st of displaySubtasks) {
+      const idPart = chalk.cyan.bold(st.id);
+      const titlePart = truncate(st.title, innerWidth - st.id.length - 4);
+      lines.push(`  ${idPart}  ${titlePart}`);
+    }
+    if (subtasks.length > maxDisplay) {
+      lines.push(chalk.dim(`  (showing ${maxDisplay} of ${subtasks.length})`));
+    }
+
+    // Output path and next step
+    lines.push("─".repeat(innerWidth));
+    lines.push(
+      `${chalk.dim("Output:")} ${makeClickablePath(outputPath, innerWidth - 8)}`,
+    );
+    lines.push("");
+    const nextCmd =
+      milestone === undefined
+        ? "aaa ralph build"
+        : `aaa ralph build --milestone ${milestone}`;
+    lines.push(`${chalk.green("Next:")} ${nextCmd}`);
+  } else if (error !== undefined) {
+    // Error state
+    lines.push(`${chalk.yellow("⚠")} ${error}`);
+    lines.push(`${chalk.dim("Expected:")} ${outputPath}`);
+    lines.push("");
+    lines.push(`${chalk.dim("Check session log:")} logs/planning.jsonl`);
+  }
+
+  // Determine box title and color based on success/error
+  const title = hasSubtasks ? "Subtasks Generated" : "Subtasks Generation";
+  const borderColor = error === undefined ? "green" : "yellow";
+
+  return renderSafeBox(lines.join("\n"), {
+    borderColor,
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title,
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+// =============================================================================
+// Plan Subtasks Summary
+// =============================================================================
 
 /**
  * Render a progress bar showing completion status
@@ -549,6 +903,12 @@ function renderProgressBar(
   return `[${filled}${empty}] ${completed}/${total} (${percentage}%)`;
 }
 
+// =============================================================================
+// Iteration Box Rendering
+// =============================================================================
+
+// BOX_WIDTH defined at top of file for marked config
+
 /**
  * Render a styled separator for Claude response output
  *
@@ -561,6 +921,28 @@ function renderResponseHeader(): string {
   const labelLength = label.length;
   const sideLength = Math.floor((totalWidth - labelLength) / 2);
   return `${lineChar.repeat(sideLength)}${chalk.cyan(label)}${lineChar.repeat(sideLength)}`;
+}
+
+/**
+ * Safe boxen wrapper that catches width-related crashes
+ *
+ * Boxen can crash with RangeError when content width exceeds box width.
+ * This wrapper catches such errors and provides a plain-text fallback.
+ *
+ * @param content - Content to display in box
+ * @param options - Boxen options
+ * @returns Boxed content or plain fallback on error
+ */
+function renderSafeBox(content: string, options: BoxenOptions): string {
+  try {
+    return boxenLib(content, options);
+  } catch {
+    // Fallback: return content with simple border
+    const title = options.title ?? "";
+    const width = Math.min(68, Math.max(title.length + 4, 40));
+    const border = "─".repeat(width);
+    return `${border}\n${title}\n${border}\n${content}\n${border}`;
+  }
 }
 
 /**
@@ -587,6 +969,10 @@ function renderStatusBox(title: string, lines: Array<string>): string {
   return output.join("\n");
 }
 
+// =============================================================================
+// Text Formatting
+// =============================================================================
+
 /**
  * Truncate a string to a maximum length, adding ellipsis if needed
  *
@@ -594,11 +980,29 @@ function renderStatusBox(title: string, lines: Array<string>): string {
  * @param maxLength - Maximum length (default 50)
  * @returns Truncated text with "..." if it was too long
  */
-function truncate(text: string, maxLength = 50): string {
-  if (text.length <= maxLength) {
+/**
+ * Truncate text based on display width (handles emojis + ANSI codes)
+ *
+ * Uses string-width to properly measure visual width, not string length.
+ * This prevents boxen crashes when emojis/ANSI make str.length != display width.
+ */
+function truncate(text: string, maxWidth = 50): string {
+  const width = stringWidth(text);
+  if (width <= maxWidth) {
     return text;
   }
-  return `${text.slice(0, maxLength - 3)}...`;
+  // Truncate character by character until we fit
+  let result = "";
+  let currentWidth = 0;
+  for (const char of text) {
+    const charWidth = stringWidth(char);
+    if (currentWidth + charWidth + 3 > maxWidth) {
+      return `${result}...`;
+    }
+    result += char;
+    currentWidth += charWidth;
+  }
+  return `${result}...`;
 }
 
 /**
@@ -627,14 +1031,18 @@ export {
   colorStatus,
   formatDuration,
   formatTimestamp,
+  formatTokenCount,
   getColoredStatus,
   type IterationDisplayData,
   makeClickablePath,
+  type PlanSubtasksSummaryData,
+  renderBuildPracticalSummary,
   renderBuildSummary,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
   renderMarkdown,
+  renderPlanSubtasksSummary,
   renderProgressBar,
   renderResponseHeader,
   renderStatusBox,
