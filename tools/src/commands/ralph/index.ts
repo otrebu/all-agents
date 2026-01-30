@@ -26,6 +26,7 @@ import {
   type PlanSubtasksSummaryData,
   renderPlanSubtasksSummary,
 } from "./display";
+import prototypeCommand from "./prototype";
 import { runStatus } from "./status";
 
 /**
@@ -1226,5 +1227,8 @@ calibrateCommand.addCommand(
 );
 
 ralphCommand.addCommand(calibrateCommand);
+
+// ralph prototype - rapid prototyping from goal description
+ralphCommand.addCommand(prototypeCommand);
 
 export default ralphCommand;
