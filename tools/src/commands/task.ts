@@ -1,20 +1,20 @@
+/* eslint-disable perfectionist/sort-modules, import/exports-last */
+
 import log from "@lib/log";
-import { createNumberedFile, type CreateResult } from "@lib/numbered-files";
-import { getContextRoot } from "@tools/utils/paths";
-import { readdirSync } from "node:fs";
+import {
+  createNumberedFile,
+  type CreateResult,
+  type FileSystem,
+  FileSystemLive,
+  getContextRootPath,
+} from "@tools/lib/effect";
+import { FileSystem as FileSystemService } from "@tools/lib/effect";
+import { Effect } from "effect";
 import { join } from "node:path";
 
-// Custom Error
-class TaskError extends Error {
-  override name = "TaskError";
-
-  constructor(
-    message: string,
-    public override cause?: Error,
-  ) {
-    super(message);
-  }
-}
+// =============================================================================
+// Types
+// =============================================================================
 
 const TASKS_DIR = "docs/planning/tasks";
 const STORIES_DIR = "docs/planning/stories";
@@ -32,81 +32,131 @@ interface TaskCreateOptions {
   story?: string;
 }
 
-function createTaskCommand(name: string, options: TaskCreateOptions): void {
-  try {
-    const result = generateTaskFile(name, options);
-    // Output just the filepath for CLI consumption
-    log.plain(result.filepath);
-  } catch (error: unknown) {
-    if (error instanceof TaskError) {
-      log.error(error.message);
-    } else if (error instanceof Error) {
-      log.error(`Failed to create task: ${error.message}`);
-    }
-    process.exit(1);
+// =============================================================================
+// Effect-based Task Errors
+// =============================================================================
+
+class TaskError extends Error {
+  override name = "TaskError";
+
+  constructor(
+    message: string,
+    public override cause?: Error,
+  ) {
+    super(message);
   }
 }
 
+// =============================================================================
+// Effect-based implementation
+// =============================================================================
+
+/**
+ * Find a story file by its number
+ */
 function findStoryFile(
   storyNumber: string,
   customStoriesDirectory?: string,
-): StoryInfo {
-  const storiesDirectory =
-    customStoriesDirectory ?? join(getContextRoot(), STORIES_DIR);
+): Effect.Effect<StoryInfo, TaskError, FileSystem> {
+  return Effect.gen(function* findStoryFileGen() {
+    const fs = yield* FileSystemService;
 
-  // Normalize story number to 3-digit format
-  const normalizedNumber = storyNumber.replace(/^0+/, "").padStart(3, "0");
-
-  let files: Array<string> = [];
-  try {
-    files = readdirSync(storiesDirectory);
-  } catch {
-    throw new TaskError(
-      `Stories directory not found: ${storiesDirectory}. Create a story first with 'aaa story create'.`,
+    // Get stories directory
+    const rootPath = yield* Effect.catchTag(
+      getContextRootPath(),
+      "PathResolutionError",
+      (error) =>
+        Effect.fail(
+          new TaskError(`Cannot resolve context root: ${error.message}`),
+        ),
     );
-  }
 
-  // Find files matching the pattern NNN-*.md
-  const pattern = new RegExp(`^${normalizedNumber}-(.+)\\.md$`);
-  const matches = files.filter((file) => pattern.test(file));
+    const storiesDirectory =
+      customStoriesDirectory ?? join(rootPath, STORIES_DIR);
 
-  if (matches.length === 0) {
-    throw new TaskError(
-      `Story ${normalizedNumber} not found in ${storiesDirectory}. Available stories: ${files.filter((f) => /^\d{3}-.+\.md$/.test(f)).join(", ") || "none"}`,
-    );
-  }
+    // Normalize story number to 3-digit format
+    const normalizedNumber = storyNumber.replace(/^0+/, "").padStart(3, "0");
 
-  if (matches.length > 1) {
-    throw new TaskError(
-      `Multiple stories found for ${normalizedNumber}: ${matches.join(", ")}. This should not happen.`,
-    );
-  }
+    // Read directory contents
+    const files = yield* Effect.catchTags(fs.readDirectory(storiesDirectory), {
+      FileNotFoundError: () =>
+        Effect.fail(
+          new TaskError(
+            `Stories directory not found: ${storiesDirectory}. Create a story first with 'aaa story create'.`,
+          ),
+        ),
+      FileReadError: (error) =>
+        Effect.fail(
+          new TaskError(`Failed to read stories directory: ${error.message}`),
+        ),
+    });
 
-  // We've verified matches.length === 1 above, so this is safe
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const filename = matches[0]!;
-  const nameMatch = pattern.exec(filename);
-  const storyName = nameMatch?.[1] ?? "";
+    // Find files matching the pattern NNN-*.md
+    const pattern = new RegExp(`^${normalizedNumber}-(.+)\\.md$`);
+    const matches = files.filter((file) => pattern.test(file));
 
-  return { filename, name: storyName, number: normalizedNumber };
-}
+    if (matches.length === 0) {
+      const availableStories =
+        files.filter((f) => /^\d{3}-.+\.md$/.test(f)).join(", ") || "none";
+      return yield* Effect.fail(
+        new TaskError(
+          `Story ${normalizedNumber} not found in ${storiesDirectory}. Available stories: ${availableStories}`,
+        ),
+      );
+    }
 
-function generateTaskFile(
-  name: string,
-  options: TaskCreateOptions = {},
-): CreateResult {
-  const storyInfo =
-    options.story === undefined
-      ? undefined
-      : findStoryFile(options.story, options.storiesDirectory);
+    if (matches.length > 1) {
+      return yield* Effect.fail(
+        new TaskError(
+          `Multiple stories found for ${normalizedNumber}: ${matches.join(", ")}. This should not happen.`,
+        ),
+      );
+    }
 
-  return createNumberedFile(name, {
-    customDirectory: options.dir,
-    defaultDir: TASKS_DIR,
-    template: renderTaskTemplate(name, storyInfo),
+    // We've verified matches.length === 1 above, so this is safe
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const filename = matches[0]!;
+    const nameMatch = pattern.exec(filename);
+    const storyName = nameMatch?.[1] ?? "";
+
+    return { filename, name: storyName, number: normalizedNumber };
   });
 }
 
+/**
+ * Generate a task file using Effect
+ */
+function generateTaskFileEffect(
+  name: string,
+  options: TaskCreateOptions = {},
+): Effect.Effect<CreateResult, Error, FileSystem> {
+  return Effect.gen(function* generateTaskFileGen() {
+    // Optionally find story info
+    const storyInfo: StoryInfo | undefined =
+      options.story === undefined
+        ? undefined
+        : yield* findStoryFile(options.story, options.storiesDirectory);
+
+    // Create the numbered file
+    const result = yield* Effect.catchAll(
+      createNumberedFile(name, {
+        customDirectory: options.dir,
+        defaultDir: TASKS_DIR,
+        template: renderTaskTemplate(name, storyInfo),
+      }),
+      (error) =>
+        Effect.fail(
+          new TaskError(`Failed to create task file: ${error.message}`),
+        ),
+    );
+
+    return result;
+  });
+}
+
+/**
+ * Generate task file content template
+ */
 function renderTaskTemplate(name: string, storyInfo?: StoryInfo): string {
   const storyLink =
     storyInfo === undefined
@@ -140,6 +190,46 @@ ${storyLink}### Goal
 `;
 }
 
-export { generateTaskFile as createTask };
+// =============================================================================
+// Exports
+// =============================================================================
+
+/**
+ * Generate a task file (for programmatic use)
+ * Returns an Effect that can be composed with other effects
+ */
+export function createTask(
+  name: string,
+  options: TaskCreateOptions = {},
+): Effect.Effect<CreateResult, Error, FileSystem> {
+  return generateTaskFileEffect(name, options);
+}
+
+/**
+ * Commander.js action handler for task create command
+ * Runs the Effect program and handles output/errors
+ */
+async function createTaskCommand(
+  name: string,
+  options: TaskCreateOptions,
+): Promise<void> {
+  const program = generateTaskFileEffect(name, options).pipe(
+    Effect.provide(FileSystemLive),
+  );
+
+  try {
+    const result = await Effect.runPromise(program);
+    // Output just the filepath for CLI consumption
+    log.plain(result.filepath);
+  } catch (error: unknown) {
+    if (error instanceof TaskError) {
+      log.error(error.message);
+    } else if (error instanceof Error) {
+      log.error(`Failed to create task: ${error.message}`);
+    }
+    process.exit(1);
+  }
+}
+
 export type { TaskCreateOptions };
 export default createTaskCommand;
