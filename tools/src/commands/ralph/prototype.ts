@@ -277,6 +277,7 @@ async function runPrototype(
     maxIterations?: number;
     noInteractive?: boolean;
     resume?: boolean;
+    unlimited?: boolean;
   },
 ): Promise<void> {
   let sessionPath = "";
@@ -373,7 +374,11 @@ async function runPrototype(
   }
 
   // Run execution loop
-  const maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+  // --unlimited sets maxIterations to 0 (no limit), otherwise use provided value or default
+  const maxIterations =
+    options.unlimited === true
+      ? 0
+      : (options.maxIterations ?? DEFAULT_MAX_ITERATIONS);
   const result = runExecutionLoop({
     maxIterations,
     resume: isResume,
@@ -572,6 +577,10 @@ prototypeCommand
     "-m, --max-iterations <number>",
     "Maximum iterations (default: 10)",
     (value) => Number.parseInt(value, 10),
+  )
+  .option(
+    "-u, --unlimited",
+    "Disable iteration limit (run until all tasks complete)",
   )
   .option("-r, --resume", "Resume the most recent interrupted session")
   .action(async (goal, options) => {

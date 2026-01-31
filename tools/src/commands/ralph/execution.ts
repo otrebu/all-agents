@@ -340,18 +340,23 @@ function runExecutionLoop(options: ExecutionOptions): ExecutionLoopResult {
     console.log(chalk.bold("\n🚀 Starting execution loop"));
     appendProgressLog(options.sessionDirectory, "Starting execution loop");
   }
-  console.log(chalk.dim(`Max iterations: ${maxIterations}`));
+  // maxIterations of 0 means unlimited
+  console.log(
+    chalk.dim(
+      `Max iterations: ${maxIterations === 0 ? "unlimited" : maxIterations}`,
+    ),
+  );
 
   // Update state to running
   updateSessionState(options.sessionDirectory, { status: "running" });
 
   let iterationsUsed = startIteration - 1;
 
-  for (
-    let iteration = startIteration;
-    iteration <= maxIterations;
-    iteration += 1
-  ) {
+  for (let iteration = startIteration; ; iteration += 1) {
+    // Check iteration limit (0 means unlimited)
+    if (maxIterations > 0 && iteration > maxIterations) {
+      break;
+    }
     // Check for shutdown request
     if (isShutdownRequested()) {
       return {
@@ -396,7 +401,11 @@ function runExecutionLoop(options: ExecutionOptions): ExecutionLoopResult {
       return { blockedCount, completedCount, iterationsUsed, success: true };
     }
 
-    console.log(chalk.dim(`\n[Iteration ${iteration}/${maxIterations}]`));
+    console.log(
+      chalk.dim(
+        `\n[Iteration ${iteration}${maxIterations === 0 ? "" : `/${maxIterations}`}]`,
+      ),
+    );
     appendProgressLog(
       options.sessionDirectory,
       `Iteration ${iteration}: Starting task ${nextTask.id} - ${nextTask.title}`,
