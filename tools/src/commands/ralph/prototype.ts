@@ -22,6 +22,10 @@ import chalk from "chalk";
 import { existsSync, readFileSync } from "node:fs";
 import * as readline from "node:readline";
 
+import { DEFAULT_MAX_ITERATIONS, runExecutionLoop } from "./execution";
+import { planAndWriteTasks } from "./planning";
+import { createSessionDirectory } from "./temporary-session";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -258,7 +262,7 @@ async function runInteractiveWizard(
  */
 async function runPrototype(
   goal: string | undefined,
-  options: { file?: string; noInteractive?: boolean },
+  options: { file?: string; maxIterations?: number; noInteractive?: boolean },
 ): Promise<void> {
   const input = await resolveInput(
     goal,
@@ -282,10 +286,52 @@ async function runPrototype(
   console.log(input.goal);
   console.log();
 
-  // TODO: Implement prototyping session
-  // This skeleton validates input modes work correctly
-  console.log(chalk.yellow("⚠ Prototype execution not yet implemented"));
-  console.log(chalk.dim("Input validation successful."));
+  // Create session directory
+  const session = createSessionDirectory();
+  console.log(chalk.dim(`Session: ${session.path}`));
+
+  // Plan tasks from goal
+  console.log(chalk.bold("\n📝 Planning tasks..."));
+  const planResult = planAndWriteTasks(input.goal, session.path);
+
+  if (!planResult.success || planResult.tasksFile === undefined) {
+    console.error(chalk.red(`\n✗ Planning failed: ${planResult.error}`));
+    process.exit(1);
+  }
+
+  console.log(
+    chalk.green(`✓ Generated ${planResult.tasksFile.tasks.length} tasks`),
+  );
+
+  // Display task list
+  console.log(chalk.bold("\n📋 Tasks:"));
+  for (const task of planResult.tasksFile.tasks) {
+    console.log(chalk.dim(`  ${task.id}. ${task.title}`));
+  }
+
+  // Run execution loop
+  const maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+  const result = runExecutionLoop({
+    maxIterations,
+    sessionDirectory: session.path,
+  });
+
+  // Display summary
+  console.log(chalk.bold("\n📊 Summary"));
+  console.log("─".repeat(40));
+  console.log(`Completed: ${result.completedCount}`);
+  console.log(`Blocked: ${result.blockedCount}`);
+  console.log(`Iterations: ${result.iterationsUsed}`);
+
+  if (result.success) {
+    console.log(chalk.green("\n✓ Prototype session completed successfully!"));
+  } else {
+    console.log(
+      chalk.yellow(
+        `\n⚠ Session ended: ${result.error ?? "max iterations reached"}`,
+      ),
+    );
+  }
 }
 
 // =============================================================================
@@ -299,6 +345,11 @@ const prototypeCommand = new Command("prototype")
   .option(
     "-n, --no-interactive",
     "Skip interactive wizard (use with inline goal)",
+  )
+  .option(
+    "-m, --max-iterations <number>",
+    "Maximum iterations (default: 10)",
+    (value) => Number.parseInt(value, 10),
   )
   .action(async (goal, options) => {
     await runPrototype(goal, options);
