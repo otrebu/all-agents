@@ -65,6 +65,11 @@ _aaa_completions() {
             COMPREPLY=($(compgen -d -- "$cur"))
             return
             ;;
+        -f|--file)
+            # .md file completion for ralph prototype --file
+            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
+            return
+            ;;
         -l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations)
             # Numeric values - no completion
             return
@@ -95,7 +100,7 @@ _aaa_completions() {
             continue
         fi
         case "$word" in
-            --mode|--processor|--milestone|--story|--task|--subtasks|--size|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
+            --mode|--processor|--milestone|--story|--task|--subtasks|--size|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory|-f|--file)
                 # Flag that takes a value - skip next word
                 skip_next=true
                 ;;
@@ -184,6 +189,10 @@ _aaa_completions() {
                         COMPREPLY=($(compgen -W "--force --review" -- "$cur"))
                         return
                         ;;
+                    prototype)
+                        COMPREPLY=($(compgen -W "-f --file -r --resume -n --no-interactive -m --max-iterations -u --unlimited" -- "$cur"))
+                        return
+                        ;;
                     review)
                         # All review commands are supervised-only (no headless)
                         ;;
@@ -237,7 +246,7 @@ _aaa_completions() {
             ;;
         ralph)
             if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "build plan review milestones status calibrate" -- "$cur"))
+                COMPREPLY=($(compgen -W "build plan review milestones status calibrate prototype" -- "$cur"))
             elif [[ "$subcmd" == "plan" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "vision roadmap stories tasks subtasks" -- "$cur"))
             elif [[ "$subcmd" == "review" && -z "$subsubcmd" ]]; then
@@ -247,6 +256,8 @@ _aaa_completions() {
                 COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
             elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "intention technical improve all" -- "$cur"))
+            elif [[ "$subcmd" == "prototype" && -z "$subsubcmd" ]]; then
+                COMPREPLY=($(compgen -W "status list cancel clean" -- "$cur"))
             fi
             ;;
         review)

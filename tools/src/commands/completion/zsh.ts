@@ -244,6 +244,7 @@ _aaa_ralph() {
         'milestones:List available milestones'
         'status:Display build status and progress'
         'calibrate:Run calibration checks'
+        'prototype:Rapid prototyping from a goal description'
     )
 
     _arguments -C \\
@@ -283,6 +284,43 @@ _aaa_ralph() {
                         '--force[Skip approval]' \\
                         '--review[Require approval]' \\
                         '1:subcommand:(intention technical improve all)'
+                    ;;
+                prototype)
+                    _aaa_ralph_prototype
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_aaa_ralph_prototype() {
+    local -a subcommands
+    subcommands=(
+        'status:Show current/recent session status'
+        'list:List all sessions in /tmp'
+        'cancel:Cancel running session'
+        'clean:Remove old sessions'
+    )
+
+    _arguments -C \\
+        '(-f --file)'{-f,--file}'[Read goal from a file]:file:_files -g "*.md"' \\
+        '(-r --resume)'{-r,--resume}'[Resume the most recent interrupted session]' \\
+        '(-n --no-interactive)'{-n,--no-interactive}'[Skip interactive wizard]' \\
+        '(-m --max-iterations)'{-m,--max-iterations}'[Maximum iterations]:number:' \\
+        '(-u --unlimited)'{-u,--unlimited}'[Disable iteration limit]' \\
+        '1: :->subcmd_or_goal' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd_or_goal)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                clean)
+                    _arguments \\
+                        '(-d --days)'{-d,--days}'[Remove sessions older than N days]:days:' \\
+                        '(-a --all)'{-a,--all}'[Remove all sessions]'
                     ;;
             esac
             ;;
