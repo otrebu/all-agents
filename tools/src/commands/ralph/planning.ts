@@ -20,6 +20,13 @@ import { getSessionPaths, type SessionPaths } from "./temporary-session";
 // =============================================================================
 
 /**
+ * Execution phase for two-phase strategy
+ * - spike: Currently running spike/research tasks
+ * - implement: Running implementation tasks (after spikes complete)
+ */
+type ExecutionPhase = "implement" | "spike";
+
+/**
  * A single task in the generated task list
  */
 interface GeneratedTask {
@@ -27,10 +34,14 @@ interface GeneratedTask {
   acceptanceCriteria: Array<string>;
   /** Unique task identifier (1-based) */
   id: number;
+  /** ID of the spike task that spawned this task (null = original task) */
+  spawnedBy?: number;
   /** Current status (always 'pending' for generated tasks) */
   status: "complete" | "in_progress" | "pending";
   /** Short descriptive title */
   title: string;
+  /** Task type: spike (research first) or implement (build) */
+  type: TaskType;
 }
 
 /**
@@ -39,6 +50,8 @@ interface GeneratedTask {
 interface GeneratedTasksFile {
   /** The goal description that generated these tasks */
   goal: string;
+  /** Current execution phase (spike tasks run first, then implement) */
+  phase?: ExecutionPhase;
   /** The list of tasks to complete */
   tasks: Array<GeneratedTask>;
 }
@@ -57,6 +70,13 @@ interface PlanningResult {
   tasksFile?: GeneratedTasksFile;
 }
 
+/**
+ * Task type for two-phase execution
+ * - spike: Research/discovery tasks that run first and may spawn new tasks
+ * - implement: Implementation tasks that run after spikes complete
+ */
+type TaskType = "implement" | "spike";
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -72,8 +92,14 @@ const MAX_RETRIES = 3;
 const VALID_STATUSES = new Set(["complete", "in_progress", "pending"]);
 
 /**
+ * Valid type values for tasks
+ */
+const VALID_TYPES = new Set(["implement", "spike"]);
+
+/**
  * Planning prompt template for Claude
  * Instructs Claude to generate structured tasks from a goal description
+ * Supports two-phase execution: spike tasks (research) then implement tasks (build)
  */
 const PLANNING_PROMPT_TEMPLATE = `You are a task planner. Given a goal description, break it down into concrete, actionable tasks.
 
@@ -87,6 +113,7 @@ The JSON must have this exact structure:
       "id": 1,
       "title": "<short task title>",
       "status": "pending",
+      "type": "spike" | "implement",
       "acceptanceCriteria": [
         "<specific criterion 1>",
         "<specific criterion 2>"
@@ -95,13 +122,53 @@ The JSON must have this exact structure:
   ]
 }
 
-Rules for task breakdown:
+## Task Types
+
+There are TWO types of tasks:
+
+### Spike Tasks (type: "spike")
+Use spike tasks when you need to RESEARCH, EXPLORE, or DISCOVER scope before implementing.
+Spikes run FIRST and can generate new implementation tasks based on findings.
+
+When to use spikes:
+- Exploring API options, library choices, or architecture approaches
+- Investigating existing code to understand patterns
+- Researching external requirements or constraints
+- Any situation where you need to LEARN before you can BUILD
+
+Spike acceptance criteria focus on WHAT TO LEARN, not what to build:
+- "Document 3 authentication library options with pros/cons"
+- "Identify which files handle user sessions"
+- "Determine API rate limits and constraints"
+
+### Implement Tasks (type: "implement")
+Use implement tasks for actual building, coding, and feature development.
+These run AFTER all spikes complete.
+
+Implement acceptance criteria focus on WHAT TO BUILD:
+- "API endpoint returns 200 OK with user data"
+- "Tests pass with 80% coverage"
+- "Form validates email format"
+
+## Rules for task breakdown:
 1. Each task should be completable in a single focused session
 2. Tasks should be ordered by dependency (do prerequisites first)
 3. Each task needs 2-5 specific, verifiable acceptance criteria
 4. Keep task titles concise (under 80 characters)
 5. Generate 3-10 tasks depending on goal complexity
 6. All tasks start with status "pending"
+7. Use spike tasks sparingly - only when discovery is truly needed
+8. Most tasks should be "implement" type
+
+## Examples
+
+Goal: "Add JWT authentication to the API"
+- Spike: "Investigate auth library options" (learn first)
+- Implement: "Add login endpoint" (build after spike findings)
+- Implement: "Add token validation middleware" (build)
+
+Goal: "Fix the login button bug"
+- Implement: "Fix button click handler" (no spike needed - straightforward fix)
 
 GOAL:
 `;
@@ -443,11 +510,35 @@ function validateTask(task: unknown): GeneratedTask | null {
     return null;
   }
 
+  // Validate type (optional, defaults to "implement" for backward compatibility)
+  let taskType: TaskType = "implement";
+  if (taskObject.type !== undefined) {
+    if (
+      typeof taskObject.type !== "string" ||
+      !VALID_TYPES.has(taskObject.type)
+    ) {
+      return null;
+    }
+    taskType = taskObject.type as TaskType;
+  }
+
+  // Validate spawnedBy (optional, must be number if present)
+  if (
+    taskObject.spawnedBy !== undefined &&
+    typeof taskObject.spawnedBy !== "number"
+  ) {
+    return null;
+  }
+
   return {
     acceptanceCriteria: taskObject.acceptanceCriteria as Array<string>,
     id: taskObject.id,
+    ...(taskObject.spawnedBy !== undefined && {
+      spawnedBy: taskObject.spawnedBy,
+    }),
     status: taskObject.status as "complete" | "in_progress" | "pending",
     title: taskObject.title,
+    type: taskType,
   };
 }
 
@@ -456,6 +547,7 @@ function validateTask(task: unknown): GeneratedTask | null {
 // =============================================================================
 
 export {
+  type ExecutionPhase,
   extractJsonFromResponse,
   type GeneratedTask,
   type GeneratedTasksFile,
@@ -464,4 +556,5 @@ export {
   parseAndValidateTasksJson,
   planAndWriteTasks,
   type PlanningResult,
+  type TaskType,
 };

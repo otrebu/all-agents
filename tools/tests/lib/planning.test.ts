@@ -3,6 +3,7 @@ import {
   type GeneratedTasksFile,
   MAX_RETRIES,
   parseAndValidateTasksJson,
+  type TaskType,
 } from "@tools/commands/ralph/planning";
 import {
   createSessionDirectory,
@@ -291,11 +292,101 @@ Hope this helps!`;
       expect(parseAndValidateTasksJson("null")).toBeNull();
       expect(parseAndValidateTasksJson("[]")).toBeNull();
     });
+
+    test("accepts spike and implement task types", () => {
+      const types: Array<TaskType> = ["spike", "implement"];
+      for (const type of types) {
+        const json = JSON.stringify({
+          goal: "Test",
+          tasks: [
+            {
+              acceptanceCriteria: ["Done"],
+              id: 1,
+              status: "pending",
+              title: "Task",
+              type,
+            },
+          ],
+        });
+        const result = parseAndValidateTasksJson(json);
+        expect(result).not.toBeNull();
+        expect(result?.tasks[0]?.type).toBe(type);
+      }
+    });
+
+    test("defaults to implement type when type is missing", () => {
+      const json = JSON.stringify({
+        goal: "Test",
+        tasks: [
+          {
+            acceptanceCriteria: ["Done"],
+            id: 1,
+            status: "pending",
+            title: "Task",
+          },
+        ],
+      });
+      const result = parseAndValidateTasksJson(json);
+      expect(result).not.toBeNull();
+      expect(result?.tasks[0]?.type).toBe("implement");
+    });
+
+    test("returns null for invalid task type", () => {
+      const json = JSON.stringify({
+        goal: "Test",
+        tasks: [
+          {
+            acceptanceCriteria: ["Done"],
+            id: 1,
+            status: "pending",
+            title: "Task",
+            type: "invalid_type",
+          },
+        ],
+      });
+      expect(parseAndValidateTasksJson(json)).toBeNull();
+    });
+
+    test("accepts spawnedBy field", () => {
+      const json = JSON.stringify({
+        goal: "Test",
+        tasks: [
+          {
+            acceptanceCriteria: ["Done"],
+            id: 2,
+            spawnedBy: 1,
+            status: "pending",
+            title: "Spawned task",
+            type: "implement",
+          },
+        ],
+      });
+      const result = parseAndValidateTasksJson(json);
+      expect(result).not.toBeNull();
+      expect(result?.tasks[0]?.spawnedBy).toBe(1);
+    });
+
+    test("returns null for invalid spawnedBy type", () => {
+      const json = JSON.stringify({
+        goal: "Test",
+        tasks: [
+          {
+            acceptanceCriteria: ["Done"],
+            id: 2,
+            spawnedBy: "not-a-number",
+            status: "pending",
+            title: "Task",
+            type: "implement",
+          },
+        ],
+      });
+      expect(parseAndValidateTasksJson(json)).toBeNull();
+    });
   });
 
   describe("session integration", () => {
     test("session paths include tasks.json", () => {
-      const session = createSessionDirectory();
+      const session = createSessionDirectory("Test Session Paths");
       testSessionPath = session.path;
 
       const paths = getSessionPaths(session.path);
@@ -304,7 +395,7 @@ Hope this helps!`;
     });
 
     test("initial tasks.json has empty subtasks array", () => {
-      const session = createSessionDirectory();
+      const session = createSessionDirectory("Test Initial Tasks");
       testSessionPath = session.path;
 
       const paths = getSessionPaths(session.path);
@@ -315,7 +406,7 @@ Hope this helps!`;
     });
 
     test("tasks.json can be overwritten with generated tasks", () => {
-      const session = createSessionDirectory();
+      const session = createSessionDirectory("Test Overwrite Tasks");
       testSessionPath = session.path;
 
       const paths = getSessionPaths(session.path);
@@ -329,6 +420,7 @@ Hope this helps!`;
             id: 1,
             status: "pending",
             title: "Test task",
+            type: "implement",
           },
         ],
       };
