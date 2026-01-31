@@ -16,7 +16,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 import { type HeadlessResult, invokeClaudeHeadless } from "./claude";
 import { type GeneratedTask, type GeneratedTasksFile } from "./planning";
-import { getSessionPaths, type SessionPaths } from "./temporary-session";
+import {
+  appendProgressLog,
+  getSessionPaths,
+  readSessionState,
+  type SessionPaths,
+  updateSessionState,
+} from "./temporary-session";
 
 // =============================================================================
 // Types
@@ -44,9 +50,21 @@ interface ExecutionLoopResult {
 interface ExecutionOptions {
   /** Maximum number of iterations (default 10) */
   maxIterations?: number;
+  /** Whether this is a resumed session */
+  resume?: boolean;
   /** Session directory path */
   sessionDirectory: string;
 }
+
+/**
+ * Track whether a shutdown has been requested
+ */
+let isShutdownPending = false;
+
+/**
+ * Current session directory for signal handler
+ */
+let currentSessionDirectory: null | string = null;
 
 /**
  * Result from a single task execution attempt
@@ -60,6 +78,42 @@ interface TaskExecutionResult {
   status: "blocked" | "complete" | "error" | "in_progress";
   /** Task ID that was executed */
   taskId: number;
+}
+
+/**
+ * Check if shutdown was requested
+ */
+function isShutdownRequested(): boolean {
+  return isShutdownPending;
+}
+
+/**
+ * Setup SIGINT handler for graceful shutdown
+ *
+ * @param sessionDirectory - Path to session directory
+ */
+function setupSignalHandler(sessionDirectory: string): void {
+  currentSessionDirectory = sessionDirectory;
+
+  process.on("SIGINT", () => {
+    if (isShutdownPending) {
+      // Second SIGINT, force exit
+      process.exit(1);
+    }
+
+    isShutdownPending = true;
+    console.log(chalk.yellow("\n\nInterrupted! Saving state..."));
+
+    if (currentSessionDirectory !== null) {
+      updateSessionState(currentSessionDirectory, { status: "interrupted" });
+      appendProgressLog(currentSessionDirectory, "Session interrupted by user");
+    }
+
+    console.log(
+      chalk.dim("State saved. Resume with: aaa ralph prototype --resume"),
+    );
+    process.exit(0);
+  });
 }
 
 // =============================================================================
@@ -264,19 +318,66 @@ function readTasksFile(sessionDirectory: string): GeneratedTasksFile | null {
  */
 function runExecutionLoop(options: ExecutionOptions): ExecutionLoopResult {
   const maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
-  let iterationsUsed = 0;
   let completedCount = 0;
   let blockedCount = 0;
 
-  console.log(chalk.bold("\n🚀 Starting execution loop"));
+  // Setup signal handler for graceful shutdown
+  setupSignalHandler(options.sessionDirectory);
+
+  // Read current state to determine starting iteration
+  const currentState = readSessionState(options.sessionDirectory);
+  let startIteration = 1;
+
+  if (options.resume === true && currentState !== null) {
+    startIteration = currentState.currentIteration + 1;
+    console.log(chalk.bold("\n🔄 Resuming execution loop"));
+    console.log(chalk.dim(`Resuming from iteration ${startIteration}`));
+    appendProgressLog(
+      options.sessionDirectory,
+      `Resuming session from iteration ${startIteration}`,
+    );
+  } else {
+    console.log(chalk.bold("\n🚀 Starting execution loop"));
+    appendProgressLog(options.sessionDirectory, "Starting execution loop");
+  }
   console.log(chalk.dim(`Max iterations: ${maxIterations}`));
 
-  for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
+  // Update state to running
+  updateSessionState(options.sessionDirectory, { status: "running" });
+
+  let iterationsUsed = startIteration - 1;
+
+  for (
+    let iteration = startIteration;
+    iteration <= maxIterations;
+    iteration += 1
+  ) {
+    // Check for shutdown request
+    if (isShutdownRequested()) {
+      return {
+        blockedCount,
+        completedCount,
+        error: "Shutdown requested",
+        iterationsUsed,
+        success: false,
+      };
+    }
+
     iterationsUsed = iteration;
+
+    // Update state with current iteration
+    updateSessionState(options.sessionDirectory, {
+      currentIteration: iteration,
+    });
 
     // Read current tasks state
     const tasksFile = readTasksFile(options.sessionDirectory);
     if (tasksFile === null) {
+      updateSessionState(options.sessionDirectory, { status: "failed" });
+      appendProgressLog(
+        options.sessionDirectory,
+        "ERROR: Failed to read tasks.json",
+      );
       return {
         blockedCount,
         completedCount,
@@ -290,10 +391,16 @@ function runExecutionLoop(options: ExecutionOptions): ExecutionLoopResult {
     const nextTask = getNextPendingTask(tasksFile);
     if (nextTask === null) {
       console.log(chalk.green("\n✓ All tasks completed!"));
+      updateSessionState(options.sessionDirectory, { status: "completed" });
+      appendProgressLog(options.sessionDirectory, "All tasks completed");
       return { blockedCount, completedCount, iterationsUsed, success: true };
     }
 
     console.log(chalk.dim(`\n[Iteration ${iteration}/${maxIterations}]`));
+    appendProgressLog(
+      options.sessionDirectory,
+      `Iteration ${iteration}: Starting task ${nextTask.id} - ${nextTask.title}`,
+    );
 
     // Execute the task
     const result = executeTask(nextTask, options.sessionDirectory);
@@ -307,6 +414,11 @@ function runExecutionLoop(options: ExecutionOptions): ExecutionLoopResult {
             `\n⚠ Stopping: Task ${result.taskId} is blocked: ${result.blockedReason}`,
           ),
         );
+        updateSessionState(options.sessionDirectory, { status: "failed" });
+        appendProgressLog(
+          options.sessionDirectory,
+          `Task ${result.taskId} BLOCKED: ${result.blockedReason}`,
+        );
         return {
           blockedCount,
           completedCount,
@@ -317,7 +429,10 @@ function runExecutionLoop(options: ExecutionOptions): ExecutionLoopResult {
       }
       case "complete": {
         completedCount += 1;
-
+        appendProgressLog(
+          options.sessionDirectory,
+          `Task ${result.taskId} COMPLETED`,
+        );
         break;
       }
       case "error": {
@@ -325,6 +440,11 @@ function runExecutionLoop(options: ExecutionOptions): ExecutionLoopResult {
           chalk.red(
             `\n✗ Error executing task ${result.taskId}: ${result.error}`,
           ),
+        );
+        updateSessionState(options.sessionDirectory, { status: "failed" });
+        appendProgressLog(
+          options.sessionDirectory,
+          `Task ${result.taskId} ERROR: ${result.error}`,
         );
         return {
           blockedCount,
@@ -337,9 +457,20 @@ function runExecutionLoop(options: ExecutionOptions): ExecutionLoopResult {
       // No default
     }
     // status === "in_progress" means we continue to next iteration
+    if (result.status === "in_progress") {
+      appendProgressLog(
+        options.sessionDirectory,
+        `Task ${result.taskId} still in progress`,
+      );
+    }
   }
 
   console.log(chalk.yellow(`\n⚠ Max iterations (${maxIterations}) reached`));
+  updateSessionState(options.sessionDirectory, { status: "interrupted" });
+  appendProgressLog(
+    options.sessionDirectory,
+    `Max iterations (${maxIterations}) reached`,
+  );
   return { blockedCount, completedCount, iterationsUsed, success: false };
 }
 
@@ -406,8 +537,10 @@ export {
   type ExecutionLoopResult,
   type ExecutionOptions,
   getNextPendingTask,
+  isShutdownRequested,
   readTasksFile,
   runExecutionLoop,
+  setupSignalHandler,
   TASK_BLOCKED_SIGNAL,
   TASK_DONE_SIGNAL,
   type TaskExecutionResult,

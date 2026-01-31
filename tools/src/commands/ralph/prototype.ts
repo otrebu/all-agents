@@ -23,8 +23,14 @@ import { existsSync, readFileSync } from "node:fs";
 import * as readline from "node:readline";
 
 import { DEFAULT_MAX_ITERATIONS, runExecutionLoop } from "./execution";
-import { planAndWriteTasks } from "./planning";
-import { createSessionDirectory } from "./temporary-session";
+import { type GeneratedTasksFile, planAndWriteTasks } from "./planning";
+import {
+  appendProgressLog,
+  createSessionDirectory,
+  findLatestSession,
+  getSessionPaths,
+  readSessionState,
+} from "./temporary-session";
 
 // =============================================================================
 // Types
@@ -258,62 +264,116 @@ async function runInteractiveWizard(
  * Execute the prototype command
  *
  * @param goal - Optional inline goal text
- * @param options - Command options including --file and --no-interactive
+ * @param options - Command options including --file, --no-interactive, and --resume
  */
 async function runPrototype(
   goal: string | undefined,
-  options: { file?: string; maxIterations?: number; noInteractive?: boolean },
+  options: {
+    file?: string;
+    maxIterations?: number;
+    noInteractive?: boolean;
+    resume?: boolean;
+  },
 ): Promise<void> {
-  const input = await resolveInput(
-    goal,
-    options.file,
-    options.noInteractive ?? false,
-  );
+  let sessionPath = "";
+  let isResume = false;
 
-  // Display resolved input
-  console.log(chalk.bold("\n📋 Prototype Goal"));
-  console.log("─".repeat(40));
+  // Handle --resume flag
+  if (options.resume === true) {
+    const latestSession = findLatestSession({ resumableOnly: true });
+    if (latestSession === null) {
+      console.error(chalk.red("Error: No resumable session found"));
+      console.error(chalk.dim("Start a new session with: aaa ralph prototype"));
+      process.exit(1);
+    }
 
-  if (input.mode === "file") {
-    console.log(chalk.dim(`Source: ${input.source}`));
-  } else if (input.mode === "wizard") {
-    console.log(chalk.dim("Source: interactive wizard"));
+    sessionPath = latestSession;
+    isResume = true;
+
+    const state = readSessionState(sessionPath);
+    console.log(chalk.bold("\n🔄 Resuming Prototype Session"));
+    console.log("─".repeat(40));
+    console.log(chalk.dim(`Session: ${sessionPath}`));
+    console.log(chalk.dim(`Status: ${state?.status ?? "unknown"}`));
+    console.log(chalk.dim(`Last iteration: ${state?.currentIteration ?? 0}`));
+
+    // Read existing tasks
+    const paths = getSessionPaths(sessionPath);
+    const tasksContent = readFileSync(paths.tasksJson, "utf8");
+    const tasksFile = JSON.parse(tasksContent) as GeneratedTasksFile;
+
+    // Display task list with status
+    console.log(chalk.bold("\n📋 Tasks:"));
+    for (const task of tasksFile.tasks) {
+      let statusIcon = chalk.dim("○");
+      if (task.status === "complete") {
+        statusIcon = chalk.green("✓");
+      } else if (task.status === "in_progress") {
+        statusIcon = chalk.yellow("▶");
+      }
+      console.log(`  ${statusIcon} ${task.id}. ${task.title}`);
+    }
+
+    appendProgressLog(sessionPath, "Session resumed via --resume flag");
   } else {
-    console.log(chalk.dim("Source: inline argument"));
-  }
+    const input = await resolveInput(
+      goal,
+      options.file,
+      options.noInteractive ?? false,
+    );
 
-  console.log();
-  console.log(input.goal);
-  console.log();
+    // Display resolved input
+    console.log(chalk.bold("\n📋 Prototype Goal"));
+    console.log("─".repeat(40));
 
-  // Create session directory
-  const session = createSessionDirectory();
-  console.log(chalk.dim(`Session: ${session.path}`));
+    if (input.mode === "file") {
+      console.log(chalk.dim(`Source: ${input.source}`));
+    } else if (input.mode === "wizard") {
+      console.log(chalk.dim("Source: interactive wizard"));
+    } else {
+      console.log(chalk.dim("Source: inline argument"));
+    }
 
-  // Plan tasks from goal
-  console.log(chalk.bold("\n📝 Planning tasks..."));
-  const planResult = planAndWriteTasks(input.goal, session.path);
+    console.log();
+    console.log(input.goal);
+    console.log();
 
-  if (!planResult.success || planResult.tasksFile === undefined) {
-    console.error(chalk.red(`\n✗ Planning failed: ${planResult.error}`));
-    process.exit(1);
-  }
+    // Create session directory
+    const session = createSessionDirectory();
+    sessionPath = session.path;
+    console.log(chalk.dim(`Session: ${session.path}`));
 
-  console.log(
-    chalk.green(`✓ Generated ${planResult.tasksFile.tasks.length} tasks`),
-  );
+    // Plan tasks from goal
+    console.log(chalk.bold("\n📝 Planning tasks..."));
+    const planResult = planAndWriteTasks(input.goal, session.path);
 
-  // Display task list
-  console.log(chalk.bold("\n📋 Tasks:"));
-  for (const task of planResult.tasksFile.tasks) {
-    console.log(chalk.dim(`  ${task.id}. ${task.title}`));
+    if (!planResult.success || planResult.tasksFile === undefined) {
+      console.error(chalk.red(`\n✗ Planning failed: ${planResult.error}`));
+      process.exit(1);
+    }
+
+    console.log(
+      chalk.green(`✓ Generated ${planResult.tasksFile.tasks.length} tasks`),
+    );
+
+    // Display task list
+    console.log(chalk.bold("\n📋 Tasks:"));
+    for (const task of planResult.tasksFile.tasks) {
+      console.log(chalk.dim(`  ${task.id}. ${task.title}`));
+    }
+
+    appendProgressLog(
+      sessionPath,
+      `New session started with goal: ${input.goal.slice(0, 100)}...`,
+    );
   }
 
   // Run execution loop
   const maxIterations = options.maxIterations ?? DEFAULT_MAX_ITERATIONS;
   const result = runExecutionLoop({
     maxIterations,
-    sessionDirectory: session.path,
+    resume: isResume,
+    sessionDirectory: sessionPath,
   });
 
   // Display summary
@@ -331,6 +391,7 @@ async function runPrototype(
         `\n⚠ Session ended: ${result.error ?? "max iterations reached"}`,
       ),
     );
+    console.log(chalk.dim(`Resume with: aaa ralph prototype --resume`));
   }
 }
 
@@ -351,6 +412,7 @@ const prototypeCommand = new Command("prototype")
     "Maximum iterations (default: 10)",
     (value) => Number.parseInt(value, 10),
   )
+  .option("-r, --resume", "Resume the most recent interrupted session")
   .action(async (goal, options) => {
     await runPrototype(goal, options);
   });

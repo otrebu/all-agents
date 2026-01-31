@@ -9,11 +9,27 @@
  * Session directories are created at /tmp/ralph-prototype-{YYYYMMDD-HHMMSS}/
  */
 
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 
 // =============================================================================
 // Types
 // =============================================================================
+
+/**
+ * Options for finding the latest session
+ */
+interface FindSessionOptions {
+  /** Only return sessions that are resumable (not completed/failed) */
+  resumableOnly?: boolean;
+}
 
 /**
  * Session directory information
@@ -41,6 +57,22 @@ interface SessionPaths {
   tasksJson: string;
 }
 
+/**
+ * Session state stored in state.json
+ */
+interface SessionState {
+  /** ISO timestamp when session was created */
+  createdAt: string;
+  /** Current iteration number (1-based) */
+  currentIteration: number;
+  /** Index of the current subtask being worked on */
+  currentSubtaskIndex: number;
+  /** ISO timestamp of last state update */
+  lastUpdatedAt: string;
+  /** Session status */
+  status: "completed" | "failed" | "initialized" | "interrupted" | "running";
+}
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -58,6 +90,18 @@ const SESSION_PREFIX = "ralph-prototype-";
 // =============================================================================
 // Session Directory Management
 // =============================================================================
+
+/**
+ * Append a timestamped entry to progress.log
+ *
+ * @param sessionDirectory - Path to session directory
+ * @param message - Log message
+ */
+function appendProgressLog(sessionDirectory: string, message: string): void {
+  const paths = getSessionPaths(sessionDirectory);
+  const timestamp = new Date().toISOString();
+  appendFileSync(paths.progressLog, `[${timestamp}] ${message}\n`);
+}
 
 /**
  * Check if a session directory exists
@@ -94,18 +138,14 @@ function createSessionDirectory(timestamp?: Date): SessionInfo {
   writeFileSync(paths.tasksJson, JSON.stringify({ subtasks: [] }, null, 2));
 
   // Create empty state.json with initial state
-  writeFileSync(
-    paths.stateJson,
-    JSON.stringify(
-      {
-        createdAt: now.toISOString(),
-        currentSubtaskIndex: 0,
-        status: "initialized",
-      },
-      null,
-      2,
-    ),
-  );
+  const initialState: SessionState = {
+    createdAt: now.toISOString(),
+    currentIteration: 0,
+    currentSubtaskIndex: 0,
+    lastUpdatedAt: now.toISOString(),
+    status: "initialized",
+  };
+  writeFileSync(paths.stateJson, JSON.stringify(initialState, null, 2));
 
   // Create empty progress.log
   writeFileSync(
@@ -128,6 +168,48 @@ function extractSessionIdFromPath(sessionDirectory: string): null | string {
     return null;
   }
   return sessionDirectory.slice(prefix.length);
+}
+
+/**
+ * Find the latest session directory
+ *
+ * @param options - Options for finding sessions
+ * @returns Path to latest session or null if none found
+ */
+function findLatestSession(options?: FindSessionOptions): null | string {
+  const directories = readdirSync(TMP_BASE).filter((d) =>
+    d.startsWith(SESSION_PREFIX),
+  );
+
+  if (directories.length === 0) {
+    return null;
+  }
+
+  // Sort by name (which is timestamp) in descending order
+  directories.sort((a, b) => b.localeCompare(a));
+
+  // Find first valid session that matches criteria
+  const validSession = directories.find((dir) => {
+    const sessionPath = `${TMP_BASE}/${dir}`;
+    const state = readSessionState(sessionPath);
+
+    // Skip sessions without valid state
+    if (state === null) {
+      return false;
+    }
+
+    // Skip completed/failed sessions when looking for resumable
+    if (
+      options?.resumableOnly === true &&
+      (state.status === "completed" || state.status === "failed")
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  return validSession === undefined ? null : `${TMP_BASE}/${validSession}`;
 }
 
 /**
@@ -173,6 +255,23 @@ function getSessionPaths(sessionDirectory: string): SessionPaths {
 }
 
 /**
+ * Read session state from state.json
+ *
+ * @param sessionDirectory - Path to session directory
+ * @returns Session state or null if not found/invalid
+ */
+function readSessionState(sessionDirectory: string): null | SessionState {
+  const paths = getSessionPaths(sessionDirectory);
+
+  try {
+    const content = readFileSync(paths.stateJson, "utf8");
+    return JSON.parse(content) as SessionState;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Remove a session directory
  *
  * Removes the session directory and all its contents.
@@ -186,19 +285,50 @@ function removeSessionDirectory(sessionDirectory: string): void {
   }
 }
 
+/**
+ * Update session state in state.json
+ *
+ * @param sessionDirectory - Path to session directory
+ * @param updates - Partial state updates to apply
+ * @returns Updated state or null if update failed
+ */
+function updateSessionState(
+  sessionDirectory: string,
+  updates: Partial<SessionState>,
+): null | SessionState {
+  const currentState = readSessionState(sessionDirectory);
+  if (currentState === null) {
+    return null;
+  }
+
+  const newState: SessionState = {
+    ...currentState,
+    ...updates,
+    lastUpdatedAt: new Date().toISOString(),
+  };
+
+  const paths = getSessionPaths(sessionDirectory);
+  writeFileSync(paths.stateJson, JSON.stringify(newState, null, 2));
+  return newState;
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
 
 export {
+  appendProgressLog,
   checkSessionExists,
   createSessionDirectory,
   extractSessionIdFromPath,
+  findLatestSession,
   formatTimestamp,
   getSessionDirectoryFromId,
   getSessionPaths,
+  readSessionState,
   removeSessionDirectory,
   SESSION_PREFIX,
   TMP_BASE,
+  updateSessionState,
 };
-export type { SessionInfo, SessionPaths };
+export type { FindSessionOptions, SessionInfo, SessionPaths, SessionState };
