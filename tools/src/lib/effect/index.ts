@@ -130,3 +130,24 @@ export const CoreServicesTest = Layer.mergeAll(
  * Use this for typing Effect programs that need core services
  */
 export type CoreServices = Config | FileSystem | Logger;
+
+// =============================================================================
+// Utility Functions (Effect-based)
+// =============================================================================
+
+// Numbered file utilities
+export { createNumberedFile, getNextNumber } from "./numbered-files";
+export type { CreateResult, NumberedFileOptions } from "./numbered-files";
+
+// Path utilities
+export {
+  clearRootCache,
+  findProjectRoot,
+  getContextRoot,
+  getContextRootPath,
+  getOutputDirectory,
+} from "./paths";
+
+// Research utilities
+export { saveResearchOutput } from "./research";
+export type { ResearchPaths, SaveResearchOptions } from "./research";
