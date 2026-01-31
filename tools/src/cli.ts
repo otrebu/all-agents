@@ -14,6 +14,7 @@ import {
 import extractConversationsCommand from "./commands/extract-conversations";
 import geminiResearchCommand from "./commands/gemini/index";
 import ghSearchCommand from "./commands/github/index";
+import helloCommand from "./commands/hello";
 import notifyCommand from "./commands/notify/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
 import ralphCommand from "./commands/ralph/index";
@@ -196,5 +197,8 @@ program.addCommand(notifyCommand);
 // Shell completion
 program.addCommand(completionCommand);
 program.addCommand(completeCommand, { hidden: true });
+
+// Hello command
+program.addCommand(helloCommand);
 
 program.parse();
