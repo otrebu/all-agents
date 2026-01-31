@@ -114,6 +114,50 @@ function checkSessionExists(sessionDirectory: string): boolean {
 }
 
 /**
+ * Remove old session directories
+ *
+ * @param options - Options for cleaning sessions
+ * @returns Number of sessions removed
+ */
+function cleanOldSessions(options?: {
+  /** Only remove sessions in completed or failed state */
+  isCompletedOnly?: boolean;
+  /** Only remove sessions older than this many days (default: 7) */
+  olderThanDays?: number;
+}): number {
+  const olderThanDays = options?.olderThanDays ?? 7;
+  const isCompletedOnly = options?.isCompletedOnly ?? false;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+
+  const sessions = listAllSessions();
+  let removedCount = 0;
+
+  for (const session of sessions) {
+    // Skip if no state (malformed session, remove anyway unless completedOnly)
+    if (session.state === null) {
+      if (!isCompletedOnly) {
+        removeSessionDirectory(session.path);
+        removedCount += 1;
+      }
+    } else {
+      const sessionDate = new Date(session.state.createdAt);
+      const isOld = sessionDate < cutoffDate;
+      const isTerminal =
+        session.state.status === "completed" ||
+        session.state.status === "failed";
+
+      if (isOld && (!isCompletedOnly || isTerminal)) {
+        removeSessionDirectory(session.path);
+        removedCount += 1;
+      }
+    }
+  }
+
+  return removedCount;
+}
+
+/**
  * Create a new session directory in /tmp
  *
  * Creates a timestamped directory at /tmp/ralph-prototype-{YYYYMMDD-HHMMSS}/
@@ -255,6 +299,35 @@ function getSessionPaths(sessionDirectory: string): SessionPaths {
 }
 
 /**
+ * List all session directories
+ *
+ * @returns Array of session info objects sorted by creation time (newest first)
+ */
+function listAllSessions(): Array<
+  { state: null | SessionState } & SessionInfo
+> {
+  const directories = readdirSync(TMP_BASE).filter((d) =>
+    d.startsWith(SESSION_PREFIX),
+  );
+
+  // Sort by name (which is timestamp) in descending order (newest first)
+  directories.sort((a, b) => b.localeCompare(a));
+
+  return directories.map((dir) => {
+    const sessionPath = `${TMP_BASE}/${dir}`;
+    const sessionId = dir.slice(SESSION_PREFIX.length);
+    const state = readSessionState(sessionPath);
+
+    return {
+      createdAt: state?.createdAt ?? "",
+      path: sessionPath,
+      sessionId,
+      state,
+    };
+  });
+}
+
+/**
  * Read session state from state.json
  *
  * @param sessionDirectory - Path to session directory
@@ -270,6 +343,10 @@ function readSessionState(sessionDirectory: string): null | SessionState {
     return null;
   }
 }
+
+// =============================================================================
+// Exports
+// =============================================================================
 
 /**
  * Remove a session directory
@@ -312,19 +389,17 @@ function updateSessionState(
   return newState;
 }
 
-// =============================================================================
-// Exports
-// =============================================================================
-
 export {
   appendProgressLog,
   checkSessionExists,
+  cleanOldSessions,
   createSessionDirectory,
   extractSessionIdFromPath,
   findLatestSession,
   formatTimestamp,
   getSessionDirectoryFromId,
   getSessionPaths,
+  listAllSessions,
   readSessionState,
   removeSessionDirectory,
   SESSION_PREFIX,

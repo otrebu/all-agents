@@ -26,10 +26,14 @@ import { DEFAULT_MAX_ITERATIONS, runExecutionLoop } from "./execution";
 import { type GeneratedTasksFile, planAndWriteTasks } from "./planning";
 import {
   appendProgressLog,
+  cleanOldSessions,
   createSessionDirectory,
   findLatestSession,
   getSessionPaths,
+  listAllSessions,
   readSessionState,
+  removeSessionDirectory,
+  updateSessionState,
 } from "./temporary-session";
 
 // =============================================================================
@@ -396,11 +400,168 @@ async function runPrototype(
 }
 
 // =============================================================================
+// Session Management Subcommands
+// =============================================================================
+
+/**
+ * Cancel running session
+ */
+function runPrototypeCancel(): void {
+  const latestSession = findLatestSession({ resumableOnly: true });
+
+  if (latestSession === null) {
+    console.log(chalk.dim("No running session to cancel."));
+    return;
+  }
+
+  const state = readSessionState(latestSession);
+  if (state === null) {
+    console.error(chalk.red("Error: Could not read session state"));
+    return;
+  }
+
+  // Mark as interrupted
+  updateSessionState(latestSession, { status: "interrupted" });
+  appendProgressLog(latestSession, "Session cancelled by user");
+
+  console.log(chalk.yellow("⚠ Session cancelled"));
+  console.log(`Session: ${latestSession}`);
+  console.log(`Previous status: ${state.status}`);
+  console.log(chalk.dim("Resume with: aaa ralph prototype --resume"));
+}
+
+/**
+ * Clean old sessions
+ */
+function runPrototypeClean(options: { all?: boolean; days?: number }): void {
+  if (options.all === true) {
+    const sessions = listAllSessions();
+    for (const session of sessions) {
+      removeSessionDirectory(session.path);
+    }
+    console.log(chalk.green(`✓ Removed all ${sessions.length} session(s)`));
+    return;
+  }
+
+  const days = options.days ?? 7;
+  const removed = cleanOldSessions({ olderThanDays: days });
+  console.log(
+    chalk.green(`✓ Removed ${removed} session(s) older than ${days} days`),
+  );
+}
+
+/**
+ * List all sessions in /tmp
+ */
+function runPrototypeList(): void {
+  const sessions = listAllSessions();
+
+  if (sessions.length === 0) {
+    console.log(chalk.dim("No prototype sessions found."));
+    return;
+  }
+
+  console.log(chalk.bold("📂 Prototype Sessions"));
+  console.log("─".repeat(60));
+
+  for (const session of sessions) {
+    const status = session.state?.status ?? "unknown";
+    let statusIcon = chalk.dim("?");
+    switch (status) {
+      case "completed": {
+        statusIcon = chalk.green("✓");
+
+        break;
+      }
+      case "failed": {
+        statusIcon = chalk.red("✗");
+
+        break;
+      }
+      case "initialized": {
+        statusIcon = chalk.blue("○");
+
+        break;
+      }
+      case "interrupted":
+      case "running": {
+        statusIcon = chalk.yellow("▶");
+
+        break;
+      }
+      // No default
+    }
+
+    const createdAt = session.state?.createdAt;
+    const dateString =
+      createdAt !== undefined && createdAt !== ""
+        ? new Date(createdAt).toLocaleString()
+        : "unknown";
+    console.log(
+      `${statusIcon} ${session.sessionId}  ${chalk.dim(status.padEnd(12))}  ${chalk.dim(dateString)}`,
+    );
+  }
+
+  console.log();
+  console.log(chalk.dim(`Total: ${sessions.length} session(s)`));
+}
+
+/**
+ * Show status of current/recent session
+ */
+function runPrototypeStatus(): void {
+  const latestSession = findLatestSession();
+
+  if (latestSession === null) {
+    console.log(chalk.dim("No prototype sessions found."));
+    console.log(chalk.dim("Start one with: aaa ralph prototype"));
+    return;
+  }
+
+  const state = readSessionState(latestSession);
+  const paths = getSessionPaths(latestSession);
+
+  console.log(chalk.bold("📊 Current Prototype Session"));
+  console.log("─".repeat(40));
+  console.log(`Session: ${latestSession}`);
+  console.log(`Status: ${state?.status ?? "unknown"}`);
+  console.log(`Iteration: ${state?.currentIteration ?? 0}`);
+  console.log(`Created: ${state?.createdAt ?? "unknown"}`);
+  console.log(`Updated: ${state?.lastUpdatedAt ?? "unknown"}`);
+
+  // Show tasks if available
+  if (existsSync(paths.tasksJson)) {
+    try {
+      const tasksContent = readFileSync(paths.tasksJson, "utf8");
+      const tasksFile = JSON.parse(tasksContent) as GeneratedTasksFile;
+      const completed = tasksFile.tasks.filter(
+        (t) => t.status === "complete",
+      ).length;
+      const inProgress = tasksFile.tasks.filter(
+        (t) => t.status === "in_progress",
+      ).length;
+      const pending = tasksFile.tasks.filter(
+        (t) => t.status === "pending",
+      ).length;
+      console.log(
+        `Tasks: ${completed}/${tasksFile.tasks.length} complete, ${inProgress} in progress, ${pending} pending`,
+      );
+    } catch {
+      // Ignore parse errors
+    }
+  }
+}
+
+// =============================================================================
 // Command Definition
 // =============================================================================
 
-const prototypeCommand = new Command("prototype")
-  .description("Start a rapid prototyping session from a goal description")
+const prototypeCommand = new Command("prototype").description(
+  "Rapid prototyping from a goal description",
+);
+
+// Default action: start/resume prototype session
+prototypeCommand
   .argument("[goal]", "Goal description (inline text)")
   .option("-f, --file <path>", "Read goal from a file")
   .option(
@@ -416,5 +577,41 @@ const prototypeCommand = new Command("prototype")
   .action(async (goal, options) => {
     await runPrototype(goal, options);
   });
+
+// Subcommand: status
+prototypeCommand.addCommand(
+  new Command("status")
+    .description("Show current/recent session status")
+    .action(() => {
+      runPrototypeStatus();
+    }),
+);
+
+// Subcommand: list
+prototypeCommand.addCommand(
+  new Command("list").description("List all sessions in /tmp").action(() => {
+    runPrototypeList();
+  }),
+);
+
+// Subcommand: cancel
+prototypeCommand.addCommand(
+  new Command("cancel").description("Cancel running session").action(() => {
+    runPrototypeCancel();
+  }),
+);
+
+// Subcommand: clean
+prototypeCommand.addCommand(
+  new Command("clean")
+    .description("Remove old sessions")
+    .option("-d, --days <number>", "Remove sessions older than N days", (v) =>
+      Number.parseInt(v, 10),
+    )
+    .option("-a, --all", "Remove all sessions")
+    .action((options) => {
+      runPrototypeClean(options);
+    }),
+);
 
 export default prototypeCommand;
