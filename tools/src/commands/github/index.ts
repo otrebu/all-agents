@@ -1,17 +1,47 @@
 #!/usr/bin/env node
 
-import log from "@lib/log";
-import { saveResearchOutput } from "@lib/research";
+/**
+ * GitHub search command using Effect.ts
+ *
+ * Uses Effect.gen for all async operations with proper error handling.
+ * Commander.js action calls Effect.runPromise.
+ *
+ * @module
+ */
+
+import type {
+  AuthError,
+  FileSystem,
+  FileWriteError,
+  PathResolutionError,
+  RateLimitError,
+} from "@tools/lib/effect";
+
 import { debug } from "@tools/env";
+import {
+  FileSystemLive,
+  Logger,
+  LoggerLive,
+  saveResearchOutput,
+} from "@tools/lib/effect";
 import { getOutputDir } from "@tools/utils/paths";
+import { Effect, Layer } from "effect";
 import ora from "ora";
 
 import type { CodeFile } from "./types";
 
-import { fetchCodeFiles, getGitHubToken, searchGitHubCode } from "./github";
+import {
+  fetchCodeFilesEffect,
+  getGitHubTokenEffect,
+  GitHubSearchError,
+  searchGitHubCodeEffect,
+} from "./effect-github";
 import buildQueryIntent from "./query";
 import getRankedResults from "./ranker";
-import { AuthError, RateLimitError, SearchError } from "./types";
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface GitHubSearchResult {
   files: Array<CodeFile>;
@@ -19,31 +49,67 @@ interface GitHubSearchResult {
   mdPath: string;
 }
 
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Execute GitHub search command
+ * Commander.js action handler - calls Effect.runPromise
+ */
 async function executeGithubSearch(userQuery: string): Promise<void> {
+  const program = performGithubSearch(userQuery).pipe(
+    Effect.provide(Layer.merge(FileSystemLive, LoggerLive)),
+    Effect.catchTags({
+      AuthError: (error) =>
+        Effect.sync(() => {
+          console.error("\nAuthentication failed");
+          console.error(error.message);
+          console.error("\nInstall gh CLI: https://cli.github.com/");
+          console.error("Then run: gh auth login --web\n");
+          process.exit(1);
+        }),
+      FileWriteError: (error) =>
+        Effect.sync(() => {
+          console.error("\nFailed to save research output");
+          console.error(error.message);
+          console.error(`Path: ${error.path}`);
+          process.exit(1);
+        }),
+      GitHubSearchError: (error) =>
+        Effect.sync(() => {
+          console.error("\nSearch failed");
+          console.error(error.message);
+          process.exit(1);
+        }),
+      PathResolutionError: (error) =>
+        Effect.sync(() => {
+          console.error("\nFailed to resolve output path");
+          console.error(error.message);
+          process.exit(1);
+        }),
+      RateLimitError: (error) =>
+        Effect.sync(() => {
+          console.error("\nRate limit exceeded");
+          console.error(error.message);
+          if (error.retryAfterMs !== undefined && error.retryAfterMs > 0) {
+            const resetDate = new Date(Date.now() + error.retryAfterMs);
+            console.error(`\nResets at: ${resetDate.toLocaleString()}`);
+          }
+          process.exit(1);
+        }),
+    }),
+  );
+
   try {
-    await performGithubSearch(userQuery);
+    await Effect.runPromise(program);
   } catch (error) {
-    const unknownError = error as Error;
-    if (error instanceof AuthError) {
-      log.error("\nAuthentication failed");
-      log.dim(error.message);
-      log.dim("\nInstall gh CLI: https://cli.github.com/");
-      log.dim("Then run: gh auth login --web\n");
-    } else if (error instanceof RateLimitError) {
-      log.error("\nRate limit exceeded");
-      log.dim(error.message);
-      log.dim(`\nResets at: ${error.resetAt.toLocaleString()}`);
-      log.dim(`Remaining requests: ${error.remaining}\n`);
-    } else if (error instanceof SearchError) {
-      log.error("\nSearch failed");
-      log.dim(`${error.message}\n`);
-    } else {
-      log.error("\nUnexpected error");
-      const errorMessage = unknownError.message;
-      log.dim(errorMessage);
-      const errorStack = unknownError.stack;
-      if (errorStack !== undefined && errorStack.length > 0) {
-        log.dim(`\n${errorStack}`);
+    // Handle any unexpected errors
+    console.error("\nUnexpected error");
+    if (error instanceof Error) {
+      console.error(error.message);
+      if (error.stack !== undefined && error.stack !== "") {
+        console.error(`\n${error.stack}`);
       }
     }
     process.exit(1);
@@ -90,6 +156,10 @@ function formatMarkdownReport(
   return sections.join("\n");
 }
 
+// =============================================================================
+// Effect-based Search Implementation
+// =============================================================================
+
 function formatStars(stars: number | undefined): string {
   if (stars === undefined || stars === 0) return "0";
   if (stars >= 1000) {
@@ -98,84 +168,155 @@ function formatStars(stars: number | undefined): string {
   return stars.toString();
 }
 
-async function performGithubSearch(
+// =============================================================================
+// Command Handler
+// =============================================================================
+
+/**
+ * Perform GitHub search using Effect
+ * All operations use Effect.Effect with proper error types
+ */
+function performGithubSearch(
   userQuery: string,
-): Promise<GitHubSearchResult> {
-  const RESEARCH_DIR = getOutputDir("research/github");
-  debug("Research dir:", RESEARCH_DIR);
+): Effect.Effect<
+  GitHubSearchResult,
+  | AuthError
+  | FileWriteError
+  | GitHubSearchError
+  | PathResolutionError
+  | RateLimitError,
+  FileSystem | Logger
+> {
+  return Effect.gen(function* performGithubSearchGenerator() {
+    const logger = yield* Logger;
+    const RESEARCH_DIR = getOutputDir("research/github");
+    debug("Research dir:", RESEARCH_DIR);
 
-  const startTime = Date.now();
+    const startTime = Date.now();
 
-  log.header("\n🔍 GitHub Code Search\n");
+    yield* Effect.sync(() => logger.info("\n🔍 GitHub Code Search\n"));
 
-  const trimmedQuery = String(userQuery).trim();
-  if (trimmedQuery.length === 0) {
-    throw new Error("No query provided");
-  }
+    const trimmedQuery = String(userQuery).trim();
+    if (trimmedQuery.length === 0) {
+      return yield* Effect.fail(
+        new GitHubSearchError({ message: "No query provided", query: "" }),
+      );
+    }
 
-  // Auth
-  const authSpinner = ora("Authenticating with GitHub...").start();
-  const token = getGitHubToken();
-  authSpinner.succeed("Authenticated");
+    // Auth - use ora spinner outside Effect
+    const authSpinner = ora("Authenticating with GitHub...").start();
+    const token = yield* getGitHubTokenEffect().pipe(
+      Effect.tapError(() =>
+        Effect.sync(() => authSpinner.fail("Authentication failed")),
+      ),
+      Effect.tap(() => Effect.sync(() => authSpinner.succeed("Authenticated"))),
+    );
 
-  // Build query
-  const { options, query } = buildQueryIntent(trimmedQuery);
-  log.dim("\nSearch Parameters:");
-  log.dim(`  Query: "${query}"`);
-  log.dim(`  Filters: ${JSON.stringify(options)}\n`);
+    // Build query
+    const { options, query } = buildQueryIntent(trimmedQuery);
+    yield* Effect.sync(() => {
+      logger.log(`\nSearch Parameters:`);
+      logger.log(`  Query: "${query}"`);
+      logger.log(`  Filters: ${JSON.stringify(options)}\n`);
+    });
 
-  // Search
-  const searchSpinner = ora("Searching GitHub...").start();
-  const searchResults = await searchGitHubCode(token, query, options);
-  searchSpinner.succeed(`Found ${searchResults.length} results`);
-  const results = searchResults;
+    // Search with retry for rate limits
+    const searchSpinner = ora("Searching GitHub...").start();
+    const searchResults = yield* searchGitHubCodeEffect(
+      token,
+      query,
+      options,
+    ).pipe(
+      Effect.tapError(() =>
+        Effect.sync(() => searchSpinner.fail("Search failed")),
+      ),
+      Effect.tap((results) =>
+        Effect.sync(() =>
+          searchSpinner.succeed(`Found ${results.length} results`),
+        ),
+      ),
+    );
 
-  if (results.length === 0) {
-    log.warn("No results found");
-    log.dim("Try a different query or remove filters.");
-    return { files: [], jsonPath: "", mdPath: "" };
-  }
+    if (searchResults.length === 0) {
+      yield* Effect.sync(() => {
+        logger.warn("No results found");
+        logger.log("Try a different query or remove filters.");
+      });
+      return { files: [], jsonPath: "", mdPath: "" };
+    }
 
-  // Rank
-  const rankSpinner = ora("Ranking by quality...").start();
-  const ranked = getRankedResults(results, 10);
-  rankSpinner.succeed(`Top ${ranked.length} selected`);
+    // Rank
+    const rankSpinner = ora("Ranking by quality...").start();
+    const ranked = getRankedResults(searchResults, 10);
+    rankSpinner.succeed(`Top ${ranked.length} selected`);
 
-  // Fetch
-  const fetchSpinner = ora(
-    `Fetching code from ${ranked.length} files...`,
-  ).start();
-  const files = await fetchCodeFiles({
-    contextLinesCount: 20,
-    maxFiles: 10,
-    rankedResults: ranked,
-    token,
+    // Fetch files in parallel using Effect.all
+    const fetchSpinner = ora(
+      `Fetching code from ${ranked.length} files...`,
+    ).start();
+
+    const { failures, files } = yield* fetchCodeFilesEffect({
+      contextLinesCount: 20,
+      maxFiles: 10,
+      rankedResults: ranked,
+      token,
+    });
+
+    fetchSpinner.succeed(`Fetched ${files.length} files`);
+
+    // Log failures if any
+    if (failures.length > 0) {
+      yield* Effect.sync(() => {
+        logger.warn(
+          `Failed to fetch ${failures.length}/${ranked.length} files`,
+        );
+        failures.slice(0, 3).forEach((error) => {
+          logger.log(
+            `   - ${error.repository}/${error.path}: ${error.message}`,
+          );
+        });
+      });
+    }
+
+    // Output clean markdown for Claude
+    const report = formatMarkdownReport(files, {
+      executionTimeMs: Date.now() - startTime,
+      query: trimmedQuery,
+      totalResults: searchResults.length,
+    });
+
+    // Save research output using Effect-based function
+    const { jsonPath, mdPath } = yield* saveResearchOutput({
+      markdownContent: report,
+      outputDir: RESEARCH_DIR,
+      rawData: { files, ranked, results: searchResults },
+      topic: trimmedQuery,
+    });
+
+    yield* Effect.sync(() => {
+      logger.info("\nSearch complete!");
+      logger.log(`\n${report}`);
+      logger.log("");
+      logger.info(`📄 Raw Data: ${jsonPath}`);
+      logger.info(`📝 Report: ${mdPath}`);
+    });
+
+    return { files, jsonPath, mdPath };
   });
-  fetchSpinner.succeed(`Fetched ${files.length} files`);
-
-  // Output clean markdown for Claude
-  const report = formatMarkdownReport(files, {
-    executionTimeMs: Date.now() - startTime,
-    query: trimmedQuery,
-    totalResults: results.length,
-  });
-
-  // Save research output
-  const { jsonPath, mdPath } = await saveResearchOutput({
-    markdownContent: report,
-    outputDir: RESEARCH_DIR,
-    rawData: { files, ranked, results },
-    topic: trimmedQuery,
-  });
-
-  log.success("\nSearch complete!");
-  log.plain(`\n${report}`);
-  log.plain("");
-  log.info(`📄 Raw Data: ${jsonPath}`);
-  log.info(`📝 Report: ${mdPath}`);
-
-  return { files, jsonPath, mdPath };
 }
+
+// =============================================================================
+// Exports
+// =============================================================================
+
+// Export Effect-based functions for reuse
+export {
+  fetchCodeFilesEffect,
+  getGitHubTokenEffect,
+  GitHubFetchError,
+  GitHubSearchError,
+  searchGitHubCodeEffect,
+} from "./effect-github";
 
 export type { GitHubSearchResult };
 export { performGithubSearch };

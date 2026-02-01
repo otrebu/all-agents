@@ -164,3 +164,48 @@ await saveResearchOutput(
   formattedMarkdown, // Human-readable report
 );
 ```
+
+### Effect.ts Services
+
+Commands are being ported to Effect.ts for better error handling and composability.
+
+**Core services** (`src/lib/effect/`):
+
+- `Logger` - Chalk-based logging as Effect Layer
+- `Config` - Effect-based config loading
+- `FileSystem` - Effect wrappers for fs operations
+- `HttpClient` - Effect-based HTTP with retry/timeout
+
+**Error types** (`src/lib/effect/errors.ts`):
+
+- Uses `Data.TaggedError` pattern for type-safe error handling
+- Error types: `AuthError`, `RateLimitError`, `NetworkError`, `FileNotFoundError`, etc.
+
+**Usage pattern**:
+
+```typescript
+import {
+  FileSystemLive,
+  LoggerLive,
+  saveResearchOutput,
+} from "@tools/lib/effect";
+import { Effect, Layer } from "effect";
+
+const program = Effect.gen(function* () {
+  const logger = yield* Logger;
+  const fs = yield* FileSystem;
+
+  yield* Effect.sync(() => logger.info("Starting..."));
+  const content = yield* fs.readFile("./data.txt");
+  return content;
+});
+
+// Provide layers and run
+await Effect.runPromise(
+  program.pipe(Effect.provide(Layer.merge(FileSystemLive, LoggerLive))),
+);
+```
+
+**Commands ported to Effect**:
+
+- `gh-search` - Uses Effect.all for parallel fetching, Effect.retry for rate limits
