@@ -40,6 +40,11 @@ export type FileSystemError =
 export type HttpError = NetworkError | RateLimitError | TimeoutError;
 
 /**
+ * Union of all notification-related errors
+ */
+export type NotifyError = NotifyNetworkError | NotifyRateLimitError;
+
+/**
  * Union of all search-related errors
  */
 export type SearchError =
@@ -139,6 +144,26 @@ export class FileWriteError extends Data.TaggedError("FileWriteError")<{
 export class NetworkError extends Data.TaggedError("NetworkError")<{
   readonly cause?: unknown;
   readonly message: string;
+  readonly url?: string;
+}> {}
+
+/**
+ * Network error specific to ntfy notifications
+ */
+export class NotifyNetworkError extends Data.TaggedError("NotifyNetworkError")<{
+  readonly cause?: unknown;
+  readonly message: string;
+  readonly url?: string;
+}> {}
+
+/**
+ * Rate limit error specific to ntfy notifications (HTTP 429)
+ */
+export class NotifyRateLimitError extends Data.TaggedError(
+  "NotifyRateLimitError",
+)<{
+  readonly message: string;
+  readonly retryAfterMs?: number;
   readonly url?: string;
 }> {}
 

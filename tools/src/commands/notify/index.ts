@@ -15,21 +15,39 @@
 import * as p from "@clack/prompts";
 import { Command, Option } from "@commander-js/extra-typings";
 import { type EventConfig, loadAaaConfig } from "@tools/lib/config";
+import {
+  ConfigLive,
+  FileSystemLive,
+  HttpClientLive,
+  NotifyNetworkError,
+  NotifyRateLimitError,
+} from "@tools/lib/effect";
 import chalk from "chalk";
+import { Effect, Layer } from "effect";
 import { existsSync } from "node:fs";
 import ora from "ora";
 
 import type { NotifyConfig, Priority } from "./types";
 
-import { sendNotification } from "./client";
+import { getConfigPath, loadNotifyConfig } from "./config";
+import { sendNotificationEffect } from "./effect-client";
 import {
   DEFAULT_NOTIFY_CONFIG,
-  getConfigPath,
-  isInQuietHours,
-  loadNotifyConfig,
-  saveNotifyConfig,
-} from "./config";
-import { NtfyNetworkError, NtfyRateLimitError, priorities } from "./types";
+  isInQuietHoursSync,
+  loadNotifyConfigEffect,
+  resolvePriorityEffect,
+  saveNotifyConfigEffect,
+} from "./effect-config";
+import { priorities } from "./types";
+
+// =============================================================================
+// Effect Layers
+// =============================================================================
+
+/**
+ * Combined layer for notify command operations
+ */
+const NotifyLive = Layer.mergeAll(ConfigLive, FileSystemLive, HttpClientLive);
 
 // =============================================================================
 // Helper Functions
@@ -104,62 +122,51 @@ function mergeTags(
 }
 
 /**
- * Resolve final config by merging CLI > event > env > config > defaults
- *
- * Config resolution: CLI flags → event config → env vars → config file → defaults
+ * Effect-based config resolution
+ * Uses Effect combinators for quiet hours logic
  */
-function resolveConfig(
+function resolveConfigEffect(
   fileConfig: NotifyConfig,
   cliOptions: { priority?: string; title?: string },
   eventConfig?: EventConfig,
-): {
+): Effect.Effect<{
   priority: Priority;
   server: string;
   title: string;
   topic: string;
   username: string;
-} {
-  // Resolve priority with quiet hours fallback
-  function resolvePriority(): Priority {
-    // CLI flag has highest priority
-    if (cliOptions.priority !== undefined) {
-      return cliOptions.priority as Priority;
-    }
-    // Event config priority
-    if (eventConfig?.priority !== undefined) {
-      return eventConfig.priority;
-    }
-    // Env var
+}> {
+  return Effect.gen(function* resolveConfigGen() {
+    // Parse environment priority
     const envPriority = process.env.NTFY_PRIORITY;
-    if (
-      envPriority !== undefined &&
-      priorities.includes(envPriority as Priority)
-    ) {
-      return envPriority as Priority;
-    }
-    // Quiet hours check - use low during quiet hours
-    if (isInQuietHours(fileConfig.quietHours)) {
-      return "low";
-    }
-    // Config default
-    return fileConfig.defaultPriority;
-  }
+    const validEnvPriority =
+      envPriority !== undefined && priorities.includes(envPriority as Priority)
+        ? (envPriority as Priority)
+        : undefined;
 
-  // Resolve topic: CLI (none) → event config → env var → file config
-  function resolveTopic(): string {
-    if (eventConfig?.topic !== undefined && eventConfig.topic !== "") {
-      return eventConfig.topic;
-    }
-    return process.env.NTFY_TOPIC ?? fileConfig.topic;
-  }
+    // Resolve priority using Effect combinator with quiet hours
+    const priority = yield* resolvePriorityEffect({
+      cliPriority: cliOptions.priority as Priority | undefined,
+      defaultPriority: fileConfig.defaultPriority,
+      envPriority: validEnvPriority,
+      eventPriority: eventConfig?.priority,
+      quietHours: fileConfig.quietHours,
+    });
 
-  return {
-    priority: resolvePriority(),
-    server: process.env.NTFY_SERVER ?? fileConfig.server,
-    title: cliOptions.title ?? fileConfig.title,
-    topic: resolveTopic(),
-    username: fileConfig.username,
-  };
+    // Resolve topic: event config → env var → file config
+    const topic =
+      eventConfig?.topic !== undefined && eventConfig.topic !== ""
+        ? eventConfig.topic
+        : (process.env.NTFY_TOPIC ?? fileConfig.topic);
+
+    return {
+      priority,
+      server: process.env.NTFY_SERVER ?? fileConfig.server,
+      title: cliOptions.title ?? fileConfig.title,
+      topic,
+      username: fileConfig.username,
+    };
+  });
 }
 
 // =============================================================================
@@ -197,7 +204,10 @@ notifyCommand
     const eventConfig =
       options.event === undefined ? undefined : getEventConfig(options.event);
 
-    const resolved = resolveConfig(fileConfig, options, eventConfig);
+    // Use Effect to resolve config with quiet hours logic
+    const resolved = await Effect.runPromise(
+      resolveConfigEffect(fileConfig, options, eventConfig),
+    );
 
     // Merge tags from event config and CLI flag
     const mergedTags = mergeTags(eventConfig?.tags, options.tags);
@@ -234,8 +244,9 @@ notifyCommand
       process.exit(0);
     }
 
-    try {
-      const result = await sendNotification({
+    // Use Effect-based notification sending with HttpClient service
+    const sendProgram = Effect.gen(function* sendNotify() {
+      const result = yield* sendNotificationEffect({
         message,
         priority: resolved.priority,
         server: resolved.server,
@@ -249,12 +260,18 @@ notifyCommand
       if (options.quiet !== true) {
         console.log(`${chalk.green("✓")} Notification sent (${result.id})`);
       }
+
+      return result;
+    });
+
+    try {
+      await Effect.runPromise(sendProgram.pipe(Effect.provide(HttpClientLive)));
     } catch (error) {
-      if (error instanceof NtfyRateLimitError) {
+      if (error instanceof NotifyRateLimitError) {
         console.error(chalk.red("Error:"), "Rate limited. Try again later.");
         process.exit(2);
       }
-      if (error instanceof NtfyNetworkError) {
+      if (error instanceof NotifyNetworkError) {
         console.error(chalk.red("Error:"), error.message);
         process.exit(2);
       }
@@ -385,27 +402,39 @@ notifyCommand
       username: DEFAULT_NOTIFY_CONFIG.username,
     };
 
-    saveNotifyConfig(config);
-    p.log.success("Configuration saved");
+    // Use Effect to save config
+    try {
+      await Effect.runPromise(
+        saveNotifyConfigEffect(config).pipe(Effect.provide(FileSystemLive)),
+      );
+      p.log.success("Configuration saved");
+    } catch (error) {
+      p.log.error(
+        `Failed to save config: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      process.exit(1);
+    }
 
-    // Send test notification
+    // Send test notification using Effect
     const spinner = ora("Sending test notification...").start();
 
     try {
-      await sendNotification({
-        message: "Test notification from aaa notify init",
-        priority: config.defaultPriority,
-        server: config.server,
-        title: config.title,
-        topic: config.topic,
-        username: config.username,
-      });
+      await Effect.runPromise(
+        sendNotificationEffect({
+          message: "Test notification from aaa notify init",
+          priority: config.defaultPriority,
+          server: config.server,
+          title: config.title,
+          topic: config.topic,
+          username: config.username,
+        }).pipe(Effect.provide(HttpClientLive)),
+      );
       spinner.succeed("Test notification sent!");
     } catch (error) {
       spinner.fail("Test notification failed");
-      if (error instanceof NtfyNetworkError) {
+      if (error instanceof NotifyNetworkError) {
         p.log.error(`Network error: ${error.message}`);
-      } else if (error instanceof NtfyRateLimitError) {
+      } else if (error instanceof NotifyRateLimitError) {
         p.log.error("Rate limited. Try again later.");
       } else {
         p.log.error(error instanceof Error ? error.message : "Unknown error");
@@ -461,51 +490,87 @@ Quiet:    ${config.quietHours.enabled ? `${config.quietHours.startHour}:00 - ${c
 notifyCommand
   .command("on")
   .description("Enable notifications")
-  .action(() => {
-    const config = loadNotifyConfig();
-    config.enabled = true;
-    saveNotifyConfig(config);
-    console.log(`${chalk.green("✓")} Notifications enabled`);
+  .action(async () => {
+    const program = Effect.gen(function* enableNotify() {
+      const config = yield* loadNotifyConfigEffect();
+      config.enabled = true;
+      yield* saveNotifyConfigEffect(config);
+      console.log(`${chalk.green("✓")} Notifications enabled`);
+    });
+
+    try {
+      await Effect.runPromise(program.pipe(Effect.provide(NotifyLive)));
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      process.exit(1);
+    }
   });
 
 // aaa notify off - disable notifications
 notifyCommand
   .command("off")
   .description("Disable notifications")
-  .action(() => {
-    const config = loadNotifyConfig();
-    config.enabled = false;
-    saveNotifyConfig(config);
-    console.log(`${chalk.green("✓")} Notifications disabled`);
+  .action(async () => {
+    const program = Effect.gen(function* disableNotify() {
+      const config = yield* loadNotifyConfigEffect();
+      config.enabled = false;
+      yield* saveNotifyConfigEffect(config);
+      console.log(`${chalk.green("✓")} Notifications disabled`);
+    });
+
+    try {
+      await Effect.runPromise(program.pipe(Effect.provide(NotifyLive)));
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      process.exit(1);
+    }
   });
 
 // aaa notify status - show current status
 notifyCommand
   .command("status")
   .description("Show current notification status")
-  .action(() => {
-    const config = loadNotifyConfig();
-    const isInQuietNow = isInQuietHours(config.quietHours);
+  .action(async () => {
+    const program = Effect.gen(function* showStatus() {
+      const config = yield* loadNotifyConfigEffect();
+      const isInQuietNow = isInQuietHoursSync(config.quietHours);
 
-    console.log(chalk.bold("Notification Status"));
-    console.log();
-    console.log(
-      `  Enabled:       ${config.enabled ? chalk.green("yes") : chalk.red("no")}`,
-    );
-    console.log(
-      `  Topic:         ${config.topic || chalk.yellow("(not configured)")}`,
-    );
-    console.log(`  Server:        ${config.server}`);
-    console.log(`  Title:         ${config.title}`);
-    console.log(`  Priority:      ${config.defaultPriority}`);
-    console.log(`  Quiet hours:   ${formatQuietHours(config)}`);
-    if (config.quietHours.enabled) {
+      console.log(chalk.bold("Notification Status"));
+      console.log();
       console.log(
-        `  In quiet now:  ${isInQuietNow ? chalk.yellow("yes") : "no"}`,
+        `  Enabled:       ${config.enabled ? chalk.green("yes") : chalk.red("no")}`,
       );
+      console.log(
+        `  Topic:         ${config.topic || chalk.yellow("(not configured)")}`,
+      );
+      console.log(`  Server:        ${config.server}`);
+      console.log(`  Title:         ${config.title}`);
+      console.log(`  Priority:      ${config.defaultPriority}`);
+      console.log(`  Quiet hours:   ${formatQuietHours(config)}`);
+      if (config.quietHours.enabled) {
+        console.log(
+          `  In quiet now:  ${isInQuietNow ? chalk.yellow("yes") : "no"}`,
+        );
+      }
+      console.log();
+      console.log(`  Config file:   ${getConfigPath()}`);
+    });
+
+    try {
+      await Effect.runPromise(program.pipe(Effect.provide(ConfigLive)));
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      process.exit(1);
     }
-    console.log();
-    console.log(`  Config file:   ${getConfigPath()}`);
   });
 
 // =============================================================================
@@ -539,46 +604,58 @@ configCommand
     "Enable/disable quiet hours",
     (v) => v === "true" || v === "1",
   )
-  .action((options) => {
-    const config = loadNotifyConfig();
-    let hasChanged = false;
+  .action(async (options) => {
+    const program = Effect.gen(function* setConfig() {
+      const config = yield* loadNotifyConfigEffect();
+      let hasChanged = false;
 
-    if (options.topic !== undefined) {
-      config.topic = options.topic;
-      hasChanged = true;
-    }
-    if (options.server !== undefined) {
-      config.server = options.server;
-      hasChanged = true;
-    }
-    if (options.title !== undefined) {
-      config.title = options.title;
-      hasChanged = true;
-    }
-    if (options.priority !== undefined) {
-      config.defaultPriority = options.priority;
-      hasChanged = true;
-    }
-    if (options.quietStart !== undefined) {
-      config.quietHours.startHour = options.quietStart;
-      hasChanged = true;
-    }
-    if (options.quietEnd !== undefined) {
-      config.quietHours.endHour = options.quietEnd;
-      hasChanged = true;
-    }
-    if (options.quietEnabled !== undefined) {
-      config.quietHours.enabled = options.quietEnabled;
-      hasChanged = true;
-    }
+      if (options.topic !== undefined) {
+        config.topic = options.topic;
+        hasChanged = true;
+      }
+      if (options.server !== undefined) {
+        config.server = options.server;
+        hasChanged = true;
+      }
+      if (options.title !== undefined) {
+        config.title = options.title;
+        hasChanged = true;
+      }
+      if (options.priority !== undefined) {
+        config.defaultPriority = options.priority;
+        hasChanged = true;
+      }
+      if (options.quietStart !== undefined) {
+        config.quietHours.startHour = options.quietStart;
+        hasChanged = true;
+      }
+      if (options.quietEnd !== undefined) {
+        config.quietHours.endHour = options.quietEnd;
+        hasChanged = true;
+      }
+      if (options.quietEnabled !== undefined) {
+        config.quietHours.enabled = options.quietEnabled;
+        hasChanged = true;
+      }
 
-    if (!hasChanged) {
-      console.log("No options provided. Use --help for usage.");
+      if (!hasChanged) {
+        console.log("No options provided. Use --help for usage.");
+        process.exit(1);
+      }
+
+      yield* saveNotifyConfigEffect(config);
+      console.log(`${chalk.green("✓")} Configuration saved`);
+    });
+
+    try {
+      await Effect.runPromise(program.pipe(Effect.provide(NotifyLive)));
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : "Unknown error",
+      );
       process.exit(1);
     }
-
-    saveNotifyConfig(config);
-    console.log(`${chalk.green("✓")} Configuration saved`);
   });
 
 // aaa notify config show
@@ -586,35 +663,47 @@ configCommand
   .command("show")
   .description("Display current configuration")
   .option("--json", "Output as JSON")
-  .action((options) => {
-    const config = loadNotifyConfig();
+  .action(async (options) => {
+    const program = Effect.gen(function* showConfig() {
+      const config = yield* loadNotifyConfigEffect();
 
-    if (options.json === true) {
-      console.log(JSON.stringify(config, null, 2));
-      return;
+      if (options.json === true) {
+        console.log(JSON.stringify(config, null, 2));
+        return;
+      }
+
+      console.log(chalk.bold("Notification Configuration"));
+      console.log();
+      console.log(`  $schemaVersion:   ${config.$schemaVersion}`);
+      console.log(
+        `  enabled:          ${config.enabled ? chalk.green("true") : chalk.red("false")}`,
+      );
+      console.log(
+        `  topic:            ${config.topic || chalk.yellow("(empty)")}`,
+      );
+      console.log(`  server:           ${config.server}`);
+      console.log(`  title:            ${config.title}`);
+      console.log(`  defaultPriority:  ${config.defaultPriority}`);
+      console.log();
+      console.log(chalk.bold("  Quiet Hours:"));
+      console.log(
+        `    enabled:        ${config.quietHours.enabled ? chalk.green("true") : "false"}`,
+      );
+      console.log(`    startHour:      ${config.quietHours.startHour}`);
+      console.log(`    endHour:        ${config.quietHours.endHour}`);
+      console.log();
+      console.log(`  Config file:      ${getConfigPath()}`);
+    });
+
+    try {
+      await Effect.runPromise(program.pipe(Effect.provide(ConfigLive)));
+    } catch (error) {
+      console.error(
+        chalk.red("Error:"),
+        error instanceof Error ? error.message : "Unknown error",
+      );
+      process.exit(1);
     }
-
-    console.log(chalk.bold("Notification Configuration"));
-    console.log();
-    console.log(`  $schemaVersion:   ${config.$schemaVersion}`);
-    console.log(
-      `  enabled:          ${config.enabled ? chalk.green("true") : chalk.red("false")}`,
-    );
-    console.log(
-      `  topic:            ${config.topic || chalk.yellow("(empty)")}`,
-    );
-    console.log(`  server:           ${config.server}`);
-    console.log(`  title:            ${config.title}`);
-    console.log(`  defaultPriority:  ${config.defaultPriority}`);
-    console.log();
-    console.log(chalk.bold("  Quiet Hours:"));
-    console.log(
-      `    enabled:        ${config.quietHours.enabled ? chalk.green("true") : "false"}`,
-    );
-    console.log(`    startHour:      ${config.quietHours.startHour}`);
-    console.log(`    endHour:        ${config.quietHours.endHour}`);
-    console.log();
-    console.log(`  Config file:      ${getConfigPath()}`);
   });
 
 // aaa notify config test
@@ -623,20 +712,20 @@ configCommand
   .description("Send a test notification")
   .option("-m, --message <text>", "Custom test message")
   .action(async (options) => {
-    const config = loadNotifyConfig();
+    const program = Effect.gen(function* testNotify() {
+      const config = yield* loadNotifyConfigEffect();
 
-    if (config.topic === "") {
-      console.error(chalk.red("Error:"), "Topic not configured.");
-      console.log("Run: aaa notify config set --topic <your-topic>");
-      process.exit(1);
-    }
+      if (config.topic === "") {
+        console.error(chalk.red("Error:"), "Topic not configured.");
+        console.log("Run: aaa notify config set --topic <your-topic>");
+        process.exit(1);
+      }
 
-    const message = options.message ?? "Test notification from aaa notify";
+      const message = options.message ?? "Test notification from aaa notify";
 
-    console.log("Sending test notification...");
+      console.log("Sending test notification...");
 
-    try {
-      const result = await sendNotification({
+      const result = yield* sendNotificationEffect({
         message,
         priority: config.defaultPriority,
         server: config.server,
@@ -650,12 +739,16 @@ configCommand
       console.log("If you didn't receive it:");
       console.log("  1. Check your ntfy app is subscribed to:", config.topic);
       console.log("  2. Check the server URL:", config.server);
+    });
+
+    try {
+      await Effect.runPromise(program.pipe(Effect.provide(NotifyLive)));
     } catch (error) {
-      if (error instanceof NtfyRateLimitError) {
+      if (error instanceof NotifyRateLimitError) {
         console.error(chalk.red("Error:"), "Rate limited. Try again later.");
         process.exit(2);
       }
-      if (error instanceof NtfyNetworkError) {
+      if (error instanceof NotifyNetworkError) {
         console.error(chalk.red("Error:"), error.message);
         process.exit(2);
       }

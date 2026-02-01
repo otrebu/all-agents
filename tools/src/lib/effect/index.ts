@@ -86,6 +86,9 @@ export {
   FileWriteError,
   // HTTP errors
   NetworkError,
+  // Notify errors
+  NotifyNetworkError,
+  NotifyRateLimitError,
   // Search errors
   ParallelSearchError,
   PathResolutionError,
@@ -99,6 +102,7 @@ export type {
   ConfigError,
   FileSystemError,
   HttpError,
+  NotifyError,
   SearchError,
 } from "./errors";
 
