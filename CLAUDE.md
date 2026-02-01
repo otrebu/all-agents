@@ -6,6 +6,7 @@ Development reference for Claude Code when working in this repo. For setup, usag
 
 - **Runtime:** Bun (TypeScript)
 - **CLI libs:** commander, chalk, ora, boxen
+- **Core libs:** Effect.ts (error handling, services, composability)
 - **Linting:** ESLint (uba-eslint-config), `no-console` allowed
 - **Testing:** bun:test (E2E)
 

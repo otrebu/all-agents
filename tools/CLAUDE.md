@@ -167,45 +167,97 @@ await saveResearchOutput(
 
 ### Effect.ts Services
 
-Commands are being ported to Effect.ts for better error handling and composability.
+All commands use Effect.ts for error handling, composability, and testability.
 
 **Core services** (`src/lib/effect/`):
 
-- `Logger` - Chalk-based logging as Effect Layer
-- `Config` - Effect-based config loading
-- `FileSystem` - Effect wrappers for fs operations
-- `HttpClient` - Effect-based HTTP with retry/timeout
+| Service         | Description                        | Layers                                         |
+| --------------- | ---------------------------------- | ---------------------------------------------- |
+| `Logger`        | Chalk-based logging                | `LoggerLive`, `LoggerDebug`, `LoggerSilent`    |
+| `Config`        | Effect-based config loading        | `ConfigLive`, `makeConfigLayer(config)`        |
+| `FileSystem`    | fs operations with error handling  | `FileSystemLive`, `makeTestFileSystem()`       |
+| `HttpClient`    | HTTP with retry/timeout/rate-limit | `HttpClientLive`, `makeTestHttpClient()`       |
+| `ClaudeService` | Claude CLI invocation wrapper      | `ClaudeServiceLive`, `makeTestClaudeService()` |
 
 **Error types** (`src/lib/effect/errors.ts`):
 
-- Uses `Data.TaggedError` pattern for type-safe error handling
-- Error types: `AuthError`, `RateLimitError`, `NetworkError`, `FileNotFoundError`, etc.
+Uses `Data.TaggedError` pattern for type-safe error handling:
 
-**Usage pattern**:
+- **Auth**: `AuthError`
+- **Config**: `ConfigLoadError`, `ConfigParseError`, `ConfigValidationError`
+- **FileSystem**: `FileNotFoundError`, `FileReadError`, `FileWriteError`, `PathResolutionError`
+- **HTTP**: `NetworkError`, `TimeoutError`, `RateLimitError`
+- **Claude**: `ClaudeSpawnError`, `ClaudeExitError`, `ClaudeParseError`, `ClaudeInterruptedError`
+- **Review**: `ReviewSkillNotFoundError`, `ReviewFindingsParseError`, `ReviewValidationError`
+- **Ralph**: `SubtasksNotFoundError`, `SubtasksParseError`, `MaxIterationsExceededError`
+
+**Key patterns used**:
 
 ```typescript
-import {
-  FileSystemLive,
-  LoggerLive,
-  saveResearchOutput,
-} from "@tools/lib/effect";
-import { Effect, Layer } from "effect";
-
+// Generator-based composition
 const program = Effect.gen(function* () {
   const logger = yield* Logger;
   const fs = yield* FileSystem;
-
   yield* Effect.sync(() => logger.info("Starting..."));
-  const content = yield* fs.readFile("./data.txt");
-  return content;
+  return yield* fs.readFile("./data.txt");
 });
 
-// Provide layers and run
-await Effect.runPromise(
-  program.pipe(Effect.provide(Layer.merge(FileSystemLive, LoggerLive))),
+// Parallel execution with concurrency
+const results = yield * Effect.all(items.map(processItem), { concurrency: 5 });
+
+// Retry with exponential backoff and jitter
+const retrySchedule = pipe(
+  Schedule.exponential(Duration.seconds(1)),
+  Schedule.jittered,
+  Schedule.compose(Schedule.recurs(3)),
 );
+yield * Effect.retry(apiCall, retrySchedule);
+
+// Iteration loop with mutable state
+const stateRef = yield * Ref.make(initialState);
+yield *
+  Effect.iterate(initial, {
+    while: (s) => s.shouldContinue,
+    body: (s) => runIteration(stateRef, s),
+  });
+
+// Type-safe error handling
+yield *
+  Effect.catchTags(program, {
+    FileNotFoundError: (e) => Effect.succeed(fallback),
+    NetworkError: (e) => Effect.fail(new UserError(e.message)),
+  });
+
+// Layer composition
+const AppLive = Layer.mergeAll(FileSystemLive, LoggerLive, HttpClientLive);
+await Effect.runPromise(program.pipe(Effect.provide(AppLive)));
 ```
 
-**Commands ported to Effect**:
+**Commands using Effect**:
 
-- `gh-search` - Uses Effect.all for parallel fetching, Effect.retry for rate limits
+| Command                               | Key Effect Patterns                                               |
+| ------------------------------------- | ----------------------------------------------------------------- |
+| `task`, `story`, `uninstall`          | `Effect.gen`, `Effect.runPromise`, error catching                 |
+| `gh-search`                           | `Effect.all` for parallel fetch, `Effect.retry` with jitter       |
+| `parallel-search`, `gemini-research`  | External API/process wrapping, `saveResearchOutput`               |
+| `notify`                              | `HttpClient` service, quiet hours logic as Effect combinators     |
+| `extract-conversations`               | `Effect.all({ concurrency: 5 })` for parallel parsing             |
+| `setup`, `sync-context`, `completion` | `FileSystemService`, `Effect.Stream` for watch mode               |
+| `ralph build`                         | `Effect.iterate` for loop, `Effect.Ref` for state, parallel hooks |
+| `ralph status`, `ralph calibrate`     | `ClaudeService`, parallel file reading                            |
+| `review`                              | Parallel hook execution, `Effect.reduce` for finding aggregation  |
+
+**Testing with Effect**:
+
+```typescript
+import { Effect, Layer } from "effect";
+import { makeTestFileSystem, makeConfigLayer } from "@tools/lib/effect";
+
+// Mock services for testing
+const TestLayer = Layer.merge(
+  makeTestFileSystem({ readFile: () => Effect.succeed("mock content") }),
+  makeConfigLayer({ debug: true }),
+);
+
+const result = await Effect.runPromise(program.pipe(Effect.provide(TestLayer)));
+```

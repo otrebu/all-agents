@@ -428,7 +428,10 @@ bun run dev <cmd>     # Dev mode
 bun run test          # E2E tests (requires API keys)
 bun run lint          # Linting
 bun run lint:fix      # Auto-fix
+bun run typecheck     # TypeScript type checking
 ```
+
+**Architecture:** The CLI uses [Effect.ts](https://effect.website/) for error handling, service composition, and testability. All commands are built using Effect patterns with typed errors and composable layers. See [tools/CLAUDE.md](tools/CLAUDE.md) for development details.
 
 ### Testing Requirements
 
