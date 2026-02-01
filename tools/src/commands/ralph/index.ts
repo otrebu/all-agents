@@ -1,6 +1,12 @@
 import { Command } from "@commander-js/extra-typings";
 import { discoverMilestones, getMilestonePaths } from "@lib/milestones";
+import {
+  ClaudeServiceLive,
+  FileSystemLive,
+  LoggerLive,
+} from "@tools/lib/effect";
 import { findProjectRoot, getContextRoot } from "@tools/utils/paths";
+import { Effect, Layer } from "effect";
 import {
   appendFileSync,
   existsSync,
@@ -11,7 +17,6 @@ import {
 import path from "node:path";
 
 import runBuild from "./build";
-import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
@@ -26,7 +31,13 @@ import {
   type PlanSubtasksSummaryData,
   renderPlanSubtasksSummary,
 } from "./display";
-import { runStatus } from "./status";
+import {
+  type CalibrateSubcommand,
+  RalphConfigServiceLive,
+  runCalibrateEffect,
+} from "./effect-calibrate";
+import { runStatusEffect } from "./effect-status";
+// runStatus is now replaced by runStatusEffect from effect-status.ts
 
 /**
  * Resolve and validate milestone - exit with helpful error if not found
@@ -1089,7 +1100,7 @@ ralphCommand.addCommand(
   new Command("status")
     .description("Display current build status and progress")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
-    .action((options) => {
+    .action(async (options) => {
       const subtasksPath = options.subtasks;
       const contextRoot = getContextRoot();
 
@@ -1102,7 +1113,21 @@ ralphCommand.addCommand(
         }
       }
 
-      runStatus(resolvedSubtasksPath, contextRoot);
+      // Use Effect-based status display
+      const StatusLive = Layer.mergeAll(FileSystemLive, LoggerLive);
+
+      const program = runStatusEffect({
+        contextRoot,
+        subtasksPath: resolvedSubtasksPath,
+      });
+
+      try {
+        await Effect.runPromise(program.pipe(Effect.provide(StatusLive)));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`Error: ${message}`);
+        process.exit(1);
+      }
     }),
 );
 
@@ -1153,26 +1178,46 @@ function resolveCalibrateSubtasksPath(
 }
 
 /**
- * Helper to run calibrate subcommand and exit on failure
+ * Helper to run calibrate subcommand using Effect and exit on failure
  */
-function runCalibrateSubcommand(
+async function runCalibrateSubcommandEffect(
   subcommand: CalibrateSubcommand,
   options: { force?: boolean; review?: boolean; subtasks: string },
-): void {
+): Promise<void> {
   const contextRoot = getContextRoot();
   const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
     options.subtasks,
     contextRoot,
   );
 
-  const didSucceed = runCalibrate(subcommand, {
+  // Combine all required layers for calibration
+  const CalibrateLive = Layer.mergeAll(
+    FileSystemLive,
+    LoggerLive,
+    ClaudeServiceLive,
+    RalphConfigServiceLive,
+  );
+
+  const program = runCalibrateEffect(subcommand, {
     contextRoot,
     force: options.force,
     review: options.review,
     subtasksPath: resolvedSubtasksPath,
   });
 
-  if (!didSucceed) {
+  try {
+    const results = await Effect.runPromise(
+      program.pipe(Effect.provide(CalibrateLive)),
+    );
+
+    // Check if all results succeeded
+    const didAllSucceed = results.every((r) => r.success);
+    if (!didAllSucceed) {
+      process.exit(1);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Error: ${message}`);
     process.exit(1);
   }
 }
@@ -1184,8 +1229,8 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("intention", options);
+    .action(async (options) => {
+      await runCalibrateSubcommandEffect("intention", options);
     }),
 );
 
@@ -1196,8 +1241,8 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("technical", options);
+    .action(async (options) => {
+      await runCalibrateSubcommandEffect("technical", options);
     }),
 );
 
@@ -1208,8 +1253,8 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("improve", options);
+    .action(async (options) => {
+      await runCalibrateSubcommandEffect("improve", options);
     }),
 );
 
@@ -1220,8 +1265,8 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("all", options);
+    .action(async (options) => {
+      await runCalibrateSubcommandEffect("all", options);
     }),
 );
 
