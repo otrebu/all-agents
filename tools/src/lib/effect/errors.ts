@@ -26,6 +26,11 @@ export type ConfigError =
   | ConfigValidationError;
 
 /**
+ * Union of all conversation parsing errors
+ */
+export type ConversationError = ConversationParseError | FileReadError;
+
+/**
  * Union of all filesystem-related errors
  */
 export type FileSystemError =
@@ -93,6 +98,18 @@ export class ConfigValidationError extends Data.TaggedError(
   readonly fieldErrors: Record<string, Array<string>>;
   readonly message: string;
   readonly path: string;
+}> {}
+
+/**
+ * Error parsing conversation JSONL file
+ */
+export class ConversationParseError extends Data.TaggedError(
+  "ConversationParseError",
+)<{
+  readonly cause?: unknown;
+  readonly filePath: string;
+  readonly line?: number;
+  readonly message: string;
 }> {}
 
 /**

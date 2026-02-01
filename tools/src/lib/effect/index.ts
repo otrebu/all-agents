@@ -78,6 +78,8 @@ export {
   ConfigLoadError,
   ConfigParseError,
   ConfigValidationError,
+  // Conversation parsing errors
+  ConversationParseError,
   // External API/Process errors
   ExternalProcessError,
   // FileSystem errors
@@ -100,6 +102,7 @@ export {
 // Export type aliases separately
 export type {
   ConfigError,
+  ConversationError,
   FileSystemError,
   HttpError,
   NotifyError,

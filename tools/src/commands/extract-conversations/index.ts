@@ -1,39 +1,60 @@
 /**
  * extract-conversations command
  * Extracts conversation history from Claude Code for analysis
+ *
+ * Ported to Effect.ts for:
+ * - Effect-based file operations via FileSystemService
+ * - Proper error handling with tagged errors
+ * - Parallel file processing with concurrency control
  */
 
+import type { FileNotFoundError, FileSystem } from "@tools/lib/effect";
 import type { Command } from "commander";
 
+import { FileSystemLive } from "@tools/lib/effect";
 import chalk from "chalk";
+import { Effect } from "effect";
 import ora from "ora";
 
 import type { ExtractedConversation, ExtractionOptions } from "./types";
 
-import { formatOutput } from "./formatter";
 import {
-  extractExchanges,
+  getConversationFilesEffect,
   getProjectsDirectory,
-  listConversationFiles,
-  parseConversationFile,
-} from "./parser";
+  parseConversationsEffect,
+} from "./effect-parser";
+import { formatOutput } from "./formatter";
 
-function extractConversations(options: ExtractionOptions): void {
+// =============================================================================
+// Effect-based Implementation
+// =============================================================================
+
+/**
+ * Main extraction function - wraps Effect execution
+ */
+async function extractConversations(options: ExtractionOptions): Promise<void> {
   const spinner = ora("Finding conversation files...").start();
 
+  const program = extractConversationsEffect(options).pipe(
+    Effect.tap(({ projectsDirectory }) =>
+      Effect.sync(() => {
+        spinner.text = `Scanning ${projectsDirectory}...`;
+      }),
+    ),
+    // eslint-disable-next-line promise/prefer-await-to-callbacks -- Effect.catchTag is Effect's error handling pattern
+    Effect.catchTag("FileNotFoundError", (error) => {
+      spinner.fail("No conversation files found");
+      console.log(chalk.yellow(`\n${error.message}`));
+      return Effect.succeed({ conversations: [], projectsDirectory: "" });
+    }),
+    Effect.provide(FileSystemLive),
+  );
+
   try {
-    // Get project directory
-    const projectsDirectory = getProjectsDirectory(options.projectPath);
-    spinner.text = `Scanning ${projectsDirectory}...`;
+    const { conversations, projectsDirectory } =
+      await Effect.runPromise(program);
 
-    // List conversation files
-    const files = listConversationFiles(
-      projectsDirectory,
-      options.limit,
-      options.skip,
-    );
-
-    if (files.length === 0) {
+    if (conversations.length === 0 && projectsDirectory !== "") {
       spinner.fail("No conversation files found");
       console.log(
         chalk.yellow(
@@ -43,29 +64,18 @@ function extractConversations(options: ExtractionOptions): void {
       return;
     }
 
-    spinner.text = `Found ${files.length} conversations. Extracting...`;
-
-    // Parse and extract conversations
-    const conversations: Array<ExtractedConversation> = [];
-
-    for (const file of files) {
-      try {
-        const session = parseConversationFile(file);
-        const extracted = extractExchanges(session);
-
-        // Only include conversations with actual exchanges
-        if (extracted.exchanges.length > 0) {
-          conversations.push(extracted);
-        }
-      } catch (error: unknown) {
-        // Skip files that fail to parse
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(chalk.dim(`Skipped ${file}: ${message}`));
-      }
+    if (conversations.length === 0) {
+      // Already handled by FileNotFoundError
+      return;
     }
 
+    const totalExchanges = conversations.reduce(
+      (sum, c) => sum + c.exchanges.length,
+      0,
+    );
+
     spinner.succeed(
-      `Extracted ${conversations.length} conversations with ${conversations.reduce((sum, c) => sum + c.exchanges.length, 0)} exchanges`,
+      `Extracted ${conversations.length} conversations with ${totalExchanges} exchanges`,
     );
 
     // Format and output
@@ -102,7 +112,7 @@ function extractConversationsCommand(program: Command): void {
     )
     .option("-p, --project <path>", "Project path (defaults to current dir)")
     .action(
-      (options: {
+      async (options: {
         format: string;
         limit: number;
         project?: string;
@@ -115,9 +125,41 @@ function extractConversationsCommand(program: Command): void {
           skip: options.skip,
         };
 
-        extractConversations(extractionOptions);
+        await extractConversations(extractionOptions);
       },
     );
+}
+
+// =============================================================================
+// Command Registration
+// =============================================================================
+
+/**
+ * Extract conversations using Effect
+ * Returns Effect.Effect<ExtractedConversation[], ConversationError, FileSystem>
+ */
+function extractConversationsEffect(
+  options: ExtractionOptions,
+): Effect.Effect<
+  { conversations: Array<ExtractedConversation>; projectsDirectory: string },
+  FileNotFoundError,
+  FileSystem
+> {
+  return Effect.gen(function* extractConversationsGen() {
+    const projectsDirectory = getProjectsDirectory(options.projectPath);
+
+    // Get conversation files with pagination
+    const files = yield* getConversationFilesEffect(
+      options.limit,
+      options.skip ?? 0,
+      options.projectPath,
+    );
+
+    // Parse all conversations (handles errors internally, skipping bad files)
+    const conversations = yield* parseConversationsEffect(files);
+
+    return { conversations, projectsDirectory };
+  });
 }
 
 export default extractConversationsCommand;

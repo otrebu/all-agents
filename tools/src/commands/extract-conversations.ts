@@ -1,7 +1,30 @@
+/**
+ * extract-conversations command
+ * Extracts conversation history from Claude Code for analysis
+ *
+ * Ported to Effect.ts for:
+ * - Effect-based file operations via FileSystemService
+ * - Proper error handling with tagged errors
+ * - Parallel file processing with concurrency control
+ */
+
+import type { FileSystemService } from "@tools/lib/effect";
+
 import log from "@lib/log";
-import { readdir, readFile, stat } from "node:fs/promises";
+import {
+  FileNotFoundError,
+  FileReadError,
+  FileSystem,
+  FileSystemLive,
+} from "@tools/lib/effect";
+import { Effect } from "effect";
+import { stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface ContentBlock {
   content?: unknown;
@@ -36,12 +59,24 @@ interface Options {
   skip: number;
 }
 
-// Claude uses kebab-case with dots converted to dashes
+// =============================================================================
+// Path Helpers
+// =============================================================================
+
+/**
+ * Build project name in Claude's format
+ */
 function buildProjectName(directory: string): string {
   return `-${directory.replaceAll(".", "-").replaceAll("/", "-").replace(/^-/, "")}`;
 }
 
-// Extract text from message content (string or array of blocks)
+// =============================================================================
+// Content Extraction
+// =============================================================================
+
+/**
+ * Extract text from message content (string or array of blocks)
+ */
 function extractContent(content: unknown): string {
   if (typeof content === "string") {
     return content.trim();
@@ -54,9 +89,7 @@ function extractContent(content: unknown): string {
   const parts: Array<string> = [];
 
   for (const block of content) {
-    if (typeof block !== "object" || block === null) {
-      // Skip non-object blocks
-    } else {
+    if (typeof block === "object" && block !== null) {
       const formatted = formatContentBlock(block as ContentBlock);
       if (formatted.length > 0) {
         parts.push(formatted);
@@ -67,22 +100,41 @@ function extractContent(content: unknown): string {
   return parts.join("\n\n");
 }
 
-// Entry point - orchestrates the extraction flow
+/**
+ * Extract conversations - main entry point using Effect
+ */
 async function extractConversations(options: Options): Promise<void> {
-  const files = await getConversationFiles(options.limit, options.skip);
-  log.info(`Found ${files.length} conversations`);
+  const program = Effect.gen(function* extractConversationsGen() {
+    // Get conversation files
+    const files = yield* getConversationFilesEffect(
+      options.limit,
+      options.skip,
+    );
+    log.info(`Found ${files.length} conversations`);
 
-  const conversations = await Promise.all(
-    files.map(async (file) => parseConversation(file.path)),
+    // Parse all conversations in parallel
+    const conversations = yield* parseConversationsEffect(files);
+
+    // Format the report
+    const markdown = formatReport(conversations);
+
+    // Write output
+    yield* writeOutputEffect(markdown, options.output);
+  }).pipe(
+    // eslint-disable-next-line promise/prefer-await-to-callbacks -- Effect.catchTag is Effect's error handling pattern
+    Effect.catchTag("FileNotFoundError", (error) => {
+      log.error(error.message);
+      return Effect.void;
+    }),
+    Effect.provide(FileSystemLive),
   );
 
-  const nonEmpty = conversations.filter((c) => c.messages.length > 0);
-  const markdown = formatReport(nonEmpty);
-
-  await writeOutput(markdown, options.output);
+  await Effect.runPromise(program);
 }
 
-// Extract message content from a record
+/**
+ * Extract message content from a record
+ */
 function extractMessageContent(
   record: Record<string, unknown>,
 ): Message | null {
@@ -116,7 +168,13 @@ function extractMessageContent(
   };
 }
 
-// Format a single content block
+// =============================================================================
+// File Listing (Effect-based)
+// =============================================================================
+
+/**
+ * Format a single content block
+ */
 function formatContentBlock(block: ContentBlock): string {
   if (block.type === "text" && typeof block.text === "string") {
     return block.text;
@@ -142,7 +200,9 @@ function formatContentBlock(block: ContentBlock): string {
   return "";
 }
 
-// Format a single conversation
+/**
+ * Format a single conversation
+ */
 function formatConversation(conv: Conversation): string {
   const lines: Array<string> = [];
 
@@ -180,7 +240,9 @@ function formatConversation(conv: Conversation): string {
   return lines.join("\n");
 }
 
-// Format the full report
+/**
+ * Format the full report
+ */
 function formatReport(conversations: Array<Conversation>): string {
   const header = [
     "# Conversation Extracts\n",
@@ -193,75 +255,168 @@ function formatReport(conversations: Array<Conversation>): string {
   return [...header, ...sections].join("\n");
 }
 
-// Get conversation files from both local and global directories
-async function getConversationFiles(
+// =============================================================================
+// JSONL Parsing (Effect-based)
+// =============================================================================
+
+/**
+ * Get conversation files from both local and global directories
+ */
+function getConversationFilesEffect(
   limit: number,
   skip = 0,
-): Promise<Array<ConversationFile>> {
-  const cwd = process.cwd();
-  const projectName = buildProjectName(cwd);
+): Effect.Effect<Array<ConversationFile>, FileNotFoundError, FileSystem> {
+  return Effect.gen(function* getConversationFilesGen() {
+    const cwd = process.cwd();
+    const projectName = buildProjectName(cwd);
 
-  const localDirectory = join(cwd, ".claude", "projects", projectName);
-  const globalDirectory = join(homedir(), ".claude", "projects", projectName);
+    const localDirectory = join(cwd, ".claude", "projects", projectName);
+    const globalDirectory = join(homedir(), ".claude", "projects", projectName);
 
-  const [localFiles, globalFiles] = await Promise.all([
-    listJsonlFiles(localDirectory),
-    listJsonlFiles(globalDirectory),
-  ]);
+    // Fetch from both directories in parallel
+    const [localFiles, globalFiles] = yield* Effect.all([
+      listJsonlFilesEffect(localDirectory),
+      listJsonlFilesEffect(globalDirectory),
+    ]);
 
-  const allFiles = [...localFiles, ...globalFiles];
+    const allFiles = [...localFiles, ...globalFiles];
 
-  if (allFiles.length === 0) {
-    log.error(
-      `No conversations found in:\n  ${localDirectory}\n  ${globalDirectory}`,
-    );
-    process.exit(1);
-  }
+    if (allFiles.length === 0) {
+      return yield* Effect.fail(
+        new FileNotFoundError({
+          message: `No conversations found in:\n  ${localDirectory}\n  ${globalDirectory}`,
+          path: globalDirectory,
+        }),
+      );
+    }
 
-  allFiles.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
-  return allFiles.slice(skip, skip + limit);
+    // Sort by modification time (newest first) and apply pagination
+    allFiles.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    return allFiles.slice(skip, skip + limit);
+  });
 }
 
-// List JSONL files in a directory with their modification times
-async function listJsonlFiles(
+/**
+ * Get stat for a file with proper error handling
+ */
+function getFileStat(
+  filePath: string,
+): Effect.Effect<ConversationFile, FileReadError> {
+  return Effect.tryPromise({
+    catch: (error) =>
+      new FileReadError({
+        cause: error,
+        message: `Failed to stat file: ${error instanceof Error ? error.message : String(error)}`,
+        path: filePath,
+      }),
+    try: async () => {
+      const stats = await stat(filePath);
+      return { mtime: stats.mtime, path: filePath };
+    },
+  });
+}
+
+/**
+ * List JSONL files in a directory with their modification times
+ */
+function listJsonlFilesEffect(
   directory: string,
-): Promise<Array<ConversationFile>> {
-  try {
-    const files = await readdir(directory);
+): Effect.Effect<Array<ConversationFile>, never, FileSystem> {
+  return Effect.gen(function* listJsonlFilesGen() {
+    const fs: FileSystemService = yield* FileSystem;
+
+    // Try to read directory, return empty array if not found
+    const filesResult = yield* Effect.either(fs.readDirectory(directory));
+
+    if (filesResult._tag === "Left") {
+      return [];
+    }
+
+    const files = filesResult.right;
     const jsonlFiles = files.filter(
       (f) => f.endsWith(".jsonl") && !f.startsWith("agent-"),
     );
 
-    const statsPromises = jsonlFiles.map(async (file) => {
-      const filepath = join(directory, file);
-      const fileStats = await stat(filepath);
-      return { mtime: fileStats.mtime, path: filepath };
-    });
+    // Get stats for all files in parallel
+    const statsResults = yield* Effect.all(
+      jsonlFiles.map((file) =>
+        Effect.either(getFileStat(join(directory, file))),
+      ),
+      { concurrency: 10 },
+    );
 
-    return Promise.all(statsPromises);
-  } catch {
-    return [];
-  }
+    // Filter to only successful stats
+    const validFiles: Array<ConversationFile> = [];
+    for (const result of statsResults) {
+      if (result._tag === "Right") {
+        validFiles.push(result.right);
+      }
+    }
+
+    return validFiles;
+  });
 }
 
-// Parse a JSONL file into a Conversation
-async function parseConversation(filepath: string): Promise<Conversation> {
-  const content = await readFile(filepath, "utf8");
-  const lines = content.split("\n").filter((line) => line.trim().length > 0);
+// =============================================================================
+// Formatting
+// =============================================================================
 
-  const conversation: Conversation = {
-    messages: [],
-    sessionId: basename(filepath, ".jsonl"),
-  };
+/**
+ * Parse a JSONL file into a Conversation
+ */
+function parseConversationEffect(
+  filepath: string,
+): Effect.Effect<Conversation, FileNotFoundError | FileReadError, FileSystem> {
+  return Effect.gen(function* parseConversationGen() {
+    const fs: FileSystemService = yield* FileSystem;
 
-  for (const line of lines) {
-    processLine(line, conversation);
-  }
+    const content = yield* fs.readFile(filepath);
+    const lines = content.split("\n").filter((line) => line.trim().length > 0);
 
-  return conversation;
+    const conversation: Conversation = {
+      messages: [],
+      sessionId: basename(filepath, ".jsonl"),
+    };
+
+    for (const line of lines) {
+      processLine(line, conversation);
+    }
+
+    return conversation;
+  });
 }
 
-// Process a single JSONL line
+/**
+ * Parse multiple conversation files with concurrency control
+ */
+function parseConversationsEffect(
+  files: Array<ConversationFile>,
+): Effect.Effect<Array<Conversation>, never, FileSystem> {
+  return Effect.gen(function* parseConversationsGen() {
+    const results = yield* Effect.all(
+      files.map((file) => Effect.either(parseConversationEffect(file.path))),
+      { concurrency: 5 },
+    );
+
+    // Filter to successful parses with non-empty messages
+    const conversations: Array<Conversation> = [];
+    for (const result of results) {
+      if (result._tag === "Right" && result.right.messages.length > 0) {
+        conversations.push(result.right);
+      }
+    }
+
+    return conversations;
+  });
+}
+
+// =============================================================================
+// Output Writing (Effect-based)
+// =============================================================================
+
+/**
+ * Process a single JSONL line and update conversation state
+ */
 function processLine(line: string, conversation: Conversation): void {
   try {
     const record = JSON.parse(line) as Record<string, unknown>;
@@ -292,18 +447,33 @@ function processLine(line: string, conversation: Conversation): void {
   }
 }
 
-// Write output to file or stdout
-async function writeOutput(
+// =============================================================================
+// Main Entry Point
+// =============================================================================
+
+/**
+ * Write output to file or stdout
+ */
+function writeOutputEffect(
   content: string,
   outputPath: string | undefined,
-): Promise<void> {
-  if (typeof outputPath === "string" && outputPath.length > 0) {
-    const { writeFile } = await import("node:fs/promises");
-    await writeFile(outputPath, content);
-    log.success(`Saved to ${outputPath}`);
-  } else {
-    console.log(content);
-  }
+): Effect.Effect<void, never, FileSystem> {
+  return Effect.gen(function* writeOutputGen() {
+    if (typeof outputPath === "string" && outputPath.length > 0) {
+      const fs: FileSystemService = yield* FileSystem;
+      const writeResult = yield* Effect.either(
+        fs.writeFile(outputPath, content),
+      );
+
+      if (writeResult._tag === "Right") {
+        log.success(`Saved to ${outputPath}`);
+      } else {
+        log.error(`Failed to save: ${writeResult.left.message}`);
+      }
+    } else {
+      console.log(content);
+    }
+  });
 }
 
 export default extractConversations;
