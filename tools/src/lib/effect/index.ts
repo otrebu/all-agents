@@ -115,6 +115,10 @@ export {
   ParallelSearchError,
   PathResolutionError,
   RateLimitError,
+  // Review errors
+  ReviewFindingsParseError,
+  ReviewSkillNotFoundError,
+  ReviewValidationError,
   TimeoutError,
   // Validation errors
   ValidationError,
@@ -126,6 +130,7 @@ export type {
   FileSystemError,
   HttpError,
   NotifyError,
+  ReviewError,
   SearchError,
 } from "./errors";
 

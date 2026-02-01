@@ -1,133 +1,41 @@
 import * as p from "@clack/prompts";
 import { Command } from "@commander-js/extra-typings";
+import {
+  ClaudeService,
+  ClaudeServiceLive,
+  FileSystemLive,
+  Logger,
+  LoggerLive,
+} from "@tools/lib/effect";
 import chalk from "chalk";
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { Effect, Layer } from "effect";
+import { join } from "node:path";
 
 import type {
   Finding,
   ReviewDiaryEntry,
   Severity,
-  TriageAction,
   TriageDecision,
 } from "./types";
 
-import { invokeClaudeChat, invokeClaudeHeadless } from "../ralph/claude";
 import { formatDuration, renderMarkdown } from "../ralph/display";
-import { executeHook, type HookContext } from "../ralph/hooks";
-import { calculatePriority, FindingsArraySchema } from "./types";
+import {
+  aggregateDecisionsByActionEffect,
+  autoTriageFindingsEffect,
+  buildHeadlessReviewPromptEffect,
+  type DiffTarget,
+  executeCriticalFindingHooksEffect,
+  executeHooksEffect,
+  findProjectRootSync,
+  getDiaryStatsEffect,
+  parseReviewFindingsEffect,
+  readDiaryEntriesEffect,
+  runSupervisedReviewEffect,
+  validateDiffTargetEffect,
+  writeDiaryEntryEffect,
+} from "./effect-review";
 
-/**
- * Diff target configuration for code review
- *
- * Specifies which code changes to review. Only one option can be active.
- *
- * Variants:
- * - base: git diff <branch>...HEAD
- * - range: git diff <from>..<to>
- * - default: git diff HEAD, fallback to origin/main...HEAD
- * - staged: git diff --cached
- * - unstaged: git diff (working tree only)
- */
-type DiffTarget =
-  | { branch: string; type: "base" }
-  | { from: string; to: string; type: "range" }
-  | { type: "default" }
-  | { type: "staged" }
-  | { type: "unstaged" };
-
-/**
- * Options for diff target validation
- */
-interface DiffTargetValidationOptions {
-  base: string | undefined;
-  range: string | undefined;
-  stagedOnly: boolean | undefined;
-  unstagedOnly: boolean | undefined;
-}
-
-/**
- * Build the git diff command based on diff target configuration
- *
- * @param diffTarget - The diff target configuration
- * @returns Git diff command string
- */
-function buildDiffCommand(diffTarget: DiffTarget): string {
-  switch (diffTarget.type) {
-    case "base": {
-      return `git diff ${diffTarget.branch}...HEAD`;
-    }
-    case "range": {
-      return `git diff ${diffTarget.from}..${diffTarget.to}`;
-    }
-    case "staged": {
-      return "git diff --cached";
-    }
-    case "unstaged": {
-      return "git diff";
-    }
-    default: {
-      return "git diff HEAD";
-    }
-  }
-}
-
-/**
- * Validate diff target options are mutually exclusive and parse into DiffTarget
- *
- * @param options - The diff target options from CLI
- * @returns Validation result with DiffTarget if valid, or error message if invalid
- */
-function validateDiffTargetOptions(
-  options: DiffTargetValidationOptions,
-): { diffTarget: DiffTarget; valid: true } | { error: string; valid: false } {
-  const flagCount = [
-    options.base !== undefined,
-    options.range !== undefined,
-    options.stagedOnly === true,
-    options.unstagedOnly === true,
-  ].filter(Boolean).length;
-
-  if (flagCount > 1) {
-    return {
-      error:
-        "Cannot specify multiple diff target flags (--base, --range, --staged-only, --unstaged-only)",
-      valid: false,
-    };
-  }
-
-  if (options.base !== undefined) {
-    return { diffTarget: { branch: options.base, type: "base" }, valid: true };
-  }
-
-  if (options.range !== undefined) {
-    // Parse range format: from..to
-    const rangeMatch = /^(?<from>[^.]+)\.\.(?<to>[^.]+)$/.exec(options.range);
-    const fromReference = rangeMatch?.groups?.from;
-    const toReference = rangeMatch?.groups?.to;
-    if (fromReference === undefined || toReference === undefined) {
-      return {
-        error:
-          "Invalid --range format. Expected: <from>..<to> (e.g., main..feature)",
-        valid: false,
-      };
-    }
-    return {
-      diffTarget: { from: fromReference, to: toReference, type: "range" },
-      valid: true,
-    };
-  }
-
-  if (options.stagedOnly === true) {
-    return { diffTarget: { type: "staged" }, valid: true };
-  }
-
-  if (options.unstagedOnly === true) {
-    return { diffTarget: { type: "unstaged" }, valid: true };
-  }
-
-  return { diffTarget: { type: "default" }, valid: true };
-}
+// Re-export for compatibility
 
 /**
  * Review command - orchestrate parallel code review using specialized agents
@@ -157,7 +65,7 @@ const reviewCommand = new Command("review")
   .option("--range <range>", "Compare specific commits (format: from..to)")
   .option("--staged-only", "Review only staged changes")
   .option("--unstaged-only", "Review only unstaged changes")
-  .action((options) => {
+  .action(async (options) => {
     // Validate: --dry-run requires --headless
     if (options.dryRun === true && options.headless !== true) {
       console.error(chalk.red("Error: --dry-run requires --headless mode"));
@@ -182,16 +90,23 @@ const reviewCommand = new Command("review")
       process.exit(1);
     }
 
-    // Validate: diff target flags are mutually exclusive
+    // Validate: diff target flags are mutually exclusive using Effect
     const diffTargetOptions = {
       base: options.base,
       range: options.range,
       stagedOnly: options.stagedOnly,
       unstagedOnly: options.unstagedOnly,
     };
-    const diffTargetResult = validateDiffTargetOptions(diffTargetOptions);
-    if (!diffTargetResult.valid) {
-      console.error(chalk.red(`Error: ${diffTargetResult.error}`));
+
+    const diffTargetResult = await Effect.runPromiseExit(
+      validateDiffTargetEffect(diffTargetOptions),
+    );
+
+    if (diffTargetResult._tag === "Failure") {
+      const error = diffTargetResult.cause;
+      if (error._tag === "Fail") {
+        console.error(chalk.red(`Error: ${error.error.message}`));
+      }
       console.log(
         "\nDiff target flags are mutually exclusive. Use only one of:",
       );
@@ -202,17 +117,16 @@ const reviewCommand = new Command("review")
       process.exit(1);
     }
 
-    // Determine mode and execute
-    const { diffTarget } = diffTargetResult as { diffTarget: DiffTarget };
+    const diffTarget = diffTargetResult.value;
 
     if (options.headless === true) {
-      void runHeadlessReview(
+      await runHeadlessReview(
         options.dryRun === true,
         options.requireApproval === true,
         diffTarget,
       );
     } else if (options.supervised === true) {
-      runSupervisedReview(diffTarget);
+      await runSupervisedReview(diffTarget);
     } else {
       // No mode specified - prompt user to choose
       promptForMode();
@@ -225,34 +139,6 @@ const reviewCommand = new Command("review")
 
 /** Default path for review diary file */
 const DIARY_PATH = "logs/reviews.jsonl";
-
-// =============================================================================
-// Diary Functions
-// =============================================================================
-
-/**
- * Find the project root by looking for CLAUDE.md
- *
- * Walks up from current working directory until CLAUDE.md is found.
- * This is the standard project root marker.
- *
- * @returns Project root path, or current working directory if not found
- */
-function findProjectRoot(): string {
-  let current = process.cwd();
-  const root = "/";
-
-  while (current !== root) {
-    if (existsSync(join(current, "CLAUDE.md"))) {
-      return current;
-    }
-    const parent = join(current, "..");
-    if (parent === current) break;
-    current = parent;
-  }
-
-  return process.cwd();
-}
 
 /**
  * Format a timestamp for display
@@ -275,367 +161,6 @@ function formatTimestamp(timestamp: string): string {
 
   // Format as date for older entries
   return date.toLocaleDateString();
-}
-
-/**
- * Calculate diary statistics
- *
- * @param entries - Array of diary entries to analyze
- * @returns Statistics object
- */
-function getDiaryStats(entries: Array<ReviewDiaryEntry>): {
-  avgFindingsPerReview: number;
-  falsePositives: number;
-  fixed: number;
-  skipped: number;
-  total: number;
-  totalFindings: number;
-} {
-  if (entries.length === 0) {
-    return {
-      avgFindingsPerReview: 0,
-      falsePositives: 0,
-      fixed: 0,
-      skipped: 0,
-      total: 0,
-      totalFindings: 0,
-    };
-  }
-
-  let totalFindings = 0;
-  let fixed = 0;
-  let skipped = 0;
-  let falsePositives = 0;
-
-  for (const entry of entries) {
-    totalFindings += entry.findings;
-    fixed += entry.fixed;
-    skipped += entry.skipped;
-    falsePositives += entry.falsePositives;
-  }
-
-  return {
-    avgFindingsPerReview: totalFindings / entries.length,
-    falsePositives,
-    fixed,
-    skipped,
-    total: entries.length,
-    totalFindings,
-  };
-}
-
-/**
- * Prompt user to choose between supervised and headless modes
- */
-function promptForMode(): void {
-  console.log(chalk.bold("Code Review Mode Selection\n"));
-  console.log("Choose how to run the parallel code review:\n");
-  console.log(
-    `${chalk.cyan("  --supervised")}  Watch execution, can intervene if needed`,
-  );
-  console.log(
-    `${chalk.cyan("  --headless")}     Fully autonomous with auto-triage and logging`,
-  );
-  console.log(
-    `${chalk.dim("  --headless --dry-run")}  Preview findings without applying fixes\n`,
-  );
-
-  console.log("Run with a mode flag:");
-  console.log(chalk.yellow("  aaa review --supervised"));
-  console.log(chalk.yellow("  aaa review --headless"));
-  console.log(chalk.yellow("  aaa review --headless --dry-run"));
-}
-
-// =============================================================================
-// Path Utilities
-// =============================================================================
-
-/**
- * Read and parse review diary JSONL file
- *
- * @param projectRoot - Project root path for resolving log path
- * @returns Array of diary entries (empty if file doesn't exist or is invalid)
- */
-function readDiaryEntries(projectRoot: string): Array<ReviewDiaryEntry> {
-  const diaryPath = join(projectRoot, DIARY_PATH);
-
-  if (!existsSync(diaryPath)) {
-    return [];
-  }
-
-  try {
-    const content = readFileSync(diaryPath, "utf8");
-    const lines = content.trim().split("\n").filter(Boolean);
-
-    return lines
-      .map((line) => {
-        try {
-          return JSON.parse(line) as ReviewDiaryEntry;
-        } catch {
-          return null;
-        }
-      })
-      .filter((entry): entry is ReviewDiaryEntry => entry !== null);
-  } catch (error) {
-    // Log but don't crash - matches writeDiaryEntry error handling pattern
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(
-      chalk.yellow(
-        `Warning: Failed to read diary entries from ${diaryPath}: ${message}`,
-      ),
-    );
-    return [];
-  }
-}
-
-/**
- * Write a review diary entry to logs/reviews.jsonl
- *
- * Creates the logs directory if it doesn't exist.
- * Appends a single JSON line to the JSONL file.
- *
- * @param entry - The diary entry to write
- * @param projectRoot - Project root path for resolving log path
- */
-function writeDiaryEntry(entry: ReviewDiaryEntry, projectRoot: string): void {
-  const diaryPath = join(projectRoot, DIARY_PATH);
-
-  try {
-    // Ensure logs directory exists
-    const directory = dirname(diaryPath);
-    if (!existsSync(directory)) {
-      mkdirSync(directory, { recursive: true });
-    }
-
-    // Append JSON line to diary file
-    const jsonLine = JSON.stringify(entry);
-    appendFileSync(diaryPath, `${jsonLine}\n`, "utf8");
-  } catch (error) {
-    // Log but don't crash review process
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(
-      chalk.yellow(`Warning: Failed to write diary entry: ${message}`),
-    );
-  }
-}
-
-/**
- * Auto-triage threshold for automatic fixing
- *
- * Findings with priority (severity weight × confidence) >= this threshold
- * are automatically fixed. Lower priority findings are skipped.
- *
- * With SEVERITY_WEIGHTS: critical=4, high=3, medium=2, low=1
- * and confidence 0-1, this threshold means:
- * - critical with confidence >= 0.75 (3.0)
- * - high with confidence >= 1.0 (3.0)
- *
- * This is conservative - only clear, high-confidence issues are auto-fixed.
- */
-const AUTO_FIX_THRESHOLD = 3;
-
-/**
- * Options for building a headless review prompt
- */
-interface HeadlessPromptOptions {
-  diffTarget: DiffTarget;
-  isDryRun: boolean;
-  isRequireApproval: boolean;
-  skillPath: string;
-}
-
-/**
- * Auto-triage findings by severity × confidence
- *
- * Categorizes findings into:
- * - fix: High priority findings (priority >= threshold)
- * - skip: Lower priority findings
- *
- * @param findings - Array of findings to triage
- * @param alreadyFixed - IDs already fixed by Claude during execution
- * @returns Triage decisions for each finding
- */
-function autoTriageFindings(
-  findings: Array<Finding>,
-  alreadyFixed: Array<string>,
-): Array<TriageDecision> {
-  const alreadyFixedSet = new Set(alreadyFixed);
-
-  return findings.map((finding) => {
-    // If Claude already fixed this finding
-    if (alreadyFixedSet.has(finding.id)) {
-      return {
-        action: "fix" as TriageAction,
-        confidence: finding.confidence,
-        id: finding.id,
-        severity: finding.severity,
-      };
-    }
-
-    // Calculate priority
-    const priority = calculatePriority(finding);
-
-    // Auto-fix high priority findings, skip others
-    const action: TriageAction =
-      priority >= AUTO_FIX_THRESHOLD ? "fix" : "skip";
-
-    return {
-      action,
-      confidence: finding.confidence,
-      id: finding.id,
-      severity: finding.severity,
-    };
-  });
-}
-
-/**
- * Build the headless review prompt
- *
- * Creates a prompt that instructs Claude to run the parallel code review
- * and output findings in a parseable JSON format.
- *
- * @param options - Configuration options for the prompt
- * @returns Formatted prompt for headless Claude invocation
- */
-function buildHeadlessReviewPrompt(options: HeadlessPromptOptions): string {
-  const { diffTarget, isDryRun, isRequireApproval, skillPath } = options;
-  const skillContent = readFileSync(skillPath, "utf8");
-
-  const fixInstructions = getFixInstructions(isDryRun, isRequireApproval);
-  const diffCommand = buildDiffCommand(diffTarget);
-  const diffInstructions =
-    diffTarget.type === "default"
-      ? ""
-      : `\n\nIMPORTANT: Use this specific git diff command to gather changes: \`${diffCommand}\``;
-
-  return `Execute the parallel code review workflow defined below.${diffInstructions}
-
-CRITICAL: After completing the review, output findings in this exact JSON format at the END of your response:
-
-<review-findings>
-{
-  "findings": [
-    {
-      "id": "<unique hash>",
-      "reviewer": "<agent name>",
-      "severity": "critical|high|medium|low",
-      "file": "<relative path>",
-      "line": <number or null>,
-      "description": "<issue description>",
-      "suggestedFix": "<code snippet or null>",
-      "confidence": <0-1>
-    }
-  ],
-  "fixed": ["<finding id 1>", "<finding id 2>"],
-  "skipped": ["<finding id 3>"],
-  "errors": []
-}
-</review-findings>
-
-${fixInstructions}
-
----
-${skillContent}
----
-
-Start by gathering the diff and invoking reviewers.`;
-}
-
-/**
- * Get fix instructions based on mode flags
- *
- * @param isDryRun - Whether this is a dry-run
- * @param isRequireApproval - Whether approval is required before fixes
- * @returns Instructions string for the prompt
- */
-function getFixInstructions(
-  isDryRun: boolean,
-  isRequireApproval: boolean,
-): string {
-  if (isDryRun) {
-    return `\n\nIMPORTANT: This is a DRY-RUN. Do NOT apply any fixes. Only report findings.`;
-  }
-  if (isRequireApproval) {
-    return `\n\nIMPORTANT: APPROVAL REQUIRED mode. Do NOT apply any fixes yet. Only report findings. User will review and approve before fixes are applied.`;
-  }
-  return `\n\nAuto-fix high-confidence findings (priority >= ${AUTO_FIX_THRESHOLD}). Skip lower priority findings.`;
-}
-
-/**
- * Parse findings JSON from Claude's headless output
- *
- * Looks for <review-findings>...</review-findings> block and parses the JSON.
- *
- * @param output - Raw output from Claude headless invocation
- * @returns Parsed findings data or null if parsing fails
- */
-function parseReviewFindings(
-  output: string,
-): {
-  errors: Array<string>;
-  findings: Array<Finding>;
-  fixed: Array<string>;
-  skipped: Array<string>;
-} | null {
-  // Look for <review-findings>...</review-findings> block
-  // Using named capture group for linting compliance
-  const findingsMatch =
-    /<review-findings>\s*(?<content>[\s\S]*?)\s*<\/review-findings>/i.exec(
-      output,
-    );
-
-  if (
-    findingsMatch?.groups?.content === undefined ||
-    findingsMatch.groups.content === ""
-  ) {
-    console.error(
-      chalk.yellow("Warning: Could not find <review-findings> block in output"),
-    );
-    return null;
-  }
-
-  try {
-    const rawParsed = JSON.parse(findingsMatch.groups.content) as {
-      errors?: Array<string>;
-      findings?: unknown;
-      fixed?: Array<string>;
-      skipped?: Array<string>;
-    };
-
-    // Validate findings array with Zod schema
-    const findingsResult = FindingsArraySchema.safeParse(
-      rawParsed.findings ?? [],
-    );
-
-    if (!findingsResult.success) {
-      // Log Zod validation errors for debugging
-      console.warn(
-        chalk.yellow("Warning: Invalid findings structure in review output:"),
-      );
-      for (const error of findingsResult.error.errors) {
-        console.warn(
-          chalk.yellow(`  - ${error.path.join(".")}: ${error.message}`),
-        );
-      }
-      // Return with empty findings but preserve other fields
-      return {
-        errors: rawParsed.errors ?? [],
-        findings: [],
-        fixed: rawParsed.fixed ?? [],
-        skipped: rawParsed.skipped ?? [],
-      };
-    }
-
-    return {
-      errors: rawParsed.errors ?? [],
-      findings: findingsResult.data,
-      fixed: rawParsed.fixed ?? [],
-      skipped: rawParsed.skipped ?? [],
-    };
-  } catch (error) {
-    console.error(chalk.red("Error parsing findings JSON:"), error);
-    return null;
-  }
 }
 
 /**
@@ -708,6 +233,28 @@ async function promptForApproval(
   }
 
   return confirmed;
+}
+
+/**
+ * Prompt user to choose between supervised and headless modes
+ */
+function promptForMode(): void {
+  console.log(chalk.bold("Code Review Mode Selection\n"));
+  console.log("Choose how to run the parallel code review:\n");
+  console.log(
+    `${chalk.cyan("  --supervised")}  Watch execution, can intervene if needed`,
+  );
+  console.log(
+    `${chalk.cyan("  --headless")}     Fully autonomous with auto-triage and logging`,
+  );
+  console.log(
+    `${chalk.dim("  --headless --dry-run")}  Preview findings without applying fixes\n`,
+  );
+
+  console.log("Run with a mode flag:");
+  console.log(chalk.yellow("  aaa review --supervised"));
+  console.log(chalk.yellow("  aaa review --headless"));
+  console.log(chalk.yellow("  aaa review --headless --dry-run"));
 }
 
 /**
@@ -834,10 +381,11 @@ function renderFindingsSummary(
 }
 
 /**
- * Run review in headless mode
+ * Run review in headless mode using Effect
  *
  * Invokes Claude headless with the code-review skill.
- * Parses JSON findings, auto-triages by severity/confidence,
+ * Parses JSON findings using Effect.reduce for aggregation,
+ * auto-triages by severity/confidence using Effect pipeline,
  * applies fixes (unless dry-run), and logs all decisions.
  *
  * @param isDryRun - If true, preview fixes without applying
@@ -849,181 +397,221 @@ async function runHeadlessReview(
   isRequireApproval: boolean,
   diffTarget: DiffTarget,
 ): Promise<void> {
-  if (isDryRun) {
-    console.log(chalk.bold("Starting headless code review (dry-run)...\n"));
-    console.log(chalk.dim("Findings will be displayed but not auto-fixed.\n"));
-  } else if (isRequireApproval) {
-    console.log(
-      chalk.bold("Starting headless code review (approval required)...\n"),
-    );
-    console.log(
-      chalk.dim("Findings will be collected. Fixes require approval.\n"),
-    );
-  } else {
-    console.log(chalk.bold("Starting headless code review...\n"));
-  }
-
-  // Find project root and skill prompt
-  const projectRoot = findProjectRoot();
+  const projectRoot = findProjectRootSync();
   const skillPath = join(projectRoot, ".claude/skills/code-review/SKILL.md");
 
-  // Check if skill file exists
-  if (!existsSync(skillPath)) {
-    console.error(chalk.red(`Error: Skill not found at ${skillPath}`));
-    console.log(
-      chalk.dim(
-        "\nEnsure the code-review skill is installed in .claude/skills/",
-      ),
-    );
-    process.exit(1);
-  }
+  // Create the Effect program for headless review
+  const program = Effect.gen(function* runHeadlessReviewProgram() {
+    const claude = yield* ClaudeService;
+    const logger = yield* Logger;
 
-  // Build the prompt
-  const prompt = buildHeadlessReviewPrompt({
-    diffTarget,
-    isDryRun,
-    isRequireApproval,
-    skillPath,
+    // Log start
+    if (isDryRun) {
+      yield* logger.info("Starting headless code review (dry-run)...");
+      yield* logger.log(
+        chalk.dim("Findings will be displayed but not auto-fixed."),
+      );
+    } else if (isRequireApproval) {
+      yield* logger.info(
+        "Starting headless code review (approval required)...",
+      );
+      yield* logger.log(
+        chalk.dim("Findings will be collected. Fixes require approval."),
+      );
+    } else {
+      yield* logger.info("Starting headless code review...");
+    }
+
+    // Build prompt using Effect
+    const prompt = yield* buildHeadlessReviewPromptEffect({
+      diffTarget,
+      isDryRun,
+      isRequireApproval,
+      projectRoot,
+      skillPath,
+    });
+
+    yield* logger.log(chalk.dim("\nInvoking Claude in headless mode...\n"));
+
+    // Invoke Claude headless
+    const response = yield* claude.headless({ prompt });
+
+    // Display Claude's response (excluding the JSON block for cleaner output)
+    const displayOutput = response.result
+      .replace(/<review-findings>[\s\S]*<\/review-findings>/i, "")
+      .trim();
+    if (displayOutput) {
+      yield* logger.log(renderMarkdown(displayOutput));
+    }
+
+    // Parse findings using Effect
+    const parseResult = yield* Effect.either(
+      parseReviewFindingsEffect(response.result),
+    );
+
+    if (parseResult._tag === "Left") {
+      yield* logger.warn("\nCould not parse structured findings from output.");
+      yield* logger.log(
+        chalk.dim("Review completed but findings summary unavailable."),
+      );
+      yield* logger.log(
+        `\n${chalk.dim("Duration:")} ${formatDuration(response.duration)}`,
+      );
+      yield* logger.log(`${chalk.dim("Cost:")} $${response.cost.toFixed(4)}`);
+      return {
+        decisions: [] as Array<TriageDecision>,
+        findings: [],
+        sessionId: response.sessionId,
+      };
+    }
+
+    const reviewData = parseResult.right;
+
+    // Auto-triage findings using Effect.reduce
+    const decisions = yield* autoTriageFindingsEffect(
+      reviewData.findings,
+      reviewData.fixed,
+    );
+
+    return {
+      cost: response.cost,
+      decisions,
+      duration: response.duration,
+      errors: reviewData.errors,
+      findings: reviewData.findings,
+      sessionId: response.sessionId,
+    };
   });
 
-  console.log(chalk.dim("Invoking Claude in headless mode...\n"));
+  // Run the Effect program with layers
+  const ReviewServicesLive = Layer.mergeAll(
+    ClaudeServiceLive,
+    FileSystemLive,
+    LoggerLive,
+  );
 
-  // Invoke Claude headless
-  const result = invokeClaudeHeadless({ prompt });
-
-  if (result === null) {
-    console.error(chalk.red("\nHeadless review failed or was interrupted"));
-    process.exit(1);
-  }
-
-  // Display Claude's response (excluding the JSON block for cleaner output)
-  const displayOutput = result.result
-    .replace(/<review-findings>[\s\S]*<\/review-findings>/i, "")
-    .trim();
-  if (displayOutput) {
-    console.log(renderMarkdown(displayOutput));
-  }
-
-  // Parse findings from output
-  const reviewData = parseReviewFindings(result.result);
-
-  if (reviewData === null) {
-    console.log(
-      chalk.yellow("\nCould not parse structured findings from output."),
+  try {
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(ReviewServicesLive)),
     );
-    console.log(
-      chalk.dim("Review completed but findings summary unavailable."),
-    );
-    console.log(
-      `\n${chalk.dim("Duration:")} ${formatDuration(result.duration)}`,
-    );
-    console.log(`${chalk.dim("Cost:")} $${result.cost.toFixed(4)}`);
-    return;
-  }
 
-  const { errors, findings, fixed: alreadyFixed } = reviewData;
+    const { cost, decisions, duration, errors, findings, sessionId } = result;
 
-  // Auto-triage findings
-  const decisions = autoTriageFindings(findings, alreadyFixed);
+    // Display summary
+    renderFindingsSummary(findings, decisions);
 
-  // Display summary
-  renderFindingsSummary(findings, decisions);
-
-  // Show any errors from reviewers
-  if (errors.length > 0) {
-    console.log(chalk.yellow("Reviewer Errors:"));
-    for (const error of errors) {
-      console.log(`  ${chalk.red("!")} ${error}`);
-    }
-    console.log();
-  }
-
-  // Session stats
-  console.log(chalk.dim("─".repeat(68)));
-  console.log(`${chalk.dim("Duration:")} ${formatDuration(result.duration)}`);
-  console.log(`${chalk.dim("Cost:")} $${result.cost.toFixed(4)}`);
-  console.log(`${chalk.dim("Session:")} ${result.sessionId}`);
-
-  // If approval required, prompt user before proceeding
-  if (isRequireApproval) {
-    const isApproved = await promptForApproval(findings, decisions);
-
-    if (!isApproved) {
-      console.log(chalk.yellow("\nReview aborted by user. No fixes applied."));
-      console.log(chalk.dim("Diary entry not logged."));
-      return;
+    // Show any errors from reviewers
+    if (errors !== undefined && errors.length > 0) {
+      console.log(chalk.yellow("Reviewer Errors:"));
+      for (const error of errors) {
+        console.log(`  ${chalk.red("!")} ${error}`);
+      }
+      console.log();
     }
 
-    console.log(
-      chalk.green(
-        "\nApproved! In approval mode, fixes must be applied manually.",
+    // Session stats
+    console.log(chalk.dim("─".repeat(68)));
+    if (duration !== undefined) {
+      console.log(`${chalk.dim("Duration:")} ${formatDuration(duration)}`);
+    }
+    if (cost !== undefined) {
+      console.log(`${chalk.dim("Cost:")} $${cost.toFixed(4)}`);
+    }
+    console.log(`${chalk.dim("Session:")} ${sessionId}`);
+
+    // If approval required, prompt user before proceeding
+    if (isRequireApproval && findings.length > 0) {
+      const isApproved = await promptForApproval(findings, decisions);
+
+      if (!isApproved) {
+        console.log(
+          chalk.yellow("\nReview aborted by user. No fixes applied."),
+        );
+        console.log(chalk.dim("Diary entry not logged."));
+        return;
+      }
+
+      console.log(
+        chalk.green(
+          "\nApproved! In approval mode, fixes must be applied manually.",
+        ),
+      );
+      console.log(
+        chalk.dim(
+          "Run `aaa review --headless` (without --require-approval) to auto-fix findings.",
+        ),
+      );
+    }
+
+    // Aggregate decisions using Effect.reduce
+    const actionCounts = await Effect.runPromise(
+      aggregateDecisionsByActionEffect(decisions),
+    );
+
+    // Build diary entry
+    const diaryEntry: ReviewDiaryEntry = {
+      decisions,
+      falsePositives: actionCounts.falsePositives,
+      findings: findings.length,
+      fixed: actionCounts.fixed,
+      mode: "headless",
+      sessionId,
+      skipped: actionCounts.skipped,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Write diary entry using FileSystem service
+    await Effect.runPromise(
+      writeDiaryEntryEffect(diaryEntry, projectRoot).pipe(
+        Effect.provide(FileSystemLive),
       ),
     );
     console.log(
       chalk.dim(
-        "Run `aaa review --headless` (without --require-approval) to auto-fix findings.",
+        `\nDiary entry logged to logs/reviews.jsonl (${diaryEntry.findings} findings, ${diaryEntry.fixed} fixed)`,
       ),
     );
-  }
 
-  // Build diary entry
-  const diaryEntry: ReviewDiaryEntry = {
-    decisions,
-    falsePositives: decisions.filter((d) => d.action === "false_positive")
-      .length,
-    findings: findings.length,
-    fixed: decisions.filter((d) => d.action === "fix").length,
-    mode: "headless",
-    sessionId: result.sessionId,
-    skipped: decisions.filter((d) => d.action === "skip").length,
-    timestamp: new Date().toISOString(),
-  };
+    // Execute review complete hook
+    const criticalCount = findings.filter(
+      (f) => f.severity === "critical",
+    ).length;
 
-  // Write diary entry to logs/reviews.jsonl
-  writeDiaryEntry(diaryEntry, projectRoot);
-  console.log(
-    chalk.dim(
-      `\nDiary entry logged to logs/reviews.jsonl (${diaryEntry.findings} findings, ${diaryEntry.fixed} fixed)`,
-    ),
-  );
+    await Effect.runPromise(
+      executeHooksEffect("onReviewComplete", {
+        criticalCount,
+        findingCount: findings.length,
+        message: `Code review complete: ${findings.length} findings, ${criticalCount} critical`,
+        sessionId,
+      }),
+    );
 
-  // Execute onReviewComplete hook after triage
-  const criticalCount = findings.filter(
-    (f) => f.severity === "critical",
-  ).length;
-  const reviewCompleteContext: HookContext = {
-    criticalCount,
-    findingCount: findings.length,
-    message: `Code review complete: ${findings.length} findings, ${criticalCount} critical`,
-    sessionId: result.sessionId,
-  };
-  await executeHook("onReviewComplete", reviewCompleteContext);
-
-  // Execute onCriticalFinding hook for critical findings with high confidence
-  const criticalFindings = findings.filter(
-    (f) => f.severity === "critical" && f.confidence >= 0.9,
-  );
-  for (const finding of criticalFindings) {
-    const criticalContext: HookContext = {
-      criticalCount,
-      file: finding.file,
-      findingCount: findings.length,
-      message: `Critical finding: ${finding.description.slice(0, 100)} in ${finding.file}`,
-      sessionId: result.sessionId,
-    };
-    // eslint-disable-next-line no-await-in-loop -- Critical findings processed sequentially
-    await executeHook("onCriticalFinding", criticalContext);
+    // Execute critical finding hooks in parallel using Effect.all
+    await Effect.runPromise(
+      executeCriticalFindingHooksEffect(findings, sessionId),
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("interrupted")) {
+      console.error(chalk.red("\nHeadless review was interrupted"));
+    } else {
+      console.error(chalk.red("\nHeadless review failed:"), error);
+    }
+    process.exit(1);
   }
 }
 
 /**
- * Display review status from diary
+ * Display review status from diary using Effect
  *
  * Shows summary statistics and recent review entries.
  */
-function runReviewStatus(): void {
-  const projectRoot = findProjectRoot();
-  const entries = readDiaryEntries(projectRoot);
+async function runReviewStatusEffect(): Promise<void> {
+  const projectRoot = findProjectRootSync();
+
+  // Read diary entries using Effect
+  const entries = await Effect.runPromise(
+    readDiaryEntriesEffect(projectRoot).pipe(Effect.provide(FileSystemLive)),
+  );
 
   console.log(
     chalk.bold(
@@ -1049,8 +637,8 @@ function runReviewStatus(): void {
     return;
   }
 
-  // Calculate and display statistics
-  const stats = getDiaryStats(entries);
+  // Calculate statistics using Effect.reduce
+  const stats = await Effect.runPromise(getDiaryStatsEffect(entries));
 
   console.log(chalk.bold("Summary Statistics"));
   console.log("──────────────────");
@@ -1141,79 +729,62 @@ function runReviewStatus(): void {
   console.log(chalk.dim(`Log file: ${join(projectRoot, DIARY_PATH)}`));
 }
 
-// =============================================================================
-// Subcommands
-// =============================================================================
-
 /**
- * Run review in supervised mode
+ * Run review in supervised mode using Effect
  *
  * Spawns a Claude chat session with the code-review skill.
  * User watches execution and can intervene.
  *
  * @param diffTarget - The diff target configuration
  */
-function runSupervisedReview(diffTarget: DiffTarget): void {
-  console.log(chalk.bold("Starting supervised code review...\n"));
+async function runSupervisedReview(diffTarget: DiffTarget): Promise<void> {
+  const projectRoot = findProjectRootSync();
 
-  // Find project root and skill prompt
-  const projectRoot = findProjectRoot();
-  const skillPath = join(projectRoot, ".claude/skills/code-review/SKILL.md");
+  const ReviewServicesLive = Layer.mergeAll(ClaudeServiceLive, LoggerLive);
 
-  // Check if skill file exists
-  if (!existsSync(skillPath)) {
-    console.error(chalk.red(`Error: Skill not found at ${skillPath}`));
-    console.log(
-      chalk.dim(
-        "\nEnsure the code-review skill is installed in .claude/skills/",
+  try {
+    const result = await Effect.runPromise(
+      runSupervisedReviewEffect(diffTarget, projectRoot).pipe(
+        Effect.provide(ReviewServicesLive),
       ),
     );
-    process.exit(1);
+
+    if (result.interrupted) {
+      console.log(chalk.yellow("\nCode review session interrupted by user."));
+      process.exit(0);
+    }
+
+    if (!result.success) {
+      console.error(chalk.red("\nCode review session failed"));
+      process.exit(1);
+    }
+
+    console.log(chalk.green("\nCode review session completed."));
+  } catch (error) {
+    // Handle skill not found error
+    if (
+      error instanceof Error &&
+      error.message.includes("ReviewSkillNotFoundError")
+    ) {
+      const skillPath = join(
+        projectRoot,
+        ".claude/skills/code-review/SKILL.md",
+      );
+      console.error(chalk.red(`Error: Skill not found at ${skillPath}`));
+      console.log(
+        chalk.dim(
+          "\nEnsure the code-review skill is installed in .claude/skills/",
+        ),
+      );
+      process.exit(1);
+    }
+    throw error;
   }
-
-  // Use the skill file as the prompt path
-  const promptPath = skillPath;
-
-  // Build diff command instruction
-  const diffCommand = buildDiffCommand(diffTarget);
-  const diffInstruction =
-    diffTarget.type === "default"
-      ? "1. Gather the diff of current changes"
-      : `1. Gather changes using: \`${diffCommand}\``;
-
-  // Invoke Claude in chat/supervised mode
-  // User can watch and type during the session
-  const result = invokeClaudeChat(
-    promptPath,
-    "code review",
-    `Execute the parallel code review workflow as defined in this skill document.
-
-Run all phases:
-${diffInstruction}
-2. Invoke all reviewer agents in parallel
-3. Synthesize the findings
-4. Present findings for triage
-
-Start by gathering the diff.`,
-  );
-
-  // Handle result
-  if (result.interrupted) {
-    console.log(chalk.yellow("\nCode review session interrupted by user."));
-    process.exit(0);
-  }
-
-  if (!result.success) {
-    console.error(
-      chalk.red(
-        `\nCode review session failed with exit code ${result.exitCode}`,
-      ),
-    );
-    process.exit(result.exitCode ?? 1);
-  }
-
-  console.log(chalk.green("\nCode review session completed."));
 }
+
+// =============================================================================
+// Subcommands
+// =============================================================================
 
 /**
  * Review status subcommand
@@ -1224,12 +795,15 @@ Start by gathering the diff.`,
 reviewCommand.addCommand(
   new Command("status")
     .description("Display review history and statistics")
-    .action(() => {
-      runReviewStatus();
+    .action(async () => {
+      await runReviewStatusEffect();
     }),
 );
 
 export default reviewCommand;
 
-// Export types and utilities for testing
-export { buildDiffCommand, type DiffTarget, validateDiffTargetOptions };
+export {
+  buildDiffCommand,
+  type DiffTarget,
+  validateDiffTargetOptions,
+} from "./effect-review";

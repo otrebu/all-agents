@@ -50,16 +50,24 @@ export type HttpError = NetworkError | RateLimitError | TimeoutError;
 export type NotifyError = NotifyNetworkError | NotifyRateLimitError;
 
 /**
+ * Union of all review-related errors
+ */
+export type ReviewError =
+  | ReviewFindingsParseError
+  | ReviewSkillNotFoundError
+  | ReviewValidationError;
+
+// =============================================================================
+// FileSystem Errors
+// =============================================================================
+
+/**
  * Union of all search-related errors
  */
 export type SearchError =
   | ExternalProcessError
   | ParallelSearchError
   | ValidationError;
-
-// =============================================================================
-// FileSystem Errors
-// =============================================================================
 
 /**
  * Authentication failed or credentials missing
@@ -112,6 +120,10 @@ export class ConversationParseError extends Data.TaggedError(
   readonly message: string;
 }> {}
 
+// =============================================================================
+// Network/HTTP Errors (for future use)
+// =============================================================================
+
 /**
  * Error from external process execution (e.g., gemini CLI, gh CLI)
  */
@@ -124,10 +136,6 @@ export class ExternalProcessError extends Data.TaggedError(
   readonly message: string;
   readonly stderr?: string;
 }> {}
-
-// =============================================================================
-// Network/HTTP Errors (for future use)
-// =============================================================================
 
 /**
  * Error when a file is not found
@@ -173,6 +181,10 @@ export class NotifyNetworkError extends Data.TaggedError("NotifyNetworkError")<{
   readonly url?: string;
 }> {}
 
+// =============================================================================
+// Auth Errors (for future use)
+// =============================================================================
+
 /**
  * Rate limit error specific to ntfy notifications (HTTP 429)
  */
@@ -185,7 +197,7 @@ export class NotifyRateLimitError extends Data.TaggedError(
 }> {}
 
 // =============================================================================
-// Auth Errors (for future use)
+// External API/Process Errors
 // =============================================================================
 
 /**
@@ -198,10 +210,6 @@ export class ParallelSearchError extends Data.TaggedError(
   readonly message: string;
   readonly objective?: string;
 }> {}
-
-// =============================================================================
-// External API/Process Errors
-// =============================================================================
 
 /**
  * Error resolving or validating a path
@@ -222,6 +230,35 @@ export class RateLimitError extends Data.TaggedError("RateLimitError")<{
   readonly retryAfterMs?: number;
   readonly url?: string;
 }> {}
+
+/**
+ * Error parsing review findings from Claude output
+ */
+export class ReviewFindingsParseError extends Data.TaggedError(
+  "ReviewFindingsParseError",
+)<{
+  readonly cause?: unknown;
+  readonly message: string;
+  readonly rawOutput?: string;
+}> {}
+
+// =============================================================================
+// Review Errors
+// =============================================================================
+
+/**
+ * Error when review skill file is not found
+ */
+export class ReviewSkillNotFoundError extends Data.TaggedError(
+  "ReviewSkillNotFoundError",
+)<{ readonly message: string; readonly path: string }> {}
+
+/**
+ * Error validating review command options
+ */
+export class ReviewValidationError extends Data.TaggedError(
+  "ReviewValidationError",
+)<{ readonly field?: string; readonly message: string }> {}
 
 /**
  * HTTP request timeout
