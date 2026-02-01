@@ -70,12 +70,26 @@ export type SearchError =
   | ValidationError;
 
 /**
+ * Union of all setup-related errors
+ */
+export type SetupError = BuildError | SetupConfigError | SymlinkError;
+
+/**
  * Authentication failed or credentials missing
  */
 export class AuthError extends Data.TaggedError("AuthError")<{
   readonly cause?: unknown;
   readonly message: string;
   readonly service?: string;
+}> {}
+
+/**
+ * Error during CLI build process
+ */
+export class BuildError extends Data.TaggedError("BuildError")<{
+  readonly cause?: unknown;
+  readonly cwd?: string;
+  readonly message: string;
 }> {}
 
 /**
@@ -96,6 +110,10 @@ export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
   readonly message: string;
   readonly path: string;
 }> {}
+
+// =============================================================================
+// Network/HTTP Errors (for future use)
+// =============================================================================
 
 /**
  * Error when config fails Zod schema validation
@@ -119,10 +137,6 @@ export class ConversationParseError extends Data.TaggedError(
   readonly line?: number;
   readonly message: string;
 }> {}
-
-// =============================================================================
-// Network/HTTP Errors (for future use)
-// =============================================================================
 
 /**
  * Error from external process execution (e.g., gemini CLI, gh CLI)
@@ -163,6 +177,10 @@ export class FileWriteError extends Data.TaggedError("FileWriteError")<{
   readonly path: string;
 }> {}
 
+// =============================================================================
+// Auth Errors (for future use)
+// =============================================================================
+
 /**
  * Generic network error for HTTP operations
  */
@@ -172,6 +190,10 @@ export class NetworkError extends Data.TaggedError("NetworkError")<{
   readonly url?: string;
 }> {}
 
+// =============================================================================
+// External API/Process Errors
+// =============================================================================
+
 /**
  * Network error specific to ntfy notifications
  */
@@ -180,10 +202,6 @@ export class NotifyNetworkError extends Data.TaggedError("NotifyNetworkError")<{
   readonly message: string;
   readonly url?: string;
 }> {}
-
-// =============================================================================
-// Auth Errors (for future use)
-// =============================================================================
 
 /**
  * Rate limit error specific to ntfy notifications (HTTP 429)
@@ -195,10 +213,6 @@ export class NotifyRateLimitError extends Data.TaggedError(
   readonly retryAfterMs?: number;
   readonly url?: string;
 }> {}
-
-// =============================================================================
-// External API/Process Errors
-// =============================================================================
 
 /**
  * Error from Parallel Search API
@@ -222,6 +236,10 @@ export class PathResolutionError extends Data.TaggedError(
   readonly path: string;
 }> {}
 
+// =============================================================================
+// Review Errors
+// =============================================================================
+
 /**
  * Rate limit exceeded (HTTP 429)
  */
@@ -242,10 +260,6 @@ export class ReviewFindingsParseError extends Data.TaggedError(
   readonly rawOutput?: string;
 }> {}
 
-// =============================================================================
-// Review Errors
-// =============================================================================
-
 /**
  * Error when review skill file is not found
  */
@@ -259,6 +273,39 @@ export class ReviewSkillNotFoundError extends Data.TaggedError(
 export class ReviewValidationError extends Data.TaggedError(
   "ReviewValidationError",
 )<{ readonly field?: string; readonly message: string }> {}
+
+// =============================================================================
+// Setup/Sync Errors
+// =============================================================================
+
+/**
+ * Error during setup configuration (CLAUDE_CONFIG_DIR, etc.)
+ */
+export class SetupConfigError extends Data.TaggedError("SetupConfigError")<{
+  readonly cause?: unknown;
+  readonly configKey?: string;
+  readonly message: string;
+}> {}
+
+/**
+ * Error creating or reading symlinks
+ */
+export class SymlinkError extends Data.TaggedError("SymlinkError")<{
+  readonly cause?: unknown;
+  readonly message: string;
+  readonly source?: string;
+  readonly target?: string;
+}> {}
+
+/**
+ * Error during context sync operation
+ */
+export class SyncContextError extends Data.TaggedError("SyncContextError")<{
+  readonly cause?: unknown;
+  readonly destination?: string;
+  readonly message: string;
+  readonly source?: string;
+}> {}
 
 /**
  * HTTP request timeout

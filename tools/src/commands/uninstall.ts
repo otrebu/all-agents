@@ -12,7 +12,7 @@ import {
   getShellConfigPath,
   getSymlinkTarget,
   isCliInstalled,
-} from "./setup/utils";
+} from "./setup";
 
 // =============================================================================
 // Types

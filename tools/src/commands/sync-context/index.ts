@@ -1,22 +1,27 @@
 import log from "@lib/log";
+import { SyncContextError } from "@tools/lib/effect";
 import { getContextRoot } from "@tools/utils/paths";
 import { watch } from "chokidar";
-import { execa } from "execa";
+import { Effect } from "effect";
 import { resolve } from "node:path";
 
-import SyncContextError from "./types";
+import { syncContextEffect } from "./effect-sync";
 
 interface SyncContextOptions {
   target?: string;
   watch?: boolean;
 }
 
+/**
+ * Run sync-context CLI command
+ * Uses Effect internally for file operations
+ */
 async function runSyncContextCli(options: SyncContextOptions): Promise<void> {
   const targetDirectory = resolve(options.target ?? process.cwd());
 
   try {
-    // Initial sync
-    await syncContext(targetDirectory);
+    // Initial sync using Effect
+    await Effect.runPromise(syncContextEffect(targetDirectory));
     log.success(`Synced context to ${targetDirectory}`);
 
     // Watch mode
@@ -37,12 +42,16 @@ async function runSyncContextCli(options: SyncContextOptions): Promise<void> {
         debounceTimer = setTimeout(() => {
           void (async () => {
             try {
-              await syncContext(targetDirectory);
+              await Effect.runPromise(syncContextEffect(targetDirectory));
               log.success(`Synced at ${new Date().toLocaleTimeString()}`);
             } catch (error) {
-              log.error(
-                `Sync failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-              );
+              if (error instanceof SyncContextError) {
+                log.error(`Sync failed: ${error.message}`);
+              } else {
+                log.error(
+                  `Sync failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+                );
+              }
             }
           })();
         }, DEBOUNCE_MS);
@@ -65,13 +74,6 @@ async function runSyncContextCli(options: SyncContextOptions): Promise<void> {
   }
 }
 
-async function syncContext(targetDirectory: string): Promise<void> {
-  const contextRoot = getContextRoot();
-  const source = `${resolve(contextRoot, "context")}/`;
-  const destination = `${resolve(targetDirectory, "context")}/`;
-
-  await execa("rsync", ["-a", "--delete", source, destination]);
-}
-
-export { syncContext };
 export default runSyncContextCli;
+
+export { syncContext, syncContextEffect } from "./effect-sync";

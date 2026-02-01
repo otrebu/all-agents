@@ -94,6 +94,8 @@ export type { ConfigService } from "./config";
 export {
   // Auth errors
   AuthError,
+  // Build/Setup errors
+  BuildError,
   // Config errors
   ConfigLoadError,
   ConfigParseError,
@@ -119,6 +121,10 @@ export {
   ReviewFindingsParseError,
   ReviewSkillNotFoundError,
   ReviewValidationError,
+  // Setup/Sync errors
+  SetupConfigError,
+  SymlinkError,
+  SyncContextError,
   TimeoutError,
   // Validation errors
   ValidationError,
@@ -132,6 +138,7 @@ export type {
   NotifyError,
   ReviewError,
   SearchError,
+  SetupError,
 } from "./errors";
 
 // FileSystem service

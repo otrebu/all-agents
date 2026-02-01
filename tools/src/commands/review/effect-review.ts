@@ -10,7 +10,7 @@
  * @module
  */
 
-/* eslint-disable import/exports-last, perfectionist/sort-modules */
+/* eslint-disable import/exports-last */
 
 import type { ClaudeError } from "@tools/lib/effect";
 
