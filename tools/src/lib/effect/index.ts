@@ -78,18 +78,29 @@ export {
   ConfigLoadError,
   ConfigParseError,
   ConfigValidationError,
+  // External API/Process errors
+  ExternalProcessError,
   // FileSystem errors
   FileNotFoundError,
   FileReadError,
   FileWriteError,
   // HTTP errors
   NetworkError,
+  // Search errors
+  ParallelSearchError,
   PathResolutionError,
   RateLimitError,
   TimeoutError,
+  // Validation errors
+  ValidationError,
 } from "./errors";
 // Export type aliases separately
-export type { ConfigError, FileSystemError, HttpError } from "./errors";
+export type {
+  ConfigError,
+  FileSystemError,
+  HttpError,
+  SearchError,
+} from "./errors";
 
 // FileSystem service
 export { FileSystem, FileSystemLive, makeTestFileSystem } from "./filesystem";

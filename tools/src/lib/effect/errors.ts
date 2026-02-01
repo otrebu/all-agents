@@ -40,6 +40,18 @@ export type FileSystemError =
 export type HttpError = NetworkError | RateLimitError | TimeoutError;
 
 /**
+ * Union of all search-related errors
+ */
+export type SearchError =
+  | ExternalProcessError
+  | ParallelSearchError
+  | ValidationError;
+
+// =============================================================================
+// FileSystem Errors
+// =============================================================================
+
+/**
  * Authentication failed or credentials missing
  */
 export class AuthError extends Data.TaggedError("AuthError")<{
@@ -47,10 +59,6 @@ export class AuthError extends Data.TaggedError("AuthError")<{
   readonly message: string;
   readonly service?: string;
 }> {}
-
-// =============================================================================
-// FileSystem Errors
-// =============================================================================
 
 /**
  * Error loading configuration file
@@ -83,6 +91,23 @@ export class ConfigValidationError extends Data.TaggedError(
 }> {}
 
 /**
+ * Error from external process execution (e.g., gemini CLI, gh CLI)
+ */
+export class ExternalProcessError extends Data.TaggedError(
+  "ExternalProcessError",
+)<{
+  readonly cause?: unknown;
+  readonly command: string;
+  readonly exitCode?: number;
+  readonly message: string;
+  readonly stderr?: string;
+}> {}
+
+// =============================================================================
+// Network/HTTP Errors (for future use)
+// =============================================================================
+
+/**
  * Error when a file is not found
  */
 export class FileNotFoundError extends Data.TaggedError("FileNotFoundError")<{
@@ -98,10 +123,6 @@ export class FileReadError extends Data.TaggedError("FileReadError")<{
   readonly message: string;
   readonly path: string;
 }> {}
-
-// =============================================================================
-// Network/HTTP Errors (for future use)
-// =============================================================================
 
 /**
  * Error writing a file (permissions, disk full, etc.)
@@ -120,6 +141,25 @@ export class NetworkError extends Data.TaggedError("NetworkError")<{
   readonly message: string;
   readonly url?: string;
 }> {}
+
+// =============================================================================
+// Auth Errors (for future use)
+// =============================================================================
+
+/**
+ * Error from Parallel Search API
+ */
+export class ParallelSearchError extends Data.TaggedError(
+  "ParallelSearchError",
+)<{
+  readonly cause?: unknown;
+  readonly message: string;
+  readonly objective?: string;
+}> {}
+
+// =============================================================================
+// External API/Process Errors
+// =============================================================================
 
 /**
  * Error resolving or validating a path
@@ -141,10 +181,6 @@ export class RateLimitError extends Data.TaggedError("RateLimitError")<{
   readonly url?: string;
 }> {}
 
-// =============================================================================
-// Auth Errors (for future use)
-// =============================================================================
-
 /**
  * HTTP request timeout
  */
@@ -152,4 +188,12 @@ export class TimeoutError extends Data.TaggedError("TimeoutError")<{
   readonly message: string;
   readonly timeoutMs: number;
   readonly url?: string;
+}> {}
+
+/**
+ * Input validation error
+ */
+export class ValidationError extends Data.TaggedError("ValidationError")<{
+  readonly field?: string;
+  readonly message: string;
 }> {}
