@@ -95,6 +95,15 @@ export type { ConfigError, FileSystemError, HttpError } from "./errors";
 export { FileSystem, FileSystemLive, makeTestFileSystem } from "./filesystem";
 export type { FileSystemService } from "./filesystem";
 
+// HttpClient service
+export { HttpClient, HttpClientLive, makeTestHttpClient } from "./http-client";
+export type {
+  HttpClientService,
+  HttpRequestOptions,
+  HttpResponse,
+  RetryOptions,
+} from "./http-client";
+
 // Logger service
 export {
   Logger,
