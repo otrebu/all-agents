@@ -8,7 +8,7 @@
  * @module
  */
 
-/* eslint-disable import/exports-last, @typescript-eslint/no-shadow, @typescript-eslint/naming-convention, perfectionist/sort-modules, unicorn/prevent-abbreviations, no-continue */
+/* eslint-disable import/exports-last, @typescript-eslint/no-shadow, @typescript-eslint/naming-convention, unicorn/prevent-abbreviations, no-continue */
 
 import { discoverMilestones } from "@lib/milestones";
 import { FileSystem } from "@tools/lib/effect";

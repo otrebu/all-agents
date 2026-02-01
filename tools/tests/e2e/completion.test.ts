@@ -202,13 +202,15 @@ describe("completion E2E", () => {
       expect(stdout).toContain("subtasks");
     });
 
-    test("bash includes dynamic milestone completion", async () => {
+    test("bash includes milestone file completion", async () => {
       const { stdout } = await execa(
         "bun",
         ["run", "dev", "completion", "bash"],
         { cwd: TOOLS_DIR },
       );
-      expect(stdout).toContain("aaa __complete milestone");
+      // Milestone completion uses .md file pattern (simplified from dynamic completion)
+      expect(stdout).toContain("--milestone");
+      expect(stdout).toContain("compgen -f");
     });
 
     test("bash includes mode flag completion", async () => {

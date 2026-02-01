@@ -9,7 +9,7 @@
  * @module
  */
 
-/* eslint-disable import/exports-last, @typescript-eslint/no-shadow, @typescript-eslint/naming-convention, perfectionist/sort-modules */
+/* eslint-disable import/exports-last, @typescript-eslint/no-shadow, @typescript-eslint/naming-convention */
 
 import { env } from "@tools/env";
 import {

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-shadow */
+/* eslint-disable @typescript-eslint/naming-convention */
 
 import * as p from "@clack/prompts";
 import log from "@lib/log";
