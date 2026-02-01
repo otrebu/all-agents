@@ -62,14 +62,34 @@ import { LoggerLive, LoggerSilent } from "./logger";
 // Error Types
 // =============================================================================
 
-// Config service
-export { Config, ConfigLive, makeConfigLayer } from "./config";
+// ClaudeService
+export {
+  ClaudeExitError,
+  ClaudeInterruptedError,
+  ClaudeParseError,
+  ClaudeService,
+  ClaudeServiceLive,
+  ClaudeSpawnError,
+  makeTestClaudeService,
+} from "./claude-service";
 
-export type { ConfigService } from "./config";
+export type {
+  ChatOptions,
+  ClaudeChatResult,
+  ClaudeError,
+  ClaudeResponse,
+  ClaudeServiceImpl,
+  HaikuOptions,
+  HeadlessOptions,
+} from "./claude-service";
 
 // =============================================================================
 // Services
 // =============================================================================
+
+// Config service
+export { Config, ConfigLive, makeConfigLayer } from "./config";
+export type { ConfigService } from "./config";
 
 export {
   // Auth errors
