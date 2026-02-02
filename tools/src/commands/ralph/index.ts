@@ -1,6 +1,7 @@
 import { Command } from "@commander-js/extra-typings";
 import { discoverMilestones, getMilestonePaths } from "@lib/milestones";
 import { findProjectRoot, getContextRoot } from "@tools/utils/paths";
+import chalk from "chalk";
 import {
   appendFileSync,
   existsSync,
@@ -25,6 +26,7 @@ import {
 } from "./config";
 import {
   type PlanSubtasksSummaryData,
+  renderInvocationHeader,
   renderPlanSubtasksSummary,
 } from "./display";
 import { runStatus } from "./status";
@@ -221,6 +223,8 @@ interface HeadlessWithLoggingOptions {
   logFile: string;
   promptPath: string;
   sessionName: string;
+  /** Size mode for styled pre-execution display (e.g., 'small', 'medium', 'large') */
+  sizeMode?: string;
 }
 
 /**
@@ -285,7 +289,7 @@ function invokeClaudeChat(
 function invokeClaudeHeadless(
   options: HeadlessWithLoggingOptions,
 ): HeadlessWithLoggingResult {
-  const { extraContext, logFile, promptPath, sessionName } = options;
+  const { extraContext, logFile, promptPath, sessionName, sizeMode } = options;
 
   if (!existsSync(promptPath)) {
     console.error(`Prompt not found: ${promptPath}`);
@@ -295,12 +299,14 @@ function invokeClaudeHeadless(
   const promptContent = readFileSync(promptPath, "utf8");
   const fullPrompt = buildPrompt(promptContent, extraContext);
 
-  console.log(`Running ${sessionName} in headless mode...`);
-  console.log(`Prompt: ${promptPath}`);
-  console.log(`Log file: ${logFile}`);
-  if (extraContext !== undefined && extraContext !== "") {
-    console.log(`Context: ${extraContext}`);
+  // Styled pre-execution header
+  console.log(renderInvocationHeader("headless"));
+  console.log();
+  console.log(`${chalk.dim("Source:")}  ${chalk.cyan(promptPath)}`);
+  if (sizeMode !== undefined) {
+    console.log(`${chalk.dim("Size:")}    ${chalk.yellow(sizeMode)}`);
   }
+  console.log(`${chalk.dim("Log:")}     ${logFile}`);
   console.log();
 
   const result = invokeClaudeHeadlessFromModule({ prompt: fullPrompt });
@@ -1248,6 +1254,7 @@ planCommand.addCommand(
           logFile,
           promptPath,
           sessionName: "subtasks",
+          sizeMode,
         });
 
         // Determine output path using resolveOutputDirectory
