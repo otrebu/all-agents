@@ -375,6 +375,10 @@ ralphCommand.addCommand(
       "0",
     )
     .option("--validate-first", "Run pre-build validation before building")
+    .option(
+      "--cascade <target>",
+      "Continue to target level after build completes (calibrate)",
+    )
     .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
@@ -428,6 +432,15 @@ ralphCommand.addCommand(
       // Determine execution mode: headless or supervised (default)
       const mode = options.headless === true ? "headless" : "supervised";
 
+      // Validate cascade target early (before running build)
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget("build", options.cascade);
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+      }
+
       // Map CLI options to BuildOptions and call runBuild()
       await runBuild(
         {
@@ -442,6 +455,23 @@ ralphCommand.addCommand(
         },
         contextRoot,
       );
+
+      // Handle cascade if requested (after build completes successfully)
+      if (options.cascade !== undefined) {
+        console.log(`\nCascading from build to ${options.cascade}...\n`);
+        const result = await runCascadeFrom("build", options.cascade, {
+          contextRoot,
+          subtasksPath,
+        });
+
+        if (!result.success) {
+          console.error(`Cascade failed: ${result.error}`);
+          if (result.stoppedAt !== null) {
+            console.error(`Stopped at: ${result.stoppedAt}`);
+          }
+          process.exit(1);
+        }
+      }
     }),
 );
 
