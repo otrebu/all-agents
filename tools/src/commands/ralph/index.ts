@@ -452,10 +452,14 @@ const planCommand = new Command("plan").description(
 
 /** Options for cascade execution helper */
 interface HandleCascadeOptions {
+  /** Run calibration every N build iterations during cascade (0 = disabled) */
+  calibrateEvery?: number;
   cascadeTarget: string;
   contextRoot: string;
   fromLevel: string;
   resolvedMilestonePath: null | string;
+  /** Override subtasks path (used when different from milestone default) */
+  subtasksPath?: string;
 }
 
 // Helper type for subtasks source context
@@ -607,8 +611,14 @@ function getSubtasksPromptPath(
 async function handleCascadeExecution(
   options: HandleCascadeOptions,
 ): Promise<void> {
-  const { cascadeTarget, contextRoot, fromLevel, resolvedMilestonePath } =
-    options;
+  const {
+    calibrateEvery,
+    cascadeTarget,
+    contextRoot,
+    fromLevel,
+    resolvedMilestonePath,
+    subtasksPath: explicitSubtasksPath,
+  } = options;
 
   // Validate cascade target
   const validationError = validateCascadeTarget(fromLevel, cascadeTarget);
@@ -617,14 +627,16 @@ async function handleCascadeExecution(
     process.exit(1);
   }
 
-  // Determine subtasks path based on milestone
+  // Determine subtasks path: use explicit path if provided, otherwise derive from milestone
   console.log(`\nCascading from ${fromLevel} to ${cascadeTarget}...\n`);
   const subtasksPath =
-    resolvedMilestonePath === null
+    explicitSubtasksPath ??
+    (resolvedMilestonePath === null
       ? path.join(contextRoot, "subtasks.json")
-      : path.join(resolvedMilestonePath, "subtasks.json");
+      : path.join(resolvedMilestonePath, "subtasks.json"));
 
   const result = await runCascadeFrom(fromLevel, cascadeTarget, {
+    calibrateEvery,
     contextRoot,
     subtasksPath,
   });
@@ -1047,7 +1059,16 @@ planCommand.addCommand(
       "Supervised mode: watch chat, can intervene (default)",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--cascade <target>",
+      "Continue to target level after completion (build, calibrate)",
+    )
+    .option(
+      "--calibrate-every <n>",
+      "Run calibration every N build iterations during cascade (0 = disabled)",
+      "0",
+    )
+    .action(async (options) => {
       const hasFile = options.file !== undefined;
       const hasText = options.text !== undefined;
       const hasReview = options.review === true;
@@ -1105,6 +1126,18 @@ planCommand.addCommand(
           "Use --milestone for both source and output, or use --file/--text with --output-dir",
         );
         process.exit(1);
+      }
+
+      // Validate cascade target early (before running Claude session)
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget(
+          "subtasks",
+          options.cascade,
+        );
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
       }
 
       const contextRoot = getContextRoot();
@@ -1218,6 +1251,28 @@ planCommand.addCommand(
       } else {
         // Default: supervised mode (user watches)
         invokeClaudeChat(promptPath, "subtasks", extraContext);
+      }
+
+      // Handle cascade if requested
+      if (options.cascade !== undefined) {
+        // Determine subtasks path for cascade
+        const resolvedOutputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          resolvedMilestonePath,
+        );
+        const subtasksPath = path.join(
+          resolvedOutputDirectory,
+          "subtasks.json",
+        );
+
+        await handleCascadeExecution({
+          calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+          cascadeTarget: options.cascade,
+          contextRoot,
+          fromLevel: "subtasks",
+          resolvedMilestonePath: resolvedMilestonePath ?? null,
+          subtasksPath,
+        });
       }
     }),
 );
