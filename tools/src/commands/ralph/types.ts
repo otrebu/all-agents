@@ -38,6 +38,43 @@ interface BuildOptions {
 }
 
 // =============================================================================
+// Cascade Types
+// =============================================================================
+
+/**
+ * Options for cascade execution
+ *
+ * Controls how Ralph cascades through planning levels
+ * (roadmap → stories → tasks → subtasks → build → calibrate)
+ */
+interface CascadeOptions {
+  /** Interval for running calibration (e.g., every N subtasks completed) */
+  calibrateEvery: number;
+  /** Skip confirmation prompts between cascade levels */
+  force: boolean;
+  /** Run without TTY prompts (for CI/automation) */
+  headless: boolean;
+  /** Target milestone path or name for cascade scope */
+  milestone: string;
+}
+
+/**
+ * Result of a cascade execution
+ *
+ * Tracks which levels completed and where the cascade stopped
+ */
+interface CascadeResult {
+  /** Levels that completed successfully (e.g., ['stories', 'tasks']) */
+  completedLevels: Array<string>;
+  /** Error message if cascade failed, null on success */
+  error: null | string;
+  /** Level where cascade stopped (on error or user abort), null if completed */
+  stoppedAt: null | string;
+  /** Whether the cascade completed all requested levels */
+  success: boolean;
+}
+
+// =============================================================================
 // Ralph Configuration Types (matches ralph-config.schema.json)
 // =============================================================================
 
@@ -299,6 +336,8 @@ function normalizeStatus(raw: string): IterationStatus {
 
 export {
   type BuildOptions,
+  type CascadeOptions,
+  type CascadeResult,
   type HookAction,
   type HookConfig,
   type HooksConfig,
