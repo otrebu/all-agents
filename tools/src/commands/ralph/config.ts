@@ -11,8 +11,9 @@
  */
 
 import { DEFAULT_RALPH, loadAaaConfig } from "@tools/lib/config";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { findProjectRoot } from "@tools/utils/paths";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join } from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
@@ -215,6 +216,99 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
 }
 
 // =============================================================================
+// Milestone Resolution
+// =============================================================================
+
+/**
+ * Relative path to milestone directories from project root
+ */
+const MILESTONES_RELATIVE_PATH = "docs/planning/milestones";
+
+/**
+ * Get the full path to the milestones directory
+ *
+ * @returns Full path to docs/planning/milestones from project root
+ */
+function getMilestonesBasePath(): string {
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  return join(projectRoot, MILESTONES_RELATIVE_PATH);
+}
+
+/**
+ * List available milestone directories
+ *
+ * @returns Array of milestone directory names (excluding _orphan and files)
+ */
+function listAvailableMilestones(): Array<string> {
+  const basePath = getMilestonesBasePath();
+
+  if (!existsSync(basePath)) {
+    return [];
+  }
+
+  try {
+    const entries = readdirSync(basePath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_"))
+      .map((entry) => entry.name)
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Resolve a milestone identifier to its full path
+ *
+ * Handles three cases:
+ * 1. Full/absolute path - returns as-is if it exists
+ * 2. Milestone name - searches docs/planning/milestones/<name>/
+ * 3. Not found - throws error with available milestones listed
+ *
+ * @param nameOrPath - Either a full path or milestone name (e.g., '003-ralph-workflow')
+ * @returns Full path to the milestone directory
+ * @throws Error if milestone not found, with available milestones listed
+ *
+ * @example
+ * resolveMilestonePath('/full/path/to/milestone') // returns input unchanged
+ * resolveMilestonePath('003-ralph-workflow') // returns 'docs/planning/milestones/003-ralph-workflow'
+ * resolveMilestonePath('nonexistent') // throws Error with available milestones
+ */
+function resolveMilestonePath(nameOrPath: string): string {
+  // Case 1: If input is an absolute path or a path that exists, return as-is
+  if (isAbsolute(nameOrPath)) {
+    if (existsSync(nameOrPath)) {
+      return nameOrPath;
+    }
+    throw new Error(`Milestone path not found: ${nameOrPath}`);
+  }
+
+  // Case 2: If input looks like a relative path (contains /) and exists
+  if (nameOrPath.includes("/") && existsSync(nameOrPath)) {
+    return nameOrPath;
+  }
+
+  // Case 3: Treat as milestone name, search in milestones directory
+  const basePath = getMilestonesBasePath();
+  const milestonePath = join(basePath, nameOrPath);
+  if (existsSync(milestonePath)) {
+    return milestonePath;
+  }
+
+  // Case 4: Not found - list available milestones
+  const availableMilestones = listAvailableMilestones();
+  const milestoneList =
+    availableMilestones.length > 0
+      ? availableMilestones.join(", ")
+      : "(none found)";
+
+  throw new Error(
+    `Milestone not found: ${nameOrPath}\n` +
+      `Available milestones: ${milestoneList}`,
+  );
+}
+
+// =============================================================================
 // Log Path Helpers
 // =============================================================================
 
@@ -295,11 +389,15 @@ export {
   getIterationLogPath,
   getMilestoneFromSubtasks,
   getMilestoneLogPath,
+  getMilestonesBasePath,
   getNextSubtask,
   getPendingSubtasks,
   getPlanningLogPath,
+  listAvailableMilestones,
   loadRalphConfig,
   loadSubtasksFile,
+  MILESTONES_RELATIVE_PATH,
   ORPHAN_MILESTONE_ROOT,
+  resolveMilestonePath,
   saveSubtasksFile,
 };

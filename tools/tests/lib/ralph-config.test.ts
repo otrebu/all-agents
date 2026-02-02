@@ -3,7 +3,13 @@
  */
 import type { Mock } from "bun:test";
 
-import { DEFAULT_CONFIG, loadRalphConfig } from "@tools/commands/ralph/config";
+import {
+  DEFAULT_CONFIG,
+  getMilestonesBasePath,
+  listAvailableMilestones,
+  loadRalphConfig,
+  resolveMilestonePath,
+} from "@tools/commands/ralph/config";
 import * as unifiedConfig from "@tools/lib/config/loader";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -180,5 +186,99 @@ describe("loadRalphConfig", () => {
         "Failed to parse ralph.config.json",
       );
     });
+  });
+});
+
+describe("resolveMilestonePath", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(tmpdir(), `milestone-test-${Date.now()}`);
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("returns absolute path unchanged when it exists", () => {
+    // Use the temporary directory as an existing absolute path
+    const result = resolveMilestonePath(temporaryDirectory);
+    expect(result).toBe(temporaryDirectory);
+  });
+
+  test("throws for absolute path that does not exist", () => {
+    const nonexistentPath = join(temporaryDirectory, "nonexistent-milestone");
+    expect(() => resolveMilestonePath(nonexistentPath)).toThrow(
+      "Milestone path not found",
+    );
+  });
+
+  test("returns relative path unchanged when it exists", () => {
+    // Use a known existing relative path (the milestones base itself)
+    const basePath = getMilestonesBasePath();
+    const result = resolveMilestonePath(basePath);
+    expect(result).toBe(basePath);
+  });
+
+  test("resolves milestone name to full path", () => {
+    // Use an existing milestone from the real project
+    const basePath = getMilestonesBasePath();
+    const result = resolveMilestonePath("001-ralph");
+    expect(result).toBe(join(basePath, "001-ralph"));
+  });
+
+  test("resolves milestone name with emoji to full path", () => {
+    // Test milestone with emoji (002-ralph-💪)
+    const basePath = getMilestonesBasePath();
+    const result = resolveMilestonePath("002-ralph-💪");
+    expect(result).toBe(join(basePath, "002-ralph-💪"));
+  });
+
+  test("throws for nonexistent milestone name with available list", () => {
+    expect(() => resolveMilestonePath("nonexistent-milestone")).toThrow(
+      /Available milestones/,
+    );
+  });
+
+  test("error message includes actual milestone names", () => {
+    try {
+      resolveMilestonePath("nonexistent-milestone");
+      expect(true).toBe(false);
+    } catch (error) {
+      const { message } = error as Error;
+      expect(message).toContain("Milestone not found: nonexistent-milestone");
+      expect(message).toContain("Available milestones:");
+      expect(message).toMatch(/001-ralph|002-ralph|003-ralph/);
+    }
+  });
+});
+
+describe("listAvailableMilestones", () => {
+  test("returns array of milestone names", () => {
+    const milestones = listAvailableMilestones();
+    expect(Array.isArray(milestones)).toBe(true);
+    expect(milestones.length).toBeGreaterThan(0);
+  });
+
+  test("excludes directories starting with underscore", () => {
+    const milestones = listAvailableMilestones();
+    const hasUnderscore = milestones.some((name) => name.startsWith("_"));
+    expect(hasUnderscore).toBe(false);
+  });
+
+  test("returns sorted milestone names", () => {
+    const milestones = listAvailableMilestones();
+    const sorted = [...milestones].sort();
+    expect(milestones).toEqual(sorted);
+  });
+
+  test("includes known milestones", () => {
+    const milestones = listAvailableMilestones();
+    // These should exist in the real project
+    expect(milestones).toContain("001-ralph");
+    expect(milestones).toContain("003-ralph-workflow");
   });
 });
