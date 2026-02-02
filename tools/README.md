@@ -90,6 +90,8 @@ aaa story create "As a user, I want to login"
 | `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                           | -                          |
 | `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer         | stdout                     |
 | `session current`            | Get current session ID from .claude/current-session                        | stdout                     |
+| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)            | stdout                     |
+| `session list`               | List recent sessions (--verbose for table, --limit N)                      | stdout                     |
 | `completion <shell>`         | Generate shell completion script (bash, zsh, fish)                         | stdout                     |
 
 ### Command Examples
@@ -442,6 +444,17 @@ aaa session path --commit abc1234
 
 # Get current session ID (from .claude/current-session)
 aaa session current
+
+# Output session JSONL content to stdout
+aaa session cat abc123-def456
+aaa session cat --commit HEAD
+
+# List recent sessions (machine-parseable, one session-id per line)
+aaa session list
+aaa session list --limit 10
+
+# List recent sessions (human-readable table format)
+aaa session list --verbose
 ```
 
 **Use cases:**
@@ -449,12 +462,15 @@ aaa session current
 - Look up session files for forensic analysis of past work
 - Extract session ID from commits made during a Claude session
 - Get the current session ID for scripts/automation
+- Output session content for piping to other tools or subagents
+- List recent sessions to find sessions to analyze
 
 **Error handling:**
 
 - Exits with code 1 if session file not found
 - Exits with code 1 if commit has no cc-session-id trailer
 - Exits with code 1 if .claude/current-session doesn't exist or is empty
+- Exits with code 1 if no sessions found (for `list` command)
 
 ## Shell Completion
 

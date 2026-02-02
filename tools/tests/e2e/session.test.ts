@@ -26,6 +26,8 @@ describe("session E2E - help and basic CLI", () => {
     expect(stdout).toContain("Manage and retrieve Claude session files");
     expect(stdout).toContain("path");
     expect(stdout).toContain("current");
+    expect(stdout).toContain("cat");
+    expect(stdout).toContain("list");
   });
 
   test("session path --help shows options", async () => {
@@ -176,5 +178,130 @@ describe("session E2E - path with --commit flag", () => {
     // Should fail because older commits don't have cc-session-id
     expect(exitCode).toBe(1);
     expect(stderr).toContain("No cc-session-id trailer in commit");
+  });
+});
+
+describe("session E2E - cat subcommand", () => {
+  test("session cat --help shows options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "session", "cat", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Output session JSONL content to stdout");
+    expect(stdout).toContain("--commit");
+    expect(stdout).toContain("session-id");
+  });
+
+  test("session cat without arguments shows error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "session", "cat"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Must provide session ID or --commit");
+  });
+
+  test("session cat with non-existent session ID shows error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "session", "cat", "non-existent-session-id-12345"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Session not found");
+  });
+
+  test("session cat --commit with commit lacking cc-session-id shows error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "session", "cat", "--commit", "HEAD~10"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("No cc-session-id trailer in commit");
+  });
+});
+
+describe("session E2E - list subcommand", () => {
+  test("session list --help shows options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "session", "list", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("List recent sessions for current project");
+    expect(stdout).toContain("--limit");
+    expect(stdout).toContain("--verbose");
+  });
+
+  test("session list outputs session IDs (machine-parseable)", async () => {
+    // This test verifies the command runs without error
+    // In a real environment with sessions, it would output session IDs
+    const { exitCode, stderr, stdout } = await execa(
+      "bun",
+      ["run", "dev", "session", "list", "--limit", "5"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    // Either succeeds with output or fails with "No sessions found"
+    if (exitCode === 0) {
+      // Outputs should be UUIDs (session IDs), one per line
+      const lines = stdout
+        .trim()
+        .split("\n")
+        .filter((l: string) => l !== "");
+      expect(lines.length).toBeGreaterThan(0);
+      expect(lines.length).toBeLessThanOrEqual(5);
+    } else {
+      expect(stderr).toContain("No sessions found");
+    }
+  });
+
+  test("session list --verbose outputs table format", async () => {
+    const { exitCode, stderr, stdout } = await execa(
+      "bun",
+      ["run", "dev", "session", "list", "--limit", "3", "--verbose"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    // Either succeeds with table or fails with "No sessions found"
+    if (exitCode === 0) {
+      expect(stdout).toContain("SESSION ID");
+      expect(stdout).toContain("MODIFIED");
+      expect(stdout).toContain("SIZE");
+    } else {
+      expect(stderr).toContain("No sessions found");
+    }
+  });
+
+  test("session list --limit with invalid value shows error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "session", "list", "--limit", "abc"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("--limit must be a positive integer");
+  });
+
+  test("session list --limit 0 shows error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "session", "list", "--limit", "0"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("--limit must be a positive integer");
   });
 });
