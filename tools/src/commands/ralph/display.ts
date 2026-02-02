@@ -21,7 +21,7 @@ import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
 import type { BuildPracticalSummary } from "./summary";
-import type { IterationStatus, TokenUsage } from "./types";
+import type { CascadeResult, IterationStatus, TokenUsage } from "./types";
 
 // Box width for iteration displays (defined early for marked config)
 const BOX_WIDTH = 68;
@@ -575,6 +575,110 @@ function renderBuildSummary(data: BuildSummaryData): string {
 }
 
 /**
+ * Render cascade progress line showing level progression
+ *
+ * Displays a visual progression through cascade levels with:
+ * - Completed levels shown in brackets with ✓
+ * - Current level shown in brackets with ◉
+ * - Remaining levels shown without brackets
+ *
+ * @param current - Name of the level currently executing
+ * @param completed - Array of level names that have completed
+ * @param remaining - Array of level names still to be executed
+ * @returns Styled progress string like "[stories] ✓ → [tasks] ◉ → subtasks → build"
+ *
+ * @example
+ * renderCascadeProgress('tasks', ['stories'], ['subtasks', 'build'])
+ * // Returns: "[stories] ✓ → [tasks] ◉ → subtasks → build"
+ */
+function renderCascadeProgress(
+  current: string,
+  completed: Array<string>,
+  remaining: Array<string>,
+): string {
+  const parts: Array<string> = [];
+
+  // Completed levels: [level] ✓ in green
+  for (const level of completed) {
+    parts.push(chalk.green(`[${level}] ✓`));
+  }
+
+  // Current level: [level] ◉ in cyan bold
+  parts.push(chalk.cyan.bold(`[${current}] ◉`));
+
+  // Remaining levels: just the name in dim
+  for (const level of remaining) {
+    parts.push(chalk.dim(level));
+  }
+
+  // Join with arrows
+  return parts.join(chalk.dim(" → "));
+}
+
+/**
+ * Render cascade summary box showing cascade execution results
+ *
+ * Displays a boxen-formatted summary with:
+ * - Success/failure status header
+ * - List of completed levels
+ * - Where cascade stopped (if not fully complete)
+ * - Error message (if cascade failed)
+ *
+ * @param result - CascadeResult from runCascadeFrom()
+ * @returns Boxen-formatted string suitable for console output
+ *
+ * @example
+ * const result = { success: true, completedLevels: ['build', 'calibrate'], error: null, stoppedAt: null };
+ * console.log(renderCascadeSummary(result));
+ */
+function renderCascadeSummary(result: CascadeResult): string {
+  const innerWidth = BOX_WIDTH - 4;
+  const lines: Array<string> = [];
+
+  // Status header
+  if (result.success) {
+    lines.push(chalk.green.bold("✓ Cascade Complete"));
+  } else {
+    lines.push(chalk.red.bold("✗ Cascade Stopped"));
+  }
+
+  lines.push("─".repeat(innerWidth));
+
+  // Completed levels
+  if (result.completedLevels.length > 0) {
+    lines.push(chalk.dim("Completed levels:"));
+    for (const level of result.completedLevels) {
+      lines.push(`  ${chalk.green("✓")} ${chalk.cyan(level)}`);
+    }
+  } else {
+    lines.push(chalk.dim("No levels completed"));
+  }
+
+  // Stopped at (if not success)
+  if (result.stoppedAt !== null) {
+    lines.push("");
+    lines.push(
+      `${chalk.yellow("Stopped at:")} ${chalk.yellow.bold(result.stoppedAt)}`,
+    );
+  }
+
+  // Error message (if present)
+  if (result.error !== null) {
+    lines.push("");
+    lines.push(`${chalk.red("Error:")} ${result.error}`);
+  }
+
+  return renderSafeBox(lines.join("\n"), {
+    borderColor: result.success ? "green" : "red",
+    borderStyle: "round",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: "Cascade Summary",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+/**
  * Render a styled separator for Claude invocation
  *
  * @param mode - "headless" or "supervised" execution mode
@@ -1041,6 +1145,8 @@ export {
   type PlanSubtasksSummaryData,
   renderBuildPracticalSummary,
   renderBuildSummary,
+  renderCascadeProgress,
+  renderCascadeSummary,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,

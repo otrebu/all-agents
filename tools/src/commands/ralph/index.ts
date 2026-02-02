@@ -84,6 +84,35 @@ function resolveMilestonePath(input: string): null | string {
 }
 
 /**
+ * Resolve output directory from --output-dir flag or milestone path.
+ * Accepts either a path or a milestone name (auto-resolved).
+ */
+function resolveOutputDirectory(
+  outputDirectory: string | undefined,
+  milestonePath: null | string | undefined,
+): string {
+  // Priority 1: Explicit --output-dir
+  if (outputDirectory !== undefined) {
+    // Check if it's a milestone name (no slashes) - try to resolve it
+    if (!outputDirectory.includes("/") && !outputDirectory.includes("\\")) {
+      const resolved = resolveMilestonePath(outputDirectory);
+      if (resolved !== null) return resolved;
+    }
+    // Otherwise treat as literal path
+    return outputDirectory;
+  }
+
+  // Priority 2: Milestone source implies output location
+  if (milestonePath !== undefined && milestonePath !== null) {
+    return milestonePath;
+  }
+
+  // Priority 3: Default fallback
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  return path.join(projectRoot, "docs/planning");
+}
+
+/**
  * Resolve story path from slug or full path.
  * Searches: docs/planning/stories/, docs/planning/milestones/{slug}/stories/
  */
@@ -800,6 +829,10 @@ planCommand.addCommand(
       "Milestone name - generate subtasks for all tasks in milestone",
     )
     .option(
+      "--output-dir <path>",
+      "Output directory (path or milestone name) - use with --file/--text",
+    )
+    .option(
       "--size <mode>",
       "Slice thickness: small (thinnest viable), medium (one PR per subtask, default), large (major boundaries only)",
       "medium",
@@ -816,6 +849,7 @@ planCommand.addCommand(
       const hasTask = options.task !== undefined;
       const hasStory = options.story !== undefined;
       const hasMilestone = options.milestone !== undefined;
+      const hasOutputDirectory = options.outputDir !== undefined;
 
       // Validate: require exactly one source
       const sourceCount = [
@@ -853,6 +887,17 @@ planCommand.addCommand(
       if (sourceCount > 1) {
         console.error(
           "Error: Cannot combine multiple sources. Provide exactly one of: --milestone, --story, --task, --file, --text, --review",
+        );
+        process.exit(1);
+      }
+
+      // Validate: --milestone and --output-dir are mutually exclusive
+      if (hasMilestone && hasOutputDirectory) {
+        console.error(
+          "Error: --milestone and --output-dir are mutually exclusive.",
+        );
+        console.error(
+          "Use --milestone for both source and output, or use --file/--text with --output-dir",
         );
         process.exit(1);
       }
@@ -907,6 +952,12 @@ planCommand.addCommand(
       contextParts.push(`Sizing mode: ${sizeMode}`);
       contextParts.push(`Sizing guidance: ${sizeDescriptions[sizeMode]}`);
 
+      // Add output directory to context if specified
+      if (hasOutputDirectory) {
+        const resolvedOutput = resolveOutputDirectory(options.outputDir, null);
+        contextParts.push(`Output directory: ${resolvedOutput}`);
+      }
+
       const extraContext = contextParts.join("\n");
 
       if (options.headless === true) {
@@ -919,12 +970,12 @@ planCommand.addCommand(
           sessionName: "subtasks",
         });
 
-        // Determine output path
-        const projectRoot = findProjectRoot() ?? process.cwd();
-        const outputPath =
-          resolvedMilestonePath !== undefined && resolvedMilestonePath !== null
-            ? path.join(resolvedMilestonePath, "subtasks.json")
-            : path.join(projectRoot, "docs/planning/subtasks.json");
+        // Determine output path using resolveOutputDirectory
+        const resolvedOutputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          resolvedMilestonePath,
+        );
+        const outputPath = path.join(resolvedOutputDirectory, "subtasks.json");
 
         // Try to load generated subtasks
         const loadResult = ((): {

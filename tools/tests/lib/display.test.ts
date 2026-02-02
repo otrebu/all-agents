@@ -3,11 +3,14 @@
  */
 
 import type { BuildPracticalSummary } from "@tools/commands/ralph/summary";
+import type { CascadeResult } from "@tools/commands/ralph/types";
 
 import {
   formatDuration,
   formatTokenCount,
   renderBuildPracticalSummary,
+  renderCascadeProgress,
+  renderCascadeSummary,
   truncate,
 } from "@tools/commands/ralph/display";
 import { describe, expect, test } from "bun:test";
@@ -224,6 +227,135 @@ describe("display utilities", () => {
 
       // Should NOT display tokens line when all zero
       expect(result).not.toContain("MaxCtx:");
+    });
+  });
+
+  describe("renderCascadeProgress", () => {
+    test("renders correct format with completed, current, and remaining levels", () => {
+      const result = renderCascadeProgress(
+        "tasks",
+        ["stories"],
+        ["subtasks", "build"],
+      );
+
+      // Should contain completed level with check mark
+      expect(result).toContain("[stories]");
+      expect(result).toContain("✓");
+
+      // Should contain current level with bullet
+      expect(result).toContain("[tasks]");
+      expect(result).toContain("◉");
+
+      // Should contain remaining levels without brackets
+      expect(result).toContain("subtasks");
+      expect(result).toContain("build");
+
+      // Should contain arrows
+      expect(result).toContain("→");
+    });
+
+    test("handles empty completed levels", () => {
+      const result = renderCascadeProgress(
+        "stories",
+        [],
+        ["tasks", "subtasks"],
+      );
+
+      expect(result).toContain("[stories]");
+      expect(result).toContain("◉");
+      expect(result).toContain("tasks");
+      expect(result).toContain("subtasks");
+    });
+
+    test("handles empty remaining levels", () => {
+      const result = renderCascadeProgress("calibrate", ["build"], []);
+
+      expect(result).toContain("[build]");
+      expect(result).toContain("✓");
+      expect(result).toContain("[calibrate]");
+      expect(result).toContain("◉");
+    });
+
+    test("handles multiple completed levels", () => {
+      const result = renderCascadeProgress(
+        "subtasks",
+        ["stories", "tasks"],
+        ["build"],
+      );
+
+      expect(result).toContain("[stories]");
+      expect(result).toContain("[tasks]");
+      expect(result).toContain("[subtasks]");
+      expect(result).toContain("build");
+    });
+  });
+
+  describe("renderCascadeSummary", () => {
+    test("renders success state correctly", () => {
+      const result: CascadeResult = {
+        completedLevels: ["build", "calibrate"],
+        error: null,
+        stoppedAt: null,
+        success: true,
+      };
+
+      const output = renderCascadeSummary(result);
+
+      expect(output).toContain("Cascade Summary");
+      expect(output).toContain("Cascade Complete");
+      expect(output).toContain("build");
+      expect(output).toContain("calibrate");
+      expect(output).toContain("✓");
+    });
+
+    test("renders failure state with error message", () => {
+      const result: CascadeResult = {
+        completedLevels: ["build"],
+        error: "Calibration failed",
+        stoppedAt: "calibrate",
+        success: false,
+      };
+
+      const output = renderCascadeSummary(result);
+
+      expect(output).toContain("Cascade Summary");
+      expect(output).toContain("Cascade Stopped");
+      expect(output).toContain("build");
+      expect(output).toContain("Stopped at:");
+      expect(output).toContain("calibrate");
+      expect(output).toContain("Error:");
+      expect(output).toContain("Calibration failed");
+    });
+
+    test("renders empty completed levels state", () => {
+      const result: CascadeResult = {
+        completedLevels: [],
+        error: "Invalid cascade target",
+        stoppedAt: "tasks",
+        success: false,
+      };
+
+      const output = renderCascadeSummary(result);
+
+      expect(output).toContain("No levels completed");
+      expect(output).toContain("Invalid cascade target");
+    });
+
+    test("function is exported", () => {
+      expect(typeof renderCascadeSummary).toBe("function");
+    });
+
+    test("function accepts CascadeResult type", () => {
+      const result: CascadeResult = {
+        completedLevels: ["build"],
+        error: null,
+        stoppedAt: null,
+        success: true,
+      };
+
+      // Should not throw
+      const output = renderCascadeSummary(result);
+      expect(typeof output).toBe("string");
     });
   });
 });
