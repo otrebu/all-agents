@@ -328,11 +328,8 @@ function invokeClaudeHeadless(
   };
   appendFileSync(logFile, `${JSON.stringify(logEntry)}\n`);
 
-  console.log(`Session completed: ${result.sessionId || "unknown"}`);
-  console.log(
-    `Duration: ${Math.round(result.duration / 1000)}s | Cost: $${result.cost}`,
-  );
-  console.log();
+  // Session ID useful for debugging; duration/cost now shown in styled summary boxes
+  console.log(`Session: ${result.sessionId || "unknown"}`);
 
   return {
     costUsd: result.cost,
