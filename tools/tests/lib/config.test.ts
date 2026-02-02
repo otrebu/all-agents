@@ -254,4 +254,31 @@ describe("appendSubtasksToFile", () => {
     const loaded = loadSubtasksFile(testPath);
     expect(loaded.metadata?.milestoneRef).toBe("my-milestone");
   });
+
+  test("throws when existing file has invalid JSON", () => {
+    writeFileSync(testPath, "{invalid json}");
+    expect(() =>
+      appendSubtasksToFile(testPath, [createSubtask("SUB-001")]),
+    ).toThrow();
+  });
+
+  test("handles empty array of new subtasks", () => {
+    const result = appendSubtasksToFile(testPath, []);
+    expect(result.added).toBe(0);
+    expect(result.skipped).toBe(0);
+  });
+
+  test("throws when subtasks field is not an array", () => {
+    writeFileSync(testPath, JSON.stringify({ subtasks: "not an array" }));
+    expect(() =>
+      appendSubtasksToFile(testPath, [createSubtask("SUB-001")]),
+    ).toThrow(/must be an array/);
+  });
+
+  test("throws when newSubtasks is not an array", () => {
+    // @ts-expect-error Testing runtime validation
+    expect(() => appendSubtasksToFile(testPath, "not an array")).toThrow(
+      /must be an array/,
+    );
+  });
 });

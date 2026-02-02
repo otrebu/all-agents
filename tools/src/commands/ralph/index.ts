@@ -1188,11 +1188,26 @@ planCommand.addCommand(
 
       const promptPath = getSubtasksPromptPath(contextRoot, sourceFlags);
 
-      // Resolve milestone path if provided (used for log file location and hierarchy source)
-      const resolvedMilestonePath =
-        options.milestone === undefined
-          ? undefined
-          : resolveMilestonePath(options.milestone);
+      // Resolve milestone path - from explicit --milestone flag or inferred from story path
+      // This is used for log file location and to determine output directory for subtasks.json
+      const resolvedMilestonePath = ((): null | string | undefined => {
+        if (options.milestone !== undefined) {
+          // Explicit milestone flag
+          return resolveMilestonePath(options.milestone);
+        }
+        if (hasStory && options.story !== undefined) {
+          // Infer milestone from resolved story path
+          // Story paths in milestones follow: docs/planning/milestones/<milestone>/stories/...
+          const resolvedStory = resolveStoryPath(options.story);
+          if (resolvedStory !== null) {
+            const match = /milestones\/(?<slug>[^/]+)\//.exec(resolvedStory);
+            if (match?.groups?.slug !== undefined) {
+              return resolveMilestonePath(match.groups.slug);
+            }
+          }
+        }
+        return undefined;
+      })();
 
       // Build source context and info using helper
       const { contextParts, sourceInfo } = buildSubtasksSourceContext(
