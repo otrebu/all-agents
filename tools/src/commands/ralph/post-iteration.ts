@@ -70,6 +70,8 @@ interface PostIterationOptions {
   commitAfter?: null | string;
   /** Git commit hash before Claude invocation started */
   commitBefore?: null | string;
+  /** All-agents context root (for prompt templates) */
+  contextRoot: string;
   /** Total cost in USD for this iteration */
   costUsd?: number;
   /** Current iteration attempt number (1 = first try) */
@@ -148,9 +150,9 @@ function generateSummary(
   sessionPath: null | string,
 ): SummaryResult {
   const {
+    contextRoot,
     iterationNumber = 1,
     milestone = "",
-    repoRoot,
     skipSummary: shouldSkipSummary = false,
     status,
     subtask,
@@ -176,7 +178,8 @@ function generateSummary(
     };
   }
 
-  const promptPath = `${repoRoot}/context/workflows/ralph/hooks/iteration-summary.md`;
+  // Use all-agents contextRoot for prompt template (not target project repoRoot)
+  const promptPath = `${contextRoot}/context/workflows/ralph/hooks/iteration-summary.md`;
 
   // Check if prompt template exists
   if (!existsSync(promptPath)) {

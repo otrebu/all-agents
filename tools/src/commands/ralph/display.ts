@@ -496,13 +496,16 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
           ? chalk.yellow(` (${subtask.attempts} attempts)`)
           : "";
       const idPart = chalk.cyan(subtask.id);
-      const summaryPart = truncate(subtask.summary, innerWidth - 20);
-      lines.push(`  • ${idPart}${retryNote}`);
+      lines.push(`  ${idPart}${retryNote}`);
       if (
         subtask.summary !== "" &&
         subtask.summary !== `Completed ${subtask.id}`
       ) {
-        lines.push(`    ${chalk.dim(summaryPart)}`);
+        // Wrap summary text instead of truncating - indent by 4 spaces
+        const wrappedSummary = wrapText(subtask.summary, innerWidth - 4);
+        for (const line of wrappedSummary) {
+          lines.push(`    ${chalk.dim(line)}`);
+        }
       }
     }
   }
