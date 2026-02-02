@@ -2,7 +2,7 @@
   "notify": {
     "defaultPriority": "high",
     "defaultTopic": "ralph-build",
-    "enabled": false,
+    "enabled": true,
     "quietHours": {
       "enabled": true,
       "endHour": 8,
