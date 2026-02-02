@@ -1161,6 +1161,7 @@ function wrapText(text: string, width: number): Array<string> {
 const colorStatus = getColoredStatus;
 
 export {
+  BOX_WIDTH,
   type BuildSummaryData,
   colorStatus,
   formatDuration,

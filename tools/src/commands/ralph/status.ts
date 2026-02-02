@@ -21,14 +21,13 @@ import {
   getNextSubtask,
   loadSubtasksFile,
 } from "./config";
-import { formatTimestamp, renderProgressBar, truncate } from "./display";
+import {
+  BOX_WIDTH,
+  formatTimestamp,
+  renderProgressBar,
+  truncate,
+} from "./display";
 import { normalizeStatus } from "./types";
-
-// =============================================================================
-// Constants
-// =============================================================================
-
-const BOX_WIDTH = 64;
 
 // =============================================================================
 // Helper Functions
@@ -240,7 +239,7 @@ function renderHeader(): void {
   console.log();
   console.log(chalk.bold(`╔${"═".repeat(BOX_WIDTH - 2)}╗`));
   console.log(
-    chalk.bold(`║${"Ralph Build Status".padStart(41).padEnd(BOX_WIDTH - 2)}║`),
+    chalk.bold(`║${"Ralph Build Status".padStart(43).padEnd(BOX_WIDTH - 2)}║`),
   );
   console.log(chalk.bold(`╚${"═".repeat(BOX_WIDTH - 2)}╝`));
   console.log();
