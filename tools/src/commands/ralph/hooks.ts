@@ -27,14 +27,30 @@ import { loadRalphConfig } from "./config";
  * Context passed to hook execution
  */
 interface HookContext {
+  /** Total cost in USD for the iteration (from Claude API response) */
+  costUsd?: number;
   /** Number of critical severity findings (for review hooks) */
   criticalCount?: number;
+  /** Human-readable duration string (e.g., "2m 30s") */
+  duration?: string;
   /** File path (for onCriticalFinding hook) */
   file?: string;
+  /** Number of files changed in the iteration */
+  filesChanged?: number;
   /** Total number of findings (for review hooks) */
   findingCount?: number;
+  /** Current iteration number within the subtask (1-based) */
+  iterationNumber?: number;
+  /** Lines of code added in the iteration */
+  linesAdded?: number;
+  /** Lines of code removed in the iteration */
+  linesRemoved?: number;
+  /** Maximum number of iterations allowed per subtask */
+  maxIterations?: number;
   /** Human-readable message describing what triggered the hook */
   message: string;
+  /** Milestone name (e.g., "003-ralph-workflow") */
+  milestone?: string;
   /** Claude Code session ID (for traceability) */
   sessionId?: string;
   /** Optional subtask ID for context */
