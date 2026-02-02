@@ -42,6 +42,19 @@ interface BuildOptions {
 // =============================================================================
 
 /**
+ * Definition of a cascade level
+ *
+ * Represents a single level in the Ralph cascade hierarchy
+ * (roadmap → stories → tasks → subtasks → build → calibrate)
+ */
+interface CascadeLevel {
+  /** Human-readable name of the level (e.g., 'stories', 'build') */
+  name: string;
+  /** Numeric order in the cascade sequence (lower = earlier) */
+  order: number;
+}
+
+/**
  * Options for cascade execution
  *
  * Controls how Ralph cascades through planning levels
@@ -336,6 +349,7 @@ function normalizeStatus(raw: string): IterationStatus {
 
 export {
   type BuildOptions,
+  type CascadeLevel,
   type CascadeOptions,
   type CascadeResult,
   type HookAction,
