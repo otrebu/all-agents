@@ -14,6 +14,11 @@
 
 import * as readline from "node:readline";
 
+import type { BuildOptions } from "./types";
+
+import runBuild from "./build";
+import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -28,6 +33,19 @@ interface CascadeLevelDefinition {
   order: number;
   /** Whether this level requires a milestone to be specified */
   requiresMilestone: boolean;
+}
+
+/**
+ * Options for runLevel dispatcher
+ *
+ * Contains the minimum context needed to execute any cascade level.
+ * Additional options are derived or defaulted within each level's handler.
+ */
+interface RunLevelOptions {
+  /** Repository root path */
+  contextRoot: string;
+  /** Path to subtasks.json file */
+  subtasksPath: string;
 }
 
 // =============================================================================
@@ -182,6 +200,86 @@ async function promptContinue(
 }
 
 /**
+ * Execute a single cascade level
+ *
+ * Dispatches to the appropriate function based on level name:
+ * - 'build' → runBuild()
+ * - 'calibrate' → runCalibrate('all')
+ *
+ * Note: Planning levels (roadmap, stories, tasks, subtasks) are not yet
+ * implemented as they require interactive Claude sessions.
+ *
+ * @param level - Level name to execute
+ * @param options - Options containing contextRoot and subtasksPath
+ * @returns Error message string on failure, null on success
+ *
+ * @example
+ * const error = await runLevel('build', { contextRoot: '/path/to/repo', subtasksPath: '/path/to/subtasks.json' });
+ * if (error !== null) {
+ *   console.error(`Level failed: ${error}`);
+ * }
+ */
+async function runLevel(
+  level: string,
+  options: RunLevelOptions,
+): Promise<null | string> {
+  const { contextRoot, subtasksPath } = options;
+
+  // Validate level name
+  if (!isValidLevelName(level)) {
+    return `Invalid level '${level}'. Valid levels: ${getValidLevelNames()}`;
+  }
+
+  switch (level) {
+    case "build": {
+      // Build default options for runBuild
+      const buildOptions: BuildOptions = {
+        calibrateEvery: 0,
+        interactive: false,
+        maxIterations: 0,
+        mode: "headless",
+        quiet: false,
+        skipSummary: false,
+        subtasksPath,
+        validateFirst: false,
+      };
+
+      try {
+        await runBuild(buildOptions, contextRoot);
+        return null;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return `Build failed: ${message}`;
+      }
+    }
+
+    case "calibrate": {
+      const calibrateSubcommand: CalibrateSubcommand = "all";
+      const didSucceed = runCalibrate(calibrateSubcommand, {
+        contextRoot,
+        subtasksPath,
+      });
+      return didSucceed ? null : "Calibration failed";
+    }
+
+    case "roadmap":
+    case "stories":
+    case "subtasks":
+    case "tasks": {
+      // Planning levels require interactive Claude sessions
+      // They will be implemented when the cascade CLI integration is done
+      return `Level '${level}' is a planning level and is not yet implemented for cascade execution`;
+    }
+
+    default: {
+      // TypeScript exhaustiveness check - level is validated before switch,
+      // so this should never be reached. Using String() to handle never type.
+      return `Unknown level '${String(level)}'`;
+    }
+  }
+}
+
+/**
  * Validate cascade target direction
  *
  * Cascades can only flow forward (higher order numbers).
@@ -234,5 +332,7 @@ export {
   isValidLevelName,
   LEVELS,
   promptContinue,
+  runLevel,
+  type RunLevelOptions,
   validateCascadeTarget,
 };

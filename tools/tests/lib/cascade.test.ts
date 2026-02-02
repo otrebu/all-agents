@@ -14,6 +14,7 @@ import {
   isValidLevelName,
   LEVELS,
   promptContinue,
+  runLevel,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
 import { describe, expect, test } from "bun:test";
@@ -187,5 +188,47 @@ describe("promptContinue", () => {
     // which means promptContinue should return true without blocking
     const shouldContinue = await promptContinue("stories", "tasks");
     expect(shouldContinue).toBe(true);
+  });
+});
+
+// =============================================================================
+// runLevel Tests
+// =============================================================================
+
+describe("runLevel", () => {
+  const options = {
+    contextRoot: "/nonexistent/path",
+    subtasksPath: "/nonexistent/subtasks.json",
+  };
+
+  test("returns error for invalid level name", async () => {
+    const error = await runLevel("invalid", options);
+    expect(error).not.toBeNull();
+    expect(error).toContain("Invalid level 'invalid'");
+    expect(error).toContain("Valid levels:");
+  });
+
+  test("returns error for planning levels (not yet implemented)", async () => {
+    const roadmapError = await runLevel("roadmap", options);
+    expect(roadmapError).toContain("planning level");
+    expect(roadmapError).toContain("not yet implemented");
+
+    const storiesError = await runLevel("stories", options);
+    expect(storiesError).toContain("planning level");
+
+    const tasksError = await runLevel("tasks", options);
+    expect(tasksError).toContain("planning level");
+
+    const subtasksError = await runLevel("subtasks", options);
+    expect(subtasksError).toContain("planning level");
+  });
+
+  test("accepts options with contextRoot and subtasksPath", async () => {
+    // Verify the function accepts the expected options shape
+    // The build/calibrate levels will fail due to missing files,
+    // but we're testing that the options are accepted
+    const error = await runLevel("calibrate", options);
+    // Should fail due to missing file, not due to options validation
+    expect(error).not.toContain("Invalid level");
   });
 });
