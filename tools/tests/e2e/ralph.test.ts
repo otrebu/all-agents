@@ -187,14 +187,14 @@ describe("ralph E2E", () => {
       expect(stdout).toContain("--headless");
     });
 
-    test("ralph plan tasks requires --story or --milestone with mode", async () => {
+    test("ralph plan tasks requires a source", async () => {
       const { exitCode, stderr } = await execa(
         "bun",
         ["run", "dev", "ralph", "plan", "tasks"],
         { cwd: TOOLS_DIR, reject: false },
       );
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("Must specify either --story");
+      expect(stderr).toContain("Must provide a source");
     });
 
     test("ralph plan tasks --milestone requires supervised or headless mode", async () => {
