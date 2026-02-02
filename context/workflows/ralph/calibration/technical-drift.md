@@ -422,22 +422,132 @@ When technical drift is detected, create a task file:
 
 ## Execution Instructions
 
+### Phase 1: Gather Context
+
 1. Read `subtasks.json` to find completed subtasks with `commitHash`
-2. Read project standards (CLAUDE.md, lint configs, etc.)
-3. For each completed subtask:
-   a. Read the `filesToRead` array if present - these provide context for expected patterns and documentation
-   b. **Identify atomic docs:** Check if `filesToRead` contains `@context/` paths; read those atomic docs to understand explicit guidance
-   c. Read the git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
-   d. Check for missing tests (look for corresponding test files)
-   e. Check for pattern consistency (compare to surrounding code and `filesToRead` context)
-   f. **Check atomic doc compliance:** Verify code follows guidance from any referenced atomic docs
-   g. Check for error handling on critical paths
-   h. Check for documentation on public APIs
-   i. Check for type safety (if TypeScript project)
-   j. Check for security concerns
-   k. Apply the "Don't Over-Flag" guard
-4. Output summary to stdout
-5. Create task files for any detected technical drift in `docs/planning/tasks/`
+2. Read project standards:
+   - `CLAUDE.md` - Project conventions and coding standards
+   - `.eslintrc.*` / `eslint.config.*` - Linting rules
+   - `tsconfig.json` - TypeScript strictness
+3. For each completed subtask, gather:
+   - The git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
+   - The `filesToRead` array contents (context files and atomic docs)
+   - Any atomic docs referenced (`@context/` paths)
+
+### Phase 2: Spawn Parallel Analyzers
+
+**CRITICAL:** All Task calls must be in a single message for parallel execution.
+
+For each completed subtask with `commitHash`, spawn an analyzer subagent:
+
+```
+Launch ALL these Task tool calls in a SINGLE message:
+
+Task 1: general-purpose agent (for subtask SUB-001)
+  - subagent_type: "general-purpose"
+  - model: "opus"
+  - prompt: |
+      Analyze this subtask for technical drift. Output JSON findings.
+
+      <subtask>
+      {subtask JSON including id, title, description, filesToRead}
+      </subtask>
+
+      <project-standards>
+      {CLAUDE.md content}
+      {lint config summary}
+      {tsconfig strictness settings}
+      </project-standards>
+
+      <atomic-docs>
+      {content of any @context/ files from filesToRead}
+      </atomic-docs>
+
+      <diff>
+      {git diff output}
+      </diff>
+
+      Check for these technical drift patterns:
+      1. Missing Tests - code changes without corresponding tests
+      2. Inconsistent Patterns - doesn't follow established patterns
+      3. Missing Error Handling - critical paths without error handling
+      4. Documentation Gaps - public APIs without docs
+      5. Type Safety Issues - any types, missing types
+      6. Security Concerns - injection, XSS, etc.
+      7. Atomic Doc Non-Compliance - violates guidance from referenced atomic docs
+
+      Apply "Don't Over-Flag" guard: Check if surrounding code has same pattern.
+      Respect "HUMAN APPROVED" escape hatch comments.
+
+      Output format:
+      ```json
+      {
+        "subtaskId": "SUB-001",
+        "issues": [
+          {
+            "type": "missing-tests|inconsistent-pattern|missing-error-handling|documentation-gap|type-safety|security|atomic-doc-violation",
+            "severity": "high|medium|low",
+            "confidence": 0.0-1.0,
+            "file": "path/to/file.ts",
+            "line": 45,
+            "evidence": "specific code showing the issue",
+            "standard": "what project standard requires",
+            "recommendation": "how to fix"
+          }
+        ]
+      }
+      ```
+
+Task 2: general-purpose agent (for subtask SUB-002)
+  - subagent_type: "general-purpose"
+  - model: "opus"
+  - prompt: |
+      [same structure for next subtask]
+
+... one Task call per completed subtask with commitHash
+```
+
+### Phase 3: Synthesize Findings
+
+After all analyzers complete, synthesize the results:
+
+1. **Aggregate** - Collect all issues from parallel analyzers
+2. **Dedupe** - Remove duplicate issues (same file + line + similar description)
+   - Keep higher confidence finding
+   - Elevate to max severity if they differ
+   - Combine source attributions
+3. **Score** - Calculate priority: `severity_weight × confidence`
+   - high = 3, medium = 2, low = 1
+4. **Group** - Organize by file for navigation
+
+Output synthesized summary:
+
+```markdown
+# Technical Drift Analysis Summary
+
+## Statistics
+- Subtasks analyzed: N
+- Total issues: N (unique after dedupe)
+- By severity: high (N), medium (N), low (N)
+- By type: missing-tests (N), security (N), ...
+
+## Findings by File
+
+### path/to/file.ts (N issues)
+
+#### 1. [issue type] - Line XX
+**Severity:** high/medium/low
+**Confidence:** 0.X
+**Evidence:** ...
+**Fix:** ...
+
+### path/to/other.ts (N issues)
+...
+```
+
+### Phase 4: Create Task Files
+
+For each high-severity issue or group of related issues, create a task file in `docs/planning/tasks/` following the format in the Output Format section above.
 
 ## Configuration
 

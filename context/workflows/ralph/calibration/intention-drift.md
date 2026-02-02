@@ -308,16 +308,109 @@ Options:
 
 ## Execution Instructions
 
+### Phase 1: Gather Completed Subtasks
+
 1. Read `subtasks.json` to find completed subtasks with `commitHash`
-2. For each completed subtask:
-   a. Read the git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
-   b. Read the subtask's `taskRef` to find parent Task
-   c. Read the Task's `storyRef` to find parent Story (if exists)
-   d. Compare code changes against the planning chain (Subtask → Task → Story)
-   e. Apply the "Don't Jump Ahead" guard
-   f. Determine if drift exists and what type
-3. Output summary to stdout
-4. Create task files for any detected drift in `docs/planning/tasks/`
+2. For each completed subtask, gather:
+   - The git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
+   - The subtask's `taskRef` → parent Task file
+   - The Task's `storyRef` → parent Story file (if exists)
+
+### Phase 2: Spawn Parallel Analyzers
+
+**CRITICAL:** All Task calls must be in a single message for parallel execution.
+
+For each completed subtask with `commitHash`, spawn an analyzer subagent:
+
+```
+Launch ALL these Task tool calls in a SINGLE message:
+
+Task 1: general-purpose agent (for subtask SUB-001)
+  - subagent_type: "general-purpose"
+  - model: "opus"
+  - prompt: |
+      Analyze this subtask for intention drift. Output JSON findings.
+
+      <subtask>
+      {subtask JSON including id, title, description, acceptanceCriteria}
+      </subtask>
+
+      <planning-chain>
+      Task: {task content if exists}
+      Story: {story content if exists}
+      </planning-chain>
+
+      <diff>
+      {git diff output}
+      </diff>
+
+      Analyze for these drift patterns:
+      1. Scope Creep - implements more than specified
+      2. Scope Shortfall - implements less than acceptance criteria require
+      3. Direction Change - solves different problem than intended
+      4. Missing Link - doesn't connect to intended outcome
+
+      Apply "Don't Jump Ahead" guard: Check if "missing" items are planned in future subtasks.
+
+      Output format:
+      ```json
+      {
+        "subtaskId": "SUB-001",
+        "driftDetected": true/false,
+        "type": "scope-creep|scope-shortfall|direction-change|missing-link|none",
+        "severity": "high|medium|low",
+        "confidence": 0.0-1.0,
+        "evidence": "specific code/diff showing drift",
+        "intendedBehavior": "what planning chain specified",
+        "actualBehavior": "what code actually does",
+        "impact": "how this affects project direction",
+        "recommendation": "modify-code|update-plan|create-subtask|none"
+      }
+      ```
+
+Task 2: general-purpose agent (for subtask SUB-002)
+  - subagent_type: "general-purpose"
+  - model: "opus"
+  - prompt: |
+      [same structure for next subtask]
+
+... one Task call per completed subtask with commitHash
+```
+
+### Phase 3: Synthesize Findings
+
+After all analyzers complete, synthesize the results:
+
+1. **Aggregate** - Collect all findings from parallel analyzers
+2. **Dedupe** - Remove duplicate drift detections (same issue flagged multiple ways)
+3. **Score** - Calculate priority: `severity_weight × confidence`
+   - high = 3, medium = 2, low = 1
+4. **Group** - Organize by drift type (scope-creep, scope-shortfall, etc.)
+
+Output synthesized summary:
+
+```markdown
+# Intention Drift Analysis Summary
+
+## Statistics
+- Subtasks analyzed: N
+- Drift detected: N
+- By type: scope-creep (N), scope-shortfall (N), direction-change (N), missing-link (N)
+
+## Findings (sorted by priority)
+
+### 1. [subtask-id] - [drift type]
+**Severity:** high/medium/low
+**Confidence:** 0.X
+**Evidence:** ...
+**Recommendation:** ...
+
+### 2. ...
+```
+
+### Phase 4: Create Task Files
+
+For each detected drift, create a task file in `docs/planning/tasks/` following the format in the Output Format section above.
 
 ## Configuration
 

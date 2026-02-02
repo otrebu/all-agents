@@ -205,17 +205,116 @@ If you find a marked exception, skip it and note it in the summary.
 
 ## Execution Instructions
 
+### Phase 1: Gather Session Data
+
 1. Read `subtasks.json` to find completed subtasks with `sessionId`
 2. Check `ralph.config.json` for `selfImprovement.mode` setting
-3. For each completed subtask:
-   a. Read the session log from `~/.claude/projects/<encoded-path>/<sessionId>.jsonl`
-   b. Analyze for inefficiency patterns
-   c. Record findings
-4. Output summary to stdout
-5. Based on `selfImprovement.mode`:
-   - **"always"** (default): Create task files for proposed improvements in `docs/planning/tasks/` - do NOT apply changes directly, only propose
-   - **"auto"**: Apply changes directly to the target files (CLAUDE.md, prompts, skills) without creating task files. Output what was changed in the summary.
-   - **"never"**: Should not reach here (handled earlier)
+   - If `"never"`, output message and exit without analysis
+3. For each completed subtask with `sessionId`:
+   - Locate session log at `~/.claude/projects/<encoded-path>/<sessionId>.jsonl`
+   - Note: Large logs may need chunked processing (see Large Log Handling section)
+
+### Phase 2: Spawn Parallel Analyzers
+
+**CRITICAL:** All Task calls must be in a single message for parallel execution.
+
+For each completed subtask with `sessionId`, spawn an analyzer subagent:
+
+```
+Launch ALL these Task tool calls in a SINGLE message:
+
+Task 1: general-purpose agent (for session abc123)
+  - subagent_type: "general-purpose"
+  - model: "opus"
+  - prompt: |
+      Analyze this session log for inefficiencies. Output JSON findings.
+
+      <subtask>
+      {subtask JSON including id, title, sessionId}
+      </subtask>
+
+      <session-log>
+      {session JSONL content - may be chunked for large logs}
+      </session-log>
+
+      Detect these inefficiency patterns:
+      1. Tool Misuse - Bash for file ops instead of Read/Write/Edit
+      2. Wasted Reads - files read but never used
+      3. Backtracking - edits that cancel each other out
+      4. Excessive Iterations - repeatedly attempting same fix without changing approach
+
+      Apply escape hatch: Skip items marked with "// @self-improve-ignore" or in config exceptions.
+
+      Output format:
+      ```json
+      {
+        "sessionId": "abc123",
+        "subtaskId": "SUB-001",
+        "findings": [
+          {
+            "type": "tool-misuse|wasted-reads|backtracking|excessive-iterations",
+            "severity": "high|medium|low",
+            "confidence": 0.0-1.0,
+            "messageRange": "lines 45-67",
+            "evidence": "specific tool calls showing the issue",
+            "impact": "tokens wasted, time lost, etc.",
+            "proposedFix": {
+              "targetFile": "CLAUDE.md or context/workflows/... or .claude/skills/...",
+              "change": "description of change to make"
+            }
+          }
+        ]
+      }
+      ```
+
+Task 2: general-purpose agent (for session def456)
+  - subagent_type: "general-purpose"
+  - model: "opus"
+  - prompt: |
+      [same structure for next session]
+
+... one Task call per completed subtask with sessionId
+```
+
+### Phase 3: Synthesize Findings
+
+After all analyzers complete, synthesize the results:
+
+1. **Aggregate** - Collect all findings from parallel analyzers
+2. **Dedupe** - Remove duplicate improvement proposals (same target file + similar change)
+   - Merge evidence from multiple sessions showing same pattern
+3. **Score** - Calculate priority: `severity_weight × confidence × session_count`
+   - Patterns appearing in multiple sessions are more valuable
+4. **Group** - Organize by target file and type
+
+Output synthesized summary:
+
+```markdown
+# Self-Improvement Analysis Summary
+
+## Statistics
+- Sessions analyzed: N
+- Total findings: N
+- By type: tool-misuse (N), wasted-reads (N), backtracking (N), excessive-iterations (N)
+
+## Top Recommendations (sorted by priority)
+
+### 1. [target file] - [change type]
+**Priority:** X.XX
+**Sessions affected:** N
+**Evidence:** ...
+**Proposed change:** ...
+
+### 2. ...
+```
+
+### Phase 4: Apply or Propose Changes
+
+Based on `selfImprovement.mode`:
+
+- **"suggest"** (default): Create task files for proposed improvements in `docs/planning/tasks/` - do NOT apply changes directly, only propose
+- **"autofix"**: Apply changes directly to target files (CLAUDE.md, prompts, skills) without creating task files. Output what was changed in the summary.
+- **"off"**: Should not reach here (handled in Phase 1)
 
 ## Important Notes
 
