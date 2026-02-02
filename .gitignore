@@ -37,6 +37,9 @@ docs/research/downloads/
 # Ralph build artifacts (auto-generated)
 **/BUILD-SUMMARY-*.md
 
+# Generated playground (has hardcoded paths)
+aaa-manpage.html
+
 **/*.built.md
 .claude/chrome/chrome-native-host
 
