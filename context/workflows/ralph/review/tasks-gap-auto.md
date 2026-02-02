@@ -1,6 +1,6 @@
 # Tasks Gap Analysis (Auto Mode)
 
-You are a critical reviewer analyzing **task coverage** for gaps, risks, and blind spots. This is an **automated, single-shot analysis** - you read documents cold and produce a structured gap analysis without human interaction.
+You are a critical reviewer analyzing **task coverage** for gaps, risks, and blind spots. This analysis uses **parallel subagents** to analyze each task independently, then synthesizes findings.
 
 ## Interactive Mode (Supervised)
 
@@ -209,15 +209,115 @@ Are task dependencies clear and satisfiable?
 - **Medium:** Likely gap - reasonable interpretation suggests missing work
 - **Low:** Possible gap - could be intentional or covered implicitly
 
-## Execution
+## Execution Phases
+
+### Phase 1: Gather Context
 
 1. Read the story file from `--story` argument
 2. Extract all story acceptance criteria
 3. Find all tasks referencing this story
-4. Map each story AC to covering task(s)
-5. Analyze each dimension for gaps
-6. Identify dependency order
-7. Output structured gap analysis
+4. Read @docs/planning/ROADMAP.md for milestone context
+
+### Phase 2: Spawn Parallel Analyzers
+
+**CRITICAL:** All Task calls must be in a single message for parallel execution.
+
+For each task file found, spawn an analyzer subagent:
+
+```
+Launch ALL these Task tool calls in a SINGLE message:
+
+Task 1: general-purpose agent (for TASK-001)
+  - subagent_type: "general-purpose"
+  - model: "opus"
+  - prompt: |
+      Analyze this task's coverage of story acceptance criteria. Output JSON findings.
+
+      <story>
+      {story content including title, description, acceptance criteria}
+      </story>
+
+      <task>
+      {task content including title, description, acceptance criteria}
+      </task>
+
+      <analysis-dimensions>
+      1. Coverage Check - Does this task cover any story ACs? Which ones?
+      2. Missing Elements - What story ACs are NOT covered by this task?
+      3. Technical Unknowns - Are there unresolved technical questions?
+      4. Dependencies - What does this task depend on or block?
+      </analysis-dimensions>
+
+      Output format:
+      ```json
+      {
+        "taskId": "TASK-001",
+        "taskTitle": "task title",
+        "coverage": {
+          "coveredACs": ["AC 1 text", "AC 2 text"],
+          "partiallyCovered": [{"ac": "AC text", "missing": "what's not covered"}],
+          "notCovered": ["AC 3 text"]
+        },
+        "findings": [
+          {
+            "dimension": "coverage|missing-tasks|technical-unknowns|dependencies",
+            "type": "gap|warning|question",
+            "severity": "critical|high|medium|low",
+            "confidence": 0.0-1.0,
+            "title": "brief title",
+            "problem": "description of the issue",
+            "evidence": "quote from task/story showing the gap",
+            "impact": "what happens if not addressed",
+            "suggestion": "recommended action"
+          }
+        ],
+        "dependencies": {
+          "requires": ["TASK-X", "external system"],
+          "blocks": ["TASK-Y"],
+          "circular": []
+        },
+        "technicalUnknowns": [
+          {
+            "area": "area name",
+            "unknown": "what's unknown",
+            "suggestedSpike": "spike description"
+          }
+        ]
+      }
+      ```
+
+Task 2: general-purpose agent (for TASK-002)
+  - subagent_type: "general-purpose"
+  - model: "opus"
+  - prompt: |
+      [same structure for next task]
+
+... one Task call per task file found
+```
+
+### Phase 3: Synthesize Findings
+
+After all analyzers complete, synthesize the results:
+
+1. **Aggregate** - Collect all findings from parallel analyzers
+2. **Build Coverage Matrix** - Map each story AC to covering task(s)
+3. **Identify Gaps** - Find story ACs with no coverage or partial coverage
+4. **Dedupe** - Remove duplicate findings (same gap flagged by multiple analyzers)
+5. **Score** - Calculate priority: `severity_weight × confidence`
+   - critical = 4, high = 3, medium = 2, low = 1
+6. **Group** - Organize by dimension (coverage, missing-tasks, technical-unknowns, dependencies)
+
+**Synthesis categories:**
+- **Coverage Gaps** - Story ACs not fully covered by any task
+- **Missing Tasks** - Work needed that no task addresses
+- **Technical Unknowns** - Unresolved questions needing spikes
+- **Dependencies** - Order constraints and external blockers
+
+Output synthesized analysis following the Output Format below.
+
+### Phase 4: Present Results
+
+Use the Output Format to present findings, then apply Interactive Mode if in supervised mode.
 
 ## CLI Invocation
 
