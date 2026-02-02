@@ -10,6 +10,8 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 
 ### 1. [ralph](milestones/ralph/): Core Building Loop
 
+**Status:** ✅ Complete
+
 **Outcome:** Users can run autonomous code iterations against a manually-created subtasks.json queue
 
 **Why this first:** The build loop is the heart of Ralph. Without it, planning artifacts have no consumer. This validates the memoryless iteration pattern and establishes the foundation for all other features.
@@ -33,6 +35,8 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 
 ### 2. [planning-automation](milestones/planning-automation/): Automated Planning Pipeline
 
+**Status:** ✅ Complete
+
 **Outcome:** Users can generate subtasks automatically from stories/tasks, enabling full planning-to-building pipeline
 
 **Why this second:** Manual subtasks.json creation is tedious. Automating the planning pipeline means humans design at higher levels (stories, tasks) while agents handle decomposition.
@@ -54,6 +58,8 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 ---
 
 ### 3. [calibration](milestones/calibration/): Self-Improving Governance
+
+**Status:** ✅ Complete
 
 **Outcome:** Users can detect intention drift, technical violations, and inefficiencies in agent behavior
 
@@ -77,6 +83,8 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 
 ### 4. [004-full-integration](milestones/004-full-integration/): End-to-End Autonomous Workflow
 
+**Status:** ✅ Complete (with cascade mode)
+
 **Outcome:** Users can run complete Vision → ROADMAP → Stories → Tasks → Subtasks → Build → Calibrate cycles with minimal intervention
 
 **Why last:** This is the "polish" milestone. It integrates hooks, notifications, and the status dashboard. Requires all previous milestones to be functional.
@@ -95,6 +103,10 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
   - Gap analyzer subagent for cold analysis of artifacts
   - Chunked presentation in review prompts (one finding at a time)
 - Skills documentation in VISION.md (what skills exist, what they do)
+- **Cascade mode** (`--cascade <target>`) for chaining levels through build/calibrate
+- **Session tracking** (`aaa session` command) with automatic `cc-session-id` commit trailers
+- **Enhanced notifications** with build metrics (files changed, lines added/removed, cost, session)
+- **Per-event `enabled` flag** for notification control in aaa.config.json
 
 **Success criteria:**
 - `/ralph build` in Claude Code triggers full iteration loop
@@ -102,12 +114,18 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 - `ralph status` shows accurate counts and recent activity
 - `ralph review subtasks` validates queue before building
 - `ralph review gap roadmap` provides cold analysis with fresh eyes
+- `ralph plan subtasks --cascade calibrate` chains through build and calibrate
+- Commits include `cc-session-id` trailer for interrogation
+- `aaa session cat --commit HEAD` retrieves session context from any commit
+- Notification messages include build metrics when available
 
 **Dependencies:** 003-calibration (milestone 3)
 
 ---
 
 ### 5. [code-review](milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md): Parallel Multi-Agent Review System
+
+**Status:** ✅ Complete
 
 **Outcome:** Users can run comprehensive code review with 12 specialized agents in parallel, with trust gradient modes matching Ralph's execution patterns
 

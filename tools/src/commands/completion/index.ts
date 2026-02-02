@@ -170,6 +170,13 @@ function handleCompletion(): void {
 
   try {
     switch (type) {
+      case "cascade": {
+        // Valid cascade targets (forward-only from any starting level)
+        console.log(
+          ["stories", "tasks", "subtasks", "build", "calibrate"].join("\n"),
+        );
+        break;
+      }
       case "command": {
         // List all top-level commands
         console.log(
@@ -182,6 +189,7 @@ function handleCompletion(): void {
             "parallel-search",
             "ralph",
             "review",
+            "session",
             "setup",
             "story",
             "sync-context",

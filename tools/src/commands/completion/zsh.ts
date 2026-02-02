@@ -35,6 +35,7 @@ _aaa() {
                 'gemini-research:Google Search via Gemini CLI'
                 'notify:Push notifications via ntfy'
                 'parallel-search:Multi-angle web research'
+                'session:Manage and retrieve Claude session files'
                 'setup:Setup all-agents for user or project'
                 'uninstall:Uninstall all-agents'
                 'sync-context:Sync context folder to target project'
@@ -100,6 +101,9 @@ _aaa() {
                     ;;
                 review)
                     _aaa_review
+                    ;;
+                session)
+                    _aaa_session
                     ;;
                 completion)
                     _arguments '1:shell:(bash zsh fish)'
@@ -264,7 +268,9 @@ _aaa_ralph() {
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch each iteration]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
                         '--max-iterations[Max retry attempts]:number:' \\
-                        '--validate-first[Run pre-build validation]'
+                        '--validate-first[Run pre-build validation]' \\
+                        '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
+                        '--calibrate-every[Run calibration every N iterations]:number:'
                     ;;
                 plan)
                     _aaa_ralph_plan
@@ -316,14 +322,16 @@ _aaa_ralph_plan() {
                     _arguments \\
                         '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--cascade[Cascade to target level]:target:_aaa_cascade_target'
                     ;;
                 tasks)
                     _arguments \\
                         '--story[Story path]:story:_aaa_story_or_file' \\
                         '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--cascade[Cascade to target level]:target:_aaa_cascade_target'
                     ;;
                 subtasks)
                     _arguments \\
@@ -334,7 +342,11 @@ _aaa_ralph_plan() {
                         '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
                         '--size[Slice thickness]:size:(small medium large)' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
+                        '--calibrate-every[Run calibration every N iterations]:number:' \\
+                        '--file[Source file path]:file:_files' \\
+                        '--text[Source text description]:text:'
                     ;;
             esac
             ;;
@@ -454,6 +466,52 @@ _aaa_task_or_file() {
         _describe 'task' tasks
     fi
     _files -g "*.md"
+}
+
+# Helper: complete cascade targets
+_aaa_cascade_target() {
+    local -a targets
+    targets=(\${(f)"$(aaa __complete cascade 2>/dev/null)"})
+    if (( \${#targets} )); then
+        _describe 'target' targets
+    fi
+}
+
+_aaa_session() {
+    local -a subcommands
+    subcommands=(
+        'path:Get session file path by ID or from commit'
+        'current:Get current session ID'
+        'cat:Output session JSONL content to stdout'
+        'list:List recent sessions'
+    )
+
+    _arguments -C \\
+        '1: :->subcmd' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                path|cat)
+                    _arguments \\
+                        '--commit[Extract session ID from commit trailer]:commit:' \\
+                        '1:session-id:'
+                    ;;
+                list)
+                    _arguments \\
+                        '--limit[Limit output to N entries]:number:' \\
+                        '--verbose[Human-readable table format]'
+                    ;;
+                current)
+                    # No additional arguments
+                    ;;
+            esac
+            ;;
+    esac
 }
 
 # Register completion - handles zinit/lazy compinit that may reset _comps

@@ -346,6 +346,45 @@ aaa ralph build --validate-first
 aaa ralph build -p
 ```
 
+**Cascade mode** (chain levels together):
+
+```bash
+# Chain from stories through to calibrate
+aaa ralph plan stories --milestone docs/planning/milestones/003-feature --cascade calibrate
+
+# Chain from subtasks to build only
+aaa ralph plan subtasks --milestone 003-feature --cascade build
+
+# Chain from build to calibrate
+aaa ralph build --cascade calibrate
+
+# Run calibration every 5 build iterations
+aaa ralph build --calibrate-every 5
+```
+
+Level sequence: `roadmap → stories → tasks → subtasks → build → calibrate`
+
+Cascade flows forward only. TTY mode prompts for confirmation between levels; non-TTY (headless/CI) continues automatically.
+
+**Subtask planning options:**
+
+```bash
+# Hierarchy sources (generate subtasks for all tasks in scope)
+aaa ralph plan subtasks --milestone 003-feature
+aaa ralph plan subtasks --story STORY-001
+aaa ralph plan subtasks --task TASK-014
+
+# Alternative sources (generate from arbitrary input)
+aaa ralph plan subtasks --file ./review-findings.md
+aaa ralph plan subtasks --text "Fix array bounds check in review command"
+aaa ralph plan subtasks --review   # Parse logs/reviews.jsonl
+
+# Size control (subtask granularity)
+aaa ralph plan subtasks --milestone 003-feature --size small   # 1-2 AC per subtask
+aaa ralph plan subtasks --milestone 003-feature --size medium  # 2-4 AC (default)
+aaa ralph plan subtasks --milestone 003-feature --size large   # 4-5 AC per subtask
+```
+
 **Status command:**
 
 ```bash
@@ -432,7 +471,7 @@ aaa ralph calibrate all
 
 #### session
 
-Manage and retrieve Claude session files. Useful for interrogation workflows.
+Manage and retrieve Claude session files. Useful for interrogation workflows and debugging cascade runs.
 
 ```bash
 # Get session file path by ID
@@ -464,6 +503,22 @@ aaa session list --verbose
 - Get the current session ID for scripts/automation
 - Output session content for piping to other tools or subagents
 - List recent sessions to find sessions to analyze
+- Debug cascade runs by examining session logs for each level
+
+**Cascade integration:**
+
+After a cascade run completes, use session commands to investigate each level:
+
+```bash
+# Find the commit made during a cascade build
+git log --oneline -5
+
+# Get the session for that commit
+aaa session cat --commit abc1234 | head -100
+
+# Or look up session from subtasks.json completion record
+jq '.subtasks[] | select(.done==true) | .sessionId' subtasks.json
+```
 
 **Error handling:**
 

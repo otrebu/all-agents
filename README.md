@@ -93,6 +93,8 @@ aaa ralph build                    # Run iteration loop
 aaa ralph build -i                 # Pause between iterations
 aaa ralph build --headless         # Headless mode with JSON capture
 aaa ralph build --quiet            # Suppress terminal summary (still writes file)
+aaa ralph build --cascade calibrate # Chain build → calibrate
+aaa ralph plan subtasks --milestone 003-feature --cascade build  # Chain subtasks → build
 aaa ralph status --subtasks        # Show progress
 aaa ralph review subtasks          # Review before building
 aaa ralph review tasks --story     # Review tasks for a story
@@ -459,7 +461,7 @@ Create `aaa.config.json` in your project root for unified configuration across a
       "ralph:maxIterationsExceeded": { "topic": "critical", "priority": "max", "tags": ["warning", "sos"] },
       "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
       "ralph:subtaskComplete": { "priority": "default" },
-      "claude:stop": { "topic": "claude", "priority": "default" },
+      "claude:stop": { "enabled": false },
       "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
     }
   },
@@ -505,6 +507,28 @@ Create `aaa.config.json` in your project root for unified configuration across a
 | `review`   | Code review auto-fix threshold and diary location  |
 | `research` | Research output directory and result limits        |
 | `debug`    | Enable debug logging across all commands           |
+
+**Event config options:**
+
+Each event in `notify.events` supports these fields:
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `enabled` | boolean | Set to `false` to disable the event entirely |
+| `topic` | string | Override the default ntfy topic |
+| `priority` | string | Notification priority: `min`, `low`, `default`, `high`, `max` |
+| `tags` | array | Emoji tags for the notification (e.g., `["tada", "warning"]`) |
+
+Example: Disable `claude:stop` notifications while keeping others:
+```json
+{
+  "notify": {
+    "events": {
+      "claude:stop": { "enabled": false }
+    }
+  }
+}
+```
 
 **Legacy config migration:** If you have `ralph.config.json` or `~/.config/aaa/notify.json`, the CLI will read them with a deprecation warning. Migrate to `aaa.config.json` for unified configuration.
 

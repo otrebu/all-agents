@@ -55,6 +55,7 @@ complete -c aaa -n __fish_aaa_needs_command -a story -d 'Story management utilit
 complete -c aaa -n __fish_aaa_needs_command -a ralph -d 'Autonomous development framework'
 complete -c aaa -n __fish_aaa_needs_command -a review -d 'Run parallel multi-agent code review'
 complete -c aaa -n __fish_aaa_needs_command -a notify -d 'Push notifications via ntfy.sh'
+complete -c aaa -n __fish_aaa_needs_command -a session -d 'Manage and retrieve Claude session files'
 complete -c aaa -n __fish_aaa_needs_command -a completion -d 'Generate shell completion scripts'
 
 # Global options
@@ -158,6 +159,8 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s s -l supervis
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s H -l headless -d 'Headless mode: JSON output + logging'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l max-iterations -d 'Max retry attempts' -r
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Run pre-build validation'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-every -d 'Run calibration every N iterations' -r
 
 # ralph status options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph status' -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
@@ -178,6 +181,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_stories -l milestone -d 'Milestone name
 complete -c aaa -n __fish_aaa_ralph_plan_stories -s a -l auto -d 'Use auto mode (alias for --supervised)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -s s -l supervised -d 'Supervised mode: watch chat'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 
 # ralph plan tasks options
 function __fish_aaa_ralph_plan_tasks
@@ -189,6 +193,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_tasks -l milestone -d 'Milestone name' 
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s a -l auto -d 'Use auto mode (alias for --supervised)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s s -l supervised -d 'Supervised mode: watch chat'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 
 # ralph plan subtasks options
 function __fish_aaa_ralph_plan_subtasks
@@ -202,6 +207,10 @@ complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l milestone -d 'Target milest
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l size -d 'Slice thickness' -xa 'small medium large'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s s -l supervised -d 'Supervised mode (default)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l calibrate-every -d 'Run calibration every N iterations' -r
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l file -d 'Source file path' -ra '(__fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l text -d 'Source text description' -r
 # Enable file completion for positional [source] argument
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -F
 
@@ -260,5 +269,26 @@ complete -c aaa -n '__fish_aaa_using_subcommand review' -a status -d 'Display re
 complete -c aaa -n '__fish_aaa_using_subcommand completion' -a bash -d 'Generate bash completion'
 complete -c aaa -n '__fish_aaa_using_subcommand completion' -a zsh -d 'Generate zsh completion'
 complete -c aaa -n '__fish_aaa_using_subcommand completion' -a fish -d 'Generate fish completion'
+
+# session subcommands
+complete -c aaa -n '__fish_aaa_using_subcommand session' -a path -d 'Get session file path'
+complete -c aaa -n '__fish_aaa_using_subcommand session' -a current -d 'Get current session ID'
+complete -c aaa -n '__fish_aaa_using_subcommand session' -a cat -d 'Output session JSONL content'
+complete -c aaa -n '__fish_aaa_using_subcommand session' -a list -d 'List recent sessions'
+
+# session path/cat options
+function __fish_aaa_session_path_or_cat
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 3 -a "$cmd[2]" = session -a \\( "$cmd[3]" = path -o "$cmd[3]" = cat \\)
+end
+complete -c aaa -n __fish_aaa_session_path_or_cat -l commit -d 'Extract session ID from commit trailer' -r
+
+# session list options
+function __fish_aaa_session_list
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 3 -a "$cmd[2]" = session -a "$cmd[3]" = list
+end
+complete -c aaa -n __fish_aaa_session_list -l limit -d 'Limit output to N entries' -r
+complete -c aaa -n __fish_aaa_session_list -l verbose -d 'Human-readable table format'
 `;
 }

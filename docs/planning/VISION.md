@@ -70,6 +70,7 @@ The core philosophy of "humans on the loop, not in it" is realized through these
 | **Progress & Status** | Developer monitoring builds | Clear visibility into progress and iteration history without reading code diffs |
 | **Technical Standards Enforcement** | Developer maintaining quality | Detect when code violates documented standards so I can maintain consistency |
 | **Interactive Planning Guidance** | Developer refining structure | AI-guided sessions with Socratic questioning to collaboratively define artifacts |
+| **Session Tracking** | Developer debugging builds | Trace build iterations back to Claude sessions for debugging and calibration |
 
 ### subtasks.json
 
@@ -250,13 +251,36 @@ Two interfaces, same underlying prompts:
 
 **Auto mode**: AI reads upstream docs + codebase, generates best guess. Human reviews output.
 
-**Cascade mode** (`--cascade`): Full auto-generation through entire pipeline. Chains vision→roadmap→stories→tasks→subtasks with confirmation prompts between levels. Risk: massive generation without review. Requires `--force` to skip confirmations.
+**Cascade mode** (`--cascade <target>`): Chain Ralph levels together automatically. Cascades flow forward through the level hierarchy with confirmation prompts between levels (unless `--headless`).
 
-```bash
-ralph plan --cascade                    # Full pipeline from vision
-ralph plan stories --cascade            # stories → tasks → subtasks
-ralph plan tasks --cascade --milestone  # tasks → subtasks for milestone
+**Level hierarchy (forward-only):**
 ```
+roadmap → stories → tasks → subtasks → build → calibrate
+```
+
+**Valid cascade targets by starting level:**
+
+| Starting From | Valid Targets |
+|---------------|---------------|
+| `roadmap` | `stories`, `tasks`, `subtasks`, `build`, `calibrate` |
+| `stories` | `tasks`, `subtasks`, `build`, `calibrate` |
+| `tasks` | `subtasks`, `build`, `calibrate` |
+| `subtasks` | `build`, `calibrate` |
+| `build` | `calibrate` |
+
+**TTY-aware prompting:** In interactive mode, cascade prompts for confirmation between levels. In non-TTY (CI/headless), cascade continues automatically.
+
+**Examples:**
+```bash
+ralph plan stories --milestone 003-feature --cascade calibrate  # stories → tasks → subtasks → build → calibrate
+ralph plan subtasks --milestone 003-feature --cascade build     # subtasks → build
+ralph build --cascade calibrate                                 # build → calibrate
+ralph build --calibrate-every 5                                 # run calibration every 5 iterations
+```
+
+**Cascade options:**
+- `--cascade <target>` - Continue to target level after completion
+- `--calibrate-every <n>` - Run calibration every N iterations (for `build` and `subtasks` commands)
 
 #### Prompts
 
@@ -729,7 +753,24 @@ Hooks enable human-on-the-loop checkpoints via `ralph.config.json`:
 
 **Iteration diary:** Machine-readable log at `logs/iterations.jsonl` in the **target project** (not all-agents). Includes LLM-generated summary.
 
-> **Note:** The `approvals` config block requires cascade mode (not yet implemented). See [ROADMAP.md](ROADMAP.md) for status.
+**Per-event disable:** Use `enabled: false` in event config to disable a specific event:
+```json
+{
+  "notify": {
+    "events": {
+      "claude:stop": { "enabled": false }
+    }
+  }
+}
+```
+
+**Notification message format:** The `formatNotificationMessage()` function builds rich notifications with optional metrics:
+```
+<message>
+Files: 3 | Lines: +45/-12 | Cost: $0.23 | Session: abc12345
+```
+
+> **Note:** Cascade mode is now implemented - see Section 3.3 for `--cascade <target>` usage.
 
 ## 6. Logging & Monitoring
 
@@ -746,6 +787,26 @@ session_id=$(echo "$result" | jq -r '.session_id')
 ```
 
 **Session resume:** Not used in Ralph flow (memoryless principle). Session IDs stored for debugging/calibration only.
+
+**Session commands:** The `aaa session` command provides session file management:
+```bash
+aaa session path <id>           # Get session file path by ID
+aaa session path --commit HEAD  # Get session from commit's cc-session-id trailer
+aaa session current             # Get current session ID from .claude/current-session
+aaa session cat <id>            # Output session JSONL to stdout
+aaa session list                # List recent sessions (machine-parseable)
+aaa session list --verbose      # Human-readable table format
+```
+
+**Git integration:** Ralph commits include a `cc-session-id` trailer linking to the Claude session:
+```
+feat(SUB-019): implement cascade module
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+cc-session-id: f7b82ad9-8265-4544-ade6-ad43311b79b5
+```
+
+Use `aaa session cat --commit HEAD` to retrieve the conversation context for any commit.
 
 ## 7. Status & Next Steps
 
@@ -827,6 +888,13 @@ aaa ralph status             # Show current state
 | `-s, --supervised` | Supervised mode: spawn chat, user watches (default for most) |
 | `-H, --headless` | Headless mode: JSON output + file logging |
 
+**Cascade options** (for planning and build commands):
+
+| Option | Description |
+|--------|-------------|
+| `--cascade <target>` | Continue to target level after completion |
+| `--calibrate-every <n>` | Run calibration every N iterations (subtasks and build only) |
+
 **Plan subcommands:**
 
 ```bash
@@ -839,6 +907,25 @@ ralph plan subtasks --task <path>                              # Subtasks for si
 ralph plan subtasks --story <path>                             # Subtasks for all tasks in story
 ralph plan subtasks --milestone <path>                         # Subtasks for all tasks in milestone
 ```
+
+**Subtask source flags** (multiple input modes):
+
+| Flag | Source Type | Description |
+|------|-------------|-------------|
+| `--milestone <path>` | Hierarchy | Generate subtasks for all tasks in milestone |
+| `--story <path>` | Hierarchy | Generate subtasks for all tasks linked to story |
+| `--task <path>` | Hierarchy | Generate subtasks for a single task |
+| `--file <path>` | File | Generate subtasks from arbitrary file content |
+| `--text "description"` | Text | Generate subtasks from inline text description |
+| `--review` | Diary | Generate subtasks from `logs/reviews.jsonl` findings |
+
+**Subtask sizing** (controls subtask granularity):
+
+| Flag | Description |
+|------|-------------|
+| `--size small` | Fine-grained subtasks (1-2 AC each) |
+| `--size medium` | Balanced subtasks (2-4 AC each, default) |
+| `--size large` | Coarse subtasks (4-5 AC each) |
 
 **Scope flags accept paths** (tab-completable):
 
