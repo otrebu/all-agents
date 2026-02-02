@@ -2,6 +2,45 @@
 
 **Purpose:** Ask "why" instead of reading code. Surfaces assumptions, decisions, and confidence levels in code changes.
 
+## Session Modes
+
+The interrogation workflow operates in different modes depending on what you're interrogating:
+
+| Mode | Targets | Source | Quality |
+|------|---------|--------|---------|
+| **Live** | `changes`, `staged`, `unstaged` | Direct introspection (current session memory) | ★★★ Richest |
+| **Forensic** | `commit`, `pr`, `range` | Session transcript loaded via `aaa session cat` | ★★ Good |
+| **Fallback** | Forensic when no cc-session-id | Diff analysis only | ★ Basic |
+
+### Live Mode (Current Session)
+
+When interrogating current changes, Claude answers from **direct memory** of the current session:
+
+- No file lookup needed
+- Alternatives are known from conversation history
+- Difficulty is lived experience
+- Uncertainty reflects actual current confidence
+
+This is the richest mode because it's introspection, not archaeology.
+
+### Forensic Mode (Past Commits)
+
+When interrogating commits, PRs, or ranges:
+
+1. Extract `cc-session-id` trailer from commit(s)
+2. Load session transcript: `aaa session cat --commit <hash>`
+3. Use transcript context to inform answers
+
+Forensic mode with session transcript is second-best to live mode.
+
+### Fallback Mode (Diff-Only)
+
+When no `cc-session-id` trailer exists:
+
+- Analyze diff alone
+- Answers are speculative
+- Clearly indicate reduced confidence
+
 ## Core Questions
 
 Ask these three questions about any code change:
@@ -30,7 +69,7 @@ Reveal uncertainty and assumptions.
 - What assumptions are being made?
 - What would need to be true for this to fail?
 
-## Modes
+## Answer Modes
 
 ### Default Mode
 
@@ -77,7 +116,7 @@ Extra validation for AI-generated or unfamiliar code. Adds follow-up probes:
 ### Full Output (Default/Skeptical)
 
 ```
-## Interrogation Results
+## Interrogation Results [Live|Forensic: <id>|Diff-Only]
 
 ### Hardest Decision
 **Decision:** <what was decided>
@@ -105,13 +144,23 @@ Extra validation for AI-generated or unfamiliar code. Adds follow-up probes:
 | Edge case handling | <0-100%> |
 ```
 
+**Session context indicator:** The header includes one of:
+- `[Live]` - Answers from current session memory
+- `[Forensic: <session-id>]` - Answers informed by loaded session transcript
+- `[Diff-Only]` - No session context available
+
 ## Targets
 
 The interrogation can be run against different targets:
 
-- **changes** - Current staged and unstaged changes (`git diff HEAD`)
-- **commit** - A specific commit (`git show <hash>`)
-- **pr** - A pull request (uses `gh pr diff <number>`)
+| Target | Mode | Command |
+|--------|------|---------|
+| `changes` | Live | Current staged and unstaged changes (`git diff HEAD`) |
+| `staged` | Live | Staged changes only (`git diff --cached`) |
+| `unstaged` | Live | Unstaged changes only (`git diff`) |
+| `commit <hash>` | Forensic | A specific commit (`git show <hash>`) |
+| `pr <number>` | Forensic | A pull request (`gh pr diff <number>`) |
+| `range <ref1>..<ref2>` | Forensic | A commit range (`git diff <ref1>..<ref2>`) |
 
 ## When to Use
 
@@ -119,7 +168,22 @@ The interrogation can be run against different targets:
 - **Reviewing AI code:** Use `--skeptical` mode for extra validation
 - **Quick sanity check:** Use `--quick` mode for small changes
 - **Understanding unfamiliar code:** Full mode with follow-up questions
+- **Auditing past work:** Use `commit` target for forensic analysis of past decisions
 
 ## Integration
 
 This workflow is designed to complement code review, not replace it. Use interrogation to understand intent, then review for correctness.
+
+### Forensic Mode Details
+
+To interrogate a past commit with session context:
+
+```bash
+# Check if commit has session trailer
+git log -1 --format="%(trailers:key=cc-session-id)" <hash>
+
+# Load session content for analysis
+aaa session cat --commit <hash>
+```
+
+Commits made during Claude Code sessions include a `cc-session-id` trailer that links to the conversation that produced the code. This enables richer interrogation by providing the full decision-making context.
