@@ -82,6 +82,16 @@ interface HeadlessIterationResult {
 }
 
 /**
+ * Options for checking if max iterations exceeded
+ */
+interface MaxIterationsCheckOptions {
+  currentAttempts: number;
+  maxIterations: number;
+  milestone?: string;
+  subtaskId: string;
+}
+
+/**
  * Options for periodic calibration
  */
 interface PeriodicCalibrationOptions {
@@ -89,6 +99,14 @@ interface PeriodicCalibrationOptions {
   contextRoot: string;
   iteration: number;
   subtasksPath: string;
+}
+
+/**
+ * Options for firing the onSubtaskComplete hook
+ */
+interface SubtaskCompleteHookOptions {
+  hookResult: null | PostIterationResult;
+  subtask: Subtask;
 }
 
 /**
@@ -189,6 +207,48 @@ After completing ONE subtask:
 }
 
 /**
+ * Fire the onSubtaskComplete hook with metrics from the iteration result
+ *
+ * @param options - Subtask and hook result containing metrics
+ */
+async function fireSubtaskCompleteHook(
+  options: SubtaskCompleteHookOptions,
+): Promise<void> {
+  const { hookResult, subtask } = options;
+  const entry = hookResult?.entry;
+  const claudeMs = entry?.timing?.claudeMs;
+
+  await executeHook("onSubtaskComplete", {
+    costUsd: entry?.costUsd,
+    duration: claudeMs === undefined ? undefined : formatDuration(claudeMs),
+    filesChanged: entry?.filesChanged?.length,
+    linesAdded: entry?.linesAdded,
+    linesRemoved: entry?.linesRemoved,
+    message: `Subtask ${subtask.id} completed: ${subtask.title}`,
+    milestone: entry?.milestone,
+    sessionId: entry?.sessionId,
+    subtaskId: subtask.id,
+  });
+}
+
+/**
+ * Format duration in milliseconds to human-readable string
+ *
+ * @param ms - Duration in milliseconds
+ * @returns Formatted string (e.g., "2m 30s" or "45s")
+ */
+function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+  return `${seconds}s`;
+}
+
+/**
  * Generate summary and exit with the specified code
  *
  * Generates a practical build summary from diary entries and completed subtasks,
@@ -278,10 +338,10 @@ function getLatestCommitHash(projectRoot: string): null | string {
  * @returns true if exceeded and should exit, false to continue
  */
 async function handleMaxIterationsExceeded(
-  currentAttempts: number,
-  maxIterations: number,
-  subtaskId: string,
+  options: MaxIterationsCheckOptions,
 ): Promise<boolean> {
+  const { currentAttempts, maxIterations, milestone, subtaskId } = options;
+
   if (maxIterations <= 0 || currentAttempts <= maxIterations) {
     return false;
   }
@@ -292,7 +352,10 @@ async function handleMaxIterationsExceeded(
   console.error(`Subtask failed after ${maxIterations} attempts`);
 
   await executeHook("onMaxIterationsExceeded", {
+    iterationNumber: currentAttempts,
+    maxIterations,
     message: `Subtask ${subtaskId} failed after ${maxIterations} attempts`,
+    milestone,
     subtaskId,
   });
 
@@ -682,6 +745,7 @@ async function runBuild(
       // eslint-disable-next-line no-await-in-loop -- Must await before returning
       await executeHook("onMilestoneComplete", {
         message: `Milestone ${milestone} completed! All ${completedThisRun.length} subtasks done.`,
+        milestone,
       });
 
       // Mark summary as generated to prevent double execution on signal
@@ -703,11 +767,12 @@ async function runBuild(
 
     // Check if we've exceeded max iterations for this subtask
     // eslint-disable-next-line no-await-in-loop -- Must check before continuing
-    const didExceedMaxIterations = await handleMaxIterationsExceeded(
+    const didExceedMaxIterations = await handleMaxIterationsExceeded({
       currentAttempts,
       maxIterations,
-      currentSubtask.id,
-    );
+      milestone: getMilestoneFromSubtasks(subtasksFile),
+      subtaskId: currentSubtask.id,
+    });
     if (didExceedMaxIterations) {
       process.exit(1);
     }
@@ -730,6 +795,7 @@ async function runBuild(
 
     // Invoke Claude based on mode
     let didComplete = false;
+    let iterationHookResult: null | PostIterationResult = null;
 
     if (mode === "headless") {
       const headlessResult = processHeadlessIteration({
@@ -754,7 +820,7 @@ async function runBuild(
         );
         didComplete = false;
       } else {
-        ({ didComplete } = headlessResult);
+        ({ didComplete, hookResult: iterationHookResult } = headlessResult);
       }
     } else {
       const supervisedResult = processSupervisedIteration({
@@ -777,7 +843,7 @@ async function runBuild(
         );
         didComplete = false;
       } else {
-        ({ didComplete } = supervisedResult);
+        ({ didComplete, hookResult: iterationHookResult } = supervisedResult);
       }
 
       if (didComplete) {
@@ -793,11 +859,11 @@ async function runBuild(
         id: currentSubtask.id,
       });
 
-      // Fire onSubtaskComplete hook
+      // Fire onSubtaskComplete hook with metrics from iteration result
       // eslint-disable-next-line no-await-in-loop -- Must await before continuing
-      await executeHook("onSubtaskComplete", {
-        message: `Subtask ${currentSubtask.id} completed: ${currentSubtask.title}`,
-        subtaskId: currentSubtask.id,
+      await fireSubtaskCompleteHook({
+        hookResult: iterationHookResult,
+        subtask: currentSubtask,
       });
     }
 
