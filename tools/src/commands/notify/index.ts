@@ -210,9 +210,13 @@ notifyCommand
       if (options.event === undefined) {
         // No event specified, skip event line
       } else {
-        const suffix =
+        const enabledSuffix =
+          eventConfig?.enabled === false ? chalk.yellow(" (disabled)") : "";
+        const notFoundSuffix =
           eventConfig === undefined ? chalk.yellow(" (not found)") : "";
-        console.log(`  Event:    ${options.event}${suffix}`);
+        console.log(
+          `  Event:    ${options.event}${notFoundSuffix}${enabledSuffix}`,
+        );
       }
       console.log(
         `  Topic:    ${resolved.topic || chalk.yellow("(not configured)")}`,
@@ -225,6 +229,11 @@ notifyCommand
       }
       console.log(`  Message:  ${message}`);
       return;
+    }
+
+    // Check if event is explicitly disabled (exit silently - safe for hooks)
+    if (eventConfig?.enabled === false) {
+      process.exit(0);
     }
 
     // Check if notifications should be sent
