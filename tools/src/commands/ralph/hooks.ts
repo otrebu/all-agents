@@ -178,6 +178,9 @@ async function executeNotifyAction(
 ): Promise<boolean> {
   const eventName = hookNameToEventName(hookName);
 
+  // Format message with metrics
+  const formattedMessage = formatNotificationMessage(hookName, context);
+
   console.log(
     `[Hook:${hookName}] Sending notification via CLI --event ${eventName}`,
   );
@@ -185,7 +188,7 @@ async function executeNotifyAction(
   try {
     // Use Bun.spawn to call aaa notify CLI
     const proc = Bun.spawn(
-      ["aaa", "notify", "--event", eventName, "--quiet", context.message],
+      ["aaa", "notify", "--event", eventName, "--quiet", formattedMessage],
       { stderr: "pipe", stdout: "pipe" },
     );
 
@@ -251,11 +254,14 @@ async function executeNotifyFallback(
       : notify.server;
   const url = `${server}/${notify.defaultTopic}`;
 
+  // Format message with metrics
+  const formattedMessage = formatNotificationMessage(hookName, context);
+
   console.log(`[Hook:${hookName}] Sending notification via fallback to ${url}`);
 
   try {
     const response = await fetch(url, {
-      body: context.message,
+      body: formattedMessage,
       headers: { Title: `Ralph Build: ${hookName}` },
       method: "POST",
     });
@@ -320,6 +326,73 @@ async function executePauseAction(hookName: string): Promise<void> {
 }
 
 /**
+ * Format a notification message with optional metrics
+ *
+ * Builds a rich notification message from HookContext, appending a metrics line
+ * if any metrics (files changed, lines added/removed, cost, session) are available.
+ *
+ * @param hookName - Name of the hook being executed (for context in message)
+ * @param context - Hook context with message and optional metrics
+ * @returns Formatted message with metrics appended when available
+ *
+ * @example
+ * // Full metrics
+ * formatNotificationMessage("onSubtaskComplete", {
+ *   message: "Completed SUB-019",
+ *   filesChanged: 3,
+ *   linesAdded: 45,
+ *   linesRemoved: 12,
+ *   costUsd: 0.23,
+ *   sessionId: "abc12345-defg-6789-hijk"
+ * });
+ * // Returns: "Completed SUB-019\nFiles: 3 | Lines: +45/-12 | Cost: $0.23 | Session: abc12345"
+ *
+ * @example
+ * // No metrics
+ * formatNotificationMessage("onMaxIterationsExceeded", {
+ *   message: "Failed after 3 attempts"
+ * });
+ * // Returns: "Failed after 3 attempts"
+ */
+function formatNotificationMessage(
+  _hookName: string,
+  context: HookContext,
+): string {
+  const parts: Array<string> = [];
+
+  // Files changed
+  if (context.filesChanged !== undefined) {
+    parts.push(`Files: ${context.filesChanged}`);
+  }
+
+  // Lines added/removed
+  if (context.linesAdded !== undefined || context.linesRemoved !== undefined) {
+    const added = context.linesAdded ?? 0;
+    const removed = context.linesRemoved ?? 0;
+    parts.push(`Lines: +${added}/-${removed}`);
+  }
+
+  // Cost
+  if (context.costUsd !== undefined) {
+    parts.push(`Cost: $${context.costUsd.toFixed(2)}`);
+  }
+
+  // Session ID (abbreviated to first 8 chars)
+  if (context.sessionId !== undefined && context.sessionId !== "") {
+    const abbreviated = context.sessionId.slice(0, 8);
+    parts.push(`Session: ${abbreviated}`);
+  }
+
+  // If no metrics, return base message only
+  if (parts.length === 0) {
+    return context.message;
+  }
+
+  // Append metrics line to message
+  return `${context.message}\n${parts.join(" | ")}`;
+}
+
+/**
  * Convert hook name to event name for aaa notify --event flag
  *
  * Maps camelCase hook names like "onMaxIterationsExceeded" to
@@ -347,6 +420,7 @@ export {
   executeNotifyAction,
   executeNotifyFallback,
   executePauseAction,
+  formatNotificationMessage,
   type HookContext,
   hookNameToEventName,
   type HookResult,
