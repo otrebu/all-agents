@@ -54,6 +54,7 @@ complete -c aaa -n __fish_aaa_needs_command -a task -d 'Task management utilitie
 complete -c aaa -n __fish_aaa_needs_command -a story -d 'Story management utilities'
 complete -c aaa -n __fish_aaa_needs_command -a ralph -d 'Autonomous development framework'
 complete -c aaa -n __fish_aaa_needs_command -a review -d 'Run parallel multi-agent code review'
+complete -c aaa -n __fish_aaa_needs_command -a notify -d 'Push notifications via ntfy.sh'
 complete -c aaa -n __fish_aaa_needs_command -a completion -d 'Generate shell completion scripts'
 
 # Global options
@@ -86,6 +87,51 @@ complete -c aaa -n '__fish_aaa_using_subcommand uninstall' -l project -d 'Remove
 # sync-context options
 complete -c aaa -n '__fish_aaa_using_subcommand sync-context' -s t -l target -d 'Target directory' -ra '(__fish_complete_directories)'
 complete -c aaa -n '__fish_aaa_using_subcommand sync-context' -s w -l watch -d 'Watch for changes'
+
+# notify options and subcommands
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -s t -l title -d 'Notification title' -r
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -s p -l priority -d 'Priority level' -xa 'min low default high max'
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -l tags -d 'Comma-separated tags/emojis' -r
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -s q -l quiet -d 'Suppress output on success'
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -l dry-run -d 'Show what would be sent without sending'
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -l event -d 'Event name for routing' -r
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -a init -d 'Interactive first-time setup'
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -a on -d 'Enable notifications'
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -a off -d 'Disable notifications'
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -a status -d 'Show current notification status'
+complete -c aaa -n '__fish_aaa_using_subcommand notify' -a config -d 'Configuration management'
+
+# notify config subcommands
+complete -c aaa -n '__fish_aaa_using_subsubcommand notify config' -a set -d 'Set configuration values'
+complete -c aaa -n '__fish_aaa_using_subsubcommand notify config' -a show -d 'Display current configuration'
+complete -c aaa -n '__fish_aaa_using_subsubcommand notify config' -a test -d 'Send a test notification'
+
+# notify config set options
+function __fish_aaa_notify_config_set
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = notify -a "$cmd[3]" = config -a "$cmd[4]" = set
+end
+complete -c aaa -n __fish_aaa_notify_config_set -l topic -d 'Set ntfy topic' -r
+complete -c aaa -n __fish_aaa_notify_config_set -l server -d 'Set ntfy server URL' -r
+complete -c aaa -n __fish_aaa_notify_config_set -l title -d 'Set default notification title' -r
+complete -c aaa -n __fish_aaa_notify_config_set -l priority -d 'Set default priority' -xa 'min low default high max'
+complete -c aaa -n __fish_aaa_notify_config_set -l quiet-start -d 'Set quiet hours start (0-23)' -r
+complete -c aaa -n __fish_aaa_notify_config_set -l quiet-end -d 'Set quiet hours end (0-23)' -r
+complete -c aaa -n __fish_aaa_notify_config_set -l quiet-enabled -d 'Enable/disable quiet hours' -xa 'true false'
+
+# notify config show options
+function __fish_aaa_notify_config_show
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = notify -a "$cmd[3]" = config -a "$cmd[4]" = show
+end
+complete -c aaa -n __fish_aaa_notify_config_show -l json -d 'Output as JSON'
+
+# notify config test options
+function __fish_aaa_notify_config_test
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = notify -a "$cmd[3]" = config -a "$cmd[4]" = test
+end
+complete -c aaa -n __fish_aaa_notify_config_test -s m -l message -d 'Custom test message' -r
 
 # task subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand task' -a create -d 'Create empty task file'
@@ -128,7 +174,7 @@ function __fish_aaa_ralph_plan_stories
     set -l cmd (commandline -opc)
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = stories
 end
-complete -c aaa -n __fish_aaa_ralph_plan_stories -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -s a -l auto -d 'Use auto mode (alias for --supervised)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -s s -l supervised -d 'Supervised mode: watch chat'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -s H -l headless -d 'Headless mode: JSON output + logging'
@@ -138,8 +184,8 @@ function __fish_aaa_ralph_plan_tasks
     set -l cmd (commandline -opc)
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = tasks
 end
-complete -c aaa -n __fish_aaa_ralph_plan_tasks -l story -d 'Story file' -ra '(__fish_complete_suffix .md)'
-complete -c aaa -n __fish_aaa_ralph_plan_tasks -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l story -d 'Story file' -xa '(aaa __complete story 2>/dev/null; __fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s a -l auto -d 'Use auto mode (alias for --supervised)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s s -l supervised -d 'Supervised mode: watch chat'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s H -l headless -d 'Headless mode: JSON output + logging'
@@ -149,10 +195,10 @@ function __fish_aaa_ralph_plan_subtasks
     set -l cmd (commandline -opc)
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = subtasks
 end
-complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l task -d 'Task file (legacy)' -ra '(__fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l task -d 'Task file (legacy)' -xa '(aaa __complete task 2>/dev/null; __fish_complete_suffix .md)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l review -d 'Parse logs/reviews.jsonl for findings'
-complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l story -d 'Link subtasks to parent story' -r
-complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l milestone -d 'Target milestone' -xa '(aaa __complete milestone 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l story -d 'Link subtasks to parent story' -xa '(aaa __complete story 2>/dev/null; __fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l milestone -d 'Target milestone' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l size -d 'Slice thickness' -xa 'small medium large'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s s -l supervised -d 'Supervised mode (default)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
@@ -183,7 +229,7 @@ function __fish_aaa_ralph_review_stories
     set -l cmd (commandline -opc)
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = stories
 end
-complete -c aaa -n __fish_aaa_ralph_review_stories -xa '(aaa __complete milestone 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_stories -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 
 # ralph review roadmap - no additional options
 
@@ -202,7 +248,7 @@ function __fish_aaa_ralph_review_gap_stories
     set -l cmd (commandline -opc)
     test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = stories
 end
-complete -c aaa -n __fish_aaa_ralph_review_gap_stories -xa '(aaa __complete milestone 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_stories -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 
 # review options and subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand review' -s s -l supervised -d 'Supervised mode: watch execution'

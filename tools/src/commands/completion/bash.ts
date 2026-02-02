@@ -30,15 +30,27 @@ _aaa_completions() {
             return
             ;;
         --milestone)
-            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
+            # Dynamic milestone names + directory completion fallback
+            local milestones=$(aaa __complete milestone 2>/dev/null)
+            COMPREPLY=($(compgen -W "$milestones" -- "$cur"))
+            # Also add directory completion
+            COMPREPLY+=($(compgen -d -- "$cur"))
             return
             ;;
         --story)
-            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
+            # Dynamic story names + file completion fallback
+            local stories=$(aaa __complete story 2>/dev/null)
+            COMPREPLY=($(compgen -W "$stories" -- "$cur"))
+            # Also add .md file completion
+            COMPREPLY+=($(compgen -f -X '!*.md' -- "$cur"))
             return
             ;;
         --task)
-            COMPREPLY=($(compgen -f -X '!*.md' -- "$cur"))
+            # Dynamic task names + file completion fallback
+            local tasks=$(aaa __complete task 2>/dev/null)
+            COMPREPLY=($(compgen -W "$tasks" -- "$cur"))
+            # Also add .md file completion
+            COMPREPLY+=($(compgen -f -X '!*.md' -- "$cur"))
             return
             ;;
         --subtasks)
