@@ -132,7 +132,7 @@ function generateBuildSummary(
   // Aggregate stats from all iterations for completed subtasks
   let totalCostUsd = 0;
   let totalDurationMs = 0;
-  let totalFilesChanged = 0;
+  const allFilesChanged = new Set<string>();
   let failedCount = 0;
   let maxContextTokens = 0;
   let totalOutputTokens = 0;
@@ -144,7 +144,10 @@ function generateBuildSummary(
     if (completedIds.has(entry.subtaskId)) {
       totalCostUsd += entry.costUsd ?? 0;
       totalDurationMs += entry.duration ?? 0;
-      totalFilesChanged += entry.filesChanged?.length ?? 0;
+      // Deduplicate files across iterations
+      for (const file of entry.filesChanged ?? []) {
+        allFilesChanged.add(file);
+      }
       if (entry.status === "failed") {
         failedCount += 1;
       }
@@ -176,7 +179,7 @@ function generateBuildSummary(
       costUsd: totalCostUsd,
       durationMs: totalDurationMs,
       failed: failedCount,
-      filesChanged: totalFilesChanged,
+      filesChanged: allFilesChanged.size,
       linesAdded: totalLinesAdded,
       linesRemoved: totalLinesRemoved,
       maxContextTokens,

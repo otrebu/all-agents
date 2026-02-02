@@ -37,6 +37,20 @@ import {
 // =============================================================================
 
 /**
+ * Options for getFilesChanged()
+ */
+interface GetFilesChangedOptions {
+  /** Commit hash after Claude invocation */
+  commitAfter?: null | string;
+  /** Commit hash before Claude invocation */
+  commitBefore?: null | string;
+  /** Repository root path for git commands */
+  repoRoot: string;
+  /** Path to session JSONL file (for fallback) */
+  sessionPath: null | string;
+}
+
+/**
  * Result from getLinesChanged()
  */
 interface LinesChangedResult {
@@ -82,6 +96,10 @@ interface PostIterationOptions {
   subtasksPath: string;
 }
 
+// =============================================================================
+// Summary Generation
+// =============================================================================
+
 /**
  * Result from post-iteration hook
  */
@@ -95,7 +113,7 @@ interface PostIterationResult {
 }
 
 // =============================================================================
-// Summary Generation
+// Lines Changed
 // =============================================================================
 
 /**
@@ -111,7 +129,7 @@ interface SummaryResult {
 }
 
 // =============================================================================
-// Lines Changed
+// Files Changed
 // =============================================================================
 
 /**
@@ -239,9 +257,42 @@ function generateSummary(
   }
 }
 
-// =============================================================================
-// Files Changed
-// =============================================================================
+/**
+ * Get list of files changed between two commit hashes
+ *
+ * Uses git diff --name-only to list files modified
+ * across all commits in the range. This accurately measures
+ * what Claude committed during an iteration.
+ *
+ * @param repoRoot - Repository root path for git commands
+ * @param before - Commit hash before Claude invocation
+ * @param after - Commit hash after Claude invocation
+ * @returns Array of file paths changed in the range
+ */
+function getCommitRangeFiles(
+  repoRoot: string,
+  before: null | string,
+  after: null | string,
+): Array<string> {
+  if (before === null || after === null || before === after) {
+    return [];
+  }
+
+  const proc = Bun.spawnSync(
+    ["git", "diff", "--name-only", `${before}..${after}`],
+    { cwd: repoRoot },
+  );
+
+  if (proc.exitCode !== 0) {
+    return [];
+  }
+
+  return proc.stdout
+    .toString("utf8")
+    .trim()
+    .split("\n")
+    .filter((f) => f !== "");
+}
 
 /**
  * Get lines added/removed between two commit hashes
@@ -294,22 +345,35 @@ function getCommitRangeLines(
 /**
  * Get list of files changed during the iteration
  *
- * Uses git diff to find recently modified tracked files.
- * Falls back to session log extraction if git shows no changes.
+ * Primary source: git commit range (most accurate for what was actually committed)
+ * Fallback: session log extraction for Write/Edit tool uses (if no commits)
  *
- * @param sessionPath - Path to session JSONL file (for fallback)
- * @param repoRoot - Repository root path for git commands
+ * @param options - Options with sessionPath, repoRoot, and optional commit range
  * @returns Array of file paths (max 50)
  */
-function getFilesChanged(
-  sessionPath: null | string,
-  repoRoot: string,
-): Array<string> {
+function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
+  const { commitAfter, commitBefore, repoRoot, sessionPath } = options;
   const files = new Set<string>();
 
-  // Primary source: extract from session log (Write/Edit tool uses)
-  // This captures what Claude actually edited, even if already committed
-  if (sessionPath !== null) {
+  // Primary source: git commit range (most accurate)
+  const hasValidCommitRange =
+    commitBefore !== null &&
+    commitBefore !== undefined &&
+    commitBefore !== "" &&
+    commitAfter !== null &&
+    commitAfter !== undefined &&
+    commitAfter !== "" &&
+    commitBefore !== commitAfter;
+
+  if (hasValidCommitRange) {
+    const gitFiles = getCommitRangeFiles(repoRoot, commitBefore, commitAfter);
+    for (const file of gitFiles) {
+      files.add(file);
+    }
+  }
+
+  // Fallback: session parsing if git shows nothing
+  if (files.size === 0 && sessionPath !== null) {
     const sessionFiles = getFilesFromSession(sessionPath);
     for (const file of sessionFiles) {
       // Normalize to relative path if absolute
@@ -320,7 +384,7 @@ function getFilesChanged(
     }
   }
 
-  // Secondary: add any uncommitted git changes
+  // Also add any uncommitted git changes (staged/unstaged)
   try {
     const stagedProc = Bun.spawnSync(
       ["git", "diff", "--cached", "--name-only"],
@@ -349,7 +413,7 @@ function getFilesChanged(
       }
     }
   } catch {
-    // Git failed, session files already captured above
+    // Git failed, continue with files we have
   }
 
   // Filter out noise (diary files, lock files, etc.)
@@ -516,7 +580,12 @@ function runPostIterationHook(
   const metricsStart = Date.now();
   const toolCalls = sessionPath === null ? 0 : countToolCalls(sessionPath);
   const duration = sessionPath === null ? 0 : calculateDurationMs(sessionPath);
-  const filesChanged = getFilesChanged(sessionPath, repoRoot);
+  const filesChanged = getFilesChanged({
+    commitAfter,
+    commitBefore,
+    repoRoot,
+    sessionPath,
+  });
 
   // If commits are different, use commit range diff to accurately measure what Claude committed
   // If same (Claude didn't commit), fall back to staged+unstaged changes

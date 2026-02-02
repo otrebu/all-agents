@@ -228,6 +228,12 @@ function getFilesFromSession(sessionPath: string): Array<string> {
         continue;
       }
 
+      // Only count Write and Edit operations (not Read, Glob, etc.)
+      if (!line.includes('"name":"Write"') && !line.includes('"name":"Edit"')) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
       // Extract file paths using regex for efficiency
       // Matches "file_path":"..." pattern
       const filePathMatches = line.matchAll(
