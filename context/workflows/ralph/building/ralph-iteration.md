@@ -318,9 +318,10 @@ feat(<subtask-id>): <brief description>
 <longer description if needed>
 
 Subtask: <subtask-id>
+cc-session-id: <auto-added-by-hook>
 ```
 
-The subtask ID **must** appear in the commit message for traceability.
+The subtask ID **must** appear in the commit message for traceability. The `cc-session-id` trailer is automatically added by the `prepare-commit-msg` hook when `.claude/current-session` exists.
 
 **Example:**
 ```
@@ -330,6 +331,7 @@ Implement JWT token generation for user authentication.
 Tokens expire after 24 hours and include user ID and role.
 
 Subtask: subtask-042-01
+cc-session-id: 93025345-eb7a-4f43-819f-3fe206639718
 ```
 
 ### Phase 7: Update Tracking

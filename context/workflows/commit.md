@@ -35,6 +35,19 @@ feat | fix | refactor | docs | test | chore
 - Imperative: "add" not "added"
 - 50-72 chars
 
+## Session Tracking
+
+A `prepare-commit-msg` hook automatically appends a `cc-session-id` trailer to commits when `.claude/current-session` exists. This enables later interrogation of the session that produced a commit.
+
+**Example commit with session ID:**
+```
+feat(auth): add JWT verification
+
+cc-session-id: abc123-def456-789
+```
+
+To interrogate a commit's session later, see `context/workflows/interrogate.md`.
+
 ## Working on Main
 
 This repo uses semantic-release which auto-creates version commits on push to main.
