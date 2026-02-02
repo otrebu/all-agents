@@ -383,6 +383,90 @@ describe("ralph E2E", () => {
       expect(stderr).toContain("required option '--subtasks <path>'");
     });
   });
+
+  // Cascade validation tests (SUB-177)
+  describe("cascade validation", () => {
+    test("ralph plan subtasks --help shows --cascade option", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "plan", "subtasks", "--help"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--cascade");
+    });
+
+    test("invalid cascade target produces error with list of valid targets", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--task",
+          "some-task.md",
+          "--headless",
+          "--cascade",
+          "invalid-target",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("Invalid target level");
+      expect(stderr).toContain("Valid levels:");
+      expect(stderr).toContain("roadmap");
+      expect(stderr).toContain("stories");
+      expect(stderr).toContain("tasks");
+      expect(stderr).toContain("subtasks");
+      expect(stderr).toContain("build");
+      expect(stderr).toContain("calibrate");
+    });
+
+    test("plan subtasks --cascade stories exits with error (backward cascade)", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--task",
+          "some-task.md",
+          "--headless",
+          "--cascade",
+          "stories",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("Cannot cascade backward");
+      expect(stderr).toContain("subtasks");
+      expect(stderr).toContain("stories");
+    });
+
+    test("build --cascade subtasks exits with error (invalid target for build)", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "build",
+          "--subtasks",
+          "some-subtasks.json",
+          "--cascade",
+          "subtasks",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      // 'subtasks' is before 'build' in cascade order, so it's a backward cascade
+      expect(stderr).toContain("Cannot cascade backward");
+    });
+  });
 });
 
 describe("iteration-summary prompt placeholder substitution", () => {
