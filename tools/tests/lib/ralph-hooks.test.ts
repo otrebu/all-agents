@@ -8,7 +8,10 @@
 
 import type { Subprocess } from "bun";
 
-import { hookNameToEventName } from "@tools/commands/ralph/hooks";
+import {
+  formatNotificationMessage,
+  hookNameToEventName,
+} from "@tools/commands/ralph/hooks";
 import * as configLoader from "@tools/lib/config/loader";
 import {
   afterAll,
@@ -28,6 +31,121 @@ type MockSubprocess = Pick<
   Subprocess,
   "exitCode" | "exited" | "stderr" | "stdout"
 >;
+
+// =============================================================================
+// formatNotificationMessage Tests
+// =============================================================================
+
+describe("formatNotificationMessage", () => {
+  test("returns base message only when no metrics present", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      message: "Completed SUB-190",
+    });
+
+    expect(result).toBe("Completed SUB-190");
+  });
+
+  test("appends all metrics when fully populated", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      costUsd: 0.23,
+      filesChanged: 3,
+      linesAdded: 45,
+      linesRemoved: 12,
+      message: "Completed SUB-190",
+      sessionId: "abc12345-defg-6789-hijk",
+    });
+
+    expect(result).toBe(
+      "Completed SUB-190\nFiles: 3 | Lines: +45/-12 | Cost: $0.23 | Session: abc12345",
+    );
+  });
+
+  test("handles partial metrics - only files changed", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      filesChanged: 5,
+      message: "Test message",
+    });
+
+    expect(result).toBe("Test message\nFiles: 5");
+  });
+
+  test("handles partial metrics - only lines added", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      linesAdded: 100,
+      message: "Test message",
+    });
+
+    expect(result).toBe("Test message\nLines: +100/-0");
+  });
+
+  test("handles partial metrics - only lines removed", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      linesRemoved: 50,
+      message: "Test message",
+    });
+
+    expect(result).toBe("Test message\nLines: +0/-50");
+  });
+
+  test("handles partial metrics - only cost", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      costUsd: 1.5,
+      message: "Test message",
+    });
+
+    expect(result).toBe("Test message\nCost: $1.50");
+  });
+
+  test("handles partial metrics - only session ID", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      message: "Test message",
+      sessionId: "12345678-1234-1234-1234-123456789012",
+    });
+
+    expect(result).toBe("Test message\nSession: 12345678");
+  });
+
+  test("truncates session ID to first 8 characters", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      message: "Test",
+      sessionId: "abcdefghijklmnop",
+    });
+
+    expect(result).toBe("Test\nSession: abcdefgh");
+  });
+
+  test("skips empty session ID", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      message: "Test message",
+      sessionId: "",
+    });
+
+    expect(result).toBe("Test message");
+  });
+
+  test("formats cost with two decimal places", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      costUsd: 0.1,
+      message: "Test",
+    });
+
+    expect(result).toBe("Test\nCost: $0.10");
+  });
+
+  test("combines multiple partial metrics correctly", () => {
+    const result = formatNotificationMessage("onSubtaskComplete", {
+      costUsd: 0.05,
+      filesChanged: 2,
+      message: "Test",
+    });
+
+    expect(result).toBe("Test\nFiles: 2 | Cost: $0.05");
+  });
+});
+
+// =============================================================================
+// hookNameToEventName Tests
+// =============================================================================
 
 describe("hookNameToEventName", () => {
   test("converts onMaxIterationsExceeded to ralph:maxIterationsExceeded", () => {
