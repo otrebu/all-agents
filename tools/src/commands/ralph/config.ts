@@ -318,39 +318,70 @@ function resolveMilestonePath(nameOrPath: string): string {
 const ORPHAN_MILESTONE_ROOT = "docs/planning/milestones/_orphan";
 
 /**
- * Save subtasks file to disk with formatted JSON
+ * Append subtasks to an existing subtasks file, or create a new one
  *
- * Writes with 2-space indentation for readability.
- * WARNING: This overwrites the entire file. Use appendSubtasksToFile() to add
- * new subtasks to an existing file without losing existing data.
+ * Merges new subtasks with existing ones, skipping duplicates by ID.
+ * Creates a new file with default schema and metadata if none exists.
  *
  * @param subtasksPath - Path to subtasks.json file
  * @param newSubtasks - Array of new subtasks to append
  * @param metadata - Optional metadata to use if creating a new file
  * @returns Object with counts of added and skipped subtasks
+ * @throws Error if newSubtasks is not an array
+ * @throws Error if existing file has invalid JSON or format
+ * @throws Error if file operations fail
  */
 function appendSubtasksToFile(
   subtasksPath: string,
   newSubtasks: Array<Subtask>,
   metadata?: SubtasksFile["metadata"],
 ): { added: number; skipped: number } {
-  const existingFile: SubtasksFile = existsSync(subtasksPath)
-    ? loadSubtasksFile(subtasksPath)
-    : {
-        $schema: "../../schemas/subtasks.schema.json",
-        metadata: metadata ?? { scope: "milestone" },
-        subtasks: [],
-      };
-  const existingIds = new Set<string>(existingFile.subtasks.map((s) => s.id));
+  // Parameter validation
+  if (!Array.isArray(newSubtasks)) {
+    throw new TypeError("newSubtasks must be an array");
+  }
+
+  let existingFile: SubtasksFile = {
+    $schema: "../../schemas/subtasks.schema.json",
+    metadata: metadata ?? { scope: "milestone" },
+    subtasks: [],
+  };
+
+  if (existsSync(subtasksPath)) {
+    // Error handling for load
+    try {
+      existingFile = loadSubtasksFile(subtasksPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to load existing subtasks from ${subtasksPath}: ${message}`,
+      );
+    }
+  }
+
+  // Array validation for existing subtasks
+  const existingSubtasks = existingFile.subtasks;
+  if (!Array.isArray(existingSubtasks)) {
+    throw new TypeError(
+      `Invalid subtasks.json format: 'subtasks' must be an array`,
+    );
+  }
+
+  const existingIds = new Set<string>(existingSubtasks.map((s) => s.id));
 
   // Filter out duplicates and append
   const subtasksToAdd = newSubtasks.filter((s) => !existingIds.has(s.id));
   const skipped = newSubtasks.length - subtasksToAdd.length;
 
-  existingFile.subtasks.push(...subtasksToAdd);
+  existingFile.subtasks = [...existingSubtasks, ...subtasksToAdd];
 
-  // Write merged result
-  saveSubtasksFile(subtasksPath, existingFile);
+  // Error handling for save
+  try {
+    saveSubtasksFile(subtasksPath, existingFile);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to save subtasks to ${subtasksPath}: ${message}`);
+  }
 
   return { added: subtasksToAdd.length, skipped };
 }

@@ -450,6 +450,14 @@ const planCommand = new Command("plan").description(
   "Planning tools for vision, roadmap, stories, tasks, and subtasks",
 );
 
+/** Options for cascade execution helper */
+interface HandleCascadeOptions {
+  cascadeTarget: string;
+  contextRoot: string;
+  fromLevel: string;
+  resolvedMilestonePath: null | string;
+}
+
 // Helper type for subtasks source context
 interface SubtasksSourceContext {
   contextParts: Array<string>;
@@ -464,6 +472,33 @@ interface SubtasksSourceFlags {
   hasStory: boolean;
   hasTask: boolean;
   hasText: boolean;
+}
+
+/** Options for tasks milestone mode execution */
+interface TasksMilestoneOptions {
+  contextRoot: string;
+  isAutoMode: boolean;
+  isHeadless: boolean;
+  milestone: string;
+}
+
+/** Options for tasks source mode execution */
+interface TasksSourceOptions {
+  contextRoot: string;
+  file: string | undefined;
+  hasFile: boolean;
+  isHeadless: boolean;
+  isSupervised: boolean;
+  text: string | undefined;
+}
+
+/** Options for tasks story mode execution */
+interface TasksStoryOptions {
+  contextRoot: string;
+  isAutoMode: boolean;
+  isHeadless: boolean;
+  isSupervised: boolean;
+  story: string;
 }
 
 // Helper to build subtasks context and source info
@@ -515,6 +550,22 @@ function buildSubtasksSourceContext(
   return { contextParts, sourceInfo };
 }
 
+/**
+ * Print error message for missing tasks source and exit
+ */
+function exitWithTasksSourceError(): never {
+  console.error("Error: Must provide a source");
+  console.log("\nHierarchy sources (scope = source):");
+  console.log("  aaa ralph plan tasks --story <path>       # Story → tasks");
+  console.log(
+    "  aaa ralph plan tasks --milestone <path>   # All stories in milestone → tasks",
+  );
+  console.log("\nAlternative sources:");
+  console.log("  aaa ralph plan tasks --file <path>        # File → tasks");
+  console.log('  aaa ralph plan tasks --text "Add auth"    # Text → tasks');
+  process.exit(1);
+}
+
 // Helper to get prompt path based on session type and auto mode
 function getPromptPath(
   contextRoot: string,
@@ -546,6 +597,45 @@ function getSubtasksPromptPath(
     contextRoot,
     "context/workflows/ralph/planning/subtasks-from-source.md",
   );
+}
+
+/**
+ * Handle cascade execution after a planning level completes
+ *
+ * Validates cascade target, runs cascade, and exits on failure.
+ */
+async function handleCascadeExecution(
+  options: HandleCascadeOptions,
+): Promise<void> {
+  const { cascadeTarget, contextRoot, fromLevel, resolvedMilestonePath } =
+    options;
+
+  // Validate cascade target
+  const validationError = validateCascadeTarget(fromLevel, cascadeTarget);
+  if (validationError !== null) {
+    console.error(`Error: ${validationError}`);
+    process.exit(1);
+  }
+
+  // Determine subtasks path based on milestone
+  console.log(`\nCascading from ${fromLevel} to ${cascadeTarget}...\n`);
+  const subtasksPath =
+    resolvedMilestonePath === null
+      ? path.join(contextRoot, "subtasks.json")
+      : path.join(resolvedMilestonePath, "subtasks.json");
+
+  const result = await runCascadeFrom(fromLevel, cascadeTarget, {
+    contextRoot,
+    subtasksPath,
+  });
+
+  if (!result.success) {
+    console.error(`Cascade failed: ${result.error}`);
+    if (result.stoppedAt !== null) {
+      console.error(`Stopped at: ${result.stoppedAt}`);
+    }
+    process.exit(1);
+  }
 }
 
 // Helper to invoke Claude with a prompt file for interactive session
@@ -597,6 +687,115 @@ function invokeClaude(
   if (exitCode !== null && exitCode !== 0) {
     process.exit(exitCode);
   }
+}
+
+/**
+ * Execute tasks planning in milestone mode
+ *
+ * @returns Resolved milestone path
+ */
+function runTasksMilestoneMode(options: TasksMilestoneOptions): string {
+  const { contextRoot, isAutoMode, isHeadless, milestone } = options;
+
+  if (!isAutoMode) {
+    console.error(
+      "Error: --milestone requires --supervised or --headless mode",
+    );
+    console.log(
+      "\nUsage: aaa ralph plan tasks --milestone <path> --supervised",
+    );
+    process.exit(1);
+  }
+
+  const milestonePath = requireMilestone(milestone);
+  const promptPath = path.join(
+    contextRoot,
+    "context/workflows/ralph/planning/tasks-milestone.md",
+  );
+  const extraContext = `Generating tasks for all stories in milestone: ${milestonePath}`;
+
+  if (isHeadless) {
+    const logFile = getPlanningLogPath(milestonePath);
+    invokeClaudeHeadless({
+      extraContext,
+      logFile,
+      promptPath,
+      sessionName: "tasks-milestone",
+    });
+  } else {
+    invokeClaudeChat(promptPath, "tasks-milestone", extraContext);
+  }
+
+  return milestonePath;
+}
+
+/**
+ * Execute tasks planning from file or text source
+ */
+function runTasksSourceMode(options: TasksSourceOptions): void {
+  const { contextRoot, file, hasFile, isHeadless, isSupervised, text } =
+    options;
+
+  const promptPath = path.join(
+    contextRoot,
+    "context/workflows/ralph/planning/tasks-from-source.md",
+  );
+
+  const extraContext =
+    hasFile && file !== undefined
+      ? `Generating tasks from file: ${file}`
+      : `Generating tasks from description: ${text}`;
+
+  if (isHeadless) {
+    const logFile = getPlanningLogPath();
+    invokeClaudeHeadless({
+      extraContext,
+      logFile,
+      promptPath,
+      sessionName: "tasks-source",
+    });
+  } else if (isSupervised) {
+    invokeClaudeChat(promptPath, "tasks-source", extraContext);
+  } else {
+    invokeClaude(promptPath, "tasks-source", extraContext);
+  }
+}
+
+/**
+ * Execute tasks planning in story mode
+ *
+ * @returns Resolved milestone path if story is in a milestone, null otherwise
+ */
+function runTasksStoryMode(options: TasksStoryOptions): null | string {
+  const { contextRoot, isAutoMode, isHeadless, isSupervised, story } = options;
+
+  const storyPath = requireStory(story);
+
+  // Try to extract milestone from story path
+  const milestoneMatch = /milestones\/(?<slug>[^/]+)\//.exec(storyPath);
+  const resolvedMilestonePath =
+    milestoneMatch?.groups?.slug === undefined
+      ? null
+      : resolveMilestonePath(milestoneMatch.groups.slug);
+
+  const promptPath = getPromptPath(contextRoot, "tasks", isAutoMode);
+  const extraContext = `Planning tasks for story: ${storyPath}`;
+
+  if (isHeadless) {
+    const logFile = getPlanningLogPath();
+    invokeClaudeHeadless({
+      extraContext,
+      logFile,
+      promptPath,
+      sessionName: "tasks",
+    });
+  } else if (isSupervised) {
+    invokeClaudeChat(promptPath, "tasks", extraContext);
+  } else {
+    invokeClaude(promptPath, "tasks", extraContext);
+  }
+
+  return resolvedMilestonePath;
 }
 
 // ralph plan vision - interactive vision planning
@@ -745,7 +944,11 @@ planCommand.addCommand(
     .option("--text <string>", "Text description as source for task generation")
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--cascade <target>",
+      "Continue to target level after completion (subtasks, build, calibrate)",
+    )
+    .action(async (options) => {
       const hasStory = options.story !== undefined;
       const hasMilestone = options.milestone !== undefined;
       const hasFile = options.file !== undefined;
@@ -756,22 +959,7 @@ planCommand.addCommand(
         Boolean,
       ).length;
       if (sourceCount === 0) {
-        console.error("Error: Must provide a source");
-        console.log("\nHierarchy sources (scope = source):");
-        console.log(
-          "  aaa ralph plan tasks --story <path>       # Story → tasks",
-        );
-        console.log(
-          "  aaa ralph plan tasks --milestone <path>   # All stories in milestone → tasks",
-        );
-        console.log("\nAlternative sources:");
-        console.log(
-          "  aaa ralph plan tasks --file <path>        # File → tasks",
-        );
-        console.log(
-          '  aaa ralph plan tasks --text "Add auth"    # Text → tasks',
-        );
-        process.exit(1);
+        exitWithTasksSourceError();
       }
       if (sourceCount > 1) {
         console.error(
@@ -781,93 +969,47 @@ planCommand.addCommand(
       }
 
       const contextRoot = getContextRoot();
-
-      // Determine if using auto prompt
       const isAutoMode =
         options.supervised === true || options.headless === true;
 
-      // Milestone mode (hierarchy source)
+      // Track resolved milestone path for cascade
+      let resolvedMilestonePath: null | string = null;
+
+      // Execute based on source type
       if (hasMilestone && options.milestone !== undefined) {
-        if (!isAutoMode) {
-          console.error(
-            "Error: --milestone requires --supervised or --headless mode",
-          );
-          console.log(
-            "\nUsage: aaa ralph plan tasks --milestone <path> --supervised",
-          );
-          process.exit(1);
-        }
-
-        const milestonePath = requireMilestone(options.milestone);
-
-        const promptPath = path.join(
+        resolvedMilestonePath = runTasksMilestoneMode({
           contextRoot,
-          "context/workflows/ralph/planning/tasks-milestone.md",
-        );
-        const extraContext = `Generating tasks for all stories in milestone: ${milestonePath}`;
-
-        if (options.headless === true) {
-          const logFile = getPlanningLogPath(milestonePath);
-          invokeClaudeHeadless({
-            extraContext,
-            logFile,
-            promptPath,
-            sessionName: "tasks-milestone",
-          });
-        } else {
-          invokeClaudeChat(promptPath, "tasks-milestone", extraContext);
-        }
-        return;
-      }
-
-      // Story mode (hierarchy source)
-      if (hasStory && options.story !== undefined) {
-        const storyPath = requireStory(options.story);
-
-        const promptPath = getPromptPath(contextRoot, "tasks", isAutoMode);
-        const extraContext = `Planning tasks for story: ${storyPath}`;
-
-        if (options.headless === true) {
-          // Story mode doesn't have direct milestone, use orphan fallback
-          const logFile = getPlanningLogPath();
-          invokeClaudeHeadless({
-            extraContext,
-            logFile,
-            promptPath,
-            sessionName: "tasks",
-          });
-        } else if (options.supervised === true) {
-          invokeClaudeChat(promptPath, "tasks", extraContext);
-        } else {
-          invokeClaude(promptPath, "tasks", extraContext);
-        }
-        return;
-      }
-
-      // Alternative sources (--file or --text)
-      // Use a generic tasks-from-source workflow (reuse subtasks-from-source pattern)
-      const promptPath = path.join(
-        contextRoot,
-        "context/workflows/ralph/planning/tasks-from-source.md",
-      );
-
-      const extraContext =
-        hasFile && options.file !== undefined
-          ? `Generating tasks from file: ${options.file}`
-          : `Generating tasks from description: ${options.text}`;
-
-      if (options.headless === true) {
-        const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "tasks-source",
+          isAutoMode,
+          isHeadless: options.headless === true,
+          milestone: options.milestone,
         });
-      } else if (options.supervised === true) {
-        invokeClaudeChat(promptPath, "tasks-source", extraContext);
+      } else if (hasStory && options.story !== undefined) {
+        resolvedMilestonePath = runTasksStoryMode({
+          contextRoot,
+          isAutoMode,
+          isHeadless: options.headless === true,
+          isSupervised: options.supervised === true,
+          story: options.story,
+        });
       } else {
-        invokeClaude(promptPath, "tasks-source", extraContext);
+        runTasksSourceMode({
+          contextRoot,
+          file: options.file,
+          hasFile,
+          isHeadless: options.headless === true,
+          isSupervised: options.supervised === true,
+          text: options.text,
+        });
+      }
+
+      // Handle cascade if requested
+      if (options.cascade !== undefined) {
+        await handleCascadeExecution({
+          cascadeTarget: options.cascade,
+          contextRoot,
+          fromLevel: "tasks",
+          resolvedMilestonePath,
+        });
       }
     }),
 );
