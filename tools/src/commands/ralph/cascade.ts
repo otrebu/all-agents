@@ -24,6 +24,36 @@ import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 // =============================================================================
 
 /**
+ * Options for cascade execution
+ *
+ * Contains context needed to execute cascade levels, plus cascade-specific settings.
+ */
+interface CascadeFromOptions {
+  /** Repository root path */
+  contextRoot: string;
+  /** Skip confirmation prompts between cascade levels (for CI/automation) */
+  headless?: boolean;
+  /** Path to subtasks.json file */
+  subtasksPath: string;
+}
+
+/**
+ * Result of a cascade execution
+ *
+ * Tracks which levels completed successfully and where the cascade stopped
+ */
+interface CascadeFromResult {
+  /** Levels that completed successfully */
+  completedLevels: Array<string>;
+  /** Error message if cascade failed, null on success */
+  error: null | string;
+  /** Level where cascade stopped (on error or user abort), null if completed */
+  stoppedAt: null | string;
+  /** Whether the cascade completed all requested levels */
+  success: boolean;
+}
+
+/**
  * Definition of a cascade level with metadata
  */
 interface CascadeLevelDefinition {
@@ -200,6 +230,109 @@ async function promptContinue(
 }
 
 /**
+ * Execute a cascade from one level to another
+ *
+ * Orchestrates the execution of multiple Ralph levels in sequence:
+ * 1. Validates the cascade direction (must be forward)
+ * 2. Determines which levels to execute
+ * 3. Executes each level in order
+ * 4. Prompts user for continuation between levels (unless headless)
+ *
+ * @param start - Starting level (already completed, not re-executed)
+ * @param target - Target level to cascade to (inclusive)
+ * @param options - Cascade options including contextRoot, subtasksPath, and headless flag
+ * @returns CascadeFromResult with completion status and details
+ *
+ * @example
+ * // Cascade from subtasks to calibrate
+ * const result = await runCascadeFrom('subtasks', 'calibrate', {
+ *   contextRoot: '/path/to/repo',
+ *   subtasksPath: '/path/to/subtasks.json',
+ * });
+ * if (!result.success) {
+ *   console.error(`Cascade failed at ${result.stoppedAt}: ${result.error}`);
+ * }
+ */
+async function runCascadeFrom(
+  start: string,
+  target: string,
+  options: CascadeFromOptions,
+): Promise<CascadeFromResult> {
+  const runOptions: RunLevelOptions = {
+    contextRoot: options.contextRoot,
+    subtasksPath: options.subtasksPath,
+  };
+
+  // Step 1: Validate cascade direction
+  const validationError = validateCascadeTarget(start, target);
+  if (validationError !== null) {
+    return {
+      completedLevels: [],
+      error: validationError,
+      stoppedAt: start,
+      success: false,
+    };
+  }
+
+  // Step 2: Get levels to execute
+  const levelsToExecute = getLevelsInRange(start, target);
+  if (levelsToExecute.length === 0) {
+    return {
+      completedLevels: [],
+      error: `No levels between '${start}' and '${target}'`,
+      stoppedAt: start,
+      success: false,
+    };
+  }
+
+  // Step 3: Execute each level in sequence
+  const completedLevels: Array<string> = [];
+  let lastCompletedLevel = start;
+  let isFirstLevel = true;
+
+  for (const currentLevel of levelsToExecute) {
+    // Prompt for continuation between levels (unless headless or first level)
+    if (!isFirstLevel && options.headless !== true) {
+      // eslint-disable-next-line no-await-in-loop -- Must await user prompt before proceeding
+      const shouldContinue = await promptContinue(
+        lastCompletedLevel,
+        currentLevel,
+      );
+      if (!shouldContinue) {
+        return {
+          completedLevels,
+          error: "User aborted cascade",
+          stoppedAt: currentLevel,
+          success: false,
+        };
+      }
+    }
+    isFirstLevel = false;
+
+    console.log(`\n=== Running cascade level: ${currentLevel} ===\n`);
+
+    // Execute the level
+    // eslint-disable-next-line no-await-in-loop -- Levels must execute sequentially
+    const levelError = await runLevel(currentLevel, runOptions);
+    if (levelError !== null) {
+      return {
+        completedLevels,
+        error: levelError,
+        stoppedAt: currentLevel,
+        success: false,
+      };
+    }
+
+    // Track completion
+    completedLevels.push(currentLevel);
+    lastCompletedLevel = currentLevel;
+  }
+
+  // All levels completed successfully
+  return { completedLevels, error: null, stoppedAt: null, success: true };
+}
+
+/**
  * Execute a single cascade level
  *
  * Dispatches to the appropriate function based on level name:
@@ -279,6 +412,10 @@ async function runLevel(
   }
 }
 
+// =============================================================================
+// Main Cascade Loop
+// =============================================================================
+
 /**
  * Validate cascade target direction
  *
@@ -325,6 +462,8 @@ function validateCascadeTarget(from: string, to: string): null | string {
 // =============================================================================
 
 export {
+  type CascadeFromOptions,
+  type CascadeFromResult,
   type CascadeLevelDefinition,
   type CascadeLevelName,
   getLevelsInRange,
@@ -332,6 +471,7 @@ export {
   isValidLevelName,
   LEVELS,
   promptContinue,
+  runCascadeFrom,
   runLevel,
   type RunLevelOptions,
   validateCascadeTarget,

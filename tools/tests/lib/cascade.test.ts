@@ -14,6 +14,7 @@ import {
   isValidLevelName,
   LEVELS,
   promptContinue,
+  runCascadeFrom,
   runLevel,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
@@ -230,5 +231,102 @@ describe("runLevel", () => {
     const error = await runLevel("calibrate", options);
     // Should fail due to missing file, not due to options validation
     expect(error).not.toContain("Invalid level");
+  });
+});
+
+// =============================================================================
+// runCascadeFrom Tests
+// =============================================================================
+
+describe("runCascadeFrom", () => {
+  const options = {
+    contextRoot: "/nonexistent/path",
+    headless: true,
+    subtasksPath: "/nonexistent/subtasks.json",
+  };
+
+  test("returns error for invalid starting level", async () => {
+    const result = await runCascadeFrom("invalid", "build", options);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid starting level 'invalid'");
+    expect(result.completedLevels).toEqual([]);
+    expect(result.stoppedAt).toBe("invalid");
+  });
+
+  test("returns error for invalid target level", async () => {
+    const result = await runCascadeFrom("tasks", "invalid", options);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid target level 'invalid'");
+    expect(result.completedLevels).toEqual([]);
+    expect(result.stoppedAt).toBe("tasks");
+  });
+
+  test("returns error for backward cascade", async () => {
+    const result = await runCascadeFrom("build", "tasks", options);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Cannot cascade backward");
+    expect(result.completedLevels).toEqual([]);
+    expect(result.stoppedAt).toBe("build");
+  });
+
+  test("returns error for same level cascade", async () => {
+    const result = await runCascadeFrom("tasks", "tasks", options);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Cannot cascade backward");
+    expect(result.completedLevels).toEqual([]);
+  });
+
+  test("validates cascade direction using validateCascadeTarget", async () => {
+    const result = await runCascadeFrom("calibrate", "roadmap", options);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Cannot cascade backward");
+  });
+
+  test("uses getLevelsInRange to get levels to execute", async () => {
+    // Since planning levels aren't implemented, cascading from roadmap to stories
+    // will attempt to run stories and fail with "not yet implemented"
+    const result = await runCascadeFrom("roadmap", "stories", options);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("planning level");
+    expect(result.stoppedAt).toBe("stories");
+  });
+
+  test("proceeds through multiple levels in headless mode", async () => {
+    // In headless mode, promptContinue is skipped
+    // Will fail at first planning level (stories)
+    const result = await runCascadeFrom("roadmap", "tasks", options);
+    expect(result.stoppedAt).toBe("stories");
+    expect(result.completedLevels).toEqual([]);
+  });
+
+  test("returns CascadeResult with correct shape", async () => {
+    const result = await runCascadeFrom("roadmap", "stories", options);
+    expect(typeof result.success).toBe("boolean");
+    expect(Array.isArray(result.completedLevels)).toBe(true);
+    expect(result.error === null || typeof result.error === "string").toBe(
+      true,
+    );
+    expect(
+      result.stoppedAt === null || typeof result.stoppedAt === "string",
+    ).toBe(true);
+  });
+
+  test("stops at first failing level and reports it in stoppedAt", async () => {
+    const result = await runCascadeFrom("roadmap", "calibrate", options);
+    expect(result.success).toBe(false);
+    // First level after roadmap is stories
+    expect(result.stoppedAt).toBe("stories");
+    expect(result.completedLevels).toEqual([]);
+    expect(result.error).toContain("planning level");
+  });
+
+  test("accepts headless option to skip prompts", async () => {
+    // Verify headless mode works (already used in other tests)
+    const result = await runCascadeFrom("roadmap", "stories", {
+      contextRoot: "/nonexistent",
+      headless: true,
+      subtasksPath: "/nonexistent/subtasks.json",
+    });
+    expect(result.stoppedAt).toBe("stories");
   });
 });
