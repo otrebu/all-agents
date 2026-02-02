@@ -1,5 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "cleanupPeriodDays": 90,
   "permissions": {
     "allow": [
       "Read",
@@ -174,6 +175,17 @@
     "defaultMode": "plan"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.session_id' > \"$CLAUDE_PROJECT_DIR/.claude/current-session\""
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
