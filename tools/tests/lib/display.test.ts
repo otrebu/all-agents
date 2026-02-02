@@ -8,9 +8,11 @@ import type { CascadeResult } from "@tools/commands/ralph/types";
 import {
   formatDuration,
   formatTokenCount,
+  type PlanSubtasksSummaryData,
   renderBuildPracticalSummary,
   renderCascadeProgress,
   renderCascadeSummary,
+  renderPlanSubtasksSummary,
   truncate,
 } from "@tools/commands/ralph/display";
 import { describe, expect, test } from "bun:test";
@@ -356,6 +358,88 @@ describe("display utilities", () => {
       // Should not throw
       const output = renderCascadeSummary(result);
       expect(typeof output).toBe("string");
+    });
+  });
+
+  describe("renderPlanSubtasksSummary", () => {
+    test("shows only Story line when source.path equals storyRef", () => {
+      const data: PlanSubtasksSummaryData = {
+        costUsd: 1.5,
+        durationMs: 60_000,
+        outputPath: "/path/to/subtasks.json",
+        sessionId: "test-session",
+        sizeMode: "medium",
+        source: { path: "/path/to/story.md", type: "file" },
+        storyRef: "/path/to/story.md",
+        subtasks: [{ id: "SUB-001", title: "Test subtask" }],
+      };
+
+      const result = renderPlanSubtasksSummary(data);
+
+      // Should show Story line
+      expect(result).toContain("Story:");
+      expect(result).toContain("/path/to/story.md");
+
+      // Should NOT show duplicate Source (file) line
+      expect(result).not.toContain("Source (file):");
+    });
+
+    test("shows both Source and Story lines when they differ", () => {
+      const data: PlanSubtasksSummaryData = {
+        costUsd: 1.5,
+        durationMs: 60_000,
+        outputPath: "/path/to/subtasks.json",
+        sessionId: "test-session",
+        sizeMode: "medium",
+        source: { path: "/path/to/task.md", type: "file" },
+        storyRef: "/path/to/story.md",
+        subtasks: [{ id: "SUB-001", title: "Test subtask" }],
+      };
+
+      const result = renderPlanSubtasksSummary(data);
+
+      // Should show both lines since paths differ
+      expect(result).toContain("Source (file):");
+      expect(result).toContain("Story:");
+    });
+
+    test("shows Source line when source type is not file", () => {
+      const data: PlanSubtasksSummaryData = {
+        costUsd: 1.5,
+        durationMs: 60_000,
+        outputPath: "/path/to/subtasks.json",
+        sessionId: "test-session",
+        sizeMode: "medium",
+        source: { path: "/path/to/review.json", type: "review" },
+        storyRef: "/path/to/review.json",
+        subtasks: [{ id: "SUB-001", title: "Test subtask" }],
+      };
+
+      const result = renderPlanSubtasksSummary(data);
+
+      // Should show Source line for review type even if path matches storyRef
+      expect(result).toContain("Source (review):");
+    });
+
+    test("shows Source line when storyRef is undefined", () => {
+      const data: PlanSubtasksSummaryData = {
+        costUsd: 1.5,
+        durationMs: 60_000,
+        outputPath: "/path/to/subtasks.json",
+        sessionId: "test-session",
+        sizeMode: "medium",
+        source: { path: "/path/to/file.md", type: "file" },
+        subtasks: [{ id: "SUB-001", title: "Test subtask" }],
+      };
+
+      const result = renderPlanSubtasksSummary(data);
+
+      // Should show Source line when there's no storyRef
+      expect(result).toContain("Source (file):");
+    });
+
+    test("function is exported", () => {
+      expect(typeof renderPlanSubtasksSummary).toBe("function");
     });
   });
 });

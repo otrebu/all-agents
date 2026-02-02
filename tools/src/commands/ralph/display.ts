@@ -898,26 +898,33 @@ function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
   // Separator
   lines.push("─".repeat(innerWidth));
 
-  // Source info
-  const sourceLabels: Record<
-    PlanSubtasksSummaryData["source"]["type"],
-    string
-  > = {
-    file: "Source (file):",
-    review: "Source (review):",
-    text: "Source (text):",
-  };
-  const sourceLabel = sourceLabels[source.type];
+  // Source info - skip if source duplicates storyRef
+  const isStorySource =
+    source.type === "file" &&
+    storyRef !== undefined &&
+    source.path === storyRef;
 
-  if (source.type === "text" && source.text !== undefined) {
-    const truncatedText = truncate(source.text, innerWidth - 16);
-    lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
-  } else if (source.path !== undefined) {
-    const pathDisplay =
-      source.type === "review" && source.findingsCount !== undefined
-        ? `${source.path} (${source.findingsCount} findings)`
-        : source.path;
-    lines.push(`${chalk.dim(sourceLabel)} ${pathDisplay}`);
+  if (!isStorySource) {
+    const sourceLabels: Record<
+      PlanSubtasksSummaryData["source"]["type"],
+      string
+    > = {
+      file: "Source (file):",
+      review: "Source (review):",
+      text: "Source (text):",
+    };
+    const sourceLabel = sourceLabels[source.type];
+
+    if (source.type === "text" && source.text !== undefined) {
+      const truncatedText = truncate(source.text, innerWidth - 16);
+      lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
+    } else if (source.path !== undefined) {
+      const pathDisplay =
+        source.type === "review" && source.findingsCount !== undefined
+          ? `${source.path} (${source.findingsCount} findings)`
+          : source.path;
+      lines.push(`${chalk.dim(sourceLabel)} ${pathDisplay}`);
+    }
   }
 
   // Configuration: milestone, size mode, story ref
