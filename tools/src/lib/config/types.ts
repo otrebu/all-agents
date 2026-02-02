@@ -41,6 +41,8 @@ const quietHoursSchema = z.object({
  * Allows routing different events to different topics with different priorities
  */
 interface EventConfig {
+  /** Whether this event is enabled (defaults to true if omitted) */
+  enabled?: boolean;
   /** Override priority for this event */
   priority?: Priority;
   /** Optional tags for the notification */
@@ -50,6 +52,7 @@ interface EventConfig {
 }
 
 const eventConfigSchema = z.object({
+  enabled: z.boolean().optional(),
   priority: prioritySchema.optional(),
   tags: z.array(z.string()).optional(),
   topic: z.string().optional(),
