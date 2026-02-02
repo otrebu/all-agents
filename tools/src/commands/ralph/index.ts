@@ -12,6 +12,7 @@ import path from "node:path";
 
 import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
+import { runCascadeFrom, validateCascadeTarget } from "./cascade";
 import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
@@ -618,13 +619,44 @@ planCommand.addCommand(
 planCommand.addCommand(
   new Command("roadmap")
     .description("Start interactive roadmap planning session")
-    .action(() => {
+    .option(
+      "--cascade <target>",
+      "Continue to target level after completion (stories, tasks, subtasks, build, calibrate)",
+    )
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
         "context/workflows/ralph/planning/roadmap-interactive.md",
       );
       invokeClaude(promptPath, "roadmap");
+
+      // Handle cascade if requested
+      if (options.cascade !== undefined) {
+        const cascadeTarget = options.cascade;
+
+        // Validate cascade target
+        const validationError = validateCascadeTarget("roadmap", cascadeTarget);
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+
+        // Run cascade from roadmap to target
+        console.log(`\nCascading from roadmap to ${cascadeTarget}...\n`);
+        const result = await runCascadeFrom("roadmap", cascadeTarget, {
+          contextRoot,
+          subtasksPath: path.join(contextRoot, "subtasks.json"),
+        });
+
+        if (!result.success) {
+          console.error(`Cascade failed: ${result.error}`);
+          if (result.stoppedAt !== null) {
+            console.error(`Stopped at: ${result.stoppedAt}`);
+          }
+          process.exit(1);
+        }
+      }
     }),
 );
 
@@ -638,7 +670,11 @@ planCommand.addCommand(
     )
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--cascade <target>",
+      "Continue to target level after completion (tasks, subtasks, build, calibrate)",
+    )
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
 
@@ -663,6 +699,33 @@ planCommand.addCommand(
       } else {
         // Interactive mode (default): full interactive session
         invokeClaude(promptPath, "stories", extraContext);
+      }
+
+      // Handle cascade if requested
+      if (options.cascade !== undefined) {
+        const cascadeTarget = options.cascade;
+
+        // Validate cascade target
+        const validationError = validateCascadeTarget("stories", cascadeTarget);
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+
+        // Run cascade from stories to target
+        console.log(`\nCascading from stories to ${cascadeTarget}...\n`);
+        const result = await runCascadeFrom("stories", cascadeTarget, {
+          contextRoot,
+          subtasksPath: path.join(milestonePath, "subtasks.json"),
+        });
+
+        if (!result.success) {
+          console.error(`Cascade failed: ${result.error}`);
+          if (result.stoppedAt !== null) {
+            console.error(`Stopped at: ${result.stoppedAt}`);
+          }
+          process.exit(1);
+        }
       }
     }),
 );

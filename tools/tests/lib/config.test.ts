@@ -1,10 +1,17 @@
+import type { Subtask } from "@tools/commands/ralph/types";
+
 import {
+  appendSubtasksToFile,
   getIterationLogPath,
   getMilestoneLogPath,
   getPlanningLogPath,
+  loadSubtasksFile,
   ORPHAN_MILESTONE_ROOT,
 } from "@tools/commands/ralph/config";
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 describe("getMilestoneLogPath", () => {
   test("function is exported", () => {
@@ -137,5 +144,114 @@ describe("ORPHAN_MILESTONE_ROOT", () => {
   test("points to _orphan milestone directory", () => {
     expect(ORPHAN_MILESTONE_ROOT).toContain("_orphan");
     expect(ORPHAN_MILESTONE_ROOT).toContain("milestones");
+  });
+});
+
+describe("appendSubtasksToFile", () => {
+  let testDirectory = "";
+  let testPath = "";
+
+  beforeEach(() => {
+    testDirectory = join(tmpdir(), `config-test-${Date.now()}`);
+    mkdirSync(testDirectory, { recursive: true });
+    testPath = join(testDirectory, "subtasks.json");
+  });
+
+  afterEach(() => {
+    if (existsSync(testDirectory)) {
+      rmSync(testDirectory, { recursive: true });
+    }
+  });
+
+  function createSubtask(id: string): Subtask {
+    return {
+      acceptanceCriteria: ["Test AC"],
+      description: "Test description",
+      done: false,
+      filesToRead: [],
+      id,
+      taskRef: "TASK-001",
+      title: `Test subtask ${id}`,
+    };
+  }
+
+  test("creates new file when none exists", () => {
+    const subtasks = [createSubtask("SUB-001")];
+    const result = appendSubtasksToFile(testPath, subtasks);
+
+    expect(result.added).toBe(1);
+    expect(result.skipped).toBe(0);
+    expect(existsSync(testPath)).toBe(true);
+
+    const loaded = loadSubtasksFile(testPath);
+    expect(loaded.subtasks).toHaveLength(1);
+    expect(loaded.subtasks[0]?.id).toBe("SUB-001");
+  });
+
+  test("appends to existing file", () => {
+    // Create initial file
+    const initial = [createSubtask("SUB-001")];
+    appendSubtasksToFile(testPath, initial);
+
+    // Append more
+    const additional = [createSubtask("SUB-002"), createSubtask("SUB-003")];
+    const result = appendSubtasksToFile(testPath, additional);
+
+    expect(result.added).toBe(2);
+    expect(result.skipped).toBe(0);
+
+    const loaded = loadSubtasksFile(testPath);
+    expect(loaded.subtasks).toHaveLength(3);
+  });
+
+  test("skips duplicates by ID", () => {
+    // Create initial file
+    const initial = [createSubtask("SUB-001"), createSubtask("SUB-002")];
+    appendSubtasksToFile(testPath, initial);
+
+    // Try to add duplicates - SUB-001 is duplicate, SUB-003 is new
+    const withDupes = [createSubtask("SUB-001"), createSubtask("SUB-003")];
+    const result = appendSubtasksToFile(testPath, withDupes);
+
+    expect(result.added).toBe(1);
+    expect(result.skipped).toBe(1);
+
+    const loaded = loadSubtasksFile(testPath);
+    expect(loaded.subtasks).toHaveLength(3);
+    expect(loaded.subtasks.map((s) => s.id)).toEqual([
+      "SUB-001",
+      "SUB-002",
+      "SUB-003",
+    ]);
+  });
+
+  test("preserves existing metadata", () => {
+    // Create file with metadata
+    writeFileSync(
+      testPath,
+      JSON.stringify({
+        $schema: "../../schemas/subtasks.schema.json",
+        metadata: { milestoneRef: "test-milestone", scope: "milestone" },
+        subtasks: [createSubtask("SUB-001")],
+      }),
+    );
+
+    // Append more
+    appendSubtasksToFile(testPath, [createSubtask("SUB-002")]);
+
+    const loaded = loadSubtasksFile(testPath);
+    expect(loaded.metadata?.milestoneRef).toBe("test-milestone");
+  });
+
+  test("uses provided metadata for new file", () => {
+    const subtasks = [createSubtask("SUB-001")];
+    const metadata = {
+      milestoneRef: "my-milestone",
+      scope: "milestone" as const,
+    };
+    appendSubtasksToFile(testPath, subtasks, metadata);
+
+    const loaded = loadSubtasksFile(testPath);
+    expect(loaded.metadata?.milestoneRef).toBe("my-milestone");
   });
 });

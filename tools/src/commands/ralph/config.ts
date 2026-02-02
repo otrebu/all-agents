@@ -318,6 +318,44 @@ function resolveMilestonePath(nameOrPath: string): string {
 const ORPHAN_MILESTONE_ROOT = "docs/planning/milestones/_orphan";
 
 /**
+ * Save subtasks file to disk with formatted JSON
+ *
+ * Writes with 2-space indentation for readability.
+ * WARNING: This overwrites the entire file. Use appendSubtasksToFile() to add
+ * new subtasks to an existing file without losing existing data.
+ *
+ * @param subtasksPath - Path to subtasks.json file
+ * @param newSubtasks - Array of new subtasks to append
+ * @param metadata - Optional metadata to use if creating a new file
+ * @returns Object with counts of added and skipped subtasks
+ */
+function appendSubtasksToFile(
+  subtasksPath: string,
+  newSubtasks: Array<Subtask>,
+  metadata?: SubtasksFile["metadata"],
+): { added: number; skipped: number } {
+  const existingFile: SubtasksFile = existsSync(subtasksPath)
+    ? loadSubtasksFile(subtasksPath)
+    : {
+        $schema: "../../schemas/subtasks.schema.json",
+        metadata: metadata ?? { scope: "milestone" },
+        subtasks: [],
+      };
+  const existingIds = new Set<string>(existingFile.subtasks.map((s) => s.id));
+
+  // Filter out duplicates and append
+  const subtasksToAdd = newSubtasks.filter((s) => !existingIds.has(s.id));
+  const skipped = newSubtasks.length - subtasksToAdd.length;
+
+  existingFile.subtasks.push(...subtasksToAdd);
+
+  // Write merged result
+  saveSubtasksFile(subtasksPath, existingFile);
+
+  return { added: subtasksToAdd.length, skipped };
+}
+
+/**
  * Get the path to the iteration log file for a subtasks file
  *
  * Derives the milestone root from the subtasks.json parent directory.
@@ -366,9 +404,7 @@ function getPlanningLogPath(milestonePath: string): string {
 }
 
 /**
- * Save subtasks file to disk with formatted JSON
- *
- * Writes with 2-space indentation for readability.
+ * Save subtasks file to disk
  *
  * @param subtasksPath - Path to subtasks.json file
  * @param data - SubtasksFile object to write
@@ -383,6 +419,7 @@ function saveSubtasksFile(subtasksPath: string, data: SubtasksFile): void {
 // =============================================================================
 
 export {
+  appendSubtasksToFile,
   countRemaining,
   DEFAULT_CONFIG,
   getCompletedSubtasks,
