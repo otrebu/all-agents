@@ -8,8 +8,6 @@
 import { getContextRoot } from "@tools/utils/paths";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const TOOLS_DIR = join(getContextRoot(), "tools");
@@ -61,40 +59,7 @@ describe("notify E2E - help and basic CLI", () => {
 });
 
 describe("notify E2E - config management", () => {
-  let temporaryDirectory = "";
-  let configPath = "";
-
-  beforeEach(() => {
-    temporaryDirectory = join(
-      tmpdir(),
-      `notify-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
-    mkdirSync(temporaryDirectory, { recursive: true });
-    configPath = join(temporaryDirectory, "notify.json");
-  });
-
-  afterEach(() => {
-    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
-      rmSync(temporaryDirectory, { force: true, recursive: true });
-    }
-  });
-
   test("notify status shows configuration", async () => {
-    // Create a config file
-    writeFileSync(
-      configPath,
-      JSON.stringify({
-        $schemaVersion: 1,
-        defaultPriority: "high",
-        enabled: true,
-        quietHours: { enabled: false, endHour: 8, startHour: 22 },
-        server: "https://ntfy.sh",
-        title: "aaa notify",
-        topic: "test-topic",
-      }),
-    );
-
-    // We can't easily inject config path in E2E tests, so just verify the command runs
     const { exitCode, stdout } = await execa(
       "bun",
       ["run", "dev", "notify", "status"],
