@@ -25,6 +25,14 @@ If no milestone provided, ask user: "Which milestone should I analyze? (e.g., mi
 
 Follow @context/workflows/ralph/review/stories-gap-auto.md completely.
 
+### `gap tasks --story <path>`
+
+Launch a **subagent** with fresh context to analyze task coverage for a story.
+
+If no story provided, ask user: "Which story should I analyze? (e.g., docs/planning/stories/STORY-001.md)"
+
+Follow @context/workflows/ralph/review/tasks-gap-auto.md completely.
+
 ### `stories <milestone>`
 
 Follow @context/workflows/ralph/review/stories-review.md completely.
@@ -64,5 +72,6 @@ Show:
 /ralph-review roadmap                  Review roadmap milestones
 /ralph-review gap roadmap              Cold analysis of roadmap gaps
 /ralph-review gap stories <milestone>  Cold analysis of story gaps
+/ralph-review gap tasks --story <path>  Task gap analysis for a story
 /ralph-review tasks <story-id>         (coming) Review tasks for a story
 ```
