@@ -133,6 +133,49 @@ Order subtasks by implementation dependency:
 - Acceptance criteria are verifiable by running tests or inspecting code
 - filesToRead provides context without overwhelming
 
+### Browser-Based Acceptance Criteria for Frontend Subtasks
+
+When generating subtasks for **frontend work** (UI components, pages, visual changes), include browser-based acceptance criteria when appropriate.
+
+#### When to Add Browser AC
+
+| Subtask Type | Include Browser AC? |
+|--------------|---------------------|
+| Backend/API changes | No |
+| CLI command | No |
+| New React component | Yes - visual verification |
+| Layout/styling changes | Yes - visual verification |
+| Form implementation | Yes - interaction testing |
+| User flow changes | Yes - E2E verification |
+
+#### Browser Testing Tools
+
+1. **agent-browser** - For visual verification. Claude visually inspects rendered pages to verify correct rendering.
+
+2. **Playwright MCP on Chrome** - For automated browser testing. Supports navigation, interactions, assertions.
+
+#### Example AC for Frontend Subtasks
+
+```json
+{
+  "acceptanceCriteria": [
+    "LoginForm component renders without errors",
+    "Visual verification: Form displays email and password fields with correct styling (use agent-browser)",
+    "E2E: User can submit form and see success message (use Playwright MCP)",
+    "Unit tests pass for validation logic"
+  ]
+}
+```
+
+#### AC Writing Guidelines for Frontend
+
+- **Static AC**: File exists, component exports
+- **Content AC**: Component contains expected elements (grep JSX)
+- **Behavioral AC**:
+  - Unit tests for logic
+  - Browser visual verification for appearance
+  - E2E tests for user interactions
+
 ### filesToRead Guidelines
 
 Include files that:
