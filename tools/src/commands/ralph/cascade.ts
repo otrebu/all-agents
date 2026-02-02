@@ -12,6 +12,8 @@
  * @see docs/planning/milestones/003-ralph-workflow/tasks/TASK-002-cascade-module.md
  */
 
+import * as readline from "node:readline";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -126,6 +128,60 @@ function isValidLevelName(name: string): name is CascadeLevelName {
 }
 
 /**
+ * Prompt user to continue to next cascade level
+ *
+ * Checks process.stdin.isTTY before prompting:
+ * - TTY mode: Shows prompt and waits for user response
+ * - Non-TTY mode: Returns true (continue) without blocking
+ *
+ * @param completed - Name of the level that just completed
+ * @param next - Name of the next level to run
+ * @returns Promise resolving to true to continue, false to abort
+ *
+ * @example
+ * const shouldContinue = await promptContinue("stories", "tasks");
+ * if (!shouldContinue) {
+ *   console.log("Cascade aborted by user");
+ *   return;
+ * }
+ */
+async function promptContinue(
+  completed: string,
+  next: string,
+): Promise<boolean> {
+  // Check if running in TTY mode
+  if (!process.stdin.isTTY) {
+    console.log(
+      `Non-interactive mode: continuing from ${completed} to ${next}...`,
+    );
+    return true;
+  }
+
+  // Interactive prompt using readline
+  // eslint-disable-next-line promise/avoid-new -- readline requires manual Promise wrapping
+  return new Promise<boolean>((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.question(
+      `\n✓ Completed ${completed}. Continue to ${next}? [Y/n]: `,
+      (answer) => {
+        rl.close();
+        const normalized = answer.trim().toLowerCase();
+        // Default to yes (empty answer), explicit 'n' or 'no' to abort
+        if (normalized === "n" || normalized === "no") {
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      },
+    );
+  });
+}
+
+/**
  * Validate cascade target direction
  *
  * Cascades can only flow forward (higher order numbers).
@@ -177,5 +233,6 @@ export {
   getValidLevelNames,
   isValidLevelName,
   LEVELS,
+  promptContinue,
   validateCascadeTarget,
 };
