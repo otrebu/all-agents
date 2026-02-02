@@ -50,6 +50,8 @@ tools/
 │   │   ├── review/               # Code review CLI (modes: supervised, headless)
 │   │   │   ├── index.ts          # CLI commands and mode logic
 │   │   │   └── types.ts          # Finding, DiaryEntry, triage types
+│   │   ├── session/              # Session file management (simple)
+│   │   │   └── index.ts          # path and current commands
 │   │   └── setup/
 │   │       ├── index.ts
 │   │       └── utils.ts

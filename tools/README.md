@@ -88,6 +88,8 @@ aaa story create "As a user, I want to login"
 | `ralph build`                | Run subtask iteration loop (autonomous dev)                                | `subtasks.json`            |
 | `ralph status`               | Display build status and progress                                          | -                          |
 | `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                           | -                          |
+| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer         | stdout                     |
+| `session current`            | Get current session ID from .claude/current-session                        | stdout                     |
 | `completion <shell>`         | Generate shell completion script (bash, zsh, fish)                         | stdout                     |
 
 ### Command Examples
@@ -426,6 +428,34 @@ aaa ralph build
 aaa ralph calibrate all
 ```
 
+#### session
+
+Manage and retrieve Claude session files. Useful for interrogation workflows.
+
+```bash
+# Get session file path by ID
+aaa session path abc123-def456
+
+# Get session file path from a commit's cc-session-id trailer
+aaa session path --commit HEAD
+aaa session path --commit abc1234
+
+# Get current session ID (from .claude/current-session)
+aaa session current
+```
+
+**Use cases:**
+
+- Look up session files for forensic analysis of past work
+- Extract session ID from commits made during a Claude session
+- Get the current session ID for scripts/automation
+
+**Error handling:**
+
+- Exits with code 1 if session file not found
+- Exits with code 1 if commit has no cc-session-id trailer
+- Exits with code 1 if .claude/current-session doesn't exist or is empty
+
 ## Shell Completion
 
 Enable tab completion for faster command entry.
@@ -609,6 +639,8 @@ tools/
 │   │   │   ├── calibrate.ts # Calibrate command
 │   │   │   ├── build.ts    # Build loop
 │   │   │   └── post-iteration.ts # Post-iteration hook
+│   │   ├── session/        # Session file management
+│   │   │   └── index.ts    # path and current commands
 │   │   ├── setup/
 │   │   ├── story.ts
 │   │   ├── task.ts
