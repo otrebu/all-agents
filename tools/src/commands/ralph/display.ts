@@ -914,16 +914,30 @@ function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
       text: "Source (text):",
     };
     const sourceLabel = sourceLabels[source.type];
+    // Calculate max path length: innerWidth minus label width and spacing
+    // "Source (review):" is the longest label at 16 chars
+    const sourceLabelWidth = 16;
 
     if (source.type === "text" && source.text !== undefined) {
-      const truncatedText = truncate(source.text, innerWidth - 16);
+      const truncatedText = truncate(
+        source.text,
+        innerWidth - sourceLabelWidth,
+      );
       lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
     } else if (source.path !== undefined) {
-      const pathDisplay =
-        source.type === "review" && source.findingsCount !== undefined
-          ? `${source.path} (${source.findingsCount} findings)`
-          : source.path;
-      lines.push(`${chalk.dim(sourceLabel)} ${pathDisplay}`);
+      const maxPathLength = innerWidth - sourceLabelWidth;
+      if (source.type === "review" && source.findingsCount !== undefined) {
+        // For review mode, include findings count in display
+        const suffix = ` (${source.findingsCount} findings)`;
+        const truncatedPath = makeClickablePath(
+          source.path,
+          maxPathLength - suffix.length,
+        );
+        lines.push(`${chalk.dim(sourceLabel)} ${truncatedPath}${suffix}`);
+      } else {
+        const truncatedPath = makeClickablePath(source.path, maxPathLength);
+        lines.push(`${chalk.dim(sourceLabel)} ${truncatedPath}`);
+      }
     }
   }
 
@@ -933,7 +947,13 @@ function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
   }
   lines.push(`${chalk.dim("Size mode:")} ${sizeMode}`);
   if (storyRef !== undefined) {
-    lines.push(`${chalk.dim("Story:")} ${storyRef}`);
+    // "Story:" label is 7 chars, apply path truncation
+    const storyLabelWidth = 7;
+    const truncatedStoryPath = makeClickablePath(
+      storyRef,
+      innerWidth - storyLabelWidth,
+    );
+    lines.push(`${chalk.dim("Story:")} ${truncatedStoryPath}`);
   }
 
   // Separator before subtasks or error
