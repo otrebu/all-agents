@@ -314,14 +314,14 @@ _aaa_ralph_plan() {
                     ;;
                 stories)
                     _arguments \\
-                        '--milestone[Milestone path]:milestone:_files -/' \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
                 tasks)
                     _arguments \\
-                        '--story[Story path]:story:_files -g "*.md"' \\
-                        '--milestone[Milestone path]:milestone:_files -/' \\
+                        '--story[Story path]:story:_aaa_story_or_file' \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
@@ -329,9 +329,9 @@ _aaa_ralph_plan() {
                     _arguments \\
                         '1:source:_files' \\
                         '--review[Parse logs/reviews.jsonl for findings]' \\
-                        '--task[Task file (legacy)]:task:_files -g "*.md"' \\
-                        '--story[Link subtasks to parent story]:story:' \\
-                        '--milestone[Target milestone]:milestone:_files -/' \\
+                        '--task[Task file (legacy)]:task:_aaa_task_or_file' \\
+                        '--story[Link subtasks to parent story]:story:_aaa_story_or_file' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
                         '--size[Slice thickness]:size:(small medium large)' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
@@ -362,7 +362,7 @@ _aaa_ralph_review() {
             # All review commands are supervised-only (no headless)
             case $words[1] in
                 stories)
-                    _arguments '--milestone[Milestone path]:milestone:_files -/'
+                    _arguments '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir'
                     ;;
                 roadmap)
                     # No additional arguments
@@ -400,7 +400,7 @@ _aaa_ralph_review_gap() {
                     ;;
                 stories)
                     # Gap analysis is supervised-only (no headless)
-                    _arguments '--milestone[Milestone path]:milestone:_files -/'
+                    _arguments '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir'
                     ;;
             esac
             ;;
@@ -424,6 +424,36 @@ _aaa_review() {
             _describe 'subcommand' subcommands
             ;;
     esac
+}
+
+# Helper: complete story names (dynamic) + .md files
+_aaa_story_or_file() {
+    local -a stories
+    stories=(\${(f)"$(aaa __complete story 2>/dev/null)"})
+    if (( \${#stories} )); then
+        _describe 'story' stories
+    fi
+    _files -g "*.md"
+}
+
+# Helper: complete milestone names (dynamic) + directories
+_aaa_milestone_or_dir() {
+    local -a milestones
+    milestones=(\${(f)"$(aaa __complete milestone 2>/dev/null)"})
+    if (( \${#milestones} )); then
+        _describe 'milestone' milestones
+    fi
+    _files -/
+}
+
+# Helper: complete task names (dynamic) + .md files
+_aaa_task_or_file() {
+    local -a tasks
+    tasks=(\${(f)"$(aaa __complete task 2>/dev/null)"})
+    if (( \${#tasks} )); then
+        _describe 'task' tasks
+    fi
+    _files -g "*.md"
 }
 
 # Register completion - handles zinit/lazy compinit that may reset _comps

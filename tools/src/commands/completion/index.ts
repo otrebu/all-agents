@@ -174,20 +174,19 @@ function handleCompletion(): void {
         // List all top-level commands
         console.log(
           [
-            "download",
+            "completion",
             "extract-conversations",
-            "gh-search",
             "gemini-research",
+            "gh-search",
             "notify",
             "parallel-search",
-            "setup",
-            "uninstall",
-            "sync-context",
-            "task",
-            "story",
             "ralph",
             "review",
-            "completion",
+            "setup",
+            "story",
+            "sync-context",
+            "task",
+            "uninstall",
           ].join("\n"),
         );
         break;
