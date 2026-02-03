@@ -221,6 +221,8 @@ const buildConfigSchema = z.object({
  * Ralph section of the unified config
  */
 interface RalphSection {
+  /** Approvals configuration */
+  approvals?: ApprovalsConfig;
   /** Build configuration */
   build?: BuildConfig;
   /** Hook configuration */
@@ -230,6 +232,7 @@ interface RalphSection {
 }
 
 const ralphSectionSchema = z.object({
+  approvals: approvalsConfigSchema.optional(),
   build: buildConfigSchema.optional(),
   hooks: hooksConfigSchema.optional(),
   selfImprovement: selfImprovementConfigSchema.optional(),

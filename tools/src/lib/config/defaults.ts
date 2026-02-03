@@ -1,5 +1,6 @@
 import type {
   AaaConfig,
+  ApprovalsConfig,
   NotifySection,
   RalphSection,
   ResearchSection,
@@ -31,9 +32,17 @@ export const DEFAULT_NOTIFY: NotifySection = {
 };
 
 /**
+ * Default approvals configuration
+ * Gate fields are intentionally omitted - they default to undefined
+ * and runtime applies "suggest" fallback via ?? operator
+ */
+export const DEFAULT_APPROVALS: ApprovalsConfig = { suggestWaitSeconds: 180 };
+
+/**
  * Default ralph section configuration
  */
 export const DEFAULT_RALPH: RalphSection = {
+  approvals: DEFAULT_APPROVALS,
   build: { calibrateEvery: 0, maxIterations: 3 },
   hooks: {
     onIterationComplete: ["log"],
