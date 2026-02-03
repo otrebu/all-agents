@@ -624,6 +624,12 @@ async function promptContinue(): Promise<boolean> {
       output: process.stdout,
     });
 
+    // Handle Ctrl+C explicitly - propagate to process-level handler
+    rl.on("SIGINT", () => {
+      rl.close();
+      process.emit("SIGINT");
+    });
+
     rl.question(
       "Continue to next iteration? [Y/n] (Ctrl+C to abort): ",
       (answer) => {

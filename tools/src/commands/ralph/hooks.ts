@@ -317,6 +317,13 @@ async function executePauseAction(hookName: string): Promise<void> {
       resolve();
     }, PAUSE_TIMEOUT_MS);
 
+    // Handle Ctrl+C explicitly - propagate to process-level handler
+    rl.on("SIGINT", () => {
+      clearTimeout(timeout);
+      rl.close();
+      process.emit("SIGINT");
+    });
+
     rl.question("Press Enter to continue or Ctrl+C to abort: ", () => {
       clearTimeout(timeout);
       rl.close();
