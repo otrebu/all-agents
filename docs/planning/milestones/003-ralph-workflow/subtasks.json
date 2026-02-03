@@ -1565,21 +1565,35 @@
       "id": "SUB-225",
       "taskRef": "015-git-workflow-exit-unstaged",
       "storyRef": "STORY-001-artifact-approvals",
-      "title": "Create approvals.ts module with ApprovalGate type and gitCheckpoint function",
-      "description": "Create tools/src/commands/ralph/approvals.ts module. Add ApprovalGate type alias for the artifact-centric gates. Implement gitCheckpoint(gate: ApprovalGate): boolean function that stages all changes (git add -A), checks if there is anything to commit (git status --porcelain), and creates a checkpoint commit with message \"chore(ralph): checkpoint before <gate>\". Returns true if checkpoint created, false if nothing to commit. Uses execSync from node:child_process with stdio: \"pipe\" to suppress git output.",
+      "title": "Create approvals.ts module with exit-unstaged types and functions",
+      "description": "Create tools/src/commands/ralph/approvals.ts module with all types and functions for the exit-unstaged workflow. Add ApprovalGate type alias for artifact-centric gates. Add FeedbackContext interface with cascadeTarget, gate, level, milestonePath, summary fields. Add ExitUnstagedContext interface with cascadeTarget, gate, level, milestonePath fields. Implement gitCheckpoint(gate: ApprovalGate): boolean that stages all changes (git add -A), checks for changes (git status --porcelain), creates checkpoint commit with message \"chore(ralph): checkpoint before <gate>\", returns true if created, false if clean. Implement getNextLevel(level: string): string | null helper for cascade level progression. Implement formatGateName(gate: ApprovalGate): string to convert camelCase to human-readable. Implement writeFeedbackFile(context: FeedbackContext): string that creates feedback markdown file in <milestonePath>/feedback/ with approve/reject/modify instructions. Implement printExitInstructions(feedbackPath: string, resumeCommand: string): void for console output. Implement prepareExitUnstaged(context: ExitUnstagedContext): void and finalizeExitUnstaged(context: ExitUnstagedContext, summary: string): void as two-phase handler. Export all types and functions.",
       "done": false,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/approvals.ts exists",
         "ApprovalGate type includes: createRoadmap, createStories, createTasks, createSubtasks, onDriftDetected, correctionTasks",
+        "FeedbackContext interface has cascadeTarget, gate, level, milestonePath, summary fields with JSDoc",
+        "ExitUnstagedContext interface has cascadeTarget, gate, level, milestonePath fields",
         "gitCheckpoint(gate) stages all changes with git add -A",
         "gitCheckpoint(gate) returns false when working tree is clean (no changes)",
         "gitCheckpoint(gate) creates commit with message \"chore(ralph): checkpoint before <gate>\"",
         "gitCheckpoint(gate) catches git errors and logs warning (does not throw)",
+        "getNextLevel(\"stories\") returns \"tasks\"",
+        "getNextLevel(\"subtasks\") returns \"build\"",
+        "getNextLevel(\"calibrate\") returns null",
+        "formatGateName(\"createStories\") returns \"Create Stories\"",
+        "writeFeedbackFile creates <milestonePath>/feedback/ directory if missing",
+        "Feedback file contains gate name, timestamp, level, milestone, summary, approve/reject/modify instructions",
+        "Feedback file contains correct resume command: aaa ralph plan --milestone <name> --cascade <target> --from <nextLevel>",
+        "printExitInstructions outputs separator lines, APPROVAL REQUIRED header, instructions, resume command, feedback path",
+        "prepareExitUnstaged calls gitCheckpoint(context.gate)",
+        "finalizeExitUnstaged calls writeFeedbackFile and printExitInstructions",
+        "All types and functions exported from approvals.ts",
         "bun run typecheck passes"
       ],
       "filesToRead": [
         "tools/src/commands/ralph/types.ts",
         "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/display.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-015-git-workflow-exit-unstaged.md"
       ]
     },
@@ -1587,106 +1601,7 @@
       "id": "SUB-226",
       "taskRef": "015-git-workflow-exit-unstaged",
       "storyRef": "STORY-001-artifact-approvals",
-      "title": "Add FeedbackContext interface and getNextLevel helper to approvals.ts",
-      "description": "Add FeedbackContext interface to approvals.ts with fields: cascadeTarget (string), gate (ApprovalGate), level (string), milestonePath (string), summary (string). Add getNextLevel(level: string): string | null helper that returns the next cascade level (stories -> tasks -> subtasks -> build -> calibrate) or null if at end or invalid.",
-      "done": false,
-      "acceptanceCriteria": [
-        "FeedbackContext interface has cascadeTarget, gate, level, milestonePath, summary fields",
-        "All fields have JSDoc comments",
-        "getNextLevel(\"stories\") returns \"tasks\"",
-        "getNextLevel(\"subtasks\") returns \"build\"",
-        "getNextLevel(\"calibrate\") returns null",
-        "getNextLevel(\"invalid\") returns null",
-        "bun run typecheck passes"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/approvals.ts",
-        "tools/src/commands/ralph/cascade.ts"
-      ],
-      "blockedBy": [
-        "SUB-225"
-      ]
-    },
-    {
-      "id": "SUB-227",
-      "taskRef": "015-git-workflow-exit-unstaged",
-      "storyRef": "STORY-001-artifact-approvals",
-      "title": "Implement writeFeedbackFile function in approvals.ts",
-      "description": "Implement writeFeedbackFile(context: FeedbackContext): string function that creates a markdown feedback file in <milestonePath>/feedback/ directory. Creates the feedback directory if missing (mkdirSync recursive). Filename format: YYYY-MM-DD_<gate>.md. Content includes: header with gate name, timestamp, level, milestone; summary section; instructions for approve (git add + commit + resume command), reject (git checkout .), and modify (edit then approve). Returns the filepath.",
-      "done": false,
-      "acceptanceCriteria": [
-        "writeFeedbackFile creates <milestonePath>/feedback/ directory if it does not exist",
-        "Feedback filename format is YYYY-MM-DD_<gate>.md",
-        "Feedback file contains gate name, ISO timestamp, level name, milestone name in header",
-        "Feedback file contains summary section with context.summary content",
-        "Feedback file contains approve instructions with git add && commit command",
-        "Feedback file contains reject instructions with git checkout . command",
-        "Feedback file contains modify instructions (edit then approve)",
-        "Feedback file contains correct resume command: aaa ralph plan --milestone <name> --cascade <target> --from <nextLevel>",
-        "Function returns the full path to created feedback file",
-        "bun run typecheck passes"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/approvals.ts",
-        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-015-git-workflow-exit-unstaged.md"
-      ],
-      "blockedBy": [
-        "SUB-226"
-      ]
-    },
-    {
-      "id": "SUB-228",
-      "taskRef": "015-git-workflow-exit-unstaged",
-      "storyRef": "STORY-001-artifact-approvals",
-      "title": "Implement printExitInstructions and formatGateName helpers in approvals.ts",
-      "description": "Add formatGateName(gate: ApprovalGate): string helper that converts camelCase gates to human-readable format (e.g., createStories -> \"Create Stories\"). Implement printExitInstructions(feedbackPath: string, resumeCommand: string): void function that prints a clear console output with separator lines, \"APPROVAL REQUIRED\" header, brief instructions (approve/reject/modify one-liners), resume command, and path to feedback file.",
-      "done": false,
-      "acceptanceCriteria": [
-        "formatGateName(\"createStories\") returns \"Create Stories\"",
-        "formatGateName(\"onDriftDetected\") returns \"On Drift Detected\"",
-        "printExitInstructions outputs separator line (60 \"=\" characters)",
-        "printExitInstructions outputs \"APPROVAL REQUIRED\" header",
-        "printExitInstructions shows approve, reject, modify one-liner instructions",
-        "printExitInstructions shows the resume command",
-        "printExitInstructions shows the feedback file path",
-        "bun run typecheck passes"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/approvals.ts",
-        "tools/src/commands/ralph/display.ts"
-      ],
-      "blockedBy": [
-        "SUB-227"
-      ]
-    },
-    {
-      "id": "SUB-229",
-      "taskRef": "015-git-workflow-exit-unstaged",
-      "storyRef": "STORY-001-artifact-approvals",
-      "title": "Implement prepareExitUnstaged and finalizeExitUnstaged two-phase handler",
-      "description": "Add ExitUnstagedContext interface with cascadeTarget, gate, level, milestonePath fields. Implement prepareExitUnstaged(context: ExitUnstagedContext): void that calls gitCheckpoint before level execution. Implement finalizeExitUnstaged(context: ExitUnstagedContext, summary: string): void that writes feedback file and prints exit instructions. Export all new types and functions from approvals.ts.",
-      "done": false,
-      "acceptanceCriteria": [
-        "ExitUnstagedContext interface has cascadeTarget, gate, level, milestonePath fields",
-        "prepareExitUnstaged calls gitCheckpoint(context.gate)",
-        "finalizeExitUnstaged calls writeFeedbackFile with correct FeedbackContext",
-        "finalizeExitUnstaged calls printExitInstructions with feedbackPath and resumeCommand",
-        "ExitUnstagedContext, FeedbackContext, prepareExitUnstaged, finalizeExitUnstaged, gitCheckpoint, writeFeedbackFile, printExitInstructions exported from approvals.ts",
-        "bun run typecheck passes"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/approvals.ts",
-        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-015-git-workflow-exit-unstaged.md"
-      ],
-      "blockedBy": [
-        "SUB-228"
-      ]
-    },
-    {
-      "id": "SUB-230",
-      "taskRef": "015-git-workflow-exit-unstaged",
-      "storyRef": "STORY-001-artifact-approvals",
-      "title": "Integrate exit-unstaged handler into cascade.ts checkApprovalGate",
+      "title": "Integrate exit-unstaged handler into cascade.ts",
       "description": "Update cascade.ts to import prepareExitUnstaged and finalizeExitUnstaged from approvals.ts. In checkApprovalGate() replace the placeholder \"exit-unstaged\" case with actual implementation: call prepareExitUnstaged before returning the result. Add milestonePath to CascadeFromOptions interface. Update runCascadeFrom to handle exit-unstaged by calling finalizeExitUnstaged after level execution when the approval result is exit-unstaged.",
       "done": false,
       "acceptanceCriteria": [
@@ -1704,7 +1619,7 @@
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md"
       ],
       "blockedBy": [
-        "SUB-229"
+        "SUB-225"
       ]
     },
     {
@@ -1729,7 +1644,7 @@
         "tools/src/commands/ralph/approvals.ts"
       ],
       "blockedBy": [
-        "SUB-230"
+        "SUB-226"
       ]
     },
     {
@@ -1871,104 +1786,37 @@
       "id": "SUB-232",
       "taskRef": "TASK-013-cascade-approval-integration",
       "storyRef": "STORY-001-artifact-approvals",
-      "title": "Add levelToGate mapping function to cascade.ts",
-      "description": "Add the levelToGate(level: CascadeLevelName): ApprovalGate | null function to tools/src/commands/ralph/cascade.ts. This function maps cascade levels to their corresponding approval gates: roadmap -> createRoadmap, stories -> createStories, tasks -> createTasks, subtasks -> createSubtasks. The build and calibrate levels return null (no approval gate). Export the function for testing.",
+      "title": "Implement cascade approval integration",
+      "description": "Implement full cascade approval integration in tools/src/commands/ralph/cascade.ts: (1) Add levelToGate(level: CascadeLevelName): ApprovalGate | null function mapping cascade levels to approval gates (roadmap->createRoadmap, stories->createStories, tasks->createTasks, subtasks->createSubtasks, build/calibrate->null). (2) Update CascadeFromOptions interface with forceFlag?, reviewFlag?, headless? fields and add buildApprovalContext(options: CascadeFromOptions): ApprovalContext helper. (3) Add ApprovalResult type (\"continue\" | \"aborted\" | \"exit-unstaged\") and checkApprovalGate(level, config, context) async function that uses levelToGate, calls evaluateApproval, and dispatches to handlers. (4) Update runCascadeFrom() to load approval config, build context, call checkApprovalGate before each level, and handle aborted/exit-unstaged results appropriately.",
       "done": false,
       "acceptanceCriteria": [
-        "Function levelToGate(level: CascadeLevelName): ApprovalGate | null exists in cascade.ts",
-        "levelToGate(\"roadmap\") returns \"createRoadmap\"",
-        "levelToGate(\"stories\") returns \"createStories\"",
-        "levelToGate(\"tasks\") returns \"createTasks\"",
-        "levelToGate(\"subtasks\") returns \"createSubtasks\"",
-        "levelToGate(\"build\") returns null",
-        "levelToGate(\"calibrate\") returns null",
-        "Function is exported from cascade.ts",
-        "bun run typecheck passes"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/cascade.ts",
-        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md",
-        "tools/src/lib/config/types.ts"
-      ]
-    },
-    {
-      "id": "SUB-233",
-      "taskRef": "TASK-013-cascade-approval-integration",
-      "storyRef": "STORY-001-artifact-approvals",
-      "title": "Add buildApprovalContext helper and update CascadeFromOptions",
-      "description": "Update CascadeFromOptions interface in cascade.ts to add forceFlag?: boolean, reviewFlag?: boolean, and headless?: boolean fields. Add buildApprovalContext(options: CascadeFromOptions): ApprovalContext helper that constructs the ApprovalContext from cascade options, checking process.stdin.isTTY and options.headless to determine isTTY value.",
-      "done": false,
-      "acceptanceCriteria": [
-        "CascadeFromOptions interface has forceFlag?: boolean field",
-        "CascadeFromOptions interface has reviewFlag?: boolean field",
-        "CascadeFromOptions interface has headless?: boolean field (if not already present)",
+        "Function levelToGate(level: CascadeLevelName): ApprovalGate | null exists and is exported",
+        "levelToGate returns correct gates: roadmap->createRoadmap, stories->createStories, tasks->createTasks, subtasks->createSubtasks",
+        "levelToGate returns null for build and calibrate levels",
+        "CascadeFromOptions interface has forceFlag?, reviewFlag?, headless? fields",
         "Function buildApprovalContext(options: CascadeFromOptions): ApprovalContext exists",
-        "buildApprovalContext returns { forceFlag: false, isTTY: true, reviewFlag: false } for default options in TTY",
-        "buildApprovalContext returns { forceFlag: true, ... } when options.forceFlag is true",
-        "isTTY is false when options.headless is true or process.stdin.isTTY is false",
-        "bun run typecheck passes"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/cascade.ts",
-        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
-      ],
-      "blockedBy": [
-        "SUB-232"
-      ]
-    },
-    {
-      "id": "SUB-234",
-      "taskRef": "TASK-013-cascade-approval-integration",
-      "storyRef": "STORY-001-artifact-approvals",
-      "title": "Add ApprovalResult type and checkApprovalGate function",
-      "description": "Add ApprovalResult type (\"continue\" | \"aborted\" | \"exit-unstaged\") and checkApprovalGate(level, config, context) async function to cascade.ts. The function uses levelToGate to get the gate, calls evaluateApproval, and dispatches to the appropriate handler: \"write\" -> \"continue\", \"prompt\" -> call promptApproval and return based on result, \"notify-wait\" -> log placeholder and return \"continue\", \"exit-unstaged\" -> log placeholder and return \"exit-unstaged\". Export both the type and function.",
-      "done": false,
-      "acceptanceCriteria": [
+        "buildApprovalContext correctly sets forceFlag, reviewFlag, and isTTY based on options",
         "Type ApprovalResult = \"continue\" | \"aborted\" | \"exit-unstaged\" is defined and exported",
         "Function checkApprovalGate(level, config, context): Promise<ApprovalResult> exists",
-        "Returns \"continue\" when levelToGate returns null (e.g., build level)",
-        "Returns \"continue\" for \"write\" action",
-        "Calls promptApproval for \"prompt\" action and returns \"continue\" or \"aborted\" based on result",
-        "Logs \"[Approval] notify-wait for <gate> - continuing (not yet implemented)\" and returns \"continue\" for notify-wait",
-        "Logs \"[Approval] exit-unstaged for <gate> - exiting (not yet implemented)\" and returns \"exit-unstaged\" for exit-unstaged",
-        "bun run typecheck passes"
-      ],
-      "filesToRead": [
-        "tools/src/commands/ralph/cascade.ts",
-        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md",
-        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
-      ],
-      "blockedBy": [
-        "SUB-233"
-      ]
-    },
-    {
-      "id": "SUB-235",
-      "taskRef": "TASK-013-cascade-approval-integration",
-      "storyRef": "STORY-001-artifact-approvals",
-      "title": "Integrate approval checks into runCascadeFrom loop",
-      "description": "Update runCascadeFrom() in cascade.ts to: (1) Load approval config via loadAaaConfig().ralph?.approvals at start, (2) Build approval context using buildApprovalContext(options), (3) Call checkApprovalGate before each level execution in the loop, (4) Handle \"aborted\" result by returning early with error message, (5) Handle \"exit-unstaged\" result by returning early with success:false but error:null. Update imports to include loadAaaConfig, evaluateApproval, promptApproval from their respective modules.",
-      "done": false,
-      "acceptanceCriteria": [
-        "runCascadeFrom imports loadAaaConfig from @tools/lib/config",
-        "runCascadeFrom imports evaluateApproval, promptApproval from ./approvals",
-        "Approval config loaded once at start of runCascadeFrom",
-        "checkApprovalGate called before runLevel for each planning level",
+        "checkApprovalGate returns \"continue\" for null gate and \"write\" action",
+        "checkApprovalGate calls promptApproval for \"prompt\" action",
+        "checkApprovalGate handles notify-wait and exit-unstaged actions with placeholder logging",
+        "runCascadeFrom loads approval config via loadAaaConfig().ralph?.approvals",
+        "runCascadeFrom calls checkApprovalGate before runLevel for each planning level",
         "\"aborted\" result returns { success: false, error: \"Aborted by user at approval prompt\", ... }",
         "\"exit-unstaged\" result returns { success: false, error: null, stoppedAt: currentLevel, ... }",
         "bun run typecheck passes"
       ],
       "filesToRead": [
         "tools/src/commands/ralph/cascade.ts",
-        "tools/src/lib/config/index.ts",
-        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md"
-      ],
-      "blockedBy": [
-        "SUB-234"
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md",
+        "tools/src/lib/config/types.ts",
+        "tools/src/lib/config/index.ts"
       ]
     },
     {
-      "id": "SUB-236",
+      "id": "SUB-233",
       "taskRef": "TASK-013-cascade-approval-integration",
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add unit tests for cascade approval integration",
@@ -1990,7 +1838,7 @@
         "tools/tests/e2e/cascade.test.ts"
       ],
       "blockedBy": [
-        "SUB-235"
+        "SUB-232"
       ]
     },
     {
