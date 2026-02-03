@@ -1,0 +1,369 @@
+## Task: Git Workflow (exit-unstaged)
+
+**Story:** [STORY-001-artifact-approvals](../stories/STORY-001-artifact-approvals.md)
+
+**Depends on:** [TASK-013-cascade-approval-integration](./TASK-013-cascade-approval-integration.md)
+
+### Goal
+
+Implement the `"exit-unstaged"` action handler for headless always mode: create checkpoint, execute level, leave artifacts unstaged, write feedback file, exit with instructions.
+
+### Context
+
+When `evaluateApproval()` returns `"exit-unstaged"` (headless + `"always"` mode), the cascade should:
+1. Create a git checkpoint commit (preserving current state including any dirty changes)
+2. Execute the level (creating artifacts)
+3. Leave generated artifacts as unstaged changes
+4. Write a feedback file with approve/reject/modify instructions
+5. Exit cascade with clear instructions
+
+This enables asynchronous review: user runs cascade overnight, wakes up to unstaged changes they can review, approve, reject, or modify before resuming.
+
+### Plan
+
+1. Add git helper functions to `tools/src/commands/ralph/approvals.ts`:
+   ```typescript
+   import { execSync } from "node:child_process";
+   import { mkdirSync, writeFileSync } from "node:fs";
+   import path from "node:path";
+
+   /**
+    * Create a git checkpoint commit before artifact generation
+    *
+    * Stages and commits all current changes (including dirty/uncommitted work)
+    * to preserve state before generating new artifacts.
+    *
+    * @param gate - Approval gate triggering the checkpoint
+    * @returns true if checkpoint created, false if nothing to commit
+    */
+   function gitCheckpoint(gate: ApprovalGate): boolean {
+     try {
+       // Stage all changes (including untracked)
+       execSync("git add -A", { stdio: "pipe" });
+
+       // Check if there's anything to commit
+       const status = execSync("git status --porcelain", { encoding: "utf8" });
+       if (status.trim() === "") {
+         console.log("[Approval] No changes to checkpoint, working tree clean");
+         return false;
+       }
+
+       // Create checkpoint commit
+       const message = `chore(ralph): checkpoint before ${gate}`;
+       execSync(`git commit -m "${message}"`, { stdio: "pipe" });
+       console.log(`[Approval] Created checkpoint commit before ${formatGateName(gate)}`);
+       return true;
+     } catch (error) {
+       const message = error instanceof Error ? error.message : String(error);
+       console.warn(`[Approval] Failed to create checkpoint: ${message}`);
+       return false;
+     }
+   }
+   ```
+
+2. Add feedback file writer:
+   ```typescript
+   /**
+    * Context for writing feedback file
+    */
+   interface FeedbackContext {
+     /** Target level of the cascade */
+     cascadeTarget: string;
+     /** Approval gate that triggered exit */
+     gate: ApprovalGate;
+     /** Current cascade level */
+     level: string;
+     /** Path to milestone directory */
+     milestonePath: string;
+     /** Summary of what was generated */
+     summary: string;
+   }
+
+   /**
+    * Write feedback file with approval instructions
+    *
+    * Creates a markdown file in the milestone's feedback/ directory
+    * with instructions for approving, rejecting, or modifying the
+    * generated artifacts.
+    *
+    * @param context - Feedback context
+    * @returns Path to the created feedback file
+    */
+   function writeFeedbackFile(context: FeedbackContext): string {
+     const { cascadeTarget, gate, level, milestonePath, summary } = context;
+
+     // Ensure feedback directory exists
+     const feedbackDir = path.join(milestonePath, "feedback");
+     mkdirSync(feedbackDir, { recursive: true });
+
+     // Generate filename: YYYY-MM-DD_gateName.md
+     const date = new Date().toISOString().split("T")[0];
+     const filename = `${date}_${gate}.md`;
+     const filepath = path.join(feedbackDir, filename);
+
+     // Determine next level for resume command
+     const nextLevel = getNextLevel(level);
+     const milestoneName = path.basename(milestonePath);
+     const resumeCommand = nextLevel !== null
+       ? `aaa ralph plan --milestone ${milestoneName} --cascade ${cascadeTarget} --from ${nextLevel}`
+       : `# Cascade complete - no resume needed`;
+
+     // Generate feedback content
+     const content = `# Approval Required: ${formatGateName(gate)}
+
+Generated: ${new Date().toISOString()}
+Level: ${level}
+Milestone: ${milestoneName}
+
+## Summary
+
+${summary}
+
+## Generated Files
+
+Review the unstaged changes:
+\`\`\`bash
+git status
+git diff
+\`\`\`
+
+## Instructions
+
+### Approve
+
+Accept the generated artifacts as-is:
+
+\`\`\`bash
+git add . && git commit -m "feat(ralph): generated ${level} artifacts"
+${resumeCommand}
+\`\`\`
+
+### Reject
+
+Discard all generated artifacts:
+
+\`\`\`bash
+git checkout .
+\`\`\`
+
+### Modify
+
+Edit the generated files, then approve:
+
+1. Review and edit the generated files as needed
+2. Stage and commit:
+\`\`\`bash
+git add . && git commit -m "feat(ralph): generated ${level} artifacts (edited)"
+${resumeCommand}
+\`\`\`
+
+---
+*Generated by Ralph approval system*
+`;
+
+     writeFileSync(filepath, content);
+     console.log(`[Approval] Wrote feedback file: ${filepath}`);
+     return filepath;
+   }
+
+   /**
+    * Get the next level after the given level
+    */
+   function getNextLevel(level: string): string | null {
+     const levels = ["roadmap", "stories", "tasks", "subtasks", "build", "calibrate"];
+     const index = levels.indexOf(level);
+     if (index === -1 || index === levels.length - 1) {
+       return null;
+     }
+     return levels[index + 1];
+   }
+   ```
+
+3. Add console output helper:
+   ```typescript
+   /**
+    * Print exit instructions to console
+    *
+    * Called after level execution when exiting for approval review.
+    *
+    * @param feedbackPath - Path to feedback file
+    * @param resumeCommand - Command to resume cascade
+    */
+   function printExitInstructions(
+     feedbackPath: string,
+     resumeCommand: string
+   ): void {
+     const separator = "=".repeat(60);
+
+     console.log();
+     console.log(separator);
+     console.log("  APPROVAL REQUIRED");
+     console.log(separator);
+     console.log();
+     console.log("  Generated artifacts are unstaged. Review and choose:");
+     console.log();
+     console.log("    Approve:  git add . && git commit -m \"feat: ...\"");
+     console.log("    Reject:   git checkout .");
+     console.log("    Modify:   edit files, then approve");
+     console.log();
+     console.log(`  Resume:     ${resumeCommand}`);
+     console.log();
+     console.log(`  Details:    ${feedbackPath}`);
+     console.log();
+     console.log(separator);
+     console.log();
+   }
+   ```
+
+4. Add main handler that orchestrates the flow:
+   ```typescript
+   /**
+    * Context for exit-unstaged handler
+    */
+   interface ExitUnstagedContext {
+     /** Target level of cascade */
+     cascadeTarget: string;
+     /** Approval gate */
+     gate: ApprovalGate;
+     /** Current level being executed */
+     level: string;
+     /** Path to milestone directory */
+     milestonePath: string;
+   }
+
+   /**
+    * Prepare for exit-unstaged: create checkpoint before level execution
+    *
+    * Called BEFORE level execution to preserve current state.
+    *
+    * @param context - Exit unstaged context
+    */
+   function prepareExitUnstaged(context: ExitUnstagedContext): void {
+     gitCheckpoint(context.gate);
+   }
+
+   /**
+    * Finalize exit-unstaged: write feedback and print instructions
+    *
+    * Called AFTER level execution to write feedback and exit.
+    *
+    * @param context - Exit unstaged context
+    * @param summary - Summary of what was generated
+    */
+   function finalizeExitUnstaged(
+     context: ExitUnstagedContext,
+     summary: string
+   ): void {
+     const { cascadeTarget, gate, level, milestonePath } = context;
+
+     // Write feedback file
+     const feedbackPath = writeFeedbackFile({
+       cascadeTarget,
+       gate,
+       level,
+       milestonePath,
+       summary,
+     });
+
+     // Determine resume command
+     const nextLevel = getNextLevel(level);
+     const milestoneName = path.basename(milestonePath);
+     const resumeCommand = nextLevel !== null
+       ? `aaa ralph plan --milestone ${milestoneName} --cascade ${cascadeTarget} --from ${nextLevel}`
+       : "# Cascade complete";
+
+     // Print instructions
+     printExitInstructions(feedbackPath, resumeCommand);
+   }
+   ```
+
+5. Export new functions from `approvals.ts`:
+   ```typescript
+   export {
+     // ... existing exports
+     type ExitUnstagedContext,
+     type FeedbackContext,
+     finalizeExitUnstaged,
+     gitCheckpoint,
+     prepareExitUnstaged,
+     printExitInstructions,
+     writeFeedbackFile,
+   };
+   ```
+
+6. Update `checkApprovalGate()` in `cascade.ts` to handle exit-unstaged:
+   ```typescript
+   case "exit-unstaged": {
+     // Prepare checkpoint before execution
+     prepareExitUnstaged({
+       cascadeTarget: target,  // Need to pass target through
+       gate,
+       level: currentLevel,
+       milestonePath: options.milestonePath ?? options.contextRoot,
+     });
+
+     // Return special result - cascade will execute level then finalize
+     return "exit-unstaged";
+   }
+   ```
+
+7. Update `runCascadeFrom()` to call `finalizeExitUnstaged()` after level execution when result is exit-unstaged.
+
+### Acceptance Criteria
+
+- [ ] `gitCheckpoint()` creates commit including all dirty/untracked changes
+- [ ] Checkpoint gracefully skips if working tree is clean
+- [ ] Checkpoint gracefully handles git errors (logs warning, continues)
+- [ ] `writeFeedbackFile()` creates file in `<milestone>/feedback/` directory
+- [ ] Feedback filename format: `YYYY-MM-DD_<gate>.md`
+- [ ] Feedback file contains:
+  - Gate name and timestamp
+  - Summary of what was generated
+  - Approve instructions with commit command
+  - Reject instructions with checkout command
+  - Modify instructions with edit + commit flow
+  - Resume command with correct `--from` level
+- [ ] `printExitInstructions()` shows clear console output
+- [ ] Console output includes resume command
+- [ ] Generated artifacts remain unstaged (not added to git)
+- [ ] Cascade exits after printing instructions (doesn't continue to next level)
+
+### Test Plan
+
+- [ ] Manual: Set `createStories: "always"`, run cascade headless
+  - Checkpoint commit created
+  - Stories generated
+  - Feedback file created in `<milestone>/feedback/`
+  - Console shows approval instructions
+  - Cascade exits
+  - `git status` shows unstaged changes
+- [ ] Manual: With clean working tree → "No changes to checkpoint" message
+- [ ] Manual: With dirty working tree → dirty changes included in checkpoint
+- [ ] Manual: Approve flow: `git add . && commit`, then resume with `--from`
+- [ ] Manual: Reject flow: `git checkout .` discards generated files
+- [ ] TypeScript compiles without errors (`bun run typecheck`)
+
+### Scope
+
+- **In:** Git checkpoint, feedback file writing, console instructions, two-phase handler (prepare/finalize)
+- **Out:** Level execution logic (cascade handles that), `--from` flag implementation (TASK-011)
+
+### Notes
+
+**Two-phase design:**
+The handler is split into `prepareExitUnstaged()` (called before level execution) and `finalizeExitUnstaged()` (called after). This allows:
+1. Checkpoint created before artifacts generated
+2. Level executes normally (creates artifacts)
+3. Feedback written after we know what was generated
+
+**Checkpoint includes dirty changes:**
+If user has uncommitted work when running cascade, it gets included in the checkpoint. This is intentional - preserves their work and they can always `git reset HEAD~1` to undo the checkpoint if needed.
+
+**Feedback file location:**
+Files go in `<milestone>/feedback/` to keep them organized with the milestone. The directory is created if it doesn't exist.
+
+**Resume command accuracy:**
+The feedback file includes the exact `--from` command needed to resume. This is derived from the current level - if we stopped at "stories", resume from "tasks".
+
+**Error handling:**
+Git errors during checkpoint are logged but don't fail the cascade. The checkpoint is a convenience, not a requirement. The important part is that artifacts are left unstaged for review.
