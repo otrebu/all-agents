@@ -5,6 +5,7 @@ import type { Mock } from "bun:test";
 
 import {
   DEFAULT_CONFIG,
+  getExistingTaskReferences,
   getMilestonesBasePath,
   listAvailableMilestones,
   loadRalphConfig,
@@ -280,5 +281,104 @@ describe("listAvailableMilestones", () => {
     // These should exist in the real project
     expect(milestones).toContain("001-ralph");
     expect(milestones).toContain("003-ralph-workflow");
+  });
+});
+
+describe("getExistingTaskReferences", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(tmpdir(), `task-refs-test-${Date.now()}`);
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("returns empty Set when file does not exist", () => {
+    const nonexistentPath = join(temporaryDirectory, "nonexistent.json");
+    const result = getExistingTaskReferences(nonexistentPath);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+  });
+
+  test("returns empty Set on invalid JSON", () => {
+    const invalidPath = join(temporaryDirectory, "invalid.json");
+    writeFileSync(invalidPath, "not valid json {{{");
+    const result = getExistingTaskReferences(invalidPath);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+  });
+
+  test("returns empty Set when subtasks is not an array", () => {
+    const invalidPath = join(temporaryDirectory, "invalid-format.json");
+    writeFileSync(invalidPath, JSON.stringify({ subtasks: "not an array" }));
+    const result = getExistingTaskReferences(invalidPath);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+  });
+
+  test("returns Set of taskRefs from pending subtasks only", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({
+        subtasks: [
+          { done: false, id: "SUB-001", taskRef: "TASK-001" },
+          { done: true, id: "SUB-002", taskRef: "TASK-002" },
+          { done: false, id: "SUB-003", taskRef: "TASK-001" },
+          { done: false, id: "SUB-004", taskRef: "TASK-003" },
+        ],
+      }),
+    );
+    const result = getExistingTaskReferences(subtasksPath);
+    expect(result.size).toBe(2);
+    expect(result.has("TASK-001")).toBe(true);
+    expect(result.has("TASK-003")).toBe(true);
+    expect(result.has("TASK-002")).toBe(false);
+  });
+
+  test("returns unique taskRefs (dedupes)", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({
+        subtasks: [
+          { done: false, id: "SUB-001", taskRef: "TASK-001" },
+          { done: false, id: "SUB-002", taskRef: "TASK-001" },
+          { done: false, id: "SUB-003", taskRef: "TASK-001" },
+        ],
+      }),
+    );
+    const result = getExistingTaskReferences(subtasksPath);
+    expect(result.size).toBe(1);
+    expect(result.has("TASK-001")).toBe(true);
+  });
+
+  test("handles empty subtasks array", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(subtasksPath, JSON.stringify({ subtasks: [] }));
+    const result = getExistingTaskReferences(subtasksPath);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+  });
+
+  test("handles subtasks without taskRef field", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({
+        subtasks: [
+          { done: false, id: "SUB-001" },
+          { done: false, id: "SUB-002", taskRef: "TASK-001" },
+        ],
+      }),
+    );
+    const result = getExistingTaskReferences(subtasksPath);
+    expect(result.size).toBe(1);
+    expect(result.has("TASK-001")).toBe(true);
   });
 });

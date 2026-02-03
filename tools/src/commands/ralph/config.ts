@@ -64,6 +64,50 @@ function getCompletedSubtasks(subtasks: Array<Subtask>): Array<Subtask> {
 }
 
 /**
+ * Get existing taskRef values from a subtasks file
+ *
+ * Scans a subtasks file and returns a Set of all unique taskRef values
+ * from pending (not done) subtasks. This enables pre-checking which tasks
+ * already have subtasks before invoking Claude for generation.
+ *
+ * @param subtasksPath - Path to subtasks.json file
+ * @returns Set of unique taskRef values from pending subtasks, or empty Set if file doesn't exist or has errors
+ *
+ * @example
+ * const existing = getExistingTaskReferences('docs/planning/milestones/003-ralph-workflow/subtasks.json');
+ * if (existing.has('TASK-001')) {
+ *   console.log('TASK-001 already has subtasks');
+ * }
+ */
+function getExistingTaskReferences(subtasksPath: string): Set<string> {
+  if (!existsSync(subtasksPath)) {
+    return new Set<string>();
+  }
+
+  try {
+    const content = readFileSync(subtasksPath, "utf8");
+    const parsed = JSON.parse(content) as SubtasksFile;
+
+    if (!Array.isArray(parsed.subtasks)) {
+      return new Set<string>();
+    }
+
+    // Collect unique taskRefs from pending (not done) subtasks
+    const taskReferences = new Set<string>();
+    for (const subtask of parsed.subtasks) {
+      if (!subtask.done && subtask.taskRef) {
+        taskReferences.add(subtask.taskRef);
+      }
+    }
+
+    return taskReferences;
+  } catch {
+    // Fail silently - return empty Set on parse errors
+    return new Set<string>();
+  }
+}
+
+/**
  * Extract milestone reference from subtasks file metadata
  *
  * @param subtasksFile - SubtasksFile object to read from
@@ -454,6 +498,7 @@ export {
   countRemaining,
   DEFAULT_CONFIG,
   getCompletedSubtasks,
+  getExistingTaskReferences,
   getIterationLogPath,
   getMilestoneFromSubtasks,
   getMilestoneLogPath,
