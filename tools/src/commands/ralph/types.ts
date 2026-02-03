@@ -290,6 +290,8 @@ interface SubtaskMetadata {
  * Root structure of subtasks.json
  */
 interface SubtasksFile {
+  /** JSON Schema reference for validation */
+  $schema?: string;
   /** Optional metadata about this subtasks queue */
   metadata?: SubtaskMetadata;
   /** The queue of subtasks for autonomous agents to process */

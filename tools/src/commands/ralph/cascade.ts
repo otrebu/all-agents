@@ -29,6 +29,8 @@ import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
  * Contains context needed to execute cascade levels, plus cascade-specific settings.
  */
 interface CascadeFromOptions {
+  /** Run calibration every N build iterations (0 = disabled) */
+  calibrateEvery?: number;
   /** Repository root path */
   contextRoot: string;
   /** Skip confirmation prompts between cascade levels (for CI/automation) */
@@ -72,6 +74,8 @@ interface CascadeLevelDefinition {
  * Additional options are derived or defaulted within each level's handler.
  */
 interface RunLevelOptions {
+  /** Run calibration every N build iterations (0 = disabled) */
+  calibrateEvery?: number;
   /** Repository root path */
   contextRoot: string;
   /** Path to subtasks.json file */
@@ -259,6 +263,7 @@ async function runCascadeFrom(
   options: CascadeFromOptions,
 ): Promise<CascadeFromResult> {
   const runOptions: RunLevelOptions = {
+    calibrateEvery: options.calibrateEvery,
     contextRoot: options.contextRoot,
     subtasksPath: options.subtasksPath,
   };
@@ -356,7 +361,7 @@ async function runLevel(
   level: string,
   options: RunLevelOptions,
 ): Promise<null | string> {
-  const { contextRoot, subtasksPath } = options;
+  const { calibrateEvery = 0, contextRoot, subtasksPath } = options;
 
   // Validate level name
   if (!isValidLevelName(level)) {
@@ -367,7 +372,7 @@ async function runLevel(
     case "build": {
       // Build default options for runBuild
       const buildOptions: BuildOptions = {
-        calibrateEvery: 0,
+        calibrateEvery,
         interactive: false,
         maxIterations: 0,
         mode: "headless",
