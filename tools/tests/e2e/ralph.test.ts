@@ -467,6 +467,155 @@ describe("ralph E2E", () => {
       expect(stderr).toContain("Cannot cascade backward");
     });
   });
+
+  // Subtask pre-check tests (SUB-196)
+  describe("subtask pre-check", () => {
+    test("plan subtasks --task skips with message when task already has subtasks", async () => {
+      // Create a milestone directory structure with tasks and subtasks
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "docs/planning/milestones/test-milestone",
+      );
+      const tasksDirectory = join(milestoneDirectory, "tasks");
+      mkdirSync(tasksDirectory, { recursive: true });
+
+      // Create a task file
+      const taskContent = `# TASK-001 Test Task
+
+## Description
+A test task for pre-check verification.
+
+## Acceptance Criteria
+- [ ] Test criterion 1
+- [ ] Test criterion 2
+`;
+      const { writeFileSync } = await import("node:fs");
+      writeFileSync(join(tasksDirectory, "TASK-001-test-task.md"), taskContent);
+
+      // Create subtasks.json with a subtask referencing this task
+      const subtasksContent = {
+        $schema: "../../schemas/subtasks.schema.json",
+        metadata: { milestoneRef: "test-milestone", scope: "milestone" },
+        subtasks: [
+          {
+            acceptanceCriteria: ["Test"],
+            description: "This subtask already exists",
+            done: false,
+            id: "SUB-001",
+            taskRef: "TASK-001-test-task",
+            title: "Existing subtask",
+          },
+        ],
+      };
+      writeFileSync(
+        join(milestoneDirectory, "subtasks.json"),
+        JSON.stringify(subtasksContent, null, 2),
+      );
+
+      // Run subtasks command with --task pointing to the existing task
+      // Use --output-dir to specify where subtasks.json is since temp dir isn't a real milestone
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--task",
+          join(tasksDirectory, "TASK-001-test-task.md"),
+          "--output-dir",
+          milestoneDirectory,
+          "--headless",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      // Should exit cleanly (0) with skip message
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("already has subtasks");
+      expect(stdout).toContain("skipping");
+    });
+
+    test("plan subtasks --milestone shows message when all tasks have subtasks", async () => {
+      // Create a milestone directory structure
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "docs/planning/milestones/fully-covered",
+      );
+      const tasksDirectory = join(milestoneDirectory, "tasks");
+      mkdirSync(tasksDirectory, { recursive: true });
+
+      const { writeFileSync } = await import("node:fs");
+
+      // Create two task files
+      writeFileSync(
+        join(tasksDirectory, "TASK-001-first-task.md"),
+        "# TASK-001 First Task\n\n## Description\nFirst test task.",
+      );
+      writeFileSync(
+        join(tasksDirectory, "TASK-002-second-task.md"),
+        "# TASK-002 Second Task\n\n## Description\nSecond test task.",
+      );
+
+      // Create subtasks.json with subtasks for BOTH tasks
+      const subtasksContent = {
+        $schema: "../../schemas/subtasks.schema.json",
+        metadata: { milestoneRef: "fully-covered", scope: "milestone" },
+        subtasks: [
+          {
+            acceptanceCriteria: ["Test"],
+            description: "Covers first task",
+            done: false,
+            id: "SUB-001",
+            taskRef: "TASK-001-first-task",
+            title: "Subtask for first task",
+          },
+          {
+            acceptanceCriteria: ["Test"],
+            description: "Covers second task",
+            done: false,
+            id: "SUB-002",
+            taskRef: "TASK-002-second-task",
+            title: "Subtask for second task",
+          },
+        ],
+      };
+      writeFileSync(
+        join(milestoneDirectory, "subtasks.json"),
+        JSON.stringify(subtasksContent, null, 2),
+      );
+
+      // Run subtasks command with --milestone
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--milestone",
+          milestoneDirectory,
+          "--headless",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      // Should exit cleanly (0) with message about all tasks being covered
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("already have subtasks");
+      expect(stdout).toContain("nothing to generate");
+    });
+
+    // Note: Testing "partial coverage proceeds with filtered task list" requires Claude
+    // to be available, which isn't possible in E2E tests. The pre-check logic is tested
+    // thoroughly in unit tests (SUB-191). The key behaviors verified above are:
+    // - Single task with subtasks: skips correctly (test 1)
+    // - All tasks with subtasks: shows "nothing to generate" message (test 2)
+    // Partial coverage (some tasks covered) would proceed to Claude invocation, which
+    // can't be tested in E2E without mocking.
+  });
 });
 
 describe("iteration-summary prompt placeholder substitution", () => {
