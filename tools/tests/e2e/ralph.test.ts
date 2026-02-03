@@ -3,7 +3,13 @@ import addFormats from "ajv-formats";
 import Ajv2020 from "ajv/dist/2020";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -79,6 +85,73 @@ describe("ralph E2E", () => {
 
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Subtasks file not found");
+  });
+
+  test("ralph build exits cleanly on Ctrl+C during Claude invocation", async () => {
+    // Mock claude CLI: terminate itself with SIGINT (simulates user Ctrl+C in child)
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+kill -s INT $$
+`,
+      { mode: 0o755 },
+    );
+
+    // Minimal valid subtasks file (new schema) so build can start.
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          $schema: join(
+            CONTEXT_ROOT,
+            "docs/planning/schemas/subtasks.schema.json",
+          ),
+          metadata: { milestoneRef: "test", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Exits cleanly on Ctrl+C"],
+              description: "Test subtask for SIGINT handling",
+              done: false,
+              filesToRead: [],
+              id: "SUB-001",
+              storyRef: null,
+              taskRef: "001-test-task",
+              title: "SIGINT handling test",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const { exitCode, stderr, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "build",
+        "--headless",
+        "--max-iterations",
+        "1",
+        "--subtasks",
+        subtasksPath,
+      ],
+      {
+        cwd: TOOLS_DIR,
+        env: {
+          ...process.env,
+          PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+        },
+        reject: false,
+      },
+    );
+
+    expect(exitCode).toBe(130);
+    expect(`${stdout}\n${stderr}`).toContain("Build interrupted");
   });
 
   test("ralph status --help shows status options", async () => {
@@ -489,7 +562,6 @@ A test task for pre-check verification.
 - [ ] Test criterion 1
 - [ ] Test criterion 2
 `;
-      const { writeFileSync } = await import("node:fs");
       writeFileSync(join(tasksDirectory, "TASK-001-test-task.md"), taskContent);
 
       // Create subtasks.json with a subtask referencing this task
@@ -545,8 +617,6 @@ A test task for pre-check verification.
       );
       const tasksDirectory = join(milestoneDirectory, "tasks");
       mkdirSync(tasksDirectory, { recursive: true });
-
-      const { writeFileSync } = await import("node:fs");
 
       // Create two task files
       writeFileSync(
@@ -676,7 +746,6 @@ echo "$SUBSTITUTED_PROMPT"
 
     // Write the test script
     const scriptPath = join(temporaryDirectory, "substitute.sh");
-    const { writeFileSync } = await import("node:fs");
     writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
 
     // Run the script
@@ -837,7 +906,6 @@ echo '{"result": "{\\"subtaskId\\":\\"task-test-001\\",\\"status\\":\\"success\\
 
     // Write mock claude script
     const mockClaudePath = join(temporaryDirectory, "claude");
-    const { writeFileSync } = await import("node:fs");
     writeFileSync(mockClaudePath, mockClaudeScript, { mode: 0o755 });
 
     // Copy the iteration-summary.md prompt to a temporary location
@@ -1058,7 +1126,6 @@ TEST_JSON='{"subtaskId":"test-subtask-001","sessionId":"session-abc-123","status
 execute_log_action "$TEST_JSON"
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-log-action.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -1122,7 +1189,6 @@ else
 fi
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-no-side-effects.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -1164,7 +1230,6 @@ echo "Duration 65000ms: $(format_duration 65000)"
 echo "Duration 125000ms: $(format_duration 125000)"
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-duration-format.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -1235,8 +1300,6 @@ done
 # Return success
 exit 0
 `;
-
-    const { writeFileSync } = await import("node:fs");
 
     // Write mock curl script
     const mockCurlPath = join(temporaryDirectory, "curl");
@@ -1392,7 +1455,6 @@ done
 exit 0
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const mockCurlPath = join(temporaryDirectory, "curl");
     writeFileSync(mockCurlPath, mockCurlScript, { mode: 0o755 });
 
@@ -1462,7 +1524,6 @@ done
 exit 0
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const mockCurlPath = join(temporaryDirectory, "curl");
     writeFileSync(mockCurlPath, mockCurlScript, { mode: 0o755 });
 
@@ -1519,8 +1580,6 @@ execute_notify_action "$TEST_JSON"
   });
 
   test("notify action returns error when topic not configured", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     const testScript = `#!/bin/bash
 set -euo pipefail
 
@@ -1649,7 +1708,6 @@ TEST_JSON='{"subtaskId":"test-pause-001","sessionId":"session-pause-123","status
 execute_pause_action "$TEST_JSON"
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-pause-action.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -1716,7 +1774,6 @@ else
 fi
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-pause-continue.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -1766,7 +1823,6 @@ else
 fi
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-pause-abort.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -1810,7 +1866,6 @@ else
 fi
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-pause-invalid.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -1862,7 +1917,6 @@ else
 fi
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-pause-uppercase.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -1947,7 +2001,6 @@ REASON=$(get_pause_trigger_reason "$TEST_JSON")
 echo "Trigger reason for failed: $REASON"
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(
       temporaryDirectory,
       "test-pause-trigger-failure.sh",
@@ -2032,7 +2085,6 @@ REASON=$(get_pause_trigger_reason "$TEST_JSON")
 echo "Trigger reason for completed: $REASON"
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(
       temporaryDirectory,
       "test-pause-trigger-success.sh",
@@ -2117,7 +2169,6 @@ REASON=$(get_pause_trigger_reason "$TEST_JSON")
 echo "Trigger reason for pauseAlways: $REASON"
 `;
 
-    const { writeFileSync } = await import("node:fs");
     const scriptPath = join(temporaryDirectory, "test-pause-trigger-always.sh");
     writeFileSync(scriptPath, testScript, { mode: 0o755 });
 
@@ -2150,8 +2201,6 @@ describe("post-iteration-hook diary entry integration test", () => {
   });
 
   test("diary entry created after mock iteration with correct schema", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     // Create milestone-scoped logs directory (new structure: {milestone}/logs/{date}.jsonl)
     const milestoneRoot = join(
       temporaryDirectory,
@@ -2351,8 +2400,6 @@ echo "DIARY_PATH: $DIARY_PATH"
   });
 
   test("multiple iterations append to same diary file", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     // Create milestone-scoped logs directory (new structure: {milestone}/logs/{date}.jsonl)
     const milestoneRoot = join(
       temporaryDirectory,
@@ -2470,8 +2517,6 @@ describe("post-iteration-hook ntfy notification delivery integration test", () =
   });
 
   test("ntfy notification delivered with correct payload via mock HTTP server", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     // Create a request capture file to store the HTTP request details
     const captureFile = join(temporaryDirectory, "ntfy-request-capture.json");
 
@@ -2739,8 +2784,6 @@ execute_notify_action "$TEST_ENTRY"
   });
 
   test("ntfy notification delivered with high priority for failed status", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     const captureFile = join(temporaryDirectory, "ntfy-failed-capture.json");
 
     // Simplified mock curl for this test
@@ -2810,8 +2853,6 @@ execute_notify_action '{"subtaskId":"fail-001","status":"failed","summary":"Buil
   });
 
   test("ntfy notification not delivered when topic not configured", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     // Create config WITHOUT ntfy topic
     writeFileSync(
       join(temporaryDirectory, "ralph.config.json"),
@@ -2985,8 +3026,6 @@ describe("post-iteration-hook pause behavior integration test", () => {
   });
 
   test("hook with pause action continues on 'c' input", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     // Create a simplified version of the pause action that reads from stdin
     // This tests the integration between execute_pause_action and user input
     const testScript = `#!/bin/bash
@@ -3070,8 +3109,6 @@ fi
   });
 
   test("hook with pause action aborts on 'a' input", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     const testScript = `#!/bin/bash
 set -euo pipefail
 
@@ -3147,8 +3184,6 @@ fi
   });
 
   test("hook pause action respects pauseOnFailure config", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     // Create ralph.config.json with pauseOnFailure enabled
     writeFileSync(
       join(temporaryDirectory, "ralph.config.json"),
@@ -3275,8 +3310,6 @@ describe("ralph calibrate improve E2E", () => {
   });
 
   test("E2E: sample session log produces output (026-calibrate-improve-cli-11)", async () => {
-    const { writeFileSync } = await import("node:fs");
-
     // Step 1: Create sample session log
     const sessionLogContent = `{"type":"user","message":"Read the config file and update the version number"}
 {"type":"assistant","message":"I'll read the config file first."}

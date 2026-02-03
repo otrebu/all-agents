@@ -6,6 +6,10 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 
+// Conventional exit codes for signal termination.
+// 128 + signal number: SIGINT=2 -> 130, SIGTERM=15 -> 143
+const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
+
 /**
  * Claude JSON output structure (internal)
  * When --output-format json, Claude outputs an array of messages.
@@ -64,6 +68,8 @@ interface HeadlessResult {
   sessionId: string;
 }
 
+type TerminationSignal = keyof typeof SIGNAL_EXIT_CODE;
+
 /**
  * Build prompt with optional context prefix
  */
@@ -72,6 +78,29 @@ function buildPrompt(content: string, extraContext?: string): string {
     return `${extraContext}\n\n${content}`;
   }
   return content;
+}
+
+function exitCodeToSignal(
+  exitCode: null | number | undefined,
+): null | TerminationSignal {
+  if (exitCode === SIGNAL_EXIT_CODE.SIGINT) return "SIGINT";
+  if (exitCode === SIGNAL_EXIT_CODE.SIGTERM) return "SIGTERM";
+  return null;
+}
+
+function exitForSignal(signal: TerminationSignal): never {
+  const exitCode = SIGNAL_EXIT_CODE[signal];
+
+  // Prefer running any registered handlers first (e.g., ralph build summary).
+  // Some Bun.spawnSync() interruptions only surface via proc.signalCode on the
+  // child, so we manually emit to ensure the parent exits too.
+  try {
+    process.emit(signal);
+  } catch {
+    // Ignore - we'll still force exit below.
+  }
+
+  process.exit(exitCode);
 }
 
 /**
@@ -120,9 +149,18 @@ function invokeClaudeChat(
   );
 
   // Handle signal interruption (Ctrl+C) gracefully
-  if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
+  const terminationSignal = normalizeTerminationSignal(proc.signalCode);
+  if (terminationSignal !== null) {
     console.log("\nSession interrupted by user");
-    return { exitCode: null, interrupted: true, success: true };
+    exitForSignal(terminationSignal);
+  }
+
+  // Some CLIs (or wrappers) may translate signals into conventional exit codes
+  // rather than exposing signalCode. Treat those as interruptions too.
+  const terminationFromExit = exitCodeToSignal(proc.exitCode);
+  if (terminationFromExit !== null) {
+    console.log("\nSession interrupted by user");
+    exitForSignal(terminationFromExit);
   }
 
   return {
@@ -162,9 +200,16 @@ function invokeClaudeHaiku(options: HaikuOptions): null | string {
   );
 
   // Handle signal interruption (Ctrl+C)
-  if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
+  const terminationSignal = normalizeTerminationSignal(proc.signalCode);
+  if (terminationSignal !== null) {
     console.log("\nHaiku session interrupted by user");
-    return null;
+    exitForSignal(terminationSignal);
+  }
+
+  const terminationFromExit = exitCodeToSignal(proc.exitCode);
+  if (terminationFromExit !== null) {
+    console.log("\nHaiku session interrupted by user");
+    exitForSignal(terminationFromExit);
   }
 
   if (proc.exitCode !== 0) {
@@ -222,9 +267,16 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
   );
 
   // Handle signal interruption (Ctrl+C)
-  if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
+  const terminationSignal = normalizeTerminationSignal(proc.signalCode);
+  if (terminationSignal !== null) {
     console.log("\nSession interrupted by user");
-    return null;
+    exitForSignal(terminationSignal);
+  }
+
+  const terminationFromExit = exitCodeToSignal(proc.exitCode);
+  if (terminationFromExit !== null) {
+    console.log("\nSession interrupted by user");
+    exitForSignal(terminationFromExit);
   }
 
   if (proc.exitCode !== 0) {
@@ -266,6 +318,13 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
     console.error("Stdout preview:", preview || "(empty)");
     return null;
   }
+}
+
+function normalizeTerminationSignal(
+  signal: null | string | undefined,
+): null | TerminationSignal {
+  if (signal === "SIGINT" || signal === "SIGTERM") return signal;
+  return null;
 }
 
 export {
