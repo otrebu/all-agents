@@ -234,22 +234,32 @@
 
 ### 5.3 Missing Config: Approvals Block
 
-VISION.md specifies but NOT implemented:
+VISION.md specifies but NOT implemented. The approvals model is **artifact-centric** - approvals trigger when content is generated, not when transitioning between stages. This design works better with targeted cascade (`--cascade subtasks`).
+
 ```json
 {
   "approvals": {
-    "storiesToTasks": "auto",
-    "tasksToSubtasks": "auto",
-    "preBuildDriftCheck": "auto",
-    "driftTasks": "auto",
-    "selfImprovement": "suggest",
-    "atomicDocChanges": "always",
-    "llmJudgeSubjective": "auto"
+    "createRoadmap": "auto",
+    "createStories": "auto",
+    "createTasks": "auto",
+    "createSubtasks": "auto",
+    "onDriftDetected": "prompt",
+    "correctionTasks": "suggest",
+    "promptChanges": "suggest",
+    "createAtomicDocs": "always"
   }
 }
 ```
 
-**Impact:** Per-action governance gates don't exist. `--force`/`--review` flags only work for selfImprovement.
+**Approval modes:**
+- `auto` - Proceed without user confirmation
+- `prompt` - Ask user to approve before proceeding
+- `suggest` - Show proposed changes, user can accept/reject/edit
+- `always` - Always require explicit user approval
+
+**Special case:** `onDriftDetected` has additional modes: `skip` (ignore drift), `proceed` (continue without correction), `fail` (abort cascade).
+
+**Impact:** Per-artifact governance gates don't exist. `--force`/`--review` flags only work for selfImprovement.
 
 ### 5.4 Missing Config: Calibration Block
 
@@ -288,10 +298,12 @@ Cascade mode chains: vision -> roadmap -> stories -> tasks -> subtasks
 
 ### 6.3 Blocking Dependencies
 
-1. `approvals` config block must exist first
+1. `approvals` config block must exist first (artifact-centric model)
 2. Confirmation/approval prompt mechanism needed
 3. Orchestration logic to chain commands
 4. `--force` flag to skip confirmations
+
+**Note:** Approvals are now artifact-centric - they describe what artifact is approved (e.g., `createSubtasks`), not what transition occurs (e.g., `tasksToSubtasks`). This aligns better with targeted cascade where users can run `--cascade subtasks` to generate only subtasks without full pipeline.
 
 ### 6.4 Implementation Estimate
 
@@ -489,7 +501,7 @@ This is an improvement over VISION.md's original design.
 
 | Priority | Feature | Effort | Blocking |
 |----------|---------|--------|----------|
-| **P0** | `approvals` config block | Medium | Cascade mode |
+| **P0** | `approvals` config block (artifact-centric) | Medium | Cascade mode |
 | **P0** | Pre-build validation invocation | Low | Quality gate |
 | **P1** | `--calibrate-every <n>` flag | Low | Auto-calibration |
 | **P1** | `calibration` config block | Low | Auto-calibration |

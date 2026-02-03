@@ -685,18 +685,74 @@ See @context/workflows/ralph/planning/task-doc-lookup.md for details.
 
 ## 5. Approval System
 
+**Artifact-centric model:** Approvals happen when artifacts are created or changed, not when transitioning between pipeline stages. This gives fine-grained control over what gets written to disk.
+
+### Git-Based Approval Workflow
+
+For headless mode with `"always"` approval, git IS the approval mechanism - no custom state files needed.
+
+**Workflow:**
+1. Before generating, cascade commits current state as checkpoint
+2. Generated artifacts written as unstaged changes
+3. Feedback written to `docs/planning/milestones/<milestone>/feedback/<date>_<kind>_<ref>.md` (unstaged)
+4. Cascade exits with instructions
+
+**Approval/Rejection:**
+- **Approve:** `git add . && git commit`, then continue with `--from`
+- **Reject:** `git checkout .`
+
+**Example workflow:**
+```bash
+# Cascade exits with unstaged changes
+$ git status
+Changes not staged for commit:
+  new file: docs/planning/milestones/003-feature/subtasks.json
+  new file: docs/planning/milestones/003-feature/feedback/2026-02-03_subtasks.md
+
+# Approve and continue
+$ git add . && git commit -m "feat: generated subtasks"
+$ aaa ralph plan --milestone 003-feature --cascade calibrate --from build
+
+# Reject
+$ git checkout .
+```
+
+### Resume Workflow
+
+The `--from <level>` flag enables resuming cascade from a specific level:
+
+- Skips earlier levels, uses existing artifacts
+- `--from <same-level>` regenerates that level (retry after rejection)
+- Feedback file contains resume commands for reference
+
+```bash
+ralph plan stories --milestone 003-feature --cascade calibrate --from build
+ralph plan subtasks --milestone 003-feature --from subtasks  # retry subtask generation
+```
+
+### Configuration
+
 Centralized in `ralph.config.json`:
 
 ```json
 {
   "approvals": {
-    "storiesToTasks": "auto",
-    "tasksToSubtasks": "auto",
-    "preBuildDriftCheck": "auto",
-    "driftTasks": "auto",
-    "selfImprovement": "suggest",
-    "atomicDocChanges": "always",
-    "llmJudgeSubjective": "auto"
+    // Planning artifacts - approve generated content before writing
+    "createRoadmap": "auto",
+    "createStories": "auto",
+    "createTasks": "auto",
+    "createSubtasks": "auto",
+
+    // Build phase - what to do when pre-build drift check detects misalignment
+    "onDriftDetected": "prompt",   // "prompt" | "skip" | "proceed" | "fail"
+
+    // Calibration artifacts - approve before applying
+    "correctionTasks": "suggest",  // from intention + technical drift
+    "promptChanges": "suggest",    // from self-improvement
+    "createAtomicDocs": "always",  // auto-generated documentation
+
+    // Headless mode timing
+    "suggestWaitSeconds": 180      // configurable wait time for suggest mode in headless (default: 3 min)
   },
   "calibration": {
     "everyNIterations": 10,
@@ -705,18 +761,39 @@ Centralized in `ralph.config.json`:
 }
 ```
 
-**Two approval levels:**
-- `always` - asks for approval by default
-- `auto` - skips approval by default
+**Planning artifacts** (`createRoadmap`, `createStories`, `createTasks`, `createSubtasks`):
+- Approve the generated content before it's written to disk
+- In cascade mode, these fire after each level generates its output
+
+**`onDriftDetected`** - Pre-build drift check behavior:
+- `"prompt"` - ask user what to do (skip/proceed/modify)
+- `"skip"` - auto-skip misaligned subtasks
+- `"proceed"` - ignore drift, build anyway
+- `"fail"` - abort cascade if drift detected
+
+**Calibration artifacts** (`correctionTasks`, `promptChanges`, `createAtomicDocs`):
+- When calibration creates correction tasks or suggests prompt changes
+- `"suggest"` shows the changes, continues without blocking
+- `"always"` requires explicit approval
+
+### Approval Modes
+
+**Three approval modes with headless behavior:**
+
+| Mode | Interactive/Supervised | Headless |
+|------|------------------------|----------|
+| `"auto"` | Write artifact immediately | Write artifact immediately |
+| `"suggest"` | Show artifact, continue | Send notification, wait configurable time (default 3 min), continue |
+| `"always"` | Require explicit approval | Write artifacts as unstaged changes, write feedback, exit cascade |
 
 **CLI overrides config:**
 - `--force` - skip all approvals (even `always`)
 - `--review` - require all approvals (even `auto`)
 
 ```bash
-ralph calibrate              # uses config defaults
-ralph calibrate --force      # skip all approvals
-ralph calibrate --review     # ask for all approvals
+ralph cascade              # uses config defaults
+ralph cascade --force      # skip all approvals
+ralph cascade --review     # ask for all approvals
 ```
 
 ### Hooks & Notifications

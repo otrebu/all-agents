@@ -104,6 +104,10 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
   - Chunked presentation in review prompts (one finding at a time)
 - Skills documentation in VISION.md (what skills exist, what they do)
 - **Cascade mode** (`--cascade <target>`) for chaining levels through build/calibrate
+- **Artifact-centric approval gates** for human-in-the-loop control at each planning/build stage (see VISION.md Section 2)
+  - Git-based approval workflow: unstaged changes = pending, `git checkout` to reject
+  - `--from <level>` flag for resuming cascade after manual approval
+  - Headless suggest mode with notification + configurable wait (default 3 min)
 - **Session tracking** (`aaa session` command) with automatic `cc-session-id` commit trailers
 - **Enhanced notifications** with build metrics (files changed, lines added/removed, cost, session)
 - **Per-event `enabled` flag** for notification control in aaa.config.json
@@ -115,6 +119,9 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 - `ralph review subtasks` validates queue before building
 - `ralph review gap roadmap` provides cold analysis with fresh eyes
 - `ralph plan subtasks --cascade calibrate` chains through build and calibrate
+- Cascade with `"always"` gate exits with unstaged changes and feedback file
+- `--from build` resumes cascade after manual approval via git commit
+- Headless `"suggest"` mode sends notification and waits before continuing
 - Commits include `cc-session-id` trailer for interrogation
 - `aaa session cat --commit HEAD` retrieves session context from any commit
 - Notification messages include build metrics when available
