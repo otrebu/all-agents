@@ -142,6 +142,55 @@ type ApprovalMode = "always" | "auto" | "suggest";
 const approvalModeSchema = z.enum(["always", "auto", "suggest"]);
 
 /**
+ * Approval configuration for artifact creation gates
+ *
+ * Gates define checkpoints where Ralph can pause for user approval before
+ * creating artifacts. Each gate can be set to a different approval mode.
+ *
+ * Gate triggers:
+ * - createRoadmap: Generating roadmap.md
+ * - createStories: Generating story files
+ * - createTasks: Generating task files
+ * - createSubtasks: Generating subtasks.json
+ * - createAtomicDocs: Generating @context docs
+ * - onDriftDetected: Calibration detects drift
+ * - correctionTasks: Creating correction tasks from drift
+ * - promptChanges: Modifying prompt files
+ */
+interface ApprovalsConfig {
+  /** Approval mode when modifying correction tasks */
+  correctionTasks?: ApprovalMode;
+  /** Approval mode when generating @context docs */
+  createAtomicDocs?: ApprovalMode;
+  /** Approval mode when generating roadmap.md */
+  createRoadmap?: ApprovalMode;
+  /** Approval mode when generating story files */
+  createStories?: ApprovalMode;
+  /** Approval mode when generating subtasks.json */
+  createSubtasks?: ApprovalMode;
+  /** Approval mode when generating task files */
+  createTasks?: ApprovalMode;
+  /** Approval mode when calibration detects drift */
+  onDriftDetected?: ApprovalMode;
+  /** Approval mode when modifying prompt files */
+  promptChanges?: ApprovalMode;
+  /** Seconds to wait in suggest mode before proceeding (default: 180) */
+  suggestWaitSeconds?: number;
+}
+
+const approvalsConfigSchema = z.object({
+  correctionTasks: approvalModeSchema.optional(),
+  createAtomicDocs: approvalModeSchema.optional(),
+  createRoadmap: approvalModeSchema.optional(),
+  createStories: approvalModeSchema.optional(),
+  createSubtasks: approvalModeSchema.optional(),
+  createTasks: approvalModeSchema.optional(),
+  onDriftDetected: approvalModeSchema.optional(),
+  promptChanges: approvalModeSchema.optional(),
+  suggestWaitSeconds: z.number().int().min(0).optional(),
+});
+
+/**
  * Self-improvement configuration
  */
 interface SelfImprovementConfig {
@@ -292,6 +341,8 @@ export {
   aaaConfigSchema,
   type ApprovalMode,
   approvalModeSchema,
+  type ApprovalsConfig,
+  approvalsConfigSchema,
   type BuildConfig,
   buildConfigSchema,
   type EventConfig,
