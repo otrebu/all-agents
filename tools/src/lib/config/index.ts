@@ -37,6 +37,8 @@ export { CONFIG_FILENAME, loadAaaConfig } from "./loader";
 export {
   type AaaConfig,
   aaaConfigSchema,
+  type ApprovalGate,
+  approvalGates,
   type ApprovalMode,
   approvalModeSchema,
   type ApprovalsConfig,

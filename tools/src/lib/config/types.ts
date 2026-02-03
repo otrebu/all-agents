@@ -142,6 +142,22 @@ type ApprovalMode = "always" | "auto" | "suggest";
 const approvalModeSchema = z.enum(["always", "auto", "suggest"]);
 
 /**
+ * Approval gate names - artifact creation events that can trigger approval
+ */
+const approvalGates = [
+  "correctionTasks",
+  "createAtomicDocs",
+  "createRoadmap",
+  "createStories",
+  "createSubtasks",
+  "createTasks",
+  "onDriftDetected",
+  "promptChanges",
+] as const;
+
+type ApprovalGate = (typeof approvalGates)[number];
+
+/**
  * Approval configuration for artifact creation gates
  *
  * Gates define checkpoints where Ralph can pause for user approval before
@@ -342,6 +358,8 @@ const aaaConfigSchema = z.object({
 export {
   type AaaConfig,
   aaaConfigSchema,
+  type ApprovalGate,
+  approvalGates,
   type ApprovalMode,
   approvalModeSchema,
   type ApprovalsConfig,
