@@ -38,6 +38,8 @@ export {
   aaaConfigSchema,
   type ApprovalMode,
   approvalModeSchema,
+  type ApprovalsConfig,
+  approvalsConfigSchema,
   type BuildConfig,
   buildConfigSchema,
   type EventConfig,
