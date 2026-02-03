@@ -20,6 +20,7 @@ import {
   invokeClaudeHeadless as invokeClaudeHeadlessFromModule,
 } from "./claude";
 import {
+  getExistingTaskReferences,
   getPlanningLogPath as getMilestonePlanningLogPath,
   loadSubtasksFile,
   ORPHAN_MILESTONE_ROOT,
@@ -30,6 +31,19 @@ import {
   renderPlanSubtasksSummary,
 } from "./display";
 import { runStatus } from "./status";
+
+/**
+ * Extract task reference from a task path
+ *
+ * The task reference is the filename without the .md extension.
+ * For example: "TASK-008-approval-types.md" -> "TASK-008-approval-types"
+ *
+ * @param taskPath - Full path to the task file
+ * @returns The task reference (filename without extension)
+ */
+function extractTaskReference(taskPath: string): string {
+  return path.basename(taskPath, ".md");
+}
 
 /**
  * Resolve and validate milestone - exit with helpful error if not found
@@ -1174,6 +1188,37 @@ planCommand.addCommand(
       }
 
       const contextRoot = getContextRoot();
+
+      // Pre-check for --task mode: skip if task already has subtasks
+      if (hasTask && options.task !== undefined) {
+        const taskPath = requireTask(options.task);
+        const taskReference = extractTaskReference(taskPath);
+
+        // Infer milestone from task path if it's in a milestone folder
+        const milestoneMatch = /milestones\/(?<slug>[^/]+)\//.exec(taskPath);
+        const inferredMilestonePath =
+          milestoneMatch?.groups?.slug === undefined
+            ? null
+            : resolveMilestonePath(milestoneMatch.groups.slug);
+
+        // Determine output path for subtasks.json
+        const preCheckOutputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          inferredMilestonePath,
+        );
+        const preCheckSubtasksPath = path.join(
+          preCheckOutputDirectory,
+          "subtasks.json",
+        );
+
+        // Check if this task already has subtasks
+        const existingTaskReferences =
+          getExistingTaskReferences(preCheckSubtasksPath);
+        if (existingTaskReferences.has(taskReference)) {
+          console.log(`Task ${taskReference} already has subtasks - skipping`);
+          return;
+        }
+      }
 
       // Determine which prompt to use based on source type
       // - Hierarchy sources (--milestone, --story) use subtasks-from-hierarchy.md
