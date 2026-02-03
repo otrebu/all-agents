@@ -111,6 +111,8 @@ interface IterationDisplayData {
  * Data for plan subtasks summary box (headless mode output)
  */
 interface PlanSubtasksSummaryData {
+  /** Number of subtasks actually added this run (for pre-check display) */
+  addedCount?: number;
   /** Total cost in USD */
   costUsd: number;
   /** Duration in milliseconds */
@@ -125,6 +127,8 @@ interface PlanSubtasksSummaryData {
   sessionId: string;
   /** Sizing mode used */
   sizeMode: "large" | "medium" | "small";
+  /** Task refs skipped because they already had subtasks */
+  skippedTasks?: Array<string>;
   /** Source of the subtasks */
   source: {
     /** Number of findings (for review mode) */
@@ -140,6 +144,8 @@ interface PlanSubtasksSummaryData {
   storyRef?: string;
   /** Generated subtasks (empty on error) */
   subtasks: Array<{ id: string; title: string }>;
+  /** Total subtasks now in file after this run (for pre-check display) */
+  totalCount?: number;
 }
 
 // =============================================================================
