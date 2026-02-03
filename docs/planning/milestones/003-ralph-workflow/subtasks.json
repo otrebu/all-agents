@@ -925,6 +925,1122 @@
         "SUB-188"
       ],
       "status": "completed"
+    },
+    {
+      "id": "SUB-191",
+      "taskRef": "plan-pre-check-subtask-generation",
+      "title": "Add getExistingTaskRefs helper function to config.ts",
+      "description": "Add a helper function getExistingTaskRefs(subtasksPath: string): Set<string> to tools/src/commands/ralph/config.ts that scans an existing subtasks file and returns a Set of all unique taskRef values. If file doesn't exist or has errors, return empty Set. This enables pre-checking which tasks already have subtasks before invoking Claude.",
+      "done": true,
+      "completedAt": "2026-02-03T09:30:00Z",
+      "commitHash": "71cc5839c647106dfc03946414a47a264fadcb84",
+      "sessionId": "4a73cfc2-c66a-4619-bfc3-c397b103f8a4",
+      "acceptanceCriteria": [
+        "Function getExistingTaskRefs(subtasksPath: string): Set<string> exists in config.ts",
+        "Returns Set of unique taskRef values from subtasks where done === false",
+        "Returns empty Set if file doesn't exist",
+        "Returns empty Set if file has parse errors (fails silently)",
+        "Function is exported from config.ts",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/types.ts"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "SUB-192",
+      "taskRef": "plan-pre-check-subtask-generation",
+      "title": "Add count and skip fields to PlanSubtasksSummaryData interface",
+      "description": "Extend the PlanSubtasksSummaryData interface in tools/src/commands/ralph/display.ts with three new optional fields: addedCount (number of subtasks actually added this run), totalCount (total subtasks now in file), and skippedTasks (array of taskRef strings that were skipped because they already had subtasks).",
+      "done": true,
+      "completedAt": "2026-02-03T10:15:00Z",
+      "commitHash": "a6e364b",
+      "sessionId": "7fba045b-bb77-420c-83b1-095f98c7fc8f",
+      "acceptanceCriteria": [
+        "PlanSubtasksSummaryData has addedCount?: number field with JSDoc comment",
+        "PlanSubtasksSummaryData has totalCount?: number field with JSDoc comment",
+        "PlanSubtasksSummaryData has skippedTasks?: string[] field with JSDoc comment",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts"
+      ],
+      "blockedBy": [
+        "SUB-191"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "SUB-193",
+      "taskRef": "plan-pre-check-subtask-generation",
+      "title": "Update renderPlanSubtasksSummary to show Created X (Total: Y) format",
+      "description": "Update renderPlanSubtasksSummary() in display.ts to use the new fields. When addedCount and totalCount are both provided, change the stats line from 'Created N' to 'Created X (Total: Y)'. Add a 'Skipped' section after the stats line if skippedTasks is non-empty, showing count and listing up to 5 skipped task refs.",
+      "done": true,
+      "completedAt": "2026-02-03T11:30:00Z",
+      "commitHash": "09881a226325d28f86fe1513aff781d250aa4606",
+      "sessionId": "bd619dc0-8e85-47a1-b3fb-9adfaa6215c8",
+      "acceptanceCriteria": [
+        "Stats line shows 'Created X (Total: Y)' when both addedCount and totalCount are provided",
+        "Stats line falls back to 'Created N' (using subtasks.length) when new fields are not provided",
+        "Skipped section appears after stats line when skippedTasks is non-empty",
+        "Skipped section format: 'Skipped: N tasks (already have subtasks)' with task refs listed",
+        "Maximum 5 skipped task refs shown with '... and N more' if exceeded",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts"
+      ],
+      "blockedBy": [
+        "SUB-192"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "SUB-194",
+      "taskRef": "plan-pre-check-subtask-generation",
+      "title": "Add pre-check logic for --task mode in subtasks command",
+      "description": "Update the subtasks command action in tools/src/commands/ralph/index.ts to pre-check single task mode. Before invoking Claude for --task mode: get existingTaskRefs using the new helper, check if taskRef already exists, and if so exit early with message 'Task X already has subtasks - skipping'. This prevents wasted Claude invocations.",
+      "done": true,
+      "completedAt": "2026-02-03T12:30:00Z",
+      "commitHash": "6bc706f897608fc1f4778b64d229a86d5052aa84",
+      "sessionId": "236bdda2-53d0-41b6-9e57-4e05070b9ce5",
+      "acceptanceCriteria": [
+        "Pre-check runs before Claude invocation in --task mode",
+        "Uses getExistingTaskRefs() to get existing taskRefs from output path",
+        "If task's taskRef exists, prints 'Task <taskRef> already has subtasks - skipping' and returns",
+        "Exit is clean (exit code 0) when skipping - not an error",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/config.ts"
+      ],
+      "blockedBy": [
+        "SUB-191"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "SUB-195",
+      "taskRef": "plan-pre-check-subtask-generation",
+      "title": "Add pre-check and count tracking for --milestone and --story modes",
+      "description": "Update the subtasks command action in index.ts for --milestone and --story modes. Before Claude invocation: discover tasks, filter out tasks that already have subtasks (using getExistingTaskRefs), track skipped tasks, and skip entirely if all tasks are already covered. After Claude invocation: compare before/after counts to populate addedCount, totalCount, and skippedTasks in the summary.",
+      "done": true,
+      "completedAt": "2026-02-03T12:45:00Z",
+      "commitHash": "8dd6e7326513116830cc428fb777913c2a699bf0",
+      "sessionId": "4fa76051-5ece-4348-845a-c1e3da00f2d2",
+      "acceptanceCriteria": [
+        "For --milestone and --story modes, tasks are filtered before Claude invocation",
+        "Tasks with existing subtasks are tracked in skippedTasks array",
+        "If all tasks already have subtasks, prints 'All N tasks already have subtasks' and exits cleanly",
+        "Before count is captured before Claude invocation",
+        "After count is captured after Claude completes",
+        "addedCount = afterCount - beforeCount",
+        "totalCount = afterCount",
+        "Summary displays with new format when counts are available",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/config.ts"
+      ],
+      "blockedBy": [
+        "SUB-193",
+        "SUB-194"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "SUB-196",
+      "taskRef": "plan-pre-check-subtask-generation",
+      "title": "Add E2E tests for subtask pre-check behavior",
+      "description": "Add E2E tests to tools/tests/e2e/ralph.test.ts verifying the pre-check behavior: (1) Running --task on a task with existing subtasks skips and exits 0, (2) Running --milestone where all tasks have subtasks shows appropriate message and exits 0, (3) Running on tasks without existing subtasks proceeds normally.",
+      "done": true,
+      "completedAt": "2026-02-03T14:30:00Z",
+      "commitHash": "0ace24c334796697b3c66d86d058bf17bb3eb22b",
+      "sessionId": "c765daf7-744e-4d21-9142-550aa47aab11",
+      "acceptanceCriteria": [
+        "Test: aaa ralph plan subtasks --task <existing-task> exits 0 with skip message",
+        "Test: aaa ralph plan subtasks --milestone <fully-covered> shows 'All N tasks already have subtasks'",
+        "Test: Partial coverage proceeds with filtered task list",
+        "Tests use describe block 'subtask pre-check'",
+        "All new tests pass: bun test tools/tests/e2e/ralph.test.ts"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/ralph.test.ts",
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": [
+        "SUB-195"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "SUB-201",
+      "taskRef": "TASK-009-approval-config-loading",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add DEFAULT_APPROVALS constant to defaults.ts",
+      "description": "Add DEFAULT_APPROVALS constant in tools/src/lib/config/defaults.ts with sparse defaults (only suggestWaitSeconds: 180). Gate fields are intentionally omitted - they default to undefined and runtime applies \"suggest\" fallback. Update DEFAULT_RALPH to include approvals: DEFAULT_APPROVALS.",
+      "done": false,
+      "acceptanceCriteria": [
+        "DEFAULT_APPROVALS constant exists in tools/src/lib/config/defaults.ts",
+        "DEFAULT_APPROVALS contains only suggestWaitSeconds: 180 (sparse - no gate defaults)",
+        "DEFAULT_RALPH.approvals equals DEFAULT_APPROVALS",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/defaults.ts",
+        "tools/src/lib/config/types.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-009-approval-config-loading.md"
+      ]
+    },
+    {
+      "id": "SUB-202",
+      "taskRef": "TASK-009-approval-config-loading",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Update mergeRalph() to handle approvals nested merge",
+      "description": "Update mergeRalph() in tools/src/lib/config/loader.ts to handle approvals nested merge. When userValue.approvals is provided, shallow merge with defaultValue.approvals. Preserves user-specified gate values while applying suggestWaitSeconds default.",
+      "done": false,
+      "acceptanceCriteria": [
+        "mergeRalph() includes approvals merge logic matching pattern for build/hooks/selfImprovement",
+        "User-specified gate values (e.g., createStories: \"always\") are preserved after merge",
+        "suggestWaitSeconds defaults to 180 when not specified by user",
+        "Unspecified gates remain undefined after merge (not pre-filled)",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/loader.ts",
+        "tools/src/lib/config/defaults.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-009-approval-config-loading.md"
+      ],
+      "blockedBy": [
+        "SUB-201"
+      ]
+    },
+    {
+      "id": "SUB-203",
+      "taskRef": "TASK-009-approval-config-loading",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Export DEFAULT_APPROVALS from lib/config/index.ts",
+      "description": "Add DEFAULT_APPROVALS to the exports in tools/src/lib/config/index.ts. This enables other modules to import the default approvals config alongside other config defaults.",
+      "done": false,
+      "acceptanceCriteria": [
+        "DEFAULT_APPROVALS is exported from tools/src/lib/config/index.ts",
+        "Import { DEFAULT_APPROVALS } from \"@tools/lib/config\" works in consuming code",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/index.ts",
+        "tools/src/lib/config/defaults.ts"
+      ],
+      "blockedBy": [
+        "SUB-201"
+      ]
+    },
+    {
+      "id": "SUB-204",
+      "taskRef": "TASK-009-approval-config-loading",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add unit tests for approvals config merge behavior",
+      "description": "Add unit tests in tools/tests/lib/config-loader.test.ts for approvals merge behavior. Test cases: (1) approvals section merged correctly, (2) user-specified gates override undefined defaults, (3) suggestWaitSeconds defaults to 180, (4) partial user config merged with defaults, (5) unspecified gates remain undefined.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Test: deep merges nested ralph.approvals (following pattern from hooks test)",
+        "Test: suggestWaitSeconds defaults to 180 when not specified by user",
+        "Test: user-specified gate values (e.g., createStories: \"always\") preserved after merge",
+        "Test: partial user approvals config merged with defaults (only specified fields override)",
+        "Test: unspecified gates remain undefined after merge",
+        "All tests pass: bun test tools/tests/lib/config-loader.test.ts"
+      ],
+      "filesToRead": [
+        "tools/tests/lib/config-loader.test.ts",
+        "tools/src/lib/config/loader.ts",
+        "tools/src/lib/config/defaults.ts"
+      ],
+      "blockedBy": [
+        "SUB-202"
+      ]
+    },
+    {
+      "id": "SUB-205",
+      "taskRef": "TASK-010-approval-evaluation",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add ApprovalGate type and approvalGates const array to types.ts",
+      "description": "Add ApprovalGate type (union of 8 gate names) and approvalGates const array to tools/src/lib/config/types.ts. The type defines all artifact creation events that can trigger approval: createRoadmap, createStories, createTasks, createSubtasks, createAtomicDocs, onDriftDetected, correctionTasks, promptChanges. Export both from types.ts and re-export from lib/config/index.ts.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ApprovalGate type defined as union of 8 gate name strings in types.ts",
+        "approvalGates const array defined using \"as const\" pattern in types.ts",
+        "ApprovalGate and approvalGates exported from types.ts export block",
+        "ApprovalGate and approvalGates re-exported from lib/config/index.ts",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/types.ts",
+        "tools/src/lib/config/index.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
+      ]
+    },
+    {
+      "id": "SUB-206",
+      "taskRef": "TASK-010-approval-evaluation",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Create approvals.ts with ApprovalAction and ApprovalContext types",
+      "description": "Create new file tools/src/commands/ralph/approvals.ts with ApprovalAction type (\"write\" | \"prompt\" | \"notify-wait\" | \"exit-unstaged\") and ApprovalContext interface (forceFlag: boolean, isTTY: boolean, reviewFlag: boolean). Add JSDoc comments explaining action meanings and context fields. Export both types.",
+      "done": false,
+      "acceptanceCriteria": [
+        "File tools/src/commands/ralph/approvals.ts exists",
+        "ApprovalAction type defined with 4 values: \"write\", \"prompt\", \"notify-wait\", \"exit-unstaged\"",
+        "ApprovalContext interface defined with forceFlag, isTTY, reviewFlag boolean fields",
+        "JSDoc comments explain action meanings and context fields",
+        "Both types exported from approvals.ts",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
+      ],
+      "blockedBy": [
+        "SUB-205"
+      ]
+    },
+    {
+      "id": "SUB-207",
+      "taskRef": "TASK-010-approval-evaluation",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Implement evaluateApproval pure function",
+      "description": "Implement evaluateApproval(gate, config, context) pure function in tools/src/commands/ralph/approvals.ts. Logic: (1) --force flag returns \"write\", (2) get mode from config with \"suggest\" fallback, (3) --review flag overrides to \"always\", (4) map mode + TTY to action. Function is pure with no side effects. Export the function.",
+      "done": false,
+      "acceptanceCriteria": [
+        "evaluateApproval(gate, config, context) function exists in approvals.ts",
+        "context.forceFlag === true always returns \"write\" regardless of mode/TTY",
+        "context.reviewFlag === true treats mode as \"always\"",
+        "Undefined gate in config defaults to \"suggest\" behavior via ?? operator",
+        "Mode mapping: auto -> write (any TTY), suggest -> write (TTY) / notify-wait (no TTY), always -> prompt (TTY) / exit-unstaged (no TTY)",
+        "Function is pure (no I/O, no side effects, deterministic output)",
+        "Function exported from approvals.ts",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/lib/config/types.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
+      ],
+      "blockedBy": [
+        "SUB-206"
+      ]
+    },
+    {
+      "id": "SUB-208",
+      "taskRef": "TASK-010-approval-evaluation",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add unit tests for evaluateApproval CLI flag overrides",
+      "description": "Create tools/tests/lib/approvals.test.ts with unit tests for CLI flag overrides in evaluateApproval(). Test: --force returns \"write\" regardless of mode or TTY, --review + TTY returns \"prompt\", --review + headless returns \"exit-unstaged\". Use bun:test patterns from existing test files.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Test file tools/tests/lib/approvals.test.ts exists",
+        "Test: --force returns \"write\" with mode=\"auto\", TTY=true",
+        "Test: --force returns \"write\" with mode=\"always\", TTY=false",
+        "Test: --review + TTY returns \"prompt\" for any gate",
+        "Test: --review + headless returns \"exit-unstaged\" for any gate",
+        "Tests use describe/test pattern from existing test files",
+        "bun test tools/tests/lib/approvals.test.ts passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/tests/lib/ralph-config.test.ts",
+        "tools/tests/lib/ralph-hooks.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-207"
+      ]
+    },
+    {
+      "id": "SUB-209",
+      "taskRef": "TASK-010-approval-evaluation",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add unit tests for evaluateApproval mode x TTY combinations",
+      "description": "Extend tools/tests/lib/approvals.test.ts with unit tests for all mode x TTY combinations: auto+TTY=\"write\", auto+headless=\"write\", suggest+TTY=\"write\", suggest+headless=\"notify-wait\", always+TTY=\"prompt\", always+headless=\"exit-unstaged\". Also test undefined config fallback behavior.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Test: mode=\"auto\" + TTY=true returns \"write\"",
+        "Test: mode=\"auto\" + TTY=false returns \"write\"",
+        "Test: mode=\"suggest\" + TTY=true returns \"write\"",
+        "Test: mode=\"suggest\" + TTY=false returns \"notify-wait\"",
+        "Test: mode=\"always\" + TTY=true returns \"prompt\"",
+        "Test: mode=\"always\" + TTY=false returns \"exit-unstaged\"",
+        "Test: undefined config (null) defaults to \"suggest\" behavior",
+        "Test: specific gate undefined in config defaults to \"suggest\" behavior",
+        "bun test tools/tests/lib/approvals.test.ts passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/tests/lib/approvals.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-208"
+      ]
+    },
+    {
+      "id": "SUB-197",
+      "taskRef": "008-approval-types",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add ApprovalMode type and approvalModeSchema in types.ts",
+      "description": "Add the ApprovalMode type as a union of \"auto\" | \"suggest\" | \"always\" and the corresponding approvalModeSchema Zod schema using z.enum() in tools/src/lib/config/types.ts. Follow the existing pattern for similar types (e.g., SelfImprovementMode). Add JSDoc comments explaining each mode. Export both from the exports block.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ApprovalMode type defined as \"auto\" | \"suggest\" | \"always\"",
+        "approvalModeSchema defined using z.enum([\"auto\", \"suggest\", \"always\"])",
+        "JSDoc comments explain: auto = immediate write, suggest = show/pause, always = explicit approval",
+        "Both ApprovalMode and approvalModeSchema exported from types.ts export block",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/types.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-008-approval-types.md"
+      ]
+    },
+    {
+      "id": "SUB-198",
+      "taskRef": "008-approval-types",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add ApprovalsConfig interface and approvalsConfigSchema",
+      "description": "Add the ApprovalsConfig interface with all 8 artifact gates (createRoadmap, createStories, createTasks, createSubtasks, createAtomicDocs, onDriftDetected, correctionTasks, promptChanges) and suggestWaitSeconds field. Add the approvalsConfigSchema Zod schema validating all fields. Each gate is optional ApprovalMode. suggestWaitSeconds is optional number with int().min(0). Export both from types.ts.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ApprovalsConfig interface has all 8 gates: createRoadmap, createStories, createTasks, createSubtasks, createAtomicDocs, onDriftDetected, correctionTasks, promptChanges",
+        "Each gate is typed as optional ApprovalMode (e.g., createRoadmap?: ApprovalMode)",
+        "ApprovalsConfig has suggestWaitSeconds?: number field",
+        "approvalsConfigSchema validates all fields using approvalModeSchema.optional()",
+        "suggestWaitSeconds validated as z.number().int().min(0).optional()",
+        "JSDoc comments on interface describe each gate trigger",
+        "Both ApprovalsConfig and approvalsConfigSchema exported from types.ts",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/types.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-008-approval-types.md"
+      ],
+      "blockedBy": [
+        "SUB-197"
+      ]
+    },
+    {
+      "id": "SUB-199",
+      "taskRef": "008-approval-types",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Update RalphSection with approvals field and re-export from index.ts",
+      "description": "Add the approvals field to RalphSection interface and ralphSectionSchema Zod schema. Update lib/config/index.ts to re-export ApprovalMode, approvalModeSchema, ApprovalsConfig, and approvalsConfigSchema. Verify TypeScript compiles and existing tests pass.",
+      "done": false,
+      "acceptanceCriteria": [
+        "RalphSection interface has approvals?: ApprovalsConfig field",
+        "ralphSectionSchema includes approvals: approvalsConfigSchema.optional()",
+        "lib/config/index.ts exports ApprovalMode type",
+        "lib/config/index.ts exports approvalModeSchema",
+        "lib/config/index.ts exports ApprovalsConfig type",
+        "lib/config/index.ts exports approvalsConfigSchema",
+        "bun run typecheck passes",
+        "bun test passes (existing tests unaffected)"
+      ],
+      "filesToRead": [
+        "tools/src/lib/config/types.ts",
+        "tools/src/lib/config/index.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-008-approval-types.md"
+      ],
+      "blockedBy": [
+        "SUB-198"
+      ]
+    },
+    {
+      "id": "SUB-213",
+      "taskRef": "012-tty-approval-prompt",
+      "storyRef": "001-artifact-approvals",
+      "title": "Add formatGateName() helper function to approvals.ts",
+      "description": "Create the formatGateName() helper function in tools/src/commands/ralph/approvals.ts that converts ApprovalGate camelCase names to human-readable display format. The function should: replace 'create' prefix with 'Create ', remove 'on' prefix, insert spaces before capital letters, and trim whitespace. Examples: createStories → 'Create Stories', onDriftDetected → 'Drift Detected', correctionTasks → 'Correction Tasks'. Import ApprovalGate type from lib/config. Export the function.",
+      "done": false,
+      "acceptanceCriteria": [
+        "formatGateName() function exists in tools/src/commands/ralph/approvals.ts",
+        "Function signature: formatGateName(gate: ApprovalGate): string",
+        "createStories → 'Create Stories'",
+        "createTasks → 'Create Tasks'",
+        "createSubtasks → 'Create Subtasks'",
+        "onDriftDetected → 'Drift Detected'",
+        "correctionTasks → 'Correction Tasks'",
+        "promptChanges → 'Prompt Changes'",
+        "formatGateName is exported from approvals.ts",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-012-tty-approval-prompt.md",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md",
+        "tools/src/lib/config/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-214",
+      "taskRef": "012-tty-approval-prompt",
+      "storyRef": "001-artifact-approvals",
+      "title": "Implement promptApproval() async function with readline",
+      "description": "Add promptApproval() async function to tools/src/commands/ralph/approvals.ts that prompts user to approve artifact creation in TTY mode. The function receives a gate name and summary string, displays the formatted gate name and summary, shows 'Approve? [Y/n]: ' prompt, and returns Promise<boolean>. Uses readline.createInterface pattern from cascade.ts. Default is Yes (empty input or 'y' approves). Only 'n' or 'no' rejects. Any other input approves. Function uses formatGateName() for display.",
+      "done": false,
+      "acceptanceCriteria": [
+        "promptApproval(gate: ApprovalGate, summary: string): Promise<boolean> function exists",
+        "Function displays formatted gate name using formatGateName()",
+        "Function displays the summary string before prompt",
+        "Prompt shows 'Approve? [Y/n]: '",
+        "Empty input (just Enter) returns true",
+        "'y', 'Y', 'yes', 'YES' returns true",
+        "'n', 'N', 'no', 'NO' returns false",
+        "Any other input returns true (default yes)",
+        "Uses readline.createInterface with process.stdin/stdout",
+        "Closes readline interface after response",
+        "promptApproval is exported from approvals.ts",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-012-tty-approval-prompt.md"
+      ],
+      "blockedBy": [
+        "SUB-213"
+      ]
+    },
+    {
+      "id": "SUB-215",
+      "taskRef": "012-tty-approval-prompt",
+      "storyRef": "001-artifact-approvals",
+      "title": "Add unit tests for formatGateName() and verify promptApproval exports",
+      "description": "Add unit tests in tools/tests/lib/approvals.test.ts for formatGateName() function covering all gate name formats. Verify that all exports (formatGateName, promptApproval, plus existing evaluateApproval, ApprovalAction, ApprovalContext) are correctly exported from approvals.ts. The tests should verify: all gate name transformations work correctly, function handles edge cases. Manual test plan items for promptApproval() should be documented in test file comments.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Unit test file tools/tests/lib/approvals.test.ts exists or is extended",
+        "Test: formatGateName('createStories') === 'Create Stories'",
+        "Test: formatGateName('createTasks') === 'Create Tasks'",
+        "Test: formatGateName('createSubtasks') === 'Create Subtasks'",
+        "Test: formatGateName('createRoadmap') === 'Create Roadmap'",
+        "Test: formatGateName('createAtomicDocs') === 'Create Atomic Docs'",
+        "Test: formatGateName('onDriftDetected') === 'Drift Detected'",
+        "Test: formatGateName('correctionTasks') === 'Correction Tasks'",
+        "Test: formatGateName('promptChanges') === 'Prompt Changes'",
+        "bun test tools/tests/lib/approvals.test.ts passes",
+        "Manual test plan for promptApproval() documented in test file comments"
+      ],
+      "filesToRead": [
+        "tools/tests/lib/",
+        "tools/src/commands/ralph/approvals.ts"
+      ],
+      "blockedBy": [
+        "SUB-214"
+      ]
+    },
+    {
+      "id": "SUB-210",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add fromLevel parameter to runCascadeFrom function",
+      "description": "Update runCascadeFrom() in cascade.ts to accept an optional fromLevel parameter that overrides the start parameter. When provided, validate that fromLevel is a valid level name using isValidLevelName(). Update the function signature and internal logic to use fromLevel when specified.",
+      "done": false,
+      "acceptanceCriteria": [
+        "runCascadeFrom accepts optional fromLevel?: string parameter",
+        "When fromLevel is provided, it overrides the start parameter for cascade entry point",
+        "fromLevel is validated using isValidLevelName() before use",
+        "Invalid fromLevel returns CascadeFromResult with error message listing valid levels",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts"
+      ],
+      "blockedBy": [
+        "SUB-219"
+      ]
+    },
+    {
+      "id": "SUB-211",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Update HandleCascadeOptions interface with approval flags",
+      "description": "Update the HandleCascadeOptions interface in tools/src/commands/ralph/index.ts to include forceFlag, reviewFlag, and fromLevel fields. These fields will be passed through to runCascadeFrom() from the CLI commands. Update handleCascadeExecution() helper to pass the new flags through to runCascadeFrom().",
+      "done": false,
+      "acceptanceCriteria": [
+        "HandleCascadeOptions interface has forceFlag?: boolean field",
+        "HandleCascadeOptions interface has reviewFlag?: boolean field",
+        "HandleCascadeOptions interface has fromLevel?: string field",
+        "handleCascadeExecution() passes forceFlag, reviewFlag, and fromLevel to runCascadeFrom()",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/cascade.ts"
+      ],
+      "blockedBy": [
+        "SUB-210"
+      ]
+    },
+    {
+      "id": "SUB-212",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Create validateApprovalFlags helper for mutual exclusion check",
+      "description": "Add a validateApprovalFlags(force: boolean | undefined, review: boolean | undefined) function in tools/src/commands/ralph/index.ts that validates --force and --review are not used together. If both are true, exit with error message \"Cannot use --force and --review together\". Return void on success.",
+      "done": false,
+      "acceptanceCriteria": [
+        "validateApprovalFlags(force, review) function exists in index.ts",
+        "Returns void when neither flag is set",
+        "Returns void when only one flag is set",
+        "Calls process.exit(1) and prints error when both flags are true",
+        "Error message is: \"Cannot use --force and --review together\"",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ]
+    },
+    {
+      "id": "SUB-216",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add --force, --review, --from flags to ralph plan tasks command",
+      "description": "Add the three approval control flags to the ralph plan tasks command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used.",
+      "done": false,
+      "acceptanceCriteria": [
+        "aaa ralph plan tasks --help shows --force, --review, and --from flags",
+        "validateApprovalFlags called in tasks action before main logic",
+        "Flags are passed through to handleCascadeExecution when --cascade is used",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": [
+        "SUB-222"
+      ]
+    },
+    {
+      "id": "SUB-217",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add --force, --review, --from flags to ralph plan subtasks command",
+      "description": "Add the three approval control flags to the ralph plan subtasks command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used.",
+      "done": false,
+      "acceptanceCriteria": [
+        "aaa ralph plan subtasks --help shows --force, --review, and --from flags",
+        "validateApprovalFlags called in subtasks action before main logic",
+        "Flags are passed through to handleCascadeExecution when --cascade is used",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": [
+        "SUB-216"
+      ]
+    },
+    {
+      "id": "SUB-218",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add E2E tests for approval control flags",
+      "description": "Add E2E tests to tools/tests/e2e/ralph.test.ts verifying the new flags: (1) --help shows all three flags for each command, (2) --force --review together produces mutual exclusion error with exit code 1, (3) --from invalid-level produces error with valid levels list, (4) Valid combinations work without error.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Test: aaa ralph build --help includes --force, --review, --from options",
+        "Test: aaa ralph plan subtasks --help includes --force, --review, --from options",
+        "Test: aaa ralph plan subtasks --force --review exits 1 with \"Cannot use --force and --review together\"",
+        "Test: aaa ralph plan subtasks --from invalid-level exits 1 with \"Invalid level\" and lists valid levels",
+        "All new tests pass: bun test tools/tests/e2e/ralph.test.ts",
+        "Existing tests still pass"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/ralph.test.ts",
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": [
+        "SUB-217"
+      ]
+    },
+    {
+      "id": "SUB-225",
+      "taskRef": "015-git-workflow-exit-unstaged",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Create approvals.ts module with ApprovalGate type and gitCheckpoint function",
+      "description": "Create tools/src/commands/ralph/approvals.ts module. Add ApprovalGate type alias for the artifact-centric gates. Implement gitCheckpoint(gate: ApprovalGate): boolean function that stages all changes (git add -A), checks if there is anything to commit (git status --porcelain), and creates a checkpoint commit with message \"chore(ralph): checkpoint before <gate>\". Returns true if checkpoint created, false if nothing to commit. Uses execSync from node:child_process with stdio: \"pipe\" to suppress git output.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/approvals.ts exists",
+        "ApprovalGate type includes: createRoadmap, createStories, createTasks, createSubtasks, onDriftDetected, correctionTasks",
+        "gitCheckpoint(gate) stages all changes with git add -A",
+        "gitCheckpoint(gate) returns false when working tree is clean (no changes)",
+        "gitCheckpoint(gate) creates commit with message \"chore(ralph): checkpoint before <gate>\"",
+        "gitCheckpoint(gate) catches git errors and logs warning (does not throw)",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/cascade.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-015-git-workflow-exit-unstaged.md"
+      ]
+    },
+    {
+      "id": "SUB-226",
+      "taskRef": "015-git-workflow-exit-unstaged",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add FeedbackContext interface and getNextLevel helper to approvals.ts",
+      "description": "Add FeedbackContext interface to approvals.ts with fields: cascadeTarget (string), gate (ApprovalGate), level (string), milestonePath (string), summary (string). Add getNextLevel(level: string): string | null helper that returns the next cascade level (stories -> tasks -> subtasks -> build -> calibrate) or null if at end or invalid.",
+      "done": false,
+      "acceptanceCriteria": [
+        "FeedbackContext interface has cascadeTarget, gate, level, milestonePath, summary fields",
+        "All fields have JSDoc comments",
+        "getNextLevel(\"stories\") returns \"tasks\"",
+        "getNextLevel(\"subtasks\") returns \"build\"",
+        "getNextLevel(\"calibrate\") returns null",
+        "getNextLevel(\"invalid\") returns null",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/cascade.ts"
+      ],
+      "blockedBy": [
+        "SUB-225"
+      ]
+    },
+    {
+      "id": "SUB-227",
+      "taskRef": "015-git-workflow-exit-unstaged",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Implement writeFeedbackFile function in approvals.ts",
+      "description": "Implement writeFeedbackFile(context: FeedbackContext): string function that creates a markdown feedback file in <milestonePath>/feedback/ directory. Creates the feedback directory if missing (mkdirSync recursive). Filename format: YYYY-MM-DD_<gate>.md. Content includes: header with gate name, timestamp, level, milestone; summary section; instructions for approve (git add + commit + resume command), reject (git checkout .), and modify (edit then approve). Returns the filepath.",
+      "done": false,
+      "acceptanceCriteria": [
+        "writeFeedbackFile creates <milestonePath>/feedback/ directory if it does not exist",
+        "Feedback filename format is YYYY-MM-DD_<gate>.md",
+        "Feedback file contains gate name, ISO timestamp, level name, milestone name in header",
+        "Feedback file contains summary section with context.summary content",
+        "Feedback file contains approve instructions with git add && commit command",
+        "Feedback file contains reject instructions with git checkout . command",
+        "Feedback file contains modify instructions (edit then approve)",
+        "Feedback file contains correct resume command: aaa ralph plan --milestone <name> --cascade <target> --from <nextLevel>",
+        "Function returns the full path to created feedback file",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-015-git-workflow-exit-unstaged.md"
+      ],
+      "blockedBy": [
+        "SUB-226"
+      ]
+    },
+    {
+      "id": "SUB-228",
+      "taskRef": "015-git-workflow-exit-unstaged",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Implement printExitInstructions and formatGateName helpers in approvals.ts",
+      "description": "Add formatGateName(gate: ApprovalGate): string helper that converts camelCase gates to human-readable format (e.g., createStories -> \"Create Stories\"). Implement printExitInstructions(feedbackPath: string, resumeCommand: string): void function that prints a clear console output with separator lines, \"APPROVAL REQUIRED\" header, brief instructions (approve/reject/modify one-liners), resume command, and path to feedback file.",
+      "done": false,
+      "acceptanceCriteria": [
+        "formatGateName(\"createStories\") returns \"Create Stories\"",
+        "formatGateName(\"onDriftDetected\") returns \"On Drift Detected\"",
+        "printExitInstructions outputs separator line (60 \"=\" characters)",
+        "printExitInstructions outputs \"APPROVAL REQUIRED\" header",
+        "printExitInstructions shows approve, reject, modify one-liner instructions",
+        "printExitInstructions shows the resume command",
+        "printExitInstructions shows the feedback file path",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/display.ts"
+      ],
+      "blockedBy": [
+        "SUB-227"
+      ]
+    },
+    {
+      "id": "SUB-229",
+      "taskRef": "015-git-workflow-exit-unstaged",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Implement prepareExitUnstaged and finalizeExitUnstaged two-phase handler",
+      "description": "Add ExitUnstagedContext interface with cascadeTarget, gate, level, milestonePath fields. Implement prepareExitUnstaged(context: ExitUnstagedContext): void that calls gitCheckpoint before level execution. Implement finalizeExitUnstaged(context: ExitUnstagedContext, summary: string): void that writes feedback file and prints exit instructions. Export all new types and functions from approvals.ts.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ExitUnstagedContext interface has cascadeTarget, gate, level, milestonePath fields",
+        "prepareExitUnstaged calls gitCheckpoint(context.gate)",
+        "finalizeExitUnstaged calls writeFeedbackFile with correct FeedbackContext",
+        "finalizeExitUnstaged calls printExitInstructions with feedbackPath and resumeCommand",
+        "ExitUnstagedContext, FeedbackContext, prepareExitUnstaged, finalizeExitUnstaged, gitCheckpoint, writeFeedbackFile, printExitInstructions exported from approvals.ts",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-015-git-workflow-exit-unstaged.md"
+      ],
+      "blockedBy": [
+        "SUB-228"
+      ]
+    },
+    {
+      "id": "SUB-230",
+      "taskRef": "015-git-workflow-exit-unstaged",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Integrate exit-unstaged handler into cascade.ts checkApprovalGate",
+      "description": "Update cascade.ts to import prepareExitUnstaged and finalizeExitUnstaged from approvals.ts. In checkApprovalGate() replace the placeholder \"exit-unstaged\" case with actual implementation: call prepareExitUnstaged before returning the result. Add milestonePath to CascadeFromOptions interface. Update runCascadeFrom to handle exit-unstaged by calling finalizeExitUnstaged after level execution when the approval result is exit-unstaged.",
+      "done": false,
+      "acceptanceCriteria": [
+        "cascade.ts imports prepareExitUnstaged and finalizeExitUnstaged from approvals.ts",
+        "CascadeFromOptions interface includes milestonePath?: string field",
+        "checkApprovalGate exit-unstaged case calls prepareExitUnstaged with correct context",
+        "runCascadeFrom detects exit-unstaged result and calls finalizeExitUnstaged after level execution",
+        "Generated artifacts remain unstaged (git add not called after level execution)",
+        "Cascade returns with success: false, error: null, stoppedAt: <currentLevel> on exit-unstaged",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md"
+      ],
+      "blockedBy": [
+        "SUB-229"
+      ]
+    },
+    {
+      "id": "SUB-231",
+      "taskRef": "015-git-workflow-exit-unstaged",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add E2E tests for exit-unstaged workflow in cascade",
+      "description": "Create tools/tests/e2e/approvals.test.ts with tests for the exit-unstaged workflow. Test gitCheckpoint behavior (returns false when clean, creates commit when dirty). Test writeFeedbackFile creates file with correct content. Test full exit-unstaged flow integration: approval gate returns exit-unstaged, checkpoint created, level executed, feedback written, instructions printed.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/tests/e2e/approvals.test.ts exists",
+        "Test verifies gitCheckpoint returns false on clean working tree",
+        "Test verifies gitCheckpoint creates checkpoint commit when changes exist",
+        "Test verifies writeFeedbackFile creates file in feedback/ directory",
+        "Test verifies feedback file contains approve/reject/modify instructions",
+        "Test verifies feedback file contains correct resume command",
+        "All tests pass: bun test tools/tests/e2e/approvals.test.ts"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/cascade.test.ts",
+        "tools/tests/e2e/ralph.test.ts",
+        "tools/src/commands/ralph/approvals.ts"
+      ],
+      "blockedBy": [
+        "SUB-230"
+      ]
+    },
+    {
+      "id": "SUB-219",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Update CascadeFromOptions interface with approval flags",
+      "description": "Update the CascadeFromOptions interface in tools/src/commands/ralph/cascade.ts to include forceFlag and reviewFlag fields. These boolean flags will control approval behavior during cascade execution. Also update RunLevelOptions to pass through the flags.",
+      "done": false,
+      "acceptanceCriteria": [
+        "CascadeFromOptions interface has forceFlag?: boolean field with JSDoc comment",
+        "CascadeFromOptions interface has reviewFlag?: boolean field with JSDoc comment",
+        "RunLevelOptions interface updated to pass through forceFlag and reviewFlag",
+        "JSDoc comments explain flag semantics: forceFlag skips approvals, reviewFlag requires approvals",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/types.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-011-cli-approval-flags.md"
+      ]
+    },
+    {
+      "id": "SUB-220",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add --force, --review, --from flags to ralph build command",
+      "description": "Add .option(\"--force\", \"Skip all approval prompts\"), .option(\"--review\", \"Require all approval prompts\"), and .option(\"--from <level>\", \"Resume cascade from this level\") to the ralph build command in index.ts. Call validateApprovalFlags() early in the action. Pass flags through to cascade when --cascade is used.",
+      "done": false,
+      "acceptanceCriteria": [
+        "aaa ralph build --help shows --force option with description \"Skip all approval prompts\"",
+        "aaa ralph build --help shows --review option with description \"Require all approval prompts\"",
+        "aaa ralph build --help shows --from <level> option with appropriate description",
+        "validateApprovalFlags called in build action before main logic",
+        "Flags are passed through to runCascadeFrom when --cascade is used",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": [
+        "SUB-211",
+        "SUB-212",
+        "SUB-219"
+      ]
+    },
+    {
+      "id": "SUB-221",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add --force, --review, --from flags to ralph plan roadmap command",
+      "description": "Add .option(\"--force\", \"Skip all approval prompts\"), .option(\"--review\", \"Require all approval prompts\"), and .option(\"--from <level>\", \"Resume cascade from this level\") to the ralph plan roadmap command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used.",
+      "done": false,
+      "acceptanceCriteria": [
+        "aaa ralph plan roadmap --help shows --force, --review, and --from flags",
+        "validateApprovalFlags called in roadmap action before main logic",
+        "Flags are passed through to handleCascadeExecution when --cascade is used",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": [
+        "SUB-211",
+        "SUB-212",
+        "SUB-219"
+      ]
+    },
+    {
+      "id": "SUB-222",
+      "taskRef": "TASK-011-cli-approval-flags",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add --force, --review, --from flags to ralph plan stories command",
+      "description": "Add the three approval control flags to the ralph plan stories command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used.",
+      "done": false,
+      "acceptanceCriteria": [
+        "aaa ralph plan stories --help shows --force, --review, and --from flags",
+        "validateApprovalFlags called in stories action before main logic",
+        "Flags are passed through to handleCascadeExecution when --cascade is used",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "blockedBy": [
+        "SUB-221"
+      ]
+    },
+    {
+      "id": "SUB-223",
+      "taskRef": "TASK-014-notify-wait-handler",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Integrate handleNotifyWait into cascade checkApprovalGate",
+      "description": "Update checkApprovalGate() in tools/src/commands/ralph/cascade.ts to replace the placeholder notify-wait implementation with a call to handleNotifyWait(). Import handleNotifyWait from approvals.ts. The notify-wait case should build a summary like \"Proceeding with {level} level\", call await handleNotifyWait(gate, approvalConfig, summary), and return \"continue\" after the wait completes.",
+      "done": false,
+      "acceptanceCriteria": [
+        "cascade.ts imports handleNotifyWait from \"./approvals\"",
+        "checkApprovalGate notify-wait case calls handleNotifyWait(gate, approvalConfig, summary)",
+        "Summary format is \"Proceeding with {level} level\" matching existing pattern",
+        "Returns \"continue\" after handleNotifyWait completes",
+        "Placeholder console.log for notify-wait is removed",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/approvals.ts"
+      ],
+      "blockedBy": [
+        "SUB-238"
+      ]
+    },
+    {
+      "id": "SUB-224",
+      "taskRef": "TASK-014-notify-wait-handler",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add unit tests for handleNotifyWait function",
+      "description": "Create unit tests for the handleNotifyWait function in tools/tests/lib/approvals.test.ts. Test scenarios: (1) With valid notify config - notification sent and wait occurs, (2) With notify.enabled: false - skips notification but still waits, (3) With missing server/topic - skips notification but still waits, (4) Uses custom suggestWaitSeconds when specified, (5) Falls back to 180 when suggestWaitSeconds not specified. Use mocking/spying for sendNotification and setTimeout to avoid actual delays in tests.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Test file tools/tests/lib/approvals.test.ts exists or is extended",
+        "Test: handleNotifyWait with valid config sends notification",
+        "Test: handleNotifyWait with enabled:false skips notify, still waits",
+        "Test: handleNotifyWait with missing server/topic skips notify, still waits",
+        "Test: handleNotifyWait uses custom suggestWaitSeconds from config",
+        "Test: handleNotifyWait defaults to 180s when suggestWaitSeconds undefined",
+        "Tests mock sendNotification and timing functions appropriately",
+        "bun test tools/tests/lib/approvals.test.ts passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/tests/lib/hooks.test.ts",
+        "tools/tests/lib/config-loader.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-223"
+      ]
+    },
+    {
+      "id": "SUB-232",
+      "taskRef": "TASK-013-cascade-approval-integration",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add levelToGate mapping function to cascade.ts",
+      "description": "Add the levelToGate(level: CascadeLevelName): ApprovalGate | null function to tools/src/commands/ralph/cascade.ts. This function maps cascade levels to their corresponding approval gates: roadmap -> createRoadmap, stories -> createStories, tasks -> createTasks, subtasks -> createSubtasks. The build and calibrate levels return null (no approval gate). Export the function for testing.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Function levelToGate(level: CascadeLevelName): ApprovalGate | null exists in cascade.ts",
+        "levelToGate(\"roadmap\") returns \"createRoadmap\"",
+        "levelToGate(\"stories\") returns \"createStories\"",
+        "levelToGate(\"tasks\") returns \"createTasks\"",
+        "levelToGate(\"subtasks\") returns \"createSubtasks\"",
+        "levelToGate(\"build\") returns null",
+        "levelToGate(\"calibrate\") returns null",
+        "Function is exported from cascade.ts",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md",
+        "tools/src/lib/config/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-233",
+      "taskRef": "TASK-013-cascade-approval-integration",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add buildApprovalContext helper and update CascadeFromOptions",
+      "description": "Update CascadeFromOptions interface in cascade.ts to add forceFlag?: boolean, reviewFlag?: boolean, and headless?: boolean fields. Add buildApprovalContext(options: CascadeFromOptions): ApprovalContext helper that constructs the ApprovalContext from cascade options, checking process.stdin.isTTY and options.headless to determine isTTY value.",
+      "done": false,
+      "acceptanceCriteria": [
+        "CascadeFromOptions interface has forceFlag?: boolean field",
+        "CascadeFromOptions interface has reviewFlag?: boolean field",
+        "CascadeFromOptions interface has headless?: boolean field (if not already present)",
+        "Function buildApprovalContext(options: CascadeFromOptions): ApprovalContext exists",
+        "buildApprovalContext returns { forceFlag: false, isTTY: true, reviewFlag: false } for default options in TTY",
+        "buildApprovalContext returns { forceFlag: true, ... } when options.forceFlag is true",
+        "isTTY is false when options.headless is true or process.stdin.isTTY is false",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
+      ],
+      "blockedBy": [
+        "SUB-232"
+      ]
+    },
+    {
+      "id": "SUB-234",
+      "taskRef": "TASK-013-cascade-approval-integration",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add ApprovalResult type and checkApprovalGate function",
+      "description": "Add ApprovalResult type (\"continue\" | \"aborted\" | \"exit-unstaged\") and checkApprovalGate(level, config, context) async function to cascade.ts. The function uses levelToGate to get the gate, calls evaluateApproval, and dispatches to the appropriate handler: \"write\" -> \"continue\", \"prompt\" -> call promptApproval and return based on result, \"notify-wait\" -> log placeholder and return \"continue\", \"exit-unstaged\" -> log placeholder and return \"exit-unstaged\". Export both the type and function.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Type ApprovalResult = \"continue\" | \"aborted\" | \"exit-unstaged\" is defined and exported",
+        "Function checkApprovalGate(level, config, context): Promise<ApprovalResult> exists",
+        "Returns \"continue\" when levelToGate returns null (e.g., build level)",
+        "Returns \"continue\" for \"write\" action",
+        "Calls promptApproval for \"prompt\" action and returns \"continue\" or \"aborted\" based on result",
+        "Logs \"[Approval] notify-wait for <gate> - continuing (not yet implemented)\" and returns \"continue\" for notify-wait",
+        "Logs \"[Approval] exit-unstaged for <gate> - exiting (not yet implemented)\" and returns \"exit-unstaged\" for exit-unstaged",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
+      ],
+      "blockedBy": [
+        "SUB-233"
+      ]
+    },
+    {
+      "id": "SUB-235",
+      "taskRef": "TASK-013-cascade-approval-integration",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Integrate approval checks into runCascadeFrom loop",
+      "description": "Update runCascadeFrom() in cascade.ts to: (1) Load approval config via loadAaaConfig().ralph?.approvals at start, (2) Build approval context using buildApprovalContext(options), (3) Call checkApprovalGate before each level execution in the loop, (4) Handle \"aborted\" result by returning early with error message, (5) Handle \"exit-unstaged\" result by returning early with success:false but error:null. Update imports to include loadAaaConfig, evaluateApproval, promptApproval from their respective modules.",
+      "done": false,
+      "acceptanceCriteria": [
+        "runCascadeFrom imports loadAaaConfig from @tools/lib/config",
+        "runCascadeFrom imports evaluateApproval, promptApproval from ./approvals",
+        "Approval config loaded once at start of runCascadeFrom",
+        "checkApprovalGate called before runLevel for each planning level",
+        "\"aborted\" result returns { success: false, error: \"Aborted by user at approval prompt\", ... }",
+        "\"exit-unstaged\" result returns { success: false, error: null, stoppedAt: currentLevel, ... }",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/lib/config/index.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md"
+      ],
+      "blockedBy": [
+        "SUB-234"
+      ]
+    },
+    {
+      "id": "SUB-236",
+      "taskRef": "TASK-013-cascade-approval-integration",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add unit tests for cascade approval integration",
+      "description": "Add unit tests to tools/tests/lib/cascade-approval.test.ts (new file) testing: (1) levelToGate returns correct gates for all levels, (2) buildApprovalContext constructs context correctly with various options, (3) checkApprovalGate returns expected results for different actions. Use mocking for evaluateApproval and promptApproval to test the dispatch logic without actual prompts.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Test file tools/tests/lib/cascade-approval.test.ts exists",
+        "Test: levelToGate returns correct ApprovalGate for roadmap, stories, tasks, subtasks",
+        "Test: levelToGate returns null for build, calibrate",
+        "Test: buildApprovalContext sets forceFlag from options",
+        "Test: buildApprovalContext sets reviewFlag from options",
+        "Test: buildApprovalContext sets isTTY correctly based on headless flag",
+        "Test: checkApprovalGate returns \"continue\" for null gate",
+        "All tests pass: bun test tools/tests/lib/cascade-approval.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/tests/lib/notify/format-notification.test.ts",
+        "tools/tests/e2e/cascade.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-235"
+      ]
+    },
+    {
+      "id": "SUB-237",
+      "taskRef": "TASK-014-notify-wait-handler",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add sleep helper and handleNotifyWait function to approvals.ts",
+      "description": "Create approvals.ts file in tools/src/commands/ralph/ with the sleep() helper function and handleNotifyWait() function. The sleep helper returns a Promise that resolves after a given number of milliseconds. handleNotifyWait() sends a notification about pending artifact creation, waits for suggestWaitSeconds (defaulting to DEFAULT_SUGGEST_WAIT_SECONDS = 180), then returns to continue. Import sendNotification from notify/client and loadAaaConfig from lib/config. The function gracefully handles notification errors (logs warning but continues) and works when notifications are disabled (skips notify, still waits). Console output shows: notification status, wait duration, and completion message.",
+      "done": false,
+      "acceptanceCriteria": [
+        "File tools/src/commands/ralph/approvals.ts exists with sleep() and handleNotifyWait() functions",
+        "sleep(ms) returns Promise<void> that resolves after ms milliseconds",
+        "handleNotifyWait(gate, config, summary) is exported from approvals.ts",
+        "DEFAULT_SUGGEST_WAIT_SECONDS constant is exported (value: 180)",
+        "Notification sent with title \"Ralph: [Gate Display Name]\" and message \"summary + Proceeding in X seconds...\"",
+        "Uses config.suggestWaitSeconds when specified, falls back to 180 when not",
+        "Notification errors logged as warning but do not throw (continues with wait)",
+        "When notify.enabled is false or server/topic missing, logs skip message and still waits",
+        "Console output format matches: [Approval] Notification sent/skipped, Waiting Xs, Wait complete",
+        "bun run typecheck passes with no errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-014-notify-wait-handler.md",
+        "tools/src/commands/notify/client.ts",
+        "tools/src/lib/config/types.ts",
+        "tools/src/commands/ralph/cascade.ts"
+      ]
+    },
+    {
+      "id": "SUB-238",
+      "taskRef": "TASK-014-notify-wait-handler",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Add formatGateName helper and export approval module",
+      "description": "Add formatGateName(gate: ApprovalGate) helper function to approvals.ts that converts gate names like \"createStories\" to human-readable format \"Create Stories\". Export formatGateName along with handleNotifyWait, DEFAULT_SUGGEST_WAIT_SECONDS, and the existing ApprovalAction, ApprovalContext, evaluateApproval exports. This provides the display name formatting used in notification titles and console output.",
+      "done": false,
+      "acceptanceCriteria": [
+        "formatGateName(gate) function exists and is exported from approvals.ts",
+        "formatGateName(\"createStories\") returns \"Create Stories\"",
+        "formatGateName(\"createRoadmap\") returns \"Create Roadmap\"",
+        "formatGateName(\"onDriftDetected\") returns \"On Drift Detected\"",
+        "Export block includes: ApprovalAction, ApprovalContext, DEFAULT_SUGGEST_WAIT_SECONDS, evaluateApproval, formatGateName, handleNotifyWait",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/approvals.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-014-notify-wait-handler.md"
+      ],
+      "blockedBy": [
+        "SUB-237"
+      ]
     }
   ]
 }
