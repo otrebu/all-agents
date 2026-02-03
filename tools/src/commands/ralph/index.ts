@@ -20,6 +20,8 @@ import {
   invokeClaudeHeadless as invokeClaudeHeadlessFromModule,
 } from "./claude";
 import {
+  countSubtasksInFile,
+  discoverTasksFromMilestone,
   getExistingTaskReferences,
   getPlanningLogPath as getMilestonePlanningLogPath,
   loadSubtasksFile,
@@ -509,6 +511,34 @@ interface HandleCascadeOptions {
   subtasksPath?: string;
 }
 
+/** Options for running subtasks in headless mode */
+interface RunSubtasksHeadlessOptions {
+  beforeCount: number;
+  extraContext: string;
+  hasMilestone: boolean;
+  hasStory: boolean;
+  milestone: string | undefined;
+  outputDirectory: string | undefined;
+  promptPath: string;
+  resolvedMilestonePath: null | string | undefined;
+  sizeMode: "large" | "medium" | "small";
+  skippedTasks: Array<string>;
+  sourceInfo: PlanSubtasksSummaryData["source"];
+  storyRef: string | undefined;
+}
+
+/** Result of subtasks pre-check for --milestone and --story modes */
+interface SubtasksPreCheckResult {
+  /** Count of subtasks before Claude invocation */
+  beforeCount: number;
+  /** Whether to skip entirely (all tasks already have subtasks) */
+  shouldSkip: boolean;
+  /** Array of taskRefs that were skipped */
+  skippedTasks: Array<string>;
+  /** Total number of tasks discovered */
+  totalTasks: number;
+}
+
 // Helper type for subtasks source context
 interface SubtasksSourceContext {
   contextParts: Array<string>;
@@ -599,6 +629,110 @@ function buildSubtasksSourceContext(
   }
 
   return { contextParts, sourceInfo };
+}
+
+/**
+ * Perform pre-check for --milestone and --story modes
+ *
+ * Discovers tasks from the milestone, checks which ones already have subtasks,
+ * and returns information needed for filtering and summary display.
+ *
+ * @param milestonePath - Resolved milestone path
+ * @param outputDirectory - Directory where subtasks.json is/will be
+ * @returns Pre-check result with counts and skip info
+ */
+function checkSubtasksPreCheck(
+  milestonePath: string,
+  outputDirectory: string,
+): SubtasksPreCheckResult {
+  const subtasksPath = path.join(outputDirectory, "subtasks.json");
+
+  // Capture before count for later delta calculation
+  const beforeCount = countSubtasksInFile(subtasksPath);
+
+  // Get existing taskRefs from the subtasks file
+  const existingTaskReferences = getExistingTaskReferences(subtasksPath);
+
+  // Discover tasks from milestone
+  const allTasks = discoverTasksFromMilestone(milestonePath);
+
+  // Filter tasks and track skipped ones
+  const skippedTasks: Array<string> = [];
+  for (const taskPath of allTasks) {
+    const taskReference = extractTaskReference(taskPath);
+    if (existingTaskReferences.has(taskReference)) {
+      skippedTasks.push(taskReference);
+    }
+  }
+
+  // Determine if all tasks already have subtasks
+  const shouldSkip =
+    allTasks.length > 0 && skippedTasks.length === allTasks.length;
+
+  return { beforeCount, shouldSkip, skippedTasks, totalTasks: allTasks.length };
+}
+
+/**
+ * Check if a task should be skipped because it already has subtasks
+ * @param taskPath - Path to the task file
+ * @param outputDirectory - Output directory option (may be undefined)
+ * @returns true if the task should be skipped
+ */
+function checkTaskHasSubtasks(
+  taskPath: string,
+  outputDirectory: string | undefined,
+): boolean {
+  const taskReference = extractTaskReference(taskPath);
+
+  // Infer milestone from task path if it's in a milestone folder
+  const milestoneMatch = /milestones\/(?<slug>[^/]+)\//.exec(taskPath);
+  const inferredMilestonePath =
+    milestoneMatch?.groups?.slug === undefined
+      ? null
+      : resolveMilestonePath(milestoneMatch.groups.slug);
+
+  // Determine output path for subtasks.json
+  const preCheckOutputDirectory = resolveOutputDirectory(
+    outputDirectory,
+    inferredMilestonePath,
+  );
+  const preCheckSubtasksPath = path.join(
+    preCheckOutputDirectory,
+    "subtasks.json",
+  );
+
+  // Check if this task already has subtasks
+  const existingTaskReferences =
+    getExistingTaskReferences(preCheckSubtasksPath);
+  return existingTaskReferences.has(taskReference);
+}
+
+/**
+ * Print error message for missing subtasks source and exit
+ */
+function exitWithSubtasksSourceError(): never {
+  console.error("Error: Must provide a source");
+  console.log("\nHierarchy sources (scope = source):");
+  console.log(
+    "  aaa ralph plan subtasks --milestone <name>  # All tasks in milestone → subtasks",
+  );
+  console.log(
+    "  aaa ralph plan subtasks --story <path>      # All tasks for story → subtasks",
+  );
+  console.log(
+    "  aaa ralph plan subtasks --task <path>       # Task → subtasks",
+  );
+  console.log("\nAlternative sources:");
+  console.log(
+    "  aaa ralph plan subtasks --file <path>       # File → subtasks",
+  );
+  console.log(
+    '  aaa ralph plan subtasks --text "Fix bug"    # Text → subtasks',
+  );
+  console.log(
+    "  aaa ralph plan subtasks --review            # Review diary → subtasks",
+  );
+  process.exit(1);
 }
 
 /**
@@ -746,6 +880,112 @@ function invokeClaude(
   if (exitCode !== null && exitCode !== 0) {
     process.exit(exitCode);
   }
+}
+
+/**
+ * Resolve milestone path from options or infer from story path
+ *
+ * @param milestoneOption - Explicit --milestone flag value
+ * @param storyOption - Story path (to infer milestone from)
+ * @param hasStory - Whether story flag is provided
+ * @returns Resolved milestone path, or undefined if not determinable
+ */
+function resolveMilestoneFromOptions(
+  milestoneOption: string | undefined,
+  storyOption: string | undefined,
+  hasStory: boolean,
+): null | string | undefined {
+  if (milestoneOption !== undefined) {
+    // Explicit milestone flag
+    return resolveMilestonePath(milestoneOption);
+  }
+  if (hasStory && storyOption !== undefined) {
+    // Infer milestone from resolved story path
+    const resolvedStory = resolveStoryPath(storyOption);
+    if (resolvedStory !== null) {
+      const match = /milestones\/(?<slug>[^/]+)\//.exec(resolvedStory);
+      if (match?.groups?.slug !== undefined) {
+        return resolveMilestonePath(match.groups.slug);
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Run subtasks generation in headless mode and render summary
+ */
+function runSubtasksHeadless(options: RunSubtasksHeadlessOptions): void {
+  const {
+    beforeCount,
+    extraContext,
+    hasMilestone,
+    hasStory,
+    milestone,
+    outputDirectory: outputDirectoryOption,
+    promptPath,
+    resolvedMilestonePath,
+    sizeMode,
+    skippedTasks,
+    sourceInfo,
+    storyRef,
+  } = options;
+
+  const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
+  const result = invokeClaudeHeadless({
+    extraContext,
+    logFile,
+    promptPath,
+    sessionName: "subtasks",
+    sizeMode,
+  });
+
+  // Determine output path using resolveOutputDirectory
+  const resolvedOutputDirectory = resolveOutputDirectory(
+    outputDirectoryOption,
+    resolvedMilestonePath,
+  );
+  const outputPath = path.join(resolvedOutputDirectory, "subtasks.json");
+
+  // Try to load generated subtasks
+  const loadResult = ((): {
+    error?: string;
+    subtasks: Array<{ id: string; title: string }>;
+  } => {
+    try {
+      const file = loadSubtasksFile(outputPath);
+      return {
+        subtasks: file.subtasks.map((s) => ({ id: s.id, title: s.title })),
+      };
+    } catch {
+      return { error: "No subtasks file found", subtasks: [] };
+    }
+  })();
+
+  // Calculate counts for summary display (for --milestone and --story modes)
+  const afterCount = loadResult.subtasks.length;
+  const addedCount =
+    hasMilestone || hasStory ? afterCount - beforeCount : undefined;
+  const totalCount = hasMilestone || hasStory ? afterCount : undefined;
+
+  // Render summary
+  console.log(
+    renderPlanSubtasksSummary({
+      addedCount,
+      costUsd: result.costUsd,
+      durationMs: result.durationMs,
+      error: loadResult.error,
+      milestone,
+      outputPath,
+      sessionId: result.sessionId,
+      sizeMode,
+      skippedTasks: skippedTasks.length > 0 ? skippedTasks : undefined,
+      source: sourceInfo,
+      storyRef,
+      subtasks: loadResult.subtasks,
+      totalCount,
+    }),
+  );
 }
 
 /**
@@ -1134,28 +1374,7 @@ planCommand.addCommand(
         hasMilestone,
       ].filter(Boolean).length;
       if (sourceCount === 0) {
-        console.error("Error: Must provide a source");
-        console.log("\nHierarchy sources (scope = source):");
-        console.log(
-          "  aaa ralph plan subtasks --milestone <name>  # All tasks in milestone → subtasks",
-        );
-        console.log(
-          "  aaa ralph plan subtasks --story <path>      # All tasks for story → subtasks",
-        );
-        console.log(
-          "  aaa ralph plan subtasks --task <path>       # Task → subtasks",
-        );
-        console.log("\nAlternative sources:");
-        console.log(
-          "  aaa ralph plan subtasks --file <path>       # File → subtasks",
-        );
-        console.log(
-          '  aaa ralph plan subtasks --text "Fix bug"    # Text → subtasks',
-        );
-        console.log(
-          "  aaa ralph plan subtasks --review            # Review diary → subtasks",
-        );
-        process.exit(1);
+        exitWithSubtasksSourceError();
       }
       if (sourceCount > 1) {
         console.error(
@@ -1192,29 +1411,8 @@ planCommand.addCommand(
       // Pre-check for --task mode: skip if task already has subtasks
       if (hasTask && options.task !== undefined) {
         const taskPath = requireTask(options.task);
-        const taskReference = extractTaskReference(taskPath);
-
-        // Infer milestone from task path if it's in a milestone folder
-        const milestoneMatch = /milestones\/(?<slug>[^/]+)\//.exec(taskPath);
-        const inferredMilestonePath =
-          milestoneMatch?.groups?.slug === undefined
-            ? null
-            : resolveMilestonePath(milestoneMatch.groups.slug);
-
-        // Determine output path for subtasks.json
-        const preCheckOutputDirectory = resolveOutputDirectory(
-          options.outputDir,
-          inferredMilestonePath,
-        );
-        const preCheckSubtasksPath = path.join(
-          preCheckOutputDirectory,
-          "subtasks.json",
-        );
-
-        // Check if this task already has subtasks
-        const existingTaskReferences =
-          getExistingTaskReferences(preCheckSubtasksPath);
-        if (existingTaskReferences.has(taskReference)) {
+        if (checkTaskHasSubtasks(taskPath, options.outputDir)) {
+          const taskReference = extractTaskReference(taskPath);
           console.log(`Task ${taskReference} already has subtasks - skipping`);
           return;
         }
@@ -1238,24 +1436,51 @@ planCommand.addCommand(
 
       // Resolve milestone path - from explicit --milestone flag or inferred from story path
       // This is used for log file location and to determine output directory for subtasks.json
-      const resolvedMilestonePath = ((): null | string | undefined => {
-        if (options.milestone !== undefined) {
-          // Explicit milestone flag
-          return resolveMilestonePath(options.milestone);
+      const resolvedMilestonePath = resolveMilestoneFromOptions(
+        options.milestone,
+        options.story,
+        hasStory,
+      );
+
+      // Pre-check for --milestone and --story modes: filter tasks that already have subtasks
+      // Track skipped tasks and counts for summary display
+      let skippedTasks: Array<string> = [];
+      let beforeCount = 0;
+
+      if (
+        (hasMilestone || hasStory) &&
+        resolvedMilestonePath !== undefined &&
+        resolvedMilestonePath !== null
+      ) {
+        const outputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          resolvedMilestonePath,
+        );
+        const preCheckResult = checkSubtasksPreCheck(
+          resolvedMilestonePath,
+          outputDirectory,
+        );
+
+        ({ beforeCount } = preCheckResult);
+        ({ skippedTasks } = preCheckResult);
+
+        // If all tasks already have subtasks, exit cleanly
+        if (preCheckResult.shouldSkip) {
+          console.log(
+            `All ${preCheckResult.totalTasks} tasks already have subtasks - nothing to generate`,
+          );
+          return;
         }
-        if (hasStory && options.story !== undefined) {
-          // Infer milestone from resolved story path
-          // Story paths in milestones follow: docs/planning/milestones/<milestone>/stories/...
-          const resolvedStory = resolveStoryPath(options.story);
-          if (resolvedStory !== null) {
-            const match = /milestones\/(?<slug>[^/]+)\//.exec(resolvedStory);
-            if (match?.groups?.slug !== undefined) {
-              return resolveMilestonePath(match.groups.slug);
-            }
-          }
+
+        // If some tasks have subtasks, log info about filtering
+        if (skippedTasks.length > 0) {
+          const remainingCount =
+            preCheckResult.totalTasks - skippedTasks.length;
+          console.log(
+            `Pre-check: ${skippedTasks.length} tasks already have subtasks, ${remainingCount} to process`,
+          );
         }
-        return undefined;
-      })();
+      }
 
       // Build source context and info using helper
       const { contextParts, sourceInfo } = buildSubtasksSourceContext(
@@ -1292,56 +1517,21 @@ planCommand.addCommand(
       const extraContext = contextParts.join("\n");
 
       if (options.headless === true) {
-        // Headless mode with summary
-        const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
-        const result = invokeClaudeHeadless({
+        // Headless mode with summary - use extracted helper
+        runSubtasksHeadless({
+          beforeCount,
           extraContext,
-          logFile,
+          hasMilestone,
+          hasStory,
+          milestone: options.milestone,
+          outputDirectory: options.outputDir,
           promptPath,
-          sessionName: "subtasks",
-          sizeMode,
-        });
-
-        // Determine output path using resolveOutputDirectory
-        const resolvedOutputDirectory = resolveOutputDirectory(
-          options.outputDir,
           resolvedMilestonePath,
-        );
-        const outputPath = path.join(resolvedOutputDirectory, "subtasks.json");
-
-        // Try to load generated subtasks
-        const loadResult = ((): {
-          error?: string;
-          subtasks: Array<{ id: string; title: string }>;
-        } => {
-          try {
-            const file = loadSubtasksFile(outputPath);
-            return {
-              subtasks: file.subtasks.map((s) => ({
-                id: s.id,
-                title: s.title,
-              })),
-            };
-          } catch {
-            return { error: "No subtasks file found", subtasks: [] };
-          }
-        })();
-
-        // Render summary
-        console.log(
-          renderPlanSubtasksSummary({
-            costUsd: result.costUsd,
-            durationMs: result.durationMs,
-            error: loadResult.error,
-            milestone: options.milestone,
-            outputPath,
-            sessionId: result.sessionId,
-            sizeMode,
-            source: sourceInfo,
-            storyRef: options.story,
-            subtasks: loadResult.subtasks,
-          }),
-        );
+          sizeMode,
+          skippedTasks,
+          sourceInfo,
+          storyRef: options.story,
+        });
       } else {
         // Default: supervised mode (user watches)
         invokeClaudeChat(promptPath, "subtasks", extraContext);

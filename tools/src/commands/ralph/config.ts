@@ -54,6 +54,61 @@ function countRemaining(subtasks: Array<Subtask>): number {
 // =============================================================================
 
 /**
+ * Count subtasks in a subtasks file
+ *
+ * @param subtasksPath - Path to subtasks.json file
+ * @returns Number of subtasks in the file, or 0 if file doesn't exist or has errors
+ */
+function countSubtasksInFile(subtasksPath: string): number {
+  if (!existsSync(subtasksPath)) {
+    return 0;
+  }
+
+  try {
+    const content = readFileSync(subtasksPath, "utf8");
+    const parsed = JSON.parse(content) as SubtasksFile;
+
+    if (!Array.isArray(parsed.subtasks)) {
+      return 0;
+    }
+
+    return parsed.subtasks.length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Discover task files from a milestone path
+ *
+ * Lists all .md files in the milestone's tasks directory.
+ *
+ * @param milestonePath - Path to the milestone root directory
+ * @returns Array of task file paths, or empty array if tasks directory doesn't exist
+ *
+ * @example
+ * const tasks = discoverTasksFromMilestone('docs/planning/milestones/003-ralph-workflow');
+ * // Returns: ['docs/planning/.../tasks/TASK-001-foo.md', 'docs/planning/.../tasks/TASK-002-bar.md']
+ */
+function discoverTasksFromMilestone(milestonePath: string): Array<string> {
+  const tasksDirectory = join(milestonePath, "tasks");
+
+  if (!existsSync(tasksDirectory)) {
+    return [];
+  }
+
+  try {
+    const entries = readdirSync(tasksDirectory, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+      .map((entry) => join(tasksDirectory, entry.name))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Get all completed subtasks
  *
  * @param subtasks - Array of subtasks to filter
@@ -496,7 +551,9 @@ function saveSubtasksFile(subtasksPath: string, data: SubtasksFile): void {
 export {
   appendSubtasksToFile,
   countRemaining,
+  countSubtasksInFile,
   DEFAULT_CONFIG,
+  discoverTasksFromMilestone,
   getCompletedSubtasks,
   getExistingTaskReferences,
   getIterationLogPath,
