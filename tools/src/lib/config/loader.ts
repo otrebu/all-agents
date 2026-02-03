@@ -226,6 +226,9 @@ function mergeRalph(
   return {
     ...defaultValue,
     ...userValue,
+    approvals: userValue.approvals
+      ? { ...defaultValue.approvals, ...userValue.approvals }
+      : defaultValue.approvals,
     build: userValue.build
       ? { ...defaultValue.build, ...userValue.build }
       : defaultValue.build,
