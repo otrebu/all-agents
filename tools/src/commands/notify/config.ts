@@ -12,6 +12,7 @@
 import {
   CONFIG_FILENAME,
   DEFAULT_NOTIFY,
+  type EventConfig,
   loadAaaConfig,
   type NotifySection,
 } from "@tools/lib/config";
@@ -40,6 +41,19 @@ const DEFAULT_NOTIFY_CONFIG: NotifyConfig = {
   title: "aaa notify",
   topic: "",
   username: "admin",
+};
+
+/**
+ * Default event configurations for notify init
+ * These are written to aaa.config.json when initializing
+ */
+const DEFAULT_EVENTS: Record<string, EventConfig> = {
+  "claude:permissionPrompt": { priority: "max", tags: ["warning"] },
+  "claude:stop": { enabled: false },
+  "ralph:maxIterationsExceeded": { priority: "max", tags: ["rotating_light"] },
+  "ralph:milestoneComplete": { priority: "high", tags: ["tada"] },
+  "ralph:subtaskComplete": { priority: "default" },
+  "ralph:validationFail": { priority: "high", tags: ["warning"] },
 };
 
 // =============================================================================
@@ -196,14 +210,76 @@ function saveNotifyConfig(config: NotifyConfig): void {
   writeFileSync(unifiedPath, `${content}\n`, "utf8");
 }
 
+/**
+ * Save notify configuration with events to aaa.config.json
+ *
+ * Similar to saveNotifyConfig but also writes the events section.
+ * Used by the init command to set up default event routing.
+ *
+ * @param config - Configuration to save
+ * @param events - Event configurations to include
+ * @throws Error if write fails
+ */
+function saveNotifyConfigWithEvents(
+  config: NotifyConfig,
+  events: Record<string, EventConfig>,
+): void {
+  // Validate before saving
+  const result = notifyConfigSchema.safeParse(config);
+  if (!result.success) {
+    throw new Error(`Invalid config: ${result.error.message}`);
+  }
+
+  // Write to unified aaa.config.json
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const unifiedPath = join(projectRoot, CONFIG_FILENAME);
+
+  // Load existing config to preserve other sections
+  let existingConfig: Record<string, unknown> = {};
+  if (existsSync(unifiedPath)) {
+    try {
+      const content = readFileSync(unifiedPath, "utf8");
+      existingConfig = JSON.parse(content) as Record<string, unknown>;
+    } catch {
+      // If file exists but can't be parsed, start fresh
+    }
+  }
+
+  // Map NotifyConfig to NotifySection format with events
+  const notifySection: NotifySection = {
+    defaultPriority: config.defaultPriority,
+    defaultTopic: config.topic,
+    enabled: config.enabled,
+    events,
+    quietHours: config.quietHours,
+    server: config.server,
+    title: config.title,
+  };
+
+  // Merge notify section into existing config
+  existingConfig.notify = notifySection;
+
+  // Create parent directory if needed
+  const dir = dirname(unifiedPath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  // Write atomically with formatted JSON
+  const content = JSON.stringify(existingConfig, null, 2);
+  writeFileSync(unifiedPath, `${content}\n`, "utf8");
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
 
 export {
+  DEFAULT_EVENTS,
   DEFAULT_NOTIFY_CONFIG,
   getConfigPath,
   isInQuietHours,
   loadNotifyConfig,
   saveNotifyConfig,
+  saveNotifyConfigWithEvents,
 };

@@ -23,11 +23,13 @@ import type { NotifyConfig, Priority } from "./types";
 
 import { sendNotification } from "./client";
 import {
+  DEFAULT_EVENTS,
   DEFAULT_NOTIFY_CONFIG,
   getConfigPath,
   isInQuietHours,
   loadNotifyConfig,
   saveNotifyConfig,
+  saveNotifyConfigWithEvents,
 } from "./config";
 import { NtfyNetworkError, NtfyRateLimitError, priorities } from "./types";
 
@@ -394,8 +396,8 @@ notifyCommand
       username: DEFAULT_NOTIFY_CONFIG.username,
     };
 
-    saveNotifyConfig(config);
-    p.log.success("Configuration saved");
+    saveNotifyConfigWithEvents(config, DEFAULT_EVENTS);
+    p.log.success("Configuration saved (with default event routing)");
 
     // Send test notification
     const spinner = ora("Sending test notification...").start();

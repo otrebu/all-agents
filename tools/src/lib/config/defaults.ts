@@ -10,13 +10,23 @@ import type {
  * Default notify section configuration
  */
 export const DEFAULT_NOTIFY: NotifySection = {
-  defaultPriority: "default",
+  defaultPriority: "high",
   defaultTopic: "",
   enabled: true,
-  events: {},
+  events: {
+    "claude:permissionPrompt": { priority: "max", tags: ["warning"] },
+    "claude:stop": { enabled: false },
+    "ralph:maxIterationsExceeded": {
+      priority: "max",
+      tags: ["rotating_light"],
+    },
+    "ralph:milestoneComplete": { priority: "high", tags: ["tada"] },
+    "ralph:subtaskComplete": { priority: "default" },
+    "ralph:validationFail": { priority: "high", tags: ["warning"] },
+  },
   quietHours: { enabled: false, endHour: 8, startHour: 22 },
   server: "https://ntfy.sh",
-  title: "aaa",
+  title: "aaa notify",
   username: "admin",
 };
 
