@@ -82,7 +82,7 @@ For each task, use the Task tool:
 ```json
 {
   "subagent_type": "general-purpose",
-  "prompt": "Generate subtasks for task at: <task-path>\n\nStarting subtask ID: SUB-<N>\nMilestone: <milestone>\nSizing mode: <small|medium|large>\n\nRead the task file, explore the codebase to understand context, and generate subtasks following the schema in context/workflows/ralph/planning/subtask-spec.md.\n\nWrite subtasks to: docs/planning/milestones/<milestone>/subtasks.json (append to existing array if file exists).\n\nApply the AC Quality Gate and 4-question vertical slice test from subtask-spec.md.",
+  "prompt": "Generate subtasks for task at: <task-path>\n\nStarting subtask ID: SUB-<N>\nMilestone: <milestone>\nSizing mode: <small|medium|large>\n\nRead the task file, explore the codebase to understand context, and generate subtasks following the schema in context/workflows/ralph/planning/subtask-spec.md.\n\nIMPORTANT: Use appendSubtasksToFile() from tools/src/commands/ralph/config.ts to write subtasks. This appends to existing files instead of overwriting. Never use saveSubtasksFile() directly for planning workflows.\n\nApply the AC Quality Gate and 4-question vertical slice test from subtask-spec.md.",
   "description": "Generate subtasks for <task-id>"
 }
 ```

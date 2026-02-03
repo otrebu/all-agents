@@ -225,6 +225,22 @@ If working on a single task without milestone context:
 docs/planning/subtasks.json
 ```
 
+**IMPORTANT: Use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`**
+
+This function handles the append-vs-create logic automatically:
+- If file exists: Appends new subtasks to existing array (skips duplicates by ID)
+- If file doesn't exist: Creates new file with proper structure
+
+**Never use `saveSubtasksFile()` directly** - it overwrites the entire file and will destroy existing subtasks.
+
+Example usage:
+```typescript
+import { appendSubtasksToFile } from "@tools/commands/ralph/config";
+
+const result = appendSubtasksToFile(subtasksPath, newSubtasks, metadata);
+console.log(`Added ${result.added} subtasks, skipped ${result.skipped} duplicates`);
+```
+
 ## Execution
 
 1. Parse the task ID from the argument

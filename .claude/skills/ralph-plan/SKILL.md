@@ -179,12 +179,14 @@ Then follow ALL steps in the workflow file you just read.
 
 **MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-from-hierarchy.md` (relative to project root). DO NOT proceed without reading this file first - it contains the parallel agent orchestration workflow.
 
+**CRITICAL - Append, Don't Overwrite:** When writing subtasks.json, use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`. This function appends new subtasks to existing files instead of overwriting them. Never use `saveSubtasksFile()` directly for subtask planning - it destroys existing subtasks.
+
 1. A hierarchy source must be provided:
    - `--milestone <name>` to process all tasks in the milestone
    - `--story <path>` to process all tasks linked to that story
 2. Discover all tasks for the given scope
 3. Spawn parallel agents (one per task) to generate subtasks
-4. Aggregate results to `docs/planning/milestones/<milestone>/subtasks.json`
+4. Aggregate results to `docs/planning/milestones/<milestone>/subtasks.json` using appendSubtasksToFile()
 
 Begin the session with:
 
@@ -205,6 +207,8 @@ Then follow ALL steps in the workflow file you just read.
 
 **MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-from-source.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full workflow you MUST follow.
 
+**CRITICAL - Append, Don't Overwrite:** When writing subtasks.json, use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`. This function appends new subtasks to existing files instead of overwriting them. Never use `saveSubtasksFile()` directly for subtask planning - it destroys existing subtasks.
+
 1. An alternative source must be provided - one of:
    - `--file <path>` (e.g., `/ralph-plan subtasks --file ./review-findings.md`)
    - `--text <string>` (e.g., `/ralph-plan subtasks --text "Fix array bounds check"`)
@@ -212,7 +216,7 @@ Then follow ALL steps in the workflow file you just read.
 2. Optionally accept `--1-to-1` flag to bypass decomposition/sizing logic (one input item → one subtask)
 3. Read the source and extract actionable items
 4. Generate subtasks following the schema and sizing constraints from the workflow (unless `--1-to-1` is set)
-5. Write to `docs/planning/subtasks.json` or specified milestone location
+5. Write to `docs/planning/subtasks.json` or specified milestone location using appendSubtasksToFile()
 
 Begin the session with:
 
@@ -232,10 +236,12 @@ Then follow ALL steps in the workflow file you just read.
 
 **MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-auto.md` (relative to project root). DO NOT proceed without reading this file first.
 
+**CRITICAL - Append, Don't Overwrite:** When writing subtasks.json, use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`. This function appends new subtasks to existing files instead of overwriting them. Never use `saveSubtasksFile()` directly for subtask planning - it destroys existing subtasks.
+
 1. A task path is required via `--task <path>`
 2. Read the task file to understand the implementation scope
 3. Generate subtasks for that specific task
-4. Write to appropriate subtasks.json location
+4. Write to appropriate subtasks.json location using appendSubtasksToFile()
 
 Begin the session with:
 
