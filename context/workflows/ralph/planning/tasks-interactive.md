@@ -126,15 +126,14 @@ Testing probes:
 - "What manual verification is needed?"
 - "What edge cases should tests cover?"
 
-**For frontend/UI work, add these probes:**
-- "Does this involve visual changes that need browser verification?"
-- "Should we use agent-browser for visual verification of the rendered output?"
-- "Is this a user flow that needs E2E browser testing with Playwright MCP?"
-- "What should the component look like when rendered correctly?"
+**Use the testing decision matrix:**
 
-**Frontend testing tools available:**
-1. **agent-browser** - Visual verification where Claude inspects rendered pages
-2. **Playwright MCP on Chrome** - Automated browser E2E testing
+@context/workflows/ralph/planning/components/testing-guidance.md
+
+**Interactive probes based on task type:**
+- "Looking at the matrix, this is a [type] task - does that match your expectation?"
+- "The guidance suggests [approach] - any concerns with that?"
+- "Should we add visual verification to the acceptance criteria?"
 
 ### Phase 6: Implementation Plan
 
@@ -159,6 +158,10 @@ Follow the doc lookup workflow. In interactive mode, ask user before creating mi
 Doc probes:
 - "I found @context/blocks/... - relevant?"
 - "No docs for [topic]. Want me to create? Give me a prompt to guide it"
+
+**Action:** Add confirmed docs to task's `Related Documentation` section.
+
+See @context/workflows/ralph/planning/task-doc-lookup.md for stack heuristics and foundation coverage.
 
 ### Validation Checkpoints
 

@@ -113,6 +113,12 @@ Answer these questions:
 - What existing patterns should be followed?
 - What dependencies exist that affect implementation order?
 
+### Phase 2b: Testing & Verification
+
+When no parent task provides testing context:
+
+@context/workflows/ralph/planning/components/testing-guidance.md
+
 ### Phase 3: Generate Subtasks
 
 For each actionable item, create a subtask following the schema in subtask-spec.md.

@@ -76,6 +76,7 @@ Before generating subtasks, answer these questions **based on code exploration**
 - What dependencies exist that affect implementation order?
 - What test patterns are used in this codebase?
 - What validation/build steps are standard?
+- What did the parent task's Test Plan already decide?
 
 ### 3. Derive Implementation Approach from Deep Code Understanding
 
@@ -133,48 +134,17 @@ Order subtasks by implementation dependency:
 - Acceptance criteria are verifiable by running tests or inspecting code
 - filesToRead provides context without overwhelming
 
-### Browser-Based Acceptance Criteria for Frontend Subtasks
+### Testing Context (Inherit from Parent Task)
 
-When generating subtasks for **frontend work** (UI components, pages, visual changes), include browser-based acceptance criteria when appropriate.
+Subtasks inherit testing decisions from parent task:
 
-#### When to Add Browser AC
+1. **Read parent task's `Test Plan` section** - testing approach already decided
+2. **Use as baseline** for subtask acceptance criteria
+3. **Extend only if** deep codebase analysis reveals patterns parent missed
 
-| Subtask Type | Include Browser AC? |
-|--------------|---------------------|
-| Backend/API changes | No |
-| CLI command | No |
-| New React component | Yes - visual verification |
-| Layout/styling changes | Yes - visual verification |
-| Form implementation | Yes - interaction testing |
-| User flow changes | Yes - E2E verification |
+For tool reference when writing AC:
 
-#### Browser Testing Tools
-
-1. **agent-browser** - For visual verification. Claude visually inspects rendered pages to verify correct rendering.
-
-2. **Playwright MCP on Chrome** - For automated browser testing. Supports navigation, interactions, assertions.
-
-#### Example AC for Frontend Subtasks
-
-```json
-{
-  "acceptanceCriteria": [
-    "LoginForm component renders without errors",
-    "Visual verification: Form displays email and password fields with correct styling (use agent-browser)",
-    "E2E: User can submit form and see success message (use Playwright MCP)",
-    "Unit tests pass for validation logic"
-  ]
-}
-```
-
-#### AC Writing Guidelines for Frontend
-
-- **Static AC**: File exists, component exports
-- **Content AC**: Component contains expected elements (grep JSX)
-- **Behavioral AC**:
-  - Unit tests for logic
-  - Browser visual verification for appearance
-  - E2E tests for user interactions
+@context/workflows/ralph/planning/components/testing-guidance.md#verification-tools
 
 ### filesToRead Guidelines
 
