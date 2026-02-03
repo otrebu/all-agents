@@ -12,6 +12,223 @@
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
+### 2026-02-02
+
+#### SUB-190
+- **Problem:** No unit tests existed for the new formatNotificationMessage function or the EventConfig enabled field added in SUB-184 and SUB-188.
+- **Changes:** Added 11 unit tests for formatNotificationMessage covering: base message only (no metrics), full metrics (all fields), partial metrics combinations, session ID truncation, empty session handling, cost formatting. Added 4 unit tests for EventConfig enabled field covering: true value, false value, full config with enabled, undefined when omitted.
+- **Files:**
+  - `tools/tests/lib/ralph-hooks.test.ts` - Added formatNotificationMessage describe block with 11 tests
+  - `tools/tests/lib/config-types.test.ts` - Added 4 tests for enabled field in eventConfigSchema describe block
+
+#### SUB-189
+- **Problem:** Build metrics from iteration results weren't being passed to Ralph hook calls (onSubtaskComplete, onMaxIterationsExceeded, onMilestoneComplete), preventing rich notification messages with build context.
+- **Changes:** Updated build.ts to pass metrics from hookResult.entry to all three hook calls. Extracted fireSubtaskCompleteHook helper function to maintain lint compliance (complexity limit). Added formatDuration helper for human-readable duration strings. Refactored handleMaxIterationsExceeded to use options object pattern.
+- **Files:**
+  - `tools/src/commands/ralph/build.ts` - Added helper functions, updated hook calls with metrics
+  - `tools/tests/lib/build-hooks.test.ts` - Updated tests for new helper function usage
+
+#### SUB-188
+- **Problem:** Notification messages from Ralph hooks were plain text without build metrics context. Users needed richer notifications showing files changed, lines added/removed, cost, and session info.
+- **Changes:** Added formatNotificationMessage(hookName, context) function that builds rich notification messages from HookContext. Appends metrics line when available: 'Files: N | Lines: +X/-Y | Cost: $N.NN | Session: abbrev'. Updated executeNotifyAction and executeNotifyFallback to use this function for message content.
+- **Files:**
+  - `tools/src/commands/ralph/hooks.ts` - Added formatNotificationMessage function, updated executeNotifyAction and executeNotifyFallback to use it
+
+#### SUB-187
+- **Problem:** HookContext interface lacked fields for build metrics, preventing rich notification messages with details like lines changed, cost, and iteration context.
+- **Changes:** Extended HookContext interface with 8 optional fields: linesAdded, linesRemoved, filesChanged, costUsd, duration, milestone, iterationNumber, maxIterations. All fields have JSDoc comments following existing patterns.
+- **Files:**
+  - `tools/src/commands/ralph/hooks.ts` - Added 8 optional metrics fields to HookContext interface
+
+#### SUB-186
+- **Problem:** No event-specific routing configuration existed in aaa.config.json. Events like claude:stop needed to be disabled, and ralph hooks needed appropriate priority levels.
+- **Changes:** Added events section to aaa.config.json notify configuration with four event configs: claude:stop (disabled), ralph:maxIterationsExceeded (priority max with alert/failure tags), ralph:milestoneComplete (priority high with tada tag), ralph:subtaskComplete (priority low).
+- **Files:**
+  - `aaa.config.json` - Added notify.events section with event routing configuration
+
+#### SUB-185
+- **Problem:** Notify command lacked event-level disable capability. The enabled field was added to EventConfig in SUB-184, but the notify command didn't check it.
+- **Changes:** Added check in notify command's main action: after getEventConfig() is called, check if eventConfig?.enabled === false and exit silently with code 0. Also enhanced dry-run mode to show "(disabled)" indicator for disabled events to help with debugging.
+- **Files:**
+  - `tools/src/commands/notify/index.ts` - Added enabled check after getEventConfig(), enhanced dry-run output
+
+#### SUB-184
+- **Problem:** Notification system lacked event-level disable capability. Events could only be enabled/disabled globally via NotifySection.enabled.
+- **Changes:** Added optional `enabled?: boolean` field to EventConfig interface with JSDoc comment. Added corresponding `enabled: z.boolean().optional()` to eventConfigSchema. This allows individual events like `claude:stop` to be disabled in aaa.config.json.
+- **Files:**
+  - `tools/src/lib/config/types.ts` - Added enabled field to EventConfig interface and eventConfigSchema
+
+#### SUB-183
+- **Problem:** Inconsistent BOX_WIDTH values between display.ts (68) and status.ts (64) caused visual inconsistency in Ralph CLI output boxes.
+- **Changes:** Exported BOX_WIDTH from display.ts and imported it in status.ts, removing the duplicate local constant. Updated header padding from padStart(41) to padStart(43) to properly center "Ralph Build Status" in the wider 68-character box.
+- **Files:**
+  - `tools/src/commands/ralph/display.ts` - Added BOX_WIDTH to exports
+  - `tools/src/commands/ralph/status.ts` - Replaced local BOX_WIDTH with import, updated padding
+
+#### SUB-182
+- **Problem:** The pre-execution display in invokeClaudeHeadless() used plain console.log output without styling, inconsistent with the styled post-execution summary boxes.
+- **Changes:** Replaced plain output with styled header using renderInvocationHeader('headless'). Display Source (cyan path), Size (yellow mode - when passed), and Log (plain path) with chalk.dim labels. Added optional sizeMode parameter to HeadlessWithLoggingOptions interface and updated subtasks command to pass it.
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Added chalk import, renderInvocationHeader import, sizeMode to interface, styled pre-execution output
+
+#### SUB-181
+- **Problem:** Paths displayed in renderPlanSubtasksSummary() could wrap awkwardly mid-word inside the box since they weren't using truncation.
+- **Changes:** Applied makeClickablePath() with calculated max lengths to source.path and storyRef in renderPlanSubtasksSummary(). Source paths use innerWidth - 16 (label width), story paths use innerWidth - 7. Paths now truncate from the middle with "..." when they exceed box width.
+- **Files:**
+  - `tools/src/commands/ralph/display.ts` - Applied makeClickablePath() truncation to source.path and storyRef displays
+
+#### SUB-180
+- **Problem:** renderPlanSubtasksSummary() displayed redundant path information when using --story flag. Both "Source (file):" and "Story:" lines showed the same path, cluttering the output.
+- **Changes:** Added isStorySource check before rendering source info section. When source.type is 'file' and source.path equals storyRef, the Source line is skipped, showing only the Story line. Added 5 unit tests for renderPlanSubtasksSummary to verify the fix.
+- **Files:**
+  - `tools/src/commands/ralph/display.ts` - Added isStorySource conditional to skip duplicate source line
+  - `tools/tests/lib/display.test.ts` - Added 5 tests for renderPlanSubtasksSummary path redundancy handling
+
+#### SUB-179
+- **Problem:** invokeClaudeHeadless() printed "Duration: Xs | Cost: $X.XX" which duplicated the same info shown in styled summary boxes (like renderPlanSubtasksSummary). When running `aaa ralph plan subtasks --headless`, users saw duration/cost twice.
+- **Changes:** Removed the duplicate duration/cost console.log from invokeClaudeHeadless(). Kept the session ID line ("Session: ...") as it's useful for debugging. Duration/cost data remains logged to JSONL files and available in return values for callers that need to display it in summary boxes.
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Modified invokeClaudeHeadless to only print session ID
+
+#### SUB-178
+- **Problem:** Output path shown in renderPlanSubtasksSummary() didn't match actual file location when using --story flag. resolvedMilestonePath was only set when --milestone was explicitly provided, but Claude correctly inferred milestone from story path for file creation.
+- **Changes:** Added milestone inference from resolved story path in subtasks command. Call resolveStoryPath() early to get the resolved path (handles slugs and full paths), then extract milestone using regex /milestones\/([^/]+)\//. This ensures the displayed output path matches where Claude creates the subtasks.json file.
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Added milestone inference from story path using IIFE pattern for lint compliance
+
+#### SUB-177
+- **Problem:** No E2E tests existed to verify cascade validation in ralph CLI commands
+- **Changes:** Added 'cascade validation' describe block to ralph.test.ts with four tests: (1) plan subtasks --help shows --cascade option, (2) invalid cascade target produces error listing valid levels, (3) backward cascade (subtasks → stories) is rejected with helpful error, (4) build --cascade subtasks is rejected as invalid target. Note: Used plan subtasks instead of plan tasks for backward cascade test because subtasks has early cascade validation.
+- **Files:**
+  - `tools/tests/e2e/ralph.test.ts` - Added cascade validation describe block with 4 E2E tests
+
+#### SUB-174
+- **Problem:** Ralph build command lacked cascade capability to chain to calibration after build completes
+- **Changes:** Added --cascade <target> option to the build command. Target is validated early (before running build) - only 'calibrate' is valid since build can only cascade forward. After runBuild() succeeds, runCascadeFrom() is called to continue the cascade when --cascade flag is provided.
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Added --cascade option with early validation and post-build cascade execution
+
+#### SUB-171
+- **Problem:** Ralph plan subtasks command lacked cascade capability to chain to subsequent levels (build, calibrate)
+- **Changes:** Added --cascade <target> and --calibrate-every <n> options to the subtasks command. Added early validation of cascade targets before running Claude session, so backward cascades and invalid targets fail immediately with helpful error messages. Extended handleCascadeExecution with calibrateEvery and subtasksPath support.
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Added cascade options, early validation, and updated HandleCascadeOptions interface
+
+#### SUB-170
+- **Problem:** Ralph plan tasks command lacked cascade capability to chain to subsequent planning levels (subtasks, build, calibrate)
+- **Changes:** Added --cascade <target> option to `ralph plan tasks` command. Refactored tasks action to use helper functions (runTasksMilestoneMode, runTasksStoryMode, runTasksSourceMode) to reduce complexity and enable shared cascade handling. Cascade validation rejects backward cascades (tasks → stories) and invalid targets with helpful error messages. The cascade logic applies to all source types (--story, --milestone, --file, --text).
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Added --cascade option, helper functions, and interfaces for tasks command
+  - `tools/src/commands/ralph/config.ts` - Fixed pre-existing lint errors (variable initialization, error types)
+
+#### SUB-169
+- **Problem:** Ralph plan commands (roadmap, stories) lacked cascade capability to chain to subsequent planning levels
+- **Changes:** Added imports for runCascadeFrom and validateCascadeTarget from cascade.ts. Added --cascade <target> option to both ralph plan roadmap and ralph plan stories commands. After existing command logic completes, if --cascade is specified, validates target direction and calls runCascadeFrom to chain planning levels. Also fixed pre-existing lint errors in config.ts and config.test.ts (alphabetical function ordering, variable initialization, naming).
+- **Files:**
+  - `tools/src/commands/ralph/index.ts` - Added cascade imports and --cascade option to roadmap and stories commands
+  - `tools/src/commands/ralph/config.ts` - Fixed lint errors (reordered appendSubtasksToFile/saveSubtasksFile)
+  - `tools/tests/lib/config.test.ts` - Fixed lint errors (variable initialization, naming, inline comments)
+
+#### SUB-166
+- **Problem:** Cascade mode needs a function to resolve milestone identifiers (either full paths or short names) to full paths
+- **Changes:** Implemented resolveMilestonePath() that handles absolute paths, relative paths, and milestone names (e.g., '003-ralph-workflow'). Lists available milestones in error messages. Also added listAvailableMilestones() and getMilestonesBasePath() helpers.
+- **Files:**
+  - `tools/src/commands/ralph/config.ts` - Added resolveMilestonePath, listAvailableMilestones, getMilestonesBasePath functions
+  - `tools/tests/lib/ralph-config.test.ts` - Added 11 unit tests for milestone resolution functions
+
+#### SUB-163
+- **Problem:** Cascade mode needed display functions to visualize cascade progression and results
+- **Changes:** Implemented renderCascadeProgress() for showing level progression with completed (✓), current (◉), and remaining levels. Implemented renderCascadeSummary() for boxen-formatted results with success status, completed levels list, stopped-at location, and error messages. Also fixed pre-existing lint errors in index.ts (outputDir → outputDirectory abbreviation).
+- **Files:**
+  - `tools/src/commands/ralph/display.ts` - Added renderCascadeProgress and renderCascadeSummary functions
+  - `tools/tests/lib/display.test.ts` - Added 9 unit tests for cascade display functions
+  - `tools/src/commands/ralph/index.ts` - Fixed lint errors (variable abbreviation)
+
+#### SUB-161
+- **Problem:** Cascade module needed E2E tests to validate exports and verify validation functions work correctly
+- **Changes:** Created E2E test file with 11 tests covering validateCascadeTarget (backward cascade returns error, forward cascade returns null, invalid levels handled) and getLevelsInRange (correct level sequences, edge cases). All cascade functions were already exported from previous subtasks.
+- **Files:**
+  - `tools/tests/e2e/cascade.test.ts` - New E2E test file with 11 tests for cascade validation functions
+
+#### SUB-160
+- **Problem:** Cascade module needs main loop function to orchestrate execution of multiple Ralph levels in sequence
+- **Changes:** Implemented runCascadeFrom(start, target, options) function in cascade.ts that validates cascade direction using validateCascadeTarget(), gets levels to execute using getLevelsInRange(), loops through levels calling runLevel() for each, and prompts user between levels with promptContinue() (unless headless mode). Returns CascadeFromResult with completedLevels, success status, error message, and stoppedAt level.
+- **Files:**
+  - `tools/src/commands/ralph/cascade.ts` - Added runCascadeFrom function, CascadeFromOptions and CascadeFromResult interfaces
+  - `tools/tests/lib/cascade.test.ts` - Added 10 unit tests for runCascadeFrom function
+
+#### SUB-159
+- **Problem:** Cascade module needs a level dispatcher function to route execution to existing Ralph functions
+- **Changes:** Implemented runLevel(level, options) function in cascade.ts that dispatches to runBuild() for 'build' level and runCalibrate('all') for 'calibrate' level. Planning levels (roadmap, stories, tasks, subtasks) return "not yet implemented" error. Added RunLevelOptions interface with contextRoot and subtasksPath fields.
+- **Files:**
+  - `tools/src/commands/ralph/cascade.ts` - Added runLevel function with level dispatch logic, RunLevelOptions interface
+  - `tools/tests/lib/cascade.test.ts` - Added 3 unit tests for runLevel function
+
+#### SUB-158
+- **Problem:** Cascade mode needs TTY-aware prompt for user continuation between cascade levels
+- **Changes:** Implemented promptContinue(completed, next) function in cascade.ts. Returns true on 'y', 'Y', or empty input (default yes). Returns false on 'n' or 'no'. Detects non-TTY mode via process.stdin.isTTY and returns true automatically without blocking. Uses readline.createInterface following build.ts pattern.
+- **Files:**
+  - `tools/src/commands/ralph/cascade.ts` - Added promptContinue function with TTY detection
+  - `tools/tests/lib/cascade.test.ts` - Added 21 unit tests for cascade module including promptContinue
+
+#### SUB-157
+- **Problem:** Cascade mode needs core module with level ordering and validation logic
+- **Changes:** Created cascade.ts with LEVELS constant defining the cascade order (roadmap → stories → tasks → subtasks → build → calibrate), each with name, order, and requiresMilestone properties. Implemented validateCascadeTarget() to validate forward-only cascade direction and getLevelsInRange() to return intermediate levels between start and target.
+- **Files:**
+  - `tools/src/commands/ralph/cascade.ts` - New cascade orchestration module with LEVELS constant and validation functions
+
+#### SUB-155
+- **Problem:** Cascade mode needs a type definition for cascade levels (name + order)
+- **Changes:** Added CascadeLevel interface with name (string) and order (number) fields. JSDoc describes it as a level in the Ralph cascade hierarchy. Added export to types.ts alongside CascadeOptions and CascadeResult.
+- **Files:**
+  - `tools/src/commands/ralph/types.ts` - Added CascadeLevel interface with JSDoc and export
+
+#### SUB-154
+- **Problem:** Ralph cascade mode needs TypeScript interfaces to define cascade execution options and results
+- **Changes:** Added CascadeOptions interface (milestone, force, headless, calibrateEvery fields) and CascadeResult interface (success, completedLevels, stoppedAt, error fields) with JSDoc comments following existing patterns. Both types exported from types.ts.
+- **Files:**
+  - `tools/src/commands/ralph/types.ts` - Added CascadeOptions and CascadeResult interfaces with exports
+
+#### SUB-153
+- **Problem:** Interrogate skill and workflow lacked distinction between live mode (current session introspection) and forensic mode (past commit session loading)
+- **Changes:** Added "Session Modes: Live vs Forensic" section to SKILL.md documenting three modes: Live (direct introspection for current changes), Forensic (load session via aaa session cat), Fallback (diff-only). Updated interrogate workflow with modes table, target mapping, and forensic mode details. Added session context indicators to output format.
+- **Files:**
+  - `.claude/skills/interrogate-on-changes/SKILL.md` - Added session modes section, updated allowed-tools, enhanced gather context with mode annotations
+  - `context/workflows/interrogate.md` - Added Session Modes section with table, forensic mode details, target/mode mapping table
+
+#### SUB-152
+- **Problem:** Session CLI lacked commands to output session content and list recent sessions
+- **Changes:** Extended `aaa session` with `cat` and `list` subcommands. Cat outputs session JSONL content to stdout (supports direct session ID or --commit flag). List outputs recent sessions - one per line (machine-parseable) by default, or table format with --verbose. Includes --limit flag for both modes.
+- **Files:**
+  - `tools/src/commands/session/index.ts` - Add cat and list subcommands with helper functions
+  - `tools/tests/e2e/session.test.ts` - E2E tests for cat and list subcommands (11 new tests)
+  - `tools/README.md` - Document new subcommands and use cases
+
+#### SUB-151
+- **Problem:** No CLI command to retrieve Claude session files for interrogation workflows
+- **Changes:** Created `aaa session` command with `path` and `current` subcommands. Path subcommand accepts session ID directly or extracts from commit's cc-session-id trailer. Current subcommand reads from .claude/current-session. Includes E2E tests and documentation.
+- **Files:**
+  - `tools/src/commands/session/index.ts` - New CLI command with Commander.js
+  - `tools/tests/e2e/session.test.ts` - E2E tests for all subcommands
+  - `tools/src/cli.ts` - Import and register session command
+  - `tools/README.md` - Document session commands and usage
+  - `tools/CLAUDE.md` - Update directory structure
+
+#### SUB-150
+- **Problem:** Commit workflow documentation didn't document the cc-session-id trailer that is automatically added by the prepare-commit-msg hook
+- **Changes:** Updated all four commit workflow docs to document the automatic cc-session-id trailer: commit.md (added Session Tracking section with interrogate reference), complete-feature.md, multiple-commits.md (both added notes about automatic trailer), ralph-iteration.md (updated example to show both Subtask and cc-session-id trailers)
+- **Files:** `context/workflows/commit.md`, `context/workflows/complete-feature.md`, `context/workflows/multiple-commits.md`, `context/workflows/ralph/building/ralph-iteration.md`
+
+#### SUB-149
+- **Problem:** No automatic mechanism to include session IDs in commit messages for later interrogation
+- **Changes:** Added prepare-commit-msg git hook that appends cc-session-id trailer to commit messages. Hook reads session ID from .claude/current-session (written by SessionStart hook), is idempotent, handles missing files gracefully, and skips merge/squash commits.
+- **Files:** `tools/.husky/prepare-commit-msg` - New git hook for automatic session ID trailers
+
+#### SUB-148
+- **Problem:** No mechanism to capture Claude session IDs for later interrogation of commit decisions
+- **Changes:** Added SessionStart hook that writes session_id to .claude/current-session using jq; set cleanupPeriodDays to 90 for longer session retention
+- **Files:** `.claude/settings.json` - Added SessionStart hook and cleanupPeriodDays at root level
+
 ### 2026-01-26
 
 #### SUB-067
