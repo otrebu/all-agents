@@ -36,6 +36,8 @@ export { CONFIG_FILENAME, loadAaaConfig } from "./loader";
 export {
   type AaaConfig,
   aaaConfigSchema,
+  type ApprovalMode,
+  approvalModeSchema,
   type BuildConfig,
   buildConfigSchema,
   type EventConfig,

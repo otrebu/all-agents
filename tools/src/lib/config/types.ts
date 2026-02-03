@@ -132,6 +132,16 @@ type SelfImprovementMode = "autofix" | "off" | "suggest";
 const selfImprovementModeSchema = z.enum(["autofix", "off", "suggest"]);
 
 /**
+ * Approval mode for artifact creation gates
+ * - "always": Explicit approval required; prompt in TTY or exit with unstaged in headless
+ * - "auto": Immediate write without prompting (fastest, good for trusted automation)
+ * - "suggest": Show artifact and pause; prompt in TTY or notify-wait in headless
+ */
+type ApprovalMode = "always" | "auto" | "suggest";
+
+const approvalModeSchema = z.enum(["always", "auto", "suggest"]);
+
+/**
  * Self-improvement configuration
  */
 interface SelfImprovementConfig {
@@ -280,6 +290,8 @@ const aaaConfigSchema = z.object({
 export {
   type AaaConfig,
   aaaConfigSchema,
+  type ApprovalMode,
+  approvalModeSchema,
   type BuildConfig,
   buildConfigSchema,
   type EventConfig,
