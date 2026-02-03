@@ -65,6 +65,14 @@ interface BuildSummaryData {
 // Duration and Time Formatting
 // =============================================================================
 
+/** Options for formatCreatedPart helper */
+interface FormatCreatedPartOptions {
+  addedCount: number | undefined;
+  hasSubtasks: boolean;
+  subtasksLength: number;
+  totalCount: number | undefined;
+}
+
 /**
  * Data for rendering iteration boxes
  */
@@ -170,6 +178,23 @@ function ensureValidNumber(
 }
 
 /**
+ * Format the "Created" part of the stats line
+ *
+ * @param options - Formatting options
+ * @returns Formatted string like "Created 3 (Total: 10)   " or "Created 5   " or ""
+ */
+function formatCreatedPart(options: FormatCreatedPartOptions): string {
+  const { addedCount, hasSubtasks, subtasksLength, totalCount } = options;
+  if (!hasSubtasks) {
+    return "";
+  }
+  // Use new format when both counts are provided, otherwise fallback
+  return addedCount !== undefined && totalCount !== undefined
+    ? `${chalk.dim("Created")} ${chalk.cyan.bold(String(addedCount))} ${chalk.dim("(Total:")} ${chalk.cyan(String(totalCount))}${chalk.dim(")")}   `
+    : `${chalk.dim("Created")} ${chalk.cyan.bold(String(subtasksLength))}   `;
+}
+
+/**
  * Format a duration in milliseconds as a human-readable string
  *
  * @param ms - Duration in milliseconds
@@ -241,6 +266,77 @@ function formatPathLines(
 }
 
 /**
+ * Format the skipped tasks section
+ *
+ * @param lines - Array to append lines to
+ * @param skippedTasks - Array of task refs that were skipped
+ */
+function formatSkippedSection(
+  lines: Array<string>,
+  skippedTasks: Array<string>,
+): void {
+  const skippedCount = skippedTasks.length;
+  const maxSkippedDisplay = 5;
+  const plural = skippedCount === 1 ? "" : "s";
+  lines.push(
+    `${chalk.yellow("Skipped:")} ${skippedCount} task${plural} (already have subtasks)`,
+  );
+  // Show up to 5 task refs
+  const displaySkipped = skippedTasks.slice(0, maxSkippedDisplay);
+  for (const taskReference of displaySkipped) {
+    lines.push(`  ${chalk.dim("•")} ${chalk.dim(taskReference)}`);
+  }
+  if (skippedTasks.length > maxSkippedDisplay) {
+    const remaining = skippedTasks.length - maxSkippedDisplay;
+    lines.push(`  ${chalk.dim(`... and ${remaining} more`)}`);
+  }
+}
+
+/**
+ * Format source info section for plan subtasks summary
+ *
+ * @param lines - Array to append lines to
+ * @param source - Source data from PlanSubtasksSummaryData
+ * @param innerWidth - Inner box width for truncation
+ */
+function formatSourceInfo(
+  lines: Array<string>,
+  source: PlanSubtasksSummaryData["source"],
+  innerWidth: number,
+): void {
+  const sourceLabels: Record<
+    PlanSubtasksSummaryData["source"]["type"],
+    string
+  > = {
+    file: "Source (file):",
+    review: "Source (review):",
+    text: "Source (text):",
+  };
+  const sourceLabel = sourceLabels[source.type];
+  // "Source (review):" is the longest label at 16 chars
+  const sourceLabelWidth = 16;
+
+  if (source.type === "text" && source.text !== undefined) {
+    const truncatedText = truncate(source.text, innerWidth - sourceLabelWidth);
+    lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
+  } else if (source.path !== undefined) {
+    const maxPathLength = innerWidth - sourceLabelWidth;
+    if (source.type === "review" && source.findingsCount !== undefined) {
+      // For review mode, include findings count in display
+      const suffix = ` (${source.findingsCount} findings)`;
+      const truncatedPath = makeClickablePath(
+        source.path,
+        maxPathLength - suffix.length,
+      );
+      lines.push(`${chalk.dim(sourceLabel)} ${truncatedPath}${suffix}`);
+    } else {
+      const truncatedPath = makeClickablePath(source.path, maxPathLength);
+      lines.push(`${chalk.dim(sourceLabel)} ${truncatedPath}`);
+    }
+  }
+}
+
+/**
  * Format current time as HH:MM:SS for display in iteration boxes
  *
  * @returns Formatted string like "14:32:17"
@@ -249,6 +345,10 @@ function formatTimeOfDay(): string {
   const now = new Date();
   return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
 }
+
+// =============================================================================
+// Markdown Rendering
+// =============================================================================
 
 /**
  * Format an ISO 8601 timestamp for display
@@ -279,6 +379,10 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
   }
 }
 
+// =============================================================================
+// Plan Subtasks Summary Helpers
+// =============================================================================
+
 /**
  * Format a token count as a human-readable string
  *
@@ -306,10 +410,6 @@ function formatTokenCount(count: number): string {
   }
   return String(safeCount);
 }
-
-// =============================================================================
-// Markdown Rendering
-// =============================================================================
 
 /**
  * Format token usage as a display line
@@ -878,28 +978,40 @@ function renderMarkdown(markdown: string): string {
  */
 function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
   const {
+    addedCount,
     costUsd,
     durationMs,
     error,
     milestone,
     outputPath,
     sizeMode,
+    skippedTasks,
     source,
     storyRef,
     subtasks,
+    totalCount,
   } = data;
 
   const innerWidth = BOX_WIDTH - 4;
   const lines: Array<string> = [];
 
-  // Stats line: Created N   Duration Xs   Cost $X.XX
+  // Stats line: Created X (Total: Y)   Duration Xs   Cost $X.XX
+  // Falls back to "Created N" when new count fields aren't provided
   const hasSubtasks = subtasks.length > 0;
-  const createdPart = hasSubtasks
-    ? `${chalk.dim("Created")} ${chalk.cyan.bold(String(subtasks.length))}   `
-    : "";
+  const createdPart = formatCreatedPart({
+    addedCount,
+    hasSubtasks,
+    subtasksLength: subtasks.length,
+    totalCount,
+  });
   const durationPart = `${chalk.dim("Duration")} ${chalk.cyan(formatDuration(durationMs))}`;
   const costPart = `${chalk.dim("Cost")} ${chalk.magenta(`$${costUsd.toFixed(2)}`)}`;
   lines.push(`${createdPart}${durationPart}   ${costPart}`);
+
+  // Skipped section: show when tasks were skipped due to existing subtasks
+  if (skippedTasks !== undefined && skippedTasks.length > 0) {
+    formatSkippedSection(lines, skippedTasks);
+  }
 
   // Separator
   lines.push("─".repeat(innerWidth));
@@ -911,40 +1023,7 @@ function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
     source.path === storyRef;
 
   if (!isStorySource) {
-    const sourceLabels: Record<
-      PlanSubtasksSummaryData["source"]["type"],
-      string
-    > = {
-      file: "Source (file):",
-      review: "Source (review):",
-      text: "Source (text):",
-    };
-    const sourceLabel = sourceLabels[source.type];
-    // Calculate max path length: innerWidth minus label width and spacing
-    // "Source (review):" is the longest label at 16 chars
-    const sourceLabelWidth = 16;
-
-    if (source.type === "text" && source.text !== undefined) {
-      const truncatedText = truncate(
-        source.text,
-        innerWidth - sourceLabelWidth,
-      );
-      lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
-    } else if (source.path !== undefined) {
-      const maxPathLength = innerWidth - sourceLabelWidth;
-      if (source.type === "review" && source.findingsCount !== undefined) {
-        // For review mode, include findings count in display
-        const suffix = ` (${source.findingsCount} findings)`;
-        const truncatedPath = makeClickablePath(
-          source.path,
-          maxPathLength - suffix.length,
-        );
-        lines.push(`${chalk.dim(sourceLabel)} ${truncatedPath}${suffix}`);
-      } else {
-        const truncatedPath = makeClickablePath(source.path, maxPathLength);
-        lines.push(`${chalk.dim(sourceLabel)} ${truncatedPath}`);
-      }
-    }
+    formatSourceInfo(lines, source, innerWidth);
   }
 
   // Configuration: milestone, size mode, story ref
