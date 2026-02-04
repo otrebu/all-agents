@@ -35,9 +35,6 @@ const SUBTASKS_TOKEN_HARD_LIMIT = 25_000;
 /** Average characters per token (rough estimate for English text) */
 const CHARS_PER_TOKEN = 4;
 
-/** Maximum sessions to keep in PROGRESS.md after archiving */
-const MAX_PROGRESS_SESSIONS = 5;
-
 // =============================================================================
 // Types
 // =============================================================================
@@ -237,16 +234,21 @@ function moveCompletedSubtasksToArchive(subtasksPath: string): {
 /**
  * Move old sessions from PROGRESS.md to an archive
  *
- * Keeps the most recent sessions in PROGRESS.md and archives older ones.
+ * Archives progress sessions and keeps only the most recent session (if any).
+ *
+ * This is intentionally aggressive: PROGRESS.md tends to grow quickly even when
+ * the number of date sessions is small (e.g., many SUB- entries under one date).
+ * When users explicitly run `ralph archive progress`, they expect the file to
+ * shrink and an archive file to be created.
  *
  * @param progressPath - Path to PROGRESS.md file
- * @param maxSessions - Maximum sessions to keep (default: 5)
- * @returns Object with counts and archive path, or null if no archiving needed
+ * @returns Object with counts and archive path
  */
-function moveOldProgressSessionsToArchive(
-  progressPath: string,
-  maxSessions: number = MAX_PROGRESS_SESSIONS,
-): { archivedCount: number; archivePath: string; keptCount: number } | null {
+function moveOldProgressSessionsToArchive(progressPath: string): {
+  archivedCount: number;
+  archivePath: string;
+  keptCount: number;
+} {
   if (!existsSync(progressPath)) {
     throw new Error(`PROGRESS.md not found: ${progressPath}`);
   }
@@ -254,24 +256,13 @@ function moveOldProgressSessionsToArchive(
   const content = readFileSync(progressPath, "utf8");
   const { prefix, sessions } = parseProgressSessions(content);
 
-  if (sessions.length <= maxSessions) {
-    return null;
-  }
-
-  // Split into sessions to archive and keep
-  const toArchive = sessions.slice(0, sessions.length - maxSessions);
-  const toKeep = sessions.slice(sessions.length - maxSessions);
-
-  // Determine archive directory
   const progressDirectory = dirname(progressPath);
   const archiveDirectory = join(progressDirectory, "archive");
 
-  // Create archive directory if needed
   if (!existsSync(archiveDirectory)) {
     mkdirSync(archiveDirectory, { recursive: true });
   }
 
-  // Get next archive number
   const archiveNumber = findNextArchiveNumber(
     archiveDirectory,
     "PROGRESS",
@@ -281,7 +272,49 @@ function moveOldProgressSessionsToArchive(
   const archiveFileName = `${paddedNumber}-PROGRESS.md`;
   const archivePath = join(archiveDirectory, archiveFileName);
 
-  // Create archive file
+  if (sessions.length === 0) {
+    // Fall back to archiving the whole file if no date sessions are detected.
+    const trimmed = content.trim();
+    if (trimmed === "") {
+      throw new Error("PROGRESS.md is empty - nothing to archive");
+    }
+
+    const archiveHeader = `# Archived Progress Sessions\n\nArchived at: ${new Date().toISOString()}\nOriginal file: ${progressPath}\n\n`;
+    writeFileSync(archivePath, `${archiveHeader}${trimmed}\n`, "utf8");
+
+    const firstNonEmptyLine =
+      content.split("\n").find((line) => line.trim() !== "") ?? "";
+    const heading = firstNonEmptyLine.startsWith("# ")
+      ? firstNonEmptyLine
+      : "# Progress";
+    writeFileSync(progressPath, `${heading}\n`, "utf8");
+
+    return { archivedCount: 1, archivePath, keptCount: 0 };
+  }
+
+  // Keep only the most recent session if there is more than one;
+  // otherwise rotate the single session out as well.
+  const keepSessions = sessions.length > 1 ? 1 : 0;
+
+  // Many PROGRESS.md files are written in reverse chronological order (newest at top).
+  // Detect ordering from the first/last date and keep the newest session accordingly.
+  const firstDate = sessions[0]?.date ?? "";
+  const lastDate = sessions.at(-1)?.date ?? "";
+  const isReverseChronological = firstDate >= lastDate;
+
+  let toKeep: typeof sessions = [];
+  let toArchive: typeof sessions = [];
+  if (keepSessions === 0) {
+    toKeep = [];
+    toArchive = sessions;
+  } else if (isReverseChronological) {
+    toKeep = sessions.slice(0, keepSessions);
+    toArchive = sessions.slice(keepSessions);
+  } else {
+    toKeep = sessions.slice(-keepSessions);
+    toArchive = sessions.slice(0, -keepSessions);
+  }
+
   const archiveHeader = `# Archived Progress Sessions\n\nArchived at: ${new Date().toISOString()}\nOriginal file: ${progressPath}\n\n`;
   const archiveContent =
     archiveHeader + toArchive.map((s) => s.content).join("\n\n");
@@ -293,9 +326,11 @@ function moveOldProgressSessionsToArchive(
   if (newContent !== "" && !newContent.endsWith("\n")) {
     newContent += "\n";
   }
-  newContent += sessionsContent;
-  if (!newContent.endsWith("\n")) {
-    newContent += "\n";
+  if (sessionsContent !== "") {
+    newContent += sessionsContent;
+    if (!newContent.endsWith("\n")) {
+      newContent += "\n";
+    }
   }
   writeFileSync(progressPath, newContent, "utf8");
 
@@ -442,19 +477,9 @@ function runArchive(options: ArchiveOptions, contextRoot: string): void {
 
     try {
       const result = moveOldProgressSessionsToArchive(resolvedProgressPath);
-      if (result === null) {
-        console.log(
-          chalk.dim("PROGRESS.md has few sessions - no archiving needed"),
-        );
-      } else {
-        console.log(
-          chalk.green(`Archived ${result.archivedCount} old sessions`),
-        );
-        console.log(chalk.dim(`  Archive: ${result.archivePath}`));
-        console.log(
-          chalk.dim(`  Remaining: ${result.keptCount} recent sessions`),
-        );
-      }
+      console.log(chalk.green(`Archived ${result.archivedCount} sessions`));
+      console.log(chalk.dim(`  Archive: ${result.archivePath}`));
+      console.log(chalk.dim(`  Remaining: ${result.keptCount} sessions`));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(chalk.red(`Error: ${message}`));

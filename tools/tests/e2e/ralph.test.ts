@@ -226,11 +226,9 @@ kill -s INT $$
     const updatedProgress = readFileSync(progressPath, "utf8");
     expect(updatedProgress).toContain("## Current Focus");
     expect(updatedProgress).toContain("## Session Notes");
-    // Keeps latest 5 sessions, archives the oldest 2
-    expect(updatedProgress).not.toContain("### 2026-01-01");
-    expect(updatedProgress).not.toContain("### 2026-01-02");
-    expect(updatedProgress).toContain("### 2026-01-03");
     expect(updatedProgress).toContain("### 2026-01-07");
+    // Rotates out all but the most recent session
+    expect(updatedProgress).not.toContain("### 2026-01-06");
 
     const archivedPath = join(archiveDirectory, "002-PROGRESS.md");
     expect(existsSync(archivedPath)).toBe(true);
@@ -238,7 +236,7 @@ kill -s INT $$
     const archivedContent = readFileSync(archivedPath, "utf8");
     expect(archivedContent).toContain("Archived Progress Sessions");
     expect(archivedContent).toContain("### 2026-01-01");
-    expect(archivedContent).toContain("### 2026-01-02");
+    expect(archivedContent).toContain("### 2026-01-06");
   });
 
   test("ralph calibrate without subcommand shows usage", async () => {
