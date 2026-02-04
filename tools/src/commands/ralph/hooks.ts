@@ -186,24 +186,30 @@ async function executeNotifyAction(
   );
 
   try {
-    // Use Bun.spawn to call aaa notify CLI
+    // Fire-and-forget by default to avoid blocking long-running builds.
     const proc = Bun.spawn(
       ["aaa", "notify", "--event", eventName, "--quiet", formattedMessage],
-      { stderr: "pipe", stdout: "pipe" },
+      { stderr: "ignore", stdin: "ignore", stdout: "ignore" },
     );
 
-    await proc.exited;
+    void (async () => {
+      try {
+        await proc.exited;
+        if (proc.exitCode !== 0) {
+          console.log(
+            `[Hook:${hookName}] CLI notification failed (exit ${proc.exitCode})`,
+          );
+        }
+      } catch {
+        // Ignore: we intentionally don't want notification errors to block builds.
+      }
+    })();
 
-    if (proc.exitCode === 0) {
-      return true;
+    // If the process already failed synchronously, surface that as a failure.
+    if (typeof proc.exitCode === "number" && proc.exitCode !== 0) {
+      return false;
     }
-
-    // Non-zero exit - log error
-    const stderr = await new Response(proc.stderr).text();
-    console.log(
-      `[Hook:${hookName}] CLI notification failed (exit ${proc.exitCode}): ${stderr.trim()}`,
-    );
-    return false;
+    return true;
   } catch (error) {
     // Check if CLI not found (ENOENT)
     if (error instanceof Error && "code" in error && error.code === "ENOENT") {
@@ -259,12 +265,24 @@ async function executeNotifyFallback(
 
   console.log(`[Hook:${hookName}] Sending notification via fallback to ${url}`);
 
+  const NOTIFY_TIMEOUT_MS = 5000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, NOTIFY_TIMEOUT_MS);
+  const maybeTimer = timer as unknown as { unref?: () => void };
+  if (typeof maybeTimer.unref === "function") {
+    maybeTimer.unref();
+  }
+
   try {
     const response = await fetch(url, {
       body: formattedMessage,
       headers: { Title: `Ralph Build: ${hookName}` },
       method: "POST",
+      signal: controller.signal,
     });
+    clearTimeout(timer);
 
     if (!response.ok) {
       console.log(
@@ -274,6 +292,7 @@ async function executeNotifyFallback(
     }
     return true;
   } catch (error) {
+    clearTimeout(timer);
     const message = error instanceof Error ? error.message : String(error);
     console.log(`[Hook:${hookName}] Notification failed: ${message}`);
     return false;

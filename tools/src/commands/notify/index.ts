@@ -450,14 +450,14 @@ Quiet:    ${config.quietHours.enabled ? `${config.quietHours.startHour}:00 - ${c
     "Stop": [{
       "hooks": [{
         "type": "command",
-        "command": "aaa notify --event claude:stop --title 'Claude Code' 'Response ready - check terminal' --quiet"
+        "command": "aaa notify --event claude:stop --title 'Claude Code' 'Response ready - check terminal' --quiet >/dev/null 2>&1 &"
       }]
     }],
     "Notification": [{
       "matcher": "permission_prompt",
       "hooks": [{
         "type": "command",
-        "command": "aaa notify --event claude:permissionPrompt --title 'Claude Code' 'Permission required - action needed' --quiet"
+        "command": "aaa notify --event claude:permissionPrompt --title 'Claude Code' 'Permission required - action needed' --quiet >/dev/null 2>&1 &"
       }]
     }]
   }

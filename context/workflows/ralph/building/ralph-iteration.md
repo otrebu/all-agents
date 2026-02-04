@@ -15,52 +15,37 @@ Gather context about the current state of the project and build queue.
 1. **@CLAUDE.md** - Understand project conventions, stack, and development workflow
 2. **Git status** - Run `git status` to understand current branch and uncommitted changes
 3. **@docs/planning/PROGRESS.md** - Review recent work and context from previous iterations
-4. **Subtasks file** - Read the subtasks.json file specified via `--subtasks` flag to understand the queue state
+4. **Subtasks file** - **Do not read the entire subtasks.json**. Use `jq` to inspect only pending subtasks, or to locate the assigned subtask by ID.
+
+**Recommended jq commands (avoid huge context):**
+```bash
+# List pending subtasks (id + title)
+jq -r '.subtasks[] | select(.done==false) | "\(.id)\t\(.title)"' <subtasks.json> | head -50
+
+# Show the assigned subtask by ID (replace SUB-123)
+jq -r '.subtasks[] | select(.id=="SUB-123")' <subtasks.json>
+```
 
 **Orient checklist:**
 - [ ] Read CLAUDE.md for project context
 - [ ] Check git status for branch and changes
 - [ ] Read PROGRESS.md for recent iteration history
-- [ ] Read subtasks.json to see pending/completed work
+- [ ] Use `jq` to confirm the assigned subtask is still pending
 
-### Phase 2: Select
+### Phase 2: Confirm Assignment
 
-Choose the next subtask to work on from the queue.
+Confirm the subtask you must work on for this iteration.
 
-**Selection criteria:**
-- Find subtasks where `done: false`
-- Use judgment to select the most appropriate next subtask:
-  - Prefer subtasks whose dependencies are met
-  - Consider logical ordering (foundational work before dependent work)
-  - If explicit `dependsOn` field exists, respect it
-  - When unclear, select the first incomplete subtask by order
+**Rule:** The outer build loop assigns a subtask (provided in the system context). Work on **that exact subtask only**.
 
-**Important:** This is judgment-based selection, not rigid sequential processing. The agent should consider context and dependencies when choosing which subtask to tackle next.
-
-**Subtask JSON structure:**
-```json
-{
-  "id": "subtask-001",
-  "title": "Implement user authentication",
-  "description": "Add login/logout functionality with JWT tokens",
-  "acceptanceCriteria": [
-    "User can log in with email/password",
-    "JWT token is returned on success",
-    "Token is validated on protected routes"
-  ],
-  "filesToRead": [
-    "src/auth/index.ts",
-    "src/middleware/auth.ts"
-  ],
-  "taskRef": "task-042",
-  "done": false,
-  "dependsOn": ["subtask-000"]
-}
-```
+**Sanity checks (quick):**
+1. Verify the assigned subtask exists in the subtasks file and is `done: false`
+2. If it’s already `done: true`, stop and report (queue is stale)
+3. If it’s blocked by incomplete `blockedBy`, stop and report (dependency issue)
 
 ### Phase 3: Investigate
 
-Gather information needed to implement the selected subtask.
+Gather information needed to implement the assigned subtask.
 
 **Actions:**
 1. Read the `filesToRead` array from the subtask - these are files the subtask author identified as relevant

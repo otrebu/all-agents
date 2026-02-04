@@ -20,7 +20,11 @@ import * as readline from "node:readline";
 import type { BuildOptions, Subtask } from "./types";
 
 import { runCalibrate } from "./calibrate";
-import { buildPrompt, invokeClaudeChat, invokeClaudeHeadless } from "./claude";
+import {
+  buildPrompt,
+  invokeClaudeChat,
+  invokeClaudeHeadlessAsync,
+} from "./claude";
 import {
   countRemaining,
   getMilestoneFromSubtasks,
@@ -172,6 +176,7 @@ let summaryContext: null | SummaryContext = null;
  */
 function buildIterationPrompt(
   contextRoot: string,
+  currentSubtask: Subtask,
   subtasksPath: string,
 ): string {
   const promptPath = path.join(contextRoot, ITERATION_PROMPT_PATH);
@@ -182,23 +187,31 @@ function buildIterationPrompt(
 
   const promptContent = readFileSync(promptPath, "utf8");
 
-  // Derive PROGRESS.md location from subtasks.json location
-  const subtasksDirectory = path.dirname(subtasksPath);
-  const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
+  // Use the canonical PROGRESS.md location relative to the target repo root.
+  const projectRoot = findProjectRoot() ?? contextRoot;
+  const progressPath = path.join(projectRoot, "docs/planning/PROGRESS.md");
 
-  // Build context with file references (Claude will read them)
-  const extraContext = `Execute one iteration of the Ralph build loop.
+  const subtaskJson = JSON.stringify(currentSubtask, null, 2);
 
-Follow the instructions in @${promptPath}
+  // Build context with assigned subtask and paths (avoid inlining large files)
+  const extraContext =
+    `Execute one iteration of the Ralph build loop.
 
-Subtasks file: @${subtasksPath}
+Work ONLY on the assigned subtask below. Do not pick a different subtask.
 
-Context files:
-@${path.join(contextRoot, "CLAUDE.md")}
-@${progressPath}
+Assigned subtask:
+\`\`\`json
+${subtaskJson}
+\`\`\`
 
-After completing ONE subtask:
-1. Update subtasks.json with done: true, completedAt, commitHash, sessionId
+Subtasks file path: ${subtasksPath}
+Progress log path: ${progressPath}
+
+If you need to inspect the queue, do not read the entire subtasks file; use ` +
+    `jq to view only pending items.
+
+After completing the assigned subtask (${currentSubtask.id}):
+1. Update subtasks.json for ${currentSubtask.id} with done: true, completedAt, commitHash, sessionId
 2. Append to PROGRESS.md
 3. Create the commit
 4. STOP - do not continue to the next subtask`;
@@ -328,10 +341,6 @@ function getLatestCommitHash(projectRoot: string): null | string {
   return proc.stdout.toString("utf8").trim();
 }
 
-// =============================================================================
-// Build Loop Implementation
-// =============================================================================
-
 /**
  * Check if max iterations exceeded and handle failure
  *
@@ -362,14 +371,18 @@ async function handleMaxIterationsExceeded(
   return true;
 }
 
+// =============================================================================
+// Build Loop Implementation
+// =============================================================================
+
 /**
  * Process a single headless iteration
  *
  * @returns Result with cost, duration, diary entry, and completion status
  */
-function processHeadlessIteration(
+async function processHeadlessIteration(
   context: HeadlessIterationContext,
-): HeadlessIterationResult | null {
+): Promise<HeadlessIterationResult | null> {
   const {
     contextRoot,
     currentAttempts,
@@ -377,7 +390,6 @@ function processHeadlessIteration(
     iteration,
     maxIterations,
     prompt,
-    remaining,
     shouldSkipSummary,
     subtasksPath,
   } = context;
@@ -393,7 +405,18 @@ function processHeadlessIteration(
 
   // Time Claude invocation for metrics
   const claudeStart = Date.now();
-  const result = invokeClaudeHeadless({ prompt });
+  const stopHeartbeat = startHeartbeat("Claude", 30_000);
+  let result: {
+    cost: number;
+    duration: number;
+    result: string;
+    sessionId: string;
+  } | null = null;
+  try {
+    result = await invokeClaudeHeadlessAsync({ prompt });
+  } finally {
+    stopHeartbeat();
+  }
   const claudeMs = Date.now() - claudeStart;
 
   // Capture commit hash after Claude invocation
@@ -412,30 +435,37 @@ function processHeadlessIteration(
   // Reload subtasks to check if current one was completed
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
   const postRemaining = countRemaining(postIterationSubtasks.subtasks);
-  const didComplete = postRemaining < remaining;
+  const didComplete =
+    postIterationSubtasks.subtasks.find((s) => s.id === currentSubtask.id)
+      ?.done === true;
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
   let hookResult: null | PostIterationResult = null;
   try {
-    hookResult = runPostIterationHook({
-      claudeMs,
-      commitAfter,
-      commitBefore,
-      contextRoot,
-      costUsd: result.cost,
-      iterationNumber: currentAttempts,
-      maxAttempts: maxIterations,
-      milestone,
-      mode: "headless",
-      remaining: postRemaining,
-      repoRoot: projectRoot,
-      sessionId: result.sessionId,
-      skipSummary: shouldSkipSummary,
-      status: iterationStatus,
-      subtask: currentSubtask,
-      subtasksPath,
-    });
+    const stopPostIterationHeartbeat = startHeartbeat("Post-iteration", 30_000);
+    try {
+      hookResult = await runPostIterationHook({
+        claudeMs,
+        commitAfter,
+        commitBefore,
+        contextRoot,
+        costUsd: result.cost,
+        iterationNumber: currentAttempts,
+        maxAttempts: maxIterations,
+        milestone,
+        mode: "headless",
+        remaining: postRemaining,
+        repoRoot: projectRoot,
+        sessionId: result.sessionId,
+        skipSummary: shouldSkipSummary,
+        status: iterationStatus,
+        subtask: currentSubtask,
+        subtasksPath,
+      });
+    } finally {
+      stopPostIterationHeartbeat();
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
@@ -487,16 +517,15 @@ function processHeadlessIteration(
  *
  * @returns Result with completion status and hook result, or null on failure
  */
-function processSupervisedIteration(
+async function processSupervisedIteration(
   context: SupervisedIterationContext,
-): null | SupervisedIterationResult {
+): Promise<null | SupervisedIterationResult> {
   const {
     contextRoot,
     currentAttempts,
     currentSubtask,
     iteration,
     maxIterations,
-    remaining,
     subtasksPath,
   } = context;
 
@@ -506,9 +535,8 @@ function processSupervisedIteration(
   // Use target project root for logs
   const projectRoot = findProjectRoot() ?? contextRoot;
 
-  // Derive PROGRESS.md location from subtasks.json location
-  const subtasksDirectory = path.dirname(subtasksPath);
-  const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
+  // PROGRESS.md is referenced relative to the target repo root in the iteration prompt.
+  const progressPath = path.join(projectRoot, "docs/planning/PROGRESS.md");
 
   // Capture commit hash before Claude invocation
   const commitBefore = getLatestCommitHash(projectRoot);
@@ -519,7 +547,7 @@ function processSupervisedIteration(
   const chatResult = invokeClaudeChat(
     path.join(contextRoot, ITERATION_PROMPT_PATH),
     "build iteration",
-    `Subtasks file: @${subtasksPath}\n\nContext files:\n@${path.join(contextRoot, "CLAUDE.md")}\n@${progressPath}`,
+    `Work ONLY on the assigned subtask below. Do not pick a different subtask.\n\nAssigned subtask:\n${JSON.stringify(currentSubtask, null, 2)}\n\nSubtasks file path: ${subtasksPath}\nProgress log path: ${progressPath}`,
   );
 
   if (!chatResult.success && !chatResult.interrupted) {
@@ -541,14 +569,16 @@ function processSupervisedIteration(
   // Reload subtasks to check completion status
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
   const postRemaining = countRemaining(postIterationSubtasks.subtasks);
-  const didComplete = postRemaining < remaining;
+  const didComplete =
+    postIterationSubtasks.subtasks.find((s) => s.id === currentSubtask.id)
+      ?.done === true;
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
   // Run post-iteration hook if session was discovered
   let hookResult: null | PostIterationResult = null;
   if (discoveredSession !== null) {
-    hookResult = runPostIterationHook({
+    hookResult = await runPostIterationHook({
       claudeMs,
       commitAfter,
       commitBefore,
@@ -596,10 +626,6 @@ function processSupervisedIteration(
   return { didComplete, hookResult };
 }
 
-// =============================================================================
-// Interactive Prompts
-// =============================================================================
-
 /**
  * Prompt user to continue to next iteration
  *
@@ -646,6 +672,10 @@ async function promptContinue(): Promise<boolean> {
   });
 }
 
+// =============================================================================
+// Interactive Prompts
+// =============================================================================
+
 /**
  * Register signal handlers for graceful shutdown
  *
@@ -661,10 +691,6 @@ function registerSignalHandlers(): void {
     generateSummaryAndExit(143);
   });
 }
-
-// =============================================================================
-// Build Loop Implementation
-// =============================================================================
 
 /**
  * Run the build loop
@@ -763,13 +789,38 @@ async function runBuild(
     const currentSubtask = getNextSubtask(subtasksFile.subtasks);
 
     if (currentSubtask === null) {
-      console.error("Error: Could not determine next subtask");
+      const milestone = getMilestoneFromSubtasks(subtasksFile);
+      const pending = subtasksFile.subtasks.filter((s) => !s.done);
+      const blockedList = pending
+        .map((s) => {
+          const blockedBy = s.blockedBy ?? [];
+          const deps =
+            blockedBy.length === 0
+              ? "(no blockedBy listed)"
+              : blockedBy.join(", ");
+          return `- ${s.id}: blockedBy ${deps}`;
+        })
+        .join("\n");
+
+      console.error("Error: No runnable subtasks found.");
+      console.error(
+        "All remaining subtasks appear blocked by incomplete dependencies.",
+      );
+      if (blockedList !== "") {
+        console.error(`\nPending subtasks:\n${blockedList}`);
+      }
+
+      // eslint-disable-next-line no-await-in-loop -- Must notify before exiting
+      await executeHook("onValidationFail", {
+        message: `No runnable subtasks found for milestone ${milestone}. All remaining subtasks appear blocked.`,
+        milestone,
+      });
+
       process.exit(1);
     }
 
     // Track attempts for this specific subtask
     const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
-    attempts.set(currentSubtask.id, currentAttempts);
 
     // Check if we've exceeded max iterations for this subtask
     // eslint-disable-next-line no-await-in-loop -- Must check before continuing
@@ -797,14 +848,19 @@ async function runBuild(
     );
 
     // Build the prompt
-    const prompt = buildIterationPrompt(contextRoot, subtasksPath);
+    const prompt = buildIterationPrompt(
+      contextRoot,
+      currentSubtask,
+      subtasksPath,
+    );
 
     // Invoke Claude based on mode
     let didComplete = false;
     let iterationHookResult: null | PostIterationResult = null;
 
     if (mode === "headless") {
-      const headlessResult = processHeadlessIteration({
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      const headlessResult = await processHeadlessIteration({
         contextRoot,
         currentAttempts,
         currentSubtask,
@@ -818,7 +874,7 @@ async function runBuild(
 
       if (headlessResult === null) {
         // Claude invocation failed (API error, rate limit, network issue)
-        // Treat as failed attempt - will retry on next iteration
+        // Do not count this attempt - will retry on next iteration
         console.log(
           chalk.yellow(
             "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
@@ -826,10 +882,12 @@ async function runBuild(
         );
         didComplete = false;
       } else {
+        attempts.set(currentSubtask.id, currentAttempts);
         ({ didComplete, hookResult: iterationHookResult } = headlessResult);
       }
     } else {
-      const supervisedResult = processSupervisedIteration({
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      const supervisedResult = await processSupervisedIteration({
         contextRoot,
         currentAttempts,
         currentSubtask,
@@ -841,7 +899,7 @@ async function runBuild(
 
       if (supervisedResult === null) {
         // Claude invocation failed (API error, rate limit, network issue)
-        // Treat as failed attempt - will retry on next iteration
+        // Do not count this attempt - will retry on next iteration
         console.log(
           chalk.yellow(
             "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
@@ -849,6 +907,7 @@ async function runBuild(
         );
         didComplete = false;
       } else {
+        attempts.set(currentSubtask.id, currentAttempts);
         ({ didComplete, hookResult: iterationHookResult } = supervisedResult);
       }
 
@@ -895,6 +954,10 @@ async function runBuild(
   }
 }
 
+// =============================================================================
+// Build Loop Implementation
+// =============================================================================
+
 /**
  * Run periodic calibration if enabled and due
  * Placed after runBuild for alphabetical sorting per lint rules.
@@ -907,6 +970,57 @@ function runPeriodicCalibration(options: PeriodicCalibrationOptions): void {
     );
     runCalibrate("all", { contextRoot, subtasksPath });
   }
+}
+
+/**
+ * Start a periodic heartbeat log while waiting for a long-running operation.
+ *
+ * NOTE: Requires an async wait to allow timers to run (won't work with spawnSync).
+ */
+function startHeartbeat(label: string, intervalMs = 30_000): () => void {
+  const startedAt = Date.now();
+  const VERBOSE_INTERVAL_MS = 10 * 60 * 1000;
+  let hasPendingDots = false;
+  let nextVerboseAt = startedAt + VERBOSE_INTERVAL_MS;
+
+  function writeHeartbeat(text: string): void {
+    try {
+      process.stdout.write(text);
+    } catch {
+      // Extremely rare, but avoid crashing the build loop.
+      console.log(text);
+    }
+  }
+
+  const timer = setInterval(() => {
+    writeHeartbeat(".");
+    hasPendingDots = true;
+
+    const now = Date.now();
+    if (now >= nextVerboseAt) {
+      const elapsed = now - startedAt;
+      writeHeartbeat("\n");
+      hasPendingDots = false;
+      console.log(
+        chalk.dim(`[${label}] still running (${formatDuration(elapsed)})...`),
+      );
+      nextVerboseAt = now + VERBOSE_INTERVAL_MS;
+    }
+  }, intervalMs);
+
+  // Avoid keeping the process alive solely because of the heartbeat.
+  const maybeTimer = timer as unknown as { unref?: () => void };
+  if (typeof maybeTimer.unref === "function") {
+    maybeTimer.unref();
+  }
+
+  return () => {
+    clearInterval(timer);
+    if (hasPendingDots) {
+      writeHeartbeat("\n");
+      hasPendingDots = false;
+    }
+  };
 }
 
 // =============================================================================

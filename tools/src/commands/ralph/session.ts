@@ -11,6 +11,7 @@
  * where encoded-path can be base64-encoded or dash-separated.
  */
 
+import { Buffer } from "node:buffer";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
@@ -292,14 +293,37 @@ function getSessionJsonlPath(
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
   const triedPaths: Array<string> = [];
 
-  // Search in CLAUDE_CONFIG_DIR/projects/ (sessions can be in any subdir)
+  // Fast-path: Try deterministic locations first (avoid expensive recursive find)
+  const dashPath = repoRoot.replaceAll("/", "-").replaceAll(".", "-");
+  const base64 = Buffer.from(repoRoot).toString("base64");
+  const base64Url = base64
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+
+  const candidates = [
+    `${claudeDirectory}/projects/${base64}/${sessionId}.jsonl`,
+    `${claudeDirectory}/projects/${base64Url}/${sessionId}.jsonl`,
+    `${claudeDirectory}/projects/${dashPath}/${sessionId}.jsonl`,
+    `${claudeDirectory}/projects/${sessionId}.jsonl`,
+    `${claudeDirectory}/sessions/${sessionId}.jsonl`,
+  ];
+
+  for (const candidate of candidates) {
+    triedPaths.push(candidate);
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Fallback: Search in CLAUDE_CONFIG_DIR/projects/ (sessions can be in any subdir)
   const projectsDirectory = `${claudeDirectory}/projects`;
   if (existsSync(projectsDirectory)) {
     try {
       const proc = Bun.spawnSync([
         "bash",
         "-c",
-        `find "${projectsDirectory}" -name "${sessionId}.jsonl" -type f 2>/dev/null | head -1`,
+        `find "${projectsDirectory}" -maxdepth 3 -name "${sessionId}.jsonl" -type f 2>/dev/null | head -1`,
       ]);
       if (proc.exitCode === 0) {
         const found = proc.stdout.toString("utf8").trim();
@@ -308,24 +332,9 @@ function getSessionJsonlPath(
         }
       }
     } catch {
-      // find failed, continue to fallbacks
+      // find failed, continue to final not found
     }
     triedPaths.push(`${projectsDirectory}/**/${sessionId}.jsonl`);
-  }
-
-  // Fallback: Try dash-encoded path directly
-  const dashPath = repoRoot.replaceAll("/", "-").replaceAll(".", "-");
-  const path2 = `${claudeDirectory}/projects/${dashPath}/${sessionId}.jsonl`;
-  triedPaths.push(path2);
-  if (existsSync(path2)) {
-    return path2;
-  }
-
-  // Fallback: Try sessions directory
-  const path3 = `${claudeDirectory}/sessions/${sessionId}.jsonl`;
-  triedPaths.push(path3);
-  if (existsSync(path3)) {
-    return path3;
   }
 
   // Log tried paths at debug level

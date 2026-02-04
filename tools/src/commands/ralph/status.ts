@@ -308,6 +308,19 @@ function renderSubtaskDetails(subtasksPath: string): void {
       }
     } else if (doneCount === total) {
       console.log(`  Next up:   ${chalk.green("All complete!")}`);
+    } else {
+      const pending = subtasks.filter((s) => !s.done);
+      const blockedCount = pending.length;
+      console.log(
+        `  Next up:   ${chalk.red("Blocked")} (${blockedCount} pending)`,
+      );
+      const preview = pending.slice(0, 3).map((s) => {
+        const deps = (s.blockedBy ?? []).join(", ");
+        return `${s.id}${deps === "" ? "" : ` (blockedBy: ${deps})`}`;
+      });
+      if (preview.length > 0) {
+        console.log(`             ${chalk.dim(preview.join("; "))}`);
+      }
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

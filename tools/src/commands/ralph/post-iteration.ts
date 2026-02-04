@@ -145,10 +145,10 @@ interface SummaryResult {
  * @param sessionPath - Path to session JSONL file
  * @returns SummaryResult with summary text, key findings, and timing
  */
-function generateSummary(
+async function generateSummary(
   options: PostIterationOptions,
   sessionPath: null | string,
-): SummaryResult {
+): Promise<SummaryResult> {
   const {
     contextRoot,
     iterationNumber = 1,
@@ -214,7 +214,10 @@ function generateSummary(
     .replaceAll("{{SESSION_CONTENT}}", sessionContent);
 
   // Invoke Haiku with 30 second timeout
-  const result = invokeClaudeHaiku({ prompt: promptContent, timeout: 30_000 });
+  const result = await invokeClaudeHaiku({
+    prompt: promptContent,
+    timeout: 30_000,
+  });
 
   if (result === null || result.trim() === "") {
     return {
@@ -548,9 +551,9 @@ function parseNumstat(numstatOutput: string): LinesChangedResult {
  * @param options - PostIterationOptions with session and subtask info
  * @returns Result with diary entry and paths, or null if hook was skipped
  */
-function runPostIterationHook(
+async function runPostIterationHook(
   options: PostIterationOptions,
-): null | PostIterationResult {
+): Promise<null | PostIterationResult> {
   const hookStart = Date.now();
 
   const {
@@ -577,7 +580,7 @@ function runPostIterationHook(
   const sessionPath = getSessionJsonlPath(sessionId, repoRoot);
 
   // Generate summary using Haiku (silent - no console output)
-  const summaryResult = generateSummary(options, sessionPath);
+  const summaryResult = await generateSummary(options, sessionPath);
 
   // Collect metrics with timing
   const metricsStart = Date.now();
