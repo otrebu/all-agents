@@ -150,6 +150,7 @@ complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a review -d 'Review plan
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a milestones -d 'List available milestones'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a status -d 'Display build status'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a calibrate -d 'Run calibration checks'
+complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a archive -d 'Archive subtasks and sessions'
 
 # ralph build options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
@@ -224,6 +225,18 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a improve -
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a all -d 'Run all checks'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l force -d 'Skip approval'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l review -d 'Require approval'
+
+# ralph archive subcommands
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph archive' -a subtasks -d 'Archive completed subtasks'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph archive' -a progress -d 'Show archive progress'
+
+# ralph archive subtasks options
+function __fish_aaa_ralph_archive_subtasks
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = archive -a "$cmd[4]" = subtasks
+end
+complete -c aaa -n __fish_aaa_ralph_archive_subtasks -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_archive_subtasks -l milestone -d 'Target milestone' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 
 # ralph review subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a stories -d 'Review stories for a milestone'

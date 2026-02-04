@@ -209,6 +209,12 @@ _aaa_completions() {
                     review)
                         # All review commands are supervised-only (no headless)
                         ;;
+                    archive)
+                        if [[ "$subsubcmd" == "subtasks" ]]; then
+                            COMPREPLY=($(compgen -W "--subtasks --milestone" -- "$cur"))
+                        fi
+                        return
+                        ;;
                 esac
                 ;;
             review)
@@ -270,7 +276,7 @@ _aaa_completions() {
             ;;
         ralph)
             if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "build plan review milestones status calibrate" -- "$cur"))
+                COMPREPLY=($(compgen -W "build plan review milestones status calibrate archive" -- "$cur"))
             elif [[ "$subcmd" == "plan" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "vision roadmap stories tasks subtasks" -- "$cur"))
             elif [[ "$subcmd" == "review" && -z "$subsubcmd" ]]; then
@@ -280,6 +286,8 @@ _aaa_completions() {
                 COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
             elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "intention technical improve all" -- "$cur"))
+            elif [[ "$subcmd" == "archive" && -z "$subsubcmd" ]]; then
+                COMPREPLY=($(compgen -W "subtasks progress" -- "$cur"))
             fi
             ;;
         review)

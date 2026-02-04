@@ -248,6 +248,7 @@ _aaa_ralph() {
         'milestones:List available milestones'
         'status:Display build status and progress'
         'calibrate:Run calibration checks'
+        'archive:Archive completed subtasks and old sessions'
     )
 
     _arguments -C \\
@@ -289,6 +290,9 @@ _aaa_ralph() {
                         '--force[Skip approval]' \\
                         '--review[Require approval]' \\
                         '1:subcommand:(intention technical improve all)'
+                    ;;
+                archive)
+                    _aaa_ralph_archive
                     ;;
             esac
             ;;
@@ -347,6 +351,36 @@ _aaa_ralph_plan() {
                         '--calibrate-every[Run calibration every N iterations]:number:' \\
                         '--file[Source file path]:file:_files' \\
                         '--text[Source text description]:text:'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_aaa_ralph_archive() {
+    local -a subcommands
+    subcommands=(
+        'subtasks:Archive completed subtasks to history'
+        'progress:Show archive progress summary'
+    )
+
+    _arguments -C \\
+        '1: :->subcmd' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                subtasks)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir'
+                    ;;
+                progress)
+                    # No additional arguments
                     ;;
             esac
             ;;
