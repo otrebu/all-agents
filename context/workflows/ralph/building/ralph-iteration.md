@@ -325,24 +325,35 @@ Update tracking files to reflect the completed work.
 
 #### 1. Update subtasks.json
 
-Modify the completed subtask in subtasks.json:
-
-```json
-{
-  "id": "subtask-001",
-  "title": "...",
-  "done": true,
-  "completedAt": "2024-01-15T10:30:00Z",
-  "commitHash": "abc123def456",
-  "sessionId": "<current-session-id>"
-}
-```
+**IMPORTANT:** Do not read the entire subtasks.json file (it may exceed context limits). Use `jq` to update only the completed subtask atomically.
 
 **Required fields to add/update:**
 - `done`: Set to `true`
 - `completedAt`: ISO 8601 timestamp of completion
 - `commitHash`: Git commit hash from the commit phase
 - `sessionId`: The current Claude session ID (for self-improvement analysis)
+
+**Use this jq command pattern (replace SUB-XXX with the actual subtask ID):**
+
+```bash
+# Verify subtask exists, then update atomically
+jq -e --arg id "SUB-XXX" '.subtasks[] | select(.id==$id)' path/to/subtasks.json > /dev/null && \
+jq --arg id "SUB-XXX" \
+   --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+   --arg commit "$(git rev-parse HEAD)" \
+   --arg session "$(cat .claude/current-session 2>/dev/null || echo '')" \
+   '(.subtasks[] | select(.id==$id)) |= . + {done:true, completedAt:$ts, commitHash:$commit, sessionId:$session}' \
+   path/to/subtasks.json > path/to/subtasks.tmp && \
+mv path/to/subtasks.tmp path/to/subtasks.json
+
+# Verify update succeeded
+jq -e --arg id "SUB-XXX" '.subtasks[] | select(.id==$id) | .done' path/to/subtasks.json
+```
+
+**Why jq instead of Edit tool:**
+- The subtasks.json file may exceed 25K tokens (Edit tool's read limit)
+- jq operates on the file directly without loading it into context
+- The `-e` flag ensures the command fails if the subtask ID doesn't exist
 
 #### 2. Append to PROGRESS.md
 

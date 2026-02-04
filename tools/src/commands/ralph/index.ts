@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 
+import { runArchive } from "./archive";
 import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import { runCascadeFrom, validateCascadeTarget } from "./cascade";
@@ -1950,5 +1951,44 @@ calibrateCommand.addCommand(
 );
 
 ralphCommand.addCommand(calibrateCommand);
+
+// =============================================================================
+// ralph archive - archive completed subtasks and old progress sessions
+// =============================================================================
+
+const archiveCommand = new Command("archive").description(
+  "Archive completed subtasks and old PROGRESS.md sessions to manage file sizes",
+);
+
+// ralph archive subtasks - archive completed subtasks
+archiveCommand.addCommand(
+  new Command("subtasks")
+    .description("Archive completed subtasks to reduce subtasks.json size")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .option("--milestone <name>", "Milestone name for archive naming")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      runArchive(
+        {
+          milestone: options.milestone,
+          subtasks: true,
+          subtasksPath: options.subtasks,
+        },
+        contextRoot,
+      );
+    }),
+);
+
+// ralph archive progress - archive old PROGRESS.md sessions
+archiveCommand.addCommand(
+  new Command("progress")
+    .description("Archive old sessions from PROGRESS.md")
+    .action(() => {
+      const contextRoot = getContextRoot();
+      runArchive({ progress: true }, contextRoot);
+    }),
+);
+
+ralphCommand.addCommand(archiveCommand);
 
 export default ralphCommand;

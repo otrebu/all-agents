@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 
 import type { IterationDiaryEntry, Subtask } from "./types";
 
+import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import {
   getCompletedSubtasks,
   getMilestoneFromSubtasks,
@@ -288,6 +289,17 @@ function renderSubtaskDetails(subtasksPath: string): void {
 
     // Progress bar
     console.log(`  Progress: ${renderProgressBar(doneCount, total)}`);
+
+    // File size warning
+    const sizeCheck = checkSubtasksSize(subtasksPath);
+    if (sizeCheck.exceeded) {
+      const tokensK = Math.round(sizeCheck.tokens / 1000);
+      const limitK = Math.round(SUBTASKS_TOKEN_SOFT_LIMIT / 1000);
+      const sizeWarning = sizeCheck.hardLimitExceeded
+        ? chalk.red(`~${tokensK}K tokens (consider archiving)`)
+        : chalk.yellow(`~${tokensK}K tokens (limit: ${limitK}K)`);
+      console.log(`  Size:     ${sizeWarning}`);
+    }
 
     // Last completed
     const lastCompleted = getLastCompletedSubtask(subtasks);

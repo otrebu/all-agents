@@ -19,6 +19,7 @@ import * as readline from "node:readline";
 
 import type { BuildOptions, Subtask } from "./types";
 
+import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import { runCalibrate } from "./calibrate";
 import {
   buildPrompt,
@@ -736,6 +737,32 @@ async function runBuild(
     console.error(`Subtasks file not found: ${subtasksPath}`);
     console.error(`Create one with: aaa ralph plan subtasks --task <task-id>`);
     process.exit(1);
+  }
+
+  // Pre-build size check: warn if subtasks.json is getting large
+  const sizeCheck = checkSubtasksSize(subtasksPath);
+  if (sizeCheck.exceeded) {
+    const tokensK = Math.round(sizeCheck.tokens / 1000);
+    const limitK = Math.round(SUBTASKS_TOKEN_SOFT_LIMIT / 1000);
+    console.log(
+      chalk.yellow(
+        `\n  subtasks.json is ~${tokensK}K tokens (limit: ${limitK}K)`,
+      ),
+    );
+    console.log(
+      chalk.dim(`  Run: aaa ralph archive subtasks --subtasks ${subtasksPath}`),
+    );
+    if (sizeCheck.hardLimitExceeded) {
+      console.log(
+        chalk.red(
+          `\n  Claude may not be able to update this file via Edit tool.`,
+        ),
+      );
+      console.log(
+        chalk.dim(`  The prompt instructs Claude to use jq instead.`),
+      );
+    }
+    console.log();
   }
 
   // Track retry attempts per subtask ID

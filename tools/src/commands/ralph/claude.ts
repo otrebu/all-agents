@@ -300,8 +300,8 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
   const { prompt } = options;
 
   // Headless mode: -p with JSON output
-  // CRITICAL: Use ['inherit', 'pipe', 'inherit'] to separate stderr from stdout
-  // - stdin: inherit (allow input if needed)
+  // CRITICAL: Use ['ignore', 'pipe', 'inherit'] to separate stderr from stdout
+  // - stdin: ignore (headless mode doesn't need interactive input)
   // - stdout: pipe (capture for JSON parsing)
   // - stderr: inherit (show progress to user, don't mix with JSON)
   const proc = Bun.spawnSync(
@@ -313,7 +313,7 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
       "--output-format",
       "json",
     ],
-    { stdio: ["inherit", "pipe", "inherit"] },
+    { stdio: ["ignore", "pipe", "inherit"] },
   );
 
   // Handle signal interruption (Ctrl+C)
@@ -395,7 +395,7 @@ async function invokeClaudeHeadlessAsync(
       "--output-format",
       "json",
     ],
-    { stderr: "inherit", stdin: "inherit", stdout: "pipe" },
+    { stderr: "inherit", stdin: "ignore", stdout: "pipe" },
   );
 
   const stdoutPromise = new Response(proc.stdout).text();
