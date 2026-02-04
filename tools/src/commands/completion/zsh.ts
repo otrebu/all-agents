@@ -361,7 +361,7 @@ _aaa_ralph_archive() {
     local -a subcommands
     subcommands=(
         'subtasks:Archive completed subtasks to history'
-        'progress:Show archive progress summary'
+        'progress:Archive old sessions from PROGRESS.md'
     )
 
     _arguments -C \\
@@ -380,7 +380,8 @@ _aaa_ralph_archive() {
                         '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir'
                     ;;
                 progress)
-                    # No additional arguments
+                    _arguments \\
+                        '--progress[PROGRESS.md file path]:file:_files -g "*.md"'
                     ;;
             esac
             ;;

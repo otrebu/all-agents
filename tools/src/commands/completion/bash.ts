@@ -212,6 +212,8 @@ _aaa_completions() {
                     archive)
                         if [[ "$subsubcmd" == "subtasks" ]]; then
                             COMPREPLY=($(compgen -W "--subtasks --milestone" -- "$cur"))
+                        elif [[ "$subsubcmd" == "progress" ]]; then
+                            COMPREPLY=($(compgen -W "--progress" -- "$cur"))
                         fi
                         return
                         ;;

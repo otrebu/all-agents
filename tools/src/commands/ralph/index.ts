@@ -1983,9 +1983,13 @@ archiveCommand.addCommand(
 archiveCommand.addCommand(
   new Command("progress")
     .description("Archive old sessions from PROGRESS.md")
-    .action(() => {
+    .option("--progress <path>", "PROGRESS.md file path")
+    .action((options) => {
       const contextRoot = getContextRoot();
-      runArchive({ progress: true }, contextRoot);
+      runArchive(
+        { progress: true, progressPath: options.progress },
+        contextRoot,
+      );
     }),
 );
 

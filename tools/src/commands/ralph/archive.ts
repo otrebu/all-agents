@@ -7,6 +7,7 @@
  * @see docs/planning/milestones/{milestone}/archive/
  */
 
+import { findProjectRoot } from "@tools/utils/paths";
 import chalk from "chalk";
 import {
   existsSync,
@@ -15,7 +16,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 
 import type { SubtasksFile } from "./types";
 
@@ -49,6 +50,8 @@ interface ArchiveOptions {
   milestone?: string;
   /** Archive old PROGRESS.md sessions */
   progress?: boolean;
+  /** Path to PROGRESS.md (for --progress mode) */
+  progressPath?: string;
   /** Archive completed subtasks */
   subtasks?: boolean;
   /** Path to subtasks.json (for --subtasks mode) */
@@ -103,6 +106,7 @@ function computeTokenEstimate(content: string): number {
 function findNextArchiveNumber(
   archiveDirectory: string,
   prefix: string,
+  extension: string,
 ): number {
   if (!existsSync(archiveDirectory)) {
     return 1;
@@ -110,7 +114,17 @@ function findNextArchiveNumber(
 
   try {
     const files = readdirSync(archiveDirectory);
-    const pattern = new RegExp(`^(?<num>\\d{3})-${prefix}\\.json$`);
+    const normalizedExtension = extension.startsWith(".")
+      ? extension.slice(1)
+      : extension;
+    const escapedPrefix = prefix.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escapedExtension = normalizedExtension.replaceAll(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
+    );
+    const pattern = new RegExp(
+      `^(?<num>\\d{3})-${escapedPrefix}\\.${escapedExtension}$`,
+    );
 
     let maxNumber = 0;
     for (const file of files) {
@@ -186,7 +200,11 @@ function moveCompletedSubtasksToArchive(subtasksPath: string): {
   }
 
   // Get next archive number
-  const archiveNumber = findNextArchiveNumber(archiveDirectory, "subtasks");
+  const archiveNumber = findNextArchiveNumber(
+    archiveDirectory,
+    "subtasks",
+    "json",
+  );
   const paddedNumber = String(archiveNumber).padStart(3, "0");
   const archiveFileName = `${paddedNumber}-subtasks.json`;
   const archivePath = join(archiveDirectory, archiveFileName);
@@ -234,7 +252,7 @@ function moveOldProgressSessionsToArchive(
   }
 
   const content = readFileSync(progressPath, "utf8");
-  const sessions = parseProgressSessions(content);
+  const { prefix, sessions } = parseProgressSessions(content);
 
   if (sessions.length <= maxSessions) {
     return null;
@@ -254,7 +272,11 @@ function moveOldProgressSessionsToArchive(
   }
 
   // Get next archive number
-  const archiveNumber = findNextArchiveNumber(archiveDirectory, "PROGRESS");
+  const archiveNumber = findNextArchiveNumber(
+    archiveDirectory,
+    "PROGRESS",
+    "md",
+  );
   const paddedNumber = String(archiveNumber).padStart(3, "0");
   const archiveFileName = `${paddedNumber}-PROGRESS.md`;
   const archivePath = join(archiveDirectory, archiveFileName);
@@ -266,9 +288,15 @@ function moveOldProgressSessionsToArchive(
   writeFileSync(archivePath, archiveContent, "utf8");
 
   // Update original file
-  const headerMatch = /^(?<header># .+?\n(?:\n.*?(?=\n## ))?)/s.exec(content);
-  const header = headerMatch?.groups?.header ?? "# PROGRESS.md\n\n";
-  const newContent = header + toKeep.map((s) => s.content).join("\n\n");
+  const sessionsContent = toKeep.map((s) => s.content).join("\n\n");
+  let newContent = prefix;
+  if (newContent !== "" && !newContent.endsWith("\n")) {
+    newContent += "\n";
+  }
+  newContent += sessionsContent;
+  if (!newContent.endsWith("\n")) {
+    newContent += "\n";
+  }
   writeFileSync(progressPath, newContent, "utf8");
 
   return {
@@ -282,19 +310,25 @@ function moveOldProgressSessionsToArchive(
  * Parse PROGRESS.md into sessions by date headers
  *
  * @param content - PROGRESS.md content
- * @returns Array of session objects with date and content
+ * @returns Prefix content and array of session objects with date and content
  */
-function parseProgressSessions(
-  content: string,
-): Array<{ content: string; date: string }> {
+function parseProgressSessions(content: string): {
+  prefix: string;
+  sessions: Array<{ content: string; date: string }>;
+} {
   const sessions: Array<{ content: string; date: string }> = [];
   const lines = content.split("\n");
 
+  const prefixLines: Array<string> = [];
   let currentDate = "";
   let currentContent: Array<string> = [];
+  let isInSessionsSection = false;
 
   for (const line of lines) {
-    const dateMatch = /^## (?<date>\d{4}-\d{2}-\d{2})/.exec(line);
+    const dateMatch =
+      /^#{2,3} (?<date>\d{4}-\d{2}-\d{2})(?:T\d{2}:\d{2}:\d{2})?(?:[ :].*)?$/.exec(
+        line,
+      );
     if (dateMatch?.groups?.date !== undefined) {
       // Save previous session if any
       if (currentDate !== "") {
@@ -303,8 +337,11 @@ function parseProgressSessions(
           date: currentDate,
         });
       }
+      isInSessionsSection = true;
       currentDate = dateMatch.groups.date;
       currentContent = [line];
+    } else if (!isInSessionsSection) {
+      prefixLines.push(line);
     } else if (currentDate !== "") {
       currentContent.push(line);
     }
@@ -315,7 +352,7 @@ function parseProgressSessions(
     sessions.push({ content: currentContent.join("\n"), date: currentDate });
   }
 
-  return sessions;
+  return { prefix: prefixLines.join("\n"), sessions };
 }
 
 // =============================================================================
@@ -332,6 +369,7 @@ function runArchive(options: ArchiveOptions, contextRoot: string): void {
   const {
     milestone,
     progress: isProgressMode,
+    progressPath,
     subtasks: isSubtasksMode,
     subtasksPath,
   } = options;
@@ -377,16 +415,33 @@ function runArchive(options: ArchiveOptions, contextRoot: string): void {
   }
 
   if (shouldArchiveProgress) {
-    // Determine PROGRESS.md path
-    const progressPath = join(contextRoot, "docs/planning/PROGRESS.md");
+    const projectRoot = findProjectRoot() ?? contextRoot;
+    const defaultProgressPath = join(projectRoot, "docs/planning/PROGRESS.md");
 
-    if (!existsSync(progressPath)) {
-      console.error(chalk.red(`Error: PROGRESS.md not found: ${progressPath}`));
+    // Resolve PROGRESS.md path (allow passing relative paths from anywhere in repo)
+    let resolvedProgressPath =
+      progressPath === undefined || progressPath === ""
+        ? defaultProgressPath
+        : progressPath;
+    if (
+      !isAbsolute(resolvedProgressPath) &&
+      !existsSync(resolvedProgressPath)
+    ) {
+      const projectRelativePath = join(projectRoot, resolvedProgressPath);
+      if (existsSync(projectRelativePath)) {
+        resolvedProgressPath = projectRelativePath;
+      }
+    }
+
+    if (!existsSync(resolvedProgressPath)) {
+      console.error(
+        chalk.red(`Error: PROGRESS.md not found: ${resolvedProgressPath}`),
+      );
       process.exit(1);
     }
 
     try {
-      const result = moveOldProgressSessionsToArchive(progressPath);
+      const result = moveOldProgressSessionsToArchive(resolvedProgressPath);
       if (result === null) {
         console.log(
           chalk.dim("PROGRESS.md has few sessions - no archiving needed"),

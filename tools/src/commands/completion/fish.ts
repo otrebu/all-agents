@@ -228,7 +228,7 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l review -d
 
 # ralph archive subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph archive' -a subtasks -d 'Archive completed subtasks'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph archive' -a progress -d 'Show archive progress'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph archive' -a progress -d 'Archive old sessions from PROGRESS.md'
 
 # ralph archive subtasks options
 function __fish_aaa_ralph_archive_subtasks
@@ -237,6 +237,13 @@ function __fish_aaa_ralph_archive_subtasks
 end
 complete -c aaa -n __fish_aaa_ralph_archive_subtasks -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
 complete -c aaa -n __fish_aaa_ralph_archive_subtasks -l milestone -d 'Target milestone' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
+
+# ralph archive progress options
+function __fish_aaa_ralph_archive_progress
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = archive -a "$cmd[4]" = progress
+end
+complete -c aaa -n __fish_aaa_ralph_archive_progress -l progress -d 'PROGRESS.md file path' -ra '(__fish_complete_suffix .md)'
 
 # ralph review subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a stories -d 'Review stories for a milestone'

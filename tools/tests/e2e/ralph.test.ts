@@ -164,6 +164,83 @@ kill -s INT $$
     expect(stdout).toContain("--subtasks");
   });
 
+  test("ralph archive progress supports --progress path", async () => {
+    const planningDirectory = join(temporaryDirectory, "docs/planning");
+    mkdirSync(planningDirectory, { recursive: true });
+
+    const progressPath = join(planningDirectory, "PROGRESS.md");
+    const archiveDirectory = join(planningDirectory, "archive");
+    mkdirSync(archiveDirectory, { recursive: true });
+    writeFileSync(
+      join(archiveDirectory, "001-PROGRESS.md"),
+      "# Existing archive\n",
+    );
+
+    writeFileSync(
+      progressPath,
+      `# Progress
+
+## Current Focus
+- Keep this header content
+
+## Session Notes
+
+### 2026-01-01
+- A
+
+### 2026-01-02
+- B
+
+### 2026-01-03
+- C
+
+### 2026-01-04
+- D
+
+### 2026-01-05
+- E
+
+### 2026-01-06
+- F
+
+### 2026-01-07
+- G
+`,
+    );
+
+    const { exitCode } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "archive",
+        "progress",
+        "--progress",
+        progressPath,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+
+    const updatedProgress = readFileSync(progressPath, "utf8");
+    expect(updatedProgress).toContain("## Current Focus");
+    expect(updatedProgress).toContain("## Session Notes");
+    // Keeps latest 5 sessions, archives the oldest 2
+    expect(updatedProgress).not.toContain("### 2026-01-01");
+    expect(updatedProgress).not.toContain("### 2026-01-02");
+    expect(updatedProgress).toContain("### 2026-01-03");
+    expect(updatedProgress).toContain("### 2026-01-07");
+
+    const archivedPath = join(archiveDirectory, "002-PROGRESS.md");
+    expect(existsSync(archivedPath)).toBe(true);
+
+    const archivedContent = readFileSync(archivedPath, "utf8");
+    expect(archivedContent).toContain("Archived Progress Sessions");
+    expect(archivedContent).toContain("### 2026-01-01");
+    expect(archivedContent).toContain("### 2026-01-02");
+  });
+
   test("ralph calibrate without subcommand shows usage", async () => {
     const { exitCode, stderr } = await execa(
       "bun",
