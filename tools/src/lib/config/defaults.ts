@@ -5,6 +5,7 @@ import type {
   RalphSection,
   ResearchSection,
   ReviewSection,
+  TimeoutsConfig,
 } from "./types";
 
 /**
@@ -39,6 +40,20 @@ export const DEFAULT_NOTIFY: NotifySection = {
 export const DEFAULT_APPROVALS: ApprovalsConfig = { suggestWaitSeconds: 180 };
 
 /**
+ * Default timeout configuration for Ralph build processes
+ *
+ * Two-layer detection:
+ * - stallMinutes: Catches stuck processes fast (no stderr output for 10min)
+ * - hardMinutes: Safety net for edge cases (60min total elapsed)
+ * - graceSeconds: Time to wait after SIGTERM before SIGKILL (5s)
+ */
+export const DEFAULT_TIMEOUTS: TimeoutsConfig = {
+  graceSeconds: 5,
+  hardMinutes: 60,
+  stallMinutes: 10,
+};
+
+/**
  * Default ralph section configuration
  */
 export const DEFAULT_RALPH: RalphSection = {
@@ -52,6 +67,7 @@ export const DEFAULT_RALPH: RalphSection = {
     onValidationFail: ["log", "notify"],
   },
   selfImprovement: { mode: "suggest" },
+  timeouts: DEFAULT_TIMEOUTS,
 };
 
 /**

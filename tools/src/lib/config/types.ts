@@ -219,6 +219,28 @@ const selfImprovementConfigSchema = z.object({
 });
 
 /**
+ * Timeout configuration for Ralph build processes
+ *
+ * Two-layer detection system:
+ * - Stall detection: Catches stuck processes fast (no stderr output)
+ * - Hard timeout: Safety net for edge cases (total elapsed time)
+ */
+interface TimeoutsConfig {
+  /** Grace period in seconds before SIGKILL after SIGTERM (default: 5) */
+  graceSeconds?: number;
+  /** Hard timeout in minutes - safety net for edge cases (default: 60) */
+  hardMinutes?: number;
+  /** Stall detection threshold in minutes - no stderr output (default: 10) */
+  stallMinutes?: number;
+}
+
+const timeoutsConfigSchema = z.object({
+  graceSeconds: z.number().int().min(1).optional(),
+  hardMinutes: z.number().int().min(1).optional(),
+  stallMinutes: z.number().int().min(1).optional(),
+});
+
+/**
  * Build configuration for Ralph
  */
 interface BuildConfig {
@@ -245,6 +267,8 @@ interface RalphSection {
   hooks?: HooksConfig;
   /** Self-improvement configuration */
   selfImprovement?: SelfImprovementConfig;
+  /** Timeout configuration for build processes */
+  timeouts?: TimeoutsConfig;
 }
 
 const ralphSectionSchema = z.object({
@@ -252,6 +276,7 @@ const ralphSectionSchema = z.object({
   build: buildConfigSchema.optional(),
   hooks: hooksConfigSchema.optional(),
   selfImprovement: selfImprovementConfigSchema.optional(),
+  timeouts: timeoutsConfigSchema.optional(),
 });
 
 // =============================================================================
@@ -393,4 +418,6 @@ export {
   selfImprovementConfigSchema,
   type SelfImprovementMode,
   selfImprovementModeSchema,
+  type TimeoutsConfig,
+  timeoutsConfigSchema,
 };

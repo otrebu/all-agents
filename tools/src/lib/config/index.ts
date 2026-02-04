@@ -25,6 +25,7 @@ export {
   DEFAULT_RALPH,
   DEFAULT_RESEARCH,
   DEFAULT_REVIEW,
+  DEFAULT_TIMEOUTS,
 } from "./defaults";
 
 // Environment variables
@@ -72,4 +73,6 @@ export {
   selfImprovementConfigSchema,
   type SelfImprovementMode,
   selfImprovementModeSchema,
+  type TimeoutsConfig,
+  timeoutsConfigSchema,
 } from "./types";

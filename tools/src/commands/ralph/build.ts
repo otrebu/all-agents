@@ -31,6 +31,7 @@ import {
   getMilestoneFromSubtasks,
   getNextSubtask,
   loadSubtasksFile,
+  loadTimeoutConfig,
 } from "./config";
 import {
   renderBuildPracticalSummary,
@@ -404,6 +405,12 @@ async function processHeadlessIteration(
   // Capture commit hash before Claude invocation
   const commitBefore = getLatestCommitHash(projectRoot);
 
+  // Load timeout configuration
+  const timeoutConfig = loadTimeoutConfig();
+  const stallTimeoutMs = timeoutConfig.stallMinutes * 60 * 1000;
+  const hardTimeoutMs = timeoutConfig.hardMinutes * 60 * 1000;
+  const gracePeriodMs = timeoutConfig.graceSeconds * 1000;
+
   // Time Claude invocation for metrics
   const claudeStart = Date.now();
   const stopHeartbeat = startHeartbeat("Claude", 30_000);
@@ -414,7 +421,16 @@ async function processHeadlessIteration(
     sessionId: string;
   } | null = null;
   try {
-    result = await invokeClaudeHeadlessAsync({ prompt });
+    result = await invokeClaudeHeadlessAsync({
+      gracePeriodMs,
+      onStderrActivity: () => {
+        // Activity tracking is handled internally, but we could extend
+        // the heartbeat here if needed in the future
+      },
+      prompt,
+      stallTimeoutMs,
+      timeout: hardTimeoutMs,
+    });
   } finally {
     stopHeartbeat();
   }
@@ -820,7 +836,10 @@ async function runBuild(
 
       // Mark summary as generated to prevent double execution on signal
       hasSummaryBeenGenerated = true;
-      return;
+
+      // Explicit clean exit to ensure process terminates after successful build
+      // This prevents hanging when Claude subprocesses have internal Stop events
+      process.exit(0);
     }
 
     // Get the next pending subtask

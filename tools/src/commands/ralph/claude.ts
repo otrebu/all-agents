@@ -10,6 +10,9 @@ import { existsSync, readFileSync } from "node:fs";
 // 128 + signal number: SIGINT=2 -> 130, SIGTERM=15 -> 143
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 
+/** Default grace period for SIGTERM before SIGKILL (ms) */
+const DEFAULT_GRACE_PERIOD_MS = 5000;
+
 /**
  * Claude JSON output structure (internal)
  * When --output-format json, Claude outputs an array of messages.
@@ -50,7 +53,13 @@ interface HaikuOptions {
  * Options for async headless Claude invocation
  */
 interface HeadlessAsyncOptions extends HeadlessOptions {
-  /** Optional timeout in milliseconds (0/undefined = no timeout) */
+  /** Grace period in ms before SIGKILL after SIGTERM (default: 5000) */
+  gracePeriodMs?: number;
+  /** Callback invoked when stderr output is received (for activity tracking) */
+  onStderrActivity?: () => void;
+  /** Stall timeout in ms - triggers if no stderr output (0/undefined = disabled) */
+  stallTimeoutMs?: number;
+  /** Hard timeout in milliseconds (0/undefined = no timeout) */
   timeout?: number;
 }
 
@@ -86,6 +95,65 @@ function buildPrompt(content: string, extraContext?: string): string {
     return `${extraContext}\n\n${content}`;
   }
   return content;
+}
+
+/**
+ * Create a stall detector that triggers when no activity is reported
+ *
+ * @param getLastActivityAt - Function that returns the timestamp of last activity
+ * @param stallTimeoutMs - Time in ms without activity before triggering stall
+ * @returns Object with promise that resolves to "stall_timeout" and cleanup function
+ */
+function createStallDetector(
+  getLastActivityAt: () => number,
+  stallTimeoutMs: number,
+): { cleanup: () => void; promise: Promise<"stall_timeout"> } {
+  let timer: null | ReturnType<typeof setTimeout> = null;
+
+  // eslint-disable-next-line promise/avoid-new -- Manual resolve needed for timer-based detection
+  const promise = new Promise<"stall_timeout">((resolve) => {
+    function checkStall(): void {
+      const timeSinceActivity = Date.now() - getLastActivityAt();
+      if (timeSinceActivity >= stallTimeoutMs) {
+        resolve("stall_timeout");
+        return;
+      }
+      // Check again after remaining time
+      const remainingMs = stallTimeoutMs - timeSinceActivity;
+      timer = setTimeout(checkStall, Math.min(remainingMs, 30_000));
+      markTimerAsNonBlocking(timer);
+    }
+    // Initial check after stall timeout period
+    timer = setTimeout(checkStall, stallTimeoutMs);
+    markTimerAsNonBlocking(timer);
+  });
+
+  return {
+    cleanup: () => {
+      if (timer !== null) clearTimeout(timer);
+    },
+    promise,
+  };
+}
+
+/**
+ * Create a timeout promise that resolves after the specified duration
+ *
+ * @param timeoutMs - Duration in milliseconds
+ * @param outcome - The value to resolve to
+ * @returns Promise that resolves to the outcome after timeout
+ */
+async function createTimeoutPromise<T>(
+  timeoutMs: number,
+  outcome: T,
+): Promise<T> {
+  // eslint-disable-next-line promise/avoid-new -- setTimeout requires manual promise wrapping
+  return new Promise<T>((resolve) => {
+    const timer = setTimeout(() => {
+      resolve(outcome);
+    }, timeoutMs);
+    markTimerAsNonBlocking(timer);
+  });
 }
 
 function exitCodeToSignal(
@@ -230,12 +298,8 @@ async function invokeClaudeHaiku(
       : await proc.exited.then(() => "exited" as const);
 
   if (outcome === "timeout") {
-    try {
-      proc.kill("SIGKILL");
-    } catch {
-      /* ignore */
-    }
-    await proc.exited;
+    // Use graceful termination (SIGTERM → wait → SIGKILL)
+    await killProcessGracefully(proc);
     if (isDebug) {
       console.log(`Haiku timed out after ${timeoutMs}ms`);
     }
@@ -376,16 +440,29 @@ function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
  * This variant enables non-blocking waits (for heartbeats/timeouts) and keeps
  * stderr separate from stdout for JSON parsing.
  *
- * @param options - HeadlessAsyncOptions with prompt and optional timeout
- * @returns HeadlessResult with session info, or null if interrupted/failed
+ * Features:
+ * - Activity monitoring: Tracks stderr output to detect stuck processes
+ * - Stall detection: Triggers timeout when no stderr output for stallTimeoutMs
+ * - Hard timeout: Safety net for total elapsed time
+ * - Graceful termination: SIGTERM → grace period → SIGKILL
+ *
+ * @param options - HeadlessAsyncOptions with prompt and timeout options
+ * @returns HeadlessResult with session info, or null if interrupted/failed/timed out
  */
+// eslint-disable-next-line complexity -- Timeout/stall detection logic is intentionally comprehensive
 async function invokeClaudeHeadlessAsync(
   options: HeadlessAsyncOptions,
 ): Promise<HeadlessResult | null> {
-  const { prompt, timeout } = options;
-  const timeoutMs = timeout ?? 0;
+  const {
+    gracePeriodMs = DEFAULT_GRACE_PERIOD_MS,
+    onStderrActivity,
+    prompt,
+    stallTimeoutMs = 0,
+    timeout: hardTimeoutMs = 0,
+  } = options;
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 
+  // Pipe stderr to track activity while forwarding to console
   const proc = Bun.spawn(
     [
       "claude",
@@ -395,42 +472,80 @@ async function invokeClaudeHeadlessAsync(
       "--output-format",
       "json",
     ],
-    { stderr: "inherit", stdin: "ignore", stdout: "pipe" },
+    { stderr: "pipe", stdin: "ignore", stdout: "pipe" },
   );
 
   const stdoutPromise = new Response(proc.stdout).text();
 
-  type ExitOutcome = "exited" | "timeout";
-  const outcome: ExitOutcome =
-    timeoutMs > 0
-      ? await Promise.race([
-          proc.exited.then(() => "exited" as const),
-          // eslint-disable-next-line promise/avoid-new -- setTimeout requires manual promise wrapping
-          new Promise<ExitOutcome>((resolve) => {
-            const timer = setTimeout(() => {
-              resolve("timeout");
-            }, timeoutMs);
-            // Avoid keeping the process alive solely because of the timeout.
-            const maybeTimer = timer as unknown as { unref?: () => void };
-            if (typeof maybeTimer.unref === "function") {
-              maybeTimer.unref();
-            }
-          }),
-        ])
-      : await proc.exited.then(() => "exited" as const);
+  // Track last activity time for stall detection
+  let lastActivityAt = Date.now();
 
-  if (outcome === "timeout") {
-    try {
-      proc.kill("SIGKILL");
-    } catch {
-      /* ignore */
-    }
+  // Forward stderr to console while tracking activity
+  // This runs in the background and completes when the process exits
+  const stderrForwarder = readStderrWithActivityTracking(proc.stderr, () => {
+    lastActivityAt = Date.now();
+    onStderrActivity?.();
+  });
+
+  // Build timeout promises
+  type ExitOutcome = "exited" | "hard_timeout" | "stall_timeout";
+
+  // Create stall detection timer that resets on activity
+  const stallDetector =
+    stallTimeoutMs > 0
+      ? createStallDetector(() => lastActivityAt, stallTimeoutMs)
+      : null;
+
+  const hardTimeoutPromise =
+    hardTimeoutMs > 0
+      ? createTimeoutPromise<ExitOutcome>(hardTimeoutMs, "hard_timeout")
+      : null;
+
+  // Race: process exit vs stall timeout vs hard timeout
+  const exitPromise = (async (): Promise<ExitOutcome> => {
     await proc.exited;
+    return "exited";
+  })();
+  const racers: Array<Promise<ExitOutcome>> = [exitPromise];
+  if (stallDetector !== null) racers.push(stallDetector.promise);
+  if (hardTimeoutPromise !== null) racers.push(hardTimeoutPromise);
+
+  const outcome: ExitOutcome = await Promise.race(racers);
+
+  // Clean up timers
+  stallDetector?.cleanup();
+
+  // Handle timeouts
+  if (outcome === "stall_timeout") {
+    console.warn(
+      `\n⚠ Process stalled - no output for ${stallTimeoutMs / 60_000} minutes`,
+    );
+    await killProcessGracefully(proc, gracePeriodMs);
+    // Ensure stderr is fully drained
+    await stderrForwarder;
     if (isDebug) {
-      console.log(`Claude headless timed out after ${timeoutMs}ms`);
+      console.log(
+        `Claude headless stalled after ${stallTimeoutMs}ms without output`,
+      );
     }
     return null;
   }
+
+  if (outcome === "hard_timeout") {
+    console.warn(
+      `\n⚠ Hard timeout reached after ${hardTimeoutMs / 60_000} minutes`,
+    );
+    await killProcessGracefully(proc, gracePeriodMs);
+    // Ensure stderr is fully drained
+    await stderrForwarder;
+    if (isDebug) {
+      console.log(`Claude headless hard timed out after ${hardTimeoutMs}ms`);
+    }
+    return null;
+  }
+
+  // Wait for stderr forwarding to complete
+  await stderrForwarder;
 
   // Handle signal interruption (Ctrl+C)
   const terminationSignal = normalizeTerminationSignal(proc.signalCode);
@@ -482,6 +597,68 @@ async function invokeClaudeHeadlessAsync(
   }
 }
 
+/**
+ * Kill a process gracefully with two-phase termination
+ *
+ * Phase 1: Send SIGTERM (polite request to terminate)
+ * Phase 2: Wait for grace period, then SIGKILL if still running
+ *
+ * This follows UNIX best practices - give the process a chance to clean up
+ * its own children and resources before forcing termination.
+ *
+ * @param proc - The Bun subprocess to kill
+ * @param gracePeriodMs - Time to wait after SIGTERM before SIGKILL (default: 5000ms)
+ */
+async function killProcessGracefully(
+  proc: ReturnType<typeof Bun.spawn>,
+  gracePeriodMs = DEFAULT_GRACE_PERIOD_MS,
+): Promise<void> {
+  // Phase 1: SIGTERM (polite request)
+  try {
+    proc.kill("SIGTERM");
+  } catch {
+    // Process already dead - nothing to do
+    return;
+  }
+
+  // Phase 2: Wait for graceful exit
+  const didExit = await Promise.race([
+    proc.exited.then(() => true),
+    // eslint-disable-next-line promise/avoid-new -- setTimeout requires manual promise wrapping
+    new Promise<false>((resolve) => {
+      const timer = setTimeout(() => {
+        resolve(false);
+      }, gracePeriodMs);
+      // Avoid keeping the process alive solely because of the grace period timer
+      const maybeTimer = timer as unknown as { unref?: () => void };
+      if (typeof maybeTimer.unref === "function") {
+        maybeTimer.unref();
+      }
+    }),
+  ]);
+
+  // Phase 3: SIGKILL if still running
+  if (!didExit) {
+    try {
+      proc.kill("SIGKILL");
+    } catch {
+      // Already dead - that's fine
+    }
+    // Always await proc.exited to prevent zombie processes
+    await proc.exited;
+  }
+}
+
+/**
+ * Mark a timer so it doesn't keep the process alive
+ */
+function markTimerAsNonBlocking(timer: ReturnType<typeof setTimeout>): void {
+  const maybeTimer = timer as unknown as { unref?: () => void };
+  if (typeof maybeTimer.unref === "function") {
+    maybeTimer.unref();
+  }
+}
+
 function normalizeTerminationSignal(
   signal: null | string | undefined,
 ): null | TerminationSignal {
@@ -489,10 +666,37 @@ function normalizeTerminationSignal(
   return null;
 }
 
+/**
+ * Read stderr from a subprocess, forwarding to console while tracking activity
+ *
+ * @param stderr - The subprocess stderr readable stream
+ * @param onActivity - Callback invoked when stderr output is received
+ * @returns Promise that resolves when stderr stream ends
+ */
+async function readStderrWithActivityTracking(
+  stderr: ReadableStream<Uint8Array>,
+  onActivity: () => void,
+): Promise<void> {
+  const reader = stderr.getReader();
+  const decoder = new TextDecoder();
+  try {
+    for (;;) {
+      // eslint-disable-next-line no-await-in-loop -- Sequential stream reading is required
+      const { done: isDone, value } = await reader.read();
+      if (isDone) break;
+      onActivity();
+      process.stderr.write(decoder.decode(value, { stream: true }));
+    }
+  } catch {
+    // Ignore read errors (process may have been killed)
+  }
+}
+
 export {
   buildPrompt,
   type ClaudeResult,
   type HaikuOptions,
+  type HeadlessAsyncOptions,
   type HeadlessOptions,
   type HeadlessResult,
   invokeClaudeChat,

@@ -10,7 +10,12 @@
  * @see docs/planning/schemas/subtasks.schema.json
  */
 
-import { DEFAULT_RALPH, loadAaaConfig } from "@tools/lib/config";
+import {
+  DEFAULT_RALPH,
+  DEFAULT_TIMEOUTS,
+  loadAaaConfig,
+  type TimeoutsConfig,
+} from "@tools/lib/config";
 import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
@@ -329,6 +334,24 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
   }
 }
 
+/**
+ * Load timeout configuration from unified aaa.config.json
+ *
+ * Returns fully-resolved timeout config with defaults applied.
+ *
+ * @returns TimeoutsConfig with all values populated
+ */
+function loadTimeoutConfig(): Required<TimeoutsConfig> {
+  const aaaConfig = loadAaaConfig();
+  const timeouts = aaaConfig.ralph?.timeouts ?? {};
+
+  return {
+    graceSeconds: timeouts.graceSeconds ?? DEFAULT_TIMEOUTS.graceSeconds ?? 5,
+    hardMinutes: timeouts.hardMinutes ?? DEFAULT_TIMEOUTS.hardMinutes ?? 60,
+    stallMinutes: timeouts.stallMinutes ?? DEFAULT_TIMEOUTS.stallMinutes ?? 10,
+  };
+}
+
 // =============================================================================
 // Milestone Resolution
 // =============================================================================
@@ -581,6 +604,7 @@ export {
   listAvailableMilestones,
   loadRalphConfig,
   loadSubtasksFile,
+  loadTimeoutConfig,
   MILESTONES_RELATIVE_PATH,
   ORPHAN_MILESTONE_ROOT,
   resolveMilestonePath,

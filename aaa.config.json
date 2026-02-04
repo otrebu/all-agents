@@ -2,15 +2,7 @@
   "notify": {
     "defaultPriority": "high",
     "defaultTopic": "ralph-build",
-    "enabled": true,
-    "events": {
-      "claude:stop": { "enabled": false },
-      "claude:permissionPrompt": { "priority": "max", "tags": ["warning"] },
-      "ralph:milestoneComplete": { "priority": "high", "tags": ["tada"] },
-      "ralph:subtaskComplete": { "priority": "default" },
-      "ralph:validationFail": { "priority": "high", "tags": ["warning"] },
-      "ralph:maxIterationsExceeded": { "priority": "max", "tags": ["rotating_light"] }
-    },
+    "enabled": false,
     "quietHours": {
       "enabled": true,
       "endHour": 8,
@@ -40,6 +32,11 @@
     },
     "selfImprovement": {
       "mode": "suggest"
+    },
+    "timeouts": {
+      "stallMinutes": 10,
+      "hardMinutes": 60,
+      "graceSeconds": 5
     }
   }
 }
