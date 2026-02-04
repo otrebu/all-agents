@@ -18,16 +18,14 @@ function hasParallelApiKey(): boolean {
   );
 }
 
-describe("parallel-search E2E", () => {
+const SKIP_REASON = "Skipping: PARALLEL_API_KEY not set";
+
+describe.skipIf(!hasParallelApiKey())("parallel-search E2E", () => {
   const createdFiles: Array<string> = [];
 
   beforeAll(() => {
     if (!hasParallelApiKey()) {
-      throw new Error(
-        "Parallel Search API key required.\n\n" +
-          "Get your key at: https://platform.parallel.ai/\n" +
-          "Then run: export PARALLEL_API_KEY=your-key\n",
-      );
+      console.log(SKIP_REASON);
     }
   });
 

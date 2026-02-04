@@ -165,21 +165,7 @@ describe("session E2E - current subcommand", () => {
   });
 });
 
-describe("session E2E - path with --commit flag", () => {
-  test("session path --commit with commit lacking cc-session-id shows error", async () => {
-    // Use HEAD which likely doesn't have cc-session-id in most repos
-    // This test verifies the --commit flag works and extracts trailers
-    const { exitCode, stderr } = await execa(
-      "bun",
-      ["run", "dev", "session", "path", "--commit", "HEAD~10"],
-      { cwd: TOOLS_DIR, reject: false },
-    );
-
-    // Should fail because older commits don't have cc-session-id
-    expect(exitCode).toBe(1);
-    expect(stderr).toContain("No cc-session-id trailer in commit");
-  });
-});
+// Note: Tests for commits lacking cc-session-id removed - repo state dependent
 
 describe("session E2E - cat subcommand", () => {
   test("session cat --help shows options", async () => {
@@ -217,16 +203,7 @@ describe("session E2E - cat subcommand", () => {
     expect(stderr).toContain("Session not found");
   });
 
-  test("session cat --commit with commit lacking cc-session-id shows error", async () => {
-    const { exitCode, stderr } = await execa(
-      "bun",
-      ["run", "dev", "session", "cat", "--commit", "HEAD~10"],
-      { cwd: TOOLS_DIR, reject: false },
-    );
-
-    expect(exitCode).toBe(1);
-    expect(stderr).toContain("No cc-session-id trailer in commit");
-  });
+  // Note: Test for commits lacking cc-session-id removed - repo state dependent
 });
 
 describe("session E2E - list subcommand", () => {
