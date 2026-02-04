@@ -17,6 +17,19 @@ Gather context about the current state of the project and build queue.
 3. **@docs/planning/PROGRESS.md** - Review recent work and context from previous iterations
 4. **Subtasks file** - **Do not read the entire subtasks.json**. Use `jq` to inspect only pending subtasks, or to locate the assigned subtask by ID.
 
+**Subtasks file structure:**
+```json
+{
+  "subtasks": [
+    {"id": "SUB-001", "done": false, ...},
+    {"id": "SUB-002", "done": true, ...}
+  ]
+}
+```
+
+**CRITICAL:** Root is an OBJECT with a `subtasks` array, NOT a bare array.
+All jq queries must use `.subtasks[]` not `.[]`.
+
 **Recommended jq commands (avoid huge context):**
 ```bash
 # List pending subtasks (id + title)
@@ -24,6 +37,20 @@ jq -r '.subtasks[] | select(.done==false) | "\(.id)\t\(.title)"' <subtasks.json>
 
 # Show the assigned subtask by ID (replace SUB-123)
 jq -r '.subtasks[] | select(.id=="SUB-123")' <subtasks.json>
+```
+
+### Pre-flight Checks (Start of Every Iteration)
+
+Before proceeding past Phase 1:
+```bash
+# 1. Subtasks file is valid JSON
+jq empty path/to/subtasks.json || echo "FAIL: Invalid JSON"
+
+# 2. Verify structure (root is object with subtasks array)
+jq -e 'type == "object" and has("subtasks")' path/to/subtasks.json > /dev/null || echo "FAIL: Invalid structure"
+
+# 3. Assigned subtask exists and is pending
+jq -e --arg id "SUB-XXX" '.subtasks[] | select(.id==$id and .done==false)' path/to/subtasks.json > /dev/null || echo "FAIL: Subtask not found or already done"
 ```
 
 **Orient checklist:**
@@ -70,35 +97,30 @@ Execute the implementation based on your investigation.
 
 ### Phase 5: Validate
 
-Verify the implementation meets quality standards.
-
-**Run these validation commands:**
+Run only the tests you created or modified for this subtask:
 
 ```bash
-# Build the project
-bun run build
+# With bun
+bun test path/to/your-new-feature.test.ts
 
-# Run linting
-bun run lint
+# With pnpm (vitest)
+pnpm test path/to/your-new-feature.test.ts
 
-# Run type checking
-bun run typecheck
-
-# Run tests
-bun test
+# With pnpm (jest)
+pnpm test -- path/to/your-new-feature.test.ts
 ```
 
-**Validation requirements:**
-- Build must succeed without errors
-- Lint must pass (or only have pre-existing warnings)
-- Type checking must pass
-- Relevant tests must pass
+**Do NOT run full validation here.** The pre-commit hook handles:
+- Lint
+- Format check
+- Typecheck
+- Full test suite (catches regressions)
 
-If validation fails:
+If your tests fail:
 1. Analyze the error
-2. Fix the issue
-3. Re-run validation
-4. Repeat until all checks pass
+2. Fix the implementation
+3. Re-run your specific tests
+4. Proceed to commit when your tests pass
 
 ### Phase 5b: Verify Acceptance Criteria
 
@@ -373,6 +395,23 @@ Add an entry to PROGRESS.md documenting what was done:
 - Subtask ID as subsection header (### subtask-id)
 - Include: problem addressed, changes made, files affected
 
+#### 3. Commit tracking changes
+
+**IMPORTANT:** Since the code was already validated and committed in Phase 6,
+use `--no-verify` for tracking-only commits to skip redundant validation:
+
+```bash
+git add docs/planning/PROGRESS.md docs/planning/milestones/*/subtasks.json
+git commit --no-verify -m "chore(<subtask-id>): update tracking files
+
+Subtask: <subtask-id>"
+```
+
+**Note:** Using `--no-verify` because:
+- Code was already validated in Phase 5 and committed in Phase 6
+- Tracking files (PROGRESS.md, subtasks.json) don't need lint/test
+- Saves ~3 minutes of redundant validation
+
 ## Error Handling
 
 If any phase fails:
@@ -381,6 +420,49 @@ If any phase fails:
 2. **Test failures:** Analyze, fix, and rerun tests
 3. **Unclear requirements:** Note the ambiguity and make a reasonable choice, documenting it in PROGRESS.md
 4. **Blocked by dependency:** Skip to next available subtask or report the block
+
+### When parallel tool calls fail ("Sibling tool call errored")
+
+1. Identify the failing command from error output
+2. Run commands sequentially instead
+3. For jq errors, verify structure first:
+   ```bash
+   jq 'type' file.json    # Should be "object"
+   jq 'keys' file.json    # Should show ["subtasks"]
+   ```
+
+### When jq returns type errors
+
+Error: `Cannot index string with string "done"`
+
+This means you're querying with wrong structure assumptions. Fix:
+```bash
+# Verify structure before querying
+jq '.subtasks[0] | type' subtasks.json  # Should be "object"
+
+# Then query correctly
+jq '.subtasks[] | select(.done==false)' subtasks.json
+```
+
+## Common Mistakes to Avoid
+
+### Wrong jq syntax (DO NOT USE)
+```bash
+# WRONG - assumes root is array
+jq '.[] | select(.done == false)' subtasks.json
+
+# CORRECT - file has object with subtasks array
+jq '.subtasks[] | select(.done == false)' subtasks.json
+```
+
+### Wrong subtask update pattern
+```bash
+# WRONG - updates array element by index (fragile)
+jq '.[0].done = true' subtasks.json
+
+# CORRECT - updates by ID (robust)
+jq '(.subtasks[] | select(.id=="SUB-001")).done = true' subtasks.json
+```
 
 ## Session Completion
 
