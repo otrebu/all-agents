@@ -286,7 +286,7 @@ function getCommitRangeFiles(
 
   const proc = Bun.spawnSync(
     ["git", "diff", "--name-only", `${before}..${after}`],
-    { cwd: repoRoot },
+    { cwd: repoRoot, timeout: 30_000 },
   );
 
   if (proc.exitCode !== 0) {
@@ -323,7 +323,7 @@ function getCommitRangeLines(
 
   const proc = Bun.spawnSync(
     ["git", "diff", "--numstat", `${before}..${after}`],
-    { cwd: repoRoot },
+    { cwd: repoRoot, timeout: 30_000 },
   );
 
   if (proc.exitCode !== 0) {
@@ -394,7 +394,7 @@ function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
   try {
     const stagedProc = Bun.spawnSync(
       ["git", "diff", "--cached", "--name-only"],
-      { cwd: repoRoot },
+      { cwd: repoRoot, timeout: 30_000 },
     );
     const staged = stagedProc.stdout.toString("utf8").trim();
 
@@ -408,6 +408,7 @@ function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
 
     const unstagedProc = Bun.spawnSync(["git", "diff", "--name-only"], {
       cwd: repoRoot,
+      timeout: 30_000,
     });
     const unstaged = unstagedProc.stdout.toString("utf8").trim();
 
@@ -453,6 +454,7 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     // Get staged changes
     const stagedProc = Bun.spawnSync(["git", "diff", "--cached", "--numstat"], {
       cwd: repoRoot,
+      timeout: 30_000,
     });
     const staged = stagedProc.stdout.toString("utf8");
 
@@ -463,6 +465,7 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     // Get unstaged changes
     const unstagedProc = Bun.spawnSync(["git", "diff", "--numstat"], {
       cwd: repoRoot,
+      timeout: 30_000,
     });
     const unstaged = unstagedProc.stdout.toString("utf8");
 
@@ -475,6 +478,7 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     if (linesAdded === 0 && linesRemoved === 0) {
       const headProc = Bun.spawnSync(["git", "show", "--numstat", "HEAD"], {
         cwd: repoRoot,
+        timeout: 30_000,
       });
       const headCommit = headProc.stdout.toString("utf8");
 

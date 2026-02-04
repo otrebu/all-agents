@@ -147,11 +147,14 @@ function discoverRecentSession(
 
     // Find session files newer than the given timestamp, sorted by modification time (most recent first)
     // Using ls -t to sort by modification time, then head -1 to get most recent
-    const proc = Bun.spawnSync([
-      "bash",
-      "-c",
-      `find "${projectsDirectory}" -name "*.jsonl" -type f -newermt "${afterDate}" -exec ls -t {} + 2>/dev/null | head -1`,
-    ]);
+    const proc = Bun.spawnSync(
+      [
+        "bash",
+        "-c",
+        `find "${projectsDirectory}" -name "*.jsonl" -type f -newermt "${afterDate}" -exec ls -t {} + 2>/dev/null | head -1`,
+      ],
+      { timeout: 10_000 },
+    );
 
     if (proc.exitCode !== 0) {
       return null;
@@ -320,11 +323,14 @@ function getSessionJsonlPath(
   const projectsDirectory = `${claudeDirectory}/projects`;
   if (existsSync(projectsDirectory)) {
     try {
-      const proc = Bun.spawnSync([
-        "bash",
-        "-c",
-        `find "${projectsDirectory}" -maxdepth 3 -name "${sessionId}.jsonl" -type f 2>/dev/null | head -1`,
-      ]);
+      const proc = Bun.spawnSync(
+        [
+          "bash",
+          "-c",
+          `find "${projectsDirectory}" -maxdepth 3 -name "${sessionId}.jsonl" -type f 2>/dev/null | head -1`,
+        ],
+        { timeout: 5000 },
+      );
       if (proc.exitCode === 0) {
         const found = proc.stdout.toString("utf8").trim();
         if (found !== "") {
@@ -332,7 +338,7 @@ function getSessionJsonlPath(
         }
       }
     } catch {
-      // find failed, continue to final not found
+      // find failed or timed out, continue to final not found
     }
     triedPaths.push(`${projectsDirectory}/**/${sessionId}.jsonl`);
   }

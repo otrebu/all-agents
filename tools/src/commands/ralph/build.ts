@@ -681,8 +681,15 @@ async function promptContinue(): Promise<boolean> {
  *
  * SIGINT (Ctrl+C): exit code 130
  * SIGTERM: exit code 143
+ *
+ * Removes existing handlers first to prevent accumulation
+ * when runBuild() is called multiple times (e.g., cascade mode).
  */
 function registerSignalHandlers(): void {
+  // Remove existing handlers to prevent accumulation
+  process.removeAllListeners("SIGINT");
+  process.removeAllListeners("SIGTERM");
+
   process.on("SIGINT", () => {
     generateSummaryAndExit(130);
   });
@@ -716,6 +723,10 @@ async function runBuild(
     subtasksPath,
     validateFirst: shouldValidateFirst,
   } = options;
+
+  // Reset module-level state for cascade mode / multiple runBuild() calls
+  hasSummaryBeenGenerated = false;
+  summaryContext = null;
 
   // Register signal handlers for graceful summary on interrupt
   registerSignalHandlers();
