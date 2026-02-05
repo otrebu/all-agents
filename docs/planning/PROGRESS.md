@@ -2,9 +2,9 @@
 
 ## Current Focus
 
-**Story:** 002-claude-refactor
-**Task:** TASK-039 claude-refactor
-**Status:** SUB-279 complete
+**Story:** 003-opencode-support
+**Task:** TASK-047 opencode-parser-tests
+**Status:** SUB-294 complete
 
 ## Session Notes
 
@@ -13,6 +13,19 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-294
+- **Problem:** No unit tests or fixtures existed for OpenCode JSONL parsing. The normalizeOpencodeResult() function needed to be created along with static fixtures documenting the expected JSONL format.
+- **Changes:** Created normalizeOpencodeResult() in opencode.ts to parse OpenCode JSONL stream format (step_start, text, step_finish events) into AgentResult. Created 5 JSONL fixture files (success, partial/hang, error, empty, multiline) in __fixtures__/. Added 27 comprehensive unit tests covering text concatenation, field extraction (costUsd, sessionId, tokenUsage), error handling (malformed JSON, missing step_finish, missing reason:stop, empty stream), and edge cases (null fields, missing parts, extra whitespace). Updated eslint.config.js to recognize bun:test imports in co-located test files.
+- **Files:**
+  - `tools/src/commands/ralph/providers/opencode.ts` - Created: normalizeOpencodeResult function and OpencodeEvent type
+  - `tools/src/commands/ralph/providers/opencode.test.ts` - Created: 27 unit tests
+  - `tools/src/commands/ralph/providers/__fixtures__/opencode-success.jsonl` - Normal success fixture
+  - `tools/src/commands/ralph/providers/__fixtures__/opencode-partial.jsonl` - Issue #8203 hang simulation
+  - `tools/src/commands/ralph/providers/__fixtures__/opencode-error.jsonl` - Error response fixture
+  - `tools/src/commands/ralph/providers/__fixtures__/opencode-empty.jsonl` - Empty stream fixture
+  - `tools/src/commands/ralph/providers/__fixtures__/opencode-multiline.jsonl` - Multiple text events fixture
+  - `tools/eslint.config.js` - Added src/**/*.test.ts to bun:test recognition
 
 #### SUB-279
 - **Problem:** Claude provider lacked mock-based integration tests for subprocess lifecycle (spawning, stall detection, termination escalation, exit codes, JSON parsing) — all tests required the real Claude CLI installed.

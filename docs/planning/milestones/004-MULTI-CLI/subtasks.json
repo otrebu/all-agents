@@ -355,7 +355,7 @@
       "storyRef": "003-opencode-support",
       "title": "Create JSONL fixtures and normalizeOpencodeResult unit tests",
       "description": "Create 5 static JSONL fixture files in tools/src/commands/ralph/providers/__fixtures__/ (opencode-success.jsonl, opencode-partial.jsonl, opencode-error.jsonl, opencode-empty.jsonl, opencode-multiline.jsonl) and a comprehensive test file at tools/src/commands/ralph/providers/opencode.test.ts. Tests must cover: normalizeOpencodeResult() with each fixture, correct extraction of result text from concatenated text events, correct extraction of costUsd/sessionId/tokenUsage from step_finish, error handling for malformed JSON lines, edge cases for missing step_finish event (partial stream simulating Issue #8203), missing reason:stop, empty streams, null/undefined fields, and extra whitespace. All tests must be deterministic (no Date.now(), no async timing, fixtures imported at build time) and fast (< 100ms each). Fixtures should serve as documentation of the expected JSONL format for future maintainers.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "5 fixture files exist in tools/src/commands/ralph/providers/__fixtures__/: opencode-success.jsonl, opencode-partial.jsonl, opencode-error.jsonl, opencode-empty.jsonl, opencode-multiline.jsonl",
         "Each fixture file contains valid JSONL format (one JSON object per line)",
@@ -373,7 +373,10 @@
         "tools/src/commands/ralph/providers/types.ts",
         "tools/src/commands/ralph/providers/opencode.ts",
         "context/foundations/test/test-unit-vitest.md"
-      ]
+      ],
+      "completedAt": "2026-02-05T19:39:22Z",
+      "commitHash": "858ae2e5e1bfc45ac150600323258981b79c07a4",
+      "sessionId": "8fcc74f5-dfa8-45b7-b229-5d08e691f956"
     },
     {
       "id": "SUB-289",
