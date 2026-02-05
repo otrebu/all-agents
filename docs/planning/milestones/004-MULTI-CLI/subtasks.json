@@ -413,7 +413,7 @@
       "storyRef": "004-model-registry",
       "title": "Create static model registry with ModelInfo, baseline models, and registry functions",
       "description": "Create the complete static model registry for TASK-049 as two new files plus a unit test file.\n\n1. Create tools/src/commands/ralph/providers/models-static.ts:\n   - Define and export ModelInfo interface with fields: id (string), provider (ProviderType), cliFormat (string), costHint (\"cheap\" | \"standard\" | \"expensive\"), discoveredAt? (string), description? (string)\n   - Export STATIC_MODELS array with 7 baseline models:\n     - Claude: claude-sonnet-4 (standard), claude-haiku (cheap), claude-opus-4 (expensive)\n     - OpenCode: gpt-4o (standard), gpt-4o-mini (cheap), claude-sonnet-opencode (standard), claude-haiku-opencode (cheap)\n   - Each model includes id, provider, cliFormat (claude uses native format, opencode uses provider/model format), and costHint\n\n2. Create tools/src/commands/ralph/providers/models.ts:\n   - Import STATIC_MODELS from models-static\n   - Create empty DISCOVERED_MODELS placeholder array (dynamic discovery is TASK-050)\n   - Implement getAllModels() - merges static + dynamic, static takes precedence on ID conflicts\n   - Implement getModelsForProvider(provider) - filters by provider\n   - Implement getModelById(id) - lookup by ID, returns ModelInfo | undefined\n   - Implement getModelCompletions() - returns sorted unique model ID list for tab completion\n   - Implement getModelCompletionsForProvider(provider) - provider-specific sorted completions\n   - Implement validateModelForProvider(modelId, provider) - returns cliFormat on success, throws helpful error with suggestions on failure (includes \"Did you mean:\" and \"Run aaa ralph refresh-models\" hint)\n   - Export all functions and re-export ModelInfo\n\n3. Update tools/src/commands/ralph/providers/index.ts barrel export to include models.ts exports\n\n4. Create tools/tests/providers/models.test.ts with unit tests covering:\n   - Static model count (7 models)\n   - ModelInfo field presence (id, provider, cliFormat, costHint)\n   - getModelsForProvider returns only matching provider models\n   - getModelById returns correct model or undefined for unknown\n   - getModelCompletions returns sorted string array\n   - getModelCompletionsForProvider filters correctly\n   - validateModelForProvider returns cliFormat for valid model\n   - validateModelForProvider throws with suggestions for unknown model\n   - validateModelForProvider throws for wrong-provider model\n   - getAllModels static precedence over dynamic (mock test)\n\n5. Run bun run typecheck to verify zero type errors",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/models-static.ts exists and exports ModelInfo interface with id, provider, cliFormat, costHint fields and optional discoveredAt, description fields",
         "tools/src/commands/ralph/providers/models-static.ts exports STATIC_MODELS array with exactly 7 baseline models (3 Claude + 4 OpenCode)",
@@ -434,7 +434,10 @@
         "tools/src/commands/ralph/types.ts",
         "tools/CLAUDE.md",
         "context/stacks/cli/cli-bun.md"
-      ]
+      ],
+      "completedAt": "2026-02-05T22:43:01Z",
+      "commitHash": "f4682afb4404099e4ab97a43aa11438421c3ee8f",
+      "sessionId": "adb1f943-cd8a-44d8-84bd-db79e59a0493"
     },
     {
       "id": "SUB-274",

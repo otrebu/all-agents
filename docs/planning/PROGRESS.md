@@ -2,9 +2,9 @@
 
 ## Current Focus
 
-**Story:** 003-opencode-support
-**Task:** TASK-046 opencode-registry
-**Status:** SUB-289 complete
+**Story:** 004-model-registry
+**Task:** TASK-049 static-registry
+**Status:** SUB-304 complete
 
 ## Session Notes
 
@@ -13,6 +13,15 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-304
+- **Problem:** No static model registry existed for multi-CLI model management. Users had no way to look up model IDs, validate them for a provider, or get tab completions.
+- **Changes:** Created models-static.ts with ModelInfo interface and 7 baseline models (3 Claude + 4 OpenCode). Created models.ts with registry functions: getAllModels (static precedence over dynamic), getModelsForProvider, getModelById, getModelCompletions, getModelCompletionsForProvider, validateModelForProvider (with "Did you mean:" suggestions and "refresh-models" hint). Updated providers/index.ts barrel export. Added 26 unit tests covering all functions.
+- **Files:**
+  - `tools/src/commands/ralph/providers/models-static.ts` - Created: ModelInfo interface and STATIC_MODELS array
+  - `tools/src/commands/ralph/providers/models.ts` - Created: registry functions and DISCOVERED_MODELS placeholder
+  - `tools/src/commands/ralph/providers/index.ts` - Updated: added models.ts exports to barrel
+  - `tools/tests/providers/models.test.ts` - Created: 26 unit tests
 
 #### SUB-289
 - **Problem:** OpenCode provider was registered in the REGISTRY with `available: false` and a stub invoker. The `invokeOpencode` function didn't exist, so `--provider opencode` couldn't route to a real implementation.
