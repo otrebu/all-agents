@@ -167,7 +167,7 @@
       "storyRef": "001-provider-foundation",
       "title": "Create unit tests for provider registry selection, validation, and errors",
       "description": "Create tools/tests/providers/registry.test.ts with comprehensive unit tests for the provider registry module. Test groups: (1) selectProvider priority - returns CLI flag when provided, falls back to env var, then config, then auto-detect (claude default). (2) validateProvider - accepts all 6 valid providers, throws ProviderError for invalid with message listing valid options. (3) autoDetectProvider - returns first available binary in priority order, defaults to claude when none available (mock isBinaryAvailable). (4) isBinaryAvailable - returns true when binary in PATH, false when not found (mock Bun.$ or which). (5) getInstallInstructions - returns correct install command for each provider. (6) invokeWithProvider - throws ProviderError with install help when binary missing, throws when provider not implemented, calls invoke when available. (7) ProviderError - has correct name, provider, message, and cause fields. Use bun:test with describe/test pattern, mock external calls (which, Bun.$).",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/tests/providers/registry.test.ts exists with test groups for all registry functions",
         "Test: selectProvider returns CLI flag when provided (highest priority)",
@@ -189,7 +189,10 @@
       ],
       "blockedBy": [
         "SUB-244"
-      ]
+      ],
+      "completedAt": "2026-02-05T17:05:17Z",
+      "commitHash": "9da7f4a17afa917b0fa138b067a9d60edf768019",
+      "sessionId": "2cb6b559-d364-4e89-8e97-164940ab2b0d"
     },
     {
       "id": "SUB-269",

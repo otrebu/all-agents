@@ -4,7 +4,7 @@
 
 **Story:** 001-provider-foundation
 **Task:** TASK-037 provider registry
-**Status:** SUB-244 complete
+**Status:** SUB-245 complete
 
 ## Session Notes
 
@@ -13,6 +13,12 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-245
+- **Problem:** Provider registry tests lacked mocked tests for autoDetectProvider priority order, isBinaryAvailable binary detection, and invokeWithProvider error messages with install instructions.
+- **Changes:** Enhanced registry.test.ts from 53 to 71 tests. Added mocked Bun.spawn tests for: isBinaryAvailable (4 tests: exit code 0/1, spawn throw, arg verification), autoDetectProvider (11 tests: each provider alone, priority ordering between pairs, no-binaries default), invokeWithProvider (5 tests: binary missing with install instructions, not-yet-implemented when binary exists, multiple provider errors).
+- **Files:**
+  - `tools/tests/providers/registry.test.ts` - Enhanced with mocked Bun.spawn test groups
 
 #### SUB-244
 - **Problem:** The provider registry (registry.ts) created in SUB-259 was missing several functions specified in TASK-037: REGISTRY constant, isBinaryAvailable(), getInstallInstructions(), ProviderSelectionContext, selectProviderFromEnv(), autoDetectProvider(), and ProviderError optional cause.
