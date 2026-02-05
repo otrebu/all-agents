@@ -1,0 +1,3 @@
+{"type":"step_start","timestamp":1704067200000,"sessionID":"ses_abc123"}
+{"type":"text","timestamp":1704067200100,"part":{"text":"Task completed successfully."}}
+{"type":"step_finish","timestamp":1704067201000,"part":{"reason":"stop","cost":0.0025,"tokens":{"input":1500,"output":250,"reasoning":100,"cacheRead":0,"cacheWrite":0}}}

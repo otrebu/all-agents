@@ -1,0 +1,3 @@
+{"type":"step_start","timestamp":1704067200000,"sessionID":"ses_err789"}
+{"type":"text","timestamp":1704067200100,"part":{"text":"Attempting task..."}}
+{"type":"step_finish","timestamp":1704067201000,"part":{"reason":"error","cost":0.001,"tokens":{"input":500,"output":50}}}
