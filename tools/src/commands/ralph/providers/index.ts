@@ -4,6 +4,16 @@
  * Re-exports all public types and constants from the providers module.
  */
 export {
+  DISCOVERED_MODELS,
+  getAllModels,
+  getModelById,
+  getModelCompletions,
+  getModelCompletionsForProvider,
+  getModelsForProvider,
+  type ModelInfo,
+  validateModelForProvider,
+} from "./models";
+export {
   autoDetectProvider,
   getInstallInstructions,
   type HeadlessProviderOptions,
