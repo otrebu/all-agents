@@ -231,7 +231,7 @@
       "storyRef": "002-claude-refactor",
       "title": "Integrate calibrate.ts with provider registry (async + invokeWithProvider)",
       "description": "Update tools/src/commands/ralph/calibrate.ts to use the provider registry instead of direct invokeClaudeHeadlessAsync calls. NOTE: The sync-to-async conversion is already complete — runCalibrate, runImproveCheck, runIntentionCheck, and runTechnicalCheck are already async (return Promise<boolean>), and callers in index.ts already use await. This was done in the timeout protection migration. Remaining work: Remove the import of invokeClaudeHeadlessAsync from ./claude and add imports for invokeWithProvider, selectProvider, and ProviderType from ./providers/registry. Add provider selection via selectProvider() at the start of runCalibrate(). Replace the three invokeClaudeHeadlessAsync calls (in runImproveCheck, runIntentionCheck, runTechnicalCheck) with await invokeWithProvider(provider, { prompt, mode: \"headless-async\" }). Wrap each call in try-catch following the existing error pattern (log error, return false). Verify TypeScript compiles and existing tests pass.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "calibrate.ts imports invokeWithProvider and selectProvider from ./providers/registry instead of invokeClaudeHeadlessAsync from ./claude",
         "calibrate.ts no longer imports from ./claude",
@@ -251,7 +251,10 @@
         "tools/src/commands/ralph/providers/registry.ts",
         "tools/src/commands/ralph/providers/types.ts"
       ],
-      "blockedBy": []
+      "blockedBy": [],
+      "completedAt": "2026-02-05T17:35:49Z",
+      "commitHash": "652bd9782fee8bcd7a3422816fd97e3f9df47b5e",
+      "sessionId": "5c9f9417-aea4-42ba-8789-3dfb37092e2a"
     },
     {
       "id": "SUB-254",

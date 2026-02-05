@@ -4,7 +4,7 @@
 
 **Story:** 002-claude-refactor
 **Task:** TASK-042 cleanup-verify
-**Status:** SUB-269 complete
+**Status:** SUB-264 complete
 
 ## Session Notes
 
@@ -13,6 +13,12 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-264
+- **Problem:** calibrate.ts used direct `invokeClaudeHeadlessAsync` calls instead of the provider registry, tightly coupling calibration checks to the Claude provider.
+- **Changes:** Replaced the import of `invokeClaudeHeadlessAsync` from `./providers/claude` with `invokeWithProvider` and `selectProviderFromEnv` from `./providers/registry`. Added provider selection via `selectProviderFromEnv()` at the start of `runCalibrate()`, threading the selected provider through to all three check functions. Each `invokeWithProvider` call wrapped in try-catch for error handling. All 673 tests pass, typecheck and lint clean.
+- **Files:**
+  - `tools/src/commands/ralph/calibrate.ts` - Replaced claude imports with registry, added provider selection, wrapped calls in try-catch
 
 #### SUB-269
 - **Problem:** Legacy `tools/src/commands/ralph/claude.ts` still existed after all Claude invocation logic was refactored into the provider abstraction layer. Five files still imported from the legacy location.
