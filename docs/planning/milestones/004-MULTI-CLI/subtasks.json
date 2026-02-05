@@ -90,11 +90,11 @@
       "taskRef": "040-registry-integration",
       "storyRef": "002-claude-refactor",
       "title": "Integrate provider registry into build.ts, review/index.ts, and CLI flags",
-      "description": "Replace direct Claude invocation imports in build.ts and review/index.ts with provider registry calls (selectProvider, invokeWithProvider). Update build.ts: replace invokeClaudeHeadlessAsync/invokeClaudeChat imports with registry imports, call selectProvider() at start of runBuild(), replace invocation calls with invokeWithProvider(), update result handling to AgentResult interface (result.result, result.costUsd, result.durationMs, result.sessionId). Update review/index.ts: replace invokeClaudeChat/invokeClaudeHeadless imports with registry imports, call selectProvider() in runHeadlessReview() and runSupervisedReview(), replace invocations with invokeWithProvider(), update result handling. Add --provider <name> CLI flag to ralph build command in ralph/index.ts and review command in review/index.ts. Add optional provider?: ProviderType field to BuildOptions in types.ts. Default provider is \"claude\" for backward compatibility when --provider is not specified. Run typecheck and tests to verify no regressions.",
+      "description": "Replace direct Claude invocation imports in build.ts and review/index.ts with provider registry calls (selectProvider, invokeWithProvider). Update build.ts: replace invokeClaudeHeadlessAsync/invokeClaudeChat imports with registry imports, call selectProvider() at start of runBuild(), replace invocation calls with invokeWithProvider(), update result handling to AgentResult interface (result.result, result.costUsd, result.durationMs, result.sessionId). Update review/index.ts: replace invokeClaudeChat/invokeClaudeHeadlessAsync imports with registry imports (NOTE: review/index.ts now imports invokeClaudeHeadlessAsync instead of the removed sync invokeClaudeHeadless, updated in timeout protection migration), call selectProvider() in runHeadlessReview() and runSupervisedReview(), replace invocations with invokeWithProvider(), update result handling. Add --provider <name> CLI flag to ralph build command in ralph/index.ts and review command in review/index.ts. Add optional provider?: ProviderType field to BuildOptions in types.ts. Default provider is \"claude\" for backward compatibility when --provider is not specified. Run typecheck and tests to verify no regressions.",
       "done": false,
       "acceptanceCriteria": [
         "build.ts imports selectProvider and invokeWithProvider from ./providers/registry instead of invokeClaudeHeadlessAsync/invokeClaudeChat from ./claude",
-        "review/index.ts imports selectProvider and invokeWithProvider from ../ralph/providers/registry instead of invokeClaudeChat/invokeClaudeHeadless from ../ralph/claude",
+        "review/index.ts imports selectProvider and invokeWithProvider from ../ralph/providers/registry instead of invokeClaudeChat/invokeClaudeHeadlessAsync from ../ralph/claude",
         "runBuild() calls selectProvider(options.provider) and logs selected provider with chalk.dim",
         "processHeadlessIteration() calls invokeWithProvider() instead of invokeClaudeHeadlessAsync()",
         "processSupervisedIteration() calls invokeWithProvider() instead of invokeClaudeChat()",
@@ -184,7 +184,7 @@
       "taskRef": "042-cleanup-verify",
       "storyRef": "002-claude-refactor",
       "title": "Delete legacy claude.ts, verify imports migrated, run full verification suite",
-      "description": "Final cleanup for Story 002: (1) Search entire codebase for remaining imports of the legacy tools/src/commands/ralph/claude.ts (patterns: from \"./claude\", from \"../claude\", import.*claude\\.ts). Update any stale references to use providers/registry or providers/claude. (2) Delete tools/src/commands/ralph/claude.ts. (3) Run typecheck, lint, and full test suite to confirm no breakage. (4) Manual acceptance criteria verification: aaa ralph build (default provider), aaa ralph build --provider claude (explicit), JSON parsing returns correct cost/duration/sessionId, stall detection works, Ctrl+C exits cleanly, permission bypass flag works, all 4 invocation modes work (supervised, headless-sync, headless-async, haiku). (5) Commit with conventional commit message following monorepo subdirectory patterns.",
+      "description": "Final cleanup for Story 002: (1) Search entire codebase for remaining imports of the legacy tools/src/commands/ralph/claude.ts (patterns: from \"./claude\", from \"../claude\", import.*claude\\.ts). Update any stale references to use providers/registry or providers/claude. (2) Delete tools/src/commands/ralph/claude.ts. (3) Run typecheck, lint, and full test suite to confirm no breakage. (4) Manual acceptance criteria verification: aaa ralph build (default provider), aaa ralph build --provider claude (explicit), JSON parsing returns correct cost/duration/sessionId, stall detection works, Ctrl+C exits cleanly, permission bypass flag works, all 3 invocation modes work (supervised, headless-async, haiku) — headless-sync was removed in timeout protection migration. (5) Commit with conventional commit message following monorepo subdirectory patterns.",
       "done": false,
       "acceptanceCriteria": [
         "Legacy file tools/src/commands/ralph/claude.ts is deleted (! test -f tools/src/commands/ralph/claude.ts)",
@@ -194,7 +194,7 @@
         "bun test passes in tools/ directory with all existing tests green",
         "aaa ralph build executes using claude as default provider without config changes",
         "aaa ralph build --provider claude explicit selection works",
-        "All 4 invocation modes functional: supervised, headless-sync, headless-async, haiku"
+        "All 3 invocation modes functional: supervised, headless-async, haiku (headless-sync removed in timeout protection migration)"
       ],
       "filesToRead": [
         "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-042-cleanup-verify.md",
@@ -212,18 +212,18 @@
       "taskRef": "041-calibrate-integration",
       "storyRef": "002-claude-refactor",
       "title": "Integrate calibrate.ts with provider registry (async + invokeWithProvider)",
-      "description": "Update tools/src/commands/ralph/calibrate.ts to use the provider registry instead of direct invokeClaudeHeadless calls. Remove the import of invokeClaudeHeadless from ./claude and add imports for invokeWithProvider, selectProvider, and ProviderType from ./providers/registry. Add provider selection via selectProvider() at the start of runCalibrate(). Convert runCalibrate, runImproveCheck, runIntentionCheck, and runTechnicalCheck from sync to async (return Promise<boolean>). Replace the three invokeClaudeHeadless calls (in runImproveCheck, runIntentionCheck, runTechnicalCheck) with await invokeWithProvider(provider, { prompt, mode: \"headless-sync\" }). Wrap each call in try-catch following the existing error pattern (log error, return false). Update the caller in tools/src/commands/ralph/index.ts: make runCalibrateSubcommand async, add await to the runCalibrate call, and handle the async action callbacks. Verify TypeScript compiles and existing tests pass or are updated for async signatures.",
+      "description": "Update tools/src/commands/ralph/calibrate.ts to use the provider registry instead of direct invokeClaudeHeadlessAsync calls. NOTE: The sync-to-async conversion is already complete — runCalibrate, runImproveCheck, runIntentionCheck, and runTechnicalCheck are already async (return Promise<boolean>), and callers in index.ts already use await. This was done in the timeout protection migration. Remaining work: Remove the import of invokeClaudeHeadlessAsync from ./claude and add imports for invokeWithProvider, selectProvider, and ProviderType from ./providers/registry. Add provider selection via selectProvider() at the start of runCalibrate(). Replace the three invokeClaudeHeadlessAsync calls (in runImproveCheck, runIntentionCheck, runTechnicalCheck) with await invokeWithProvider(provider, { prompt, mode: \"headless-async\" }). Wrap each call in try-catch following the existing error pattern (log error, return false). Verify TypeScript compiles and existing tests pass.",
       "done": false,
       "acceptanceCriteria": [
-        "calibrate.ts imports invokeWithProvider and selectProvider from ./providers/registry instead of invokeClaudeHeadless from ./claude",
+        "calibrate.ts imports invokeWithProvider and selectProvider from ./providers/registry instead of invokeClaudeHeadlessAsync from ./claude",
         "calibrate.ts no longer imports from ./claude",
         "runCalibrate is async and calls selectProvider() at start, storing selected provider for use in checks",
-        "runImproveCheck, runIntentionCheck, and runTechnicalCheck are async (return Promise<boolean>)",
-        "All three invokeClaudeHeadless calls are replaced with await invokeWithProvider(provider, { prompt, mode: \"headless-sync\" })",
+        "runImproveCheck, runIntentionCheck, and runTechnicalCheck remain async (return Promise<boolean>) — already converted in timeout protection migration",
+        "All three invokeClaudeHeadlessAsync calls are replaced with await invokeWithProvider(provider, { prompt, mode: \"headless-async\" })",
         "Each invokeWithProvider call is wrapped in try-catch that logs error and returns false on failure",
-        "runCalibrateSubcommand in index.ts is async and awaits runCalibrate",
+        "runCalibrateSubcommand in index.ts remains async and awaits runCalibrate (already converted in timeout protection migration)",
         "bun run typecheck passes without errors",
-        "Existing calibration-related tests pass (updated for async if needed)"
+        "Existing calibration-related tests pass"
       ],
       "filesToRead": [
         "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-041-calibrate-integration.md",
@@ -240,7 +240,7 @@
       "taskRef": "039-claude-refactor",
       "storyRef": "002-claude-refactor",
       "title": "Move claude.ts to providers/claude.ts and refactor with shared utilities",
-      "description": "Move tools/src/commands/ralph/claude.ts to tools/src/commands/ralph/providers/claude.ts. Refactor to use provider types from ./types.ts (AgentResult, ClaudeConfig) and shared utilities from ./utils.ts (executeWithTimeout, killProcessGracefully, createStallDetector, createTimeoutPromise, readStderrWithActivityTracking, safeJsonParse). Remove local type definitions (ClaudeResult stays for UI-facing use, but HeadlessResult replaced by AgentResult). Implement normalizeClaudeResult() to parse Claude JSON array format and extract result/costUsd/durationMs/sessionId/tokenUsage. Refactor invokeClaudeHeadlessAsync() and invokeClaudeHaiku() to use shared utilities. Create async invokeClaude() wrapper for registry compatibility. Add unit tests for normalizeClaudeResult() with fixtures (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.json). Keep invokeClaudeChat and invokeClaudeHeadless synchronous for backward compat.",
+      "description": "Move tools/src/commands/ralph/claude.ts to tools/src/commands/ralph/providers/claude.ts. Refactor to use provider types from ./types.ts (AgentResult, ClaudeConfig) and shared utilities from ./utils.ts (executeWithTimeout, killProcessGracefully, createStallDetector, createTimeoutPromise, readStderrWithActivityTracking, safeJsonParse). Remove local type definitions (ClaudeResult stays for UI-facing use, but HeadlessResult replaced by AgentResult). Implement normalizeClaudeResult() to parse Claude JSON array format and extract result/costUsd/durationMs/sessionId/tokenUsage. Refactor invokeClaudeHeadlessAsync() and invokeClaudeHaiku() to use shared utilities. Create async invokeClaude() wrapper for registry compatibility. Add unit tests for normalizeClaudeResult() with fixtures (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.json). NOTE: The sync invokeClaudeHeadless function was removed in the timeout protection migration — all headless callers now use invokeClaudeHeadlessAsync. There are now 3 invocation functions: invokeClaudeChat (supervised), invokeClaudeHeadlessAsync (headless), invokeClaudeHaiku (lightweight).",
       "done": false,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/claude.ts exists with all invocation functions migrated",
@@ -266,7 +266,7 @@
       "taskRef": "039-claude-refactor",
       "storyRef": "002-claude-refactor",
       "title": "Update all dependent imports and delete original claude.ts",
-      "description": "Update all files that import from ./claude to import from ./providers/claude instead. There are 5 dependent files: (1) tools/src/commands/ralph/build.ts imports buildPrompt, invokeClaudeChat, invokeClaudeHeadlessAsync; (2) tools/src/commands/ralph/index.ts imports multiple claude functions; (3) tools/src/commands/ralph/calibrate.ts imports invokeClaudeHeadless; (4) tools/src/commands/ralph/post-iteration.ts imports invokeClaudeHaiku; (5) tools/src/commands/review/index.ts imports invokeClaudeChat, invokeClaudeHeadless from ../ralph/claude (becomes ../ralph/providers/claude). After updating all imports, delete the original tools/src/commands/ralph/claude.ts. Verify TypeScript compiles cleanly with bun run typecheck. Run existing tests to confirm no regressions.",
+      "description": "Update all files that import from ./claude to import from ./providers/claude instead. There are 5 dependent files: (1) tools/src/commands/ralph/build.ts imports buildPrompt, invokeClaudeChat, invokeClaudeHeadlessAsync; (2) tools/src/commands/ralph/index.ts imports multiple claude functions; (3) tools/src/commands/ralph/calibrate.ts imports invokeClaudeHeadlessAsync (updated in timeout protection migration); (4) tools/src/commands/ralph/post-iteration.ts imports invokeClaudeHaiku; (5) tools/src/commands/review/index.ts imports invokeClaudeChat, invokeClaudeHeadlessAsync from ../ralph/claude (becomes ../ralph/providers/claude). NOTE: calibrate.ts and review/index.ts were updated to use invokeClaudeHeadlessAsync (replacing the removed sync invokeClaudeHeadless) during the timeout protection migration. After updating all imports, delete the original tools/src/commands/ralph/claude.ts. Verify TypeScript compiles cleanly with bun run typecheck. Run existing tests to confirm no regressions.",
       "done": false,
       "blockedBy": [
         "SUB-254"
@@ -274,9 +274,9 @@
       "acceptanceCriteria": [
         "build.ts imports from ./providers/claude instead of ./claude",
         "index.ts imports from ./providers/claude instead of ./claude",
-        "calibrate.ts imports from ./providers/claude instead of ./claude",
+        "calibrate.ts imports from ./providers/claude instead of ./claude (currently imports invokeClaudeHeadlessAsync from ./claude after timeout migration)",
         "post-iteration.ts imports from ./providers/claude instead of ./claude",
-        "review/index.ts imports from ../ralph/providers/claude instead of ../ralph/claude",
+        "review/index.ts imports from ../ralph/providers/claude instead of ../ralph/claude (currently imports invokeClaudeHeadlessAsync from ../ralph/claude after timeout migration)",
         "Original tools/src/commands/ralph/claude.ts is deleted",
         "bun run typecheck passes without errors in tools/ directory",
         "All existing tests in tools/tests/ pass without modification"
