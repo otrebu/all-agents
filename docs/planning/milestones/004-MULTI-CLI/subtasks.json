@@ -1,0 +1,582 @@
+{
+  "$schema": "../../schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "004-MULTI-CLI"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-239",
+      "taskRef": "036-provider-types",
+      "storyRef": "001-provider-foundation",
+      "title": "Create provider types, barrel export, and RalphConfig extension",
+      "description": "Create tools/src/commands/ralph/providers/types.ts with all provider abstraction types: ProviderType union (6 providers), InvocationMode union (3 modes), AgentResult interface (costUsd, durationMs, sessionId, tokenUsage), BaseProviderConfig, discriminated union configs for claude/opencode/codex/gemini/pi/cursor (each with required provider discriminator field), ProviderConfig union, InvocationOptions, InvokerFn type alias, ProviderCapabilities interface, and PROVIDER_BINARIES constant mapping all 6 providers to CLI binary names. Create tools/src/commands/ralph/providers/index.ts as barrel export for all public types. Extend RalphConfig in tools/src/commands/ralph/types.ts with provider?: ProviderType, model?: string, and lightweightModel?: string fields. Add unit tests in tools/tests/providers/types.test.ts verifying discriminated union narrowing, PROVIDER_BINARIES completeness, and AgentResult shape. Run TypeScript compiler to verify zero type errors.",
+      "done": true,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/providers/types.ts exists with ProviderType, InvocationMode, AgentResult, BaseProviderConfig, 6 discriminated config interfaces, ProviderConfig union, InvocationOptions, InvokerFn, ProviderCapabilities, and PROVIDER_BINARIES",
+        "tools/src/commands/ralph/providers/index.ts barrel exports all public types from types.ts",
+        "All 6 provider configs (ClaudeConfig, OpencodeConfig, CodexConfig, GeminiConfig, PiConfig, CursorConfig) have required provider discriminator field enabling type narrowing",
+        "AgentResult uses normalized naming: costUsd, durationMs, sessionId (not cost, duration)",
+        "InvocationMode has exactly 3 values: supervised, headless-sync, headless-async (no haiku mode)",
+        "PROVIDER_BINARIES maps all 6 providers to CLI binary names (claude, opencode, codex, gemini, pi, agent)",
+        "RalphConfig in types.ts includes optional provider, model, and lightweightModel fields",
+        "Unit test in tools/tests/providers/types.test.ts passes covering type narrowing and PROVIDER_BINARIES completeness",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-036-provider-types.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/001-provider-foundation.md",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/claude.ts",
+        "context/stacks/cli/cli-bun.md"
+      ],
+      "completedAt": "2026-02-05T13:11:15Z",
+      "commitHash": "3d84e2364d93353d6212e0f5176d4459506653ad",
+      "sessionId": "c9002727-6f9e-432c-921a-471356481fd7"
+    },
+    {
+      "id": "SUB-249",
+      "taskRef": "038-shared-utilities",
+      "storyRef": "001-provider-foundation",
+      "title": "Create providers/utils.ts with shared process utilities and unit tests",
+      "description": "Create tools/src/commands/ralph/providers/utils.ts extracting reusable process execution utilities from claude.ts. Implement all interfaces (StallDetectionConfig, ProcessExecutionOptions, ProcessExecutionResult) and functions (executeWithTimeout, createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking, safeJsonParse, parseJsonl, markTimerAsNonBlocking). Generalize function signatures to accept command/args instead of hardcoding claude. Also create tools/tests/providers/utils.test.ts with comprehensive unit tests covering: safeJsonParse (valid JSON, invalid JSON, no default), parseJsonl (multiple lines, empty lines, invalid lines), createTimeoutPromise (resolves after duration), killProcessGracefully (SIGTERM first, SIGKILL after grace period).",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/providers/utils.ts exists with all 8 exported functions",
+        "StallDetectionConfig, ProcessExecutionOptions, and ProcessExecutionResult interfaces are defined and exported",
+        "safeJsonParse returns parsed object for valid JSON, returns defaultValue for invalid JSON, returns undefined when no default",
+        "parseJsonl parses multiple JSON lines, filters empty lines, handles invalid lines gracefully",
+        "createStallDetector returns { promise, cleanup } that resolves to stall_timeout when activity stops",
+        "createTimeoutPromise resolves with specified outcome after timeout duration",
+        "killProcessGracefully implements SIGTERM then SIGKILL after grace period",
+        "readStderrWithActivityTracking forwards stderr output and calls onActivity callback",
+        "executeWithTimeout orchestrates process execution with stall detection and hard timeout",
+        "Unit test file tools/tests/providers/utils.test.ts exists and passes with bun test",
+        "TypeScript compiles without errors (bun run typecheck passes)"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/claude.ts",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-038-shared-utilities.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/001-provider-foundation.md",
+        "tools/CLAUDE.md"
+      ]
+    },
+    {
+      "id": "SUB-250",
+      "taskRef": "038-shared-utilities",
+      "storyRef": "001-provider-foundation",
+      "title": "Refactor claude.ts to import shared utilities from providers/utils.ts",
+      "description": "Refactor tools/src/commands/ralph/claude.ts to import and use the shared utility functions from providers/utils.ts instead of inline implementations. Replace: createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking, and markTimerAsNonBlocking with imports from providers/utils. Remove the now-redundant local implementations. Update invokeClaudeHeadlessAsync to use the imported utilities. Verify that all existing functionality is preserved by running existing tests and manually verifying headless/stall/timeout behavior still works.",
+      "done": false,
+      "acceptanceCriteria": [
+        "claude.ts imports createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking, and markTimerAsNonBlocking from providers/utils",
+        "claude.ts no longer contains local definitions of the 5 extracted functions",
+        "claude.ts line count is reduced (removed ~100 lines of extracted implementations)",
+        "All existing ralph tests pass without modification (bun test tools/tests/)",
+        "TypeScript compiles without errors (bun run typecheck passes)",
+        "invokeClaudeHeadlessAsync, invokeClaudeHaiku, and killProcessGracefully in claude.ts use imported utilities"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/providers/utils.ts",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-038-shared-utilities.md"
+      ],
+      "blockedBy": [
+        "SUB-249"
+      ]
+    },
+    {
+      "id": "SUB-259",
+      "taskRef": "040-registry-integration",
+      "storyRef": "002-claude-refactor",
+      "title": "Integrate provider registry into build.ts, review/index.ts, and CLI flags",
+      "description": "Replace direct Claude invocation imports in build.ts and review/index.ts with provider registry calls (selectProvider, invokeWithProvider). Update build.ts: replace invokeClaudeHeadlessAsync/invokeClaudeChat imports with registry imports, call selectProvider() at start of runBuild(), replace invocation calls with invokeWithProvider(), update result handling to AgentResult interface (result.result, result.costUsd, result.durationMs, result.sessionId). Update review/index.ts: replace invokeClaudeChat/invokeClaudeHeadless imports with registry imports, call selectProvider() in runHeadlessReview() and runSupervisedReview(), replace invocations with invokeWithProvider(), update result handling. Add --provider <name> CLI flag to ralph build command in ralph/index.ts and review command in review/index.ts. Add optional provider?: ProviderType field to BuildOptions in types.ts. Default provider is \"claude\" for backward compatibility when --provider is not specified. Run typecheck and tests to verify no regressions.",
+      "done": false,
+      "acceptanceCriteria": [
+        "build.ts imports selectProvider and invokeWithProvider from ./providers/registry instead of invokeClaudeHeadlessAsync/invokeClaudeChat from ./claude",
+        "review/index.ts imports selectProvider and invokeWithProvider from ../ralph/providers/registry instead of invokeClaudeChat/invokeClaudeHeadless from ../ralph/claude",
+        "runBuild() calls selectProvider(options.provider) and logs selected provider with chalk.dim",
+        "processHeadlessIteration() calls invokeWithProvider() instead of invokeClaudeHeadlessAsync()",
+        "processSupervisedIteration() calls invokeWithProvider() instead of invokeClaudeChat()",
+        "runHeadlessReview() and runSupervisedReview() call invokeWithProvider() instead of direct Claude functions",
+        "BuildOptions in types.ts includes optional provider?: ProviderType field",
+        "aaa ralph build --provider claude works (CLI flag parsed and passed through)",
+        "aaa review --headless --provider claude works (CLI flag parsed and passed through)",
+        "Running without --provider defaults to claude (backward compat): verified by grep -q \"claude\" in selectProvider default logic",
+        "All result handling uses AgentResult interface fields (result.result, result.costUsd, result.durationMs, result.sessionId)",
+        "bun run typecheck passes in tools/",
+        "bun test passes in tools/"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-040-registry-integration.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-037-provider-registry.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-039-claude-refactor.md",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/review/index.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/claude.ts"
+      ],
+      "blockedBy": []
+    },
+    {
+      "id": "SUB-244",
+      "taskRef": "037-provider-registry",
+      "storyRef": "001-provider-foundation",
+      "title": "Create provider registry module with selection and availability logic",
+      "description": "Create tools/src/commands/ralph/providers/registry.ts with the full provider registry implementation. This includes: (1) REGISTRY constant mapping all 6 providers to their ProviderCapabilities (all available: false initially, invoke: null, supportedModes per provider). (2) isBinaryAvailable(binary) async function that checks PATH using Bun shell or which command. (3) getInstallInstructions(provider) returning install command string for each provider. (4) ProviderError class with provider field and optional cause. (5) invokeWithProvider(provider, options) that validates binary availability lazily and checks provider is implemented before invoking. (6) ProviderSelectionContext interface and selectProvider(context) pure function implementing priority: CLI flag > env var > config > auto-detect. (7) selectProviderFromEnv() that reads process.argv, process.env.RALPH_PROVIDER, and config file. (8) validateProvider(provider) that throws ProviderError for invalid providers with helpful message listing valid options. (9) autoDetectProvider() that checks binaries in priority order (claude, opencode, codex, gemini, pi) and defaults to claude. Import types from ./types (ProviderType, ProviderCapabilities, InvocationOptions, AgentResult, PROVIDER_BINARIES). Export all public functions, types, and constants.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/providers/registry.ts exists with all functions",
+        "REGISTRY constant has all 6 providers with available: false and correct supportedModes",
+        "isBinaryAvailable() checks PATH using which command, returns boolean",
+        "getInstallInstructions() returns correct npm install command for each of the 6 providers",
+        "ProviderError class includes provider name, message, and optional cause fields",
+        "invokeWithProvider() throws ProviderError with install instructions when binary missing",
+        "invokeWithProvider() throws ProviderError when provider not yet implemented (available: false)",
+        "selectProvider() follows priority: CLI flag > env var > config > auto-detect (defaults to claude)",
+        "selectProviderFromEnv() reads process.argv for --provider flag and process.env.RALPH_PROVIDER",
+        "validateProvider() throws ProviderError for invalid providers listing valid options",
+        "autoDetectProvider() checks binaries in order: claude, opencode, codex, gemini, pi and defaults to claude",
+        "All types imported from ./types, all public functions exported",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-037-provider-registry.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/001-provider-foundation.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-036-provider-types.md",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/claude.ts"
+      ]
+    },
+    {
+      "id": "SUB-245",
+      "taskRef": "037-provider-registry",
+      "storyRef": "001-provider-foundation",
+      "title": "Create unit tests for provider registry selection, validation, and errors",
+      "description": "Create tools/tests/providers/registry.test.ts with comprehensive unit tests for the provider registry module. Test groups: (1) selectProvider priority - returns CLI flag when provided, falls back to env var, then config, then auto-detect (claude default). (2) validateProvider - accepts all 6 valid providers, throws ProviderError for invalid with message listing valid options. (3) autoDetectProvider - returns first available binary in priority order, defaults to claude when none available (mock isBinaryAvailable). (4) isBinaryAvailable - returns true when binary in PATH, false when not found (mock Bun.$ or which). (5) getInstallInstructions - returns correct install command for each provider. (6) invokeWithProvider - throws ProviderError with install help when binary missing, throws when provider not implemented, calls invoke when available. (7) ProviderError - has correct name, provider, message, and cause fields. Use bun:test with describe/test pattern, mock external calls (which, Bun.$).",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/tests/providers/registry.test.ts exists with test groups for all registry functions",
+        "Test: selectProvider returns CLI flag when provided (highest priority)",
+        "Test: selectProvider falls back through env var -> config -> auto-detect correctly",
+        "Test: validateProvider accepts all 6 valid provider names",
+        "Test: validateProvider throws ProviderError for invalid provider with helpful message",
+        "Test: autoDetectProvider returns first available binary in priority order (claude, opencode, codex, gemini, pi)",
+        "Test: autoDetectProvider defaults to claude when no binaries available",
+        "Test: isBinaryAvailable returns true/false correctly (mocked)",
+        "Test: invokeWithProvider throws ProviderError with install instructions when binary missing",
+        "Test: getInstallInstructions returns correct install command for each provider",
+        "All tests pass: bun test tools/tests/providers/registry.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/providers/registry.ts",
+        "tools/src/commands/ralph/providers/types.ts",
+        "tools/tests/lib/ralph-config.test.ts",
+        "tools/tests/lib/ralph-hooks.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-244"
+      ]
+    },
+    {
+      "id": "SUB-269",
+      "taskRef": "042-cleanup-verify",
+      "storyRef": "002-claude-refactor",
+      "title": "Delete legacy claude.ts, verify imports migrated, run full verification suite",
+      "description": "Final cleanup for Story 002: (1) Search entire codebase for remaining imports of the legacy tools/src/commands/ralph/claude.ts (patterns: from \"./claude\", from \"../claude\", import.*claude\\.ts). Update any stale references to use providers/registry or providers/claude. (2) Delete tools/src/commands/ralph/claude.ts. (3) Run typecheck, lint, and full test suite to confirm no breakage. (4) Manual acceptance criteria verification: aaa ralph build (default provider), aaa ralph build --provider claude (explicit), JSON parsing returns correct cost/duration/sessionId, stall detection works, Ctrl+C exits cleanly, permission bypass flag works, all 4 invocation modes work (supervised, headless-sync, headless-async, haiku). (5) Commit with conventional commit message following monorepo subdirectory patterns.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Legacy file tools/src/commands/ralph/claude.ts is deleted (! test -f tools/src/commands/ralph/claude.ts)",
+        "No remaining imports reference the deleted file (grep -rn \"from.*[./]*claude\" tools/src/commands/ralph/ returns zero matches excluding providers/claude.ts)",
+        "bun run typecheck passes in tools/ directory",
+        "bun run lint passes in tools/ directory",
+        "bun test passes in tools/ directory with all existing tests green",
+        "aaa ralph build executes using claude as default provider without config changes",
+        "aaa ralph build --provider claude explicit selection works",
+        "All 4 invocation modes functional: supervised, headless-sync, headless-async, haiku"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-042-cleanup-verify.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/002-claude-refactor.md",
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/providers/claude.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/review/index.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "context/foundations/scm/commit-monorepo-subdir.md"
+      ]
+    },
+    {
+      "id": "SUB-264",
+      "taskRef": "041-calibrate-integration",
+      "storyRef": "002-claude-refactor",
+      "title": "Integrate calibrate.ts with provider registry (async + invokeWithProvider)",
+      "description": "Update tools/src/commands/ralph/calibrate.ts to use the provider registry instead of direct invokeClaudeHeadless calls. Remove the import of invokeClaudeHeadless from ./claude and add imports for invokeWithProvider, selectProvider, and ProviderType from ./providers/registry. Add provider selection via selectProvider() at the start of runCalibrate(). Convert runCalibrate, runImproveCheck, runIntentionCheck, and runTechnicalCheck from sync to async (return Promise<boolean>). Replace the three invokeClaudeHeadless calls (in runImproveCheck, runIntentionCheck, runTechnicalCheck) with await invokeWithProvider(provider, { prompt, mode: \"headless-sync\" }). Wrap each call in try-catch following the existing error pattern (log error, return false). Update the caller in tools/src/commands/ralph/index.ts: make runCalibrateSubcommand async, add await to the runCalibrate call, and handle the async action callbacks. Verify TypeScript compiles and existing tests pass or are updated for async signatures.",
+      "done": false,
+      "acceptanceCriteria": [
+        "calibrate.ts imports invokeWithProvider and selectProvider from ./providers/registry instead of invokeClaudeHeadless from ./claude",
+        "calibrate.ts no longer imports from ./claude",
+        "runCalibrate is async and calls selectProvider() at start, storing selected provider for use in checks",
+        "runImproveCheck, runIntentionCheck, and runTechnicalCheck are async (return Promise<boolean>)",
+        "All three invokeClaudeHeadless calls are replaced with await invokeWithProvider(provider, { prompt, mode: \"headless-sync\" })",
+        "Each invokeWithProvider call is wrapped in try-catch that logs error and returns false on failure",
+        "runCalibrateSubcommand in index.ts is async and awaits runCalibrate",
+        "bun run typecheck passes without errors",
+        "Existing calibration-related tests pass (updated for async if needed)"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-041-calibrate-integration.md",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/providers/registry.ts",
+        "tools/src/commands/ralph/providers/types.ts"
+      ],
+      "blockedBy": []
+    },
+    {
+      "id": "SUB-254",
+      "taskRef": "039-claude-refactor",
+      "storyRef": "002-claude-refactor",
+      "title": "Move claude.ts to providers/claude.ts and refactor with shared utilities",
+      "description": "Move tools/src/commands/ralph/claude.ts to tools/src/commands/ralph/providers/claude.ts. Refactor to use provider types from ./types.ts (AgentResult, ClaudeConfig) and shared utilities from ./utils.ts (executeWithTimeout, killProcessGracefully, createStallDetector, createTimeoutPromise, readStderrWithActivityTracking, safeJsonParse). Remove local type definitions (ClaudeResult stays for UI-facing use, but HeadlessResult replaced by AgentResult). Implement normalizeClaudeResult() to parse Claude JSON array format and extract result/costUsd/durationMs/sessionId/tokenUsage. Refactor invokeClaudeHeadlessAsync() and invokeClaudeHaiku() to use shared utilities. Create async invokeClaude() wrapper for registry compatibility. Add unit tests for normalizeClaudeResult() with fixtures (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.json). Keep invokeClaudeChat and invokeClaudeHeadless synchronous for backward compat.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/providers/claude.ts exists with all invocation functions migrated",
+        "normalizeClaudeResult() extracts result, costUsd, durationMs, sessionId, tokenUsage from Claude JSON array",
+        "invokeClaudeHeadlessAsync() returns Promise<AgentResult> using shared utilities (createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking)",
+        "invokeClaudeHaiku() uses killProcessGracefully from ./utils.ts instead of local implementation",
+        "Unit test tools/tests/providers/claude.test.ts passes covering: valid parse, missing result entry, partial data, malformed JSON",
+        "Test fixtures exist in tools/tests/fixtures/ (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.json)",
+        "Local ClaudeJsonOutput, HeadlessResult, HeadlessOptions, HeadlessAsyncOptions, HaikuOptions interfaces removed (replaced by provider types or AgentResult)"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/claude.ts",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-039-claude-refactor.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-036-provider-types.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-038-shared-utilities.md",
+        "context/blocks/quality/coding-style.md",
+        "context/blocks/quality/error-handling.md",
+        "context/blocks/test/unit-testing.md"
+      ]
+    },
+    {
+      "id": "SUB-255",
+      "taskRef": "039-claude-refactor",
+      "storyRef": "002-claude-refactor",
+      "title": "Update all dependent imports and delete original claude.ts",
+      "description": "Update all files that import from ./claude to import from ./providers/claude instead. There are 5 dependent files: (1) tools/src/commands/ralph/build.ts imports buildPrompt, invokeClaudeChat, invokeClaudeHeadlessAsync; (2) tools/src/commands/ralph/index.ts imports multiple claude functions; (3) tools/src/commands/ralph/calibrate.ts imports invokeClaudeHeadless; (4) tools/src/commands/ralph/post-iteration.ts imports invokeClaudeHaiku; (5) tools/src/commands/review/index.ts imports invokeClaudeChat, invokeClaudeHeadless from ../ralph/claude (becomes ../ralph/providers/claude). After updating all imports, delete the original tools/src/commands/ralph/claude.ts. Verify TypeScript compiles cleanly with bun run typecheck. Run existing tests to confirm no regressions.",
+      "done": false,
+      "blockedBy": [
+        "SUB-254"
+      ],
+      "acceptanceCriteria": [
+        "build.ts imports from ./providers/claude instead of ./claude",
+        "index.ts imports from ./providers/claude instead of ./claude",
+        "calibrate.ts imports from ./providers/claude instead of ./claude",
+        "post-iteration.ts imports from ./providers/claude instead of ./claude",
+        "review/index.ts imports from ../ralph/providers/claude instead of ../ralph/claude",
+        "Original tools/src/commands/ralph/claude.ts is deleted",
+        "bun run typecheck passes without errors in tools/ directory",
+        "All existing tests in tools/tests/ pass without modification"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/review/index.ts",
+        "tools/src/commands/ralph/providers/claude.ts"
+      ]
+    },
+    {
+      "id": "SUB-279",
+      "taskRef": "044-claude-integration-tests",
+      "storyRef": "002-claude-refactor",
+      "title": "Create mock-based integration tests for Claude provider subprocess lifecycle",
+      "description": "Create tools/tests/providers/claude.integration.test.ts with comprehensive mock-based integration tests for the Claude provider subprocess handling. Build mock utilities: createMockProcess() returning a mock process with controllable stdout/stderr streams, kill spy, and configurable exited Promise; createMockStream() returning a mock readable stream with event emitter capabilities. Mock Bun.spawn to return mock process objects. Implement test cases covering: (1) Subprocess spawning - verify correct arguments and options passed to Bun.spawn for headless mode, permission bypass, and model selection. (2) Stall detection flow - emit stderr data at intervals, verify stall timer resets on activity, stop emitting, verify SIGTERM sent after stall timeout (use 100ms test timeouts). (3) Termination escalation - spawn mock process, trigger SIGTERM, process does not exit within grace period, verify SIGKILL sent after grace period expires. (4) Exit code handling - test exit codes 0 (success with parsed result), 1 (error), 2 (usage error), 127 (command not found) with correct error handling for each. (5) JSON output parsing - mock stdout with Claude JSON array fixture data containing system/assistant/result entries, verify AgentResult returned with correct costUsd, durationMs, sessionId, tokenUsage. Use Bun built-in test runner with mock/spyOn. Use short timeouts (100ms stall, 500ms hard, 50ms grace) for fast deterministic tests. Each test creates fresh mocks and cleans up event listeners. Tests must run without the real Claude CLI installed.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/tests/providers/claude.integration.test.ts exists with all test cases",
+        "Mock utilities createMockProcess() and createMockStream() are defined and used by tests",
+        "Test verifies Bun.spawn called with correct args for headless mode (claude -p with --dangerously-skip-permissions)",
+        "Test verifies stall detection triggers SIGTERM after timeout without stderr activity (using 100ms test timeout)",
+        "Test verifies stall timer resets when stderr data is emitted",
+        "Test verifies SIGKILL sent after grace period when SIGTERM does not cause exit",
+        "Test verifies exit code 0 returns successful AgentResult with parsed JSON fields",
+        "Test verifies exit codes 1, 2, 127 return appropriate errors",
+        "Test verifies Claude JSON array output parsed and normalized to AgentResult with costUsd, durationMs, sessionId",
+        "All tests pass with bun test tools/tests/providers/claude.integration.test.ts",
+        "Tests are deterministic - no timing-dependent failures (uses short configurable timeouts)"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-044-claude-integration-tests.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/002-claude-refactor.md",
+        "tools/src/commands/ralph/claude.ts",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-043-claude-unit-tests.md",
+        "context/blocks/test/unit-testing.md",
+        "context/foundations/test/test-integration-api.md"
+      ]
+    },
+    {
+      "id": "SUB-294",
+      "taskRef": "047-opencode-parser-tests",
+      "storyRef": "003-opencode-support",
+      "title": "Create JSONL fixtures and normalizeOpencodeResult unit tests",
+      "description": "Create 5 static JSONL fixture files in tools/src/commands/ralph/providers/__fixtures__/ (opencode-success.jsonl, opencode-partial.jsonl, opencode-error.jsonl, opencode-empty.jsonl, opencode-multiline.jsonl) and a comprehensive test file at tools/src/commands/ralph/providers/opencode.test.ts. Tests must cover: normalizeOpencodeResult() with each fixture, correct extraction of result text from concatenated text events, correct extraction of costUsd/sessionId/tokenUsage from step_finish, error handling for malformed JSON lines, edge cases for missing step_finish event (partial stream simulating Issue #8203), missing reason:stop, empty streams, null/undefined fields, and extra whitespace. All tests must be deterministic (no Date.now(), no async timing, fixtures imported at build time) and fast (< 100ms each). Fixtures should serve as documentation of the expected JSONL format for future maintainers.",
+      "done": false,
+      "acceptanceCriteria": [
+        "5 fixture files exist in tools/src/commands/ralph/providers/__fixtures__/: opencode-success.jsonl, opencode-partial.jsonl, opencode-error.jsonl, opencode-empty.jsonl, opencode-multiline.jsonl",
+        "Each fixture file contains valid JSONL format (one JSON object per line)",
+        "Test file tools/src/commands/ralph/providers/opencode.test.ts exists and all tests pass via bun test opencode.test.ts",
+        "normalizeOpencodeResult() tested with all 5 fixtures covering success, partial, error, empty, and multiline cases",
+        "Tests verify correct extraction of result text from concatenated text events (multiline fixture)",
+        "Tests verify correct extraction of costUsd, sessionId, and tokenUsage fields from step_finish event",
+        "Tests verify error thrown for malformed JSON, missing step_finish, missing reason:stop, and empty stream",
+        "All tests are deterministic with no timing dependencies and each completes in < 100ms"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-047-opencode-parser-tests.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/003-opencode-support.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-045-opencode-implementation.md",
+        "tools/src/commands/ralph/providers/types.ts",
+        "tools/src/commands/ralph/providers/opencode.ts",
+        "context/foundations/test/test-unit-vitest.md"
+      ]
+    },
+    {
+      "id": "SUB-289",
+      "taskRef": "046-opencode-registry",
+      "storyRef": "003-opencode-support",
+      "title": "Register OpenCode provider in registry with types, routing, and tests",
+      "description": "Add OpencodeConfig type to tools/src/commands/ralph/providers/types.ts with provider: \"opencode\" discriminator and optional model?: string field (provider/model format). Import invokeOpencode from ./opencode in tools/src/commands/ralph/providers/registry.ts and add opencode entry to REGISTRY record with available: true, invoke: invokeOpencode, and supportedModes: [\"supervised\", \"headless-sync\", \"headless-async\"] (no haiku mode). Verify that --provider opencode CLI flag routes to the OpenCode implementation through the registry dispatch. Add unit test in tools/tests/providers/registry-opencode.test.ts verifying: registry returns correct provider for \"opencode\", supportedModes excludes haiku, OpencodeConfig type narrows correctly, and provider availability check works. Ensure bun run typecheck passes.",
+      "done": false,
+      "acceptanceCriteria": [
+        "OpencodeConfig interface exists in tools/src/commands/ralph/providers/types.ts with provider: \"opencode\" discriminator and optional model?: string field",
+        "opencode entry exists in REGISTRY record in tools/src/commands/ralph/providers/registry.ts with available: true, invoke: invokeOpencode, and supportedModes: [\"supervised\", \"headless-sync\", \"headless-async\"]",
+        "REGISTRY opencode entry does NOT include \"haiku\" in supportedModes",
+        "ProviderConfig union in types.ts includes OpencodeConfig",
+        "Unit test in tools/tests/providers/registry-opencode.test.ts passes covering registry lookup, supported modes, and type narrowing",
+        "aaa ralph build --provider opencode routes to OpenCode invoke function (verified via integration test or manual test)",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-046-opencode-registry.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-045-opencode-implementation.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/003-opencode-support.md",
+        "tools/src/commands/ralph/providers/types.ts",
+        "tools/src/commands/ralph/providers/registry.ts",
+        "tools/src/commands/ralph/providers/opencode.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-304",
+      "taskRef": "049-static-registry",
+      "storyRef": "004-model-registry",
+      "title": "Create static model registry with ModelInfo, baseline models, and registry functions",
+      "description": "Create the complete static model registry for TASK-049 as two new files plus a unit test file.\n\n1. Create tools/src/commands/ralph/providers/models-static.ts:\n   - Define and export ModelInfo interface with fields: id (string), provider (ProviderType), cliFormat (string), costHint (\"cheap\" | \"standard\" | \"expensive\"), discoveredAt? (string), description? (string)\n   - Export STATIC_MODELS array with 7 baseline models:\n     - Claude: claude-sonnet-4 (standard), claude-haiku (cheap), claude-opus-4 (expensive)\n     - OpenCode: gpt-4o (standard), gpt-4o-mini (cheap), claude-sonnet-opencode (standard), claude-haiku-opencode (cheap)\n   - Each model includes id, provider, cliFormat (claude uses native format, opencode uses provider/model format), and costHint\n\n2. Create tools/src/commands/ralph/providers/models.ts:\n   - Import STATIC_MODELS from models-static\n   - Create empty DISCOVERED_MODELS placeholder array (dynamic discovery is TASK-050)\n   - Implement getAllModels() - merges static + dynamic, static takes precedence on ID conflicts\n   - Implement getModelsForProvider(provider) - filters by provider\n   - Implement getModelById(id) - lookup by ID, returns ModelInfo | undefined\n   - Implement getModelCompletions() - returns sorted unique model ID list for tab completion\n   - Implement getModelCompletionsForProvider(provider) - provider-specific sorted completions\n   - Implement validateModelForProvider(modelId, provider) - returns cliFormat on success, throws helpful error with suggestions on failure (includes \"Did you mean:\" and \"Run aaa ralph refresh-models\" hint)\n   - Export all functions and re-export ModelInfo\n\n3. Update tools/src/commands/ralph/providers/index.ts barrel export to include models.ts exports\n\n4. Create tools/tests/providers/models.test.ts with unit tests covering:\n   - Static model count (7 models)\n   - ModelInfo field presence (id, provider, cliFormat, costHint)\n   - getModelsForProvider returns only matching provider models\n   - getModelById returns correct model or undefined for unknown\n   - getModelCompletions returns sorted string array\n   - getModelCompletionsForProvider filters correctly\n   - validateModelForProvider returns cliFormat for valid model\n   - validateModelForProvider throws with suggestions for unknown model\n   - validateModelForProvider throws for wrong-provider model\n   - getAllModels static precedence over dynamic (mock test)\n\n5. Run bun run typecheck to verify zero type errors",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/providers/models-static.ts exists and exports ModelInfo interface with id, provider, cliFormat, costHint fields and optional discoveredAt, description fields",
+        "tools/src/commands/ralph/providers/models-static.ts exports STATIC_MODELS array with exactly 7 baseline models (3 Claude + 4 OpenCode)",
+        "Each static model has correct cliFormat: Claude uses native format (e.g. claude-sonnet-4-20250514), OpenCode uses provider/model format (e.g. openai/gpt-4o)",
+        "tools/src/commands/ralph/providers/models.ts exports getAllModels, getModelsForProvider, getModelById, getModelCompletions, getModelCompletionsForProvider, validateModelForProvider",
+        "getModelCompletions() returns a sorted string array of all unique model IDs",
+        "validateModelForProvider throws error containing \"Did you mean:\" suggestions and \"refresh-models\" hint for unknown models",
+        "validateModelForProvider throws error when model exists but belongs to a different provider",
+        "Static models take precedence over dynamic models with the same ID in getAllModels()",
+        "Unit test file tools/tests/providers/models.test.ts exists and passes with bun test",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-049-static-registry.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/004-model-registry.md",
+        "tools/src/commands/ralph/providers/types.ts",
+        "tools/src/commands/ralph/providers/index.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/CLAUDE.md",
+        "context/stacks/cli/cli-bun.md"
+      ]
+    },
+    {
+      "id": "SUB-274",
+      "taskRef": "043-claude-unit-tests",
+      "storyRef": "002-claude-refactor",
+      "title": "Create Claude provider fixture files, parser tests, and config tests",
+      "description": "Create 7 fixture files in tools/tests/fixtures/claude/ matching Claude CLI JSON output format: claude-success.json (full response with all fields), claude-success-minimal.json (only required fields), claude-error.json (error response), claude-malformed.json (invalid JSON), claude-empty-array.json (empty array), claude-no-result-entry.json (missing result type entry), claude-partial-result.json (result entry missing optional fields like session_id and token_usage). Create tools/tests/providers/claude.parser.test.ts with tests for normalizeClaudeResult() covering: parsing complete result entry and extracting all fields (result, costUsd, durationMs, sessionId, tokenUsage), throwing on missing result entry, throwing on malformed JSON, handling partial results with missing optional fields, handling numeric string conversion for cost/duration, and testing with the minimal success fixture. Create tools/tests/providers/claude.config.test.ts with tests for ClaudeConfig validation (provider discriminator field equals \"claude\"), provider type discrimination via type narrowing, and default timeout configuration values. All tests must use Bun built-in test runner (import from bun:test). Run bun test to verify all tests pass.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/tests/fixtures/claude/ directory contains 7 fixture JSON files: claude-success.json, claude-success-minimal.json, claude-error.json, claude-malformed.json, claude-empty-array.json, claude-no-result-entry.json, claude-partial-result.json",
+        "Each fixture matches Claude JSON output format: array of objects with type/content fields and a result entry with duration_ms, total_cost_usd, session_id",
+        "tools/tests/providers/claude.parser.test.ts exists with tests covering: complete result parsing, all field extraction (result, costUsd, durationMs, sessionId, tokenUsage), missing result entry throws, malformed JSON throws, partial result handling, numeric string conversion",
+        "tools/tests/providers/claude.config.test.ts exists with tests for ClaudeConfig validation, provider type discrimination, and default timeout configuration",
+        "All tests use bun:test runner (import { describe, test, expect } from \"bun:test\")",
+        "All tests pass when run with bun test tools/tests/providers/"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-043-claude-unit-tests.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/002-claude-refactor.md",
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/providers/types.ts",
+        "tools/tests/lib/config.test.ts",
+        "context/stacks/cli/cli-bun.md"
+      ]
+    },
+    {
+      "id": "SUB-314",
+      "taskRef": "051-tab-completion",
+      "storyRef": "004-model-registry",
+      "title": "Add model/provider tab completion to all shells and __complete handler",
+      "description": "Integrate the model registry with the CLI tab completion system. Add two new dynamic completion types (\"model\" and \"provider\") to the __complete handler in tools/src/commands/completion/index.ts that query the model registry (getModelCompletions, getModelCompletionsForProvider, getModelsForProvider) and return model IDs with cost hints. For provider completions, return valid ProviderType values from the registry. For model completions, read the --provider value from completion context (process.argv) to filter models by provider, falling back to showing all models when no provider is specified. Update all three shell completion generators (bash.ts, zsh.ts, fish.ts) to: (1) add --provider flag completion for ralph build and review commands using dynamic provider completions via __complete, (2) add --model flag completion for ralph build and review commands using dynamic model completions via __complete, (3) include cost hint descriptions in zsh and fish completions (bash does not support descriptions natively). Handle edge cases: unknown provider returns empty completions, no provider shows all models. Add unit tests in tools/tests/completion/model-completion.test.ts verifying: model completion returns expected IDs, provider filtering works, cost hints are included, unknown provider returns empty array, all-models fallback works when no provider specified.",
+      "done": false,
+      "acceptanceCriteria": [
+        "handleCompletion() in completion/index.ts has \"model\" case that returns model IDs from registry, filtered by --provider when present",
+        "handleCompletion() in completion/index.ts has \"provider\" case that returns valid provider names from registry",
+        "bash.ts includes --provider and --model in ralph build flag completions, with dynamic values via aaa __complete provider/model",
+        "zsh.ts includes --provider and --model flags for ralph build and review commands, with descriptions showing cost hints",
+        "fish.ts includes --provider and --model completions for ralph build and review commands, with cost hint descriptions",
+        "Given: aaa __complete model is called without --provider, When: handler runs, Then: all model IDs from all providers are returned",
+        "Given: aaa __complete model is called with --provider claude, When: handler runs, Then: only Claude model IDs are returned",
+        "Given: aaa __complete model is called with --provider unknown-provider, When: handler runs, Then: empty output is returned",
+        "Given: aaa __complete provider is called, When: handler runs, Then: all valid provider names are returned",
+        "Unit test in tools/tests/completion/model-completion.test.ts exists and passes with bun test"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-051-tab-completion.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-049-static-registry.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/004-model-registry.md",
+        "tools/src/commands/completion/index.ts",
+        "tools/src/commands/completion/bash.ts",
+        "tools/src/commands/completion/zsh.ts",
+        "tools/src/commands/completion/fish.ts",
+        "tools/CLAUDE.md"
+      ],
+      "blockedBy": []
+    },
+    {
+      "id": "SUB-284",
+      "taskRef": "045-opencode-implementation",
+      "storyRef": "003-opencode-support",
+      "title": "Implement OpenCode provider with JSONL parsing and hard timeout enforcement",
+      "description": "Create tools/src/commands/ralph/providers/opencode.ts implementing the full OpenCode provider. This includes: (1) invokeOpencode() async function that spawns the opencode CLI process with Bun.spawn, sets up OPENCODE_PERMISSION environment variable for permission bypass, accepts model in provider/model format, and returns AgentResult. (2) normalizeOpencodeResult() function that parses JSONL output line-by-line, extracts text from \"text\" events, finds the \"step_finish\" event with reason:\"stop\", and maps fields to AgentResult (result from concatenated text events, costUsd from part.cost, sessionId from sessionID, tokenUsage from part.tokens). (3) Hard timeout enforcement for Issue #8203: start a hard timeout timer immediately on process spawn, on timeout log error referencing Issue #8203 then SIGKILL (SIGTERM alone may not work during API error hangs), clear timeout if process exits normally. (4) Binary detection: check if opencode is in PATH before spawning, return clear error message with install instructions when not found. (5) SIGTERM/SIGKILL escalation using killProcessGracefully from providers/utils.ts. (6) Handle partial/incomplete JSONL streams gracefully (no step_finish event means timeout or error). (7) Export invokeOpencode and normalizeOpencodeResult. Add comprehensive code comments documenting OpenCode-specific quirks (Issue #8203, JSONL format, permission bypass, model format). Add unit tests in tools/tests/providers/opencode.test.ts covering: normalizeOpencodeResult with valid JSONL fixture, normalizeOpencodeResult with missing step_finish, normalizeOpencodeResult with empty input, JSONL parsing of multi-line streams, permission bypass environment setup verification, model format validation.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/providers/opencode.ts exists with invokeOpencode() and normalizeOpencodeResult() exported",
+        "invokeOpencode() spawns opencode process with OPENCODE_PERMISSION='{\"*\":\"allow\"}' in environment",
+        "invokeOpencode() accepts model option in provider/model format (e.g., \"anthropic/claude-sonnet-4-20250514\")",
+        "normalizeOpencodeResult() parses JSONL lines, concatenates text from \"text\" events, extracts cost/tokens/sessionId from \"step_finish\" event",
+        "Hard timeout starts immediately on process spawn and kills with SIGKILL on expiry (Issue #8203 mitigation), with log message referencing Issue #8203",
+        "Process termination uses SIGKILL (not just SIGTERM) because SIGTERM may not work during API error hangs per Issue #8203",
+        "Clear error message returned when opencode binary not found in PATH, including install instructions",
+        "Incomplete JSONL stream (no step_finish event) returns null or throws descriptive error rather than hanging",
+        "Code comments document OpenCode-specific quirks: Issue #8203 hang behavior, JSONL format, permission bypass, model format",
+        "Unit test tools/tests/providers/opencode.test.ts exists and passes with bun test",
+        "Tests cover: valid JSONL normalization, missing step_finish handling, empty input, permission env setup",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-045-opencode-implementation.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/003-opencode-support.md",
+        "tools/src/commands/ralph/claude.ts",
+        "tools/src/commands/ralph/providers/types.ts",
+        "tools/src/commands/ralph/providers/utils.ts",
+        "tools/src/commands/ralph/providers/registry.ts"
+      ],
+      "blockedBy": [
+        "SUB-249",
+        "SUB-239"
+      ]
+    },
+    {
+      "id": "SUB-319",
+      "taskRef": "052-model-validation",
+      "storyRef": "004-model-registry",
+      "title": "Create validateModelSelection helper and integrate into build/review commands",
+      "description": "Create a validateModelSelection(modelId: string, provider: ProviderType) helper function in tools/src/commands/ralph/providers/models.ts (or a new models-validation.ts if models.ts does not yet exist) that returns either { valid: true, cliFormat: string } or { valid: false, error: string, suggestions: string[] }. Validation logic: (1) look up model by ID using getModelById(); (2) if not found, generate up to 5 suggestions from same-provider models sorted alphabetically, return error with \"Did you mean\" suggestions and hint to run \"aaa ralph refresh-models\"; (3) if found but provider mismatch, return error naming the correct provider and suggesting same-provider alternatives; (4) if valid, return cliFormat string. Integrate into build.ts: after options parsing and before provider invocation, if model is specified (CLI flag or config), call validateModelSelection(); on invalid result, log formatted error with chalk.red and exit(1); on valid result, pass cliFormat to provider. Apply identical validation in review/index.ts for both headless and supervised modes. Handle models from config file (.aaarc.json or RalphConfig) with the same validation path. Create unit tests in tools/tests/providers/model-validation.test.ts covering: valid model returns correct cliFormat, unknown model returns error with suggestions (max 5), wrong-provider model returns provider mismatch error, suggestions prioritize same-provider models, error message includes refresh-models hint. Verify bun run typecheck and bun test pass.",
+      "done": false,
+      "acceptanceCriteria": [
+        "validateModelSelection() function exists and is exported from providers/models.ts (or models-validation.ts)",
+        "Given valid model ID and matching provider, returns { valid: true, cliFormat: string } with correct CLI format",
+        "Given unknown model ID, returns { valid: false } with error message containing model name and up to 5 suggestions from the same provider",
+        "Given model ID for wrong provider, returns { valid: false } with error naming the model provider and suggesting alternatives for the current provider",
+        "All error messages include hint: \"Run aaa ralph refresh-models to discover new models\"",
+        "build.ts calls validateModelSelection() before provider invocation when --model flag or config model is set, exits with formatted error on invalid",
+        "review/index.ts calls validateModelSelection() before provider invocation when --model flag or config model is set, exits with formatted error on invalid",
+        "Unit test tools/tests/providers/model-validation.test.ts passes with cases: valid model, unknown model, wrong provider, suggestion limit, refresh hint",
+        "bun run typecheck passes without errors",
+        "bun test passes in tools/ directory"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-052-model-validation.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/004-model-registry.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-049-static-registry.md",
+        "tools/src/commands/ralph/providers/models.ts",
+        "tools/src/commands/ralph/providers/models-static.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/review/index.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-299",
+      "taskRef": "048-opencode-timeout-tests",
+      "storyRef": "003-opencode-support",
+      "title": "Implement integration tests for OpenCode hard timeout and SIGKILL escalation",
+      "description": "Create tools/src/commands/ralph/providers/opencode.integration.test.ts with full integration test coverage for hard timeout enforcement (Issue #8203). Implement mock processes using Bun.spawn or node child_process that simulate: (1) a hung process that never exits and produces no output (the exact Issue #8203 failure mode), (2) a process that completes successfully before timeout, (3) a process that errors before timeout, and (4) a process that outputs then hangs. Test that hard timeout triggers SIGKILL after configured duration for hung processes, that timeout error messages reference Issue #8203, that normal completion and error exits do not trigger false positive timeouts, and that all resources are cleaned up (timers cleared, processes killed, no zombie processes). Use short timeouts (10-100ms) for fast deterministic tests. Include afterEach cleanup hooks to kill any lingering mock processes and clear timers. All tests must run via bun test and pass reliably without timing flakes.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/providers/opencode.integration.test.ts exists and contains describe blocks for timeout scenarios, normal completion, and cleanup",
+        "Test for hung process (no output, never exits) verifies SIGKILL is sent after hard timeout duration",
+        "Test for hung process verifies the timeout error message contains 'Issue #8203' or '8203'",
+        "Test for normal process completion before timeout verifies no SIGKILL or timeout error is triggered",
+        "Test for process error exit before timeout verifies the original error is propagated and no timeout fires",
+        "Test for process that outputs then hangs verifies hard timeout still triggers SIGKILL",
+        "afterEach cleanup hook kills all mock processes and clears all timers to prevent resource leaks",
+        "All tests pass via: bun test opencode.integration.test.ts with zero failures and no timing flakes"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-048-opencode-timeout-tests.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-045-opencode-implementation.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/003-opencode-support.md",
+        "tools/src/commands/ralph/providers/opencode.ts",
+        "tools/src/commands/ralph/providers/types.ts",
+        "context/foundations/test/test-integration-api.md"
+      ]
+    },
+    {
+      "id": "SUB-309",
+      "taskRef": "050-dynamic-discovery",
+      "storyRef": "004-model-registry",
+      "title": "Implement refresh-models command with OpenCode discovery and dynamic file generation",
+      "description": "Create the full dynamic model discovery pipeline: (1) Create tools/src/commands/ralph/providers/models-dynamic.ts placeholder exporting empty DISCOVERED_MODELS: ModelInfo[] array with auto-generated comment. (2) Create tools/src/commands/ralph/refresh-models.ts implementing the refresh-models command with --dry-run and --provider flags. Implement discoverOpencodeModels() that runs `opencode models --json` via Bun.spawn, parses JSON output, maps to ModelInfo[] with discoveredAt timestamp. Aggregate discovered models from all providers (or filtered by --provider flag). Filter out duplicates where IDs match STATIC_MODELS (static takes precedence). In --dry-run mode, print discovered models without writing. Otherwise, generate new models-dynamic.ts file content sorted by provider then ID, write to disk, and report discovery statistics. (3) Handle errors gracefully: CLI not installed (skip with warning), discovery command fails (log error, continue with other providers), no models discovered (informative message). (4) Register the refresh-models command in tools/src/commands/ralph/index.ts under the ralph command group. (5) Create tools/tests/providers/refresh-models.test.ts with unit tests covering: discoverOpencodeModels with mock output, --dry-run does not write files, --provider filtering, duplicate filtering against static models, error handling for missing CLI binary, generated file format validation.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/providers/models-dynamic.ts exists exporting DISCOVERED_MODELS: ModelInfo[] = [] with auto-generated comment header",
+        "tools/src/commands/ralph/refresh-models.ts exists with refresh-models command implementation",
+        "aaa ralph refresh-models command is registered in ralph/index.ts and appears in --help output",
+        "Given --dry-run flag: discovered models are printed to stdout but models-dynamic.ts is NOT modified (verified by checking file mtime or content unchanged)",
+        "Given --provider opencode flag: only OpenCode models are discovered, other providers skipped",
+        "discoverOpencodeModels() runs `opencode models --json`, parses JSON output, returns ModelInfo[] with discoveredAt ISO date string",
+        "Discovered models with IDs matching STATIC_MODELS are filtered out (static takes precedence)",
+        "Generated models-dynamic.ts contains sorted models (by provider, then ID) with generation timestamp comment",
+        "When opencode CLI is not installed: warning printed (\"opencode CLI not found, skipping...\"), command continues without error",
+        "When discovery command fails: error logged with message, command continues with other providers",
+        "When no models discovered: informative message printed (\"No new models discovered.\")",
+        "Success message shows count of discovered models (e.g., \"Discovered 5 new models\")",
+        "Unit test tools/tests/providers/refresh-models.test.ts exists and passes with bun test",
+        "Tests cover: mock opencode output parsing, dry-run no-write, provider filtering, duplicate filtering, missing CLI handling",
+        "bun run typecheck passes without errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-050-dynamic-discovery.md",
+        "docs/planning/milestones/004-MULTI-CLI/stories/004-model-registry.md",
+        "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-049-static-registry.md",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/providers/types.ts",
+        "tools/CLAUDE.md"
+      ]
+    }
+  ]
+}

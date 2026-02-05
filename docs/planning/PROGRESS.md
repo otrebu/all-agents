@@ -2,15 +2,26 @@
 
 ## Current Focus
 
-**Story:** none
-**Task:** TASK-013 in progress
-**Status:** SUB-024 complete
+**Story:** 001-provider-foundation
+**Task:** TASK-036 in progress
+**Status:** SUB-239 complete
 
 ## Session Notes
 
 <!-- Format: ### YYYY-MM-DDTHH:MM:SS: Brief title -->
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
+
+### 2026-02-05
+
+#### SUB-239
+- **Problem:** Ralph had tight coupling to Claude Code CLI with no abstraction for multi-provider support.
+- **Changes:** Created provider type system with discriminated unions for 6 AI coding agent providers (claude, opencode, codex, gemini, pi, cursor). Added AgentResult with normalized naming, InvocationMode union, PROVIDER_BINARIES constant, barrel export, and RalphConfig extension with provider/model/lightweightModel fields. Added 10 unit tests covering type narrowing, PROVIDER_BINARIES completeness, and AgentResult shape.
+- **Files:**
+  - `tools/src/commands/ralph/providers/types.ts` - All provider abstraction types
+  - `tools/src/commands/ralph/providers/index.ts` - Barrel export
+  - `tools/src/commands/ralph/types.ts` - Extended RalphConfig with provider fields
+  - `tools/tests/providers/types.test.ts` - 10 unit tests
 
 ### 2026-02-02
 
