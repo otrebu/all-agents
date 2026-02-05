@@ -17,11 +17,12 @@ import path from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
-import { invokeClaudeHeadless } from "./claude";
+import { invokeClaudeHeadlessAsync } from "./claude";
 import {
   getCompletedSubtasks,
   loadRalphConfig,
   loadSubtasksFile,
+  loadTimeoutConfig,
 } from "./config";
 
 // =============================================================================
@@ -140,19 +141,19 @@ function loadSubtasksFileOrNull(subtasksPath: string): null | SubtasksFile {
  * @param options - Calibrate options
  * @returns true if all checks succeeded
  */
-function runCalibrate(
+async function runCalibrate(
   subcommand: CalibrateSubcommand,
   options: CalibrateOptions,
-): boolean {
+): Promise<boolean> {
   switch (subcommand) {
     case "all": {
-      const isIntentionOk = runIntentionCheck(options);
+      const isIntentionOk = await runIntentionCheck(options);
       console.log();
 
-      const isTechnicalOk = runTechnicalCheck(options);
+      const isTechnicalOk = await runTechnicalCheck(options);
       console.log();
 
-      const isImproveOk = runImproveCheck(options);
+      const isImproveOk = await runImproveCheck(options);
 
       return isIntentionOk && isTechnicalOk && isImproveOk;
     }
@@ -189,7 +190,7 @@ function runCalibrate(
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-function runImproveCheck(options: CalibrateOptions): boolean {
+async function runImproveCheck(options: CalibrateOptions): Promise<boolean> {
   console.log("=== Running Self-Improvement Analysis ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -279,12 +280,20 @@ Handle improvements based on the mode above.
 
 ${promptContent}`;
 
-  // Run Claude for analysis
+  // Run Claude for analysis with timeout protection
   console.log("Invoking Claude for self-improvement analysis...");
-  const result = invokeClaudeHeadless({ prompt });
+  const timeoutConfig = loadTimeoutConfig();
+  const result = await invokeClaudeHeadlessAsync({
+    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+    prompt,
+    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+    timeout: timeoutConfig.hardMinutes * 60 * 1000,
+  });
 
   if (result === null) {
-    console.error("Self-improvement analysis failed or was interrupted");
+    console.error(
+      "Self-improvement analysis failed, was interrupted, or timed out",
+    );
     return false;
   }
 
@@ -308,7 +317,7 @@ ${promptContent}`;
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-function runIntentionCheck(options: CalibrateOptions): boolean {
+async function runIntentionCheck(options: CalibrateOptions): Promise<boolean> {
   console.log("=== Running Intention Drift Check ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -369,12 +378,20 @@ If drift is detected, create task files in docs/planning/tasks/ as specified in 
 
 ${promptContent}`;
 
-  // Run Claude for analysis
+  // Run Claude for analysis with timeout protection
   console.log("Invoking Claude for intention drift analysis...");
-  const result = invokeClaudeHeadless({ prompt });
+  const timeoutConfig = loadTimeoutConfig();
+  const result = await invokeClaudeHeadlessAsync({
+    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+    prompt,
+    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+    timeout: timeoutConfig.hardMinutes * 60 * 1000,
+  });
 
   if (result === null) {
-    console.error("Intention drift analysis failed or was interrupted");
+    console.error(
+      "Intention drift analysis failed, was interrupted, or timed out",
+    );
     return false;
   }
 
@@ -398,7 +415,7 @@ ${promptContent}`;
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-function runTechnicalCheck(options: CalibrateOptions): boolean {
+async function runTechnicalCheck(options: CalibrateOptions): Promise<boolean> {
   console.log("=== Running Technical Drift Check ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -453,12 +470,20 @@ Analyze code quality issues in completed subtasks and output a summary to stdout
 
 ${promptContent}`;
 
-  // Run Claude for analysis
+  // Run Claude for analysis with timeout protection
   console.log("Invoking Claude for technical drift analysis...");
-  const result = invokeClaudeHeadless({ prompt });
+  const timeoutConfig = loadTimeoutConfig();
+  const result = await invokeClaudeHeadlessAsync({
+    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+    prompt,
+    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+    timeout: timeoutConfig.hardMinutes * 60 * 1000,
+  });
 
   if (result === null) {
-    console.error("Technical drift analysis failed or was interrupted");
+    console.error(
+      "Technical drift analysis failed, was interrupted, or timed out",
+    );
     return false;
   }
 

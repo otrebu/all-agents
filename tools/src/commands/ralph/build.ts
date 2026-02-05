@@ -1002,7 +1002,8 @@ async function runBuild(
     iteration += 1;
 
     // Run calibration every N iterations (if enabled)
-    runPeriodicCalibration({
+    // eslint-disable-next-line no-await-in-loop -- Must await calibration before next iteration
+    await runPeriodicCalibration({
       calibrateEvery,
       contextRoot,
       iteration,
@@ -1019,13 +1020,15 @@ async function runBuild(
  * Run periodic calibration if enabled and due
  * Placed after runBuild for alphabetical sorting per lint rules.
  */
-function runPeriodicCalibration(options: PeriodicCalibrationOptions): void {
+async function runPeriodicCalibration(
+  options: PeriodicCalibrationOptions,
+): Promise<void> {
   const { calibrateEvery, contextRoot, iteration, subtasksPath } = options;
   if (calibrateEvery > 0 && iteration % calibrateEvery === 0) {
     console.log(
       `\n=== Running calibration (every ${calibrateEvery} iterations) ===\n`,
     );
-    runCalibrate("all", { contextRoot, subtasksPath });
+    await runCalibrate("all", { contextRoot, subtasksPath });
   }
 }
 

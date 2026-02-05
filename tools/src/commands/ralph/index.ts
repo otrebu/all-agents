@@ -18,7 +18,7 @@ import { runCascadeFrom, validateCascadeTarget } from "./cascade";
 import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
-  invokeClaudeHeadless as invokeClaudeHeadlessFromModule,
+  invokeClaudeHeadlessAsync as invokeClaudeHeadlessAsyncFromModule,
 } from "./claude";
 import {
   countSubtasksInFile,
@@ -26,6 +26,7 @@ import {
   getExistingTaskReferences,
   getPlanningLogPath as getMilestonePlanningLogPath,
   loadSubtasksFile,
+  loadTimeoutConfig,
   ORPHAN_MILESTONE_ROOT,
 } from "./config";
 import {
@@ -303,9 +304,9 @@ function invokeClaudeChat(
  * Reads prompt from file, invokes Claude headless, and logs results.
  * Exits process on failure.
  */
-function invokeClaudeHeadless(
+async function invokeClaudeHeadless(
   options: HeadlessWithLoggingOptions,
-): HeadlessWithLoggingResult {
+): Promise<HeadlessWithLoggingResult> {
   const { extraContext, logFile, promptPath, sessionName, sizeMode } = options;
 
   if (!existsSync(promptPath)) {
@@ -326,10 +327,18 @@ function invokeClaudeHeadless(
   console.log(`${chalk.dim("Log:")}     ${logFile}`);
   console.log();
 
-  const result = invokeClaudeHeadlessFromModule({ prompt: fullPrompt });
+  const timeoutConfig = loadTimeoutConfig();
+  const result = await invokeClaudeHeadlessAsyncFromModule({
+    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+    prompt: fullPrompt,
+    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+    timeout: timeoutConfig.hardMinutes * 60 * 1000,
+  });
 
   if (result === null) {
-    console.error("Claude headless invocation failed or was interrupted");
+    console.error(
+      "Claude headless invocation failed, was interrupted, or timed out",
+    );
     process.exit(1);
   }
 
@@ -916,7 +925,9 @@ function resolveMilestoneFromOptions(
 /**
  * Run subtasks generation in headless mode and render summary
  */
-function runSubtasksHeadless(options: RunSubtasksHeadlessOptions): void {
+async function runSubtasksHeadless(
+  options: RunSubtasksHeadlessOptions,
+): Promise<void> {
   const {
     beforeCount,
     extraContext,
@@ -933,7 +944,7 @@ function runSubtasksHeadless(options: RunSubtasksHeadlessOptions): void {
   } = options;
 
   const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
-  const result = invokeClaudeHeadless({
+  const result = await invokeClaudeHeadless({
     extraContext,
     logFile,
     promptPath,
@@ -994,7 +1005,9 @@ function runSubtasksHeadless(options: RunSubtasksHeadlessOptions): void {
  *
  * @returns Resolved milestone path
  */
-function runTasksMilestoneMode(options: TasksMilestoneOptions): string {
+async function runTasksMilestoneMode(
+  options: TasksMilestoneOptions,
+): Promise<string> {
   const { contextRoot, isAutoMode, isHeadless, milestone } = options;
 
   if (!isAutoMode) {
@@ -1016,7 +1029,7 @@ function runTasksMilestoneMode(options: TasksMilestoneOptions): string {
 
   if (isHeadless) {
     const logFile = getPlanningLogPath(milestonePath);
-    invokeClaudeHeadless({
+    await invokeClaudeHeadless({
       extraContext,
       logFile,
       promptPath,
@@ -1032,7 +1045,7 @@ function runTasksMilestoneMode(options: TasksMilestoneOptions): string {
 /**
  * Execute tasks planning from file or text source
  */
-function runTasksSourceMode(options: TasksSourceOptions): void {
+async function runTasksSourceMode(options: TasksSourceOptions): Promise<void> {
   const { contextRoot, file, hasFile, isHeadless, isSupervised, text } =
     options;
 
@@ -1048,7 +1061,7 @@ function runTasksSourceMode(options: TasksSourceOptions): void {
 
   if (isHeadless) {
     const logFile = getPlanningLogPath();
-    invokeClaudeHeadless({
+    await invokeClaudeHeadless({
       extraContext,
       logFile,
       promptPath,
@@ -1066,7 +1079,9 @@ function runTasksSourceMode(options: TasksSourceOptions): void {
  *
  * @returns Resolved milestone path if story is in a milestone, null otherwise
  */
-function runTasksStoryMode(options: TasksStoryOptions): null | string {
+async function runTasksStoryMode(
+  options: TasksStoryOptions,
+): Promise<null | string> {
   const { contextRoot, isAutoMode, isHeadless, isSupervised, story } = options;
 
   const storyPath = requireStory(story);
@@ -1083,7 +1098,7 @@ function runTasksStoryMode(options: TasksStoryOptions): null | string {
 
   if (isHeadless) {
     const logFile = getPlanningLogPath();
-    invokeClaudeHeadless({
+    await invokeClaudeHeadless({
       extraContext,
       logFile,
       promptPath,
@@ -1186,7 +1201,7 @@ planCommand.addCommand(
       // Determine execution mode
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1277,14 +1292,14 @@ planCommand.addCommand(
 
       // Execute based on source type
       if (hasMilestone && options.milestone !== undefined) {
-        resolvedMilestonePath = runTasksMilestoneMode({
+        resolvedMilestonePath = await runTasksMilestoneMode({
           contextRoot,
           isAutoMode,
           isHeadless: options.headless === true,
           milestone: options.milestone,
         });
       } else if (hasStory && options.story !== undefined) {
-        resolvedMilestonePath = runTasksStoryMode({
+        resolvedMilestonePath = await runTasksStoryMode({
           contextRoot,
           isAutoMode,
           isHeadless: options.headless === true,
@@ -1292,7 +1307,7 @@ planCommand.addCommand(
           story: options.story,
         });
       } else {
-        runTasksSourceMode({
+        await runTasksSourceMode({
           contextRoot,
           file: options.file,
           hasFile,
@@ -1519,7 +1534,7 @@ planCommand.addCommand(
 
       if (options.headless === true) {
         // Headless mode with summary - use extracted helper
-        runSubtasksHeadless({
+        await runSubtasksHeadless({
           beforeCount,
           extraContext,
           hasMilestone,
@@ -1594,7 +1609,7 @@ reviewCommand.addCommand(
       "Milestone path to review stories for",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
       const promptPath = getReviewPromptPath(contextRoot, "stories", false);
@@ -1602,7 +1617,7 @@ reviewCommand.addCommand(
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1619,14 +1634,14 @@ reviewCommand.addCommand(
   new Command("roadmap")
     .description("Review roadmap milestones for quality and completeness")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "roadmap", false);
       const extraContext = "Reviewing roadmap for quality and completeness";
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1648,14 +1663,14 @@ gapCommand.addCommand(
   new Command("roadmap")
     .description("Cold analysis of roadmap for gaps and risks")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "roadmap", true);
       const extraContext = "Gap analysis of roadmap for risks and blind spots";
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1676,7 +1691,7 @@ gapCommand.addCommand(
       "Milestone path to analyze stories for",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
       const promptPath = getReviewPromptPath(contextRoot, "stories", true);
@@ -1684,7 +1699,7 @@ gapCommand.addCommand(
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1702,7 +1717,7 @@ gapCommand.addCommand(
     .description("Cold analysis of tasks for gaps and risks")
     .requiredOption("--story <path>", "Story path to analyze tasks for")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const storyPath = requireStory(options.story);
       const promptPath = getReviewPromptPath(contextRoot, "tasks", true);
@@ -1711,7 +1726,7 @@ gapCommand.addCommand(
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1729,7 +1744,7 @@ gapCommand.addCommand(
     .description("Cold analysis of subtask queue for gaps and risks")
     .requiredOption("--subtasks <path>", "Subtasks file path to analyze")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "subtasks", true);
       const extraContext = `Gap analysis of subtasks file: ${options.subtasks}`;
@@ -1737,7 +1752,7 @@ gapCommand.addCommand(
       if (options.headless === true) {
         // Subtasks mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1757,7 +1772,7 @@ reviewCommand.addCommand(
     .description("Review tasks for a story")
     .requiredOption("--story <path>", "Story path to review tasks for")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const storyPath = requireStory(options.story);
       const promptPath = getReviewPromptPath(contextRoot, "tasks", false);
@@ -1766,7 +1781,7 @@ reviewCommand.addCommand(
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1784,7 +1799,7 @@ reviewCommand.addCommand(
     .description("Review subtask queue before building")
     .requiredOption("--subtasks <path>", "Subtasks file path to review")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
@@ -1795,7 +1810,7 @@ reviewCommand.addCommand(
       if (options.headless === true) {
         // Subtasks review doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
@@ -1880,17 +1895,17 @@ function resolveCalibrateSubtasksPath(
 /**
  * Helper to run calibrate subcommand and exit on failure
  */
-function runCalibrateSubcommand(
+async function runCalibrateSubcommand(
   subcommand: CalibrateSubcommand,
   options: { force?: boolean; review?: boolean; subtasks: string },
-): void {
+): Promise<void> {
   const contextRoot = getContextRoot();
   const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
     options.subtasks,
     contextRoot,
   );
 
-  const didSucceed = runCalibrate(subcommand, {
+  const didSucceed = await runCalibrate(subcommand, {
     contextRoot,
     force: options.force,
     review: options.review,
@@ -1909,8 +1924,8 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("intention", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("intention", options);
     }),
 );
 
@@ -1921,8 +1936,8 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("technical", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("technical", options);
     }),
 );
 
@@ -1933,8 +1948,8 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("improve", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("improve", options);
     }),
 );
 
@@ -1945,8 +1960,8 @@ calibrateCommand.addCommand(
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("all", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("all", options);
     }),
 );
 

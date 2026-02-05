@@ -351,90 +351,6 @@ async function invokeClaudeHaiku(
 }
 
 /**
- * Headless mode: Run Claude with -p and JSON output
- *
- * Uses stdio: ['inherit', 'pipe', 'inherit'] to separate stderr from stdout.
- * This is CRITICAL for JSON parsing - stderr messages (progress, warnings)
- * would contaminate stdout and break JSON.parse().
- *
- * @param options - HeadlessOptions with prompt and optional maxBuffer
- * @returns HeadlessResult with session info, or null if interrupted/failed
- */
-function invokeClaudeHeadless(options: HeadlessOptions): HeadlessResult | null {
-  const { prompt } = options;
-
-  // Headless mode: -p with JSON output
-  // CRITICAL: Use ['ignore', 'pipe', 'inherit'] to separate stderr from stdout
-  // - stdin: ignore (headless mode doesn't need interactive input)
-  // - stdout: pipe (capture for JSON parsing)
-  // - stderr: inherit (show progress to user, don't mix with JSON)
-  const proc = Bun.spawnSync(
-    [
-      "claude",
-      "-p",
-      prompt,
-      "--dangerously-skip-permissions",
-      "--output-format",
-      "json",
-    ],
-    { stdio: ["ignore", "pipe", "inherit"] },
-  );
-
-  // Handle signal interruption (Ctrl+C)
-  const terminationSignal = normalizeTerminationSignal(proc.signalCode);
-  if (terminationSignal !== null) {
-    console.log("\nSession interrupted by user");
-    exitForSignal(terminationSignal);
-  }
-
-  const terminationFromExit = exitCodeToSignal(proc.exitCode);
-  if (terminationFromExit !== null) {
-    console.log("\nSession interrupted by user");
-    exitForSignal(terminationFromExit);
-  }
-
-  if (proc.exitCode !== 0) {
-    console.error(`Claude exited with code ${proc.exitCode}`);
-    return null;
-  }
-
-  // Parse JSON from stdout (now clean without stderr contamination)
-  // Claude outputs JSON array: [{type:"system",...}, {type:"assistant",...}, {type:"result",...}]
-  // We need the last element with type:"result"
-  try {
-    const stdout = proc.stdout.toString("utf8");
-    const parsed = JSON.parse(stdout) as
-      | Array<ClaudeJsonOutput>
-      | ClaudeJsonOutput;
-    const output: ClaudeJsonOutput = Array.isArray(parsed)
-      ? (parsed.findLast(
-          (entry) => (entry as { type?: string }).type === "result",
-        ) ??
-        parsed.at(-1) ??
-        {})
-      : parsed;
-
-    return {
-      cost: output.total_cost_usd ?? 0,
-      duration: output.duration_ms ?? 0,
-      result: output.result ?? "",
-      sessionId: output.session_id ?? "",
-    };
-  } catch (error) {
-    // Handle invalid JSON from Claude CLI (known issue: https://github.com/anthropics/claude-code/issues/19060)
-    // The CLI sometimes returns empty or invalid responses due to rate limiting, network issues, or API timeouts
-    const preview = proc.stdout.toString("utf8").slice(0, 500);
-    console.error("Failed to parse Claude JSON output.");
-    console.error(
-      "Parse error:",
-      error instanceof Error ? error.message : String(error),
-    );
-    console.error("Stdout preview:", preview || "(empty)");
-    return null;
-  }
-}
-
-/**
  * Async Headless mode: Run Claude with -p and JSON output
  *
  * This variant enables non-blocking waits (for heartbeats/timeouts) and keeps
@@ -701,6 +617,5 @@ export {
   type HeadlessResult,
   invokeClaudeChat,
   invokeClaudeHaiku,
-  invokeClaudeHeadless,
   invokeClaudeHeadlessAsync,
 };

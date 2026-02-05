@@ -399,7 +399,7 @@ async function runLevel(
 
     case "calibrate": {
       const calibrateSubcommand: CalibrateSubcommand = "all";
-      const didSucceed = runCalibrate(calibrateSubcommand, {
+      const didSucceed = await runCalibrate(calibrateSubcommand, {
         contextRoot,
         subtasksPath,
       });

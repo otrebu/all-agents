@@ -12,7 +12,8 @@ import type {
   TriageDecision,
 } from "./types";
 
-import { invokeClaudeChat, invokeClaudeHeadless } from "../ralph/claude";
+import { invokeClaudeChat, invokeClaudeHeadlessAsync } from "../ralph/claude";
+import { loadTimeoutConfig } from "../ralph/config";
 import { formatDuration, renderMarkdown } from "../ralph/display";
 import { executeHook, type HookContext } from "../ralph/hooks";
 import { calculatePriority, FindingsArraySchema } from "./types";
@@ -888,11 +889,19 @@ async function runHeadlessReview(
 
   console.log(chalk.dim("Invoking Claude in headless mode...\n"));
 
-  // Invoke Claude headless
-  const result = invokeClaudeHeadless({ prompt });
+  // Invoke Claude headless with timeout protection
+  const timeoutConfig = loadTimeoutConfig();
+  const result = await invokeClaudeHeadlessAsync({
+    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+    prompt,
+    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+    timeout: timeoutConfig.hardMinutes * 60 * 1000,
+  });
 
   if (result === null) {
-    console.error(chalk.red("\nHeadless review failed or was interrupted"));
+    console.error(
+      chalk.red("\nHeadless review failed, was interrupted, or timed out"),
+    );
     process.exit(1);
   }
 
