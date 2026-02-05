@@ -2,9 +2,9 @@
 
 ## Current Focus
 
-**Story:** 002-claude-refactor
-**Task:** TASK-040 registry integration
-**Status:** SUB-259 complete
+**Story:** 001-provider-foundation
+**Task:** TASK-037 provider registry
+**Status:** SUB-244 complete
 
 ## Session Notes
 
@@ -13,6 +13,16 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-244
+- **Problem:** The provider registry (registry.ts) created in SUB-259 was missing several functions specified in TASK-037: REGISTRY constant, isBinaryAvailable(), getInstallInstructions(), ProviderSelectionContext, selectProviderFromEnv(), autoDetectProvider(), and ProviderError optional cause.
+- **Changes:** Expanded registry.ts with all 9 required functions/types. Added REGISTRY constant with all 6 providers (available: false, stub invokers). Added isBinaryAvailable() using Bun.spawn with `which`, getInstallInstructions() for each provider, ProviderError with optional cause field. Changed selectProvider() from simple string override to ProviderSelectionContext object (cliFlag > envVariable > configFile > auto-detect). Added selectProviderFromEnv() reading process.argv and env, autoDetectProvider() with Promise.all for parallel binary checking. Updated invokeWithProvider() to check REGISTRY and binary availability with install instructions in errors. Updated callers in build.ts and review/index.ts. 53 unit tests.
+- **Files:**
+  - `tools/src/commands/ralph/providers/registry.ts` - Expanded with REGISTRY, isBinaryAvailable, getInstallInstructions, ProviderSelectionContext, selectProviderFromEnv, autoDetectProvider
+  - `tools/src/commands/ralph/providers/index.ts` - Added new exports
+  - `tools/src/commands/ralph/build.ts` - Updated selectProvider call to use ProviderSelectionContext
+  - `tools/src/commands/review/index.ts` - Updated selectProvider calls to use ProviderSelectionContext
+  - `tools/tests/providers/registry.test.ts` - Expanded from 20 to 53 unit tests
 
 #### SUB-259
 - **Problem:** build.ts and review/index.ts directly imported Claude invocation functions (invokeClaudeHeadlessAsync, invokeClaudeChat), tightly coupling them to Claude as the only provider. No provider registry existed despite being a prerequisite.

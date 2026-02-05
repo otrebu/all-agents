@@ -134,7 +134,7 @@
       "storyRef": "001-provider-foundation",
       "title": "Create provider registry module with selection and availability logic",
       "description": "Create tools/src/commands/ralph/providers/registry.ts with the full provider registry implementation. This includes: (1) REGISTRY constant mapping all 6 providers to their ProviderCapabilities (all available: false initially, invoke: null, supportedModes per provider). (2) isBinaryAvailable(binary) async function that checks PATH using Bun shell or which command. (3) getInstallInstructions(provider) returning install command string for each provider. (4) ProviderError class with provider field and optional cause. (5) invokeWithProvider(provider, options) that validates binary availability lazily and checks provider is implemented before invoking. (6) ProviderSelectionContext interface and selectProvider(context) pure function implementing priority: CLI flag > env var > config > auto-detect. (7) selectProviderFromEnv() that reads process.argv, process.env.RALPH_PROVIDER, and config file. (8) validateProvider(provider) that throws ProviderError for invalid providers with helpful message listing valid options. (9) autoDetectProvider() that checks binaries in priority order (claude, opencode, codex, gemini, pi) and defaults to claude. Import types from ./types (ProviderType, ProviderCapabilities, InvocationOptions, AgentResult, PROVIDER_BINARIES). Export all public functions, types, and constants.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/registry.ts exists with all functions",
         "REGISTRY constant has all 6 providers with available: false and correct supportedModes",
@@ -156,7 +156,10 @@
         "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-036-provider-types.md",
         "tools/src/commands/ralph/config.ts",
         "tools/src/commands/ralph/claude.ts"
-      ]
+      ],
+      "completedAt": "2026-02-05T16:38:57Z",
+      "commitHash": "46a04b2061a9bb1925711d04d6c473758aca6389",
+      "sessionId": "93b9b18a-8635-420f-b3d1-b75e64cee3b9"
     },
     {
       "id": "SUB-245",
