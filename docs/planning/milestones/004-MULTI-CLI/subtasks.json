@@ -291,7 +291,7 @@
       "storyRef": "002-claude-refactor",
       "title": "Update all dependent imports and delete original claude.ts",
       "description": "Update all files that import from ./claude to import from ./providers/claude instead. There are 5 dependent files: (1) tools/src/commands/ralph/build.ts imports buildPrompt, invokeClaudeChat, invokeClaudeHeadlessAsync; (2) tools/src/commands/ralph/index.ts imports multiple claude functions; (3) tools/src/commands/ralph/calibrate.ts imports invokeClaudeHeadlessAsync (updated in timeout protection migration); (4) tools/src/commands/ralph/post-iteration.ts imports invokeClaudeHaiku; (5) tools/src/commands/review/index.ts imports invokeClaudeChat, invokeClaudeHeadlessAsync from ../ralph/claude (becomes ../ralph/providers/claude). NOTE: calibrate.ts and review/index.ts were updated to use invokeClaudeHeadlessAsync (replacing the removed sync invokeClaudeHeadless) during the timeout protection migration. After updating all imports, delete the original tools/src/commands/ralph/claude.ts. Verify TypeScript compiles cleanly with bun run typecheck. Run existing tests to confirm no regressions.",
-      "done": false,
+      "done": true,
       "blockedBy": [
         "SUB-254"
       ],
@@ -312,7 +312,10 @@
         "tools/src/commands/ralph/post-iteration.ts",
         "tools/src/commands/review/index.ts",
         "tools/src/commands/ralph/providers/claude.ts"
-      ]
+      ],
+      "completedAt": "2026-02-05T18:33:35Z",
+      "commitHash": "44f337451f2f7fac627515e30e41512e2ed3c1dc",
+      "sessionId": ""
     },
     {
       "id": "SUB-279",

@@ -4,7 +4,7 @@
 
 **Story:** 002-claude-refactor
 **Task:** TASK-039 claude-refactor
-**Status:** SUB-254 complete
+**Status:** SUB-255 complete
 
 ## Session Notes
 
@@ -13,6 +13,11 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-255
+- **Problem:** SUB-255 required updating all files importing from `./claude` to import from `./providers/claude` and deleting the original `claude.ts`. This work was already completed by prior subtasks (SUB-269 moved files/imports, SUB-264 refactored calibrate.ts to use registry, SUB-259 refactored build.ts and review/index.ts to use registry).
+- **Changes:** Validation-only iteration. Verified all 8 acceptance criteria: build.ts, index.ts, post-iteration.ts import from `./providers/claude`; calibrate.ts and review/index.ts import from `./providers/registry`; original claude.ts deleted; typecheck passes; all 684 tests pass.
+- **Files:** No changes needed (all work done by SUB-269, SUB-264, SUB-259)
 
 #### SUB-254
 - **Problem:** providers/claude.ts used local type definitions (HeadlessResult, HeadlessOptions, HeadlessAsyncOptions, HaikuOptions, ClaudeJsonOutput) instead of provider types from types.ts, and lacked a normalizeClaudeResult() function for testable JSON parsing. invokeClaudeHeadlessAsync returned HeadlessResult with non-standard field names (cost, duration) instead of AgentResult.
