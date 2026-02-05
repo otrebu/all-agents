@@ -18,6 +18,7 @@ import type {
 
 import { loadRalphConfig } from "../config";
 import { invokeClaudeChat, invokeClaudeHeadlessAsync } from "./claude";
+import { invokeOpencode } from "./opencode";
 import { PROVIDER_BINARIES } from "./types";
 
 // =============================================================================
@@ -394,8 +395,8 @@ const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
     supportedModes: [] satisfies Array<InvocationMode>,
   },
   opencode: {
-    available: false,
-    invoke: createNotImplementedInvoker("opencode"),
+    available: true,
+    invoke: invokeOpencode,
     supportedModes: [
       "supervised",
       "headless-sync",

@@ -40,10 +40,21 @@ describe("REGISTRY", () => {
     }
   });
 
-  test("all providers have available: false", () => {
-    for (const provider of allProviders) {
+  test("stub providers have available: false", () => {
+    const stubProviders: Array<ProviderType> = [
+      "claude",
+      "codex",
+      "cursor",
+      "gemini",
+      "pi",
+    ];
+    for (const provider of stubProviders) {
       expect(REGISTRY[provider].available).toBe(false);
     }
+  });
+
+  test("opencode has available: true", () => {
+    expect(REGISTRY.opencode.available).toBe(true);
   });
 
   test("all providers have invoke function", () => {
@@ -649,15 +660,12 @@ describe("invokeWithProvider error handling", () => {
     });
 
     try {
-      await invokeWithProvider("opencode", {
-        mode: "headless",
-        prompt: "test",
-      });
+      await invokeWithProvider("codex", { mode: "headless", prompt: "test" });
       expect(true).toBe(false);
     } catch (error) {
       expect(error).toBeInstanceOf(ProviderError);
       const pe = error as ProviderError;
-      expect(pe.provider).toBe("opencode");
+      expect(pe.provider).toBe("codex");
       expect(pe.message).toContain("not yet implemented");
     }
   });

@@ -13,7 +13,14 @@
  * @see docs/planning/milestones/004-MULTI-CLI/stories/003-opencode-support.md
  */
 
-import type { AgentResult, TokenUsage } from "./types";
+import type {
+  AgentResult,
+  InvocationOptions,
+  OpencodeConfig,
+  TokenUsage,
+} from "./types";
+
+import { executeWithTimeout } from "./utils";
 
 /** Parsed OpenCode JSONL event */
 interface OpencodeEvent {
@@ -32,6 +39,59 @@ interface OpencodeEvent {
   sessionID?: string;
   timestamp?: number;
   type: string;
+}
+
+/**
+ * Registry-compatible invoker for the OpenCode provider.
+ *
+ * Spawns the `opencode` CLI in headless mode with `--output jsonl`,
+ * captures the JSONL stdout, and normalizes to AgentResult.
+ *
+ * Supervised mode is not yet implemented (returns null).
+ *
+ * @param options - Standard invocation options from the registry
+ * @returns Normalized AgentResult, or null on failure
+ */
+async function invokeOpencode(
+  options: InvocationOptions,
+): Promise<AgentResult> {
+  if (options.mode === "supervised") {
+    // Supervised mode: OpenCode interactive session
+    // Not yet implemented - would require stdio: inherit like Claude's chat mode
+    return { costUsd: 0, durationMs: 0, result: "", sessionId: "" };
+  }
+
+  // Headless mode: spawn opencode with prompt on stdin
+  const config = options.config as OpencodeConfig;
+  const args = ["--output", "jsonl", "--prompt", options.prompt];
+
+  if (config.model !== undefined && config.model !== "") {
+    args.push("--model", config.model);
+  }
+
+  const result = await executeWithTimeout({
+    args,
+    command: "opencode",
+    cwd: config.workingDirectory,
+    stallDetection:
+      config.timeoutMs !== undefined && config.timeoutMs > 0
+        ? { hardTimeoutMs: config.timeoutMs, stallTimeoutMs: config.timeoutMs }
+        : undefined,
+  });
+
+  if (result.timedOut) {
+    throw new Error(
+      `OpenCode timed out after ${result.durationMs}ms (reason: ${result.terminationReason})`,
+    );
+  }
+
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `OpenCode exited with code ${result.exitCode}: ${result.stderr === "" ? result.stdout : result.stderr}`,
+    );
+  }
+
+  return normalizeOpencodeResult(result.stdout);
 }
 
 /**
@@ -114,4 +174,4 @@ function normalizeOpencodeResult(jsonlOutput: string): AgentResult {
   return { costUsd, durationMs, result: resultText, sessionId, tokenUsage };
 }
 
-export { normalizeOpencodeResult, type OpencodeEvent };
+export { invokeOpencode, normalizeOpencodeResult, type OpencodeEvent };
