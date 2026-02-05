@@ -1,0 +1,10 @@
+[
+  { "type": "system", "subtype": "init" },
+  {
+    "type": "result",
+    "subtype": "success",
+    "result": "Partial task done.",
+    "duration_ms": 5000,
+    "total_cost_usd": 0.01
+  }
+]

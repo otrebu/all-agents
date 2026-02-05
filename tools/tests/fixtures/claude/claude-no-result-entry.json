@@ -1,0 +1,10 @@
+[
+  { "type": "system", "subtype": "init", "session_id": "sess-no-result-001" },
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "content": [{ "type": "text", "text": "Working on it..." }]
+    }
+  }
+]
