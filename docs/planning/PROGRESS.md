@@ -3,8 +3,8 @@
 ## Current Focus
 
 **Story:** 002-claude-refactor
-**Task:** TASK-042 cleanup-verify
-**Status:** SUB-264 complete
+**Task:** TASK-039 claude-refactor
+**Status:** SUB-254 complete
 
 ## Session Notes
 
@@ -13,6 +13,19 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-254
+- **Problem:** providers/claude.ts used local type definitions (HeadlessResult, HeadlessOptions, HeadlessAsyncOptions, HaikuOptions, ClaudeJsonOutput) instead of provider types from types.ts, and lacked a normalizeClaudeResult() function for testable JSON parsing. invokeClaudeHeadlessAsync returned HeadlessResult with non-standard field names (cost, duration) instead of AgentResult.
+- **Changes:** Added normalizeClaudeResult() to parse Claude JSON array format into AgentResult with proper field extraction (costUsd, durationMs, sessionId, tokenUsage). Changed invokeClaudeHeadlessAsync() to return AgentResult directly. Added invokeClaude() async wrapper for registry compatibility. Removed 5 local interfaces replaced by provider types/inline options. Updated index.ts callers to use AgentResult field names. Simplified registry.ts invokeClaudeHeadless() since no field mapping needed. Added 11 unit tests with 4 fixture files. All 684 tests pass, lint/typecheck clean.
+- **Files:**
+  - `tools/src/commands/ralph/providers/claude.ts` - Refactored: added normalizeClaudeResult, invokeClaude, removed local types, returns AgentResult
+  - `tools/src/commands/ralph/providers/registry.ts` - Simplified invokeClaudeHeadless (no field mapping)
+  - `tools/src/commands/ralph/index.ts` - Updated HeadlessResult field names to AgentResult names
+  - `tools/tests/providers/claude.test.ts` - Created: 11 unit tests for normalizeClaudeResult and buildPrompt
+  - `tools/tests/fixtures/claude-success.json` - Full response fixture with token usage
+  - `tools/tests/fixtures/claude-minimal.json` - Minimal response fixture
+  - `tools/tests/fixtures/claude-error.json` - Error response fixture
+  - `tools/tests/fixtures/claude-malformed.txt` - Malformed JSON fixture
 
 #### SUB-264
 - **Problem:** calibrate.ts used direct `invokeClaudeHeadlessAsync` calls instead of the provider registry, tightly coupling calibration checks to the Claude provider.

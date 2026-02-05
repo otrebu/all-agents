@@ -262,7 +262,7 @@
       "storyRef": "002-claude-refactor",
       "title": "Move claude.ts to providers/claude.ts and refactor with shared utilities",
       "description": "Move tools/src/commands/ralph/claude.ts to tools/src/commands/ralph/providers/claude.ts. Refactor to use provider types from ./types.ts (AgentResult, ClaudeConfig) and shared utilities from ./utils.ts (executeWithTimeout, killProcessGracefully, createStallDetector, createTimeoutPromise, readStderrWithActivityTracking, safeJsonParse). Remove local type definitions (ClaudeResult stays for UI-facing use, but HeadlessResult replaced by AgentResult). Implement normalizeClaudeResult() to parse Claude JSON array format and extract result/costUsd/durationMs/sessionId/tokenUsage. Refactor invokeClaudeHeadlessAsync() and invokeClaudeHaiku() to use shared utilities. Create async invokeClaude() wrapper for registry compatibility. Add unit tests for normalizeClaudeResult() with fixtures (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.json). NOTE: The sync invokeClaudeHeadless function was removed in the timeout protection migration — all headless callers now use invokeClaudeHeadlessAsync. There are now 3 invocation functions: invokeClaudeChat (supervised), invokeClaudeHeadlessAsync (headless), invokeClaudeHaiku (lightweight).",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/claude.ts exists with all invocation functions migrated",
         "normalizeClaudeResult() extracts result, costUsd, durationMs, sessionId, tokenUsage from Claude JSON array",
@@ -280,7 +280,10 @@
         "context/blocks/quality/coding-style.md",
         "context/blocks/quality/error-handling.md",
         "context/blocks/test/unit-testing.md"
-      ]
+      ],
+      "completedAt": "2026-02-05T17:53:35Z",
+      "commitHash": "edc9d5c5b41d2ae7d186c5255609359df75e422e",
+      "sessionId": "6cfae240-61a9-40a4-96d6-ce47d3dc5a21"
     },
     {
       "id": "SUB-255",
