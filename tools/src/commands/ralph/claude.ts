@@ -6,12 +6,18 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 
+import {
+  createStallDetector,
+  createTimeoutPromise,
+  DEFAULT_GRACE_PERIOD_MS,
+  killProcessGracefully,
+  markTimerAsNonBlocking,
+  readStderrWithActivityTracking,
+} from "./providers/utils";
+
 // Conventional exit codes for signal termination.
 // 128 + signal number: SIGINT=2 -> 130, SIGTERM=15 -> 143
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
-
-/** Default grace period for SIGTERM before SIGKILL (ms) */
-const DEFAULT_GRACE_PERIOD_MS = 5000;
 
 /**
  * Claude JSON output structure (internal)
@@ -95,65 +101,6 @@ function buildPrompt(content: string, extraContext?: string): string {
     return `${extraContext}\n\n${content}`;
   }
   return content;
-}
-
-/**
- * Create a stall detector that triggers when no activity is reported
- *
- * @param getLastActivityAt - Function that returns the timestamp of last activity
- * @param stallTimeoutMs - Time in ms without activity before triggering stall
- * @returns Object with promise that resolves to "stall_timeout" and cleanup function
- */
-function createStallDetector(
-  getLastActivityAt: () => number,
-  stallTimeoutMs: number,
-): { cleanup: () => void; promise: Promise<"stall_timeout"> } {
-  let timer: null | ReturnType<typeof setTimeout> = null;
-
-  // eslint-disable-next-line promise/avoid-new -- Manual resolve needed for timer-based detection
-  const promise = new Promise<"stall_timeout">((resolve) => {
-    function checkStall(): void {
-      const timeSinceActivity = Date.now() - getLastActivityAt();
-      if (timeSinceActivity >= stallTimeoutMs) {
-        resolve("stall_timeout");
-        return;
-      }
-      // Check again after remaining time
-      const remainingMs = stallTimeoutMs - timeSinceActivity;
-      timer = setTimeout(checkStall, Math.min(remainingMs, 30_000));
-      markTimerAsNonBlocking(timer);
-    }
-    // Initial check after stall timeout period
-    timer = setTimeout(checkStall, stallTimeoutMs);
-    markTimerAsNonBlocking(timer);
-  });
-
-  return {
-    cleanup: () => {
-      if (timer !== null) clearTimeout(timer);
-    },
-    promise,
-  };
-}
-
-/**
- * Create a timeout promise that resolves after the specified duration
- *
- * @param timeoutMs - Duration in milliseconds
- * @param outcome - The value to resolve to
- * @returns Promise that resolves to the outcome after timeout
- */
-async function createTimeoutPromise<T>(
-  timeoutMs: number,
-  outcome: T,
-): Promise<T> {
-  // eslint-disable-next-line promise/avoid-new -- setTimeout requires manual promise wrapping
-  return new Promise<T>((resolve) => {
-    const timer = setTimeout(() => {
-      resolve(outcome);
-    }, timeoutMs);
-    markTimerAsNonBlocking(timer);
-  });
 }
 
 function exitCodeToSignal(
@@ -288,11 +235,7 @@ async function invokeClaudeHaiku(
             const timer = setTimeout(() => {
               resolve("timeout");
             }, timeoutMs);
-            // Avoid keeping the process alive solely because of the timeout.
-            const maybeTimer = timer as unknown as { unref?: () => void };
-            if (typeof maybeTimer.unref === "function") {
-              maybeTimer.unref();
-            }
+            markTimerAsNonBlocking(timer);
           }),
         ])
       : await proc.exited.then(() => "exited" as const);
@@ -513,99 +456,11 @@ async function invokeClaudeHeadlessAsync(
   }
 }
 
-/**
- * Kill a process gracefully with two-phase termination
- *
- * Phase 1: Send SIGTERM (polite request to terminate)
- * Phase 2: Wait for grace period, then SIGKILL if still running
- *
- * This follows UNIX best practices - give the process a chance to clean up
- * its own children and resources before forcing termination.
- *
- * @param proc - The Bun subprocess to kill
- * @param gracePeriodMs - Time to wait after SIGTERM before SIGKILL (default: 5000ms)
- */
-async function killProcessGracefully(
-  proc: ReturnType<typeof Bun.spawn>,
-  gracePeriodMs = DEFAULT_GRACE_PERIOD_MS,
-): Promise<void> {
-  // Phase 1: SIGTERM (polite request)
-  try {
-    proc.kill("SIGTERM");
-  } catch {
-    // Process already dead - nothing to do
-    return;
-  }
-
-  // Phase 2: Wait for graceful exit
-  const didExit = await Promise.race([
-    proc.exited.then(() => true),
-    // eslint-disable-next-line promise/avoid-new -- setTimeout requires manual promise wrapping
-    new Promise<false>((resolve) => {
-      const timer = setTimeout(() => {
-        resolve(false);
-      }, gracePeriodMs);
-      // Avoid keeping the process alive solely because of the grace period timer
-      const maybeTimer = timer as unknown as { unref?: () => void };
-      if (typeof maybeTimer.unref === "function") {
-        maybeTimer.unref();
-      }
-    }),
-  ]);
-
-  // Phase 3: SIGKILL if still running
-  if (!didExit) {
-    try {
-      proc.kill("SIGKILL");
-    } catch {
-      // Already dead - that's fine
-    }
-    // Always await proc.exited to prevent zombie processes
-    await proc.exited;
-  }
-}
-
-/**
- * Mark a timer so it doesn't keep the process alive
- */
-function markTimerAsNonBlocking(timer: ReturnType<typeof setTimeout>): void {
-  const maybeTimer = timer as unknown as { unref?: () => void };
-  if (typeof maybeTimer.unref === "function") {
-    maybeTimer.unref();
-  }
-}
-
 function normalizeTerminationSignal(
   signal: null | string | undefined,
 ): null | TerminationSignal {
   if (signal === "SIGINT" || signal === "SIGTERM") return signal;
   return null;
-}
-
-/**
- * Read stderr from a subprocess, forwarding to console while tracking activity
- *
- * @param stderr - The subprocess stderr readable stream
- * @param onActivity - Callback invoked when stderr output is received
- * @returns Promise that resolves when stderr stream ends
- */
-async function readStderrWithActivityTracking(
-  stderr: ReadableStream<Uint8Array>,
-  onActivity: () => void,
-): Promise<void> {
-  const reader = stderr.getReader();
-  const decoder = new TextDecoder();
-  try {
-    for (;;) {
-      // eslint-disable-next-line no-await-in-loop -- Sequential stream reading is required
-      const { done: isDone, value } = await reader.read();
-      if (isDone) break;
-      onActivity();
-      process.stderr.write(decoder.decode(value, { stream: true }));
-    }
-  } catch {
-    // Ignore read errors (process may have been killed)
-  }
 }
 
 export {
