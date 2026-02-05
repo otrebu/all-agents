@@ -40,7 +40,7 @@
       "storyRef": "001-provider-foundation",
       "title": "Create providers/utils.ts with shared process utilities and unit tests",
       "description": "Create tools/src/commands/ralph/providers/utils.ts extracting reusable process execution utilities from claude.ts. Implement all interfaces (StallDetectionConfig, ProcessExecutionOptions, ProcessExecutionResult) and functions (executeWithTimeout, createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking, safeJsonParse, parseJsonl, markTimerAsNonBlocking). Generalize function signatures to accept command/args instead of hardcoding claude. Also create tools/tests/providers/utils.test.ts with comprehensive unit tests covering: safeJsonParse (valid JSON, invalid JSON, no default), parseJsonl (multiple lines, empty lines, invalid lines), createTimeoutPromise (resolves after duration), killProcessGracefully (SIGTERM first, SIGKILL after grace period).",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/utils.ts exists with all 8 exported functions",
         "StallDetectionConfig, ProcessExecutionOptions, and ProcessExecutionResult interfaces are defined and exported",
@@ -59,7 +59,10 @@
         "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-038-shared-utilities.md",
         "docs/planning/milestones/004-MULTI-CLI/stories/001-provider-foundation.md",
         "tools/CLAUDE.md"
-      ]
+      ],
+      "completedAt": "2026-02-05T14:56:00Z",
+      "commitHash": "b5f09ddcd292e4f91c562a2161b05779ccf41634",
+      "sessionId": "e051534d-00d9-43c1-8624-3f605bb02948"
     },
     {
       "id": "SUB-250",

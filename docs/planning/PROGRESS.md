@@ -3,8 +3,8 @@
 ## Current Focus
 
 **Story:** 001-provider-foundation
-**Task:** TASK-036 in progress
-**Status:** SUB-239 complete
+**Task:** TASK-038 in progress
+**Status:** SUB-249 complete
 
 ## Session Notes
 
@@ -13,6 +13,13 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-249
+- **Problem:** Process execution utilities (stall detection, timeout handling, graceful termination, JSON parsing) were tightly coupled to claude.ts, preventing reuse by other providers.
+- **Changes:** Created providers/utils.ts with 3 interfaces (StallDetectionConfig, ProcessExecutionOptions, ProcessExecutionResult) and 8 exported functions generalized to accept command/args rather than hardcoding Claude. Renamed safeJsonParse to tryParseJson to satisfy function-name/starts-with-verb lint rule. Added 21 unit tests covering JSON parsing, JSONL parsing, timeout promises, stall detection (including activity tracking and cleanup), graceful process termination (SIGTERM/SIGKILL two-phase), and timer utilities.
+- **Files:**
+  - `tools/src/commands/ralph/providers/utils.ts` - Shared process execution utilities
+  - `tools/tests/providers/utils.test.ts` - 21 unit tests
 
 #### SUB-239
 - **Problem:** Ralph had tight coupling to Claude Code CLI with no abstraction for multi-provider support.
