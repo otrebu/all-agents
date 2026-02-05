@@ -11,13 +11,14 @@ import type { ProviderType } from "@tools/commands/ralph/providers/types";
 import {
   autoDetectProvider,
   getInstallInstructions,
+  invokeWithProvider,
   isBinaryAvailable,
   ProviderError,
   REGISTRY,
   selectProvider,
   validateProvider,
 } from "@tools/commands/ralph/providers/registry";
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 
 // =============================================================================
 // REGISTRY
@@ -263,7 +264,7 @@ describe("ProviderError", () => {
 });
 
 // =============================================================================
-// isBinaryAvailable
+// isBinaryAvailable (real)
 // =============================================================================
 
 describe("isBinaryAvailable", () => {
@@ -282,6 +283,93 @@ describe("isBinaryAvailable", () => {
   test("returns true for which itself", async () => {
     const isAvailable = await isBinaryAvailable("which");
     expect(isAvailable).toBe(true);
+  });
+});
+
+// =============================================================================
+// isBinaryAvailable (mocked Bun.spawn)
+// =============================================================================
+
+describe("isBinaryAvailable (mocked)", () => {
+  const originalSpawn = Bun.spawn;
+
+  afterAll(() => {
+    Bun.spawn = originalSpawn;
+  });
+
+  beforeEach(() => {
+    Bun.spawn = originalSpawn;
+  });
+
+  test("returns true when which exits with code 0", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(0),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+    expect(await isBinaryAvailable("fake-binary")).toBe(true);
+  });
+
+  test("returns false when which exits with non-zero code", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+    expect(await isBinaryAvailable("fake-binary")).toBe(false);
+  });
+
+  test("returns false when Bun.spawn throws", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => {
+        throw new Error("spawn failed");
+      }),
+    });
+    expect(await isBinaryAvailable("fake-binary")).toBe(false);
+  });
+
+  test("passes correct command to Bun.spawn", async () => {
+    let capturedCommand: unknown = null;
+    Object.assign(Bun, {
+      spawn: mock((command: unknown) => {
+        capturedCommand = command;
+        return {
+          exited: Promise.resolve(0),
+          stderr: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+          stdout: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+        };
+      }),
+    });
+    await isBinaryAvailable("my-tool");
+    expect(capturedCommand).toEqual(["which", "my-tool"]);
   });
 });
 
@@ -338,7 +426,7 @@ describe("getInstallInstructions", () => {
 });
 
 // =============================================================================
-// autoDetectProvider
+// autoDetectProvider (real)
 // =============================================================================
 
 describe("autoDetectProvider", () => {
@@ -364,31 +452,269 @@ describe("autoDetectProvider", () => {
 });
 
 // =============================================================================
-// invokeWithProvider (error cases only - no real provider invocation)
+// autoDetectProvider (mocked Bun.spawn to control binary availability)
+// =============================================================================
+
+describe("autoDetectProvider (mocked)", () => {
+  const originalSpawn = Bun.spawn;
+
+  /**
+   * Create a mock Bun.spawn that reports specific binaries as available.
+   * Intercepts `which <binary>` calls and returns exit code 0 for available ones.
+   */
+  function createMockSpawn(availableBinaries: Set<string>) {
+    return mock((cmd: ReadonlyArray<string>) => {
+      const binary = String(cmd[1]);
+      const exitCode = availableBinaries.has(binary) ? 0 : 1;
+      return {
+        exited: Promise.resolve(exitCode),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      };
+    });
+  }
+
+  afterAll(() => {
+    Bun.spawn = originalSpawn;
+  });
+
+  beforeEach(() => {
+    Bun.spawn = originalSpawn;
+  });
+
+  test("returns claude when claude is the first available binary", async () => {
+    Object.assign(Bun, { spawn: createMockSpawn(new Set(["claude"])) });
+    expect(await autoDetectProvider()).toBe("claude");
+  });
+
+  test("returns opencode when only opencode is available", async () => {
+    Object.assign(Bun, { spawn: createMockSpawn(new Set(["opencode"])) });
+    expect(await autoDetectProvider()).toBe("opencode");
+  });
+
+  test("returns codex when only codex is available", async () => {
+    Object.assign(Bun, { spawn: createMockSpawn(new Set(["codex"])) });
+    expect(await autoDetectProvider()).toBe("codex");
+  });
+
+  test("returns gemini when only gemini is available", async () => {
+    Object.assign(Bun, { spawn: createMockSpawn(new Set(["gemini"])) });
+    expect(await autoDetectProvider()).toBe("gemini");
+  });
+
+  test("returns pi when only pi is available", async () => {
+    Object.assign(Bun, { spawn: createMockSpawn(new Set(["pi"])) });
+    expect(await autoDetectProvider()).toBe("pi");
+  });
+
+  test("defaults to claude when no binaries are available", async () => {
+    Object.assign(Bun, { spawn: createMockSpawn(new Set()) });
+    expect(await autoDetectProvider()).toBe("claude");
+  });
+
+  test("returns claude over opencode when both available (priority order)", async () => {
+    Object.assign(Bun, {
+      spawn: createMockSpawn(new Set(["claude", "opencode"])),
+    });
+    expect(await autoDetectProvider()).toBe("claude");
+  });
+
+  test("returns opencode over codex when both available (priority order)", async () => {
+    Object.assign(Bun, {
+      spawn: createMockSpawn(new Set(["codex", "opencode"])),
+    });
+    expect(await autoDetectProvider()).toBe("opencode");
+  });
+
+  test("returns codex over gemini when both available (priority order)", async () => {
+    Object.assign(Bun, {
+      spawn: createMockSpawn(new Set(["codex", "gemini"])),
+    });
+    expect(await autoDetectProvider()).toBe("codex");
+  });
+
+  test("returns gemini over pi when both available (priority order)", async () => {
+    Object.assign(Bun, { spawn: createMockSpawn(new Set(["gemini", "pi"])) });
+    expect(await autoDetectProvider()).toBe("gemini");
+  });
+
+  test("skips unavailable providers and returns first available", async () => {
+    // Only gemini and pi available → gemini is earlier in priority
+    Object.assign(Bun, { spawn: createMockSpawn(new Set(["gemini", "pi"])) });
+    expect(await autoDetectProvider()).toBe("gemini");
+  });
+});
+
+// =============================================================================
+// invokeWithProvider (mocked - error cases)
 // =============================================================================
 
 describe("invokeWithProvider error handling", () => {
-  test("throws ProviderError for unimplemented provider", async () => {
+  const originalSpawn = Bun.spawn;
+
+  afterAll(() => {
+    Bun.spawn = originalSpawn;
+  });
+
+  beforeEach(() => {
+    Bun.spawn = originalSpawn;
+  });
+
+  test("throws ProviderError with install instructions when binary missing", async () => {
+    // Mock all binaries as not found
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
     try {
-      await (
-        await import("@tools/commands/ralph/providers/registry")
-      ).invokeWithProvider("opencode", { mode: "headless", prompt: "test" });
+      await invokeWithProvider("opencode", {
+        mode: "headless",
+        prompt: "test",
+      });
       expect(true).toBe(false);
     } catch (error) {
       expect(error).toBeInstanceOf(ProviderError);
+      const pe = error as ProviderError;
+      expect(pe.provider).toBe("opencode");
+      expect(pe.message).toContain("not found in PATH");
+      expect(pe.message).toContain("Install:");
+      expect(pe.message).toContain("npm install -g");
     }
   });
 
-  test("throws ProviderError for codex provider", async () => {
+  test("throws ProviderError for codex when binary not found", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
     try {
-      await (
-        await import("@tools/commands/ralph/providers/registry")
-      ).invokeWithProvider("codex", { mode: "headless", prompt: "test" });
+      await invokeWithProvider("codex", { mode: "headless", prompt: "test" });
       expect(true).toBe(false);
     } catch (error) {
       expect(error).toBeInstanceOf(ProviderError);
-      const providerError = error as ProviderError;
-      expect(providerError.provider).toBe("codex");
+      const pe = error as ProviderError;
+      expect(pe.provider).toBe("codex");
+      expect(pe.message).toContain("Install:");
+    }
+  });
+
+  test("throws 'not yet implemented' when binary exists but provider unavailable", async () => {
+    // Mock binary as available
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(0),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    try {
+      await invokeWithProvider("opencode", {
+        mode: "headless",
+        prompt: "test",
+      });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+      const pe = error as ProviderError;
+      expect(pe.provider).toBe("opencode");
+      expect(pe.message).toContain("not yet implemented");
+    }
+  });
+
+  test("throws for gemini when binary not found with install help", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    try {
+      await invokeWithProvider("gemini", { mode: "headless", prompt: "test" });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+      const pe = error as ProviderError;
+      expect(pe.provider).toBe("gemini");
+      expect(pe.message).toContain("gemini");
+      expect(pe.message).toContain("Install:");
+    }
+  });
+
+  test("throws for pi when binary not found", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    try {
+      await invokeWithProvider("pi", { mode: "headless", prompt: "test" });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+      const pe = error as ProviderError;
+      expect(pe.provider).toBe("pi");
     }
   });
 });
