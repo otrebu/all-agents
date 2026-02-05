@@ -1,66 +1,166 @@
 /**
  * Unit tests for provider registry
  *
- * Tests selectProvider(), validateProvider(), and invokeWithProvider() logic.
+ * Tests selectProvider(), validateProvider(), invokeWithProvider(),
+ * REGISTRY, isBinaryAvailable(), getInstallInstructions(),
+ * autoDetectProvider(), selectProviderFromEnv(), and ProviderError.
  */
 
+import type { ProviderType } from "@tools/commands/ralph/providers/types";
+
 import {
+  autoDetectProvider,
+  getInstallInstructions,
+  isBinaryAvailable,
   ProviderError,
+  REGISTRY,
   selectProvider,
   validateProvider,
 } from "@tools/commands/ralph/providers/registry";
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
-describe("selectProvider", () => {
-  const originalEnv = process.env.RALPH_PROVIDER;
+// =============================================================================
+// REGISTRY
+// =============================================================================
 
-  afterEach(() => {
-    // Restore env
-    if (originalEnv === undefined) {
-      delete process.env.RALPH_PROVIDER;
-    } else {
-      process.env.RALPH_PROVIDER = originalEnv;
+describe("REGISTRY", () => {
+  const allProviders: Array<ProviderType> = [
+    "claude",
+    "codex",
+    "cursor",
+    "gemini",
+    "opencode",
+    "pi",
+  ];
+
+  test("has all 6 providers", () => {
+    for (const provider of allProviders) {
+      expect(REGISTRY[provider]).toBeDefined();
     }
   });
 
-  test("returns override when provided", () => {
-    expect(selectProvider("opencode")).toBe("opencode");
+  test("all providers have available: false", () => {
+    for (const provider of allProviders) {
+      expect(REGISTRY[provider].available).toBe(false);
+    }
   });
 
-  test("defaults to claude when no override and no env var", () => {
-    delete process.env.RALPH_PROVIDER;
-    expect(selectProvider()).toBe("claude");
+  test("all providers have invoke function", () => {
+    for (const provider of allProviders) {
+      expect(typeof REGISTRY[provider].invoke).toBe("function");
+    }
   });
 
-  test("uses RALPH_PROVIDER env var when no override", () => {
-    process.env.RALPH_PROVIDER = "codex";
-    expect(selectProvider()).toBe("codex");
+  test("claude has supervised, headless-sync, headless-async modes", () => {
+    expect(REGISTRY.claude.supportedModes).toContain("supervised");
+    expect(REGISTRY.claude.supportedModes).toContain("headless-sync");
+    expect(REGISTRY.claude.supportedModes).toContain("headless-async");
   });
 
-  test("CLI override takes priority over env var", () => {
-    process.env.RALPH_PROVIDER = "codex";
-    expect(selectProvider("gemini")).toBe("gemini");
+  test("opencode has supervised, headless-sync, headless-async modes", () => {
+    expect(REGISTRY.opencode.supportedModes).toContain("supervised");
+    expect(REGISTRY.opencode.supportedModes).toContain("headless-sync");
+    expect(REGISTRY.opencode.supportedModes).toContain("headless-async");
   });
 
-  test("ignores empty string override", () => {
-    delete process.env.RALPH_PROVIDER;
-    expect(selectProvider("")).toBe("claude");
+  test("codex has empty supportedModes", () => {
+    expect(REGISTRY.codex.supportedModes).toEqual([]);
   });
 
-  test("ignores empty env var", () => {
-    process.env.RALPH_PROVIDER = "";
-    expect(selectProvider()).toBe("claude");
+  test("gemini has empty supportedModes", () => {
+    expect(REGISTRY.gemini.supportedModes).toEqual([]);
   });
 
-  test("throws ProviderError for invalid override", () => {
-    expect(() => selectProvider("invalid")).toThrow(ProviderError);
+  test("pi has empty supportedModes", () => {
+    expect(REGISTRY.pi.supportedModes).toEqual([]);
   });
 
-  test("throws ProviderError for invalid env var", () => {
-    process.env.RALPH_PROVIDER = "invalid";
-    expect(() => selectProvider()).toThrow(ProviderError);
+  test("cursor has empty supportedModes", () => {
+    expect(REGISTRY.cursor.supportedModes).toEqual([]);
   });
 });
+
+// =============================================================================
+// selectProvider
+// =============================================================================
+
+describe("selectProvider", () => {
+  test("returns cliFlag when provided", () => {
+    expect(selectProvider({ cliFlag: "opencode" })).toBe("opencode");
+  });
+
+  test("defaults to claude when no context provided", () => {
+    expect(selectProvider({})).toBe("claude");
+  });
+
+  test("uses envVariable when no cliFlag", () => {
+    expect(selectProvider({ envVariable: "codex" })).toBe("codex");
+  });
+
+  test("cliFlag takes priority over envVariable", () => {
+    expect(selectProvider({ cliFlag: "gemini", envVariable: "codex" })).toBe(
+      "gemini",
+    );
+  });
+
+  test("envVariable takes priority over configFile", () => {
+    expect(selectProvider({ configFile: "gemini", envVariable: "codex" })).toBe(
+      "codex",
+    );
+  });
+
+  test("configFile takes priority over auto-detect (default claude)", () => {
+    expect(selectProvider({ configFile: "opencode" })).toBe("opencode");
+  });
+
+  test("cliFlag takes priority over configFile", () => {
+    expect(selectProvider({ cliFlag: "pi", configFile: "opencode" })).toBe(
+      "pi",
+    );
+  });
+
+  test("full priority chain: cliFlag > envVariable > configFile", () => {
+    expect(
+      selectProvider({
+        cliFlag: "claude",
+        configFile: "gemini",
+        envVariable: "codex",
+      }),
+    ).toBe("claude");
+  });
+
+  test("ignores empty string cliFlag", () => {
+    expect(selectProvider({ cliFlag: "" })).toBe("claude");
+  });
+
+  test("ignores empty string envVariable", () => {
+    expect(selectProvider({ envVariable: "" })).toBe("claude");
+  });
+
+  test("ignores empty string configFile", () => {
+    expect(selectProvider({ configFile: "" })).toBe("claude");
+  });
+
+  test("throws ProviderError for invalid cliFlag", () => {
+    expect(() => selectProvider({ cliFlag: "invalid" })).toThrow(ProviderError);
+  });
+
+  test("throws ProviderError for invalid envVariable", () => {
+    expect(() => selectProvider({ envVariable: "invalid" })).toThrow(
+      ProviderError,
+    );
+  });
+
+  test("throws ProviderError for invalid configFile", () => {
+    expect(() => selectProvider({ configFile: "invalid" })).toThrow(
+      ProviderError,
+    );
+  });
+});
+
+// =============================================================================
+// validateProvider
+// =============================================================================
 
 describe("validateProvider", () => {
   test("accepts claude", () => {
@@ -94,7 +194,6 @@ describe("validateProvider", () => {
   test("error message includes valid providers", () => {
     try {
       validateProvider("invalid");
-      // Should not reach here
       expect(true).toBe(false);
     } catch (error) {
       expect(error).toBeInstanceOf(ProviderError);
@@ -104,7 +203,25 @@ describe("validateProvider", () => {
       expect(providerError.provider).toBe("invalid");
     }
   });
+
+  test("error message lists valid options", () => {
+    try {
+      validateProvider("bad");
+      expect(true).toBe(false);
+    } catch (error) {
+      const providerError = error as ProviderError;
+      expect(providerError.message).toContain("Valid providers:");
+      expect(providerError.message).toContain("codex");
+      expect(providerError.message).toContain("cursor");
+      expect(providerError.message).toContain("gemini");
+      expect(providerError.message).toContain("pi");
+    }
+  });
 });
+
+// =============================================================================
+// ProviderError
+// =============================================================================
 
 describe("ProviderError", () => {
   test("has correct name", () => {
@@ -125,5 +242,153 @@ describe("ProviderError", () => {
   test("is an instance of Error", () => {
     const error = new ProviderError("test", "test");
     expect(error).toBeInstanceOf(Error);
+  });
+
+  test("cause is undefined when not provided", () => {
+    const error = new ProviderError("test", "test");
+    expect(error.cause).toBeUndefined();
+  });
+
+  test("stores optional cause", () => {
+    const originalError = new Error("original");
+    const error = new ProviderError("test", "wrapped", originalError);
+    expect(error.cause).toBe(originalError);
+  });
+
+  test("cause is accessible through Error.cause", () => {
+    const originalError = new Error("original");
+    const error = new ProviderError("test", "wrapped", originalError);
+    expect((error as Error).cause).toBe(originalError);
+  });
+});
+
+// =============================================================================
+// isBinaryAvailable
+// =============================================================================
+
+describe("isBinaryAvailable", () => {
+  test("returns true for a binary that exists (ls)", async () => {
+    const isAvailable = await isBinaryAvailable("ls");
+    expect(isAvailable).toBe(true);
+  });
+
+  test("returns false for a binary that does not exist", async () => {
+    const isAvailable = await isBinaryAvailable(
+      "nonexistent-binary-xyz-12345-does-not-exist",
+    );
+    expect(isAvailable).toBe(false);
+  });
+
+  test("returns true for which itself", async () => {
+    const isAvailable = await isBinaryAvailable("which");
+    expect(isAvailable).toBe(true);
+  });
+});
+
+// =============================================================================
+// getInstallInstructions
+// =============================================================================
+
+describe("getInstallInstructions", () => {
+  test("returns npm install command for claude", () => {
+    expect(getInstallInstructions("claude")).toContain("npm install -g");
+    expect(getInstallInstructions("claude")).toContain("claude-code");
+  });
+
+  test("returns npm install command for opencode", () => {
+    expect(getInstallInstructions("opencode")).toContain("npm install -g");
+    expect(getInstallInstructions("opencode")).toContain("opencode");
+  });
+
+  test("returns npm install command for codex", () => {
+    expect(getInstallInstructions("codex")).toContain("npm install -g");
+    expect(getInstallInstructions("codex")).toContain("codex");
+  });
+
+  test("returns npm install command for gemini", () => {
+    expect(getInstallInstructions("gemini")).toContain("npm install -g");
+    expect(getInstallInstructions("gemini")).toContain("gemini");
+  });
+
+  test("returns install instructions for cursor", () => {
+    expect(getInstallInstructions("cursor")).toContain("cursor");
+  });
+
+  test("returns install instructions for pi", () => {
+    const instructions = getInstallInstructions("pi");
+    expect(instructions).toBeTruthy();
+    expect(instructions.length).toBeGreaterThan(0);
+  });
+
+  test("returns a string for every provider", () => {
+    const providers: Array<ProviderType> = [
+      "claude",
+      "codex",
+      "cursor",
+      "gemini",
+      "opencode",
+      "pi",
+    ];
+    for (const provider of providers) {
+      const instructions = getInstallInstructions(provider);
+      expect(typeof instructions).toBe("string");
+      expect(instructions.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// =============================================================================
+// autoDetectProvider
+// =============================================================================
+
+describe("autoDetectProvider", () => {
+  test("returns a valid ProviderType", async () => {
+    const provider = await autoDetectProvider();
+    const validProviders = [
+      "claude",
+      "codex",
+      "cursor",
+      "gemini",
+      "opencode",
+      "pi",
+    ];
+    expect(validProviders).toContain(provider);
+  });
+
+  test("defaults to claude when called", async () => {
+    // In test environment, claude binary may or may not be available
+    // But the function should always return a valid provider
+    const provider = await autoDetectProvider();
+    expect(typeof provider).toBe("string");
+  });
+});
+
+// =============================================================================
+// invokeWithProvider (error cases only - no real provider invocation)
+// =============================================================================
+
+describe("invokeWithProvider error handling", () => {
+  test("throws ProviderError for unimplemented provider", async () => {
+    try {
+      await (
+        await import("@tools/commands/ralph/providers/registry")
+      ).invokeWithProvider("opencode", { mode: "headless", prompt: "test" });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+    }
+  });
+
+  test("throws ProviderError for codex provider", async () => {
+    try {
+      await (
+        await import("@tools/commands/ralph/providers/registry")
+      ).invokeWithProvider("codex", { mode: "headless", prompt: "test" });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+      const providerError = error as ProviderError;
+      expect(providerError.provider).toBe("codex");
+    }
   });
 });

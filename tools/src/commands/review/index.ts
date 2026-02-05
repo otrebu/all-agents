@@ -895,7 +895,7 @@ async function runHeadlessReview(options: {
   });
 
   // Select provider (CLI flag > env var > default)
-  const provider = selectProvider(providerOverride);
+  const provider = selectProvider({ cliFlag: providerOverride });
   console.log(chalk.dim(`Using provider: ${provider}`));
   console.log(chalk.dim("Invoking in headless mode...\n"));
 
@@ -1205,7 +1205,7 @@ async function runSupervisedReview(
       : `1. Gather changes using: \`${diffCommand}\``;
 
   // Select provider (CLI flag > env var > default)
-  const provider = selectProvider(providerOverride);
+  const provider = selectProvider({ cliFlag: providerOverride });
   console.log(chalk.dim(`Using provider: ${provider}`));
 
   // Invoke in chat/supervised mode

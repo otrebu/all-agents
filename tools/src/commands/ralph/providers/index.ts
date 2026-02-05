@@ -4,11 +4,17 @@
  * Re-exports all public types and constants from the providers module.
  */
 export {
+  autoDetectProvider,
+  getInstallInstructions,
   type HeadlessProviderOptions,
   invokeWithProvider,
+  isBinaryAvailable,
   ProviderError,
   type ProviderInvokeOptions,
+  type ProviderSelectionContext,
+  REGISTRY,
   selectProvider,
+  selectProviderFromEnv,
   type SupervisedProviderOptions,
   validateProvider,
 } from "./registry";

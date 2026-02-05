@@ -8,9 +8,17 @@
  * @see docs/planning/milestones/004-MULTI-CLI/tasks/TASK-037-provider-registry.md
  */
 
-import type { AgentResult, ProviderType } from "./types";
+import type {
+  AgentResult,
+  InvocationMode,
+  InvokerFunction,
+  ProviderCapabilities,
+  ProviderType,
+} from "./types";
 
 import { invokeClaudeChat, invokeClaudeHeadlessAsync } from "../claude";
+import { loadRalphConfig } from "../config";
+import { PROVIDER_BINARIES } from "./types";
 
 // =============================================================================
 // Types
@@ -36,6 +44,16 @@ type ProviderInvokeOptions =
   | HeadlessProviderOptions
   | SupervisedProviderOptions;
 
+/** Context for pure provider selection (no side effects) */
+interface ProviderSelectionContext {
+  /** Explicit provider from CLI flag (highest priority) */
+  cliFlag?: string;
+  /** Provider from config file */
+  configFile?: string;
+  /** Provider from RALPH_PROVIDER environment variable */
+  envVariable?: string;
+}
+
 /** Options for supervised provider invocation */
 interface SupervisedProviderOptions {
   /** Extra context to prepend to prompt */
@@ -49,17 +67,19 @@ interface SupervisedProviderOptions {
 
 /** Error thrown when a provider operation fails */
 class ProviderError extends Error {
+  override readonly cause?: Error;
   readonly provider: string;
 
-  constructor(provider: string, message: string) {
-    super(message);
+  constructor(provider: string, message: string, cause?: Error) {
+    super(message, cause ? { cause } : undefined);
     this.name = "ProviderError";
     this.provider = provider;
+    this.cause = cause;
   }
 }
 
 // =============================================================================
-// Valid Providers
+// Constants
 // =============================================================================
 
 const VALID_PROVIDERS = new Set<string>([
@@ -72,8 +92,65 @@ const VALID_PROVIDERS = new Set<string>([
 ]);
 
 // =============================================================================
-// Provider Invocation
+// Functions (alphabetical order per perfectionist/sort-modules)
 // =============================================================================
+
+/**
+ * Auto-detect the best available provider by checking binaries in priority order.
+ *
+ * Checks: claude, opencode, codex, gemini, pi (cursor excluded from auto-detect).
+ * Defaults to "claude" if none found.
+ *
+ * @returns The first available provider, or "claude" as default
+ */
+async function autoDetectProvider(): Promise<ProviderType> {
+  const priority: Array<ProviderType> = [
+    "claude",
+    "opencode",
+    "codex",
+    "gemini",
+    "pi",
+  ];
+
+  // Check all binaries in parallel, then pick the first available in priority order
+  const checks = await Promise.all(
+    priority.map(async (provider) => ({
+      isAvailable: await isBinaryAvailable(PROVIDER_BINARIES[provider]),
+      provider,
+    })),
+  );
+
+  const found = checks.find((check) => check.isAvailable);
+  return found?.provider ?? "claude";
+}
+
+/** Stub invoker for providers not yet implemented */
+function createNotImplementedInvoker(provider: string): InvokerFunction {
+  return () => {
+    throw new ProviderError(
+      provider,
+      `Provider '${provider}' is not yet implemented.`,
+    );
+  };
+}
+
+/**
+ * Get installation instructions for a provider.
+ *
+ * @param provider - Provider to get instructions for
+ * @returns Install command string
+ */
+function getInstallInstructions(provider: ProviderType): string {
+  const instructions: Record<ProviderType, string> = {
+    claude: "npm install -g @anthropic-ai/claude-code",
+    codex: "npm install -g @openai/codex",
+    cursor: "Download from cursor.com and install cursor-agent",
+    gemini: "npm install -g @google/gemini-cli",
+    opencode: "npm install -g opencode",
+    pi: "npm install -g @anthropic-ai/claude-code",
+  };
+  return instructions[provider];
+}
 
 /**
  * Invoke Claude in headless mode and normalize result to AgentResult
@@ -131,70 +208,152 @@ function invokeClaudeSupervised(
 }
 
 /**
- * Invoke a provider with the given options
+ * Invoke a provider with the given options.
  *
- * Routes to the appropriate provider-specific function based on the
- * provider type. Currently only "claude" is implemented; other providers
- * will be added in future tasks.
- *
- * For headless mode: returns AgentResult with cost, duration, result, sessionId
- * For supervised mode: returns AgentResult with durationMs (cost/result not captured)
+ * Validates that the provider binary is available and that the provider
+ * is implemented before invoking. Currently only "claude" is implemented
+ * via direct function calls; other providers will use the REGISTRY pattern
+ * once their implementations are added.
  *
  * @param provider - Which provider to use
  * @param options - Invocation options (discriminated by mode)
  * @returns AgentResult on success, null on failure
+ * @throws ProviderError when binary not found or provider not implemented
  */
 async function invokeWithProvider(
   provider: ProviderType,
   options: ProviderInvokeOptions,
 ): Promise<AgentResult | null> {
-  if (provider !== "claude") {
+  // Claude uses direct invocation (legacy path) while it's being migrated
+  // to the REGISTRY pattern. Other providers go through REGISTRY.
+  if (provider === "claude") {
+    if (options.mode === "headless") {
+      return invokeClaudeHeadless(options);
+    }
+    return invokeClaudeSupervised(options);
+  }
+
+  const binary = PROVIDER_BINARIES[provider];
+
+  // For non-Claude providers: check binary availability lazily
+  if (!(await isBinaryAvailable(binary))) {
     throw new ProviderError(
       provider,
-      `Provider '${provider}' is not yet implemented. Currently only 'claude' is supported.`,
+      `Provider '${provider}' is not available. Binary '${binary}' not found in PATH.\n` +
+        `Install: ${getInstallInstructions(provider)}`,
     );
   }
 
-  if (options.mode === "headless") {
-    return invokeClaudeHeadless(options);
+  // Check if provider is implemented in the registry
+  const capabilities = REGISTRY[provider];
+  if (!capabilities.available) {
+    throw new ProviderError(
+      provider,
+      `Provider '${provider}' is not yet implemented.`,
+    );
   }
 
-  return invokeClaudeSupervised(options);
+  const invokeConfig: { provider: ProviderType } = { provider };
+  return capabilities.invoke({
+    config: invokeConfig,
+    mode: options.mode === "headless" ? "headless-async" : "supervised",
+    prompt: options.mode === "headless" ? options.prompt : "",
+  });
 }
 
-// =============================================================================
-// Provider Selection
-// =============================================================================
+/**
+ * Check if a binary is available in PATH using the `which` command.
+ *
+ * @param binary - Binary name to check (e.g., "claude", "opencode")
+ * @returns true if the binary is found in PATH
+ */
+async function isBinaryAvailable(binary: string): Promise<boolean> {
+  try {
+    const proc = Bun.spawn(["which", binary], {
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+    const exitCode = await proc.exited;
+    return exitCode === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Load provider from config file (best effort).
+ * Returns undefined if config loading fails.
+ */
+function loadConfigProvider(): string | undefined {
+  try {
+    const config = loadRalphConfig();
+    return config.provider;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Select the provider to use based on priority:
- * CLI flag > env var (RALPH_PROVIDER) > config > default ("claude")
+ * CLI flag > env var > config > auto-detect (defaults to "claude")
  *
- * @param override - Explicit provider from CLI flag (highest priority)
+ * This is a pure function with no side effects. Use selectProviderFromEnv()
+ * to read from process.argv and process.env automatically.
+ *
+ * @param context - Provider selection context with explicit sources
  * @returns Validated ProviderType
  */
-function selectProvider(override?: string): ProviderType {
-  // Priority 1: CLI flag override
-  if (override !== undefined && override !== "") {
-    return validateProvider(override);
+function selectProvider(context: ProviderSelectionContext): ProviderType {
+  // Priority 1: CLI flag (highest)
+  if (context.cliFlag !== undefined && context.cliFlag !== "") {
+    return validateProvider(context.cliFlag);
   }
 
   // Priority 2: Environment variable
-  const envProvider = process.env.RALPH_PROVIDER;
-  if (envProvider !== undefined && envProvider !== "") {
-    return validateProvider(envProvider);
+  if (context.envVariable !== undefined && context.envVariable !== "") {
+    return validateProvider(context.envVariable);
   }
 
-  // Priority 3: Default to claude
+  // Priority 3: Config file
+  if (context.configFile !== undefined && context.configFile !== "") {
+    return validateProvider(context.configFile);
+  }
+
+  // Priority 4: Auto-detect (default to claude)
   return "claude";
 }
 
 /**
- * Validate that a string is a valid ProviderType
+ * Read provider selection from environment sources and select.
+ *
+ * Reads process.argv for --provider flag, process.env.RALPH_PROVIDER,
+ * and attempts to load config file for provider preference.
+ *
+ * @returns Validated ProviderType
+ */
+function selectProviderFromEnv(): ProviderType {
+  // Read --provider flag from process.argv
+  const providerFlagIndex = process.argv.indexOf("--provider");
+  const cliFlag =
+    providerFlagIndex !== -1 && providerFlagIndex + 1 < process.argv.length
+      ? process.argv[providerFlagIndex + 1]
+      : undefined;
+
+  // Read RALPH_PROVIDER env var
+  const envVariable = process.env.RALPH_PROVIDER;
+
+  // Read config file (best effort)
+  const configFile = loadConfigProvider();
+
+  return selectProvider({ cliFlag, configFile, envVariable });
+}
+
+/**
+ * Validate that a string is a valid ProviderType.
  *
  * @param provider - String to validate
  * @returns Valid ProviderType
- * @throws ProviderError if invalid
+ * @throws ProviderError if invalid, with list of valid options
  */
 function validateProvider(provider: string): ProviderType {
   if (!VALID_PROVIDERS.has(provider)) {
@@ -208,15 +367,72 @@ function validateProvider(provider: string): ProviderType {
 }
 
 // =============================================================================
+// Registry Constant (depends on createNotImplementedInvoker)
+// =============================================================================
+
+/**
+ * Registry of all supported providers and their capabilities.
+ *
+ * All providers start with available: false. Provider implementations
+ * set available: true and replace the invoke function when ready.
+ */
+const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
+  claude: {
+    available: false,
+    invoke: createNotImplementedInvoker("claude"),
+    supportedModes: [
+      "supervised",
+      "headless-sync",
+      "headless-async",
+    ] satisfies Array<InvocationMode>,
+  },
+  codex: {
+    available: false,
+    invoke: createNotImplementedInvoker("codex"),
+    supportedModes: [] satisfies Array<InvocationMode>,
+  },
+  cursor: {
+    available: false,
+    invoke: createNotImplementedInvoker("cursor"),
+    supportedModes: [] satisfies Array<InvocationMode>,
+  },
+  gemini: {
+    available: false,
+    invoke: createNotImplementedInvoker("gemini"),
+    supportedModes: [] satisfies Array<InvocationMode>,
+  },
+  opencode: {
+    available: false,
+    invoke: createNotImplementedInvoker("opencode"),
+    supportedModes: [
+      "supervised",
+      "headless-sync",
+      "headless-async",
+    ] satisfies Array<InvocationMode>,
+  },
+  pi: {
+    available: false,
+    invoke: createNotImplementedInvoker("pi"),
+    supportedModes: [] satisfies Array<InvocationMode>,
+  },
+};
+
+// =============================================================================
 // Exports
 // =============================================================================
 
 export {
+  autoDetectProvider,
+  getInstallInstructions,
   type HeadlessProviderOptions,
   invokeWithProvider,
+  isBinaryAvailable,
   ProviderError,
   type ProviderInvokeOptions,
+  type ProviderSelectionContext,
+  REGISTRY,
   selectProvider,
+  selectProviderFromEnv,
   type SupervisedProviderOptions,
   validateProvider,
 };

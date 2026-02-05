@@ -746,7 +746,7 @@ async function runBuild(
   } = options;
 
   // Select provider (CLI flag > env var > default)
-  const provider = selectProvider(options.provider);
+  const provider = selectProvider({ cliFlag: options.provider });
   console.log(chalk.dim(`Using provider: ${provider}`));
 
   // Reset module-level state for cascade mode / multiple runBuild() calls
