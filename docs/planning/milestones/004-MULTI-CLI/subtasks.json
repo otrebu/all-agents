@@ -445,7 +445,7 @@
       "storyRef": "002-claude-refactor",
       "title": "Create Claude provider fixture files, parser tests, and config tests",
       "description": "Create 7 fixture files in tools/tests/fixtures/claude/ matching Claude CLI JSON output format: claude-success.json (full response with all fields), claude-success-minimal.json (only required fields), claude-error.json (error response), claude-malformed.json (invalid JSON), claude-empty-array.json (empty array), claude-no-result-entry.json (missing result type entry), claude-partial-result.json (result entry missing optional fields like session_id and token_usage). Create tools/tests/providers/claude.parser.test.ts with tests for normalizeClaudeResult() covering: parsing complete result entry and extracting all fields (result, costUsd, durationMs, sessionId, tokenUsage), throwing on missing result entry, throwing on malformed JSON, handling partial results with missing optional fields, handling numeric string conversion for cost/duration, and testing with the minimal success fixture. Create tools/tests/providers/claude.config.test.ts with tests for ClaudeConfig validation (provider discriminator field equals \"claude\"), provider type discrimination via type narrowing, and default timeout configuration values. All tests must use Bun built-in test runner (import from bun:test). Run bun test to verify all tests pass.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/tests/fixtures/claude/ directory contains 7 fixture JSON files: claude-success.json, claude-success-minimal.json, claude-error.json, claude-malformed.json, claude-empty-array.json, claude-no-result-entry.json, claude-partial-result.json",
         "Each fixture matches Claude JSON output format: array of objects with type/content fields and a result entry with duration_ms, total_cost_usd, session_id",
@@ -461,7 +461,10 @@
         "tools/src/commands/ralph/providers/types.ts",
         "tools/tests/lib/config.test.ts",
         "context/stacks/cli/cli-bun.md"
-      ]
+      ],
+      "completedAt": "2026-02-05T23:00:19Z",
+      "commitHash": "643bdec9ee218b432d4353522a0d9fc0b0347034",
+      "sessionId": "04a17e6b-1400-41e7-acbb-e41aab300080"
     },
     {
       "id": "SUB-314",

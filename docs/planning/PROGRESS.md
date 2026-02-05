@@ -14,6 +14,20 @@
 
 ### 2026-02-05
 
+#### SUB-274
+- **Problem:** Claude provider lacked dedicated fixture files and comprehensive unit tests for JSON parsing (normalizeClaudeResult) and ClaudeConfig type validation.
+- **Changes:** Created 7 fixture JSON files in tools/tests/fixtures/claude/ covering success, minimal, error, malformed, empty array, no-result-entry, and partial-result cases. Added claude.parser.test.ts with 18 tests covering complete result parsing, field extraction, malformed JSON handling, partial results, and numeric string conversion. Added claude.config.test.ts with 10 tests for ClaudeConfig validation, provider type discrimination, and default timeout configuration. Note: malformed fixture uses .txt extension to avoid Prettier parse errors (matching existing project convention).
+- **Files:**
+  - `tools/tests/fixtures/claude/claude-success.json` - Full response with all fields
+  - `tools/tests/fixtures/claude/claude-success-minimal.json` - Only required fields
+  - `tools/tests/fixtures/claude/claude-error.json` - Error response
+  - `tools/tests/fixtures/claude/claude-malformed.txt` - Invalid JSON (.txt to avoid Prettier)
+  - `tools/tests/fixtures/claude/claude-empty-array.json` - Empty array
+  - `tools/tests/fixtures/claude/claude-no-result-entry.json` - Missing result type entry
+  - `tools/tests/fixtures/claude/claude-partial-result.json` - Result entry missing optional fields
+  - `tools/tests/providers/claude.parser.test.ts` - 18 parser unit tests
+  - `tools/tests/providers/claude.config.test.ts` - 10 config unit tests
+
 #### SUB-304
 - **Problem:** No static model registry existed for multi-CLI model management. Users had no way to look up model IDs, validate them for a provider, or get tab completions.
 - **Changes:** Created models-static.ts with ModelInfo interface and 7 baseline models (3 Claude + 4 OpenCode). Created models.ts with registry functions: getAllModels (static precedence over dynamic), getModelsForProvider, getModelById, getModelCompletions, getModelCompletionsForProvider, validateModelForProvider (with "Did you mean:" suggestions and "refresh-models" hint). Updated providers/index.ts barrel export. Added 26 unit tests covering all functions.
