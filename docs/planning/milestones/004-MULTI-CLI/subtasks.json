@@ -323,7 +323,7 @@
       "storyRef": "002-claude-refactor",
       "title": "Create mock-based integration tests for Claude provider subprocess lifecycle",
       "description": "Create tools/tests/providers/claude.integration.test.ts with comprehensive mock-based integration tests for the Claude provider subprocess handling. Build mock utilities: createMockProcess() returning a mock process with controllable stdout/stderr streams, kill spy, and configurable exited Promise; createMockStream() returning a mock readable stream with event emitter capabilities. Mock Bun.spawn to return mock process objects. Implement test cases covering: (1) Subprocess spawning - verify correct arguments and options passed to Bun.spawn for headless mode, permission bypass, and model selection. (2) Stall detection flow - emit stderr data at intervals, verify stall timer resets on activity, stop emitting, verify SIGTERM sent after stall timeout (use 100ms test timeouts). (3) Termination escalation - spawn mock process, trigger SIGTERM, process does not exit within grace period, verify SIGKILL sent after grace period expires. (4) Exit code handling - test exit codes 0 (success with parsed result), 1 (error), 2 (usage error), 127 (command not found) with correct error handling for each. (5) JSON output parsing - mock stdout with Claude JSON array fixture data containing system/assistant/result entries, verify AgentResult returned with correct costUsd, durationMs, sessionId, tokenUsage. Use Bun built-in test runner with mock/spyOn. Use short timeouts (100ms stall, 500ms hard, 50ms grace) for fast deterministic tests. Each test creates fresh mocks and cleans up event listeners. Tests must run without the real Claude CLI installed.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/tests/providers/claude.integration.test.ts exists with all test cases",
         "Mock utilities createMockProcess() and createMockStream() are defined and used by tests",
@@ -344,7 +344,10 @@
         "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-043-claude-unit-tests.md",
         "context/blocks/test/unit-testing.md",
         "context/foundations/test/test-integration-api.md"
-      ]
+      ],
+      "completedAt": "2026-02-05T19:01:34Z",
+      "commitHash": "9de371b99bbe9e69451ddd57b35faa2e06deed0c",
+      "sessionId": "48ce2787-034f-468b-961b-f9d606b4d795"
     },
     {
       "id": "SUB-294",

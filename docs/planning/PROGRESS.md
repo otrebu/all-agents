@@ -4,7 +4,7 @@
 
 **Story:** 002-claude-refactor
 **Task:** TASK-039 claude-refactor
-**Status:** SUB-255 complete
+**Status:** SUB-279 complete
 
 ## Session Notes
 
@@ -13,6 +13,12 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-279
+- **Problem:** Claude provider lacked mock-based integration tests for subprocess lifecycle (spawning, stall detection, termination escalation, exit codes, JSON parsing) — all tests required the real Claude CLI installed.
+- **Changes:** Created `tools/tests/providers/claude.integration.test.ts` with 13 tests and mock utilities (createMockProcess, createMockStream). Tests cover: Bun.spawn arg verification for headless mode, stall detection with 100ms timeouts, stall timer reset on stderr activity, SIGTERM→SIGKILL escalation after grace period, exit codes 0/1/2/127 handling, JSON array parsing to AgentResult with costUsd/durationMs/sessionId/tokenUsage. All tests deterministic, run without real Claude CLI.
+- **Files:**
+  - `tools/tests/providers/claude.integration.test.ts` - Created: 13 integration tests with mock utilities
 
 #### SUB-255
 - **Problem:** SUB-255 required updating all files importing from `./claude` to import from `./providers/claude` and deleting the original `claude.ts`. This work was already completed by prior subtasks (SUB-269 moved files/imports, SUB-264 refactored calibrate.ts to use registry, SUB-259 refactored build.ts and review/index.ts to use registry).
