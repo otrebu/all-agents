@@ -97,7 +97,7 @@
       "storyRef": "002-claude-refactor",
       "title": "Integrate provider registry into build.ts, review/index.ts, and CLI flags",
       "description": "Replace direct Claude invocation imports in build.ts and review/index.ts with provider registry calls (selectProvider, invokeWithProvider). Update build.ts: replace invokeClaudeHeadlessAsync/invokeClaudeChat imports with registry imports, call selectProvider() at start of runBuild(), replace invocation calls with invokeWithProvider(), update result handling to AgentResult interface (result.result, result.costUsd, result.durationMs, result.sessionId). Update review/index.ts: replace invokeClaudeChat/invokeClaudeHeadlessAsync imports with registry imports (NOTE: review/index.ts now imports invokeClaudeHeadlessAsync instead of the removed sync invokeClaudeHeadless, updated in timeout protection migration), call selectProvider() in runHeadlessReview() and runSupervisedReview(), replace invocations with invokeWithProvider(), update result handling. Add --provider <name> CLI flag to ralph build command in ralph/index.ts and review command in review/index.ts. Add optional provider?: ProviderType field to BuildOptions in types.ts. Default provider is \"claude\" for backward compatibility when --provider is not specified. Run typecheck and tests to verify no regressions.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "build.ts imports selectProvider and invokeWithProvider from ./providers/registry instead of invokeClaudeHeadlessAsync/invokeClaudeChat from ./claude",
         "review/index.ts imports selectProvider and invokeWithProvider from ../ralph/providers/registry instead of invokeClaudeChat/invokeClaudeHeadlessAsync from ../ralph/claude",
@@ -123,7 +123,10 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/claude.ts"
       ],
-      "blockedBy": []
+      "blockedBy": [],
+      "completedAt": "2026-02-05T16:07:59Z",
+      "commitHash": "8b625ce3a08b767948986b6a017662e0dc4c168e",
+      "sessionId": "62448e1b-680d-4867-bd7c-7ecae29c2f90"
     },
     {
       "id": "SUB-244",

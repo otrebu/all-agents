@@ -2,9 +2,9 @@
 
 ## Current Focus
 
-**Story:** 001-provider-foundation
-**Task:** TASK-038 complete
-**Status:** SUB-250 complete
+**Story:** 002-claude-refactor
+**Task:** TASK-040 registry integration
+**Status:** SUB-259 complete
 
 ## Session Notes
 
@@ -13,6 +13,19 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-259
+- **Problem:** build.ts and review/index.ts directly imported Claude invocation functions (invokeClaudeHeadlessAsync, invokeClaudeChat), tightly coupling them to Claude as the only provider. No provider registry existed despite being a prerequisite.
+- **Changes:** Created providers/registry.ts with selectProvider() (CLI flag > env var > default "claude"), validateProvider(), invokeWithProvider() (discriminated union for headless/supervised modes), and ProviderError class. Updated build.ts to import from registry, pass provider through iteration contexts, and use AgentResult fields (costUsd, durationMs, sessionId). Updated review/index.ts similarly, converting runHeadlessReview to options-object pattern (max-params fix). Added --provider CLI flag to both ralph build and review commands. Added provider?: ProviderType to BuildOptions. Created 20 unit tests (registry.test.ts) and 4 E2E tests (provider-flag.test.ts). All 631 tests pass, typecheck clean.
+- **Files:**
+  - `tools/src/commands/ralph/providers/registry.ts` - Created: provider selection, validation, invocation routing
+  - `tools/src/commands/ralph/providers/index.ts` - Added registry re-exports
+  - `tools/src/commands/ralph/build.ts` - Replaced Claude imports with registry calls
+  - `tools/src/commands/ralph/index.ts` - Added --provider CLI flag to build command
+  - `tools/src/commands/ralph/types.ts` - Added provider?: ProviderType to BuildOptions
+  - `tools/src/commands/review/index.ts` - Replaced Claude imports with registry calls, added --provider flag
+  - `tools/tests/providers/registry.test.ts` - 20 unit tests for registry
+  - `tools/tests/e2e/provider-flag.test.ts` - 4 E2E tests for CLI flag
 
 #### SUB-250
 - **Problem:** claude.ts contained local implementations of 5 utility functions that were duplicated in providers/utils.ts after SUB-249 extraction.
