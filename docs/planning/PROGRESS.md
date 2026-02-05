@@ -2,9 +2,9 @@
 
 ## Current Focus
 
-**Story:** 001-provider-foundation
-**Task:** TASK-037 provider registry
-**Status:** SUB-245 complete
+**Story:** 002-claude-refactor
+**Task:** TASK-042 cleanup-verify
+**Status:** SUB-269 complete
 
 ## Session Notes
 
@@ -13,6 +13,18 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-269
+- **Problem:** Legacy `tools/src/commands/ralph/claude.ts` still existed after all Claude invocation logic was refactored into the provider abstraction layer. Five files still imported from the legacy location.
+- **Changes:** Moved Claude invocation functions (invokeClaudeChat, invokeClaudeHeadlessAsync, invokeClaudeHaiku, buildPrompt) to `tools/src/commands/ralph/providers/claude.ts`. Updated all imports in build.ts, calibrate.ts, index.ts, post-iteration.ts, and providers/registry.ts to reference the new location. Deleted the legacy file. All 673 tests pass, typecheck and lint clean.
+- **Files:**
+  - `tools/src/commands/ralph/providers/claude.ts` - Created (moved from root claude.ts)
+  - `tools/src/commands/ralph/claude.ts` - Deleted
+  - `tools/src/commands/ralph/build.ts` - Updated import path
+  - `tools/src/commands/ralph/calibrate.ts` - Updated import path
+  - `tools/src/commands/ralph/index.ts` - Updated import path
+  - `tools/src/commands/ralph/post-iteration.ts` - Updated import path
+  - `tools/src/commands/ralph/providers/registry.ts` - Updated import path
 
 #### SUB-245
 - **Problem:** Provider registry tests lacked mocked tests for autoDetectProvider priority order, isBinaryAvailable binary detection, and invokeWithProvider error messages with install instructions.

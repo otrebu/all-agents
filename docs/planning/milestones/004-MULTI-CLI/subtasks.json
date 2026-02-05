@@ -200,7 +200,7 @@
       "storyRef": "002-claude-refactor",
       "title": "Delete legacy claude.ts, verify imports migrated, run full verification suite",
       "description": "Final cleanup for Story 002: (1) Search entire codebase for remaining imports of the legacy tools/src/commands/ralph/claude.ts (patterns: from \"./claude\", from \"../claude\", import.*claude\\.ts). Update any stale references to use providers/registry or providers/claude. (2) Delete tools/src/commands/ralph/claude.ts. (3) Run typecheck, lint, and full test suite to confirm no breakage. (4) Manual acceptance criteria verification: aaa ralph build (default provider), aaa ralph build --provider claude (explicit), JSON parsing returns correct cost/duration/sessionId, stall detection works, Ctrl+C exits cleanly, permission bypass flag works, all 3 invocation modes work (supervised, headless-async, haiku) — headless-sync was removed in timeout protection migration. (5) Commit with conventional commit message following monorepo subdirectory patterns.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Legacy file tools/src/commands/ralph/claude.ts is deleted (! test -f tools/src/commands/ralph/claude.ts)",
         "No remaining imports reference the deleted file (grep -rn \"from.*[./]*claude\" tools/src/commands/ralph/ returns zero matches excluding providers/claude.ts)",
@@ -220,7 +220,10 @@
         "tools/src/commands/ralph/review/index.ts",
         "tools/src/commands/ralph/calibrate.ts",
         "context/foundations/scm/commit-monorepo-subdir.md"
-      ]
+      ],
+      "completedAt": "2026-02-05T17:25:01Z",
+      "commitHash": "0c47ecddf66a1ec3c502a889e6b0206da5911354",
+      "sessionId": "82e7e419-31f9-40a5-8ae0-c454d5181e23"
     },
     {
       "id": "SUB-264",
