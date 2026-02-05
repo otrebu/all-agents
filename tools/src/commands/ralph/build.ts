@@ -17,15 +17,12 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as readline from "node:readline";
 
+import type { ProviderType } from "./providers/types";
 import type { BuildOptions, Subtask } from "./types";
 
 import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import { runCalibrate } from "./calibrate";
-import {
-  buildPrompt,
-  invokeClaudeChat,
-  invokeClaudeHeadlessAsync,
-} from "./claude";
+import { buildPrompt } from "./claude";
 import {
   countRemaining,
   getMilestoneFromSubtasks,
@@ -46,6 +43,7 @@ import {
   type PostIterationResult,
   runPostIterationHook,
 } from "./post-iteration";
+import { invokeWithProvider, selectProvider } from "./providers/registry";
 import { discoverRecentSession } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
@@ -72,6 +70,7 @@ interface HeadlessIterationContext {
   iteration: number;
   maxIterations: number;
   prompt: string;
+  provider: ProviderType;
   remaining: number;
   shouldSkipSummary: boolean;
   subtasksPath: string;
@@ -137,6 +136,7 @@ interface SupervisedIterationContext {
   currentSubtask: Subtask;
   iteration: number;
   maxIterations: number;
+  provider: ProviderType;
   remaining: number;
   subtasksPath: string;
 }
@@ -392,6 +392,7 @@ async function processHeadlessIteration(
     iteration,
     maxIterations,
     prompt,
+    provider,
     shouldSkipSummary,
     subtasksPath,
   } = context;
@@ -415,14 +416,15 @@ async function processHeadlessIteration(
   const claudeStart = Date.now();
   const stopHeartbeat = startHeartbeat("Claude", 30_000);
   let result: {
-    cost: number;
-    duration: number;
+    costUsd: number;
+    durationMs: number;
     result: string;
     sessionId: string;
   } | null = null;
   try {
-    result = await invokeClaudeHeadlessAsync({
+    result = await invokeWithProvider(provider, {
       gracePeriodMs,
+      mode: "headless",
       onStderrActivity: () => {
         // Activity tracking is handled internally, but we could extend
         // the heartbeat here if needed in the future
@@ -440,7 +442,7 @@ async function processHeadlessIteration(
   const commitAfter = getLatestCommitHash(projectRoot);
 
   if (result === null) {
-    console.error("Claude headless invocation failed or was interrupted");
+    console.error("Headless invocation failed or was interrupted");
     return null;
   }
 
@@ -467,7 +469,7 @@ async function processHeadlessIteration(
         commitAfter,
         commitBefore,
         contextRoot,
-        costUsd: result.cost,
+        costUsd: result.costUsd,
         iterationNumber: currentAttempts,
         maxAttempts: maxIterations,
         milestone,
@@ -497,9 +499,9 @@ async function processHeadlessIteration(
     console.log(
       renderIterationEnd({
         attempt: currentAttempts,
-        costUsd: result.cost,
+        costUsd: result.costUsd,
         diaryPath,
-        durationMs: result.duration,
+        durationMs: result.durationMs,
         filesChanged: entry.filesChanged?.length ?? 0,
         iteration,
         keyFindings: entry.keyFindings,
@@ -519,9 +521,9 @@ async function processHeadlessIteration(
   }
 
   return {
-    costUsd: result.cost,
+    costUsd: result.costUsd,
     didComplete,
-    durationMs: result.duration,
+    durationMs: result.durationMs,
     hookResult,
   };
 }
@@ -543,6 +545,7 @@ async function processSupervisedIteration(
     currentSubtask,
     iteration,
     maxIterations,
+    provider,
     subtasksPath,
   } = context;
 
@@ -561,15 +564,16 @@ async function processSupervisedIteration(
   // Capture start time for session discovery
   const startTime = Date.now();
 
-  const chatResult = invokeClaudeChat(
-    path.join(contextRoot, ITERATION_PROMPT_PATH),
-    "build iteration",
-    `Work ONLY on the assigned subtask below. Do not pick a different subtask.\n\nAssigned subtask:\n${JSON.stringify(currentSubtask, null, 2)}\n\nSubtasks file path: ${subtasksPath}\nProgress log path: ${progressPath}`,
-  );
+  const supervisedResult = await invokeWithProvider(provider, {
+    context: `Work ONLY on the assigned subtask below. Do not pick a different subtask.\n\nAssigned subtask:\n${JSON.stringify(currentSubtask, null, 2)}\n\nSubtasks file path: ${subtasksPath}\nProgress log path: ${progressPath}`,
+    mode: "supervised",
+    promptPath: path.join(contextRoot, ITERATION_PROMPT_PATH),
+    sessionName: "build iteration",
+  });
 
-  if (!chatResult.success && !chatResult.interrupted) {
+  if (supervisedResult === null) {
     console.error("Supervised session failed");
-    process.exit(chatResult.exitCode ?? 1);
+    return null;
   }
 
   // Capture commit hash after Claude invocation
@@ -740,6 +744,10 @@ async function runBuild(
     subtasksPath,
     validateFirst: shouldValidateFirst,
   } = options;
+
+  // Select provider (CLI flag > env var > default)
+  const provider = selectProvider(options.provider);
+  console.log(chalk.dim(`Using provider: ${provider}`));
 
   // Reset module-level state for cascade mode / multiple runBuild() calls
   hasSummaryBeenGenerated = false;
@@ -924,6 +932,7 @@ async function runBuild(
         iteration,
         maxIterations,
         prompt,
+        provider,
         remaining,
         shouldSkipSummary,
         subtasksPath,
@@ -950,6 +959,7 @@ async function runBuild(
         currentSubtask,
         iteration,
         maxIterations,
+        provider,
         remaining,
         subtasksPath,
       });

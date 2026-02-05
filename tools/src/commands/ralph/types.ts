@@ -29,6 +29,8 @@ interface BuildOptions {
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
+  /** AI provider to use (default: "claude") */
+  provider?: ProviderType;
   /** Suppress terminal summary output */
   quiet: boolean;
   /** Skip Haiku summary generation in headless mode to reduce latency and cost */

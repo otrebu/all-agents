@@ -11,6 +11,8 @@ import {
 } from "node:fs";
 import path from "node:path";
 
+import type { ProviderType } from "./providers/types";
+
 import { runArchive } from "./archive";
 import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
@@ -404,6 +406,7 @@ ralphCommand.addCommand(
       "0",
     )
     .option("--validate-first", "Run pre-build validation before building")
+    .option("--provider <name>", "AI provider to use (default: claude)")
     .option(
       "--cascade <target>",
       "Continue to target level after build completes (calibrate)",
@@ -477,6 +480,7 @@ ralphCommand.addCommand(
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
+          provider: options.provider as ProviderType,
           quiet: options.quiet === true,
           skipSummary: options.skipSummary === true,
           subtasksPath,

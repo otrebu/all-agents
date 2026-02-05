@@ -4,6 +4,15 @@
  * Re-exports all public types and constants from the providers module.
  */
 export {
+  type HeadlessProviderOptions,
+  invokeWithProvider,
+  ProviderError,
+  type ProviderInvokeOptions,
+  selectProvider,
+  type SupervisedProviderOptions,
+  validateProvider,
+} from "./registry";
+export {
   type AgentResult,
   type BaseProviderConfig,
   type ClaudeConfig,
