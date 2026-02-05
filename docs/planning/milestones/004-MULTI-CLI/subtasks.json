@@ -472,7 +472,7 @@
       "storyRef": "004-model-registry",
       "title": "Add model/provider tab completion to all shells and __complete handler",
       "description": "Integrate the model registry with the CLI tab completion system. Add two new dynamic completion types (\"model\" and \"provider\") to the __complete handler in tools/src/commands/completion/index.ts that query the model registry (getModelCompletions, getModelCompletionsForProvider, getModelsForProvider) and return model IDs with cost hints. For provider completions, return valid ProviderType values from the registry. For model completions, read the --provider value from completion context (process.argv) to filter models by provider, falling back to showing all models when no provider is specified. Update all three shell completion generators (bash.ts, zsh.ts, fish.ts) to: (1) add --provider flag completion for ralph build and review commands using dynamic provider completions via __complete, (2) add --model flag completion for ralph build and review commands using dynamic model completions via __complete, (3) include cost hint descriptions in zsh and fish completions (bash does not support descriptions natively). Handle edge cases: unknown provider returns empty completions, no provider shows all models. Add unit tests in tools/tests/completion/model-completion.test.ts verifying: model completion returns expected IDs, provider filtering works, cost hints are included, unknown provider returns empty array, all-models fallback works when no provider specified.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "handleCompletion() in completion/index.ts has \"model\" case that returns model IDs from registry, filtered by --provider when present",
         "handleCompletion() in completion/index.ts has \"provider\" case that returns valid provider names from registry",
@@ -495,7 +495,10 @@
         "tools/src/commands/completion/fish.ts",
         "tools/CLAUDE.md"
       ],
-      "blockedBy": []
+      "blockedBy": [],
+      "completedAt": "2026-02-05T23:17:49Z",
+      "commitHash": "6e23f2d42cdea123ef118b596a06483d0bb99f24",
+      "sessionId": "71b898a7-f39f-4501-a9ab-8aca29fa370b"
     },
     {
       "id": "SUB-284",

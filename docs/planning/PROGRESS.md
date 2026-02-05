@@ -3,8 +3,8 @@
 ## Current Focus
 
 **Story:** 004-model-registry
-**Task:** TASK-049 static-registry
-**Status:** SUB-304 complete
+**Task:** TASK-051 tab-completion
+**Status:** SUB-314 complete
 
 ## Session Notes
 
@@ -13,6 +13,16 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-314
+- **Problem:** CLI tab completion had no support for model/provider selection. Users couldn't tab-complete `--model` or `--provider` flags on `ralph build` or `review` commands.
+- **Changes:** Added "model" and "provider" dynamic completion types to the `__complete` handler in completion/index.ts. Model completions are filtered by `--provider` when present (reads from process.argv), fall back to all models when no provider specified, and return empty for unknown providers. Cost hints are included as tab-separated descriptions. Updated all three shell generators (bash, zsh, fish) with `--provider` and `--model` flag completions for `ralph build` and `review` commands. Zsh uses `_aaa_provider` and `_aaa_model` helper functions with description parsing. Fish uses inline command substitution with `string split` for tab-separated descriptions. Added 10 unit tests.
+- **Files:**
+  - `tools/src/commands/completion/index.ts` - Added: model/provider cases, getFilteredModelCompletions helper, model registry imports
+  - `tools/src/commands/completion/bash.ts` - Added: --provider and --model flag value completion with dynamic lookups
+  - `tools/src/commands/completion/zsh.ts` - Added: --provider and --model flags for build/review, _aaa_provider and _aaa_model helpers
+  - `tools/src/commands/completion/fish.ts` - Added: --provider and --model completions for ralph build and review
+  - `tools/tests/completion/model-completion.test.ts` - Created: 10 tests for model/provider completion
 
 #### SUB-274
 - **Problem:** Claude provider lacked dedicated fixture files and comprehensive unit tests for JSON parsing (normalizeClaudeResult) and ClaudeConfig type validation.
