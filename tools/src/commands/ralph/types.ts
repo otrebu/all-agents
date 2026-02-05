@@ -11,6 +11,8 @@
  * @see docs/planning/schemas/iteration-diary.schema.json
  */
 
+import type { ProviderType } from "./providers/types";
+
 // =============================================================================
 // Build State Types
 // =============================================================================
@@ -227,6 +229,12 @@ interface PostIterationHookConfig extends HookConfig {
 interface RalphConfig {
   /** Hook configuration */
   hooks?: HooksConfig;
+  /** Lightweight model for summary tasks (e.g., "claude-3-5-haiku-latest") */
+  lightweightModel?: string;
+  /** Default model override */
+  model?: string;
+  /** Default provider selection */
+  provider?: ProviderType;
   /** Self-improvement configuration */
   selfImprovement?: SelfImprovementConfig;
 }
