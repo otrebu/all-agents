@@ -3,8 +3,8 @@
 ## Current Focus
 
 **Story:** 003-opencode-support
-**Task:** TASK-047 opencode-parser-tests
-**Status:** SUB-294 complete
+**Task:** TASK-046 opencode-registry
+**Status:** SUB-289 complete
 
 ## Session Notes
 
@@ -13,6 +13,15 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-289
+- **Problem:** OpenCode provider was registered in the REGISTRY with `available: false` and a stub invoker. The `invokeOpencode` function didn't exist, so `--provider opencode` couldn't route to a real implementation.
+- **Changes:** Added `invokeOpencode()` to opencode.ts as a registry-compatible `InvokerFunction` that spawns the opencode CLI with `--output jsonl`, handles timeouts and exit codes, and normalizes output via `normalizeOpencodeResult()`. Updated REGISTRY in registry.ts to set opencode entry to `available: true` with `invokeOpencode`. Added 14 unit tests in registry-opencode.test.ts covering registry lookup, supportedModes (no haiku), OpencodeConfig type narrowing, and provider availability. Updated existing registry.test.ts to reflect opencode being available.
+- **Files:**
+  - `tools/src/commands/ralph/providers/opencode.ts` - Added: invokeOpencode function, import of executeWithTimeout and InvocationOptions/OpencodeConfig types
+  - `tools/src/commands/ralph/providers/registry.ts` - Updated: imported invokeOpencode, changed REGISTRY opencode entry to available: true
+  - `tools/tests/providers/registry-opencode.test.ts` - Created: 14 unit tests for opencode registry integration
+  - `tools/tests/providers/registry.test.ts` - Updated: fixed tests for opencode now being available
 
 #### SUB-294
 - **Problem:** No unit tests or fixtures existed for OpenCode JSONL parsing. The normalizeOpencodeResult() function needed to be created along with static fixtures documenting the expected JSONL format.

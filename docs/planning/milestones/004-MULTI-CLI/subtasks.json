@@ -384,7 +384,7 @@
       "storyRef": "003-opencode-support",
       "title": "Register OpenCode provider in registry with types, routing, and tests",
       "description": "Add OpencodeConfig type to tools/src/commands/ralph/providers/types.ts with provider: \"opencode\" discriminator and optional model?: string field (provider/model format). Import invokeOpencode from ./opencode in tools/src/commands/ralph/providers/registry.ts and add opencode entry to REGISTRY record with available: true, invoke: invokeOpencode, and supportedModes: [\"supervised\", \"headless-sync\", \"headless-async\"] (no haiku mode). Verify that --provider opencode CLI flag routes to the OpenCode implementation through the registry dispatch. Add unit test in tools/tests/providers/registry-opencode.test.ts verifying: registry returns correct provider for \"opencode\", supportedModes excludes haiku, OpencodeConfig type narrows correctly, and provider availability check works. Ensure bun run typecheck passes.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "OpencodeConfig interface exists in tools/src/commands/ralph/providers/types.ts with provider: \"opencode\" discriminator and optional model?: string field",
         "opencode entry exists in REGISTRY record in tools/src/commands/ralph/providers/registry.ts with available: true, invoke: invokeOpencode, and supportedModes: [\"supervised\", \"headless-sync\", \"headless-async\"]",
@@ -402,7 +402,10 @@
         "tools/src/commands/ralph/providers/registry.ts",
         "tools/src/commands/ralph/providers/opencode.ts",
         "tools/src/commands/ralph/types.ts"
-      ]
+      ],
+      "completedAt": "2026-02-05T21:33:22Z",
+      "commitHash": "f3e7408f097b600dc6dcc47c7575604b2b10e754",
+      "sessionId": "5a56211e-73c6-4f30-aa42-aea500ab70b0"
     },
     {
       "id": "SUB-304",
