@@ -22,7 +22,6 @@ import type { BuildOptions, Subtask } from "./types";
 
 import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import { runCalibrate } from "./calibrate";
-import { buildPrompt } from "./claude";
 import {
   countRemaining,
   getMilestoneFromSubtasks,
@@ -43,6 +42,7 @@ import {
   type PostIterationResult,
   runPostIterationHook,
 } from "./post-iteration";
+import { buildPrompt } from "./providers/claude";
 import { invokeWithProvider, selectProvider } from "./providers/registry";
 import { discoverRecentSession } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";

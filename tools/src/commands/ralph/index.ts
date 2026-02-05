@@ -18,11 +18,6 @@ import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import { runCascadeFrom, validateCascadeTarget } from "./cascade";
 import {
-  buildPrompt,
-  invokeClaudeChat as invokeClaudeChatFromModule,
-  invokeClaudeHeadlessAsync as invokeClaudeHeadlessAsyncFromModule,
-} from "./claude";
-import {
   countSubtasksInFile,
   discoverTasksFromMilestone,
   getExistingTaskReferences,
@@ -36,6 +31,11 @@ import {
   renderInvocationHeader,
   renderPlanSubtasksSummary,
 } from "./display";
+import {
+  buildPrompt,
+  invokeClaudeChat as invokeClaudeChatFromModule,
+  invokeClaudeHeadlessAsync as invokeClaudeHeadlessAsyncFromModule,
+} from "./providers/claude";
 import { runStatus } from "./status";
 
 /**

@@ -22,8 +22,8 @@ import type {
   Subtask,
 } from "./types";
 
-import { invokeClaudeHaiku } from "./claude";
 import { getIterationLogPath } from "./config";
+import { invokeClaudeHaiku } from "./providers/claude";
 import {
   calculateDurationMs,
   countToolCalls,

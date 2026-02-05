@@ -16,8 +16,8 @@ import type {
   ProviderType,
 } from "./types";
 
-import { invokeClaudeChat, invokeClaudeHeadlessAsync } from "../claude";
 import { loadRalphConfig } from "../config";
+import { invokeClaudeChat, invokeClaudeHeadlessAsync } from "./claude";
 import { PROVIDER_BINARIES } from "./types";
 
 // =============================================================================

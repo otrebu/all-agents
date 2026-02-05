@@ -17,13 +17,13 @@ import path from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
-import { invokeClaudeHeadlessAsync } from "./claude";
 import {
   getCompletedSubtasks,
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
 } from "./config";
+import { invokeClaudeHeadlessAsync } from "./providers/claude";
 
 // =============================================================================
 // Types

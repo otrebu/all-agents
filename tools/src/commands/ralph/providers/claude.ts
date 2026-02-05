@@ -1,8 +1,13 @@
 /**
- * Claude invocation helpers for Ralph
+ * Claude provider implementation for Ralph
  *
- * This module provides functions for spawning Claude sessions in different modes.
- * Extracted from index.ts to avoid circular dependencies with other ralph modules.
+ * This module provides functions for spawning Claude sessions in different modes:
+ * - invokeClaudeChat: Supervised/interactive mode
+ * - invokeClaudeHeadlessAsync: Async headless mode with JSON output
+ * - invokeClaudeHaiku: Lightweight Haiku model for summaries
+ * - buildPrompt: Prompt composition helper
+ *
+ * Migrated from tools/src/commands/ralph/claude.ts to the provider abstraction layer.
  */
 import { existsSync, readFileSync } from "node:fs";
 
@@ -13,7 +18,7 @@ import {
   killProcessGracefully,
   markTimerAsNonBlocking,
   readStderrWithActivityTracking,
-} from "./providers/utils";
+} from "./utils";
 
 // Conventional exit codes for signal termination.
 // 128 + signal number: SIGINT=2 -> 130, SIGTERM=15 -> 143
