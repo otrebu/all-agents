@@ -70,7 +70,7 @@
       "storyRef": "001-provider-foundation",
       "title": "Refactor claude.ts to import shared utilities from providers/utils.ts",
       "description": "Refactor tools/src/commands/ralph/claude.ts to import and use the shared utility functions from providers/utils.ts instead of inline implementations. Replace: createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking, and markTimerAsNonBlocking with imports from providers/utils. Remove the now-redundant local implementations. Update invokeClaudeHeadlessAsync to use the imported utilities. Verify that all existing functionality is preserved by running existing tests and manually verifying headless/stall/timeout behavior still works.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "claude.ts imports createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking, and markTimerAsNonBlocking from providers/utils",
         "claude.ts no longer contains local definitions of the 5 extracted functions",
@@ -86,7 +86,10 @@
       ],
       "blockedBy": [
         "SUB-249"
-      ]
+      ],
+      "completedAt": "2026-02-05T15:16:45Z",
+      "commitHash": "1f042e6539c6b3e8f735ed123361b5f53419ab91",
+      "sessionId": "131eb08d-522a-4d9f-952c-f471979b059c"
     },
     {
       "id": "SUB-259",

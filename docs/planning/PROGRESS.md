@@ -3,8 +3,8 @@
 ## Current Focus
 
 **Story:** 001-provider-foundation
-**Task:** TASK-038 in progress
-**Status:** SUB-249 complete
+**Task:** TASK-038 complete
+**Status:** SUB-250 complete
 
 ## Session Notes
 
@@ -13,6 +13,12 @@
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
 
 ### 2026-02-05
+
+#### SUB-250
+- **Problem:** claude.ts contained local implementations of 5 utility functions that were duplicated in providers/utils.ts after SUB-249 extraction.
+- **Changes:** Replaced local implementations of createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking, and markTimerAsNonBlocking with imports from providers/utils.ts. Also imported DEFAULT_GRACE_PERIOD_MS constant. Replaced inline unref pattern in invokeClaudeHaiku with markTimerAsNonBlocking call. Reduced claude.ts by 146 lines (622→476) with zero behavior change.
+- **Files:**
+  - `tools/src/commands/ralph/claude.ts` - Removed 5 local function definitions, added imports from providers/utils
 
 #### SUB-249
 - **Problem:** Process execution utilities (stall detection, timeout handling, graceful termination, JSON parsing) were tightly coupled to claude.ts, preventing reuse by other providers.
