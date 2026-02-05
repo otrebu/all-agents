@@ -15,6 +15,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import type { ProviderType } from "./providers/types";
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
 import {
@@ -23,7 +24,10 @@ import {
   loadSubtasksFile,
   loadTimeoutConfig,
 } from "./config";
-import { invokeClaudeHeadlessAsync } from "./providers/claude";
+import {
+  invokeWithProvider,
+  selectProviderFromEnv,
+} from "./providers/registry";
 
 // =============================================================================
 // Types
@@ -145,26 +149,30 @@ async function runCalibrate(
   subcommand: CalibrateSubcommand,
   options: CalibrateOptions,
 ): Promise<boolean> {
+  // Select provider (CLI flag > env var > config > auto-detect)
+  const provider = selectProviderFromEnv();
+  console.log(`Using provider: ${provider}`);
+
   switch (subcommand) {
     case "all": {
-      const isIntentionOk = await runIntentionCheck(options);
+      const isIntentionOk = await runIntentionCheck(options, provider);
       console.log();
 
-      const isTechnicalOk = await runTechnicalCheck(options);
+      const isTechnicalOk = await runTechnicalCheck(options, provider);
       console.log();
 
-      const isImproveOk = await runImproveCheck(options);
+      const isImproveOk = await runImproveCheck(options, provider);
 
       return isIntentionOk && isTechnicalOk && isImproveOk;
     }
     case "improve": {
-      return runImproveCheck(options);
+      return runImproveCheck(options, provider);
     }
     case "intention": {
-      return runIntentionCheck(options);
+      return runIntentionCheck(options, provider);
     }
     case "technical": {
-      return runTechnicalCheck(options);
+      return runTechnicalCheck(options, provider);
     }
     default: {
       // This should not happen due to validation in index.ts
@@ -190,7 +198,10 @@ async function runCalibrate(
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-async function runImproveCheck(options: CalibrateOptions): Promise<boolean> {
+async function runImproveCheck(
+  options: CalibrateOptions,
+  provider: ProviderType,
+): Promise<boolean> {
   console.log("=== Running Self-Improvement Analysis ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -280,20 +291,27 @@ Handle improvements based on the mode above.
 
 ${promptContent}`;
 
-  // Run Claude for analysis with timeout protection
-  console.log("Invoking Claude for self-improvement analysis...");
+  // Run provider for analysis with timeout protection
+  console.log(`Invoking ${provider} for self-improvement analysis...`);
   const timeoutConfig = loadTimeoutConfig();
-  const result = await invokeClaudeHeadlessAsync({
-    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-    prompt,
-    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-    timeout: timeoutConfig.hardMinutes * 60 * 1000,
-  });
+  try {
+    const result = await invokeWithProvider(provider, {
+      gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+      mode: "headless",
+      prompt,
+      stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+      timeout: timeoutConfig.hardMinutes * 60 * 1000,
+    });
 
-  if (result === null) {
-    console.error(
-      "Self-improvement analysis failed, was interrupted, or timed out",
-    );
+    if (result === null) {
+      console.error(
+        "Self-improvement analysis failed, was interrupted, or timed out",
+      );
+      return false;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Self-improvement analysis error: ${message}`);
     return false;
   }
 
@@ -317,7 +335,10 @@ ${promptContent}`;
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-async function runIntentionCheck(options: CalibrateOptions): Promise<boolean> {
+async function runIntentionCheck(
+  options: CalibrateOptions,
+  provider: ProviderType,
+): Promise<boolean> {
   console.log("=== Running Intention Drift Check ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -378,20 +399,27 @@ If drift is detected, create task files in docs/planning/tasks/ as specified in 
 
 ${promptContent}`;
 
-  // Run Claude for analysis with timeout protection
-  console.log("Invoking Claude for intention drift analysis...");
+  // Run provider for analysis with timeout protection
+  console.log(`Invoking ${provider} for intention drift analysis...`);
   const timeoutConfig = loadTimeoutConfig();
-  const result = await invokeClaudeHeadlessAsync({
-    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-    prompt,
-    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-    timeout: timeoutConfig.hardMinutes * 60 * 1000,
-  });
+  try {
+    const result = await invokeWithProvider(provider, {
+      gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+      mode: "headless",
+      prompt,
+      stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+      timeout: timeoutConfig.hardMinutes * 60 * 1000,
+    });
 
-  if (result === null) {
-    console.error(
-      "Intention drift analysis failed, was interrupted, or timed out",
-    );
+    if (result === null) {
+      console.error(
+        "Intention drift analysis failed, was interrupted, or timed out",
+      );
+      return false;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Intention drift analysis error: ${message}`);
     return false;
   }
 
@@ -415,7 +443,10 @@ ${promptContent}`;
  * @param options - Calibrate options
  * @returns true if check ran successfully
  */
-async function runTechnicalCheck(options: CalibrateOptions): Promise<boolean> {
+async function runTechnicalCheck(
+  options: CalibrateOptions,
+  provider: ProviderType,
+): Promise<boolean> {
   console.log("=== Running Technical Drift Check ===");
 
   const { contextRoot, subtasksPath } = options;
@@ -470,20 +501,27 @@ Analyze code quality issues in completed subtasks and output a summary to stdout
 
 ${promptContent}`;
 
-  // Run Claude for analysis with timeout protection
-  console.log("Invoking Claude for technical drift analysis...");
+  // Run provider for analysis with timeout protection
+  console.log(`Invoking ${provider} for technical drift analysis...`);
   const timeoutConfig = loadTimeoutConfig();
-  const result = await invokeClaudeHeadlessAsync({
-    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-    prompt,
-    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-    timeout: timeoutConfig.hardMinutes * 60 * 1000,
-  });
+  try {
+    const result = await invokeWithProvider(provider, {
+      gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+      mode: "headless",
+      prompt,
+      stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+      timeout: timeoutConfig.hardMinutes * 60 * 1000,
+    });
 
-  if (result === null) {
-    console.error(
-      "Technical drift analysis failed, was interrupted, or timed out",
-    );
+    if (result === null) {
+      console.error(
+        "Technical drift analysis failed, was interrupted, or timed out",
+      );
+      return false;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Technical drift analysis error: ${message}`);
     return false;
   }
 
