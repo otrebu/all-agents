@@ -5,11 +5,13 @@
  * - invokeClaudeChat: Supervised/interactive mode
  * - invokeClaudeHeadlessAsync: Async headless mode with JSON output
  * - invokeClaudeHaiku: Lightweight Haiku model for summaries
+ * - invokeClaude: Registry-compatible async wrapper
+ * - normalizeClaudeResult: Parse Claude JSON array format to AgentResult
  * - buildPrompt: Prompt composition helper
- *
- * Migrated from tools/src/commands/ralph/claude.ts to the provider abstraction layer.
  */
 import { existsSync, readFileSync } from "node:fs";
+
+import type { AgentResult } from "./types";
 
 import {
   createStallDetector,
@@ -25,21 +27,7 @@ import {
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 
 /**
- * Claude JSON output structure (internal)
- * When --output-format json, Claude outputs an array of messages.
- * The final "result" type message contains session stats.
- */
-interface ClaudeJsonOutput {
-  duration_ms?: number;
-  num_turns?: number;
-  result?: string;
-  session_id?: string;
-  total_cost_usd?: number;
-  type?: string;
-}
-
-/**
- * Result from invoking Claude in chat/supervised mode
+ * Result from invoking Claude in chat/supervised mode (UI-facing)
  */
 interface ClaudeResult {
   /** The process exit code (null if interrupted by signal) */
@@ -48,52 +36,6 @@ interface ClaudeResult {
   interrupted: boolean;
   /** Whether the session completed successfully (exit code 0) */
   success: boolean;
-}
-
-/**
- * Options for Haiku Claude invocation (lightweight model for summaries)
- */
-interface HaikuOptions {
-  /** The prompt to send to Claude Haiku */
-  prompt: string;
-  /** Timeout in milliseconds (default: 30000ms) */
-  timeout?: number;
-}
-
-/**
- * Options for async headless Claude invocation
- */
-interface HeadlessAsyncOptions extends HeadlessOptions {
-  /** Grace period in ms before SIGKILL after SIGTERM (default: 5000) */
-  gracePeriodMs?: number;
-  /** Callback invoked when stderr output is received (for activity tracking) */
-  onStderrActivity?: () => void;
-  /** Stall timeout in ms - triggers if no stderr output (0/undefined = disabled) */
-  stallTimeoutMs?: number;
-  /** Hard timeout in milliseconds (0/undefined = no timeout) */
-  timeout?: number;
-}
-
-/**
- * Options for headless Claude invocation
- */
-interface HeadlessOptions {
-  /** The prompt to send to Claude */
-  prompt: string;
-}
-
-/**
- * Result from headless Claude invocation
- */
-interface HeadlessResult {
-  /** Total cost in USD */
-  cost: number;
-  /** Duration in milliseconds */
-  duration: number;
-  /** The result/response from Claude */
-  result: string;
-  /** Session ID from Claude */
-  sessionId: string;
 }
 
 type TerminationSignal = keyof typeof SIGNAL_EXIT_CODE;
@@ -129,6 +71,57 @@ function exitForSignal(signal: TerminationSignal): never {
   }
 
   process.exit(exitCode);
+}
+
+/**
+ * Async wrapper for registry compatibility.
+ *
+ * Delegates to the appropriate invocation function based on mode:
+ * - "supervised" → invokeClaudeChat (sync, wrapped in Promise)
+ * - "headless-async" → invokeClaudeHeadlessAsync
+ *
+ * @param options - Invocation options with mode and prompt
+ * @returns AgentResult on success, null on failure
+ */
+async function invokeClaude(options: {
+  context?: string;
+  gracePeriodMs?: number;
+  mode: "headless-async" | "supervised";
+  onStderrActivity?: () => void;
+  prompt: string;
+  promptPath?: string;
+  sessionName?: string;
+  stallTimeoutMs?: number;
+  timeout?: number;
+}): Promise<AgentResult | null> {
+  if (options.mode === "supervised") {
+    const promptPath = options.promptPath ?? "";
+    const sessionName = options.sessionName ?? "claude";
+    const startTime = Date.now();
+
+    const chatResult = invokeClaudeChat(
+      promptPath,
+      sessionName,
+      options.context,
+    );
+
+    const durationMs = Date.now() - startTime;
+
+    if (!chatResult.success) {
+      return null;
+    }
+
+    return { costUsd: 0, durationMs, result: "", sessionId: "" };
+  }
+
+  // headless-async mode
+  return invokeClaudeHeadlessAsync({
+    gracePeriodMs: options.gracePeriodMs,
+    onStderrActivity: options.onStderrActivity,
+    prompt: options.prompt,
+    stallTimeoutMs: options.stallTimeoutMs,
+    timeout: options.timeout,
+  });
 }
 
 /**
@@ -203,12 +196,13 @@ function invokeClaudeChat(
  *
  * Uses claude-3-5-haiku model with a real timeout (kills the process).
  *
- * @param options - HaikuOptions with prompt and optional timeout
+ * @param options - Options with prompt and optional timeout
  * @returns The result string, or null if timed out/interrupted/failed
  */
-async function invokeClaudeHaiku(
-  options: HaikuOptions,
-): Promise<null | string> {
+async function invokeClaudeHaiku(options: {
+  prompt: string;
+  timeout?: number;
+}): Promise<null | string> {
   const { prompt, timeout } = options;
   const timeoutMs = timeout ?? 30_000;
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
@@ -280,15 +274,8 @@ async function invokeClaudeHaiku(
   // Parse JSON from stdout
   try {
     const stdout = await stdoutPromise;
-    const parsed = JSON.parse(stdout) as
-      | Array<ClaudeJsonOutput>
-      | ClaudeJsonOutput;
-    const output: ClaudeJsonOutput = Array.isArray(parsed)
-      ? (parsed.findLast((entry) => entry.type === "result") ??
-        parsed.at(-1) ??
-        {})
-      : parsed;
-    return output.result ?? null;
+    const normalized = normalizeClaudeResult(stdout);
+    return normalized.result || null;
   } catch {
     if (isDebug) {
       const stderr = (await stderrPromise).trim();
@@ -310,13 +297,16 @@ async function invokeClaudeHaiku(
  * - Hard timeout: Safety net for total elapsed time
  * - Graceful termination: SIGTERM → grace period → SIGKILL
  *
- * @param options - HeadlessAsyncOptions with prompt and timeout options
- * @returns HeadlessResult with session info, or null if interrupted/failed/timed out
+ * @param options - Options with prompt and timeout configuration
+ * @returns AgentResult with session info, or null if interrupted/failed/timed out
  */
-// eslint-disable-next-line complexity -- Timeout/stall detection logic is intentionally comprehensive
-async function invokeClaudeHeadlessAsync(
-  options: HeadlessAsyncOptions,
-): Promise<HeadlessResult | null> {
+async function invokeClaudeHeadlessAsync(options: {
+  gracePeriodMs?: number;
+  onStderrActivity?: () => void;
+  prompt: string;
+  stallTimeoutMs?: number;
+  timeout?: number;
+}): Promise<AgentResult | null> {
   const {
     gracePeriodMs = DEFAULT_GRACE_PERIOD_MS,
     onStderrActivity,
@@ -432,23 +422,7 @@ async function invokeClaudeHeadlessAsync(
   // Parse JSON from stdout (clean without stderr contamination)
   try {
     const stdout = await stdoutPromise;
-    const parsed = JSON.parse(stdout) as
-      | Array<ClaudeJsonOutput>
-      | ClaudeJsonOutput;
-    const output: ClaudeJsonOutput = Array.isArray(parsed)
-      ? (parsed.findLast(
-          (entry) => (entry as { type?: string }).type === "result",
-        ) ??
-        parsed.at(-1) ??
-        {})
-      : parsed;
-
-    return {
-      cost: output.total_cost_usd ?? 0,
-      duration: output.duration_ms ?? 0,
-      result: output.result ?? "",
-      sessionId: output.session_id ?? "",
-    };
+    return normalizeClaudeResult(stdout);
   } catch (error) {
     const preview = (await stdoutPromise).slice(0, 500);
     console.error("Failed to parse Claude JSON output.");
@@ -461,6 +435,63 @@ async function invokeClaudeHeadlessAsync(
   }
 }
 
+/**
+ * Parse Claude JSON output and normalize to AgentResult.
+ *
+ * Claude outputs a JSON array where the result entry has `type: "result"`:
+ * ```json
+ * [
+ *   {"type": "system", ...},
+ *   {"type": "assistant", ...},
+ *   {"type": "result", "result": "...", "duration_ms": 1234, "total_cost_usd": 0.05, "session_id": "..."}
+ * ]
+ * ```
+ *
+ * Also handles single-object responses (not wrapped in an array).
+ *
+ * @param jsonString - Raw JSON string from Claude stdout
+ * @returns Normalized AgentResult
+ * @throws Error if JSON is malformed or no result entry is found
+ */
+function normalizeClaudeResult(jsonString: string): AgentResult {
+  const parsed = JSON.parse(jsonString) as
+    | Array<Record<string, unknown>>
+    | Record<string, unknown>;
+
+  const output: Record<string, unknown> = Array.isArray(parsed)
+    ? (parsed.findLast(
+        (entry) => (entry as { type?: string }).type === "result",
+      ) ??
+      parsed.at(-1) ??
+      {})
+    : parsed;
+
+  const costUsd =
+    typeof output.total_cost_usd === "number" ? output.total_cost_usd : 0;
+  const durationMs =
+    typeof output.duration_ms === "number" ? output.duration_ms : 0;
+  const result = typeof output.result === "string" ? output.result : "";
+  const sessionId =
+    typeof output.session_id === "string" ? output.session_id : "";
+
+  const base: AgentResult = { costUsd, durationMs, result, sessionId };
+
+  if (output.usage === undefined) {
+    return base;
+  }
+
+  const usage = output.usage as Record<string, number>;
+  return {
+    ...base,
+    tokenUsage: {
+      cacheRead: usage.cache_read,
+      cacheWrite: usage.cache_write,
+      input: typeof usage.input_tokens === "number" ? usage.input_tokens : 0,
+      output: typeof usage.output_tokens === "number" ? usage.output_tokens : 0,
+    },
+  };
+}
+
 function normalizeTerminationSignal(
   signal: null | string | undefined,
 ): null | TerminationSignal {
@@ -471,11 +502,9 @@ function normalizeTerminationSignal(
 export {
   buildPrompt,
   type ClaudeResult,
-  type HaikuOptions,
-  type HeadlessAsyncOptions,
-  type HeadlessOptions,
-  type HeadlessResult,
+  invokeClaude,
   invokeClaudeChat,
   invokeClaudeHaiku,
   invokeClaudeHeadlessAsync,
+  normalizeClaudeResult,
 };

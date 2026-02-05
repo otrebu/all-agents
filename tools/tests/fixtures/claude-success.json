@@ -1,0 +1,33 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "session_id": "abc-123-def-456",
+    "tools": [],
+    "mcp_servers": []
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "role": "assistant",
+      "content": [{ "type": "text", "text": "I'll help with that." }]
+    }
+  },
+  {
+    "type": "result",
+    "subtype": "success",
+    "result": "Task completed successfully.\n\nAll changes have been applied.",
+    "session_id": "abc-123-def-456",
+    "duration_ms": 45230,
+    "duration_api_ms": 38100,
+    "total_cost_usd": 0.0847,
+    "num_turns": 3,
+    "is_error": false,
+    "usage": {
+      "input_tokens": 15200,
+      "output_tokens": 3400,
+      "cache_read": 12000,
+      "cache_write": 800
+    }
+  }
+]

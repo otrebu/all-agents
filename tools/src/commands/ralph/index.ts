@@ -351,8 +351,8 @@ async function invokeClaudeHeadless(
   }
 
   const logEntry = {
-    costUsd: result.cost,
-    durationMs: result.duration,
+    costUsd: result.costUsd,
+    durationMs: result.durationMs,
     extraContext: extraContext ?? "",
     result: result.result,
     sessionId: result.sessionId,
@@ -366,9 +366,8 @@ async function invokeClaudeHeadless(
   console.log(`Session: ${result.sessionId || "unknown"}`);
 
   return {
-    costUsd: result.cost,
-    durationMs: result.duration,
-    // numTurns not available from the module's HeadlessResult
+    costUsd: result.costUsd,
+    durationMs: result.durationMs,
     numTurns: 0,
     result: result.result,
     sessionId: result.sessionId,

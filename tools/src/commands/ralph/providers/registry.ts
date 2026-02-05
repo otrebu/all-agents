@@ -153,29 +153,21 @@ function getInstallInstructions(provider: ProviderType): string {
 }
 
 /**
- * Invoke Claude in headless mode and normalize result to AgentResult
+ * Invoke Claude in headless mode and return AgentResult directly.
+ *
+ * invokeClaudeHeadlessAsync already returns AgentResult after the
+ * normalizeClaudeResult refactor, so no field mapping is needed.
  */
 async function invokeClaudeHeadless(
   options: HeadlessProviderOptions,
 ): Promise<AgentResult | null> {
-  const result = await invokeClaudeHeadlessAsync({
+  return invokeClaudeHeadlessAsync({
     gracePeriodMs: options.gracePeriodMs,
     onStderrActivity: options.onStderrActivity,
     prompt: options.prompt,
     stallTimeoutMs: options.stallTimeoutMs,
     timeout: options.timeout,
   });
-
-  if (result === null) {
-    return null;
-  }
-
-  return {
-    costUsd: result.cost,
-    durationMs: result.duration,
-    result: result.result,
-    sessionId: result.sessionId,
-  };
 }
 
 /**
