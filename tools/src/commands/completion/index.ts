@@ -1,5 +1,13 @@
+import type { ProviderType } from "@tools/commands/ralph/providers/types";
+
 import { Command } from "@commander-js/extra-typings";
 import { discoverMilestones } from "@lib/milestones";
+import {
+  getModelById,
+  getModelCompletions,
+  getModelCompletionsForProvider,
+} from "@tools/commands/ralph/providers/models";
+import { REGISTRY } from "@tools/commands/ralph/providers/registry";
 import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -161,6 +169,19 @@ function generateCompletion(shell: Shell): string {
   }
 }
 
+/** Get model completions, optionally filtered by provider */
+function getFilteredModelCompletions(
+  providerArgument: string | undefined,
+): Array<string> {
+  if (providerArgument === undefined) {
+    return getModelCompletions();
+  }
+  if (providerArgument in REGISTRY) {
+    return getModelCompletionsForProvider(providerArgument as ProviderType);
+  }
+  return [];
+}
+
 /**
  * Handle __complete command for dynamic completions
  * Called by shell completion scripts to get dynamic values
@@ -206,6 +227,28 @@ function handleCompletion(): void {
             .map((m) => `docs/planning/milestones/${m.slug}`)
             .join("\n"),
         );
+        break;
+      }
+      case "model": {
+        // Read --provider from argv to filter models
+        const providerIndex = process.argv.indexOf("--provider");
+        const providerArgument =
+          providerIndex === -1 ? undefined : process.argv[providerIndex + 1];
+
+        const modelIds = getFilteredModelCompletions(providerArgument);
+
+        // Output model IDs with cost hints (tab-separated for shells that support descriptions)
+        const lines = modelIds.map((id) => {
+          const model = getModelById(id);
+          return model === undefined ? id : `${id}\t${model.costHint}`;
+        });
+        console.log(lines.join("\n"));
+        break;
+      }
+      case "provider": {
+        // Return all valid provider names from the registry
+        const providers = Object.keys(REGISTRY);
+        console.log(providers.join("\n"));
         break;
       }
       case "story": {

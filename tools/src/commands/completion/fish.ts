@@ -162,6 +162,8 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l max-iteration
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Run pre-build validation'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-every -d 'Run calibration every N iterations' -r
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l model -d 'Model to use' -xa '(aaa __complete model 2>/dev/null | while read line; set -l parts (string split \\t $line); if test (count $parts) -ge 2; echo $parts[1]\\t$parts[2]; else; echo $parts[1]; end; end)'
 
 # ralph status options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph status' -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
@@ -283,6 +285,8 @@ complete -c aaa -n __fish_aaa_ralph_review_gap_stories -xa '(aaa __complete mile
 complete -c aaa -n '__fish_aaa_using_subcommand review' -s s -l supervised -d 'Supervised mode: watch execution'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -s H -l headless -d 'Headless mode: fully autonomous'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -l dry-run -d 'Preview findings without fixing (requires --headless)'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(aaa __complete model 2>/dev/null | while read line; set -l parts (string split \\t $line); if test (count $parts) -ge 2; echo $parts[1]\\t$parts[2]; else; echo $parts[1]; end; end)'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -a status -d 'Display review history and statistics'
 
 # completion subcommands

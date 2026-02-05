@@ -271,7 +271,9 @@ _aaa_ralph() {
                         '--max-iterations[Max retry attempts]:number:' \\
                         '--validate-first[Run pre-build validation]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
-                        '--calibrate-every[Run calibration every N iterations]:number:'
+                        '--calibrate-every[Run calibration every N iterations]:number:' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model'
                     ;;
                 plan)
                     _aaa_ralph_plan
@@ -464,6 +466,8 @@ _aaa_review() {
         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch execution]' \\
         '(-H --headless)'{-H,--headless}'[Headless mode: fully autonomous]' \\
         '--dry-run[Preview findings without fixing (requires --headless)]' \\
+        '--provider[AI provider]:provider:_aaa_provider' \\
+        '--model[Model to use]:model:_aaa_model' \\
         '1: :->subcmd'
 
     case $state in
@@ -509,6 +513,53 @@ _aaa_cascade_target() {
     targets=(\${(f)"$(aaa __complete cascade 2>/dev/null)"})
     if (( \${#targets} )); then
         _describe 'target' targets
+    fi
+}
+
+# Helper: complete provider names
+_aaa_provider() {
+    local -a providers
+    providers=(\${(f)"$(aaa __complete provider 2>/dev/null)"})
+    if (( \${#providers} )); then
+        _describe 'provider' providers
+    fi
+}
+
+# Helper: complete model names with cost hints
+_aaa_model() {
+    local -a models
+    local provider_val=""
+    # Extract --provider value from current command line
+    local i=1
+    while (( i < \${#words} )); do
+        if [[ "\${words[i]}" == "--provider" && i+1 -le \${#words} ]]; then
+            provider_val="\${words[i+1]}"
+            break
+        fi
+        (( i++ ))
+    done
+
+    local raw
+    if [[ -n "$provider_val" ]]; then
+        raw="$(aaa __complete model --provider "$provider_val" 2>/dev/null)"
+    else
+        raw="$(aaa __complete model 2>/dev/null)"
+    fi
+
+    # Parse tab-separated "id\\tcostHint" into zsh completion descriptions
+    local line
+    for line in \${(f)raw}; do
+        local id="\${line%%\$'\\t'*}"
+        local hint="\${line#*\$'\\t'}"
+        if [[ "$id" != "$hint" ]]; then
+            models+=("$id:$hint")
+        else
+            models+=("$id")
+        fi
+    done
+
+    if (( \${#models} )); then
+        _describe 'model' models
     fi
 }
 
