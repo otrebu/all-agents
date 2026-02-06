@@ -299,7 +299,31 @@ This commit marks the end of the GPT 5.3 Codex session. Work is incomplete and n
 
 **WE CREATED TASKS BUT HAVEN'T STARTED THE CORE ABSTRACTION WORK:**
 
-Tasks TASK-053 through TASK-057 define the necessary work, but **none of the actual implementation has been done yet**. These are the foundational abstractions needed for true multi-provider support:
+Tasks TASK-053 through TASK-057 define the necessary work, but **none of the actual implementation has been done yet**. These are the foundational abstractions needed for true multi-provider support.
+
+**WARNING: We built the UI layer before the foundation.**
+
+This means:
+- Commands accept `--provider` and `--model` flags
+- But runtime behavior may be unpredictable or fail confusingly
+- Without TASK-053 (capability gating), you can request unsupported combinations
+- Without TASK-054, OpenCode "supervised" actually runs headless JSON mode
+- Without TASK-055, session metrics are silently lost for non-Claude providers
+
+**Technical Debt Introduced:**
+- Planning command interfaces were modified in `index.ts` without completing CLI flag wiring
+- Helper functions (`runTasksMilestoneMode`, `runTasksStoryMode`, `runTasksSourceMode`) accept provider/model parameters that aren't being passed from the CLI
+- This creates "partially updated" code that's functional for Claude but unclear for other providers
+- Lint errors exist in modified files (49 errors across the codebase as of commit `bc4c516`)
+
+**Current Behavior vs Expected Behavior:**
+
+| Command | Current | Expected After Full Implementation |
+|---------|---------|-----------------------------------|
+| `plan subtasks --provider opencode --headless` | ✅ Works | ✅ Should work |
+| `plan subtasks --provider opencode --supervised` | ⚠️ Runs, but not truly interactive | Should use PTY with clear capability error if unavailable |
+| `plan stories --provider opencode --headless` | ❌ Flags not wired | Should work like subtasks |
+| `build --provider opencode --supervised` | ⚠️ Falls back to JSON mode | Should fail gracefully with clear message until TASK-054 done |
 
 1. **TASK-053 (Capability Gating)** - Must be done FIRST
    - Currently no runtime enforcement of what providers support what modes
@@ -464,6 +488,52 @@ If a new agent continues this work, this is the minimum context needed:
 - Session and post-iteration internals remain primarily Claude-shaped
 - Capability gating not enforced - unsupported mode/provider combos may fail confusingly
 
+### Branch and Code Quality State
+
+**Branch:** `feature/multi-cli-abstraction`
+
+**Last Commits:**
+- `cc9331f` - docs: update feedback document with gpt 5.3 session progress
+- `bc4c516` - WIP: multi-provider planning support through GPT 5.3
+
+**Code Quality Issues:**
+- 49 lint errors across the codebase as of commit `bc4c516`
+- Modified files: `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/calibrate.ts`
+- Pre-commit hooks are failing on these files
+- These will need to be cleaned up before merging to main
+
+### Testing Gaps
+
+**Tested (working):**
+- `ralph plan subtasks --provider opencode --model openai/gpt-5.3-codex --headless`
+- `ralph calibrate intention --provider opencode` (starts, timeout expected)
+
+**NOT tested:**
+- `ralph plan stories` with non-Claude providers (flags not wired)
+- `ralph plan tasks` with non-Claude providers (flags not wired)
+- `ralph review` with non-Claude providers (no support)
+- Supervised mode with non-Claude providers (not truly implemented)
+- Session extraction for non-Claude providers (assumes `.claude` paths)
+- Post-iteration telemetry for non-Claude providers (uses Claude-specific invocation)
+
+### Architectural Concern
+
+**We inverted the dependency order.** The correct approach would have been:
+
+1. TASK-053 (capability gating) - Define what providers can do
+2. TASK-055 (session abstraction) - Define how to extract metrics
+3. TASK-054 (OpenCode supervised) - Implement true supervised mode
+4. Then add surface area (CLI flags) - Now safe because runtime supports it
+
+**Instead we did:**
+
+4. Surface area (CLI flags) - First
+2. Session abstraction - Not started
+3. OpenCode supervised - Not started
+1. Capability gating - Not started
+
+**This means:** The UI promises capabilities the runtime doesn't actually have. Users can request `--provider opencode --mode supervised` and it will run, but it's NOT truly supervised. This is a bad user experience that needs to be fixed by implementing TASK-053 (capability gating) before claiming multi-provider support is complete.
+
 ### Highest-priority code areas to inspect first
 
 - `tools/src/commands/ralph/providers/opencode.ts`
@@ -489,12 +559,32 @@ If a new agent continues this work, this is the minimum context needed:
 - Wire provider/model flags to `ralph plan stories`, `plan tasks`, `plan vision`, `plan roadmap`
 - Add provider/model support to all `ralph review` subcommands
 
-**Core abstractions (in dependency order):**
-- TASK-053: Provider capability gating (MUST be first)
-- TASK-054: OpenCode supervised lifecycle (depends on 053)
-- TASK-055: Provider session abstraction (depends on 053)
-- TASK-056: Provider outcome classification (depends on 053)
-- TASK-057: Provider-neutral post-iteration (depends on 055)
+**Core abstractions (CRITICAL - must be done in order):**
+
+⚠️ **These tasks have dependencies. Do not skip ahead.**
+
+1. **TASK-053: Provider capability gating** (MUST be first - no exceptions)
+   - Without this, the system doesn't know what providers support
+   - All subsequent work assumes this contract exists
+   
+2. **TASK-054: OpenCode supervised lifecycle** (depends on 053)
+   - Needs capability contract to know what "supervised" means for OpenCode
+   
+3. **TASK-055: Provider session abstraction** (depends on 053, 054 recommended)
+   - Needs capability contract to know which providers support session export
+   - OpenCode session adapter should be reference implementation
+   
+4. **TASK-056: Provider outcome classification** (depends on 053)
+   - Needs capability contract to define success/failure per provider
+   
+5. **TASK-057: Provider-neutral post-iteration** (depends on 055)
+   - Assumes session abstraction exists to extract metrics
+
+**Why strict ordering matters:**
+- TASK-053 defines the universal contract all providers must implement
+- Tasks 054-057 implement specific providers/features against that contract
+- Attempting 054-057 without 053 leads to undefined behavior (our current situation)
+- The surface area work (flags) should have come AFTER 053-057, not before
 
 ### Validation commands to run during continuation
 
@@ -508,6 +598,37 @@ opencode attach --help
 opencode serve --help
 opencode session list --format json -n 3
 ```
+
+### Immediate Next Steps (Clean Up The Mess)
+
+**Before doing ANY new feature work:**
+
+1. **Fix lint errors** (49 errors as of commit `bc4c516`)
+   - Run `cd tools && bun run lint` to see all issues
+   - Must clean up before merging to main
+   
+2. **Decide: Surface area vs Foundation first**
+
+   **Option A: Complete surface area first** (quick wins, maintains momentum)
+   - Wire flags to `plan stories`, `plan tasks`, `plan vision`, `plan roadmap`
+   - Add provider/model support to all `review` commands
+   - **Risk**: Users can request unsupported provider/mode combinations with confusing failures
+   - **Mitigation**: Document limitations clearly, implement TASK-053 ASAP after
+
+   **Option B: Stop and build foundation first** (architecturally correct)
+   - Pause on adding more flags
+   - Implement TASK-053 through TASK-055 in strict order
+   - Then complete surface area
+   - **Risk**: Current partially-working state stays broken longer
+   - **Benefit**: Everything works correctly when shipped
+
+3. **Update TASK-053 task file** if choosing Option A
+   - Document the "UI before runtime" situation
+   - Make capability gating higher priority
+
+4. **Update task dependencies** in TASK-054 through TASK-057
+   - Cross-reference the implementation progress section
+   - Mark any work done out of order as "completed out of sequence"
 
 ### Definition of done for "true multiprovider"
 
