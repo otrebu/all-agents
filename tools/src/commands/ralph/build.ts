@@ -54,7 +54,7 @@ import {
   resolveProvider,
   validateProviderInvocationPreflight,
 } from "./providers/registry";
-import { discoverRecentSession } from "./session";
+import { discoverRecentSessionForProvider } from "./providers/session-adapter";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
 
@@ -556,6 +556,7 @@ async function processHeadlessIteration(
         maxAttempts: maxIterations,
         milestone,
         mode: "headless",
+        provider,
         remaining: postRemaining,
         repoRoot: projectRoot,
         sessionId: result.sessionId,
@@ -666,11 +667,11 @@ async function processSupervisedIteration(
   // Calculate elapsed time for provider invocation
   const claudeMs = Date.now() - invocationStart;
 
-  // Prefer provider-native session capture, fallback to Claude session discovery.
+  // Prefer provider-native session capture, then provider adapter discovery.
   const hasProviderSessionId = supervisedResult.sessionId !== "";
   const discoveredSession = hasProviderSessionId
     ? null
-    : discoverRecentSession(invocationStart);
+    : discoverRecentSessionForProvider(provider, invocationStart, projectRoot);
   const sessionId = hasProviderSessionId
     ? supervisedResult.sessionId
     : (discoveredSession?.sessionId ?? "");
@@ -702,6 +703,7 @@ async function processSupervisedIteration(
       maxAttempts: maxIterations,
       milestone,
       mode: "supervised",
+      provider,
       remaining: postRemaining,
       repoRoot: projectRoot,
       sessionId,

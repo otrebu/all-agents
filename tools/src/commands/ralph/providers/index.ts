@@ -35,6 +35,18 @@ export {
   validateProviderInvocationPreflight,
 } from "./registry";
 export {
+  discoverRecentSessionForProvider,
+  EMPTY_SESSION_METRICS,
+  extractSessionMetricsForProvider,
+  getProviderSessionAdapter,
+  NOOP_SESSION_ADAPTER,
+  type ProviderSession,
+  type ProviderSessionAdapter,
+  type ProviderSessionMetrics,
+  resolveSessionForProvider,
+  SESSION_ADAPTERS,
+} from "./session-adapter";
+export {
   type AgentResult,
   type BaseProviderConfig,
   type ClaudeConfig,

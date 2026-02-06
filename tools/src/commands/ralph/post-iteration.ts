@@ -15,6 +15,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
+import type { ProviderType } from "./providers/types";
 import type {
   IterationDiaryEntry,
   IterationStatus,
@@ -25,12 +26,10 @@ import type {
 import { getIterationLogPath } from "./config";
 import { invokeClaudeHaiku } from "./providers/claude";
 import {
-  calculateDurationMs,
-  countToolCalls,
-  getFilesFromSession,
-  getSessionJsonlPath,
-  getTokenUsageFromSession,
-} from "./session";
+  EMPTY_SESSION_METRICS,
+  extractSessionMetricsForProvider,
+  resolveSessionForProvider,
+} from "./providers/session-adapter";
 
 // =============================================================================
 // Types
@@ -46,8 +45,8 @@ interface GetFilesChangedOptions {
   commitBefore?: null | string;
   /** Repository root path for git commands */
   repoRoot: string;
-  /** Path to session JSONL file (for fallback) */
-  sessionPath: null | string;
+  /** Provider-derived changed files (fallback when git diff is empty) */
+  sessionFiles: Array<string>;
 }
 
 /**
@@ -82,6 +81,8 @@ interface PostIterationOptions {
   milestone?: string;
   /** Execution mode: 'headless' or 'supervised' */
   mode?: "headless" | "supervised";
+  /** Provider used for this iteration */
+  provider?: ProviderType;
   /** Number of remaining subtasks after this iteration */
   remaining?: number;
   /** Repository root path for session discovery */
@@ -358,7 +359,7 @@ function getCommitRangeLines(
  * @returns Array of file paths (max 50)
  */
 function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
-  const { commitAfter, commitBefore, repoRoot, sessionPath } = options;
+  const { commitAfter, commitBefore, repoRoot, sessionFiles } = options;
   const files = new Set<string>();
 
   // Primary source: git commit range (most accurate)
@@ -378,9 +379,8 @@ function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
     }
   }
 
-  // Fallback: session parsing if git shows nothing
-  if (files.size === 0 && sessionPath !== null) {
-    const sessionFiles = getFilesFromSession(sessionPath);
+  // Fallback: provider session parsing if git shows nothing
+  if (files.size === 0) {
     for (const file of sessionFiles) {
       // Normalize to relative path if absolute
       const relativePath = file.startsWith(repoRoot)
@@ -568,6 +568,7 @@ async function runPostIterationHook(
     iterationNumber = 1,
     milestone = "",
     mode,
+    provider = "claude",
     repoRoot,
     sessionId,
     status,
@@ -580,21 +581,33 @@ async function runPostIterationHook(
     return null;
   }
 
-  // Find session JSONL path
-  const sessionPath = getSessionJsonlPath(sessionId, repoRoot);
+  const resolvedSession = resolveSessionForProvider(
+    provider,
+    sessionId,
+    repoRoot,
+  );
+  const sessionPath = resolvedSession?.path ?? null;
 
   // Generate summary using Haiku (silent - no console output)
   const summaryResult = await generateSummary(options, sessionPath);
 
   // Collect metrics with timing
   const metricsStart = Date.now();
-  const toolCalls = sessionPath === null ? 0 : countToolCalls(sessionPath);
-  const duration = sessionPath === null ? 0 : calculateDurationMs(sessionPath);
+  const sessionMetrics =
+    resolvedSession === null
+      ? EMPTY_SESSION_METRICS
+      : extractSessionMetricsForProvider(provider, resolvedSession, repoRoot);
+  const {
+    durationMs: duration,
+    filesChanged: sessionFiles,
+    tokenUsage,
+    toolCalls,
+  } = sessionMetrics;
   const filesChanged = getFilesChanged({
     commitAfter,
     commitBefore,
     repoRoot,
-    sessionPath,
+    sessionFiles,
   });
 
   // If commits are different, use commit range diff to accurately measure what Claude committed
@@ -611,8 +624,6 @@ async function runPostIterationHook(
     ? getCommitRangeLines(repoRoot, commitBefore, commitAfter)
     : getLinesChanged(repoRoot);
 
-  const tokenUsage =
-    sessionPath === null ? undefined : getTokenUsageFromSession(sessionPath);
   const metricsMs = Date.now() - metricsStart;
 
   // Calculate hook total time

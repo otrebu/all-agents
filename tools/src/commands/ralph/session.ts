@@ -11,11 +11,14 @@
  * where encoded-path can be base64-encoded or dash-separated.
  */
 
-import { Buffer } from "node:buffer";
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
 
 import type { TokenUsage } from "./types";
+
+import {
+  discoverClaudeRecentSession,
+  resolveClaudeSessionPath,
+} from "./providers/session-claude";
 
 // =============================================================================
 // Session Analysis
@@ -133,50 +136,7 @@ function countToolCalls(sessionPath: string): number {
 function discoverRecentSession(
   afterTimestamp: number,
 ): DiscoveredSession | null {
-  const home = homedir();
-  const claudeDirectory = process.env.CLAUDE_CONFIG_DIR ?? `${home}/.claude`;
-  const projectsDirectory = `${claudeDirectory}/projects`;
-
-  if (!existsSync(projectsDirectory)) {
-    return null;
-  }
-
-  try {
-    // Convert timestamp to ISO date format for find -newermt
-    const afterDate = new Date(afterTimestamp).toISOString();
-
-    // Find session files newer than the given timestamp, sorted by modification time (most recent first)
-    // Using ls -t to sort by modification time, then head -1 to get most recent
-    const proc = Bun.spawnSync(
-      [
-        "bash",
-        "-c",
-        `find "${projectsDirectory}" -name "*.jsonl" -type f -newermt "${afterDate}" -exec ls -t {} + 2>/dev/null | head -1`,
-      ],
-      { timeout: 10_000 },
-    );
-
-    if (proc.exitCode !== 0) {
-      return null;
-    }
-
-    const found = proc.stdout.toString("utf8").trim();
-
-    if (found === "") {
-      return null;
-    }
-
-    // Extract session ID from path (filename without .jsonl extension)
-    const sessionId = found.split("/").pop()?.replace(".jsonl", "") ?? "";
-
-    if (sessionId === "") {
-      return null;
-    }
-
-    return { path: found, sessionId };
-  } catch {
-    return null;
-  }
+  return discoverClaudeRecentSession(afterTimestamp);
 }
 
 // =============================================================================
@@ -290,69 +250,7 @@ function getSessionJsonlPath(
   sessionId: string,
   repoRoot: string,
 ): null | string {
-  const home = homedir();
-  // Use CLAUDE_CONFIG_DIR if set, otherwise default to ~/.claude
-  const claudeDirectory = process.env.CLAUDE_CONFIG_DIR ?? `${home}/.claude`;
-  const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
-  const triedPaths: Array<string> = [];
-
-  // Fast-path: Try deterministic locations first (avoid expensive recursive find)
-  const dashPath = repoRoot.replaceAll("/", "-").replaceAll(".", "-");
-  const base64 = Buffer.from(repoRoot).toString("base64");
-  const base64Url = base64
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replaceAll("=", "");
-
-  const candidates = [
-    `${claudeDirectory}/projects/${base64}/${sessionId}.jsonl`,
-    `${claudeDirectory}/projects/${base64Url}/${sessionId}.jsonl`,
-    `${claudeDirectory}/projects/${dashPath}/${sessionId}.jsonl`,
-    `${claudeDirectory}/projects/${sessionId}.jsonl`,
-    `${claudeDirectory}/sessions/${sessionId}.jsonl`,
-  ];
-
-  for (const candidate of candidates) {
-    triedPaths.push(candidate);
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  // Fallback: Search in CLAUDE_CONFIG_DIR/projects/ (sessions can be in any subdir)
-  const projectsDirectory = `${claudeDirectory}/projects`;
-  if (existsSync(projectsDirectory)) {
-    try {
-      const proc = Bun.spawnSync(
-        [
-          "bash",
-          "-c",
-          `find "${projectsDirectory}" -maxdepth 3 -name "${sessionId}.jsonl" -type f 2>/dev/null | head -1`,
-        ],
-        { timeout: 5000 },
-      );
-      if (proc.exitCode === 0) {
-        const found = proc.stdout.toString("utf8").trim();
-        if (found !== "") {
-          return found;
-        }
-      }
-    } catch {
-      // find failed or timed out, continue to final not found
-    }
-    triedPaths.push(`${projectsDirectory}/**/${sessionId}.jsonl`);
-  }
-
-  // Log tried paths at debug level
-  if (isDebug) {
-    console.log(`Session ${sessionId} not found. Tried paths:`);
-    for (const p of triedPaths) {
-      console.log(`  - ${p}`);
-    }
-  }
-
-  // Not found
-  return null;
+  return resolveClaudeSessionPath(sessionId, repoRoot);
 }
 
 /**
