@@ -227,6 +227,152 @@ Reason:
   - Risks and mitigation
   - Suggested tests
 
+## Implementation Progress Update (2026-02-06)
+
+**COMMIT MARKER: `bc4c516` - "WIP: multi-provider planning support through GPT 5.3"**
+
+This commit marks the end of the GPT 5.3 Codex session. Work is incomplete and needs continuation.
+
+### What Was Accomplished
+
+**Planning Commands - Provider/Model Flag Support:**
+- ✅ `ralph build --provider <name> --model <name>` - FULLY WORKING (already existed)
+- ✅ `ralph plan subtasks --provider <name> --model <name>` - IMPLEMENTED & TESTED
+  - Working end-to-end with OpenCode: `plan subtasks --provider opencode --model openai/gpt-5.3-codex`
+  - Both headless and supervised modes supported
+- ✅ `ralph calibrate <subcommand> --provider <name> --model <name>` - IMPLEMENTED
+  - All subcommands: intention, technical, improve, all
+  - Flags added and wired through to `invokeWithProvider()`
+
+**Provider Infrastructure:**
+- ✅ Provider-aware invocation wrappers added to `index.ts`:
+  - `resolvePlanningProvider()` - resolves provider with CLI > config > env > auto priority
+  - `resolvePlanningModel()` - resolves model override
+  - `invokePlanningSupervised()` - routes to correct provider for supervised mode
+  - `invokeClaudeHeadless()` - updated to support provider/model parameters
+- ✅ `calibrate.ts` updated to accept and forward provider/model to all check functions
+
+**Task Creation (20 tasks total, TASK-036 through TASK-057):**
+- Provider types, registry, utilities (036-038)
+- Claude unit/integration tests (043-044)
+- OpenCode implementation, registry, tests (045-048)
+- Model registry: static, dynamic discovery, tab completion, validation (049-052)
+- **NEW OpenCode parity tasks (053-057):**
+  - TASK-053: Provider capability gating
+  - TASK-054: OpenCode supervised lifecycle
+  - TASK-055: Provider session abstraction
+  - TASK-056: Provider outcome classification
+  - TASK-057: Provider-neutral post-iteration
+
+**Provider Profile Docs Created:**
+- ✅ Comprehensive readiness analysis for all 6 providers
+- ✅ `providers/README.md` with audited matrix
+- ✅ Individual profiles: claude.md, opencode.md, codex.md, cursor.md, gemini.md, pi.md
+
+### What's Partially Done (Needs Completion)
+
+**Planning Commands - INTERNAL SUPPORT EXISTS, CLI FLAGS NOT WIRED:**
+- ⚠️ `ralph plan stories` - interfaces updated (`TasksMilestoneOptions` has model/provider), but:
+  - Command definition lacks `--provider` and `--model` flags
+  - Action handler doesn't pass options to `runTasksMilestoneMode()`
+- ⚠️ `ralph plan tasks` - interfaces updated (`TasksStoryOptions`, `TasksSourceOptions` have model/provider), but:
+  - Command definition lacks `--provider` and `--model` flags
+  - Action handler doesn't pass options to `runTasksStoryMode()` or `runTasksSourceMode()`
+- ⚠️ `ralph plan vision` - NO SUPPORT (still hardcoded Claude-only)
+- ⚠️ `ralph plan roadmap` - NO SUPPORT (still hardcoded Claude-only)
+
+**Review Commands:**
+- ❌ `ralph review stories --milestone <path>` - NO provider/model flags
+- ❌ `ralph review roadmap` - NO provider/model flags
+- ❌ `ralph review tasks --story <path>` - NO provider/model flags
+- ❌ `ralph review gap <subcommand>` - NO provider/model flags
+- ❌ `ralph review <subcommand>` - NO provider/model flags
+
+**Core Abstractions Still Missing:**
+- ❌ Provider capability gating (TASK-053 not started)
+- ❌ OpenCode true supervised lifecycle (TASK-054 not started)
+- ❌ Provider-agnostic session abstraction (TASK-055 not started)
+- ❌ Provider outcome classification (TASK-056 not started)
+- ❌ Provider-neutral post-iteration (TASK-057 not started)
+
+### Critical Gap: Tasks vs Implementation
+
+**WE CREATED TASKS BUT HAVEN'T STARTED THE CORE ABSTRACTION WORK:**
+
+Tasks TASK-053 through TASK-057 define the necessary work, but **none of the actual implementation has been done yet**. These are the foundational abstractions needed for true multi-provider support:
+
+1. **TASK-053 (Capability Gating)** - Must be done FIRST
+   - Currently no runtime enforcement of what providers support what modes
+   - OpenCode supervised doesn't actually do interactive supervision
+   - Need strict capability checks before invocation
+
+2. **TASK-054 (OpenCode Supervised)** - Depends on 053
+   - OpenCode supervised currently falls back to JSON mode
+   - Need proper PTY lifecycle for true interactive mode
+   - Should use `opencode serve` + `opencode attach` or `opencode web`
+
+3. **TASK-055 (Session Abstraction)** - Critical decoupling
+   - Session discovery still hardcoded to `.claude` paths
+   - Post-iteration metrics extraction assumes Claude session format
+   - Need provider-specific session adapters
+
+4. **TASK-056 (Outcome Classification)** - Retry logic fix
+   - Exit codes vary by provider
+   - Need normalized success/retryable/fatal classification
+
+5. **TASK-057 (Post-iteration Neutral)** - Final cleanup
+   - Remove Claude-specific naming (`claudeMs`, etc.)
+   - Provider-neutral summary invocation
+
+### Updated Priority List (Reality Check)
+
+**IMMEDIATE (Finish what GPT 5.3 started):**
+1. Wire `--provider` and `--model` flags to `plan stories` and `plan tasks` commands
+2. Add provider/model support to `plan vision` and `plan roadmap`
+3. Add provider/model support to ALL `ralph review` commands
+
+**CORE ABSTRACTIONS (The real work - TASKS 053-057):**
+4. Implement TASK-053: Provider capability gating
+5. Implement TASK-054: OpenCode supervised lifecycle
+6. Implement TASK-055: Provider session abstraction
+7. Implement TASK-056: Provider outcome classification
+8. Implement TASK-057: Provider-neutral post-iteration
+
+**EXPANSION (After core is solid):**
+9. Integrate Codex and Gemini as additional providers
+10. Fix install/binary metadata for Pi and Cursor
+11. E2E test coverage for non-Claude providers
+
+### Continuation Context
+
+**If you are continuing this work:**
+
+1. **Start with the EASY wins**: Finish wiring provider/model flags to `plan stories`, `plan tasks`, `plan vision`, `plan roadmap`
+2. **Then tackle review commands**: Add provider/model flags to all review subcommands
+3. **Then do the hard work**: Implement TASK-053 through TASK-057 in order (they have dependencies)
+
+**Key files to modify:**
+- `tools/src/commands/ralph/index.ts` - Add flags to plan stories/tasks/vision/roadmap commands
+- `tools/src/commands/review/index.ts` - Add provider/model support to review commands
+- `tools/src/commands/ralph/providers/registry.ts` - Implement capability gating
+- `tools/src/commands/ralph/providers/opencode.ts` - Implement true supervised mode
+- `tools/src/commands/ralph/session.ts` - Create provider session adapters
+- `tools/src/commands/ralph/post-iteration.ts` - Remove Claude-specific assumptions
+
+**Test before claiming victory:**
+```bash
+# Test planning commands with OpenCode
+aaa ralph plan stories --milestone 004-MULTI-CLI --provider opencode --model openai/gpt-5.3-codex --headless
+aaa ralph plan tasks --story 005-opencode-parity-multiprovider-runtime --provider opencode --headless
+aaa ralph plan vision --provider opencode  # Should work after implementation
+
+# Test review commands
+aaa ralph review stories --milestone 004-MULTI-CLI --provider opencode --headless
+
+# Verify capability gating works
+aaa ralph build --provider opencode --mode supervised  # Should fail gracefully until TASK-054 done
+```
+
 ## Continuation Update: Per-Provider Deep-Dive (2026-02-06)
 
 Executed one subagent-led readiness audit per provider (`claude`, `opencode`, `codex`, `cursor`, `gemini`, `pi`) and generated profile docs:
@@ -289,11 +435,34 @@ If a new agent continues this work, this is the minimum context needed:
 
 - Make Ralph truly multiprovider across invocation, supervised interaction, sessions, telemetry, docs, and tests.
 
-### Current state snapshot
+### Current state snapshot (Updated 2026-02-06 after GPT 5.3 session)
 
-- `aaa ralph build --provider opencode --headless` is working after CLI arg fix.
-- OpenCode still lacks true interactive supervised behavior in Ralph (currently non-interactive run path).
-- Session and post-iteration internals remain primarily Claude-shaped.
+**COMMIT: `bc4c516`**
+
+**Working now:**
+- `aaa ralph build --provider opencode --headless` - working
+- `aaa ralph plan subtasks --provider opencode --model openai/gpt-5.3-codex --headless` - working end-to-end
+- `aaa ralph calibrate intention --provider opencode --model openai/gpt-5.3-codex` - flags present, invocation starts
+
+**Implemented but incomplete:**
+- Planning command interfaces updated with provider/model support, but CLI flags not wired for:
+  - `ralph plan stories` (interface ready, flags missing)
+  - `ralph plan tasks` (interface ready, flags missing)
+  - `ralph plan vision` (no support yet)
+  - `ralph plan roadmap` (no support yet)
+- All `ralph review` commands (no provider/model support yet)
+
+**Not started (tasks created but no implementation):**
+- TASK-053: Provider capability gating
+- TASK-054: OpenCode supervised lifecycle  
+- TASK-055: Provider session abstraction
+- TASK-056: Provider outcome classification
+- TASK-057: Provider-neutral post-iteration
+
+**Still true:**
+- OpenCode lacks true interactive supervised behavior (currently non-interactive run path)
+- Session and post-iteration internals remain primarily Claude-shaped
+- Capability gating not enforced - unsupported mode/provider combos may fail confusingly
 
 ### Highest-priority code areas to inspect first
 
@@ -308,10 +477,24 @@ If a new agent continues this work, this is the minimum context needed:
 
 ### Key architecture decisions already recommended
 
-1. Add strict runtime capability gating by provider/mode.
-2. Introduce provider-agnostic session abstraction before expanding supervised support.
-3. Implement OpenCode supervised via server+attach/web, not `run`.
-4. Migrate remaining `ralph plan` and `ralph review` command families off direct `invokeClaude*` paths.
+1. **Finish surface area first**: Wire `--provider` and `--model` flags to ALL planning and review commands.
+2. Add strict runtime capability gating by provider/mode (TASK-053).
+3. Introduce provider-agnostic session abstraction before expanding supervised support (TASK-055).
+4. Implement OpenCode supervised via server+attach/web, not `run` (TASK-054).
+5. Migrate remaining `ralph plan` and `ralph review` command families off direct `invokeClaude*` paths.
+
+### Tasks Created (Ready for Implementation)
+
+**Surface area completion:**
+- Wire provider/model flags to `ralph plan stories`, `plan tasks`, `plan vision`, `plan roadmap`
+- Add provider/model support to all `ralph review` subcommands
+
+**Core abstractions (in dependency order):**
+- TASK-053: Provider capability gating (MUST be first)
+- TASK-054: OpenCode supervised lifecycle (depends on 053)
+- TASK-055: Provider session abstraction (depends on 053)
+- TASK-056: Provider outcome classification (depends on 053)
+- TASK-057: Provider-neutral post-iteration (depends on 055)
 
 ### Validation commands to run during continuation
 
