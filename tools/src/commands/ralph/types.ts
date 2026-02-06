@@ -29,6 +29,8 @@ interface BuildOptions {
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
+  /** Model to use (validated against registry before provider invocation) */
+  model?: string;
   /** AI provider to use (default: "claude") */
   provider?: ProviderType;
   /** Suppress terminal summary output */

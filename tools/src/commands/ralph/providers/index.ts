@@ -11,7 +11,10 @@ export {
   getModelCompletionsForProvider,
   getModelsForProvider,
   type ModelInfo,
+  type ModelValidationResult,
+  REFRESH_HINT,
   validateModelForProvider,
+  validateModelSelection,
 } from "./models";
 export {
   autoDetectProvider,

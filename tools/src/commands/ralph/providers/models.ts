@@ -19,6 +19,32 @@ import { STATIC_MODELS } from "./models-static";
 const DISCOVERED_MODELS: Array<ModelInfo> = [];
 
 // =============================================================================
+// Validation Result Types
+// =============================================================================
+
+/** Failed model validation result */
+interface ModelValidationFailure {
+  error: string;
+  suggestions: Array<string>;
+  valid: false;
+}
+
+/** Result of validateModelSelection() */
+type ModelValidationResult = ModelValidationFailure | ModelValidationSuccess;
+
+/** Successful model validation result */
+interface ModelValidationSuccess {
+  cliFormat: string;
+  valid: true;
+}
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const REFRESH_HINT = "Run 'aaa ralph refresh-models' to discover new models.";
+
+// =============================================================================
 // Registry Functions
 // =============================================================================
 
@@ -87,6 +113,49 @@ function validateModelForProvider(
   return model.cliFormat;
 }
 
+/**
+ * Validate a model selection for a given provider.
+ *
+ * Returns a result object instead of throwing, making it suitable for
+ * CLI integration where the caller formats the error and exits.
+ *
+ * @param modelId - User-provided model identifier
+ * @param provider - Target provider to validate against
+ * @returns Validation result with cliFormat on success, error + suggestions on failure
+ */
+function validateModelSelection(
+  modelId: string,
+  provider: ProviderType,
+): ModelValidationResult {
+  const model = getModelById(modelId);
+
+  if (!model) {
+    const suggestions = getModelsForProvider(provider)
+      .map((m) => m.id)
+      .sort()
+      .slice(0, 5);
+    return {
+      error: `Unknown model '${modelId}' for provider '${provider}'. ${REFRESH_HINT}`,
+      suggestions,
+      valid: false,
+    };
+  }
+
+  if (model.provider !== provider) {
+    const suggestions = getModelsForProvider(provider)
+      .map((m) => m.id)
+      .sort()
+      .slice(0, 5);
+    return {
+      error: `Model '${modelId}' belongs to provider '${model.provider}', not '${provider}'. ${REFRESH_HINT}`,
+      suggestions,
+      valid: false,
+    };
+  }
+
+  return { cliFormat: model.cliFormat, valid: true };
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -98,7 +167,10 @@ export {
   getModelCompletions,
   getModelCompletionsForProvider,
   getModelsForProvider,
+  type ModelValidationResult,
+  REFRESH_HINT,
   validateModelForProvider,
+  validateModelSelection,
 };
 
 export type { ModelInfo } from "./models-static";

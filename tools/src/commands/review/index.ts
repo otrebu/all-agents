@@ -15,6 +15,7 @@ import type {
 import { loadTimeoutConfig } from "../ralph/config";
 import { formatDuration, renderMarkdown } from "../ralph/display";
 import { executeHook, type HookContext } from "../ralph/hooks";
+import { validateModelSelection } from "../ralph/providers/models";
 import {
   invokeWithProvider,
   selectProvider,
@@ -162,6 +163,7 @@ const reviewCommand = new Command("review")
   .option("--staged-only", "Review only staged changes")
   .option("--unstaged-only", "Review only unstaged changes")
   .option("--provider <name>", "AI provider to use (default: claude)")
+  .option("--model <name>", "Model to use (validated against model registry)")
   .action((options) => {
     // Validate: --dry-run requires --headless
     if (options.dryRun === true && options.headless !== true) {
@@ -215,10 +217,11 @@ const reviewCommand = new Command("review")
         diffTarget,
         isDryRun: options.dryRun === true,
         isRequireApproval: options.requireApproval === true,
+        modelOverride: options.model,
         providerOverride: options.provider,
       });
     } else if (options.supervised === true) {
-      void runSupervisedReview(diffTarget, options.provider);
+      void runSupervisedReview(diffTarget, options.provider, options.model);
     } else {
       // No mode specified - prompt user to choose
       promptForMode();
@@ -854,9 +857,16 @@ async function runHeadlessReview(options: {
   diffTarget: DiffTarget;
   isDryRun: boolean;
   isRequireApproval: boolean;
+  modelOverride?: string;
   providerOverride?: string;
 }): Promise<void> {
-  const { diffTarget, isDryRun, isRequireApproval, providerOverride } = options;
+  const {
+    diffTarget,
+    isDryRun,
+    isRequireApproval,
+    modelOverride,
+    providerOverride,
+  } = options;
   if (isDryRun) {
     console.log(chalk.bold("Starting headless code review (dry-run)...\n"));
     console.log(chalk.dim("Findings will be displayed but not auto-fixed.\n"));
@@ -897,6 +907,25 @@ async function runHeadlessReview(options: {
   // Select provider (CLI flag > env var > default)
   const provider = selectProvider({ cliFlag: providerOverride });
   console.log(chalk.dim(`Using provider: ${provider}`));
+
+  // Validate model selection if specified
+  if (modelOverride !== undefined) {
+    const modelResult = validateModelSelection(modelOverride, provider);
+    if (!modelResult.valid) {
+      console.error(chalk.red(`\nError: ${modelResult.error}`));
+      if (modelResult.suggestions.length > 0) {
+        console.error(chalk.yellow("\nDid you mean:"));
+        for (const suggestion of modelResult.suggestions) {
+          console.error(chalk.yellow(`  - ${suggestion}`));
+        }
+      }
+      process.exit(1);
+    }
+    console.log(
+      chalk.dim(`Using model: ${modelOverride} (${modelResult.cliFormat})`),
+    );
+  }
+
   console.log(chalk.dim("Invoking in headless mode...\n"));
 
   // Invoke provider headless with timeout protection
@@ -1176,6 +1205,7 @@ function runReviewStatus(): void {
 async function runSupervisedReview(
   diffTarget: DiffTarget,
   providerOverride?: string,
+  modelOverride?: string,
 ): Promise<void> {
   console.log(chalk.bold("Starting supervised code review...\n"));
 
@@ -1207,6 +1237,24 @@ async function runSupervisedReview(
   // Select provider (CLI flag > env var > default)
   const provider = selectProvider({ cliFlag: providerOverride });
   console.log(chalk.dim(`Using provider: ${provider}`));
+
+  // Validate model selection if specified
+  if (modelOverride !== undefined) {
+    const modelResult = validateModelSelection(modelOverride, provider);
+    if (!modelResult.valid) {
+      console.error(chalk.red(`\nError: ${modelResult.error}`));
+      if (modelResult.suggestions.length > 0) {
+        console.error(chalk.yellow("\nDid you mean:"));
+        for (const suggestion of modelResult.suggestions) {
+          console.error(chalk.yellow(`  - ${suggestion}`));
+        }
+      }
+      process.exit(1);
+    }
+    console.log(
+      chalk.dim(`Using model: ${modelOverride} (${modelResult.cliFormat})`),
+    );
+  }
 
   // Invoke in chat/supervised mode
   // User can watch and type during the session

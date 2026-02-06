@@ -43,6 +43,7 @@ import {
   runPostIterationHook,
 } from "./post-iteration";
 import { buildPrompt } from "./providers/claude";
+import { validateModelSelection } from "./providers/models";
 import { invokeWithProvider, selectProvider } from "./providers/registry";
 import { discoverRecentSession } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
@@ -371,6 +372,38 @@ async function handleMaxIterationsExceeded(
   });
 
   return true;
+}
+
+/**
+ * Validate model selection and exit with formatted error if invalid.
+ *
+ * If model is undefined, does nothing (model is optional).
+ * If valid, logs the model + cliFormat.
+ * If invalid, logs error with suggestions and exits.
+ *
+ * @param model - User-provided model ID (undefined = skip validation)
+ * @param provider - Target provider to validate against
+ */
+function handleModelValidation(
+  model: string | undefined,
+  provider: ProviderType,
+): void {
+  if (model === undefined) {
+    return;
+  }
+  const result = validateModelSelection(model, provider);
+  if (result.valid) {
+    console.log(chalk.dim(`Using model: ${model} (${result.cliFormat})`));
+    return;
+  }
+  console.error(chalk.red(`\nError: ${result.error}`));
+  if (result.suggestions.length > 0) {
+    console.error(chalk.yellow("\nDid you mean:"));
+    for (const suggestion of result.suggestions) {
+      console.error(chalk.yellow(`  - ${suggestion}`));
+    }
+  }
+  process.exit(1);
 }
 
 // =============================================================================
@@ -748,6 +781,9 @@ async function runBuild(
   // Select provider (CLI flag > env var > default)
   const provider = selectProvider({ cliFlag: options.provider });
   console.log(chalk.dim(`Using provider: ${provider}`));
+
+  // Validate model selection if specified (CLI flag or config)
+  handleModelValidation(options.model, provider);
 
   // Reset module-level state for cascade mode / multiple runBuild() calls
   hasSummaryBeenGenerated = false;

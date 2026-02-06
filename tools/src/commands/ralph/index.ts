@@ -406,6 +406,7 @@ ralphCommand.addCommand(
     )
     .option("--validate-first", "Run pre-build validation before building")
     .option("--provider <name>", "AI provider to use (default: claude)")
+    .option("--model <name>", "Model to use (validated against model registry)")
     .option(
       "--cascade <target>",
       "Continue to target level after build completes (calibrate)",
@@ -479,6 +480,7 @@ ralphCommand.addCommand(
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
+          model: options.model,
           provider: options.provider as ProviderType,
           quiet: options.quiet === true,
           skipSummary: options.skipSummary === true,
