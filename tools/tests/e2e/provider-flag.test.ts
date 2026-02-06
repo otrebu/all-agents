@@ -33,6 +33,49 @@ describe("--provider CLI flag", () => {
     expect(stdout).toContain("--provider");
   });
 
+  test("ralph plan stories --help shows --provider and --model options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "stories", "--help"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--provider");
+    expect(stdout).toContain("--model");
+  });
+
+  test("ralph plan tasks --help shows --provider and --model options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "tasks", "--help"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--provider");
+    expect(stdout).toContain("--model");
+  });
+
+  test("ralph models --provider claude --json prints model table", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "models", "--provider", "claude", "--json"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('"models"');
+    expect(stdout).toContain('"claude-sonnet-4"');
+  });
+
+  test("ralph models rejects invalid provider", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "models", "--provider", "not-a-provider"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).not.toBe(0);
+    expect(stderr).toContain("Unknown provider");
+  });
+
   test("ralph build rejects invalid provider", async () => {
     const { exitCode, stderr } = await execa(
       "bun",

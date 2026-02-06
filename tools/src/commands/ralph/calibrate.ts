@@ -24,10 +24,7 @@ import {
   loadSubtasksFile,
   loadTimeoutConfig,
 } from "./config";
-import {
-  invokeWithProvider,
-  resolveProvider,
-} from "./providers/registry";
+import { invokeWithProvider, resolveProvider } from "./providers/registry";
 
 // =============================================================================
 // Types
@@ -155,7 +152,7 @@ async function runCalibrate(
 ): Promise<boolean> {
   // Select provider (CLI flag > env var > config > auto-detect)
   const provider = await resolveProvider({ cliFlag: options.provider });
-  const model = options.model;
+  const { model } = options;
   console.log(`Using provider: ${provider}`);
   if (model !== undefined && model !== "") {
     console.log(`Using model: ${model}`);

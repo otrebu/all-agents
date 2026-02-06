@@ -65,10 +65,13 @@ Confirm the subtask you must work on for this iteration.
 
 **Rule:** The outer build loop assigns a subtask (provided in the system context). Work on **that exact subtask only**.
 
+**MUST-STOP boundary:** After the assigned subtask is implemented, validated, committed, and tracked, **stop immediately**. Do not continue into discovery, planning, or execution for any other subtask in the same iteration.
+
 **Sanity checks (quick):**
 1. Verify the assigned subtask exists in the subtasks file and is `done: false`
 2. If it’s already `done: true`, stop and report (queue is stale)
 3. If it’s blocked by incomplete `blockedBy`, stop and report (dependency issue)
+4. Do not mark any other subtask `done`, and do not start or plan the next subtask in this iteration
 
 ### Phase 3: Investigate
 
@@ -355,6 +358,8 @@ Update tracking files to reflect the completed work.
 - `commitHash`: Git commit hash from the commit phase
 - `sessionId`: The current Claude session ID (for self-improvement analysis)
 
+**Single-subtask invariant:** Only the assigned subtask may transition to `done: true` in this iteration.
+
 **Use this jq command pattern (replace SUB-XXX with the actual subtask ID):**
 
 ```bash
@@ -370,7 +375,13 @@ mv path/to/subtasks.tmp path/to/subtasks.json
 
 # Verify update succeeded
 jq -e --arg id "SUB-XXX" '.subtasks[] | select(.id==$id) | .done' path/to/subtasks.json
+
+# Invariant check: exactly one subtask changed to done in this iteration
+# (capture done count before Phase 7 and compare after update)
+# if delta != 1, stop and report invariant violation
 ```
+
+If you detect multiple subtasks changed to `done: true`, **stop immediately** and report: `Invariant violation: multiple subtasks marked done in one iteration`.
 
 **Why jq instead of Edit tool:**
 - The subtasks.json file may exceed 25K tokens (Edit tool's read limit)
@@ -471,6 +482,8 @@ After completing one subtask iteration:
 1. All tracking files are updated
 2. Commit is created with subtask reference
 3. The iteration is complete
+
+**MUST STOP:** End the session for this iteration. Do not pick, plan, or execute another subtask here.
 
 The outer loop (build.sh) will determine whether to continue with another iteration or stop.
 

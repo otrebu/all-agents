@@ -27,6 +27,14 @@ import {
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 
 /**
+ * Options for supervised chat invocation.
+ */
+interface ClaudeChatOptions {
+  extraContext?: string;
+  model?: string;
+}
+
+/**
  * Result from invoking Claude in chat/supervised mode (UI-facing)
  */
 interface ClaudeResult {
@@ -39,6 +47,27 @@ interface ClaudeResult {
 }
 
 type TerminationSignal = keyof typeof SIGNAL_EXIT_CODE;
+
+/**
+ * Build Claude headless arguments with optional model.
+ */
+function buildClaudeHeadlessArguments(
+  prompt: string,
+  model?: string,
+): Array<string> {
+  const args = [
+    "claude",
+    "-p",
+    prompt,
+    "--dangerously-skip-permissions",
+    "--output-format",
+    "json",
+  ];
+  if (model !== undefined && model !== "") {
+    args.push("--model", model);
+  }
+  return args;
+}
 
 /**
  * Build prompt with optional context prefix
@@ -87,6 +116,7 @@ async function invokeClaude(options: {
   context?: string;
   gracePeriodMs?: number;
   mode: "headless-async" | "supervised";
+  model?: string;
   onStderrActivity?: () => void;
   prompt: string;
   promptPath?: string;
@@ -99,11 +129,10 @@ async function invokeClaude(options: {
     const sessionName = options.sessionName ?? "claude";
     const startTime = Date.now();
 
-    const chatResult = invokeClaudeChat(
-      promptPath,
-      sessionName,
-      options.context,
-    );
+    const chatResult = invokeClaudeChat(promptPath, sessionName, {
+      extraContext: options.context,
+      model: options.model,
+    });
 
     const durationMs = Date.now() - startTime;
 
@@ -117,6 +146,7 @@ async function invokeClaude(options: {
   // headless-async mode
   return invokeClaudeHeadlessAsync({
     gracePeriodMs: options.gracePeriodMs,
+    model: options.model,
     onStderrActivity: options.onStderrActivity,
     prompt: options.prompt,
     stallTimeoutMs: options.stallTimeoutMs,
@@ -131,14 +161,16 @@ async function invokeClaude(options: {
  *
  * @param promptPath - Path to the prompt file
  * @param sessionName - Name for the session (used in console output)
- * @param extraContext - Optional context to prepend to the prompt
+ * @param options - Optional context and model settings
  * @returns ClaudeResult with success, interrupted, and exitCode fields
  */
 function invokeClaudeChat(
   promptPath: string,
   sessionName: string,
-  extraContext?: string,
+  options: ClaudeChatOptions = {},
 ): ClaudeResult {
+  const { extraContext, model } = options;
+
   if (!existsSync(promptPath)) {
     console.error(`Prompt not found: ${promptPath}`);
     return { exitCode: 1, interrupted: false, success: false };
@@ -157,17 +189,21 @@ function invokeClaudeChat(
 
   // Chat mode (no -p), stdio: inherit so user can watch AND type
   // --permission-mode bypassPermissions prevents inheriting plan mode from user settings
-  const proc = Bun.spawnSync(
-    [
-      "claude",
-      "--permission-mode",
-      "bypassPermissions",
-      "--append-system-prompt",
-      fullPrompt,
-      `Please begin the ${sessionName} session.`,
-    ],
-    { stdio: ["inherit", "inherit", "inherit"] },
-  );
+  const args = [
+    "claude",
+    "--permission-mode",
+    "bypassPermissions",
+    "--append-system-prompt",
+    fullPrompt,
+  ];
+  if (model !== undefined && model !== "") {
+    args.push("--model", model);
+  }
+  args.push(`Please begin the ${sessionName} session.`);
+
+  const proc = Bun.spawnSync(args, {
+    stdio: ["inherit", "inherit", "inherit"],
+  });
 
   // Handle signal interruption (Ctrl+C) gracefully
   const terminationSignal = normalizeTerminationSignal(proc.signalCode);
@@ -302,6 +338,7 @@ async function invokeClaudeHaiku(options: {
  */
 async function invokeClaudeHeadlessAsync(options: {
   gracePeriodMs?: number;
+  model?: string;
   onStderrActivity?: () => void;
   prompt: string;
   stallTimeoutMs?: number;
@@ -309,6 +346,7 @@ async function invokeClaudeHeadlessAsync(options: {
 }): Promise<AgentResult | null> {
   const {
     gracePeriodMs = DEFAULT_GRACE_PERIOD_MS,
+    model,
     onStderrActivity,
     prompt,
     stallTimeoutMs = 0,
@@ -316,18 +354,14 @@ async function invokeClaudeHeadlessAsync(options: {
   } = options;
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 
+  const args = buildClaudeHeadlessArguments(prompt, model);
+
   // Pipe stderr to track activity while forwarding to console
-  const proc = Bun.spawn(
-    [
-      "claude",
-      "-p",
-      prompt,
-      "--dangerously-skip-permissions",
-      "--output-format",
-      "json",
-    ],
-    { stderr: "pipe", stdin: "ignore", stdout: "pipe" },
-  );
+  const proc = Bun.spawn(args, {
+    stderr: "pipe",
+    stdin: "ignore",
+    stdout: "pipe",
+  });
 
   const stdoutPromise = new Response(proc.stdout).text();
 
@@ -401,17 +435,12 @@ async function invokeClaudeHeadlessAsync(options: {
   // Wait for stderr forwarding to complete
   await stderrForwarder;
 
-  // Handle signal interruption (Ctrl+C)
-  const terminationSignal = normalizeTerminationSignal(proc.signalCode);
+  const terminationSignal =
+    normalizeTerminationSignal(proc.signalCode) ??
+    exitCodeToSignal(proc.exitCode);
   if (terminationSignal !== null) {
     console.log("\nSession interrupted by user");
     exitForSignal(terminationSignal);
-  }
-
-  const terminationFromExit = exitCodeToSignal(proc.exitCode);
-  if (terminationFromExit !== null) {
-    console.log("\nSession interrupted by user");
-    exitForSignal(terminationFromExit);
   }
 
   if (proc.exitCode !== 0) {

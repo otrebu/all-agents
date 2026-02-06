@@ -21,6 +21,10 @@ import type { ProviderType } from "./providers/types";
 import type { BuildOptions, Subtask } from "./types";
 
 import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
+import {
+  checkAssignedCompletionInvariant,
+  formatCompletionInvariantViolation,
+} from "./build-invariant";
 import { runCalibrate } from "./calibrate";
 import {
   countRemaining,
@@ -106,6 +110,15 @@ interface PeriodicCalibrationOptions {
   calibrateEvery: number;
   contextRoot: string;
   iteration: number;
+  subtasksPath: string;
+}
+
+/**
+ * Options for enforcing single-subtask completion per iteration.
+ */
+interface SingleSubtaskInvariantOptions {
+  assignedSubtaskId: string;
+  preSubtasks: Array<Subtask>;
   subtasksPath: string;
 }
 
@@ -223,6 +236,33 @@ After completing the assigned subtask (${currentSubtask.id}):
 4. STOP - do not continue to the next subtask`;
 
   return buildPrompt(promptContent, extraContext);
+}
+
+/**
+ * Enforce the one-subtask-per-iteration invariant.
+ *
+ * Returns whether the assigned subtask transitioned from done:false to done:true.
+ * Exits with non-zero status when unexpected subtasks were completed.
+ */
+function enforceSingleSubtaskInvariant(
+  options: SingleSubtaskInvariantOptions,
+): boolean {
+  const { assignedSubtaskId, preSubtasks, subtasksPath } = options;
+  const postIterationSubtasksFile = loadSubtasksFile(subtasksPath);
+  const completionInvariant = checkAssignedCompletionInvariant({
+    assignedSubtaskId,
+    postSubtasks: postIterationSubtasksFile.subtasks,
+    preSubtasks,
+  });
+
+  if (completionInvariant.isViolation) {
+    console.error(
+      chalk.red(`\n${formatCompletionInvariantViolation(completionInvariant)}`),
+    );
+    process.exit(1);
+  }
+
+  return completionInvariant.completedIds.includes(assignedSubtaskId);
 }
 
 /**
@@ -434,7 +474,7 @@ async function processHeadlessIteration(
     subtasksPath,
   } = context;
 
-  console.log(renderInvocationHeader("headless"));
+  console.log(renderInvocationHeader("headless", provider));
   console.log();
 
   // Use target project root for logs (not all-agents)
@@ -451,7 +491,7 @@ async function processHeadlessIteration(
 
   // Time Claude invocation for metrics
   const claudeStart = Date.now();
-  const stopHeartbeat = startHeartbeat("Claude", 30_000);
+  const stopHeartbeat = startHeartbeat(provider, 30_000);
   let result: {
     costUsd: number;
     durationMs: number;
@@ -480,12 +520,12 @@ async function processHeadlessIteration(
   const commitAfter = getLatestCommitHash(projectRoot);
 
   if (result === null) {
-    console.error("Headless invocation failed or was interrupted");
+    console.error(`${provider} headless invocation failed or was interrupted`);
     return null;
   }
 
   // Display result with markdown rendering
-  console.log(`\n${renderResponseHeader()}`);
+  console.log(`\n${renderResponseHeader(provider)}`);
   console.log(renderMarkdown(result.result));
   console.log();
 
@@ -588,7 +628,7 @@ async function processSupervisedIteration(
     subtasksPath,
   } = context;
 
-  console.log(renderInvocationHeader("supervised"));
+  console.log(renderInvocationHeader("supervised", provider));
   console.log();
 
   // Use target project root for logs
@@ -612,7 +652,7 @@ async function processSupervisedIteration(
   });
 
   if (supervisedResult === null) {
-    console.error("Supervised session failed");
+    console.error(`${provider} supervised session failed`);
     return null;
   }
 
@@ -622,7 +662,7 @@ async function processSupervisedIteration(
   // Calculate elapsed time for Claude invocation
   const claudeMs = Date.now() - startTime;
 
-  console.log("\nSupervised session completed");
+  console.log(`\n${provider} supervised session completed`);
 
   // Discover the session file created during the interactive session
   const discoveredSession = discoverRecentSession(startTime);
@@ -981,7 +1021,7 @@ async function runBuild(
       subtasksPath,
     );
 
-    // Invoke Claude based on mode
+    // Invoke selected provider based on mode
     let didComplete = false;
     let iterationHookResult: null | PostIterationResult = null;
 
@@ -1002,11 +1042,11 @@ async function runBuild(
       });
 
       if (headlessResult === null) {
-        // Claude invocation failed (API error, rate limit, network issue)
+        // Provider invocation failed (API error, rate limit, network issue)
         // Do not count this attempt - will retry on next iteration
         console.log(
           chalk.yellow(
-            "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
+            `\n⚠ ${provider} invocation failed. Will retry on next iteration.\n`,
           ),
         );
         didComplete = false;
@@ -1029,11 +1069,11 @@ async function runBuild(
       });
 
       if (supervisedResult === null) {
-        // Claude invocation failed (API error, rate limit, network issue)
+        // Provider invocation failed (API error, rate limit, network issue)
         // Do not count this attempt - will retry on next iteration
         console.log(
           chalk.yellow(
-            "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
+            `\n⚠ ${provider} invocation failed. Will retry on next iteration.\n`,
           ),
         );
         didComplete = false;
@@ -1046,6 +1086,12 @@ async function runBuild(
         console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
       }
     }
+
+    didComplete = enforceSingleSubtaskInvariant({
+      assignedSubtaskId: currentSubtask.id,
+      preSubtasks: subtasksFile.subtasks,
+      subtasksPath,
+    });
 
     // Handle completion tracking
     if (didComplete) {

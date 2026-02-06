@@ -261,7 +261,7 @@
       "taskRef": "039-claude-refactor",
       "storyRef": "002-claude-refactor",
       "title": "Move claude.ts to providers/claude.ts and refactor with shared utilities",
-      "description": "Move tools/src/commands/ralph/claude.ts to tools/src/commands/ralph/providers/claude.ts. Refactor to use provider types from ./types.ts (AgentResult, ClaudeConfig) and shared utilities from ./utils.ts (executeWithTimeout, killProcessGracefully, createStallDetector, createTimeoutPromise, readStderrWithActivityTracking, safeJsonParse). Remove local type definitions (ClaudeResult stays for UI-facing use, but HeadlessResult replaced by AgentResult). Implement normalizeClaudeResult() to parse Claude JSON array format and extract result/costUsd/durationMs/sessionId/tokenUsage. Refactor invokeClaudeHeadlessAsync() and invokeClaudeHaiku() to use shared utilities. Create async invokeClaude() wrapper for registry compatibility. Add unit tests for normalizeClaudeResult() with fixtures (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.json). NOTE: The sync invokeClaudeHeadless function was removed in the timeout protection migration — all headless callers now use invokeClaudeHeadlessAsync. There are now 3 invocation functions: invokeClaudeChat (supervised), invokeClaudeHeadlessAsync (headless), invokeClaudeHaiku (lightweight).",
+      "description": "Move tools/src/commands/ralph/claude.ts to tools/src/commands/ralph/providers/claude.ts. Refactor to use provider types from ./types.ts (AgentResult, ClaudeConfig) and shared utilities from ./utils.ts (executeWithTimeout, killProcessGracefully, createStallDetector, createTimeoutPromise, readStderrWithActivityTracking, safeJsonParse). Remove local type definitions (ClaudeResult stays for UI-facing use, but HeadlessResult replaced by AgentResult). Implement normalizeClaudeResult() to parse Claude JSON array format and extract result/costUsd/durationMs/sessionId/tokenUsage. Refactor invokeClaudeHeadlessAsync() and invokeClaudeHaiku() to use shared utilities. Create async invokeClaude() wrapper for registry compatibility. Add unit tests for normalizeClaudeResult() with fixtures (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.txt). NOTE: The sync invokeClaudeHeadless function was removed in the timeout protection migration — all headless callers now use invokeClaudeHeadlessAsync. There are now 3 invocation functions: invokeClaudeChat (supervised), invokeClaudeHeadlessAsync (headless), invokeClaudeHaiku (lightweight).",
       "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/claude.ts exists with all invocation functions migrated",
@@ -269,7 +269,7 @@
         "invokeClaudeHeadlessAsync() returns Promise<AgentResult> using shared utilities (createStallDetector, createTimeoutPromise, killProcessGracefully, readStderrWithActivityTracking)",
         "invokeClaudeHaiku() uses killProcessGracefully from ./utils.ts instead of local implementation",
         "Unit test tools/tests/providers/claude.test.ts passes covering: valid parse, missing result entry, partial data, malformed JSON",
-        "Test fixtures exist in tools/tests/fixtures/ (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.json)",
+        "Test fixtures exist in tools/tests/fixtures/ (claude-success.json, claude-minimal.json, claude-error.json, claude-malformed.txt)",
         "Local ClaudeJsonOutput, HeadlessResult, HeadlessOptions, HeadlessAsyncOptions, HaikuOptions interfaces removed (replaced by provider types or AgentResult)"
       ],
       "filesToRead": [
@@ -314,7 +314,7 @@
         "tools/src/commands/ralph/providers/claude.ts"
       ],
       "completedAt": "2026-02-05T18:33:35Z",
-      "commitHash": "44f337451f2f7fac627515e30e41512e2ed3c1dc",
+      "commitHash": "0c47ecddf66a1ec3c502a889e6b0206da5911354",
       "sessionId": ""
     },
     {
@@ -444,11 +444,11 @@
       "taskRef": "043-claude-unit-tests",
       "storyRef": "002-claude-refactor",
       "title": "Create Claude provider fixture files, parser tests, and config tests",
-      "description": "Create 7 fixture files in tools/tests/fixtures/claude/ matching Claude CLI JSON output format: claude-success.json (full response with all fields), claude-success-minimal.json (only required fields), claude-error.json (error response), claude-malformed.json (invalid JSON), claude-empty-array.json (empty array), claude-no-result-entry.json (missing result type entry), claude-partial-result.json (result entry missing optional fields like session_id and token_usage). Create tools/tests/providers/claude.parser.test.ts with tests for normalizeClaudeResult() covering: parsing complete result entry and extracting all fields (result, costUsd, durationMs, sessionId, tokenUsage), throwing on missing result entry, throwing on malformed JSON, handling partial results with missing optional fields, handling numeric string conversion for cost/duration, and testing with the minimal success fixture. Create tools/tests/providers/claude.config.test.ts with tests for ClaudeConfig validation (provider discriminator field equals \"claude\"), provider type discrimination via type narrowing, and default timeout configuration values. All tests must use Bun built-in test runner (import from bun:test). Run bun test to verify all tests pass.",
+      "description": "Create 7 fixture files in tools/tests/fixtures/claude/ matching Claude CLI JSON output format: claude-success.json (full response with all fields), claude-success-minimal.json (only required fields), claude-error.json (error response), claude-malformed.txt (invalid JSON fixture), claude-empty-array.json (empty array), claude-no-result-entry.json (missing result type entry), claude-partial-result.json (result entry missing optional fields like session_id and token_usage). Create tools/tests/providers/claude.parser.test.ts with tests for normalizeClaudeResult() covering: parsing complete result entry and extracting all fields (result, costUsd, durationMs, sessionId, tokenUsage), throwing on missing result entry, throwing on malformed JSON, handling partial results with missing optional fields, handling numeric string conversion for cost/duration, and testing with the minimal success fixture. Create tools/tests/providers/claude.config.test.ts with tests for ClaudeConfig validation (provider discriminator field equals \"claude\"), provider type discrimination via type narrowing, and default timeout configuration values. All tests must use Bun built-in test runner (import from bun:test). Run bun test to verify all tests pass.",
       "done": true,
       "acceptanceCriteria": [
-        "tools/tests/fixtures/claude/ directory contains 7 fixture JSON files: claude-success.json, claude-success-minimal.json, claude-error.json, claude-malformed.json, claude-empty-array.json, claude-no-result-entry.json, claude-partial-result.json",
-        "Each fixture matches Claude JSON output format: array of objects with type/content fields and a result entry with duration_ms, total_cost_usd, session_id",
+        "tools/tests/fixtures/claude/ directory contains 7 fixture files: claude-success.json, claude-success-minimal.json, claude-error.json, claude-malformed.txt, claude-empty-array.json, claude-no-result-entry.json, claude-partial-result.json",
+        "Each valid JSON fixture matches Claude output format (array of objects with type/content fields and a result entry with duration_ms, total_cost_usd, session_id); malformed fixture is intentionally invalid JSON",
         "tools/tests/providers/claude.parser.test.ts exists with tests covering: complete result parsing, all field extraction (result, costUsd, durationMs, sessionId, tokenUsage), missing result entry throws, malformed JSON throws, partial result handling, numeric string conversion",
         "tools/tests/providers/claude.config.test.ts exists with tests for ClaudeConfig validation, provider type discrimination, and default timeout configuration",
         "All tests use bun:test runner (import { describe, test, expect } from \"bun:test\")",

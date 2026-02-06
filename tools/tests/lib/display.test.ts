@@ -12,7 +12,9 @@ import {
   renderBuildPracticalSummary,
   renderCascadeProgress,
   renderCascadeSummary,
+  renderInvocationHeader,
   renderPlanSubtasksSummary,
+  renderResponseHeader,
   truncate,
 } from "@tools/commands/ralph/display";
 import { describe, expect, test } from "bun:test";
@@ -440,6 +442,32 @@ describe("display utilities", () => {
 
     test("function is exported", () => {
       expect(typeof renderPlanSubtasksSummary).toBe("function");
+    });
+  });
+
+  describe("provider-aware headers", () => {
+    test("renders invocation header with default Claude provider", () => {
+      const result = renderInvocationHeader("headless");
+
+      expect(result).toContain("Invoking Claude (headless)");
+    });
+
+    test("renders invocation header with OpenCode provider", () => {
+      const result = renderInvocationHeader("headless", "opencode");
+
+      expect(result).toContain("Invoking OpenCode (headless)");
+    });
+
+    test("renders response header with default Claude provider", () => {
+      const result = renderResponseHeader();
+
+      expect(result).toContain("Claude Response");
+    });
+
+    test("renders response header with OpenCode provider", () => {
+      const result = renderResponseHeader("opencode");
+
+      expect(result).toContain("OpenCode Response");
     });
   });
 });

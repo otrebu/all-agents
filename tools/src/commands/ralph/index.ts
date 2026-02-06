@@ -21,8 +21,8 @@ import {
   countSubtasksInFile,
   discoverTasksFromMilestone,
   getExistingTaskReferences,
-  loadRalphConfig,
   getPlanningLogPath as getMilestonePlanningLogPath,
+  loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
   ORPHAN_MILESTONE_ROOT,
@@ -273,6 +273,32 @@ interface HeadlessWithLoggingResult {
   sessionId: string;
 }
 
+interface PlanningSupervisedOptions {
+  extraContext?: string;
+  model?: string;
+  promptPath: string;
+  provider?: string;
+  sessionName: string;
+}
+
+interface RalphModelsOptions {
+  isJson?: boolean;
+  provider?: string;
+}
+
+function formatModelRow(model: ModelInfo): string {
+  const aliasSuffix =
+    model.description?.toLowerCase().includes("alias") === true
+      ? " [alias]"
+      : "";
+
+  if (model.id === model.cliFormat) {
+    return `${model.id} (${model.costHint})${aliasSuffix}`;
+  }
+
+  return `${model.id} (${model.costHint}) -> ${model.cliFormat}${aliasSuffix}`;
+}
+
 /**
  * Get planning log file path for a milestone
  *
@@ -296,81 +322,6 @@ function getPlanningLogPath(milestonePath?: string): string {
   );
 }
 
-interface RalphModelsOptions {
-  isJson?: boolean;
-  provider?: string;
-}
-
-function formatModelRow(model: ModelInfo): string {
-  const aliasSuffix =
-    model.description?.toLowerCase().includes("alias") === true
-      ? " [alias]"
-      : "";
-
-  if (model.id === model.cliFormat) {
-    return `${model.id} (${model.costHint})${aliasSuffix}`;
-  }
-
-  return `${model.id} (${model.costHint}) -> ${model.cliFormat}${aliasSuffix}`;
-}
-
-function runModels(options: RalphModelsOptions): void {
-  const { isJson = false, provider } = options;
-
-  let providerFilter: ProviderType | undefined;
-  if (provider !== undefined && provider !== "") {
-    try {
-      providerFilter = validateProvider(provider);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(message);
-      process.exit(1);
-    }
-  }
-
-  const models = providerFilter
-    ? getModelsForProvider(providerFilter)
-    : getAllModels();
-  const sorted = [...models].sort((a, b) => {
-    if (a.provider !== b.provider) {
-      return a.provider.localeCompare(b.provider);
-    }
-    return a.id.localeCompare(b.id);
-  });
-
-  if (isJson) {
-    console.log(JSON.stringify({ models: sorted }, null, 2));
-    return;
-  }
-
-  if (sorted.length === 0) {
-    if (providerFilter !== undefined) {
-      console.log(`No models configured for provider '${providerFilter}'.`);
-    } else {
-      console.log("No models configured.");
-    }
-    return;
-  }
-
-  if (providerFilter !== undefined) {
-    console.log(`Available models for provider '${providerFilter}':`);
-    for (const model of sorted) {
-      console.log(`  ${formatModelRow(model)}`);
-    }
-    return;
-  }
-
-  console.log("Available models:");
-  let currentProvider: null | string = null;
-  for (const model of sorted) {
-    if (currentProvider !== model.provider) {
-      currentProvider = model.provider;
-      console.log(`\n${currentProvider}:`);
-    }
-    console.log(`  ${formatModelRow(model)}`);
-  }
-}
-
 /**
  * Supervised mode wrapper: Spawn interactive chat session
  * Uses the claude.ts module function and exits process on failure.
@@ -378,94 +329,16 @@ function runModels(options: RalphModelsOptions): void {
 function invokeClaudeChat(
   promptPath: string,
   sessionName: string,
-  extraContext?: string,
-  model?: string,
+  options: { extraContext?: string; model?: string } = {},
 ): void {
-  const result = invokeClaudeChatFromModule(
-    promptPath,
-    sessionName,
+  const { extraContext, model } = options;
+  const result = invokeClaudeChatFromModule(promptPath, sessionName, {
     extraContext,
     model,
-  );
+  });
 
   if (!result.success && !result.interrupted) {
     process.exit(result.exitCode ?? 1);
-  }
-}
-
-/**
- * Resolve model selection for planning commands.
- * Priority: CLI flag > config file
- */
-function resolvePlanningModel(modelOverride?: string): string | undefined {
-  if (modelOverride !== undefined && modelOverride !== "") {
-    return modelOverride;
-  }
-
-  try {
-    const config = loadRalphConfig();
-    return config.model;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Resolve provider selection for planning commands.
- * Planning commands default to Claude unless explicitly overridden by CLI flag.
- */
-async function resolvePlanningProvider(
-  providerOverride?: string,
-): Promise<ProviderType> {
-  if (providerOverride === undefined || providerOverride === "") {
-    return "claude";
-  }
-
-  return resolveProvider({ cliFlag: providerOverride });
-}
-
-interface PlanningSupervisedOptions {
-  extraContext?: string;
-  model?: string;
-  promptPath: string;
-  provider?: string;
-  sessionName: string;
-}
-
-/**
- * Supervised planning wrapper with optional provider/model override.
- * Defaults to Claude for backward compatibility.
- */
-async function invokePlanningSupervised(
-  options: PlanningSupervisedOptions,
-): Promise<void> {
-  const {
-    extraContext,
-    model: modelOverride,
-    promptPath,
-    provider: providerOverride,
-    sessionName,
-  } = options;
-
-  const provider = await resolvePlanningProvider(providerOverride);
-  const model = resolvePlanningModel(modelOverride);
-
-  if (provider === "claude") {
-    invokeClaudeChat(promptPath, sessionName, extraContext, model);
-    return;
-  }
-
-  const result = await invokeWithProvider(provider, {
-    context: extraContext,
-    mode: "supervised",
-    model,
-    promptPath,
-    sessionName,
-  });
-
-  if (result === null) {
-    console.error(`${provider} supervised invocation failed`);
-    process.exit(1);
   }
 }
 
@@ -530,7 +403,9 @@ async function invokeClaudeHeadless(
         });
 
   if (result === null) {
-    console.error(`${provider} headless invocation failed, was interrupted, or timed out`);
+    console.error(
+      `${provider} headless invocation failed, was interrupted, or timed out`,
+    );
     process.exit(1);
   }
 
@@ -565,6 +440,136 @@ async function invokeClaudeHeadless(
     result: result.result,
     sessionId: result.sessionId,
   };
+}
+
+/**
+ * Supervised planning wrapper with optional provider/model override.
+ * Defaults to Claude for backward compatibility.
+ */
+async function invokePlanningSupervised(
+  options: PlanningSupervisedOptions,
+): Promise<void> {
+  const {
+    extraContext,
+    model: modelOverride,
+    promptPath,
+    provider: providerOverride,
+    sessionName,
+  } = options;
+
+  const provider = await resolvePlanningProvider(providerOverride);
+  const model = resolvePlanningModel(modelOverride);
+
+  if (provider === "claude") {
+    invokeClaudeChat(promptPath, sessionName, { extraContext, model });
+    return;
+  }
+
+  const result = await invokeWithProvider(provider, {
+    context: extraContext,
+    mode: "supervised",
+    model,
+    promptPath,
+    sessionName,
+  });
+
+  if (result === null) {
+    console.error(`${provider} supervised invocation failed`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Resolve model selection for planning commands.
+ * Priority: CLI flag > config file
+ */
+function resolvePlanningModel(modelOverride?: string): string | undefined {
+  if (modelOverride !== undefined && modelOverride !== "") {
+    return modelOverride;
+  }
+
+  try {
+    const config = loadRalphConfig();
+    return config.model;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve provider selection for planning commands.
+ * Planning commands default to Claude unless explicitly overridden by CLI flag.
+ */
+async function resolvePlanningProvider(
+  providerOverride?: string,
+): Promise<ProviderType> {
+  if (providerOverride === undefined || providerOverride === "") {
+    return "claude";
+  }
+
+  return resolveProvider({ cliFlag: providerOverride });
+}
+
+function runModels(options: RalphModelsOptions): void {
+  const { isJson = false, provider } = options;
+
+  const providerFilter: ProviderType | undefined =
+    provider === undefined || provider === ""
+      ? undefined
+      : validateProviderOrExit(provider);
+
+  const models = providerFilter
+    ? getModelsForProvider(providerFilter)
+    : getAllModels();
+  const sorted = [...models].sort((a, b) => {
+    if (a.provider !== b.provider) {
+      return a.provider.localeCompare(b.provider);
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  if (isJson) {
+    console.log(JSON.stringify({ models: sorted }, null, 2));
+    return;
+  }
+
+  if (sorted.length === 0) {
+    if (providerFilter === undefined) {
+      console.log("No models configured.");
+    } else {
+      console.log(`No models configured for provider '${providerFilter}'.`);
+    }
+    return;
+  }
+
+  if (providerFilter !== undefined) {
+    console.log(`Available models for provider '${providerFilter}':`);
+    for (const model of sorted) {
+      console.log(`  ${formatModelRow(model)}`);
+    }
+    return;
+  }
+
+  console.log("Available models:");
+  let currentProvider: null | string = null;
+  for (const model of sorted) {
+    if (currentProvider !== model.provider) {
+      currentProvider = model.provider;
+      console.log(`\n${currentProvider}:`);
+    }
+    console.log(`  ${formatModelRow(model)}`);
+  }
+}
+
+function validateProviderOrExit(provider: string): ProviderType {
+  try {
+    return validateProvider(provider);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exit(1);
+    throw new Error("unreachable");
+  }
 }
 
 const ralphCommand = new Command("ralph").description(
@@ -1051,8 +1056,9 @@ async function handleCascadeExecution(
 function invokeClaude(
   promptPath: string,
   sessionName: string,
-  extraContext?: string,
+  options: { extraContext?: string; model?: string } = {},
 ): void {
+  const { extraContext, model } = options;
   if (!existsSync(promptPath)) {
     console.error(`Prompt not found: ${promptPath}`);
     process.exit(1);
@@ -1077,17 +1083,25 @@ function invokeClaude(
   // Use Bun.spawnSync with argument array to avoid shell parsing entirely
   // This prevents issues with special characters like parentheses in the prompt
   // --permission-mode bypassPermissions prevents inheriting plan mode from user settings
-  const proc = Bun.spawnSync(
-    [
-      "claude",
-      "--permission-mode",
-      "bypassPermissions",
-      "--append-system-prompt",
-      fullPrompt,
-      `Please begin the ${sessionName} planning session following the instructions provided.`,
-    ],
-    { stdio: ["inherit", "inherit", "inherit"] },
+  const args = [
+    "claude",
+    "--permission-mode",
+    "bypassPermissions",
+    "--append-system-prompt",
+    fullPrompt,
+  ];
+
+  if (model !== undefined && model !== "") {
+    args.push("--model", model);
+  }
+
+  args.push(
+    `Please begin the ${sessionName} planning session following the instructions provided.`,
   );
+
+  const proc = Bun.spawnSync(args, {
+    stdio: ["inherit", "inherit", "inherit"],
+  });
 
   // Exit with non-zero exit code when process fails
   // proc.exitCode: 0 = success, positive number = error, null = killed by signal
@@ -1218,7 +1232,8 @@ async function runSubtasksHeadless(
 async function runTasksMilestoneMode(
   options: TasksMilestoneOptions,
 ): Promise<string> {
-  const { contextRoot, isAutoMode, isHeadless, milestone, model, provider } = options;
+  const { contextRoot, isAutoMode, isHeadless, milestone, model, provider } =
+    options;
 
   if (!isAutoMode) {
     console.error(
@@ -1264,8 +1279,16 @@ async function runTasksMilestoneMode(
  * Execute tasks planning from file or text source
  */
 async function runTasksSourceMode(options: TasksSourceOptions): Promise<void> {
-  const { contextRoot, file, hasFile, isHeadless, isSupervised, model, provider, text } =
-    options;
+  const {
+    contextRoot,
+    file,
+    hasFile,
+    isHeadless,
+    isSupervised,
+    model,
+    provider,
+    text,
+  } = options;
 
   const promptPath = path.join(
     contextRoot,
@@ -1296,7 +1319,18 @@ async function runTasksSourceMode(options: TasksSourceOptions): Promise<void> {
       sessionName: "tasks-source",
     });
   } else {
-    invokeClaude(promptPath, "tasks-source", extraContext, model);
+    const resolvedProvider = await resolvePlanningProvider(provider);
+    if (resolvedProvider === "claude") {
+      invokeClaude(promptPath, "tasks-source", { extraContext, model });
+    } else {
+      await invokePlanningSupervised({
+        extraContext,
+        model,
+        promptPath,
+        provider,
+        sessionName: "tasks-source",
+      });
+    }
   }
 }
 
@@ -1308,7 +1342,15 @@ async function runTasksSourceMode(options: TasksSourceOptions): Promise<void> {
 async function runTasksStoryMode(
   options: TasksStoryOptions,
 ): Promise<null | string> {
-  const { contextRoot, isAutoMode, isHeadless, isSupervised, model, provider, story } = options;
+  const {
+    contextRoot,
+    isAutoMode,
+    isHeadless,
+    isSupervised,
+    model,
+    provider,
+    story,
+  } = options;
 
   const storyPath = requireStory(story);
 
@@ -1341,7 +1383,7 @@ async function runTasksStoryMode(
       sessionName: "tasks",
     });
   } else {
-    invokeClaude(promptPath, "tasks", extraContext, model);
+    invokeClaude(promptPath, "tasks", { extraContext, model });
   }
 
   return resolvedMilestonePath;
@@ -1419,6 +1461,11 @@ planCommand.addCommand(
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .option(
+      "--provider <name>",
+      "AI provider to use for planning (default: claude)",
+    )
+    .option("--model <name>", "Model to use for planning invocation")
+    .option(
       "--cascade <target>",
       "Continue to target level after completion (tasks, subtasks, build, calibrate)",
     )
@@ -1431,6 +1478,8 @@ planCommand.addCommand(
         options.supervised === true || options.headless === true;
       const promptPath = getPromptPath(contextRoot, "stories", isAutoMode);
       const extraContext = `Planning stories for milestone: ${milestonePath}`;
+      const planningModel = options.model;
+      const planningProvider = options.provider;
 
       // Determine execution mode
       if (options.headless === true) {
@@ -1438,15 +1487,38 @@ planCommand.addCommand(
         await invokeClaudeHeadless({
           extraContext,
           logFile,
+          model: planningModel,
           promptPath,
+          provider: planningProvider,
           sessionName: "stories",
         });
       } else if (options.supervised === true) {
         // Supervised mode: user watches chat
-        invokeClaudeChat(promptPath, "stories", extraContext);
+        await invokePlanningSupervised({
+          extraContext,
+          model: planningModel,
+          promptPath,
+          provider: planningProvider,
+          sessionName: "stories",
+        });
       } else {
         // Interactive mode (default): full interactive session
-        invokeClaude(promptPath, "stories", extraContext);
+        const resolvedProvider =
+          await resolvePlanningProvider(planningProvider);
+        if (resolvedProvider === "claude") {
+          invokeClaude(promptPath, "stories", {
+            extraContext,
+            model: planningModel,
+          });
+        } else {
+          await invokePlanningSupervised({
+            extraContext,
+            model: planningModel,
+            promptPath,
+            provider: planningProvider,
+            sessionName: "stories",
+          });
+        }
       }
 
       // Handle cascade if requested
@@ -1494,6 +1566,11 @@ planCommand.addCommand(
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .option(
+      "--provider <name>",
+      "AI provider to use for planning (default: claude)",
+    )
+    .option("--model <name>", "Model to use for planning invocation")
+    .option(
       "--cascade <target>",
       "Continue to target level after completion (subtasks, build, calibrate)",
     )
@@ -1531,6 +1608,8 @@ planCommand.addCommand(
           isAutoMode,
           isHeadless: options.headless === true,
           milestone: options.milestone,
+          model: options.model,
+          provider: options.provider,
         });
       } else if (hasStory && options.story !== undefined) {
         resolvedMilestonePath = await runTasksStoryMode({
@@ -1538,6 +1617,8 @@ planCommand.addCommand(
           isAutoMode,
           isHeadless: options.headless === true,
           isSupervised: options.supervised === true,
+          model: options.model,
+          provider: options.provider,
           story: options.story,
         });
       } else {
@@ -1547,6 +1628,8 @@ planCommand.addCommand(
           hasFile,
           isHeadless: options.headless === true,
           isSupervised: options.supervised === true,
+          model: options.model,
+          provider: options.provider,
           text: options.text,
         });
       }
@@ -1605,7 +1688,10 @@ planCommand.addCommand(
       "Run calibration every N build iterations during cascade (0 = disabled)",
       "0",
     )
-    .option("--provider <name>", "AI provider to use for planning (default: claude)")
+    .option(
+      "--provider <name>",
+      "AI provider to use for planning (default: claude)",
+    )
     .option("--model <name>", "Model to use for planning invocation")
     .action(async (options) => {
       const hasFile = options.file !== undefined;
@@ -1768,34 +1854,30 @@ planCommand.addCommand(
 
       const extraContext = contextParts.join("\n");
 
-      if (options.headless === true) {
-        // Headless mode with summary - use extracted helper
-        await runSubtasksHeadless({
-          beforeCount,
-          extraContext,
-          hasMilestone,
-          hasStory,
-          milestone: options.milestone,
-          model: options.model,
-          outputDirectory: options.outputDir,
-          promptPath,
-          provider: options.provider,
-          resolvedMilestonePath,
-          sizeMode,
-          skippedTasks,
-          sourceInfo,
-          storyRef: options.story,
-        });
-      } else {
-        // Default: supervised mode (user watches)
-        await invokePlanningSupervised({
-          extraContext,
-          model: options.model,
-          promptPath,
-          provider: options.provider,
-          sessionName: "subtasks",
-        });
-      }
+      await (options.headless === true
+        ? runSubtasksHeadless({
+            beforeCount,
+            extraContext,
+            hasMilestone,
+            hasStory,
+            milestone: options.milestone,
+            model: options.model,
+            outputDirectory: options.outputDir,
+            promptPath,
+            provider: options.provider,
+            resolvedMilestonePath,
+            sizeMode,
+            skippedTasks,
+            sourceInfo,
+            storyRef: options.story,
+          })
+        : invokePlanningSupervised({
+            extraContext,
+            model: options.model,
+            promptPath,
+            provider: options.provider,
+            sessionName: "subtasks",
+          }));
 
       // Handle cascade if requested
       if (options.cascade !== undefined) {
@@ -1868,7 +1950,7 @@ reviewCommand.addCommand(
           sessionName: "stories-review",
         });
       } else {
-        invokeClaudeChat(promptPath, "stories-review", extraContext);
+        invokeClaudeChat(promptPath, "stories-review", { extraContext });
       }
     }),
 );
@@ -1892,7 +1974,7 @@ reviewCommand.addCommand(
           sessionName: "roadmap-review",
         });
       } else {
-        invokeClaudeChat(promptPath, "roadmap-review", extraContext);
+        invokeClaudeChat(promptPath, "roadmap-review", { extraContext });
       }
     }),
 );
@@ -1921,7 +2003,7 @@ gapCommand.addCommand(
           sessionName: "roadmap-gap",
         });
       } else {
-        invokeClaudeChat(promptPath, "roadmap-gap", extraContext);
+        invokeClaudeChat(promptPath, "roadmap-gap", { extraContext });
       }
     }),
 );
@@ -1950,7 +2032,7 @@ gapCommand.addCommand(
           sessionName: "stories-gap",
         });
       } else {
-        invokeClaudeChat(promptPath, "stories-gap", extraContext);
+        invokeClaudeChat(promptPath, "stories-gap", { extraContext });
       }
     }),
 );
@@ -1977,7 +2059,7 @@ gapCommand.addCommand(
           sessionName: "tasks-gap",
         });
       } else {
-        invokeClaudeChat(promptPath, "tasks-gap", extraContext);
+        invokeClaudeChat(promptPath, "tasks-gap", { extraContext });
       }
     }),
 );
@@ -2003,7 +2085,7 @@ gapCommand.addCommand(
           sessionName: "subtasks-gap",
         });
       } else {
-        invokeClaudeChat(promptPath, "subtasks-gap", extraContext);
+        invokeClaudeChat(promptPath, "subtasks-gap", { extraContext });
       }
     }),
 );
@@ -2032,7 +2114,7 @@ reviewCommand.addCommand(
           sessionName: "tasks-review",
         });
       } else {
-        invokeClaudeChat(promptPath, "tasks-review", extraContext);
+        invokeClaudeChat(promptPath, "tasks-review", { extraContext });
       }
     }),
 );
@@ -2061,7 +2143,7 @@ reviewCommand.addCommand(
           sessionName: "subtasks-review",
         });
       } else {
-        invokeClaudeChat(promptPath, "subtasks-review", extraContext);
+        invokeClaudeChat(promptPath, "subtasks-review", { extraContext });
       }
     }),
 );
@@ -2120,10 +2202,7 @@ ralphCommand.addCommand(
     .option("--provider <name>", "Filter models by provider")
     .option("--json", "Output as JSON")
     .action((options) => {
-      runModels({
-        isJson: options.json === true,
-        provider: options.provider,
-      });
+      runModels({ isJson: options.json === true, provider: options.provider });
     }),
 );
 

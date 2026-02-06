@@ -171,6 +171,7 @@ async function invokeClaudeHeadless(
 ): Promise<AgentResult | null> {
   return invokeClaudeHeadlessAsync({
     gracePeriodMs: options.gracePeriodMs,
+    model: options.model,
     onStderrActivity: options.onStderrActivity,
     prompt: options.prompt,
     stallTimeoutMs: options.stallTimeoutMs,
@@ -190,11 +191,10 @@ function invokeClaudeSupervised(
 ): AgentResult | null {
   const startTime = Date.now();
 
-  const chatResult = invokeClaudeChat(
-    options.promptPath,
-    options.sessionName,
-    options.context,
-  );
+  const chatResult = invokeClaudeChat(options.promptPath, options.sessionName, {
+    extraContext: options.context,
+    model: options.model,
+  });
 
   const durationMs = Date.now() - startTime;
 

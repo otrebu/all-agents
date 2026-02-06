@@ -20,6 +20,7 @@ import stringWidth from "string-width";
 import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
+import type { ProviderType } from "./providers/types";
 import type { BuildPracticalSummary } from "./summary";
 import type { CascadeResult, IterationStatus, TokenUsage } from "./types";
 
@@ -459,6 +460,21 @@ function getColoredStatus(status: IterationStatus): string {
   }
 }
 
+/**
+ * Get display label for a provider key.
+ */
+function getProviderLabel(provider: ProviderType): string {
+  const labels: Record<ProviderType, string> = {
+    claude: "Claude",
+    codex: "Codex",
+    cursor: "Cursor",
+    gemini: "Gemini",
+    opencode: "OpenCode",
+    pi: "Pi",
+  };
+  return labels[provider];
+}
+
 // =============================================================================
 // Status Box Rendering
 // =============================================================================
@@ -785,13 +801,16 @@ function renderCascadeSummary(result: CascadeResult): string {
 }
 
 /**
- * Render a styled separator for Claude invocation
+ * Render a styled separator for provider invocation
  *
  * @param mode - "headless" or "supervised" execution mode
- * @returns Styled line like "──────────── Invoking Claude (headless) ────────────"
+ * @returns Styled line like "──────────── Invoking OpenCode (headless) ────────────"
  */
-function renderInvocationHeader(mode: "headless" | "supervised"): string {
-  const label = ` Invoking Claude (${mode}) `;
+function renderInvocationHeader(
+  mode: "headless" | "supervised",
+  provider: ProviderType = "claude",
+): string {
+  const label = ` Invoking ${getProviderLabel(provider)} (${mode}) `;
   const lineChar = "─";
   const totalWidth = BOX_WIDTH;
   const sideLength = Math.floor((totalWidth - label.length) / 2);
@@ -1129,12 +1148,12 @@ function renderProgressBar(
 // BOX_WIDTH defined at top of file for marked config
 
 /**
- * Render a styled separator for Claude response output
+ * Render a styled separator for provider response output
  *
- * @returns Styled line like "──────────────── Claude Response ────────────────"
+ * @returns Styled line like "─────────────── OpenCode Response ───────────────"
  */
-function renderResponseHeader(): string {
-  const label = " Claude Response ";
+function renderResponseHeader(provider: ProviderType = "claude"): string {
+  const label = ` ${getProviderLabel(provider)} Response `;
   const lineChar = "─";
   const totalWidth = BOX_WIDTH;
   const labelLength = label.length;
