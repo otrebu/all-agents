@@ -36,6 +36,7 @@ import {
   invokeClaudeChat as invokeClaudeChatFromModule,
   invokeClaudeHeadlessAsync as invokeClaudeHeadlessAsyncFromModule,
 } from "./providers/claude";
+import { runRefreshModels } from "./refresh-models";
 import { runStatus } from "./status";
 
 /**
@@ -2014,5 +2015,24 @@ archiveCommand.addCommand(
 );
 
 ralphCommand.addCommand(archiveCommand);
+
+// =============================================================================
+// ralph refresh-models - discover models from CLI providers
+// =============================================================================
+
+ralphCommand.addCommand(
+  new Command("refresh-models")
+    .description(
+      "Discover available models from CLI providers and update dynamic registry",
+    )
+    .option("--dry-run", "Show what would be discovered without writing")
+    .option("--provider <name>", "Discover models from specific provider only")
+    .action((options) => {
+      runRefreshModels({
+        isDryRun: options.dryRun === true,
+        provider: options.provider,
+      });
+    }),
+);
 
 export default ralphCommand;

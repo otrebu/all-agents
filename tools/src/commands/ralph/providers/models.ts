@@ -10,13 +10,8 @@
 import type { ModelInfo } from "./models-static";
 import type { ProviderType } from "./types";
 
+import { DISCOVERED_MODELS } from "./models-dynamic";
 import { STATIC_MODELS } from "./models-static";
-
-// =============================================================================
-// Dynamic Models Placeholder (populated by TASK-050 refresh-models)
-// =============================================================================
-
-const DISCOVERED_MODELS: Array<ModelInfo> = [];
 
 // =============================================================================
 // Validation Result Types
@@ -160,8 +155,8 @@ function validateModelSelection(
 // Exports
 // =============================================================================
 
+export { DISCOVERED_MODELS } from "./models-dynamic";
 export {
-  DISCOVERED_MODELS,
   getAllModels,
   getModelById,
   getModelCompletions,
