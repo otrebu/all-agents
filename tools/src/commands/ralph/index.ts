@@ -21,6 +21,7 @@ import {
   countSubtasksInFile,
   discoverTasksFromMilestone,
   getExistingTaskReferences,
+  loadRalphConfig,
   getPlanningLogPath as getMilestonePlanningLogPath,
   loadSubtasksFile,
   loadTimeoutConfig,
@@ -36,6 +37,16 @@ import {
   invokeClaudeChat as invokeClaudeChatFromModule,
   invokeClaudeHeadlessAsync as invokeClaudeHeadlessAsyncFromModule,
 } from "./providers/claude";
+import {
+  getAllModels,
+  getModelsForProvider,
+  type ModelInfo,
+} from "./providers/models";
+import {
+  invokeWithProvider,
+  resolveProvider,
+  validateProvider,
+} from "./providers/registry";
 import { runRefreshModels } from "./refresh-models";
 import { runStatus } from "./status";
 
@@ -242,7 +253,9 @@ const DEFAULT_SUBTASKS_PATH = "subtasks.json";
 interface HeadlessWithLoggingOptions {
   extraContext?: string;
   logFile: string;
+  model?: string;
   promptPath: string;
+  provider?: string;
   sessionName: string;
   /** Size mode for styled pre-execution display (e.g., 'small', 'medium', 'large') */
   sizeMode?: string;
@@ -255,6 +268,7 @@ interface HeadlessWithLoggingResult {
   costUsd: number;
   durationMs: number;
   numTurns: number;
+  provider: ProviderType;
   result: string;
   sessionId: string;
 }
@@ -282,6 +296,81 @@ function getPlanningLogPath(milestonePath?: string): string {
   );
 }
 
+interface RalphModelsOptions {
+  isJson?: boolean;
+  provider?: string;
+}
+
+function formatModelRow(model: ModelInfo): string {
+  const aliasSuffix =
+    model.description?.toLowerCase().includes("alias") === true
+      ? " [alias]"
+      : "";
+
+  if (model.id === model.cliFormat) {
+    return `${model.id} (${model.costHint})${aliasSuffix}`;
+  }
+
+  return `${model.id} (${model.costHint}) -> ${model.cliFormat}${aliasSuffix}`;
+}
+
+function runModels(options: RalphModelsOptions): void {
+  const { isJson = false, provider } = options;
+
+  let providerFilter: ProviderType | undefined;
+  if (provider !== undefined && provider !== "") {
+    try {
+      providerFilter = validateProvider(provider);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message);
+      process.exit(1);
+    }
+  }
+
+  const models = providerFilter
+    ? getModelsForProvider(providerFilter)
+    : getAllModels();
+  const sorted = [...models].sort((a, b) => {
+    if (a.provider !== b.provider) {
+      return a.provider.localeCompare(b.provider);
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  if (isJson) {
+    console.log(JSON.stringify({ models: sorted }, null, 2));
+    return;
+  }
+
+  if (sorted.length === 0) {
+    if (providerFilter !== undefined) {
+      console.log(`No models configured for provider '${providerFilter}'.`);
+    } else {
+      console.log("No models configured.");
+    }
+    return;
+  }
+
+  if (providerFilter !== undefined) {
+    console.log(`Available models for provider '${providerFilter}':`);
+    for (const model of sorted) {
+      console.log(`  ${formatModelRow(model)}`);
+    }
+    return;
+  }
+
+  console.log("Available models:");
+  let currentProvider: null | string = null;
+  for (const model of sorted) {
+    if (currentProvider !== model.provider) {
+      currentProvider = model.provider;
+      console.log(`\n${currentProvider}:`);
+    }
+    console.log(`  ${formatModelRow(model)}`);
+  }
+}
+
 /**
  * Supervised mode wrapper: Spawn interactive chat session
  * Uses the claude.ts module function and exits process on failure.
@@ -290,15 +379,93 @@ function invokeClaudeChat(
   promptPath: string,
   sessionName: string,
   extraContext?: string,
+  model?: string,
 ): void {
   const result = invokeClaudeChatFromModule(
     promptPath,
     sessionName,
     extraContext,
+    model,
   );
 
   if (!result.success && !result.interrupted) {
     process.exit(result.exitCode ?? 1);
+  }
+}
+
+/**
+ * Resolve model selection for planning commands.
+ * Priority: CLI flag > config file
+ */
+function resolvePlanningModel(modelOverride?: string): string | undefined {
+  if (modelOverride !== undefined && modelOverride !== "") {
+    return modelOverride;
+  }
+
+  try {
+    const config = loadRalphConfig();
+    return config.model;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve provider selection for planning commands.
+ * Planning commands default to Claude unless explicitly overridden by CLI flag.
+ */
+async function resolvePlanningProvider(
+  providerOverride?: string,
+): Promise<ProviderType> {
+  if (providerOverride === undefined || providerOverride === "") {
+    return "claude";
+  }
+
+  return resolveProvider({ cliFlag: providerOverride });
+}
+
+interface PlanningSupervisedOptions {
+  extraContext?: string;
+  model?: string;
+  promptPath: string;
+  provider?: string;
+  sessionName: string;
+}
+
+/**
+ * Supervised planning wrapper with optional provider/model override.
+ * Defaults to Claude for backward compatibility.
+ */
+async function invokePlanningSupervised(
+  options: PlanningSupervisedOptions,
+): Promise<void> {
+  const {
+    extraContext,
+    model: modelOverride,
+    promptPath,
+    provider: providerOverride,
+    sessionName,
+  } = options;
+
+  const provider = await resolvePlanningProvider(providerOverride);
+  const model = resolvePlanningModel(modelOverride);
+
+  if (provider === "claude") {
+    invokeClaudeChat(promptPath, sessionName, extraContext, model);
+    return;
+  }
+
+  const result = await invokeWithProvider(provider, {
+    context: extraContext,
+    mode: "supervised",
+    model,
+    promptPath,
+    sessionName,
+  });
+
+  if (result === null) {
+    console.error(`${provider} supervised invocation failed`);
+    process.exit(1);
   }
 }
 
@@ -310,7 +477,15 @@ function invokeClaudeChat(
 async function invokeClaudeHeadless(
   options: HeadlessWithLoggingOptions,
 ): Promise<HeadlessWithLoggingResult> {
-  const { extraContext, logFile, promptPath, sessionName, sizeMode } = options;
+  const {
+    extraContext,
+    logFile,
+    model: modelOverride,
+    promptPath,
+    provider: providerOverride,
+    sessionName,
+    sizeMode,
+  } = options;
 
   if (!existsSync(promptPath)) {
     console.error(`Prompt not found: ${promptPath}`);
@@ -319,29 +494,43 @@ async function invokeClaudeHeadless(
 
   const promptContent = readFileSync(promptPath, "utf8");
   const fullPrompt = buildPrompt(promptContent, extraContext);
+  const provider = await resolvePlanningProvider(providerOverride);
+  const model = resolvePlanningModel(modelOverride);
 
   // Styled pre-execution header
-  console.log(renderInvocationHeader("headless"));
+  console.log(renderInvocationHeader("headless", provider));
   console.log();
   console.log(`${chalk.dim("Source:")}  ${chalk.cyan(promptPath)}`);
   if (sizeMode !== undefined) {
     console.log(`${chalk.dim("Size:")}    ${chalk.yellow(sizeMode)}`);
   }
+  if (model !== undefined && model !== "") {
+    console.log(`${chalk.dim("Model:")}   ${chalk.yellow(model)}`);
+  }
   console.log(`${chalk.dim("Log:")}     ${logFile}`);
   console.log();
 
   const timeoutConfig = loadTimeoutConfig();
-  const result = await invokeClaudeHeadlessAsyncFromModule({
-    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-    prompt: fullPrompt,
-    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-    timeout: timeoutConfig.hardMinutes * 60 * 1000,
-  });
+  const result =
+    provider === "claude"
+      ? await invokeClaudeHeadlessAsyncFromModule({
+          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+          model,
+          prompt: fullPrompt,
+          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+          timeout: timeoutConfig.hardMinutes * 60 * 1000,
+        })
+      : await invokeWithProvider(provider, {
+          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+          mode: "headless",
+          model,
+          prompt: fullPrompt,
+          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+          timeout: timeoutConfig.hardMinutes * 60 * 1000,
+        });
 
   if (result === null) {
-    console.error(
-      "Claude headless invocation failed, was interrupted, or timed out",
-    );
+    console.error(`${provider} headless invocation failed, was interrupted, or timed out`);
     process.exit(1);
   }
 
@@ -355,6 +544,8 @@ async function invokeClaudeHeadless(
     costUsd: result.costUsd,
     durationMs: result.durationMs,
     extraContext: extraContext ?? "",
+    model: model ?? "",
+    provider,
     result: result.result,
     sessionId: result.sessionId,
     sessionName,
@@ -370,6 +561,7 @@ async function invokeClaudeHeadless(
     costUsd: result.costUsd,
     durationMs: result.durationMs,
     numTurns: 0,
+    provider,
     result: result.result,
     sessionId: result.sessionId,
   };
@@ -534,8 +726,10 @@ interface RunSubtasksHeadlessOptions {
   hasMilestone: boolean;
   hasStory: boolean;
   milestone: string | undefined;
+  model?: string;
   outputDirectory: string | undefined;
   promptPath: string;
+  provider?: string;
   resolvedMilestonePath: null | string | undefined;
   sizeMode: "large" | "medium" | "small";
   skippedTasks: Array<string>;
@@ -577,6 +771,8 @@ interface TasksMilestoneOptions {
   isAutoMode: boolean;
   isHeadless: boolean;
   milestone: string;
+  model?: string;
+  provider?: string;
 }
 
 /** Options for tasks source mode execution */
@@ -586,6 +782,8 @@ interface TasksSourceOptions {
   hasFile: boolean;
   isHeadless: boolean;
   isSupervised: boolean;
+  model?: string;
+  provider?: string;
   text: string | undefined;
 }
 
@@ -595,6 +793,8 @@ interface TasksStoryOptions {
   isAutoMode: boolean;
   isHeadless: boolean;
   isSupervised: boolean;
+  model?: string;
+  provider?: string;
   story: string;
 }
 
@@ -940,8 +1140,10 @@ async function runSubtasksHeadless(
     hasMilestone,
     hasStory,
     milestone,
+    model,
     outputDirectory: outputDirectoryOption,
     promptPath,
+    provider,
     resolvedMilestonePath,
     sizeMode,
     skippedTasks,
@@ -953,7 +1155,9 @@ async function runSubtasksHeadless(
   const result = await invokeClaudeHeadless({
     extraContext,
     logFile,
+    model,
     promptPath,
+    provider,
     sessionName: "subtasks",
     sizeMode,
   });
@@ -1014,7 +1218,7 @@ async function runSubtasksHeadless(
 async function runTasksMilestoneMode(
   options: TasksMilestoneOptions,
 ): Promise<string> {
-  const { contextRoot, isAutoMode, isHeadless, milestone } = options;
+  const { contextRoot, isAutoMode, isHeadless, milestone, model, provider } = options;
 
   if (!isAutoMode) {
     console.error(
@@ -1038,11 +1242,19 @@ async function runTasksMilestoneMode(
     await invokeClaudeHeadless({
       extraContext,
       logFile,
+      model,
       promptPath,
+      provider,
       sessionName: "tasks-milestone",
     });
   } else {
-    invokeClaudeChat(promptPath, "tasks-milestone", extraContext);
+    await invokePlanningSupervised({
+      extraContext,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks-milestone",
+    });
   }
 
   return milestonePath;
@@ -1052,7 +1264,7 @@ async function runTasksMilestoneMode(
  * Execute tasks planning from file or text source
  */
 async function runTasksSourceMode(options: TasksSourceOptions): Promise<void> {
-  const { contextRoot, file, hasFile, isHeadless, isSupervised, text } =
+  const { contextRoot, file, hasFile, isHeadless, isSupervised, model, provider, text } =
     options;
 
   const promptPath = path.join(
@@ -1070,13 +1282,21 @@ async function runTasksSourceMode(options: TasksSourceOptions): Promise<void> {
     await invokeClaudeHeadless({
       extraContext,
       logFile,
+      model,
       promptPath,
+      provider,
       sessionName: "tasks-source",
     });
   } else if (isSupervised) {
-    invokeClaudeChat(promptPath, "tasks-source", extraContext);
+    await invokePlanningSupervised({
+      extraContext,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks-source",
+    });
   } else {
-    invokeClaude(promptPath, "tasks-source", extraContext);
+    invokeClaude(promptPath, "tasks-source", extraContext, model);
   }
 }
 
@@ -1088,7 +1308,7 @@ async function runTasksSourceMode(options: TasksSourceOptions): Promise<void> {
 async function runTasksStoryMode(
   options: TasksStoryOptions,
 ): Promise<null | string> {
-  const { contextRoot, isAutoMode, isHeadless, isSupervised, story } = options;
+  const { contextRoot, isAutoMode, isHeadless, isSupervised, model, provider, story } = options;
 
   const storyPath = requireStory(story);
 
@@ -1107,13 +1327,21 @@ async function runTasksStoryMode(
     await invokeClaudeHeadless({
       extraContext,
       logFile,
+      model,
       promptPath,
+      provider,
       sessionName: "tasks",
     });
   } else if (isSupervised) {
-    invokeClaudeChat(promptPath, "tasks", extraContext);
+    await invokePlanningSupervised({
+      extraContext,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks",
+    });
   } else {
-    invokeClaude(promptPath, "tasks", extraContext);
+    invokeClaude(promptPath, "tasks", extraContext, model);
   }
 
   return resolvedMilestonePath;
@@ -1377,6 +1605,8 @@ planCommand.addCommand(
       "Run calibration every N build iterations during cascade (0 = disabled)",
       "0",
     )
+    .option("--provider <name>", "AI provider to use for planning (default: claude)")
+    .option("--model <name>", "Model to use for planning invocation")
     .action(async (options) => {
       const hasFile = options.file !== undefined;
       const hasText = options.text !== undefined;
@@ -1546,8 +1776,10 @@ planCommand.addCommand(
           hasMilestone,
           hasStory,
           milestone: options.milestone,
+          model: options.model,
           outputDirectory: options.outputDir,
           promptPath,
+          provider: options.provider,
           resolvedMilestonePath,
           sizeMode,
           skippedTasks,
@@ -1556,7 +1788,13 @@ planCommand.addCommand(
         });
       } else {
         // Default: supervised mode (user watches)
-        invokeClaudeChat(promptPath, "subtasks", extraContext);
+        await invokePlanningSupervised({
+          extraContext,
+          model: options.model,
+          promptPath,
+          provider: options.provider,
+          sessionName: "subtasks",
+        });
       }
 
       // Handle cascade if requested
@@ -1875,6 +2113,20 @@ ralphCommand.addCommand(
     }),
 );
 
+// ralph models - list model table used for validation/completion
+ralphCommand.addCommand(
+  new Command("models")
+    .description("List available model names from the registry table")
+    .option("--provider <name>", "Filter models by provider")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      runModels({
+        isJson: options.json === true,
+        provider: options.provider,
+      });
+    }),
+);
+
 // ralph calibrate - run calibration checks
 // Uses real Commander subcommands for proper --help support
 
@@ -1903,7 +2155,13 @@ function resolveCalibrateSubtasksPath(
  */
 async function runCalibrateSubcommand(
   subcommand: CalibrateSubcommand,
-  options: { force?: boolean; review?: boolean; subtasks: string },
+  options: {
+    force?: boolean;
+    model?: string;
+    provider?: string;
+    review?: boolean;
+    subtasks: string;
+  },
 ): Promise<void> {
   const contextRoot = getContextRoot();
   const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
@@ -1914,6 +2172,8 @@ async function runCalibrateSubcommand(
   const didSucceed = await runCalibrate(subcommand, {
     contextRoot,
     force: options.force,
+    model: options.model,
+    provider: options.provider,
     review: options.review,
     subtasksPath: resolvedSubtasksPath,
   });
@@ -1928,6 +2188,8 @@ calibrateCommand.addCommand(
   new Command("intention")
     .description("Check for intention drift (code vs planning docs)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--provider <name>", "AI provider to use for calibration")
+    .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
     .action(async (options) => {
@@ -1940,6 +2202,8 @@ calibrateCommand.addCommand(
   new Command("technical")
     .description("Check for technical drift (code quality issues)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--provider <name>", "AI provider to use for calibration")
+    .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
     .action(async (options) => {
@@ -1952,6 +2216,8 @@ calibrateCommand.addCommand(
   new Command("improve")
     .description("Run self-improvement analysis on session logs")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--provider <name>", "AI provider to use for calibration")
+    .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
     .action(async (options) => {
@@ -1964,6 +2230,8 @@ calibrateCommand.addCommand(
   new Command("all")
     .description("Run all calibration checks sequentially")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--provider <name>", "AI provider to use for calibration")
+    .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
     .action(async (options) => {

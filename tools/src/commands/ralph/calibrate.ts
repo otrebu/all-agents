@@ -26,7 +26,7 @@ import {
 } from "./config";
 import {
   invokeWithProvider,
-  selectProviderFromEnv,
+  resolveProvider,
 } from "./providers/registry";
 
 // =============================================================================
@@ -41,6 +41,10 @@ interface CalibrateOptions {
   contextRoot: string;
   /** Skip approval even if config says 'suggest' */
   force?: boolean;
+  /** Model override for calibration invocation */
+  model?: string;
+  /** Provider override for calibration invocation */
+  provider?: string;
   /** Require approval even if config says 'autofix' */
   review?: boolean;
   /** Path to subtasks.json file */
@@ -150,29 +154,33 @@ async function runCalibrate(
   options: CalibrateOptions,
 ): Promise<boolean> {
   // Select provider (CLI flag > env var > config > auto-detect)
-  const provider = selectProviderFromEnv();
+  const provider = await resolveProvider({ cliFlag: options.provider });
+  const model = options.model;
   console.log(`Using provider: ${provider}`);
+  if (model !== undefined && model !== "") {
+    console.log(`Using model: ${model}`);
+  }
 
   switch (subcommand) {
     case "all": {
-      const isIntentionOk = await runIntentionCheck(options, provider);
+      const isIntentionOk = await runIntentionCheck(options, provider, model);
       console.log();
 
-      const isTechnicalOk = await runTechnicalCheck(options, provider);
+      const isTechnicalOk = await runTechnicalCheck(options, provider, model);
       console.log();
 
-      const isImproveOk = await runImproveCheck(options, provider);
+      const isImproveOk = await runImproveCheck(options, provider, model);
 
       return isIntentionOk && isTechnicalOk && isImproveOk;
     }
     case "improve": {
-      return runImproveCheck(options, provider);
+      return runImproveCheck(options, provider, model);
     }
     case "intention": {
-      return runIntentionCheck(options, provider);
+      return runIntentionCheck(options, provider, model);
     }
     case "technical": {
-      return runTechnicalCheck(options, provider);
+      return runTechnicalCheck(options, provider, model);
     }
     default: {
       // This should not happen due to validation in index.ts
@@ -201,6 +209,7 @@ async function runCalibrate(
 async function runImproveCheck(
   options: CalibrateOptions,
   provider: ProviderType,
+  model?: string,
 ): Promise<boolean> {
   console.log("=== Running Self-Improvement Analysis ===");
 
@@ -298,6 +307,7 @@ ${promptContent}`;
     const result = await invokeWithProvider(provider, {
       gracePeriodMs: timeoutConfig.graceSeconds * 1000,
       mode: "headless",
+      model,
       prompt,
       stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
       timeout: timeoutConfig.hardMinutes * 60 * 1000,
@@ -338,6 +348,7 @@ ${promptContent}`;
 async function runIntentionCheck(
   options: CalibrateOptions,
   provider: ProviderType,
+  model?: string,
 ): Promise<boolean> {
   console.log("=== Running Intention Drift Check ===");
 
@@ -406,6 +417,7 @@ ${promptContent}`;
     const result = await invokeWithProvider(provider, {
       gracePeriodMs: timeoutConfig.graceSeconds * 1000,
       mode: "headless",
+      model,
       prompt,
       stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
       timeout: timeoutConfig.hardMinutes * 60 * 1000,
@@ -446,6 +458,7 @@ ${promptContent}`;
 async function runTechnicalCheck(
   options: CalibrateOptions,
   provider: ProviderType,
+  model?: string,
 ): Promise<boolean> {
   console.log("=== Running Technical Drift Check ===");
 
@@ -508,6 +521,7 @@ ${promptContent}`;
     const result = await invokeWithProvider(provider, {
       gracePeriodMs: timeoutConfig.graceSeconds * 1000,
       mode: "headless",
+      model,
       prompt,
       stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
       timeout: timeoutConfig.hardMinutes * 60 * 1000,
