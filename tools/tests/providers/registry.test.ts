@@ -24,6 +24,9 @@ import {
   validateProviderInvocationPreflight,
 } from "@tools/commands/ralph/providers/registry";
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // =============================================================================
 // REGISTRY
@@ -87,7 +90,7 @@ describe("REGISTRY", () => {
     expect(REGISTRY.claude.supportsHeadless).toBe(true);
     expect(REGISTRY.claude.supportsInteractiveSupervised).toBe(true);
     expect(REGISTRY.opencode.supportsHeadless).toBe(true);
-    expect(REGISTRY.opencode.supportsInteractiveSupervised).toBe(false);
+    expect(REGISTRY.opencode.supportsInteractiveSupervised).toBe(true);
   });
 
   test("codex has empty supportedModes", () => {
@@ -679,7 +682,7 @@ describe("validateProviderInvocationPreflight", () => {
     Bun.spawn = originalSpawn;
   });
 
-  test("fails fast for unsupported opencode supervised mode", async () => {
+  test("passes for opencode supervised when binary is available", async () => {
     const spawnMock = mock(() => ({
       exited: Promise.resolve(0),
       stderr: new ReadableStream({
@@ -695,14 +698,8 @@ describe("validateProviderInvocationPreflight", () => {
     }));
     Object.assign(Bun, { spawn: spawnMock });
 
-    try {
-      await validateProviderInvocationPreflight("opencode", "supervised");
-      expect(true).toBe(false);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      expect(message).toContain("does not support interactive supervised mode");
-    }
-    expect(spawnMock).not.toHaveBeenCalled();
+    await validateProviderInvocationPreflight("opencode", "supervised");
+    expect(spawnMock).toHaveBeenCalledTimes(1);
   });
 
   test("throws for non-enabled providers before binary checks", async () => {
@@ -835,8 +832,8 @@ describe("invokeWithProvider model forwarding", () => {
     expect(result?.result).toBe("ok");
   });
 
-  test("rejects opencode supervised mode before provider invocation", async () => {
-    // Mock binary as available. Capability gating should fail before any spawn.
+  test("invokes opencode supervised mode with composed prompt", async () => {
+    // Mock binary as available (preflight `which opencode`).
     const spawnMock = mock(() => ({
       exited: Promise.resolve(0),
       stderr: new ReadableStream({
@@ -852,26 +849,36 @@ describe("invokeWithProvider model forwarding", () => {
     }));
     Object.assign(Bun, { spawn: spawnMock });
 
-    const invokeSpy = mock(async () => {
+    const temporaryDirectory = mkdtempSync(
+      join(tmpdir(), "aaa-registry-supervised-"),
+    );
+    const promptPath = join(temporaryDirectory, "prompt.md");
+    writeFileSync(promptPath, "Prompt body", "utf8");
+
+    const invokeSpy = mock(async (options: InvocationOptions) => {
       await Promise.resolve();
+      expect(options.mode).toBe("supervised");
+      expect(options.prompt).toContain("SUPERVISED_CONTEXT");
+      expect(options.prompt).toContain("Prompt body");
       return { costUsd: 0, durationMs: 1, result: "ok", sessionId: "sess-2" };
     });
     REGISTRY.opencode.invoke = invokeSpy;
 
     try {
-      await invokeWithProvider("opencode", {
+      const result = await invokeWithProvider("opencode", {
         context: "SUPERVISED_CONTEXT",
         mode: "supervised",
-        promptPath: "/tmp/unused.md",
+        promptPath,
         sessionName: "test-session",
       });
-      expect(true).toBe(false);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      expect(message).toContain("does not support interactive supervised mode");
+
+      expect(result?.sessionId).toBe("sess-2");
+      expect(invokeSpy).toHaveBeenCalledTimes(1);
+      // `which opencode` preflight check
+      expect(spawnMock).toHaveBeenCalledTimes(1);
+    } finally {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
     }
-    expect(invokeSpy).not.toHaveBeenCalled();
-    expect(spawnMock).not.toHaveBeenCalled();
   });
 });
 

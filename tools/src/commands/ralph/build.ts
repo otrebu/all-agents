@@ -641,11 +641,11 @@ async function processSupervisedIteration(
   // PROGRESS.md is referenced relative to the target repo root in the iteration prompt.
   const progressPath = path.join(projectRoot, "docs/planning/PROGRESS.md");
 
-  // Capture commit hash before Claude invocation
+  // Capture commit hash before provider invocation
   const commitBefore = getLatestCommitHash(projectRoot);
 
-  // Capture start time for session discovery
-  const startTime = Date.now();
+  // Capture invocation start for timing + session fallback discovery
+  const invocationStart = Date.now();
 
   const supervisedResult = await invokeWithProvider(provider, {
     context: `Work ONLY on the assigned subtask below. Do not pick a different subtask.\n\nAssigned subtask:\n${JSON.stringify(currentSubtask, null, 2)}\n\nSubtasks file path: ${subtasksPath}\nProgress log path: ${progressPath}`,
@@ -660,16 +660,26 @@ async function processSupervisedIteration(
     return null;
   }
 
-  // Capture commit hash after Claude invocation
+  // Capture commit hash after provider invocation
   const commitAfter = getLatestCommitHash(projectRoot);
 
-  // Calculate elapsed time for Claude invocation
-  const claudeMs = Date.now() - startTime;
+  // Calculate elapsed time for provider invocation
+  const claudeMs = Date.now() - invocationStart;
 
-  console.log(`\n${provider} supervised session completed`);
+  // Prefer provider-native session capture, fallback to Claude session discovery.
+  const hasProviderSessionId = supervisedResult.sessionId !== "";
+  const discoveredSession = hasProviderSessionId
+    ? null
+    : discoverRecentSession(invocationStart);
+  const sessionId = hasProviderSessionId
+    ? supervisedResult.sessionId
+    : (discoveredSession?.sessionId ?? "");
 
-  // Discover the session file created during the interactive session
-  const discoveredSession = discoverRecentSession(startTime);
+  const sessionSuffix =
+    sessionId === "" ? "" : ` (session: ${sessionId.slice(0, 12)}...)`;
+  console.log(
+    `\n${provider} interactive supervised session completed${sessionSuffix}`,
+  );
 
   // Reload subtasks to check completion status
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
@@ -680,9 +690,9 @@ async function processSupervisedIteration(
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
-  // Run post-iteration hook if session was discovered
+  // Run post-iteration hook when a session ID is available
   let hookResult: null | PostIterationResult = null;
-  if (discoveredSession !== null) {
+  if (sessionId !== "") {
     hookResult = await runPostIterationHook({
       claudeMs,
       commitAfter,
@@ -694,7 +704,7 @@ async function processSupervisedIteration(
       mode: "supervised",
       remaining: postRemaining,
       repoRoot: projectRoot,
-      sessionId: discoveredSession.sessionId,
+      sessionId,
       skipSummary: true,
       status: iterationStatus,
       subtask: currentSubtask,

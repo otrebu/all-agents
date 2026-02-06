@@ -87,6 +87,16 @@ tools/
 - > 30 lines of type definitions → separate file
 - Keeps `index.ts` readable, prevents scrolling hell
 
+## Repo-Specific Execution Hygiene
+
+When running validation commands for `tools/` work, use these conventions:
+
+- Run commands from `tools/` (set workdir to `tools`), not repo root.
+- Prefer package scripts over direct runners (for example `bun run lint` instead of `bunx eslint`).
+- For targeted checks, use script forwarding: `bun run lint -- <paths>` and `bun test <path>`.
+- If re-running a command, say why (`failed due to path`, `after fixes`, `final verify`) so output volume is predictable.
+- If a command emits noisy TUI/control output, summarize key lines in updates instead of pasting raw escape-heavy logs.
+
 ## Core Patterns
 
 ### Path Resolution

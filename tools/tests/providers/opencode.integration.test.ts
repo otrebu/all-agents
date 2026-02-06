@@ -1,5 +1,5 @@
 /**
- * Integration tests for OpenCode provider hard timeout and SIGKILL escalation.
+ * Integration tests for OpenCode provider lifecycle handling.
  *
  * Tests the `invokeOpencode` function's process lifecycle using mocked
  * Bun.spawn processes to simulate:
@@ -7,6 +7,8 @@
  * - Normal completion before timeout
  * - Error exit before timeout
  * - Process that outputs then hangs
+ * - Supervised PTY gating and interruption cleanup
+ * - Supervised session ID capture
  *
  * All tests use short timeouts (10-100ms) for fast, deterministic execution.
  *
@@ -118,6 +120,30 @@ function createMockStream(): {
 }
 
 /**
+ * Create a mock process for `opencode session list --format json`.
+ */
+function createSessionListMockProcess(
+  jsonOutput: string,
+): ReturnType<typeof createMockProcess>["proc"] {
+  const stdoutCtrl = createMockStream();
+  const stderrCtrl = createMockStream();
+
+  stdoutCtrl.push(jsonOutput);
+  stdoutCtrl.close();
+  stderrCtrl.close();
+
+  return {
+    exitCode: 0,
+    exited: Promise.resolve(0),
+    kill: mock(() => {}),
+    pid: 66_666,
+    signalCode: null,
+    stderr: stderrCtrl.stream,
+    stdout: stdoutCtrl.stream,
+  };
+}
+
+/**
  * Create a mock process for the `which opencode` availability check.
  * Always exits with code 0 (binary found).
  */
@@ -148,12 +174,22 @@ function createWhichMockProcess(): ReturnType<
  */
 function installSpawnMock(
   mainMock: ReturnType<typeof createMockProcess>,
+  options?: { sessionListJson?: string },
 ): void {
+  const sessionListJson = options?.sessionListJson ?? "[]";
+
   Object.assign(Bun, {
     spawn: mock((cmd: unknown) => {
       const commandArguments = cmd as Array<string>;
       if (commandArguments[0] === "which") {
         return createWhichMockProcess();
+      }
+      if (
+        commandArguments[0] === "opencode" &&
+        commandArguments[1] === "session" &&
+        commandArguments[2] === "list"
+      ) {
+        return createSessionListMockProcess(sessionListJson);
       }
       return mainMock.proc;
     }),
@@ -161,13 +197,16 @@ function installSpawnMock(
 }
 
 /** Standard invocation options with short timeout for testing */
-function makeOptions(overrides?: { timeoutMs?: number }): InvocationOptions {
+function makeOptions(overrides?: {
+  mode?: InvocationOptions["mode"];
+  timeoutMs?: number;
+}): InvocationOptions {
   return {
     config: {
       provider: "opencode" as const,
       timeoutMs: overrides?.timeoutMs ?? 50,
     },
-    mode: "headless-sync",
+    mode: overrides?.mode ?? "headless-sync",
     prompt: "test prompt",
   };
 }
@@ -190,6 +229,16 @@ const originalSpawn = Bun.spawn;
 const originalStderrWrite = process.stderr.write;
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
+const originalPrependListener = process.prependListener;
+const originalRemoveListener = process.removeListener;
+const originalStdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(
+  process.stdin,
+  "isTTY",
+);
+const originalStdoutIsTTYDescriptor = Object.getOwnPropertyDescriptor(
+  process.stdout,
+  "isTTY",
+);
 
 /** Track mock processes for cleanup */
 let activeMockProcesses: Array<{
@@ -201,6 +250,34 @@ let activeMockProcesses: Array<{
 /** Track active timers for cleanup */
 const activeTimers: Array<ReturnType<typeof setTimeout>> = [];
 
+function restoreTtyState(): void {
+  if (originalStdinIsTTYDescriptor === undefined) {
+    delete (process.stdin as { isTTY?: boolean }).isTTY;
+  } else {
+    Object.defineProperty(process.stdin, "isTTY", originalStdinIsTTYDescriptor);
+  }
+  if (originalStdoutIsTTYDescriptor === undefined) {
+    delete (process.stdout as { isTTY?: boolean }).isTTY;
+  } else {
+    Object.defineProperty(
+      process.stdout,
+      "isTTY",
+      originalStdoutIsTTYDescriptor,
+    );
+  }
+}
+
+function setTtyState(isStdinTTY: boolean, isStdoutTTY: boolean): void {
+  Object.defineProperty(process.stdin, "isTTY", {
+    configurable: true,
+    value: isStdinTTY,
+  });
+  Object.defineProperty(process.stdout, "isTTY", {
+    configurable: true,
+    value: isStdoutTTY,
+  });
+}
+
 beforeEach(() => {
   activeMockProcesses = [];
 
@@ -208,6 +285,9 @@ beforeEach(() => {
   process.stderr.write = mock(() => true) as typeof process.stderr.write;
   console.error = mock(() => {});
   console.warn = mock(() => {});
+  process.prependListener = originalPrependListener;
+  process.removeListener = originalRemoveListener;
+  restoreTtyState();
 });
 
 afterEach(() => {
@@ -230,6 +310,9 @@ afterEach(() => {
   process.stderr.write = originalStderrWrite;
   console.error = originalConsoleError;
   console.warn = originalConsoleWarn;
+  process.prependListener = originalPrependListener;
+  process.removeListener = originalRemoveListener;
+  restoreTtyState();
 });
 
 afterAll(() => {
@@ -237,6 +320,9 @@ afterAll(() => {
   process.stderr.write = originalStderrWrite;
   console.error = originalConsoleError;
   console.warn = originalConsoleWarn;
+  process.prependListener = originalPrependListener;
+  process.removeListener = originalRemoveListener;
+  restoreTtyState();
 });
 
 // =============================================================================
@@ -576,6 +662,127 @@ describe("process that outputs then hangs", () => {
     } catch (error: unknown) {
       expect((error as Error).message).toMatch(/8203/);
     }
+  });
+});
+
+// =============================================================================
+// Supervised Lifecycle
+// =============================================================================
+
+describe("supervised lifecycle", () => {
+  test("fails with clear guidance when no interactive TTY is available", async () => {
+    setTtyState(false, false);
+
+    const mockProc = createMockProcess();
+    activeMockProcesses.push(mockProc);
+    installSpawnMock(mockProc);
+
+    try {
+      await invokeOpencode(
+        makeOptions({ mode: "supervised", timeoutMs: 2000 }),
+      );
+      throw new Error("Expected invokeOpencode to throw");
+    } catch (error: unknown) {
+      const { message } = error as Error;
+      expect(message).toContain("requires an interactive TTY");
+      expect(message).toContain("--headless");
+    }
+
+    // `which opencode` is called, but interactive spawn should never run.
+    const spawnCalls = (Bun.spawn as ReturnType<typeof mock>).mock.calls;
+    const didSpawnInteractiveOpencode = spawnCalls.some(
+      (call: Array<unknown>) => {
+        const [args] = call as [Array<string>];
+        return args[0] === "opencode" && args[1] !== "session";
+      },
+    );
+    expect(didSpawnInteractiveOpencode).toBe(false);
+  });
+
+  test("captures session ID after successful interactive supervised run", async () => {
+    setTtyState(true, true);
+
+    const mockProc = createMockProcess();
+    activeMockProcesses.push(mockProc);
+
+    installSpawnMock(mockProc, {
+      sessionListJson: JSON.stringify([
+        {
+          directory: "/home/otrebu/dev/all-agents/tools",
+          id: "ses_supervised_001",
+          updated: Date.now() + 1000,
+        },
+        {
+          directory: "/tmp/other-project",
+          id: "ses_other_project",
+          updated: Date.now() + 2000,
+        },
+      ]),
+    });
+
+    const completeTimer = setTimeout(() => {
+      mockProc.stdout.close();
+      mockProc.stderr.close();
+      mockProc.resolveExited(0);
+    }, 5);
+    activeTimers.push(completeTimer);
+
+    const result = await invokeOpencode(
+      makeOptions({ mode: "supervised", timeoutMs: 2000 }),
+    );
+
+    expect(result.sessionId).toBe("ses_supervised_001");
+    expect(result.result).toBe("");
+    expect(result.costUsd).toBe(0);
+  });
+
+  test("interrupt path terminates supervised provider process", async () => {
+    setTtyState(true, true);
+
+    const mockProc = createMockProcess();
+    activeMockProcesses.push(mockProc);
+
+    const signals: Array<string> = [];
+    mockProc.proc.kill = mock((signal?: number | string) => {
+      signals.push(String(signal));
+      if (signal === "SIGKILL") {
+        mockProc.stdout.close();
+        mockProc.stderr.close();
+        mockProc.resolveExited(137);
+      }
+    });
+
+    installSpawnMock(mockProc);
+
+    const signalHandlers = new Map<string, () => void>();
+    process.prependListener = mock((event: string, listener: () => void) => {
+      signalHandlers.set(event, listener);
+      return process;
+    }) as typeof process.prependListener;
+    process.removeListener = mock((event: string, listener: () => void) => {
+      const current = signalHandlers.get(event);
+      if (current === listener) {
+        signalHandlers.delete(event);
+      }
+      return process;
+    }) as typeof process.removeListener;
+
+    const interruptTimer = setTimeout(() => {
+      signalHandlers.get("SIGINT")?.();
+    }, 5);
+    activeTimers.push(interruptTimer);
+
+    try {
+      await invokeOpencode(
+        makeOptions({ mode: "supervised", timeoutMs: 2000 }),
+      );
+      throw new Error("Expected invokeOpencode to throw");
+    } catch (error: unknown) {
+      expect((error as Error).message).toContain("interrupted by SIGINT");
+    }
+
+    expect(signals).toContain("SIGTERM");
+    expect(signals).toContain("SIGKILL");
   });
 });
 

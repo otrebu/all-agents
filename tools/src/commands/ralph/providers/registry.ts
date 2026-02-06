@@ -593,7 +593,7 @@ const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
       "headless-async",
     ] satisfies Array<InvocationMode>,
     supportsHeadless: true,
-    supportsInteractiveSupervised: false,
+    supportsInteractiveSupervised: true,
     supportsModelDiscovery: true,
     supportsSessionExport: true,
   },

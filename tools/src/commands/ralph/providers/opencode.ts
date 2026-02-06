@@ -44,6 +44,8 @@
  * @see docs/planning/milestones/004-MULTI-CLI/tasks/TASK-045-opencode-implementation.md
  */
 
+import path from "node:path";
+
 import type {
   AgentResult,
   InvocationOptions,
@@ -76,6 +78,18 @@ interface OpencodeEvent {
   type: string;
 }
 
+/** Session entry returned by `opencode session list --format json` */
+interface OpencodeSessionListEntry {
+  created?: number;
+  directory?: string;
+  id?: string;
+  projectId?: string;
+  title?: string;
+  updated?: number;
+}
+
+type TerminationSignal = "SIGINT" | "SIGTERM";
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -83,11 +97,20 @@ interface OpencodeEvent {
 /** Default hard timeout: 60 minutes (Issue #8203 mitigation) */
 const DEFAULT_HARD_TIMEOUT_MS = 3_600_000;
 
+/** Number of sessions to inspect when resolving supervised session ID */
+const OPENCODE_SESSION_SCAN_LIMIT = 10;
+
+/** Tolerance window to match supervised sessions by timestamp */
+const OPENCODE_SUPERVISED_SESSION_LOOKBACK_MS = 10_000;
+
 /**
  * Permission bypass environment variable value.
  * Grants all permissions to OpenCode for automated execution.
  */
 const OPENCODE_PERMISSION_VALUE = '{"*":"allow"}';
+
+/** Conventional signal exit codes (128 + signal number) */
+const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 
 // =============================================================================
 // Helper Functions (exported for testing)
@@ -135,6 +158,25 @@ function buildOpencodeEnv(): Record<string, string | undefined> {
 }
 
 /**
+ * Build CLI arguments for interactive OpenCode supervised mode.
+ *
+ * Uses OpenCode TUI entrypoint with an initial prompt so users can supervise
+ * and intervene live.
+ */
+function buildOpencodeSupervisedArguments(
+  config: OpencodeConfig,
+  prompt: string,
+): Array<string> {
+  const args = ["--prompt", prompt];
+
+  if (config.model !== undefined && config.model !== "") {
+    args.push("--model", config.model);
+  }
+
+  return args;
+}
+
+/**
  * Check if the `opencode` binary is available in PATH.
  *
  * @returns true if `opencode` is found in PATH
@@ -151,6 +193,47 @@ async function checkOpencodeAvailable(): Promise<boolean> {
   }
 }
 
+/**
+ * Check whether supervised mode has the required interactive TTY.
+ */
+function ensureInteractiveTty(): void {
+  const hasInteractiveTty = process.stdin.isTTY && process.stdout.isTTY;
+  if (!hasInteractiveTty) {
+    throw new Error(
+      "OpenCode supervised mode requires an interactive TTY (stdin/stdout).\n" +
+        "Run this command in a terminal session, or use '--headless' for non-interactive environments.",
+    );
+  }
+}
+
+/**
+ * Map signal-like exit codes to signal names.
+ */
+function exitCodeToSignal(
+  exitCode: null | number | undefined,
+): null | TerminationSignal {
+  if (exitCode === SIGNAL_EXIT_CODE.SIGINT) {
+    return "SIGINT";
+  }
+  if (exitCode === SIGNAL_EXIT_CODE.SIGTERM) {
+    return "SIGTERM";
+  }
+  return null;
+}
+
+/**
+ * Resolve the timestamp used to sort session recency.
+ */
+function getSessionTimestamp(session: OpencodeSessionListEntry): number {
+  if (typeof session.updated === "number") {
+    return session.updated;
+  }
+  if (typeof session.created === "number") {
+    return session.created;
+  }
+  return 0;
+}
+
 // =============================================================================
 // Main Functions
 // =============================================================================
@@ -158,21 +241,12 @@ async function checkOpencodeAvailable(): Promise<boolean> {
 /**
  * Registry-compatible invoker for the OpenCode provider.
  *
- * Spawns the `opencode` CLI with `--output jsonl`, sets up the permission
- * bypass environment, enforces a hard timeout (Issue #8203 mitigation),
- * and normalizes the JSONL output to AgentResult.
+ * Dispatches to one of two execution paths:
+ * - headless: `opencode run --output jsonl` with hard timeout enforcement
+ * - supervised: interactive `opencode --prompt ...` with PTY requirements
  *
- * ## Process Lifecycle
- * 1. Check binary availability (fail fast with install instructions)
- * 2. Spawn process with OPENCODE_PERMISSION env and JSONL output mode
- * 3. Start hard timeout timer immediately (Issue #8203)
- * 4. Race process exit against hard timeout
- * 5. On timeout: log Issue #8203 message, SIGKILL via killProcessGracefully
- * 6. On normal exit: parse JSONL stdout and normalize to AgentResult
- *
- * Supervised mode uses the same JSONL invocation path as headless execution.
  * The registry composes prompt-file content + context and passes it as
- * `options.prompt` so default `ralph build` supervised flow works end-to-end.
+ * `options.prompt` for both paths.
  *
  * @param options - Standard invocation options from the registry
  * @returns Normalized AgentResult
@@ -190,6 +264,19 @@ async function invokeOpencode(
     );
   }
 
+  if (options.mode === "supervised") {
+    return invokeOpencodeSupervised(options);
+  }
+
+  return invokeOpencodeHeadless(options);
+}
+
+/**
+ * Headless OpenCode invocation path (`opencode run --output jsonl`).
+ */
+async function invokeOpencodeHeadless(
+  options: InvocationOptions,
+): Promise<AgentResult> {
   const config = options.config as OpencodeConfig;
   const args = buildOpencodeArguments(config, options.prompt);
   const env = buildOpencodeEnv();
@@ -271,6 +358,138 @@ async function invokeOpencode(
 
   const stdout = await stdoutPromise;
   return normalizeOpencodeResult(stdout);
+}
+
+/**
+ * Interactive OpenCode supervised invocation path.
+ */
+async function invokeOpencodeSupervised(
+  options: InvocationOptions,
+): Promise<AgentResult> {
+  ensureInteractiveTty();
+
+  const config = options.config as OpencodeConfig;
+  const args = buildOpencodeSupervisedArguments(config, options.prompt);
+  const env = buildOpencodeEnv();
+  const startTime = Date.now();
+
+  const proc = Bun.spawn(["opencode", ...args], {
+    cwd: config.workingDirectory,
+    env: env as Record<string, string>,
+    stderr: "inherit",
+    stdin: "inherit",
+    stdout: "inherit",
+  });
+
+  const signalState: { interruptedBy: null | TerminationSignal } = {
+    interruptedBy: null,
+  };
+  let didRequestTermination = false;
+
+  function handleInterrupt(signal: TerminationSignal): void {
+    signalState.interruptedBy = signal;
+    if (didRequestTermination) {
+      return;
+    }
+    didRequestTermination = true;
+
+    // Deterministic interrupt path: terminate process and any child group members.
+    sendSignalToProcessTree(proc, "SIGTERM");
+    sendSignalToProcessTree(proc, "SIGKILL");
+  }
+
+  function handleSigintSignal(): void {
+    handleInterrupt("SIGINT");
+  }
+
+  function handleSigtermSignal(): void {
+    handleInterrupt("SIGTERM");
+  }
+
+  process.prependListener("SIGINT", handleSigintSignal);
+  process.prependListener("SIGTERM", handleSigtermSignal);
+
+  try {
+    await proc.exited;
+  } finally {
+    process.removeListener("SIGINT", handleSigintSignal);
+    process.removeListener("SIGTERM", handleSigtermSignal);
+  }
+
+  const durationMs = Date.now() - startTime;
+
+  if (signalState.interruptedBy !== null) {
+    throw new Error(
+      `OpenCode supervised session interrupted by ${signalState.interruptedBy}`,
+    );
+  }
+
+  if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
+    throw new Error(
+      `OpenCode supervised session interrupted by ${proc.signalCode}`,
+    );
+  }
+
+  const interruptionFromExit = exitCodeToSignal(proc.exitCode);
+  if (interruptionFromExit !== null) {
+    throw new Error(
+      `OpenCode supervised session interrupted by ${interruptionFromExit}`,
+    );
+  }
+
+  if (proc.exitCode !== 0) {
+    throw new Error(
+      `OpenCode supervised session exited with code ${String(proc.exitCode)}`,
+    );
+  }
+
+  const sessionId = await resolveSupervisedSessionId(
+    startTime,
+    config.workingDirectory,
+  );
+
+  return { costUsd: 0, durationMs, result: "", sessionId };
+}
+
+/**
+ * Best-effort list of recent OpenCode sessions.
+ */
+async function listOpencodeSessions(
+  maxCount = OPENCODE_SESSION_SCAN_LIMIT,
+): Promise<Array<OpencodeSessionListEntry>> {
+  const proc = Bun.spawn(
+    ["opencode", "session", "list", "--format", "json", "-n", String(maxCount)],
+    { stderr: "pipe", stdin: "ignore", stdout: "pipe" },
+  );
+
+  const stdoutPromise = new Response(proc.stdout).text();
+  const stderrPromise = new Response(proc.stderr).text();
+
+  await proc.exited;
+  const stdout = await stdoutPromise;
+  const stderr = await stderrPromise;
+
+  if (proc.exitCode !== 0 || stdout.trim() === "") {
+    if (stderr.trim() !== "") {
+      console.warn(
+        `OpenCode session discovery warning: ${stderr.trim().slice(0, 200)}`,
+      );
+    }
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(stdout) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter(
+      (entry): entry is OpencodeSessionListEntry =>
+        typeof entry === "object" && entry !== null,
+    );
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -360,6 +579,86 @@ function normalizeOpencodeResult(jsonlOutput: string): AgentResult {
   return { costUsd, durationMs, result: resultText, sessionId, tokenUsage };
 }
 
+/**
+ * Match the most likely supervised session ID created by this invocation.
+ */
+async function resolveSupervisedSessionId(
+  startedAtMs: number,
+  workingDirectory?: string,
+): Promise<string> {
+  const sessions = await listOpencodeSessions();
+  if (sessions.length === 0) {
+    return "";
+  }
+
+  const threshold = startedAtMs - OPENCODE_SUPERVISED_SESSION_LOOKBACK_MS;
+  const targetDirectory = path.resolve(workingDirectory ?? process.cwd());
+
+  const normalizedSessions = sessions
+    .map((session) => {
+      const id = typeof session.id === "string" ? session.id : "";
+      const directory =
+        typeof session.directory === "string"
+          ? path.resolve(session.directory)
+          : "";
+      const timestamp = getSessionTimestamp(session);
+      return { directory, id, timestamp };
+    })
+    .filter((session) => session.id !== "")
+    .sort((a, b) => b.timestamp - a.timestamp);
+
+  if (normalizedSessions.length === 0) {
+    return "";
+  }
+
+  const recentDirectoryMatch = normalizedSessions.find(
+    (session) =>
+      session.directory === targetDirectory && session.timestamp >= threshold,
+  );
+  if (recentDirectoryMatch !== undefined) {
+    return recentDirectoryMatch.id;
+  }
+
+  const recentSession = normalizedSessions.find(
+    (session) => session.timestamp >= threshold,
+  );
+  if (recentSession !== undefined) {
+    return recentSession.id;
+  }
+
+  const directoryFallback = normalizedSessions.find(
+    (session) => session.directory === targetDirectory,
+  );
+  if (directoryFallback !== undefined) {
+    return directoryFallback.id;
+  }
+
+  return normalizedSessions[0]?.id ?? "";
+}
+
+/**
+ * Best-effort process and process-group signal delivery.
+ */
+function sendSignalToProcessTree(
+  proc: ReturnType<typeof Bun.spawn>,
+  signal: "SIGKILL" | "SIGTERM",
+): void {
+  const { pid } = proc;
+  if (typeof pid === "number" && pid > 0) {
+    try {
+      process.kill(-pid, signal);
+    } catch {
+      // Process group may not exist (non-detached child), continue.
+    }
+  }
+
+  try {
+    proc.kill(signal);
+  } catch {
+    // Process may already be terminated.
+  }
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -367,10 +666,19 @@ function normalizeOpencodeResult(jsonlOutput: string): AgentResult {
 export {
   buildOpencodeArguments,
   buildOpencodeEnv,
+  buildOpencodeSupervisedArguments,
   checkOpencodeAvailable,
   DEFAULT_HARD_TIMEOUT_MS,
   invokeOpencode,
+  invokeOpencodeHeadless,
+  invokeOpencodeSupervised,
+  listOpencodeSessions,
   normalizeOpencodeResult,
   OPENCODE_PERMISSION_VALUE,
+  OPENCODE_SESSION_SCAN_LIMIT,
+  OPENCODE_SUPERVISED_SESSION_LOOKBACK_MS,
   type OpencodeEvent,
+  type OpencodeSessionListEntry,
+  resolveSupervisedSessionId,
+  sendSignalToProcessTree,
 };
