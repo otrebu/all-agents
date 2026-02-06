@@ -506,7 +506,7 @@
       "storyRef": "003-opencode-support",
       "title": "Implement OpenCode provider with JSONL parsing and hard timeout enforcement",
       "description": "Create tools/src/commands/ralph/providers/opencode.ts implementing the full OpenCode provider. This includes: (1) invokeOpencode() async function that spawns the opencode CLI process with Bun.spawn, sets up OPENCODE_PERMISSION environment variable for permission bypass, accepts model in provider/model format, and returns AgentResult. (2) normalizeOpencodeResult() function that parses JSONL output line-by-line, extracts text from \"text\" events, finds the \"step_finish\" event with reason:\"stop\", and maps fields to AgentResult (result from concatenated text events, costUsd from part.cost, sessionId from sessionID, tokenUsage from part.tokens). (3) Hard timeout enforcement for Issue #8203: start a hard timeout timer immediately on process spawn, on timeout log error referencing Issue #8203 then SIGKILL (SIGTERM alone may not work during API error hangs), clear timeout if process exits normally. (4) Binary detection: check if opencode is in PATH before spawning, return clear error message with install instructions when not found. (5) SIGTERM/SIGKILL escalation using killProcessGracefully from providers/utils.ts. (6) Handle partial/incomplete JSONL streams gracefully (no step_finish event means timeout or error). (7) Export invokeOpencode and normalizeOpencodeResult. Add comprehensive code comments documenting OpenCode-specific quirks (Issue #8203, JSONL format, permission bypass, model format). Add unit tests in tools/tests/providers/opencode.test.ts covering: normalizeOpencodeResult with valid JSONL fixture, normalizeOpencodeResult with missing step_finish, normalizeOpencodeResult with empty input, JSONL parsing of multi-line streams, permission bypass environment setup verification, model format validation.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/opencode.ts exists with invokeOpencode() and normalizeOpencodeResult() exported",
         "invokeOpencode() spawns opencode process with OPENCODE_PERMISSION='{\"*\":\"allow\"}' in environment",
@@ -532,7 +532,10 @@
       "blockedBy": [
         "SUB-249",
         "SUB-239"
-      ]
+      ],
+      "completedAt": "2026-02-06T07:16:22Z",
+      "commitHash": "9ad7b6e49b49efa1079137320fd68ccfb27affb9",
+      "sessionId": "6d0e054e-d427-40b6-bdc6-bee69aea91a6"
     },
     {
       "id": "SUB-319",

@@ -8,6 +8,15 @@
 
 ## Session Notes
 
+### 2026-02-06
+
+#### SUB-284
+- **Problem:** OpenCode provider lacked OPENCODE_PERMISSION env var for automation permission bypass, binary detection with install instructions, hard timeout enforcement with SIGKILL for Issue #8203, and comprehensive code comments documenting OpenCode-specific quirks. Tests were only co-located, not in the standard tools/tests/ location.
+- **Changes:** Rewrote opencode.ts with full provider implementation: buildOpencodeEnv() sets OPENCODE_PERMISSION='{"*":"allow"}' for permission bypass; checkOpencodeAvailable() detects binary presence; invokeOpencode() spawns via Bun.spawn with hard timeout that races process exit against a timer, logging Issue #8203 reference and using killProcessGracefully(proc, 0) for immediate SIGKILL escalation; comprehensive JSDoc comments documenting JSONL format, Issue #8203, permission bypass, and model format. Created 29 unit tests in tools/tests/providers/opencode.test.ts covering valid JSONL parsing, missing step_finish, empty input, malformed JSON, permission env setup, model format validation, and exported constants.
+- **Files:**
+  - `tools/src/commands/ralph/providers/opencode.ts` - Rewritten: added buildOpencodeArguments, buildOpencodeEnv, checkOpencodeAvailable, hard timeout with SIGKILL, Issue #8203 comments
+  - `tools/tests/providers/opencode.test.ts` - Created: 29 unit tests
+
 <!-- Format: ### YYYY-MM-DDTHH:MM:SS: Brief title -->
 <!-- **Refs:** link to story/tasks -->
 <!-- Keep ~5 sessions, archive older to docs/planning/archive/ -->
