@@ -21,10 +21,9 @@ import {
   resolveProvider,
   selectProvider,
   validateProvider,
+  validateProviderInvocationPreflight,
 } from "@tools/commands/ralph/providers/registry";
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
-import { rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 
 // =============================================================================
 // REGISTRY
@@ -46,9 +45,8 @@ describe("REGISTRY", () => {
     }
   });
 
-  test("stub providers have available: false", () => {
+  test("non-implemented providers have available: false", () => {
     const stubProviders: Array<ProviderType> = [
-      "claude",
       "codex",
       "cursor",
       "gemini",
@@ -61,6 +59,10 @@ describe("REGISTRY", () => {
 
   test("opencode has available: true", () => {
     expect(REGISTRY.opencode.available).toBe(true);
+  });
+
+  test("claude has available: true", () => {
+    expect(REGISTRY.claude.available).toBe(true);
   });
 
   test("all providers have invoke function", () => {
@@ -79,6 +81,13 @@ describe("REGISTRY", () => {
     expect(REGISTRY.opencode.supportedModes).toContain("supervised");
     expect(REGISTRY.opencode.supportedModes).toContain("headless-sync");
     expect(REGISTRY.opencode.supportedModes).toContain("headless-async");
+  });
+
+  test("capability booleans are set for claude and opencode", () => {
+    expect(REGISTRY.claude.supportsHeadless).toBe(true);
+    expect(REGISTRY.claude.supportsInteractiveSupervised).toBe(true);
+    expect(REGISTRY.opencode.supportsHeadless).toBe(true);
+    expect(REGISTRY.opencode.supportsInteractiveSupervised).toBe(false);
   });
 
   test("codex has empty supportedModes", () => {
@@ -656,6 +665,120 @@ describe("autoDetectProvider (mocked)", () => {
 });
 
 // =============================================================================
+// validateProviderInvocationPreflight
+// =============================================================================
+
+describe("validateProviderInvocationPreflight", () => {
+  const originalSpawn = Bun.spawn;
+
+  afterAll(() => {
+    Bun.spawn = originalSpawn;
+  });
+
+  beforeEach(() => {
+    Bun.spawn = originalSpawn;
+  });
+
+  test("fails fast for unsupported opencode supervised mode", async () => {
+    const spawnMock = mock(() => ({
+      exited: Promise.resolve(0),
+      stderr: new ReadableStream({
+        start(c) {
+          c.close();
+        },
+      }),
+      stdout: new ReadableStream({
+        start(c) {
+          c.close();
+        },
+      }),
+    }));
+    Object.assign(Bun, { spawn: spawnMock });
+
+    try {
+      await validateProviderInvocationPreflight("opencode", "supervised");
+      expect(true).toBe(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).toContain("does not support interactive supervised mode");
+    }
+    expect(spawnMock).not.toHaveBeenCalled();
+  });
+
+  test("throws for non-enabled providers before binary checks", async () => {
+    const spawnMock = mock(() => ({
+      exited: Promise.resolve(0),
+      stderr: new ReadableStream({
+        start(c) {
+          c.close();
+        },
+      }),
+      stdout: new ReadableStream({
+        start(c) {
+          c.close();
+        },
+      }),
+    }));
+    Object.assign(Bun, { spawn: spawnMock });
+
+    try {
+      await validateProviderInvocationPreflight("codex", "headless");
+      expect(true).toBe(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).toContain("not enabled in this Ralph runtime");
+    }
+    expect(spawnMock).not.toHaveBeenCalled();
+  });
+
+  test("passes for opencode headless when binary is available", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(0),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    await validateProviderInvocationPreflight("opencode", "headless");
+  });
+
+  test("fails with install guidance when supported mode binary is missing", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    try {
+      await validateProviderInvocationPreflight("opencode", "headless");
+      expect(true).toBe(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).toContain("Install: npm install -g opencode");
+    }
+  });
+});
+
+// =============================================================================
 // invokeWithProvider (model forwarding)
 // =============================================================================
 
@@ -712,52 +835,43 @@ describe("invokeWithProvider model forwarding", () => {
     expect(result?.result).toBe("ok");
   });
 
-  test("builds supervised prompt from context and prompt file", async () => {
-    // Mock binary as available
-    Object.assign(Bun, {
-      spawn: mock(() => ({
-        exited: Promise.resolve(0),
-        stderr: new ReadableStream({
-          start(c) {
-            c.close();
-          },
-        }),
-        stdout: new ReadableStream({
-          start(c) {
-            c.close();
-          },
-        }),
-      })),
-    });
+  test("rejects opencode supervised mode before provider invocation", async () => {
+    // Mock binary as available. Capability gating should fail before any spawn.
+    const spawnMock = mock(() => ({
+      exited: Promise.resolve(0),
+      stderr: new ReadableStream({
+        start(c) {
+          c.close();
+        },
+      }),
+      stdout: new ReadableStream({
+        start(c) {
+          c.close();
+        },
+      }),
+    }));
+    Object.assign(Bun, { spawn: spawnMock });
 
-    const promptPath = join(
-      "/tmp",
-      `registry-supervised-prompt-${Date.now()}.md`,
-    );
-    writeFileSync(promptPath, "PROMPT_FILE_CONTENT");
+    const invokeSpy = mock(async () => {
+      await Promise.resolve();
+      return { costUsd: 0, durationMs: 1, result: "ok", sessionId: "sess-2" };
+    });
+    REGISTRY.opencode.invoke = invokeSpy;
 
     try {
-      const invokeSpy = mock(async (options: InvocationOptions) => {
-        await Promise.resolve();
-        expect(options.mode).toBe("supervised");
-        expect(options.prompt).toContain("SUPERVISED_CONTEXT");
-        expect(options.prompt).toContain("PROMPT_FILE_CONTENT");
-        return { costUsd: 0, durationMs: 1, result: "ok", sessionId: "sess-2" };
-      });
-      REGISTRY.opencode.invoke = invokeSpy;
-
-      const result = await invokeWithProvider("opencode", {
+      await invokeWithProvider("opencode", {
         context: "SUPERVISED_CONTEXT",
         mode: "supervised",
-        promptPath,
+        promptPath: "/tmp/unused.md",
         sessionName: "test-session",
       });
-
-      expect(invokeSpy).toHaveBeenCalledTimes(1);
-      expect(result?.result).toBe("ok");
-    } finally {
-      rmSync(promptPath, { force: true });
+      expect(true).toBe(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).toContain("does not support interactive supervised mode");
     }
+    expect(invokeSpy).not.toHaveBeenCalled();
+    expect(spawnMock).not.toHaveBeenCalled();
   });
 });
 
@@ -840,7 +954,7 @@ describe("invokeWithProvider error handling", () => {
     }
   });
 
-  test("throws ProviderError for codex when binary not found", async () => {
+  test("throws for codex when provider is not enabled", async () => {
     Object.assign(Bun, {
       spawn: mock(() => ({
         exited: Promise.resolve(1),
@@ -864,11 +978,11 @@ describe("invokeWithProvider error handling", () => {
       expect(error).toBeInstanceOf(ProviderError);
       const pe = error as ProviderError;
       expect(pe.provider).toBe("codex");
-      expect(pe.message).toContain("Install:");
+      expect(pe.message).toContain("not enabled in this Ralph runtime");
     }
   });
 
-  test("throws 'not yet implemented' when binary exists but provider unavailable", async () => {
+  test("throws for codex before binary checks even when binary exists", async () => {
     // Mock binary as available
     Object.assign(Bun, {
       spawn: mock(() => ({
@@ -893,11 +1007,11 @@ describe("invokeWithProvider error handling", () => {
       expect(error).toBeInstanceOf(ProviderError);
       const pe = error as ProviderError;
       expect(pe.provider).toBe("codex");
-      expect(pe.message).toContain("not yet implemented");
+      expect(pe.message).toContain("not enabled in this Ralph runtime");
     }
   });
 
-  test("throws for gemini when binary not found with install help", async () => {
+  test("throws for gemini when provider is not enabled", async () => {
     Object.assign(Bun, {
       spawn: mock(() => ({
         exited: Promise.resolve(1),
@@ -921,12 +1035,11 @@ describe("invokeWithProvider error handling", () => {
       expect(error).toBeInstanceOf(ProviderError);
       const pe = error as ProviderError;
       expect(pe.provider).toBe("gemini");
-      expect(pe.message).toContain("gemini");
-      expect(pe.message).toContain("Install:");
+      expect(pe.message).toContain("not enabled in this Ralph runtime");
     }
   });
 
-  test("throws for pi when binary not found", async () => {
+  test("throws for pi when provider is not enabled", async () => {
     Object.assign(Bun, {
       spawn: mock(() => ({
         exited: Promise.resolve(1),
@@ -950,9 +1063,7 @@ describe("invokeWithProvider error handling", () => {
       expect(error).toBeInstanceOf(ProviderError);
       const pe = error as ProviderError;
       expect(pe.provider).toBe("pi");
-      expect(pe.message).toContain("not found in PATH");
-      expect(pe.message).toContain("Install:");
-      expect(pe.message).toContain("@pi-mono/pi");
+      expect(pe.message).toContain("not enabled in this Ralph runtime");
     }
   });
 });

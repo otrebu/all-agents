@@ -8,9 +8,46 @@
 import { getContextRoot } from "@tools/utils/paths";
 import { describe, expect, test } from "bun:test";
 import { execa } from "execa";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const TOOLS_DIR = join(getContextRoot(), "tools");
+
+function createTemporarySubtasksFile(): { cleanup: () => void; path: string } {
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), "aaa-provider-flag-"));
+  const filePath = join(temporaryDirectory, "subtasks.json");
+
+  writeFileSync(
+    filePath,
+    JSON.stringify(
+      {
+        metadata: { milestoneRef: "tmp-provider-mode", scope: "milestone" },
+        subtasks: [
+          {
+            acceptanceCriteria: ["Command fails during preflight"],
+            description: "Temporary fixture for provider preflight tests",
+            done: false,
+            filesToRead: [],
+            id: "SUB-900",
+            taskRef: "900-provider-preflight",
+            title: "Provider preflight fixture",
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  return {
+    cleanup: () => {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    },
+    path: filePath,
+  };
+}
 
 describe("--provider CLI flag", () => {
   test("ralph build --help shows --provider option", async () => {
@@ -114,5 +151,57 @@ describe("--provider CLI flag", () => {
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Subtasks file not found");
+  });
+
+  test("ralph build fails fast for unsupported opencode supervised mode", async () => {
+    const fixture = createTemporarySubtasksFile();
+
+    try {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "build",
+          "--provider",
+          "opencode",
+          "--subtasks",
+          fixture.path,
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).not.toBe(0);
+      expect(stderr).toContain("does not support interactive supervised mode");
+      expect(stderr).toContain("--headless");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("ralph build fails fast for providers not enabled in runtime", async () => {
+    const fixture = createTemporarySubtasksFile();
+
+    try {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "build",
+          "--provider",
+          "codex",
+          "--headless",
+          "--subtasks",
+          fixture.path,
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).not.toBe(0);
+      expect(stderr).toContain("not enabled in this Ralph runtime");
+    } finally {
+      fixture.cleanup();
+    }
   });
 });

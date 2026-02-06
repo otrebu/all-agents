@@ -60,6 +60,9 @@ interface ProviderSelectionContext {
   envVariable?: string;
 }
 
+/** Runtime invocation modes exposed by Ralph CLI entry points */
+type RuntimeInvocationMode = "headless" | "supervised";
+
 /** Options for supervised provider invocation */
 interface SupervisedProviderOptions {
   /** Extra context to prepend to prompt */
@@ -161,6 +164,26 @@ function getInstallInstructions(provider: ProviderType): string {
 }
 
 /**
+ * List providers that are currently enabled and support a runtime mode.
+ */
+function getProvidersWithRuntimeMode(
+  mode: RuntimeInvocationMode,
+): Array<ProviderType> {
+  const providers = (
+    Object.entries(REGISTRY) as Array<[ProviderType, ProviderCapabilities]>
+  )
+    .filter(([, capabilities]) =>
+      mode === "headless"
+        ? isProviderModeSupported(capabilities, "headless")
+        : isProviderModeSupported(capabilities, "supervised"),
+    )
+    .map(([provider]) => provider);
+
+  providers.sort();
+  return providers;
+}
+
+/**
  * Invoke Claude in headless mode and return AgentResult directly.
  *
  * invokeClaudeHeadlessAsync already returns AgentResult after the
@@ -224,16 +247,7 @@ async function invokeWithProvider(
   provider: ProviderType,
   options: ProviderInvokeOptions,
 ): Promise<AgentResult | null> {
-  const binary = PROVIDER_BINARIES[provider];
-
-  // Shared binary availability check for all providers
-  if (!(await isBinaryAvailable(binary))) {
-    throw new ProviderError(
-      provider,
-      `Provider '${provider}' is not available. Binary '${binary}' not found in PATH.\n` +
-        `Install: ${getInstallInstructions(provider)}`,
-    );
-  }
+  await validateProviderInvocationPreflight(provider, options.mode);
 
   // Claude uses direct invocation (legacy path) while it's being migrated
   // to the REGISTRY pattern. Other providers go through REGISTRY.
@@ -244,14 +258,7 @@ async function invokeWithProvider(
     return invokeClaudeSupervised(options);
   }
 
-  // Check if provider is implemented in the registry
   const capabilities = REGISTRY[provider];
-  if (!capabilities.available) {
-    throw new ProviderError(
-      provider,
-      `Provider '${provider}' is not yet implemented.`,
-    );
-  }
 
   const invokeConfig = makeProviderConfig(provider, options.model);
   const prompt =
@@ -283,6 +290,31 @@ async function isBinaryAvailable(binary: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Check whether a provider capability entry supports a runtime mode.
+ */
+function isProviderModeSupported(
+  capabilities: ProviderCapabilities,
+  mode: RuntimeInvocationMode,
+): boolean {
+  if (!capabilities.available) {
+    return false;
+  }
+
+  if (mode === "headless") {
+    return (
+      capabilities.supportsHeadless &&
+      (capabilities.supportedModes.includes("headless-async") ||
+        capabilities.supportedModes.includes("headless-sync"))
+    );
+  }
+
+  return (
+    capabilities.supportsInteractiveSupervised &&
+    capabilities.supportedModes.includes("supervised")
+  );
 }
 
 /**
@@ -440,6 +472,67 @@ function validateProvider(provider: string): ProviderType {
   return provider as ProviderType;
 }
 
+/**
+ * Run provider preflight checks before any process spawn.
+ *
+ * Validates:
+ * 1) Provider is enabled in this Ralph runtime
+ * 2) Requested runtime mode is supported by declared capabilities
+ * 3) Provider binary exists in PATH
+ */
+async function validateProviderInvocationPreflight(
+  provider: ProviderType,
+  mode: RuntimeInvocationMode,
+): Promise<void> {
+  const capabilities = REGISTRY[provider];
+
+  if (!capabilities.available) {
+    const enabledProviders = (
+      Object.entries(REGISTRY) as Array<[ProviderType, ProviderCapabilities]>
+    )
+      .filter(([, value]) => value.available)
+      .map(([name]) => name)
+      .sort()
+      .join(", ");
+
+    throw new ProviderError(
+      provider,
+      `Provider '${provider}' is not enabled in this Ralph runtime. ` +
+        `Try one of: ${enabledProviders}.`,
+    );
+  }
+
+  if (!isProviderModeSupported(capabilities, mode)) {
+    if (mode === "supervised") {
+      const supervisedProviders =
+        getProvidersWithRuntimeMode("supervised").join(", ");
+      throw new ProviderError(
+        provider,
+        `Provider '${provider}' does not support interactive supervised mode in Ralph yet. ` +
+          `Use '--headless' for this provider, or choose a supervised-capable provider: ` +
+          `${supervisedProviders}.`,
+      );
+    }
+
+    const headlessProviders =
+      getProvidersWithRuntimeMode("headless").join(", ");
+    throw new ProviderError(
+      provider,
+      `Provider '${provider}' does not support headless mode in Ralph. ` +
+        `Choose a headless-capable provider: ${headlessProviders}.`,
+    );
+  }
+
+  const binary = PROVIDER_BINARIES[provider];
+  if (!(await isBinaryAvailable(binary))) {
+    throw new ProviderError(
+      provider,
+      `Provider '${provider}' is not available. Binary '${binary}' not found in PATH.\n` +
+        `Install: ${getInstallInstructions(provider)}`,
+    );
+  }
+}
+
 // =============================================================================
 // Registry Constant (depends on createNotImplementedInvoker)
 // =============================================================================
@@ -447,33 +540,49 @@ function validateProvider(provider: string): ProviderType {
 /**
  * Registry of all supported providers and their capabilities.
  *
- * All providers start with available: false. Provider implementations
- * set available: true and replace the invoke function when ready.
+ * Each provider declares whether it is currently enabled in Ralph runtime,
+ * plus mode/session/model capability metadata for preflight checks.
  */
 const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
   claude: {
-    available: false,
+    available: true,
     invoke: createNotImplementedInvoker("claude"),
     supportedModes: [
       "supervised",
       "headless-sync",
       "headless-async",
     ] satisfies Array<InvocationMode>,
+    supportsHeadless: true,
+    supportsInteractiveSupervised: true,
+    supportsModelDiscovery: false,
+    supportsSessionExport: true,
   },
   codex: {
     available: false,
     invoke: createNotImplementedInvoker("codex"),
     supportedModes: [] satisfies Array<InvocationMode>,
+    supportsHeadless: false,
+    supportsInteractiveSupervised: false,
+    supportsModelDiscovery: false,
+    supportsSessionExport: false,
   },
   cursor: {
     available: false,
     invoke: createNotImplementedInvoker("cursor"),
     supportedModes: [] satisfies Array<InvocationMode>,
+    supportsHeadless: false,
+    supportsInteractiveSupervised: false,
+    supportsModelDiscovery: false,
+    supportsSessionExport: false,
   },
   gemini: {
     available: false,
     invoke: createNotImplementedInvoker("gemini"),
     supportedModes: [] satisfies Array<InvocationMode>,
+    supportsHeadless: false,
+    supportsInteractiveSupervised: false,
+    supportsModelDiscovery: false,
+    supportsSessionExport: false,
   },
   opencode: {
     available: true,
@@ -483,11 +592,19 @@ const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
       "headless-sync",
       "headless-async",
     ] satisfies Array<InvocationMode>,
+    supportsHeadless: true,
+    supportsInteractiveSupervised: false,
+    supportsModelDiscovery: true,
+    supportsSessionExport: true,
   },
   pi: {
     available: false,
     invoke: createNotImplementedInvoker("pi"),
     supportedModes: [] satisfies Array<InvocationMode>,
+    supportsHeadless: false,
+    supportsInteractiveSupervised: false,
+    supportsModelDiscovery: false,
+    supportsSessionExport: false,
   },
 };
 
@@ -506,8 +623,10 @@ export {
   type ProviderSelectionContext,
   REGISTRY,
   resolveProvider,
+  type RuntimeInvocationMode,
   selectProvider,
   selectProviderFromEnv,
   type SupervisedProviderOptions,
   validateProvider,
+  validateProviderInvocationPreflight,
 };

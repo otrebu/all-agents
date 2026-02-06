@@ -49,7 +49,11 @@ import {
 } from "./post-iteration";
 import { buildPrompt } from "./providers/claude";
 import { validateModelSelection } from "./providers/models";
-import { invokeWithProvider, resolveProvider } from "./providers/registry";
+import {
+  invokeWithProvider,
+  resolveProvider,
+  validateProviderInvocationPreflight,
+} from "./providers/registry";
 import { discoverRecentSession } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
@@ -818,6 +822,22 @@ function resolveModel(modelOverride?: string): string | undefined {
 }
 
 /**
+ * Resolve provider selection and exit with a clean error if invalid.
+ */
+async function resolveProviderOrExit(
+  providerOverride: string | undefined,
+): Promise<ProviderType> {
+  try {
+    return await resolveProvider({ cliFlag: providerOverride });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Error: ${message}`));
+    process.exit(1);
+    throw new Error(message);
+  }
+}
+
+/**
  * Run the build loop
  *
  * Iterates through subtasks, invoking Claude for each until all are done
@@ -844,7 +864,7 @@ async function runBuild(
   } = options;
 
   // Select provider (CLI flag > env var > default)
-  const provider = await resolveProvider({ cliFlag: options.provider });
+  const provider = await resolveProviderOrExit(options.provider);
   console.log(chalk.dim(`Using provider: ${provider}`));
 
   // Select model (CLI flag > config) and validate against provider registry
@@ -865,6 +885,9 @@ async function runBuild(
     process.exit(1);
   }
 
+  // Fail fast when provider/mode combination is unsupported.
+  await runProviderPreflightOrExit(provider, mode);
+
   // Pre-build size check: warn if subtasks.json is getting large
   const sizeCheck = checkSubtasksSize(subtasksPath);
   if (sizeCheck.exceeded) {
@@ -881,11 +904,11 @@ async function runBuild(
     if (sizeCheck.hardLimitExceeded) {
       console.log(
         chalk.red(
-          `\n  Claude may not be able to update this file via Edit tool.`,
+          `\n  Provider invocation may not be able to update this file via Edit tool.`,
         ),
       );
       console.log(
-        chalk.dim(`  The prompt instructs Claude to use jq instead.`),
+        chalk.dim(`  The prompt instructs the agent to use jq instead.`),
       );
     }
     console.log();
@@ -1149,6 +1172,22 @@ async function runPeriodicCalibration(
       `\n=== Running calibration (every ${calibrateEvery} iterations) ===\n`,
     );
     await runCalibrate("all", { contextRoot, subtasksPath });
+  }
+}
+
+/**
+ * Enforce provider capability gating and binary availability before build starts.
+ */
+async function runProviderPreflightOrExit(
+  provider: ProviderType,
+  mode: "headless" | "supervised",
+): Promise<void> {
+  try {
+    await validateProviderInvocationPreflight(provider, mode);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Error: ${message}`));
+    process.exit(1);
   }
 }
 

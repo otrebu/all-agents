@@ -105,6 +105,14 @@ interface ProviderCapabilities {
   invoke: InvokerFunction;
   /** Invocation modes this provider supports */
   supportedModes: Array<InvocationMode>;
+  /** Whether provider supports headless invocation in Ralph runtime */
+  supportsHeadless: boolean;
+  /** Whether provider supports true interactive supervised mode */
+  supportsInteractiveSupervised: boolean;
+  /** Whether provider can discover models dynamically */
+  supportsModelDiscovery: boolean;
+  /** Whether provider supports session export/discovery for telemetry */
+  supportsSessionExport: boolean;
 }
 
 /** Union of all provider-specific configurations */

@@ -27,10 +27,12 @@ export {
   type ProviderSelectionContext,
   REGISTRY,
   resolveProvider,
+  type RuntimeInvocationMode,
   selectProvider,
   selectProviderFromEnv,
   type SupervisedProviderOptions,
   validateProvider,
+  validateProviderInvocationPreflight,
 } from "./registry";
 export {
   type AgentResult,

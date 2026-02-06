@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import type { ProviderType } from "../ralph/providers/types";
 import type {
   Finding,
   ReviewDiaryEntry,
@@ -19,6 +20,7 @@ import { validateModelSelection } from "../ralph/providers/models";
 import {
   invokeWithProvider,
   resolveProvider,
+  validateProviderInvocationPreflight,
 } from "../ralph/providers/registry";
 import { calculatePriority, FindingsArraySchema } from "./types";
 
@@ -921,8 +923,16 @@ async function runHeadlessReview(options: {
     skillPath,
   });
 
-  // Select provider (CLI flag > env var > default)
-  const provider = await resolveProvider({ cliFlag: providerOverride });
+  // Select provider (CLI > env > config > auto) and preflight mode support.
+  let provider: ProviderType = "claude";
+  try {
+    provider = await resolveProvider({ cliFlag: providerOverride });
+    await validateProviderInvocationPreflight(provider, "headless");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Error: ${message}`));
+    process.exit(1);
+  }
   console.log(chalk.dim(`Using provider: ${provider}`));
 
   // Select model (CLI flag > config)
@@ -1253,8 +1263,16 @@ async function runSupervisedReview(
       ? "1. Gather the diff of current changes"
       : `1. Gather changes using: \`${diffCommand}\``;
 
-  // Select provider (CLI flag > env var > default)
-  const provider = await resolveProvider({ cliFlag: providerOverride });
+  // Select provider (CLI > env > config > auto) and preflight mode support.
+  let provider: ProviderType = "claude";
+  try {
+    provider = await resolveProvider({ cliFlag: providerOverride });
+    await validateProviderInvocationPreflight(provider, "supervised");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Error: ${message}`));
+    process.exit(1);
+  }
   console.log(chalk.dim(`Using provider: ${provider}`));
 
   // Select model (CLI flag > config)
