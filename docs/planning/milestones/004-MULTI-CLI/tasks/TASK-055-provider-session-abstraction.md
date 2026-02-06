@@ -25,14 +25,14 @@ Current session utilities in `tools/src/commands/ralph/session.ts` and post-iter
 6. Add adapter tests (unit + integration) for both Claude and OpenCode session extraction flows.
 
 ### Acceptance Criteria
-- [ ] Session discovery in build path is provider-aware and no longer hardcoded to `.claude`.
-- [ ] Post-iteration metrics (tool calls, tokens, files, duration) are extracted via provider adapters.
-- [ ] Claude and OpenCode session flows both produce valid diary entries.
-- [ ] Session lookup failures degrade gracefully without crashing iteration flow.
+- [x] Session discovery in build path is provider-aware and no longer hardcoded to `.claude`.
+- [x] Post-iteration metrics (tool calls, tokens, files, duration) are extracted via provider adapters.
+- [x] Claude and OpenCode session flows both produce valid diary entries.
+- [x] Session lookup failures degrade gracefully without crashing iteration flow.
 
 ### Test Plan
-- [ ] `cd tools && bun test tests/providers/registry.test.ts tests/providers/opencode.integration.test.ts`
-- [ ] Add provider session adapter unit tests for Claude and OpenCode fixture data.
+- [x] `cd tools && bun test tests/providers/registry.test.ts tests/providers/opencode.integration.test.ts`
+- [x] Add provider session adapter unit tests for Claude and OpenCode fixture data.
 - [ ] Manual: run one Claude and one OpenCode iteration and compare diary/session metrics output.
 
 ### Scope
