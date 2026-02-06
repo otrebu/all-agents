@@ -2,13 +2,19 @@
 
 ## Current Focus
 
-**Story:** 004-model-registry
-**Task:** TASK-052 model-validation
-**Status:** SUB-319 complete
+**Story:** 003-opencode-support
+**Task:** TASK-048 opencode-timeout-tests
+**Status:** SUB-299 complete
 
 ## Session Notes
 
 ### 2026-02-06
+
+#### SUB-299
+- **Problem:** No integration tests existed for OpenCode's hard timeout enforcement and SIGKILL escalation (Issue #8203). The critical failure mode where OpenCode hangs forever on API errors needed deterministic test coverage.
+- **Changes:** Created 16 integration tests in `tools/tests/providers/opencode.integration.test.ts` using mocked Bun.spawn processes. Tests cover 5 describe blocks: hung process (Issue #8203), normal completion, error exit, output-then-hang, and cleanup verification. All tests use short timeouts (50-80ms) for fast deterministic execution. Mock infrastructure routes `which opencode` calls to availability mocks and `opencode` invocations to controllable mock processes with signal tracking.
+- **Files:**
+  - `tools/tests/providers/opencode.integration.test.ts` - Created: 16 integration tests across 5 describe blocks
 
 #### SUB-319
 - **Problem:** No model validation existed before provider invocation. Users could specify invalid or wrong-provider model IDs with no helpful feedback.

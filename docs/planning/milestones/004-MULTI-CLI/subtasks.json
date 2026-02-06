@@ -576,7 +576,7 @@
       "storyRef": "003-opencode-support",
       "title": "Implement integration tests for OpenCode hard timeout and SIGKILL escalation",
       "description": "Create tools/src/commands/ralph/providers/opencode.integration.test.ts with full integration test coverage for hard timeout enforcement (Issue #8203). Implement mock processes using Bun.spawn or node child_process that simulate: (1) a hung process that never exits and produces no output (the exact Issue #8203 failure mode), (2) a process that completes successfully before timeout, (3) a process that errors before timeout, and (4) a process that outputs then hangs. Test that hard timeout triggers SIGKILL after configured duration for hung processes, that timeout error messages reference Issue #8203, that normal completion and error exits do not trigger false positive timeouts, and that all resources are cleaned up (timers cleared, processes killed, no zombie processes). Use short timeouts (10-100ms) for fast deterministic tests. Include afterEach cleanup hooks to kill any lingering mock processes and clear timers. All tests must run via bun test and pass reliably without timing flakes.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/opencode.integration.test.ts exists and contains describe blocks for timeout scenarios, normal completion, and cleanup",
         "Test for hung process (no output, never exits) verifies SIGKILL is sent after hard timeout duration",
@@ -594,7 +594,10 @@
         "tools/src/commands/ralph/providers/opencode.ts",
         "tools/src/commands/ralph/providers/types.ts",
         "context/foundations/test/test-integration-api.md"
-      ]
+      ],
+      "completedAt": "2026-02-06T08:23:58Z",
+      "commitHash": "00246ea1552d86aba70b0ca86cf051de75e3971f",
+      "sessionId": ""
     },
     {
       "id": "SUB-309",
