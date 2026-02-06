@@ -157,5 +157,10 @@ describe("shell scripts include --provider and --model", () => {
     expect(stdout).toContain("-l model");
     expect(stdout).toContain("aaa __complete provider");
     expect(stdout).toContain("aaa __complete model");
+    expect(stdout).toContain("aaa __complete model --provider");
+    expect(stdout).toContain("__fish_aaa_model_completions");
+    expect(stdout).toContain(
+      "__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'",
+    );
   });
 });

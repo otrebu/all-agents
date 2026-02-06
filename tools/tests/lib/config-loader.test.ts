@@ -97,6 +97,24 @@ describe("loadAaaConfig", () => {
     );
   });
 
+  test("preserves ralph provider and model defaults", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: {
+        lightweightModel: "claude-3-5-haiku-latest",
+        model: "openai/gpt-4o",
+        provider: "opencode",
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    expect(loaded.ralph?.provider).toBe("opencode");
+    expect(loaded.ralph?.model).toBe("openai/gpt-4o");
+    expect(loaded.ralph?.lightweightModel).toBe("claude-3-5-haiku-latest");
+  });
+
   test("logs warning and returns defaults for invalid JSON", () => {
     const configPath = join(temporaryDirectory, CONFIG_FILENAME);
     writeFileSync(configPath, "{ invalid json }");

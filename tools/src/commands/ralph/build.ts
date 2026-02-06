@@ -26,6 +26,7 @@ import {
   countRemaining,
   getMilestoneFromSubtasks,
   getNextSubtask,
+  loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
 } from "./config";
@@ -44,7 +45,7 @@ import {
 } from "./post-iteration";
 import { buildPrompt } from "./providers/claude";
 import { validateModelSelection } from "./providers/models";
-import { invokeWithProvider, selectProvider } from "./providers/registry";
+import { invokeWithProvider, resolveProvider } from "./providers/registry";
 import { discoverRecentSession } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
@@ -70,6 +71,7 @@ interface HeadlessIterationContext {
   currentSubtask: Subtask;
   iteration: number;
   maxIterations: number;
+  model?: string;
   prompt: string;
   provider: ProviderType;
   remaining: number;
@@ -137,6 +139,7 @@ interface SupervisedIterationContext {
   currentSubtask: Subtask;
   iteration: number;
   maxIterations: number;
+  model?: string;
   provider: ProviderType;
   remaining: number;
   subtasksPath: string;
@@ -424,6 +427,7 @@ async function processHeadlessIteration(
     currentSubtask,
     iteration,
     maxIterations,
+    model,
     prompt,
     provider,
     shouldSkipSummary,
@@ -458,6 +462,7 @@ async function processHeadlessIteration(
     result = await invokeWithProvider(provider, {
       gracePeriodMs,
       mode: "headless",
+      model,
       onStderrActivity: () => {
         // Activity tracking is handled internally, but we could extend
         // the heartbeat here if needed in the future
@@ -578,6 +583,7 @@ async function processSupervisedIteration(
     currentSubtask,
     iteration,
     maxIterations,
+    model,
     provider,
     subtasksPath,
   } = context;
@@ -600,6 +606,7 @@ async function processSupervisedIteration(
   const supervisedResult = await invokeWithProvider(provider, {
     context: `Work ONLY on the assigned subtask below. Do not pick a different subtask.\n\nAssigned subtask:\n${JSON.stringify(currentSubtask, null, 2)}\n\nSubtasks file path: ${subtasksPath}\nProgress log path: ${progressPath}`,
     mode: "supervised",
+    model,
     promptPath: path.join(contextRoot, ITERATION_PROMPT_PATH),
     sessionName: "build iteration",
   });
@@ -754,6 +761,23 @@ function registerSignalHandlers(): void {
 }
 
 /**
+ * Resolve model selection with priority:
+ * CLI flag > config file
+ */
+function resolveModel(modelOverride?: string): string | undefined {
+  if (modelOverride !== undefined && modelOverride !== "") {
+    return modelOverride;
+  }
+
+  try {
+    const config = loadRalphConfig();
+    return config.model;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Run the build loop
  *
  * Iterates through subtasks, invoking Claude for each until all are done
@@ -772,6 +796,7 @@ async function runBuild(
     interactive: isInteractive,
     maxIterations,
     mode,
+    model: modelOverride,
     quiet: isQuiet,
     skipSummary: shouldSkipSummary,
     subtasksPath,
@@ -779,11 +804,12 @@ async function runBuild(
   } = options;
 
   // Select provider (CLI flag > env var > default)
-  const provider = selectProvider({ cliFlag: options.provider });
+  const provider = await resolveProvider({ cliFlag: options.provider });
   console.log(chalk.dim(`Using provider: ${provider}`));
 
-  // Validate model selection if specified (CLI flag or config)
-  handleModelValidation(options.model, provider);
+  // Select model (CLI flag > config) and validate against provider registry
+  const model = resolveModel(modelOverride);
+  handleModelValidation(model, provider);
 
   // Reset module-level state for cascade mode / multiple runBuild() calls
   hasSummaryBeenGenerated = false;
@@ -967,6 +993,7 @@ async function runBuild(
         currentSubtask,
         iteration,
         maxIterations,
+        model,
         prompt,
         provider,
         remaining,
@@ -995,6 +1022,7 @@ async function runBuild(
         currentSubtask,
         iteration,
         maxIterations,
+        model,
         provider,
         remaining,
         subtasksPath,

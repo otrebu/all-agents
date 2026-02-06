@@ -8,11 +8,14 @@
  * @see docs/planning/milestones/004-MULTI-CLI/tasks/TASK-037-provider-registry.md
  */
 
+import { existsSync, readFileSync } from "node:fs";
+
 import type {
   AgentResult,
   InvocationMode,
   InvokerFunction,
   ProviderCapabilities,
+  ProviderConfig,
   ProviderType,
 } from "./types";
 
@@ -30,6 +33,8 @@ interface HeadlessProviderOptions {
   /** Grace period in ms before SIGKILL after SIGTERM */
   gracePeriodMs?: number;
   mode: "headless";
+  /** Model to use for invocation (provider-specific format) */
+  model?: string;
   /** Callback invoked on stderr activity */
   onStderrActivity?: () => void;
   /** The prompt to send */
@@ -60,6 +65,8 @@ interface SupervisedProviderOptions {
   /** Extra context to prepend to prompt */
   context?: string;
   mode: "supervised";
+  /** Model to use for invocation (provider-specific format) */
+  model?: string;
   /** Path to prompt file */
   promptPath: string;
   /** Session name for display */
@@ -148,7 +155,7 @@ function getInstallInstructions(provider: ProviderType): string {
     cursor: "Download from cursor.com and install cursor-agent",
     gemini: "npm install -g @google/gemini-cli",
     opencode: "npm install -g opencode",
-    pi: "npm install -g @anthropic-ai/claude-code",
+    pi: "npm install -g @pi-mono/pi",
   };
   return instructions[provider];
 }
@@ -217,6 +224,17 @@ async function invokeWithProvider(
   provider: ProviderType,
   options: ProviderInvokeOptions,
 ): Promise<AgentResult | null> {
+  const binary = PROVIDER_BINARIES[provider];
+
+  // Shared binary availability check for all providers
+  if (!(await isBinaryAvailable(binary))) {
+    throw new ProviderError(
+      provider,
+      `Provider '${provider}' is not available. Binary '${binary}' not found in PATH.\n` +
+        `Install: ${getInstallInstructions(provider)}`,
+    );
+  }
+
   // Claude uses direct invocation (legacy path) while it's being migrated
   // to the REGISTRY pattern. Other providers go through REGISTRY.
   if (provider === "claude") {
@@ -224,17 +242,6 @@ async function invokeWithProvider(
       return invokeClaudeHeadless(options);
     }
     return invokeClaudeSupervised(options);
-  }
-
-  const binary = PROVIDER_BINARIES[provider];
-
-  // For non-Claude providers: check binary availability lazily
-  if (!(await isBinaryAvailable(binary))) {
-    throw new ProviderError(
-      provider,
-      `Provider '${provider}' is not available. Binary '${binary}' not found in PATH.\n` +
-        `Install: ${getInstallInstructions(provider)}`,
-    );
   }
 
   // Check if provider is implemented in the registry
@@ -246,11 +253,16 @@ async function invokeWithProvider(
     );
   }
 
-  const invokeConfig: { provider: ProviderType } = { provider };
+  const invokeConfig = makeProviderConfig(provider, options.model);
+  const prompt =
+    options.mode === "headless"
+      ? options.prompt
+      : makeSupervisedPrompt(provider, options);
+
   return capabilities.invoke({
     config: invokeConfig,
     mode: options.mode === "headless" ? "headless-async" : "supervised",
-    prompt: options.mode === "headless" ? options.prompt : "",
+    prompt,
   });
 }
 
@@ -284,6 +296,75 @@ function loadConfigProvider(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** Build provider config for registry invocation */
+function makeProviderConfig(
+  provider: ProviderType,
+  model: string | undefined,
+): ProviderConfig {
+  if (provider === "claude") {
+    return { provider };
+  }
+
+  return { model, provider };
+}
+
+/** Build supervised prompt from prompt file and optional context */
+function makeSupervisedPrompt(
+  provider: ProviderType,
+  options: SupervisedProviderOptions,
+): string {
+  if (!existsSync(options.promptPath)) {
+    throw new ProviderError(
+      provider,
+      `Prompt not found for supervised mode: ${options.promptPath}`,
+    );
+  }
+
+  const promptContent = readFileSync(options.promptPath, "utf8");
+  if (options.context !== undefined && options.context !== "") {
+    return `${options.context}\n\n${promptContent}`;
+  }
+
+  return promptContent;
+}
+
+/**
+ * Resolve provider selection using priority:
+ * CLI flag > env var > config file > auto-detect
+ *
+ * If `envVariable` or `configFile` are omitted in context, they are loaded
+ * from process environment / config file automatically.
+ */
+async function resolveProvider(
+  context: ProviderSelectionContext = {},
+): Promise<ProviderType> {
+  const {
+    cliFlag,
+    configFile: contextConfigFile,
+    envVariable: contextEnvVariable,
+  } = context;
+  const envVariable = contextEnvVariable ?? process.env.RALPH_PROVIDER;
+  const configFile = contextConfigFile ?? loadConfigProvider();
+
+  // Priority 1: CLI flag (highest)
+  if (cliFlag !== undefined && cliFlag !== "") {
+    return validateProvider(cliFlag);
+  }
+
+  // Priority 2: Environment variable
+  if (envVariable !== undefined && envVariable !== "") {
+    return validateProvider(envVariable);
+  }
+
+  // Priority 3: Config file
+  if (configFile !== undefined && configFile !== "") {
+    return validateProvider(configFile);
+  }
+
+  // Priority 4: Auto-detect
+  return autoDetectProvider();
 }
 
 /**
@@ -424,6 +505,7 @@ export {
   type ProviderInvokeOptions,
   type ProviderSelectionContext,
   REGISTRY,
+  resolveProvider,
   selectProvider,
   selectProviderFromEnv,
   type SupervisedProviderOptions,

@@ -248,10 +248,23 @@ describe("ralphSectionSchema", () => {
     expect(ralphSectionSchema.parse(config)).toEqual(config);
   });
 
+  test("accepts provider and model defaults in ralph config", () => {
+    const config: RalphSection = {
+      lightweightModel: "claude-3-5-haiku-latest",
+      model: "claude-sonnet-4",
+      provider: "opencode",
+    };
+    expect(ralphSectionSchema.parse(config)).toEqual(config);
+  });
+
   test("rejects negative maxIterations", () => {
     expect(() =>
       ralphSectionSchema.parse({ build: { maxIterations: -1 } }),
     ).toThrow();
+  });
+
+  test("rejects invalid provider value", () => {
+    expect(() => ralphSectionSchema.parse({ provider: "invalid" })).toThrow();
   });
 
   test("accepts zero for calibrateEvery (disabled)", () => {

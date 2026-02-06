@@ -242,6 +242,13 @@ describe("buildOpencodeEnv - permission bypass", () => {
 // =============================================================================
 
 describe("buildOpencodeArguments - model format", () => {
+  test("uses opencode run subcommand", () => {
+    const config: OpencodeConfig = { provider: "opencode" };
+    const args = buildOpencodeArguments(config, "test prompt");
+
+    expect(args[0]).toBe("run");
+  });
+
   test("includes --output jsonl flag", () => {
     const config: OpencodeConfig = { provider: "opencode" };
     const args = buildOpencodeArguments(config, "test prompt");

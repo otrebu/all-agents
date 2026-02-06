@@ -96,7 +96,7 @@ const OPENCODE_PERMISSION_VALUE = '{"*":"allow"}';
 /**
  * Build CLI arguments for the OpenCode process.
  *
- * Always includes `--output jsonl` for machine-readable output.
+ * Uses `opencode run` and always includes `--output jsonl` for machine-readable output.
  * Model is passed in "provider/model" format (e.g., "anthropic/claude-sonnet-4-20250514").
  *
  * @param config - OpenCode provider configuration
@@ -107,7 +107,7 @@ function buildOpencodeArguments(
   config: OpencodeConfig,
   prompt: string,
 ): Array<string> {
-  const args = ["--output", "jsonl", "--prompt", prompt];
+  const args = ["run", "--output", "jsonl", "--prompt", prompt];
 
   // Model format: "provider/model" (e.g., "anthropic/claude-sonnet-4-20250514")
   if (config.model !== undefined && config.model !== "") {
@@ -170,7 +170,9 @@ async function checkOpencodeAvailable(): Promise<boolean> {
  * 5. On timeout: log Issue #8203 message, SIGKILL via killProcessGracefully
  * 6. On normal exit: parse JSONL stdout and normalize to AgentResult
  *
- * Supervised mode is not yet implemented (returns empty AgentResult).
+ * Supervised mode uses the same JSONL invocation path as headless execution.
+ * The registry composes prompt-file content + context and passes it as
+ * `options.prompt` so default `ralph build` supervised flow works end-to-end.
  *
  * @param options - Standard invocation options from the registry
  * @returns Normalized AgentResult
@@ -179,12 +181,6 @@ async function checkOpencodeAvailable(): Promise<boolean> {
 async function invokeOpencode(
   options: InvocationOptions,
 ): Promise<AgentResult> {
-  if (options.mode === "supervised") {
-    // Supervised mode: OpenCode interactive session
-    // Not yet implemented — would require stdio: inherit like Claude's chat mode
-    return { costUsd: 0, durationMs: 0, result: "", sessionId: "" };
-  }
-
   // Binary detection: fail fast with clear install instructions
   if (!(await checkOpencodeAvailable())) {
     throw new Error(

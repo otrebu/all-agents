@@ -12,13 +12,13 @@ import type {
   TriageDecision,
 } from "./types";
 
-import { loadTimeoutConfig } from "../ralph/config";
+import { loadRalphConfig, loadTimeoutConfig } from "../ralph/config";
 import { formatDuration, renderMarkdown } from "../ralph/display";
 import { executeHook, type HookContext } from "../ralph/hooks";
 import { validateModelSelection } from "../ralph/providers/models";
 import {
   invokeWithProvider,
-  selectProvider,
+  resolveProvider,
 } from "../ralph/providers/registry";
 import { calculatePriority, FindingsArraySchema } from "./types";
 
@@ -843,6 +843,23 @@ function renderFindingsSummary(
 }
 
 /**
+ * Resolve model selection with priority:
+ * CLI flag > config file
+ */
+function resolveModel(modelOverride?: string): string | undefined {
+  if (modelOverride !== undefined && modelOverride !== "") {
+    return modelOverride;
+  }
+
+  try {
+    const config = loadRalphConfig();
+    return config.model;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Run review in headless mode
  *
  * Invokes Claude headless with the code-review skill.
@@ -905,12 +922,15 @@ async function runHeadlessReview(options: {
   });
 
   // Select provider (CLI flag > env var > default)
-  const provider = selectProvider({ cliFlag: providerOverride });
+  const provider = await resolveProvider({ cliFlag: providerOverride });
   console.log(chalk.dim(`Using provider: ${provider}`));
 
+  // Select model (CLI flag > config)
+  const model = resolveModel(modelOverride);
+
   // Validate model selection if specified
-  if (modelOverride !== undefined) {
-    const modelResult = validateModelSelection(modelOverride, provider);
+  if (model !== undefined) {
+    const modelResult = validateModelSelection(model, provider);
     if (!modelResult.valid) {
       console.error(chalk.red(`\nError: ${modelResult.error}`));
       if (modelResult.suggestions.length > 0) {
@@ -921,9 +941,7 @@ async function runHeadlessReview(options: {
       }
       process.exit(1);
     }
-    console.log(
-      chalk.dim(`Using model: ${modelOverride} (${modelResult.cliFormat})`),
-    );
+    console.log(chalk.dim(`Using model: ${model} (${modelResult.cliFormat})`));
   }
 
   console.log(chalk.dim("Invoking in headless mode...\n"));
@@ -933,6 +951,7 @@ async function runHeadlessReview(options: {
   const result = await invokeWithProvider(provider, {
     gracePeriodMs: timeoutConfig.graceSeconds * 1000,
     mode: "headless",
+    model,
     prompt,
     stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
     timeout: timeoutConfig.hardMinutes * 60 * 1000,
@@ -1235,12 +1254,15 @@ async function runSupervisedReview(
       : `1. Gather changes using: \`${diffCommand}\``;
 
   // Select provider (CLI flag > env var > default)
-  const provider = selectProvider({ cliFlag: providerOverride });
+  const provider = await resolveProvider({ cliFlag: providerOverride });
   console.log(chalk.dim(`Using provider: ${provider}`));
 
+  // Select model (CLI flag > config)
+  const model = resolveModel(modelOverride);
+
   // Validate model selection if specified
-  if (modelOverride !== undefined) {
-    const modelResult = validateModelSelection(modelOverride, provider);
+  if (model !== undefined) {
+    const modelResult = validateModelSelection(model, provider);
     if (!modelResult.valid) {
       console.error(chalk.red(`\nError: ${modelResult.error}`));
       if (modelResult.suggestions.length > 0) {
@@ -1251,9 +1273,7 @@ async function runSupervisedReview(
       }
       process.exit(1);
     }
-    console.log(
-      chalk.dim(`Using model: ${modelOverride} (${modelResult.cliFormat})`),
-    );
+    console.log(chalk.dim(`Using model: ${model} (${modelResult.cliFormat})`));
   }
 
   // Invoke in chat/supervised mode
@@ -1269,6 +1289,7 @@ ${diffInstruction}
 
 Start by gathering the diff.`,
     mode: "supervised",
+    model,
     promptPath,
     sessionName: "code review",
   });

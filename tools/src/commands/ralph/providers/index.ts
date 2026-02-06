@@ -26,6 +26,7 @@ export {
   type ProviderInvokeOptions,
   type ProviderSelectionContext,
   REGISTRY,
+  resolveProvider,
   selectProvider,
   selectProviderFromEnv,
   type SupervisedProviderOptions,

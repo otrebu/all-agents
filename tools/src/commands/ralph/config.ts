@@ -271,6 +271,9 @@ function loadRalphConfig(configPath?: string): RalphConfig {
           onValidationFail: ralph.hooks.onValidationFail,
         }
       : DEFAULT_CONFIG.hooks,
+    lightweightModel: ralph.lightweightModel,
+    model: ralph.model,
+    provider: ralph.provider,
     // Map unified SelfImprovementConfig to ralph's SelfImprovementConfig
     // Ensure mode has a value (unified config has it optional, ralph requires it)
     selfImprovement: { mode: ralph.selfImprovement?.mode ?? "suggest" },

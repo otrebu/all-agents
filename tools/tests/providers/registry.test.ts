@@ -6,7 +6,10 @@
  * autoDetectProvider(), selectProviderFromEnv(), and ProviderError.
  */
 
-import type { ProviderType } from "@tools/commands/ralph/providers/types";
+import type {
+  InvocationOptions,
+  ProviderType,
+} from "@tools/commands/ralph/providers/types";
 
 import {
   autoDetectProvider,
@@ -15,10 +18,13 @@ import {
   isBinaryAvailable,
   ProviderError,
   REGISTRY,
+  resolveProvider,
   selectProvider,
   validateProvider,
 } from "@tools/commands/ralph/providers/registry";
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 // =============================================================================
 // REGISTRY
@@ -167,6 +173,91 @@ describe("selectProvider", () => {
     expect(() => selectProvider({ configFile: "invalid" })).toThrow(
       ProviderError,
     );
+  });
+});
+
+// =============================================================================
+// resolveProvider
+// =============================================================================
+
+describe("resolveProvider", () => {
+  const originalSpawn = Bun.spawn;
+  const originalEnvProvider = process.env.RALPH_PROVIDER;
+
+  afterAll(() => {
+    Bun.spawn = originalSpawn;
+    if (originalEnvProvider === undefined) {
+      delete process.env.RALPH_PROVIDER;
+    } else {
+      process.env.RALPH_PROVIDER = originalEnvProvider;
+    }
+  });
+
+  beforeEach(() => {
+    Bun.spawn = originalSpawn;
+    if (originalEnvProvider === undefined) {
+      delete process.env.RALPH_PROVIDER;
+    } else {
+      process.env.RALPH_PROVIDER = originalEnvProvider;
+    }
+  });
+
+  test("uses cliFlag over env and config", async () => {
+    const provider = await resolveProvider({
+      cliFlag: "claude",
+      configFile: "gemini",
+      envVariable: "opencode",
+    });
+    expect(provider).toBe("claude");
+  });
+
+  test("uses env variable over config when cli is missing", async () => {
+    const provider = await resolveProvider({
+      configFile: "gemini",
+      envVariable: "opencode",
+    });
+    expect(provider).toBe("opencode");
+  });
+
+  test("reads RALPH_PROVIDER from process env when envVariable is omitted", async () => {
+    process.env.RALPH_PROVIDER = "opencode";
+    const provider = await resolveProvider({ configFile: "" });
+    expect(provider).toBe("opencode");
+  });
+
+  test("uses config when cli and env are missing", async () => {
+    const provider = await resolveProvider({
+      configFile: "codex",
+      envVariable: "",
+    });
+    expect(provider).toBe("codex");
+  });
+
+  test("auto-detects provider when cli/env/config are all missing", async () => {
+    Object.assign(Bun, {
+      spawn: mock((cmd: unknown) => {
+        const command = cmd as Array<string>;
+        const binary = command[1];
+        const exitCode = binary === "opencode" ? 0 : 1;
+        return {
+          exited: Promise.resolve(exitCode),
+          stderr: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+          stdout: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+        };
+      }),
+    });
+
+    delete process.env.RALPH_PROVIDER;
+    const provider = await resolveProvider({ configFile: "" });
+    expect(provider).toBe("opencode");
   });
 });
 
@@ -415,8 +506,8 @@ describe("getInstallInstructions", () => {
 
   test("returns install instructions for pi", () => {
     const instructions = getInstallInstructions("pi");
-    expect(instructions).toBeTruthy();
-    expect(instructions.length).toBeGreaterThan(0);
+    expect(instructions).toContain("npm install -g");
+    expect(instructions).toContain("@pi-mono/pi");
   });
 
   test("returns a string for every provider", () => {
@@ -565,6 +656,112 @@ describe("autoDetectProvider (mocked)", () => {
 });
 
 // =============================================================================
+// invokeWithProvider (model forwarding)
+// =============================================================================
+
+describe("invokeWithProvider model forwarding", () => {
+  const originalSpawn = Bun.spawn;
+  const originalOpencodeInvoke = REGISTRY.opencode.invoke;
+
+  afterAll(() => {
+    Bun.spawn = originalSpawn;
+    REGISTRY.opencode.invoke = originalOpencodeInvoke;
+  });
+
+  beforeEach(() => {
+    Bun.spawn = originalSpawn;
+    REGISTRY.opencode.invoke = originalOpencodeInvoke;
+  });
+
+  test("passes selected model into provider config", async () => {
+    // Mock binary as available
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(0),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    const invokeSpy = mock(async (options: InvocationOptions) => {
+      await Promise.resolve();
+      expect(options.config).toEqual({
+        model: "openai/gpt-4o",
+        provider: "opencode",
+      });
+      return { costUsd: 0, durationMs: 1, result: "ok", sessionId: "sess-1" };
+    });
+
+    REGISTRY.opencode.invoke = invokeSpy;
+
+    const result = await invokeWithProvider("opencode", {
+      mode: "headless",
+      model: "openai/gpt-4o",
+      prompt: "test prompt",
+    });
+
+    expect(invokeSpy).toHaveBeenCalledTimes(1);
+    expect(result?.result).toBe("ok");
+  });
+
+  test("builds supervised prompt from context and prompt file", async () => {
+    // Mock binary as available
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(0),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    const promptPath = join(
+      "/tmp",
+      `registry-supervised-prompt-${Date.now()}.md`,
+    );
+    writeFileSync(promptPath, "PROMPT_FILE_CONTENT");
+
+    try {
+      const invokeSpy = mock(async (options: InvocationOptions) => {
+        await Promise.resolve();
+        expect(options.mode).toBe("supervised");
+        expect(options.prompt).toContain("SUPERVISED_CONTEXT");
+        expect(options.prompt).toContain("PROMPT_FILE_CONTENT");
+        return { costUsd: 0, durationMs: 1, result: "ok", sessionId: "sess-2" };
+      });
+      REGISTRY.opencode.invoke = invokeSpy;
+
+      const result = await invokeWithProvider("opencode", {
+        context: "SUPERVISED_CONTEXT",
+        mode: "supervised",
+        promptPath,
+        sessionName: "test-session",
+      });
+
+      expect(invokeSpy).toHaveBeenCalledTimes(1);
+      expect(result?.result).toBe("ok");
+    } finally {
+      rmSync(promptPath, { force: true });
+    }
+  });
+});
+
+// =============================================================================
 // invokeWithProvider (mocked - error cases)
 // =============================================================================
 
@@ -577,6 +774,36 @@ describe("invokeWithProvider error handling", () => {
 
   beforeEach(() => {
     Bun.spawn = originalSpawn;
+  });
+
+  test("throws ProviderError for claude when binary not found", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    try {
+      await invokeWithProvider("claude", { mode: "headless", prompt: "test" });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProviderError);
+      const pe = error as ProviderError;
+      expect(pe.provider).toBe("claude");
+      expect(pe.message).toContain("not found in PATH");
+      expect(pe.message).toContain("Install:");
+      expect(pe.message).toContain("@anthropic-ai/claude-code");
+    }
   });
 
   test("throws ProviderError with install instructions when binary missing", async () => {
@@ -723,6 +950,9 @@ describe("invokeWithProvider error handling", () => {
       expect(error).toBeInstanceOf(ProviderError);
       const pe = error as ProviderError;
       expect(pe.provider).toBe("pi");
+      expect(pe.message).toContain("not found in PATH");
+      expect(pe.message).toContain("Install:");
+      expect(pe.message).toContain("@pi-mono/pi");
     }
   });
 });

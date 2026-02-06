@@ -38,6 +38,9 @@ describe("loadRalphConfig", () => {
             onSubtaskComplete: ["log"],
             onValidationFail: ["log"],
           },
+          lightweightModel: "claude-3-5-haiku-latest",
+          model: "claude-sonnet-4",
+          provider: "claude",
           selfImprovement: { mode: "autofix" },
         },
         research: {},
@@ -49,6 +52,9 @@ describe("loadRalphConfig", () => {
       expect(loadAaaConfigSpy).toHaveBeenCalled();
       expect(config.hooks).toBeDefined();
       expect(config.hooks?.onMaxIterationsExceeded).toEqual(["log", "notify"]);
+      expect(config.provider).toBe("claude");
+      expect(config.model).toBe("claude-sonnet-4");
+      expect(config.lightweightModel).toBe("claude-3-5-haiku-latest");
       expect(config.selfImprovement?.mode).toBe("autofix");
     });
 
@@ -64,6 +70,9 @@ describe("loadRalphConfig", () => {
       const config = loadRalphConfig();
 
       expect(config.hooks).toBeDefined();
+      expect(config.provider).toBeUndefined();
+      expect(config.model).toBeUndefined();
+      expect(config.lightweightModel).toBeUndefined();
       expect(config.selfImprovement?.mode).toBe("suggest");
     });
 

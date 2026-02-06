@@ -258,6 +258,15 @@ const buildConfigSchema = z.object({
 /**
  * Ralph section of the unified config
  */
+/** Valid provider values for Ralph config */
+type RalphProvider =
+  | "claude"
+  | "codex"
+  | "cursor"
+  | "gemini"
+  | "opencode"
+  | "pi";
+
 interface RalphSection {
   /** Approvals configuration */
   approvals?: ApprovalsConfig;
@@ -265,16 +274,34 @@ interface RalphSection {
   build?: BuildConfig;
   /** Hook configuration */
   hooks?: HooksConfig;
+  /** Lightweight model for summary tasks */
+  lightweightModel?: string;
+  /** Default model override */
+  model?: string;
+  /** Default provider selection */
+  provider?: RalphProvider;
   /** Self-improvement configuration */
   selfImprovement?: SelfImprovementConfig;
   /** Timeout configuration for build processes */
   timeouts?: TimeoutsConfig;
 }
 
+const ralphProviderSchema = z.enum([
+  "claude",
+  "codex",
+  "cursor",
+  "gemini",
+  "opencode",
+  "pi",
+]);
+
 const ralphSectionSchema = z.object({
   approvals: approvalsConfigSchema.optional(),
   build: buildConfigSchema.optional(),
   hooks: hooksConfigSchema.optional(),
+  lightweightModel: z.string().optional(),
+  model: z.string().optional(),
+  provider: ralphProviderSchema.optional(),
   selfImprovement: selfImprovementConfigSchema.optional(),
   timeouts: timeoutsConfigSchema.optional(),
 });
@@ -408,6 +435,8 @@ export {
   prioritySchema,
   type QuietHoursConfig,
   quietHoursSchema,
+  type RalphProvider,
+  ralphProviderSchema,
   type RalphSection,
   ralphSectionSchema,
   type ResearchSection,

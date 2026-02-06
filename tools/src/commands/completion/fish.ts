@@ -42,6 +42,44 @@ function __fish_aaa_needs_command
     test (count $cmd) -eq 1
 end
 
+function __fish_aaa_model_completions
+    set -l cmd (commandline -opc)
+    set -l count (count $cmd)
+    set -l provider ""
+    set -l i 1
+
+    while test $i -le $count
+        if test "$cmd[$i]" = "--provider"
+            set -l next (math $i + 1)
+            if test $next -le $count
+                set provider "$cmd[$next]"
+                break
+            end
+        end
+        set i (math $i + 1)
+    end
+
+    if test -n "$provider"
+        aaa __complete model --provider "$provider" 2>/dev/null | while read line
+            set -l parts (string split \t $line)
+            if test (count $parts) -ge 2
+                echo $parts[1]\t$parts[2]
+            else if test (count $parts) -eq 1
+                echo $parts[1]
+            end
+        end
+    else
+        aaa __complete model 2>/dev/null | while read line
+            set -l parts (string split \t $line)
+            if test (count $parts) -ge 2
+                echo $parts[1]\t$parts[2]
+            else if test (count $parts) -eq 1
+                echo $parts[1]
+            end
+        end
+    end
+end
+
 # Top-level commands
 complete -c aaa -n __fish_aaa_needs_command -a extract-conversations -d 'Extract Claude Code conversation history'
 complete -c aaa -n __fish_aaa_needs_command -a gh-search -d 'Search GitHub for code examples'
@@ -163,7 +201,7 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-firs
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-every -d 'Run calibration every N iterations' -r
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l model -d 'Model to use' -xa '(aaa __complete model 2>/dev/null | while read line; set -l parts (string split \\t $line); if test (count $parts) -ge 2; echo $parts[1]\\t$parts[2]; else; echo $parts[1]; end; end)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 
 # ralph status options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph status' -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
@@ -286,7 +324,7 @@ complete -c aaa -n '__fish_aaa_using_subcommand review' -s s -l supervised -d 'S
 complete -c aaa -n '__fish_aaa_using_subcommand review' -s H -l headless -d 'Headless mode: fully autonomous'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -l dry-run -d 'Preview findings without fixing (requires --headless)'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
-complete -c aaa -n '__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(aaa __complete model 2>/dev/null | while read line; set -l parts (string split \\t $line); if test (count $parts) -ge 2; echo $parts[1]\\t$parts[2]; else; echo $parts[1]; end; end)'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -a status -d 'Display review history and statistics'
 
 # completion subcommands
