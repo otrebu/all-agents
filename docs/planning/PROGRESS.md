@@ -10,6 +10,12 @@
 
 ### 2026-02-06
 
+#### SUB-201
+- **Problem:** TASK-009 required sparse approvals defaults in config (`DEFAULT_APPROVALS` with only `suggestWaitSeconds: 180`) and wiring `DEFAULT_RALPH.approvals` to that constant.
+- **Changes:** Validation-only iteration. Verified `DEFAULT_APPROVALS` exists in `defaults.ts` with sparse shape, verified `DEFAULT_RALPH.approvals` references `DEFAULT_APPROVALS`, and ran `bun run typecheck` successfully. No code changes were required.
+- **Files:**
+  - `tools/src/lib/config/defaults.ts` - Verified existing implementation satisfies acceptance criteria
+
 #### SUB-309
 - **Problem:** No dynamic model discovery existed. Users couldn't discover newly released models from CLI providers without code changes.
 - **Changes:** Created the full refresh-models pipeline: `models-dynamic.ts` placeholder exporting empty `DISCOVERED_MODELS` array; `refresh-models.ts` implementing `discoverOpencodeModels()` via `Bun.spawnSync`, `parseOpencodeModelsOutput()` for JSON parsing, `filterDuplicates()` against static registry, `generateDynamicFileContent()` for TypeScript file generation with sorted models and timestamp. Registered `ralph refresh-models` command with `--dry-run` and `--provider` flags. Updated `models.ts` to import `DISCOVERED_MODELS` from the new dynamic file. 22 unit tests covering parsing, filtering, generation, and error cases.
@@ -518,4 +524,3 @@
   - `tools/src/commands/ralph/types.ts` - Updated SelfImprovementConfig mode union type
   - `tools/src/commands/ralph/config.ts` - Changed default from 'always' to 'suggest'
   - `tools/src/commands/completion/zsh.ts` - Fixed pre-existing lint error (eslint disable for shell template)
-

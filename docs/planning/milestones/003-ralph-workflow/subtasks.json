@@ -1083,7 +1083,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add DEFAULT_APPROVALS constant to defaults.ts",
       "description": "Add DEFAULT_APPROVALS constant in tools/src/lib/config/defaults.ts with sparse defaults (only suggestWaitSeconds: 180). Gate fields are intentionally omitted - they default to undefined and runtime applies \"suggest\" fallback. Update DEFAULT_RALPH to include approvals: DEFAULT_APPROVALS.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "DEFAULT_APPROVALS constant exists in tools/src/lib/config/defaults.ts",
         "DEFAULT_APPROVALS contains only suggestWaitSeconds: 180 (sparse - no gate defaults)",
@@ -1094,7 +1094,10 @@
         "tools/src/lib/config/defaults.ts",
         "tools/src/lib/config/types.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-009-approval-config-loading.md"
-      ]
+      ],
+      "completedAt": "2026-02-06T14:23:04Z",
+      "commitHash": "f856b90f4a6a42b19eb7667ba37bbe5e155e30a0",
+      "sessionId": "8db1cda1-8210-4d56-be47-e2c984410111"
     },
     {
       "id": "SUB-202",
