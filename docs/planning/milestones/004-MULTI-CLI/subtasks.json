@@ -605,7 +605,7 @@
       "storyRef": "004-model-registry",
       "title": "Implement refresh-models command with OpenCode discovery and dynamic file generation",
       "description": "Create the full dynamic model discovery pipeline: (1) Create tools/src/commands/ralph/providers/models-dynamic.ts placeholder exporting empty DISCOVERED_MODELS: ModelInfo[] array with auto-generated comment. (2) Create tools/src/commands/ralph/refresh-models.ts implementing the refresh-models command with --dry-run and --provider flags. Implement discoverOpencodeModels() that runs `opencode models --json` via Bun.spawn, parses JSON output, maps to ModelInfo[] with discoveredAt timestamp. Aggregate discovered models from all providers (or filtered by --provider flag). Filter out duplicates where IDs match STATIC_MODELS (static takes precedence). In --dry-run mode, print discovered models without writing. Otherwise, generate new models-dynamic.ts file content sorted by provider then ID, write to disk, and report discovery statistics. (3) Handle errors gracefully: CLI not installed (skip with warning), discovery command fails (log error, continue with other providers), no models discovered (informative message). (4) Register the refresh-models command in tools/src/commands/ralph/index.ts under the ralph command group. (5) Create tools/tests/providers/refresh-models.test.ts with unit tests covering: discoverOpencodeModels with mock output, --dry-run does not write files, --provider filtering, duplicate filtering against static models, error handling for missing CLI binary, generated file format validation.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/providers/models-dynamic.ts exists exporting DISCOVERED_MODELS: ModelInfo[] = [] with auto-generated comment header",
         "tools/src/commands/ralph/refresh-models.ts exists with refresh-models command implementation",
@@ -630,7 +630,10 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/providers/types.ts",
         "tools/CLAUDE.md"
-      ]
+      ],
+      "completedAt": "2026-02-06T08:52:05Z",
+      "commitHash": "dbb51e5e7f86c1c3cc377f05bc9061de84e5a55c",
+      "sessionId": "d72ad90d-5eb4-4b04-9f7c-66e24284df8c"
     }
   ]
 }

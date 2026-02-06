@@ -2,13 +2,23 @@
 
 ## Current Focus
 
-**Story:** 003-opencode-support
-**Task:** TASK-048 opencode-timeout-tests
-**Status:** SUB-299 complete
+**Story:** 004-model-registry
+**Task:** TASK-050 dynamic-discovery
+**Status:** SUB-309 complete
 
 ## Session Notes
 
 ### 2026-02-06
+
+#### SUB-309
+- **Problem:** No dynamic model discovery existed. Users couldn't discover newly released models from CLI providers without code changes.
+- **Changes:** Created the full refresh-models pipeline: `models-dynamic.ts` placeholder exporting empty `DISCOVERED_MODELS` array; `refresh-models.ts` implementing `discoverOpencodeModels()` via `Bun.spawnSync`, `parseOpencodeModelsOutput()` for JSON parsing, `filterDuplicates()` against static registry, `generateDynamicFileContent()` for TypeScript file generation with sorted models and timestamp. Registered `ralph refresh-models` command with `--dry-run` and `--provider` flags. Updated `models.ts` to import `DISCOVERED_MODELS` from the new dynamic file. 22 unit tests covering parsing, filtering, generation, and error cases.
+- **Files:**
+  - `tools/src/commands/ralph/providers/models-dynamic.ts` - Created: placeholder with empty DISCOVERED_MODELS
+  - `tools/src/commands/ralph/refresh-models.ts` - Created: full discovery command implementation
+  - `tools/src/commands/ralph/providers/models.ts` - Updated: import from models-dynamic.ts
+  - `tools/src/commands/ralph/index.ts` - Updated: registered refresh-models command
+  - `tools/tests/providers/refresh-models.test.ts` - Created: 22 unit tests
 
 #### SUB-299
 - **Problem:** No integration tests existed for OpenCode's hard timeout enforcement and SIGKILL escalation (Issue #8203). The critical failure mode where OpenCode hangs forever on API errors needed deterministic test coverage.
