@@ -543,7 +543,7 @@
       "storyRef": "004-model-registry",
       "title": "Create validateModelSelection helper and integrate into build/review commands",
       "description": "Create a validateModelSelection(modelId: string, provider: ProviderType) helper function in tools/src/commands/ralph/providers/models.ts (or a new models-validation.ts if models.ts does not yet exist) that returns either { valid: true, cliFormat: string } or { valid: false, error: string, suggestions: string[] }. Validation logic: (1) look up model by ID using getModelById(); (2) if not found, generate up to 5 suggestions from same-provider models sorted alphabetically, return error with \"Did you mean\" suggestions and hint to run \"aaa ralph refresh-models\"; (3) if found but provider mismatch, return error naming the correct provider and suggesting same-provider alternatives; (4) if valid, return cliFormat string. Integrate into build.ts: after options parsing and before provider invocation, if model is specified (CLI flag or config), call validateModelSelection(); on invalid result, log formatted error with chalk.red and exit(1); on valid result, pass cliFormat to provider. Apply identical validation in review/index.ts for both headless and supervised modes. Handle models from config file (.aaarc.json or RalphConfig) with the same validation path. Create unit tests in tools/tests/providers/model-validation.test.ts covering: valid model returns correct cliFormat, unknown model returns error with suggestions (max 5), wrong-provider model returns provider mismatch error, suggestions prioritize same-provider models, error message includes refresh-models hint. Verify bun run typecheck and bun test pass.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "validateModelSelection() function exists and is exported from providers/models.ts (or models-validation.ts)",
         "Given valid model ID and matching provider, returns { valid: true, cliFormat: string } with correct CLI format",
@@ -565,7 +565,10 @@
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/review/index.ts",
         "tools/src/commands/ralph/types.ts"
-      ]
+      ],
+      "completedAt": "2026-02-06T07:48:15Z",
+      "commitHash": "72ae2790a0d8325a1e629a376b7c0f738132230d",
+      "sessionId": "c0d38ff0-2365-4353-a063-a4f014d1c959"
     },
     {
       "id": "SUB-299",

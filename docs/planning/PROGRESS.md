@@ -3,12 +3,24 @@
 ## Current Focus
 
 **Story:** 004-model-registry
-**Task:** TASK-051 tab-completion
-**Status:** SUB-314 complete
+**Task:** TASK-052 model-validation
+**Status:** SUB-319 complete
 
 ## Session Notes
 
 ### 2026-02-06
+
+#### SUB-319
+- **Problem:** No model validation existed before provider invocation. Users could specify invalid or wrong-provider model IDs with no helpful feedback.
+- **Changes:** Created `validateModelSelection(modelId, provider)` in models.ts that returns `{ valid: true, cliFormat }` or `{ valid: false, error, suggestions }` result objects. Added `handleModelValidation()` helper in build.ts to encapsulate validation + error display + exit. Integrated into review/index.ts for both headless and supervised modes. Added `--model` flag to both `ralph build` and `review` commands. Error messages include same-provider suggestions (max 5, sorted alphabetically) and `refresh-models` hint. Added `model?: string` to `BuildOptions` type.
+- **Files:**
+  - `tools/src/commands/ralph/providers/models.ts` - Added: ModelValidationResult types, REFRESH_HINT constant, validateModelSelection function
+  - `tools/src/commands/ralph/providers/index.ts` - Updated: barrel export with validateModelSelection, ModelValidationResult, REFRESH_HINT
+  - `tools/src/commands/ralph/types.ts` - Added: model field to BuildOptions
+  - `tools/src/commands/ralph/build.ts` - Added: handleModelValidation helper, integrated after selectProvider
+  - `tools/src/commands/ralph/index.ts` - Added: --model flag to build command
+  - `tools/src/commands/review/index.ts` - Added: --model flag, validation in headless and supervised modes
+  - `tools/tests/providers/model-validation.test.ts` - Created: 17 unit tests
 
 #### SUB-284
 - **Problem:** OpenCode provider lacked OPENCODE_PERMISSION env var for automation permission bypass, binary detection with install instructions, hard timeout enforcement with SIGKILL for Issue #8203, and comprehensive code comments documenting OpenCode-specific quirks. Tests were only co-located, not in the standard tools/tests/ location.
