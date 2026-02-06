@@ -50,7 +50,8 @@ import {
 import { buildPrompt } from "./providers/claude";
 import { validateModelSelection } from "./providers/models";
 import {
-  invokeWithProvider,
+  formatProviderFailureOutcome,
+  invokeWithProviderOutcome,
   resolveProvider,
   validateProviderInvocationPreflight,
 } from "./providers/registry";
@@ -496,37 +497,40 @@ async function processHeadlessIteration(
   // Time Claude invocation for metrics
   const claudeStart = Date.now();
   const stopHeartbeat = startHeartbeat(provider, 30_000);
-  let result: {
-    costUsd: number;
-    durationMs: number;
-    result: string;
-    sessionId: string;
-  } | null = null;
-  try {
-    result = await invokeWithProvider(provider, {
-      gracePeriodMs,
-      mode: "headless",
-      model,
-      onStderrActivity: () => {
-        // Activity tracking is handled internally, but we could extend
-        // the heartbeat here if needed in the future
-      },
-      prompt,
-      stallTimeoutMs,
-      timeout: hardTimeoutMs,
-    });
-  } finally {
-    stopHeartbeat();
-  }
+  const invocationOutcome = await (async () => {
+    try {
+      return await invokeWithProviderOutcome(provider, {
+        gracePeriodMs,
+        mode: "headless",
+        model,
+        onStderrActivity: () => {
+          // Activity tracking is handled internally, but we could extend
+          // the heartbeat here if needed in the future
+        },
+        prompt,
+        stallTimeoutMs,
+        timeout: hardTimeoutMs,
+      });
+    } finally {
+      stopHeartbeat();
+    }
+  })();
   const claudeMs = Date.now() - claudeStart;
 
   // Capture commit hash after Claude invocation
   const commitAfter = getLatestCommitHash(projectRoot);
 
-  if (result === null) {
-    console.error(`${provider} headless invocation failed or was interrupted`);
+  if (invocationOutcome.status !== "success") {
+    const formatted = formatProviderFailureOutcome(invocationOutcome);
+    if (invocationOutcome.status === "fatal") {
+      console.error(chalk.red(`\n✖ ${formatted}`));
+      process.exit(1);
+    }
+    console.log(chalk.yellow(`\n⚠ ${formatted}`));
     return null;
   }
+
+  const { result } = invocationOutcome;
 
   // Display result with markdown rendering
   console.log(`\n${renderResponseHeader(provider)}`);
@@ -648,7 +652,7 @@ async function processSupervisedIteration(
   // Capture invocation start for timing + session fallback discovery
   const invocationStart = Date.now();
 
-  const supervisedResult = await invokeWithProvider(provider, {
+  const invocationOutcome = await invokeWithProviderOutcome(provider, {
     context: `Work ONLY on the assigned subtask below. Do not pick a different subtask.\n\nAssigned subtask:\n${JSON.stringify(currentSubtask, null, 2)}\n\nSubtasks file path: ${subtasksPath}\nProgress log path: ${progressPath}`,
     mode: "supervised",
     model,
@@ -656,10 +660,17 @@ async function processSupervisedIteration(
     sessionName: "build iteration",
   });
 
-  if (supervisedResult === null) {
-    console.error(`${provider} supervised session failed`);
+  if (invocationOutcome.status !== "success") {
+    const formatted = formatProviderFailureOutcome(invocationOutcome);
+    if (invocationOutcome.status === "fatal") {
+      console.error(chalk.red(`\n✖ ${formatted}`));
+      process.exit(1);
+    }
+    console.log(chalk.yellow(`\n⚠ ${formatted}`));
     return null;
   }
+
+  const supervisedResult = invocationOutcome.result;
 
   // Capture commit hash after provider invocation
   const commitAfter = getLatestCommitHash(projectRoot);
@@ -1077,11 +1088,11 @@ async function runBuild(
       });
 
       if (headlessResult === null) {
-        // Provider invocation failed (API error, rate limit, network issue)
-        // Do not count this attempt - will retry on next iteration
+        // Retryable provider outcome: count the attempt and retry.
+        attempts.set(currentSubtask.id, currentAttempts);
         console.log(
           chalk.yellow(
-            `\n⚠ ${provider} invocation failed. Will retry on next iteration.\n`,
+            `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
           ),
         );
         didComplete = false;
@@ -1104,11 +1115,11 @@ async function runBuild(
       });
 
       if (supervisedResult === null) {
-        // Provider invocation failed (API error, rate limit, network issue)
-        // Do not count this attempt - will retry on next iteration
+        // Retryable provider outcome: count the attempt and retry.
+        attempts.set(currentSubtask.id, currentAttempts);
         console.log(
           chalk.yellow(
-            `\n⚠ ${provider} invocation failed. Will retry on next iteration.\n`,
+            `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
           ),
         );
         didComplete = false;

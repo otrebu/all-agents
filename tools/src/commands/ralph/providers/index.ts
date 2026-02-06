@@ -18,9 +18,12 @@ export {
 } from "./models";
 export {
   autoDetectProvider,
+  createProviderInvocationFailure,
+  formatProviderFailureOutcome,
   getInstallInstructions,
   type HeadlessProviderOptions,
   invokeWithProvider,
+  invokeWithProviderOutcome,
   isBinaryAvailable,
   ProviderError,
   type ProviderInvokeOptions,
@@ -61,6 +64,10 @@ export {
   PROVIDER_BINARIES,
   type ProviderCapabilities,
   type ProviderConfig,
+  type ProviderFailureOutcome,
+  type ProviderFailureReason,
+  type ProviderInvocationOutcome,
+  type ProviderSuccessOutcome,
   type ProviderType,
   type TokenUsage,
 } from "./types";

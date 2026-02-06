@@ -18,7 +18,8 @@ import { formatDuration, renderMarkdown } from "../ralph/display";
 import { executeHook, type HookContext } from "../ralph/hooks";
 import { validateModelSelection } from "../ralph/providers/models";
 import {
-  invokeWithProvider,
+  formatProviderFailureOutcome,
+  invokeWithProviderOutcome,
   resolveProvider,
   validateProviderInvocationPreflight,
 } from "../ralph/providers/registry";
@@ -958,7 +959,7 @@ async function runHeadlessReview(options: {
 
   // Invoke provider headless with timeout protection
   const timeoutConfig = loadTimeoutConfig();
-  const result = await invokeWithProvider(provider, {
+  const invocationOutcome = await invokeWithProviderOutcome(provider, {
     gracePeriodMs: timeoutConfig.graceSeconds * 1000,
     mode: "headless",
     model,
@@ -967,12 +968,15 @@ async function runHeadlessReview(options: {
     timeout: timeoutConfig.hardMinutes * 60 * 1000,
   });
 
-  if (result === null) {
-    console.error(
-      chalk.red("\nHeadless review failed, was interrupted, or timed out"),
-    );
+  if (invocationOutcome.status !== "success") {
+    const formatted = formatProviderFailureOutcome(invocationOutcome);
+    const color =
+      invocationOutcome.status === "fatal" ? chalk.red : chalk.yellow;
+    console.error(color(`\n${formatted}`));
     process.exit(1);
   }
+
+  const { result } = invocationOutcome;
 
   // Display Claude's response (excluding the JSON block for cleaner output)
   const displayOutput = result.result
@@ -1296,7 +1300,7 @@ async function runSupervisedReview(
 
   // Invoke in chat/supervised mode
   // User can watch and type during the session
-  const result = await invokeWithProvider(provider, {
+  const invocationOutcome = await invokeWithProviderOutcome(provider, {
     context: `Execute the parallel code review workflow as defined in this skill document.
 
 Run all phases:
@@ -1312,9 +1316,11 @@ Start by gathering the diff.`,
     sessionName: "code review",
   });
 
-  // Handle result - null means failure (interruption handled internally)
-  if (result === null) {
-    console.error(chalk.red("\nCode review session failed"));
+  if (invocationOutcome.status !== "success") {
+    const formatted = formatProviderFailureOutcome(invocationOutcome);
+    const color =
+      invocationOutcome.status === "fatal" ? chalk.red : chalk.yellow;
+    console.error(color(`\n${formatted}`));
     process.exit(1);
   }
 

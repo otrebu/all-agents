@@ -25,14 +25,14 @@ Provider CLIs do not share a single failure contract. Some errors are retryable,
 6. Add fixture-driven tests for timeout, auth, model validation, malformed output, and transport failures.
 
 ### Acceptance Criteria
-- [ ] Retry logic in build loop uses normalized outcome classification.
-- [ ] Auth/model/configuration errors are classified fatal and are not retried.
-- [ ] Timeout/transient/provider-transport failures are classified retryable.
-- [ ] Review and build commands display provider-neutral failure reasons.
+- [x] Retry logic in build loop uses normalized outcome classification.
+- [x] Auth/model/configuration errors are classified fatal and are not retried.
+- [x] Timeout/transient/provider-transport failures are classified retryable.
+- [x] Review and build commands display provider-neutral failure reasons.
 
 ### Test Plan
-- [ ] `cd tools && bun test tests/providers/opencode.test.ts tests/providers/claude.integration.test.ts`
-- [ ] Add outcome classification unit tests for fatal and retryable branches.
+- [x] `cd tools && bun test tests/providers/opencode.test.ts tests/providers/claude.integration.test.ts`
+- [x] Add outcome classification unit tests for fatal and retryable branches.
 - [ ] Manual: simulate invalid model, invalid auth, and timeout to verify behavior.
 
 ### Scope

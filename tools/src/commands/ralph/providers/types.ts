@@ -124,6 +124,44 @@ type ProviderConfig =
   | OpencodeConfig
   | PiConfig;
 
+/** Normalized failed provider outcome used by retry/fatal decisioning */
+interface ProviderFailureOutcome {
+  /** Human-readable provider-neutral failure summary */
+  message: string;
+  /** Provider that produced the failure */
+  provider: ProviderType;
+  /** Machine-readable reason category */
+  reason: ProviderFailureReason;
+  /** Whether caller should retry or fail fast */
+  status: "fatal" | "retryable";
+}
+
+/** Machine-readable reason categories for failed provider outcomes */
+type ProviderFailureReason =
+  | "auth"
+  | "configuration"
+  | "interrupted"
+  | "malformed_output"
+  | "model"
+  | "timeout"
+  | "transport"
+  | "unknown";
+
+/** Normalized invocation outcome for provider-neutral retry semantics */
+type ProviderInvocationOutcome =
+  | ProviderFailureOutcome
+  | ProviderSuccessOutcome;
+
+/** Normalized successful provider outcome */
+interface ProviderSuccessOutcome {
+  /** Provider that produced the result */
+  provider: ProviderType;
+  /** Normalized result payload */
+  result: AgentResult;
+  /** Discriminant for successful outcomes */
+  status: "success";
+}
+
 /** Supported AI coding agent providers */
 type ProviderType =
   | "claude"
@@ -180,6 +218,10 @@ export {
   PROVIDER_BINARIES,
   type ProviderCapabilities,
   type ProviderConfig,
+  type ProviderFailureOutcome,
+  type ProviderFailureReason,
+  type ProviderInvocationOutcome,
+  type ProviderSuccessOutcome,
   type ProviderType,
   type TokenUsage,
 };

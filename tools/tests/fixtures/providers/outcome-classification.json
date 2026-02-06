@@ -1,0 +1,44 @@
+[
+  {
+    "name": "timeout",
+    "provider": "opencode",
+    "message": "OpenCode timed out after 60000ms (Issue #8203: process may have hung during API error)",
+    "status": "retryable",
+    "reason": "timeout"
+  },
+  {
+    "name": "auth",
+    "provider": "opencode",
+    "message": "OpenCode exited with code 1: API key invalid",
+    "status": "fatal",
+    "reason": "auth"
+  },
+  {
+    "name": "model",
+    "provider": "opencode",
+    "message": "Unknown model: anthropic/not-real-model",
+    "status": "fatal",
+    "reason": "model"
+  },
+  {
+    "name": "malformed-output",
+    "provider": "opencode",
+    "message": "Malformed JSON line in OpenCode output",
+    "status": "fatal",
+    "reason": "malformed_output"
+  },
+  {
+    "name": "transport",
+    "provider": "opencode",
+    "message": "connection reset by peer",
+    "status": "retryable",
+    "reason": "transport"
+  },
+  {
+    "name": "claude-timeout",
+    "provider": "claude",
+    "message": "Claude invocation timed out after 120000ms",
+    "status": "retryable",
+    "reason": "timeout"
+  }
+]

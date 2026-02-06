@@ -16,12 +16,20 @@ import type {
   InvokerFunction,
   ProviderCapabilities,
   ProviderConfig,
+  ProviderFailureOutcome,
+  ProviderFailureReason,
+  ProviderInvocationOutcome,
   ProviderType,
 } from "./types";
 
 import { loadRalphConfig } from "../config";
-import { invokeClaudeChat, invokeClaudeHeadlessAsync } from "./claude";
-import { invokeOpencode } from "./opencode";
+import {
+  createClaudeFailureOutcome,
+  createClaudeNullOutcome,
+  invokeClaudeChat,
+  invokeClaudeHeadlessAsync,
+} from "./claude";
+import { invokeOpencode, mapOpencodeInvocationError } from "./opencode";
 import { PROVIDER_BINARIES } from "./types";
 
 // =============================================================================
@@ -102,6 +110,53 @@ const VALID_PROVIDERS = new Set<string>([
   "pi",
 ]);
 
+const GENERIC_FAILURE_REASON_RULES: Array<{
+  patterns: Array<string>;
+  reason: ProviderFailureReason;
+}> = [
+  {
+    patterns: ["interrupted", "sigint", "sigterm", "cancelled", "canceled"],
+    reason: "interrupted",
+  },
+  { patterns: ["timed out", "timeout", "stall"], reason: "timeout" },
+  {
+    patterns: ["api key", "unauthorized", "authentication", "forbidden"],
+    reason: "auth",
+  },
+  {
+    patterns: [
+      "unknown model",
+      "invalid model",
+      "model not found",
+      "unsupported model",
+    ],
+    reason: "model",
+  },
+  { patterns: ["malformed", "parse", "json"], reason: "malformed_output" },
+  {
+    patterns: [
+      "rate limit",
+      "temporarily unavailable",
+      "overloaded",
+      "connection",
+      "network",
+      "transport",
+    ],
+    reason: "transport",
+  },
+  {
+    patterns: [
+      "config",
+      "configuration",
+      "not found in path",
+      "install:",
+      "not enabled",
+      "does not support",
+    ],
+    reason: "configuration",
+  },
+];
+
 // =============================================================================
 // Functions (alphabetical order per perfectionist/sort-modules)
 // =============================================================================
@@ -143,6 +198,54 @@ function createNotImplementedInvoker(provider: string): InvokerFunction {
       `Provider '${provider}' is not yet implemented.`,
     );
   };
+}
+
+/**
+ * Create a normalized failure outcome from a provider invocation error.
+ */
+function createProviderInvocationFailure(
+  provider: ProviderType,
+  error: unknown,
+): ProviderFailureOutcome {
+  if (provider === "claude") {
+    return createClaudeFailureOutcome(error);
+  }
+
+  if (provider === "opencode") {
+    return mapOpencodeInvocationError(error);
+  }
+
+  const message =
+    error instanceof Error && error.message !== ""
+      ? error.message
+      : String(error);
+  const reason = getGenericFailureReason(message.toLowerCase());
+  const status =
+    reason === "timeout" || reason === "transport" ? "retryable" : "fatal";
+
+  return { message, provider, reason, status };
+}
+
+/**
+ * Render a provider-neutral failure line for CLI output.
+ */
+function formatProviderFailureOutcome(outcome: ProviderFailureOutcome): string {
+  return `${outcome.provider} ${outcome.status} (${outcome.reason}): ${outcome.message}`;
+}
+
+/**
+ * Derive a generic failure reason from an error message.
+ */
+function getGenericFailureReason(
+  normalizedMessage: string,
+): ProviderFailureReason {
+  for (const rule of GENERIC_FAILURE_REASON_RULES) {
+    if (rule.patterns.some((pattern) => normalizedMessage.includes(pattern))) {
+      return rule.reason;
+    }
+  }
+
+  return "unknown";
 }
 
 /**
@@ -271,6 +374,35 @@ async function invokeWithProvider(
     mode: options.mode === "headless" ? "headless-async" : "supervised",
     prompt,
   });
+}
+
+/**
+ * Invoke a provider and normalize success/retryable/fatal outcomes.
+ */
+async function invokeWithProviderOutcome(
+  provider: ProviderType,
+  options: ProviderInvokeOptions,
+): Promise<ProviderInvocationOutcome> {
+  try {
+    const result = await invokeWithProvider(provider, options);
+
+    if (result !== null) {
+      return { provider, result, status: "success" };
+    }
+
+    if (provider === "claude") {
+      return createClaudeNullOutcome(options.mode);
+    }
+
+    return {
+      message: `${provider} invocation returned no result payload.`,
+      provider,
+      reason: "transport",
+      status: "retryable",
+    };
+  } catch (error) {
+    return createProviderInvocationFailure(provider, error);
+  }
 }
 
 /**
@@ -614,9 +746,12 @@ const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
 
 export {
   autoDetectProvider,
+  createProviderInvocationFailure,
+  formatProviderFailureOutcome,
   getInstallInstructions,
   type HeadlessProviderOptions,
   invokeWithProvider,
+  invokeWithProviderOutcome,
   isBinaryAvailable,
   ProviderError,
   type ProviderInvokeOptions,

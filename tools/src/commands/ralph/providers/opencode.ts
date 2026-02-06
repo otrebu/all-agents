@@ -50,6 +50,8 @@ import type {
   AgentResult,
   InvocationOptions,
   OpencodeConfig,
+  ProviderFailureOutcome,
+  ProviderFailureReason,
   TokenUsage,
 } from "./types";
 
@@ -102,6 +104,72 @@ const OPENCODE_SESSION_SCAN_LIMIT = 10;
 
 /** Tolerance window to match supervised sessions by timestamp */
 const OPENCODE_SUPERVISED_SESSION_LOOKBACK_MS = 10_000;
+
+const OPENCODE_FAILURE_REASON_RULES: Array<{
+  patterns: Array<string>;
+  reason: ProviderFailureReason;
+}> = [
+  {
+    patterns: ["interrupted", "sigint", "sigterm", "cancelled", "canceled"],
+    reason: "interrupted",
+  },
+  {
+    patterns: ["timed out", "timeout", "issue #8203", "hang"],
+    reason: "timeout",
+  },
+  {
+    patterns: [
+      "api key",
+      "unauthorized",
+      "authentication",
+      "forbidden",
+      "invalid credentials",
+      "invalid token",
+    ],
+    reason: "auth",
+  },
+  {
+    patterns: [
+      "unknown model",
+      "invalid model",
+      "model not found",
+      "unsupported model",
+    ],
+    reason: "model",
+  },
+  {
+    patterns: ["malformed json", "empty jsonl", "no step_finish", "parse"],
+    reason: "malformed_output",
+  },
+  {
+    patterns: [
+      "rate limit",
+      "temporarily unavailable",
+      "overloaded",
+      "connection",
+      "network",
+      "econn",
+      "socket",
+      "transport",
+      " 429",
+      " 502",
+      " 503",
+    ],
+    reason: "transport",
+  },
+  {
+    patterns: [
+      "requires an interactive tty",
+      "binary not found",
+      "not found in path",
+      "install:",
+      "configuration",
+      "config",
+      "permission",
+    ],
+    reason: "configuration",
+  },
+];
 
 /**
  * Permission bypass environment variable value.
@@ -219,6 +287,18 @@ function exitCodeToSignal(
     return "SIGTERM";
   }
   return null;
+}
+
+function getOpencodeFailureReason(
+  normalizedMessage: string,
+): ProviderFailureReason | undefined {
+  for (const rule of OPENCODE_FAILURE_REASON_RULES) {
+    if (rule.patterns.some((pattern) => normalizedMessage.includes(pattern))) {
+      return rule.reason;
+    }
+  }
+
+  return undefined;
 }
 
 /**
@@ -493,6 +573,28 @@ async function listOpencodeSessions(
 }
 
 /**
+ * Map OpenCode invocation failures into provider-neutral retry semantics.
+ */
+function mapOpencodeInvocationError(error: unknown): ProviderFailureOutcome {
+  const message =
+    error instanceof Error && error.message !== ""
+      ? error.message
+      : String(error);
+  const normalized = message.toLowerCase();
+
+  const reasonFromMessage =
+    getOpencodeFailureReason(normalized) ??
+    ("unknown" satisfies ProviderFailureReason);
+
+  const status =
+    reasonFromMessage === "timeout" || reasonFromMessage === "transport"
+      ? "retryable"
+      : "fatal";
+
+  return { message, provider: "opencode", reason: reasonFromMessage, status };
+}
+
+/**
  * Parse OpenCode JSONL output and normalize to AgentResult.
  *
  * Processes the JSONL stream by:
@@ -669,10 +771,12 @@ export {
   buildOpencodeSupervisedArguments,
   checkOpencodeAvailable,
   DEFAULT_HARD_TIMEOUT_MS,
+  getOpencodeFailureReason,
   invokeOpencode,
   invokeOpencodeHeadless,
   invokeOpencodeSupervised,
   listOpencodeSessions,
+  mapOpencodeInvocationError,
   normalizeOpencodeResult,
   OPENCODE_PERMISSION_VALUE,
   OPENCODE_SESSION_SCAN_LIMIT,

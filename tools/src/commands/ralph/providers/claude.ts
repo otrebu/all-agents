@@ -11,7 +11,11 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 
-import type { AgentResult } from "./types";
+import type {
+  AgentResult,
+  ProviderFailureOutcome,
+  ProviderFailureReason,
+} from "./types";
 
 import {
   createStallDetector,
@@ -48,6 +52,62 @@ interface ClaudeResult {
 
 type TerminationSignal = keyof typeof SIGNAL_EXIT_CODE;
 
+const CLAUDE_FAILURE_REASON_RULES: Array<{
+  patterns: Array<string>;
+  reason: ProviderFailureReason;
+}> = [
+  {
+    patterns: ["interrupted", "sigint", "sigterm", "cancelled", "canceled"],
+    reason: "interrupted",
+  },
+  { patterns: ["timed out", "timeout", "stall"], reason: "timeout" },
+  {
+    patterns: [
+      "api key",
+      "unauthorized",
+      "authentication",
+      "forbidden",
+      "invalid credentials",
+    ],
+    reason: "auth",
+  },
+  {
+    patterns: [
+      "unknown model",
+      "invalid model",
+      "model not found",
+      "unsupported model",
+    ],
+    reason: "model",
+  },
+  { patterns: ["malformed", "parse", "json"], reason: "malformed_output" },
+  {
+    patterns: [
+      "rate limit",
+      "temporarily unavailable",
+      "overloaded",
+      "connection",
+      "network",
+      "econn",
+      "socket",
+      "transport",
+      " 429",
+      " 502",
+      " 503",
+    ],
+    reason: "transport",
+  },
+  {
+    patterns: [
+      "config",
+      "configuration",
+      "prompt not found",
+      "not found in path",
+    ],
+    reason: "configuration",
+  },
+];
+
 /**
  * Build Claude headless arguments with optional model.
  */
@@ -77,6 +137,47 @@ function buildPrompt(content: string, extraContext?: string): string {
     return `${extraContext}\n\n${content}`;
   }
   return content;
+}
+
+/**
+ * Classify Claude invocation failures into provider-neutral retry semantics.
+ */
+function createClaudeFailureOutcome(error: unknown): ProviderFailureOutcome {
+  const message =
+    error instanceof Error && error.message !== ""
+      ? error.message
+      : String(error);
+  const normalized = message.toLowerCase();
+
+  const reasonFromMessage =
+    resolveClaudeFailureReason(normalized) ??
+    ("unknown" satisfies ProviderFailureReason);
+
+  const status =
+    reasonFromMessage === "timeout" || reasonFromMessage === "transport"
+      ? "retryable"
+      : "fatal";
+
+  return { message, provider: "claude", reason: reasonFromMessage, status };
+}
+
+/**
+ * Build a normalized retryable outcome when Claude returns null without details.
+ */
+function createClaudeNullOutcome(
+  mode: "headless" | "supervised",
+): ProviderFailureOutcome {
+  const message =
+    mode === "headless"
+      ? "Claude headless invocation returned no result payload."
+      : "Claude supervised session ended without a result payload.";
+
+  return {
+    message,
+    provider: "claude",
+    reason: "transport",
+    status: "retryable",
+  };
 }
 
 function exitCodeToSignal(
@@ -528,12 +629,27 @@ function normalizeTerminationSignal(
   return null;
 }
 
+function resolveClaudeFailureReason(
+  normalizedMessage: string,
+): ProviderFailureReason | undefined {
+  for (const rule of CLAUDE_FAILURE_REASON_RULES) {
+    if (rule.patterns.some((pattern) => normalizedMessage.includes(pattern))) {
+      return rule.reason;
+    }
+  }
+
+  return undefined;
+}
+
 export {
   buildPrompt,
   type ClaudeResult,
+  createClaudeFailureOutcome,
+  createClaudeNullOutcome,
   invokeClaude,
   invokeClaudeChat,
   invokeClaudeHaiku,
   invokeClaudeHeadlessAsync,
   normalizeClaudeResult,
+  resolveClaudeFailureReason,
 };
