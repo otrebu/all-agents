@@ -10,9 +10,15 @@
  * @see docs/planning/schemas/subtasks.schema.json
  */
 
-import { DEFAULT_RALPH, loadAaaConfig } from "@tools/lib/config";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import {
+  DEFAULT_RALPH,
+  DEFAULT_TIMEOUTS,
+  loadAaaConfig,
+  type TimeoutsConfig,
+} from "@tools/lib/config";
+import { findProjectRoot } from "@tools/utils/paths";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join } from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
 
@@ -53,6 +59,61 @@ function countRemaining(subtasks: Array<Subtask>): number {
 // =============================================================================
 
 /**
+ * Count subtasks in a subtasks file
+ *
+ * @param subtasksPath - Path to subtasks.json file
+ * @returns Number of subtasks in the file, or 0 if file doesn't exist or has errors
+ */
+function countSubtasksInFile(subtasksPath: string): number {
+  if (!existsSync(subtasksPath)) {
+    return 0;
+  }
+
+  try {
+    const content = readFileSync(subtasksPath, "utf8");
+    const parsed = JSON.parse(content) as SubtasksFile;
+
+    if (!Array.isArray(parsed.subtasks)) {
+      return 0;
+    }
+
+    return parsed.subtasks.length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Discover task files from a milestone path
+ *
+ * Lists all .md files in the milestone's tasks directory.
+ *
+ * @param milestonePath - Path to the milestone root directory
+ * @returns Array of task file paths, or empty array if tasks directory doesn't exist
+ *
+ * @example
+ * const tasks = discoverTasksFromMilestone('docs/planning/milestones/003-ralph-workflow');
+ * // Returns: ['docs/planning/.../tasks/TASK-001-foo.md', 'docs/planning/.../tasks/TASK-002-bar.md']
+ */
+function discoverTasksFromMilestone(milestonePath: string): Array<string> {
+  const tasksDirectory = join(milestonePath, "tasks");
+
+  if (!existsSync(tasksDirectory)) {
+    return [];
+  }
+
+  try {
+    const entries = readdirSync(tasksDirectory, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+      .map((entry) => join(tasksDirectory, entry.name))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Get all completed subtasks
  *
  * @param subtasks - Array of subtasks to filter
@@ -60,6 +121,50 @@ function countRemaining(subtasks: Array<Subtask>): number {
  */
 function getCompletedSubtasks(subtasks: Array<Subtask>): Array<Subtask> {
   return subtasks.filter((s) => s.done);
+}
+
+/**
+ * Get existing taskRef values from a subtasks file
+ *
+ * Scans a subtasks file and returns a Set of all unique taskRef values
+ * from pending (not done) subtasks. This enables pre-checking which tasks
+ * already have subtasks before invoking Claude for generation.
+ *
+ * @param subtasksPath - Path to subtasks.json file
+ * @returns Set of unique taskRef values from pending subtasks, or empty Set if file doesn't exist or has errors
+ *
+ * @example
+ * const existing = getExistingTaskReferences('docs/planning/milestones/003-ralph-workflow/subtasks.json');
+ * if (existing.has('TASK-001')) {
+ *   console.log('TASK-001 already has subtasks');
+ * }
+ */
+function getExistingTaskReferences(subtasksPath: string): Set<string> {
+  if (!existsSync(subtasksPath)) {
+    return new Set<string>();
+  }
+
+  try {
+    const content = readFileSync(subtasksPath, "utf8");
+    const parsed = JSON.parse(content) as SubtasksFile;
+
+    if (!Array.isArray(parsed.subtasks)) {
+      return new Set<string>();
+    }
+
+    // Collect unique taskRefs from pending (not done) subtasks
+    const taskReferences = new Set<string>();
+    for (const subtask of parsed.subtasks) {
+      if (!subtask.done && subtask.taskRef) {
+        taskReferences.add(subtask.taskRef);
+      }
+    }
+
+    return taskReferences;
+  } catch {
+    // Fail silently - return empty Set on parse errors
+    return new Set<string>();
+  }
 }
 
 /**
@@ -99,7 +204,22 @@ function getMilestoneLogPath(milestoneRoot: string): string {
  * @returns First pending subtask, or null if none remain
  */
 function getNextSubtask(subtasks: Array<Subtask>): null | Subtask {
-  return subtasks.find((s) => !s.done) ?? null;
+  // Prefer subtasks that are ready to run (not done and not blocked by incomplete dependencies)
+  const doneById = new Map<string, boolean>();
+  for (const subtask of subtasks) {
+    doneById.set(subtask.id, subtask.done);
+  }
+
+  function isSubtaskReady(subtask: Subtask): boolean {
+    if (subtask.done) return false;
+    const blockedBy = subtask.blockedBy ?? [];
+    for (const dependencyId of blockedBy) {
+      if (doneById.get(dependencyId) !== true) return false;
+    }
+    return true;
+  }
+
+  return subtasks.find((s) => isSubtaskReady(s)) ?? null;
 }
 
 /**
@@ -151,6 +271,9 @@ function loadRalphConfig(configPath?: string): RalphConfig {
           onValidationFail: ralph.hooks.onValidationFail,
         }
       : DEFAULT_CONFIG.hooks,
+    lightweightModel: ralph.lightweightModel,
+    model: ralph.model,
+    provider: ralph.provider,
     // Map unified SelfImprovementConfig to ralph's SelfImprovementConfig
     // Ensure mode has a value (unified config has it optional, ralph requires it)
     selfImprovement: { mode: ralph.selfImprovement?.mode ?? "suggest" },
@@ -214,6 +337,117 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
   }
 }
 
+/**
+ * Load timeout configuration from unified aaa.config.json
+ *
+ * Returns fully-resolved timeout config with defaults applied.
+ *
+ * @returns TimeoutsConfig with all values populated
+ */
+function loadTimeoutConfig(): Required<TimeoutsConfig> {
+  const aaaConfig = loadAaaConfig();
+  const timeouts = aaaConfig.ralph?.timeouts ?? {};
+
+  return {
+    graceSeconds: timeouts.graceSeconds ?? DEFAULT_TIMEOUTS.graceSeconds ?? 5,
+    hardMinutes: timeouts.hardMinutes ?? DEFAULT_TIMEOUTS.hardMinutes ?? 60,
+    stallMinutes: timeouts.stallMinutes ?? DEFAULT_TIMEOUTS.stallMinutes ?? 10,
+  };
+}
+
+// =============================================================================
+// Milestone Resolution
+// =============================================================================
+
+/**
+ * Relative path to milestone directories from project root
+ */
+const MILESTONES_RELATIVE_PATH = "docs/planning/milestones";
+
+/**
+ * Get the full path to the milestones directory
+ *
+ * @returns Full path to docs/planning/milestones from project root
+ */
+function getMilestonesBasePath(): string {
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  return join(projectRoot, MILESTONES_RELATIVE_PATH);
+}
+
+/**
+ * List available milestone directories
+ *
+ * @returns Array of milestone directory names (excluding _orphan and files)
+ */
+function listAvailableMilestones(): Array<string> {
+  const basePath = getMilestonesBasePath();
+
+  if (!existsSync(basePath)) {
+    return [];
+  }
+
+  try {
+    const entries = readdirSync(basePath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_"))
+      .map((entry) => entry.name)
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Resolve a milestone identifier to its full path
+ *
+ * Handles three cases:
+ * 1. Full/absolute path - returns as-is if it exists
+ * 2. Milestone name - searches docs/planning/milestones/<name>/
+ * 3. Not found - throws error with available milestones listed
+ *
+ * @param nameOrPath - Either a full path or milestone name (e.g., '003-ralph-workflow')
+ * @returns Full path to the milestone directory
+ * @throws Error if milestone not found, with available milestones listed
+ *
+ * @example
+ * resolveMilestonePath('/full/path/to/milestone') // returns input unchanged
+ * resolveMilestonePath('003-ralph-workflow') // returns 'docs/planning/milestones/003-ralph-workflow'
+ * resolveMilestonePath('nonexistent') // throws Error with available milestones
+ */
+function resolveMilestonePath(nameOrPath: string): string {
+  // Case 1: If input is an absolute path or a path that exists, return as-is
+  if (isAbsolute(nameOrPath)) {
+    if (existsSync(nameOrPath)) {
+      return nameOrPath;
+    }
+    throw new Error(`Milestone path not found: ${nameOrPath}`);
+  }
+
+  // Case 2: If input looks like a relative path (contains /) and exists
+  if (nameOrPath.includes("/") && existsSync(nameOrPath)) {
+    return nameOrPath;
+  }
+
+  // Case 3: Treat as milestone name, search in milestones directory
+  const basePath = getMilestonesBasePath();
+  const milestonePath = join(basePath, nameOrPath);
+  if (existsSync(milestonePath)) {
+    return milestonePath;
+  }
+
+  // Case 4: Not found - list available milestones
+  const availableMilestones = listAvailableMilestones();
+  const milestoneList =
+    availableMilestones.length > 0
+      ? availableMilestones.join(", ")
+      : "(none found)";
+
+  throw new Error(
+    `Milestone not found: ${nameOrPath}\n` +
+      `Available milestones: ${milestoneList}`,
+  );
+}
+
 // =============================================================================
 // Log Path Helpers
 // =============================================================================
@@ -222,6 +456,75 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
  * Default milestone for orphaned logs (when milestone cannot be determined)
  */
 const ORPHAN_MILESTONE_ROOT = "docs/planning/milestones/_orphan";
+
+/**
+ * Append subtasks to an existing subtasks file, or create a new one
+ *
+ * Merges new subtasks with existing ones, skipping duplicates by ID.
+ * Creates a new file with default schema and metadata if none exists.
+ *
+ * @param subtasksPath - Path to subtasks.json file
+ * @param newSubtasks - Array of new subtasks to append
+ * @param metadata - Optional metadata to use if creating a new file
+ * @returns Object with counts of added and skipped subtasks
+ * @throws Error if newSubtasks is not an array
+ * @throws Error if existing file has invalid JSON or format
+ * @throws Error if file operations fail
+ */
+function appendSubtasksToFile(
+  subtasksPath: string,
+  newSubtasks: Array<Subtask>,
+  metadata?: SubtasksFile["metadata"],
+): { added: number; skipped: number } {
+  // Parameter validation
+  if (!Array.isArray(newSubtasks)) {
+    throw new TypeError("newSubtasks must be an array");
+  }
+
+  let existingFile: SubtasksFile = {
+    $schema: "../../schemas/subtasks.schema.json",
+    metadata: metadata ?? { scope: "milestone" },
+    subtasks: [],
+  };
+
+  if (existsSync(subtasksPath)) {
+    // Error handling for load
+    try {
+      existingFile = loadSubtasksFile(subtasksPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to load existing subtasks from ${subtasksPath}: ${message}`,
+      );
+    }
+  }
+
+  // Array validation for existing subtasks
+  const existingSubtasks = existingFile.subtasks;
+  if (!Array.isArray(existingSubtasks)) {
+    throw new TypeError(
+      `Invalid subtasks.json format: 'subtasks' must be an array`,
+    );
+  }
+
+  const existingIds = new Set<string>(existingSubtasks.map((s) => s.id));
+
+  // Filter out duplicates and append
+  const subtasksToAdd = newSubtasks.filter((s) => !existingIds.has(s.id));
+  const skipped = newSubtasks.length - subtasksToAdd.length;
+
+  existingFile.subtasks = [...existingSubtasks, ...subtasksToAdd];
+
+  // Error handling for save
+  try {
+    saveSubtasksFile(subtasksPath, existingFile);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to save subtasks to ${subtasksPath}: ${message}`);
+  }
+
+  return { added: subtasksToAdd.length, skipped };
+}
 
 /**
  * Get the path to the iteration log file for a subtasks file
@@ -272,9 +575,7 @@ function getPlanningLogPath(milestonePath: string): string {
 }
 
 /**
- * Save subtasks file to disk with formatted JSON
- *
- * Writes with 2-space indentation for readability.
+ * Save subtasks file to disk
  *
  * @param subtasksPath - Path to subtasks.json file
  * @param data - SubtasksFile object to write
@@ -289,17 +590,26 @@ function saveSubtasksFile(subtasksPath: string, data: SubtasksFile): void {
 // =============================================================================
 
 export {
+  appendSubtasksToFile,
   countRemaining,
+  countSubtasksInFile,
   DEFAULT_CONFIG,
+  discoverTasksFromMilestone,
   getCompletedSubtasks,
+  getExistingTaskReferences,
   getIterationLogPath,
   getMilestoneFromSubtasks,
   getMilestoneLogPath,
+  getMilestonesBasePath,
   getNextSubtask,
   getPendingSubtasks,
   getPlanningLogPath,
+  listAvailableMilestones,
   loadRalphConfig,
   loadSubtasksFile,
+  loadTimeoutConfig,
+  MILESTONES_RELATIVE_PATH,
   ORPHAN_MILESTONE_ROOT,
+  resolveMilestonePath,
   saveSubtasksFile,
 };

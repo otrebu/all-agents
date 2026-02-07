@@ -62,6 +62,37 @@ _aaa_completions() {
             COMPREPLY=($(compgen -W "small medium large" -- "$cur"))
             return
             ;;
+        --cascade)
+            # Dynamic cascade targets
+            local targets=$(aaa __complete cascade 2>/dev/null)
+            COMPREPLY=($(compgen -W "$targets" -- "$cur"))
+            return
+            ;;
+        --provider)
+            # Dynamic provider names
+            local providers=$(aaa __complete provider 2>/dev/null)
+            COMPREPLY=($(compgen -W "$providers" -- "$cur"))
+            return
+            ;;
+        --model)
+            # Dynamic model names, filtered by --provider if present
+            local model_args="model"
+            local j=1
+            while [[ $j -lt $COMP_CWORD ]]; do
+                if [[ "\${COMP_WORDS[j]}" == "--provider" && $((j+1)) -lt $COMP_CWORD ]]; then
+                    model_args="model --provider \${COMP_WORDS[j+1]}"
+                    break
+                fi
+                ((j++))
+            done
+            local models=$(aaa __complete $model_args 2>/dev/null | cut -f1)
+            COMPREPLY=($(compgen -W "$models" -- "$cur"))
+            return
+            ;;
+        --calibrate-every)
+            # Numeric values - no completion
+            return
+            ;;
         -o|--output)
             # File path completion
             COMPREPLY=($(compgen -f -- "$cur"))
@@ -107,7 +138,7 @@ _aaa_completions() {
             continue
         fi
         case "$word" in
-            --mode|--processor|--milestone|--story|--task|--subtasks|--size|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
+            --mode|--processor|--milestone|--story|--task|--subtasks|--size|--cascade|--calibrate-every|--provider|--model|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
                 # Flag that takes a value - skip next word
                 skip_next=true
                 ;;
@@ -165,21 +196,21 @@ _aaa_completions() {
             ralph)
                 case "$subcmd" in
                     build)
-                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless --max-iterations --validate-first" -- "$cur"))
+                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless --max-iterations --validate-first --cascade --calibrate-every --provider --model" -- "$cur"))
                         return
                         ;;
                     plan)
                         case "$subsubcmd" in
                             stories)
-                                COMPREPLY=($(compgen -W "--milestone -a --auto -s --supervised -H --headless" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--milestone -a --auto -s --supervised -H --headless --cascade" -- "$cur"))
                                 return
                                 ;;
                             tasks)
-                                COMPREPLY=($(compgen -W "--story --milestone -a --auto -s --supervised -H --headless" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--story --milestone -a --auto -s --supervised -H --headless --cascade" -- "$cur"))
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--review --task --story --milestone --size -s --supervised -H --headless" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--review --task --story --milestone --size -s --supervised -H --headless --cascade --calibrate-every --file --text" -- "$cur"))
                                 return
                                 ;;
                         esac
@@ -199,12 +230,31 @@ _aaa_completions() {
                     review)
                         # All review commands are supervised-only (no headless)
                         ;;
+                    archive)
+                        if [[ "$subsubcmd" == "subtasks" ]]; then
+                            COMPREPLY=($(compgen -W "--subtasks --milestone" -- "$cur"))
+                        elif [[ "$subsubcmd" == "progress" ]]; then
+                            COMPREPLY=($(compgen -W "--progress" -- "$cur"))
+                        fi
+                        return
+                        ;;
                 esac
                 ;;
             review)
                 if [[ -z "$subcmd" ]]; then
-                    COMPREPLY=($(compgen -W "-s --supervised -H --headless --dry-run" -- "$cur"))
+                    COMPREPLY=($(compgen -W "-s --supervised -H --headless --dry-run --provider --model" -- "$cur"))
                 fi
+                return
+                ;;
+            session)
+                case "$subcmd" in
+                    path|cat)
+                        COMPREPLY=($(compgen -W "--commit" -- "$cur"))
+                        ;;
+                    list)
+                        COMPREPLY=($(compgen -W "--limit --verbose" -- "$cur"))
+                        ;;
+                esac
                 return
                 ;;
             notify)
@@ -235,7 +285,7 @@ _aaa_completions() {
     case "$cmd" in
         "")
             # Top-level commands
-            COMPREPLY=($(compgen -W "extract-conversations gh-search gemini-research notify parallel-search setup uninstall sync-context task story ralph review completion" -- "$cur"))
+            COMPREPLY=($(compgen -W "extract-conversations gh-search gemini-research notify parallel-search session setup uninstall sync-context task story ralph review completion" -- "$cur"))
             ;;
         task)
             if [[ -z "$subcmd" ]]; then
@@ -249,7 +299,7 @@ _aaa_completions() {
             ;;
         ralph)
             if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "build plan review milestones status calibrate" -- "$cur"))
+                COMPREPLY=($(compgen -W "build plan review milestones status calibrate archive" -- "$cur"))
             elif [[ "$subcmd" == "plan" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "vision roadmap stories tasks subtasks" -- "$cur"))
             elif [[ "$subcmd" == "review" && -z "$subsubcmd" ]]; then
@@ -259,6 +309,8 @@ _aaa_completions() {
                 COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
             elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "intention technical improve all" -- "$cur"))
+            elif [[ "$subcmd" == "archive" && -z "$subsubcmd" ]]; then
+                COMPREPLY=($(compgen -W "subtasks progress" -- "$cur"))
             fi
             ;;
         review)
@@ -276,6 +328,11 @@ _aaa_completions() {
         completion)
             if [[ -z "$subcmd" ]]; then
                 COMPREPLY=($(compgen -W "bash zsh fish" -- "$cur"))
+            fi
+            ;;
+        session)
+            if [[ -z "$subcmd" ]]; then
+                COMPREPLY=($(compgen -W "path current cat list" -- "$cur"))
             fi
             ;;
     esac

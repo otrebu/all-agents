@@ -45,6 +45,7 @@ git commit -m "feat(scope): summary" -m "- change 1
 **Commit message format:**
 - Title: conventional commit summarizing the feature
 - Body: bullet list of key changes from squashed commits
+- The `cc-session-id` trailer is automatically added by the prepare-commit-msg hook
 
 ### 6. Switch to Main
 

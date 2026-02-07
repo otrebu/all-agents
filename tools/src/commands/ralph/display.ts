@@ -20,8 +20,9 @@ import stringWidth from "string-width";
 import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
+import type { ProviderType } from "./providers/types";
 import type { BuildPracticalSummary } from "./summary";
-import type { IterationStatus, TokenUsage } from "./types";
+import type { CascadeResult, IterationStatus, TokenUsage } from "./types";
 
 // Box width for iteration displays (defined early for marked config)
 const BOX_WIDTH = 68;
@@ -64,6 +65,14 @@ interface BuildSummaryData {
 // =============================================================================
 // Duration and Time Formatting
 // =============================================================================
+
+/** Options for formatCreatedPart helper */
+interface FormatCreatedPartOptions {
+  addedCount: number | undefined;
+  hasSubtasks: boolean;
+  subtasksLength: number;
+  totalCount: number | undefined;
+}
 
 /**
  * Data for rendering iteration boxes
@@ -111,6 +120,8 @@ interface IterationDisplayData {
  * Data for plan subtasks summary box (headless mode output)
  */
 interface PlanSubtasksSummaryData {
+  /** Number of subtasks actually added this run (for pre-check display) */
+  addedCount?: number;
   /** Total cost in USD */
   costUsd: number;
   /** Duration in milliseconds */
@@ -121,10 +132,12 @@ interface PlanSubtasksSummaryData {
   milestone?: string;
   /** Path where subtasks.json was written */
   outputPath: string;
-  /** Claude session ID */
+  /** Provider session ID */
   sessionId: string;
   /** Sizing mode used */
   sizeMode: "large" | "medium" | "small";
+  /** Task refs skipped because they already had subtasks */
+  skippedTasks?: Array<string>;
   /** Source of the subtasks */
   source: {
     /** Number of findings (for review mode) */
@@ -140,6 +153,8 @@ interface PlanSubtasksSummaryData {
   storyRef?: string;
   /** Generated subtasks (empty on error) */
   subtasks: Array<{ id: string; title: string }>;
+  /** Total subtasks now in file after this run (for pre-check display) */
+  totalCount?: number;
 }
 
 // =============================================================================
@@ -161,6 +176,23 @@ function ensureValidNumber(
     return defaultValue;
   }
   return value;
+}
+
+/**
+ * Format the "Created" part of the stats line
+ *
+ * @param options - Formatting options
+ * @returns Formatted string like "Created 3 (Total: 10)   " or "Created 5   " or ""
+ */
+function formatCreatedPart(options: FormatCreatedPartOptions): string {
+  const { addedCount, hasSubtasks, subtasksLength, totalCount } = options;
+  if (!hasSubtasks) {
+    return "";
+  }
+  // Use new format when both counts are provided, otherwise fallback
+  return addedCount !== undefined && totalCount !== undefined
+    ? `${chalk.dim("Created")} ${chalk.cyan.bold(String(addedCount))} ${chalk.dim("(Total:")} ${chalk.cyan(String(totalCount))}${chalk.dim(")")}   `
+    : `${chalk.dim("Created")} ${chalk.cyan.bold(String(subtasksLength))}   `;
 }
 
 /**
@@ -235,6 +267,77 @@ function formatPathLines(
 }
 
 /**
+ * Format the skipped tasks section
+ *
+ * @param lines - Array to append lines to
+ * @param skippedTasks - Array of task refs that were skipped
+ */
+function formatSkippedSection(
+  lines: Array<string>,
+  skippedTasks: Array<string>,
+): void {
+  const skippedCount = skippedTasks.length;
+  const maxSkippedDisplay = 5;
+  const plural = skippedCount === 1 ? "" : "s";
+  lines.push(
+    `${chalk.yellow("Skipped:")} ${skippedCount} task${plural} (already have subtasks)`,
+  );
+  // Show up to 5 task refs
+  const displaySkipped = skippedTasks.slice(0, maxSkippedDisplay);
+  for (const taskReference of displaySkipped) {
+    lines.push(`  ${chalk.dim("•")} ${chalk.dim(taskReference)}`);
+  }
+  if (skippedTasks.length > maxSkippedDisplay) {
+    const remaining = skippedTasks.length - maxSkippedDisplay;
+    lines.push(`  ${chalk.dim(`... and ${remaining} more`)}`);
+  }
+}
+
+/**
+ * Format source info section for plan subtasks summary
+ *
+ * @param lines - Array to append lines to
+ * @param source - Source data from PlanSubtasksSummaryData
+ * @param innerWidth - Inner box width for truncation
+ */
+function formatSourceInfo(
+  lines: Array<string>,
+  source: PlanSubtasksSummaryData["source"],
+  innerWidth: number,
+): void {
+  const sourceLabels: Record<
+    PlanSubtasksSummaryData["source"]["type"],
+    string
+  > = {
+    file: "Source (file):",
+    review: "Source (review):",
+    text: "Source (text):",
+  };
+  const sourceLabel = sourceLabels[source.type];
+  // "Source (review):" is the longest label at 16 chars
+  const sourceLabelWidth = 16;
+
+  if (source.type === "text" && source.text !== undefined) {
+    const truncatedText = truncate(source.text, innerWidth - sourceLabelWidth);
+    lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
+  } else if (source.path !== undefined) {
+    const maxPathLength = innerWidth - sourceLabelWidth;
+    if (source.type === "review" && source.findingsCount !== undefined) {
+      // For review mode, include findings count in display
+      const suffix = ` (${source.findingsCount} findings)`;
+      const truncatedPath = makeClickablePath(
+        source.path,
+        maxPathLength - suffix.length,
+      );
+      lines.push(`${chalk.dim(sourceLabel)} ${truncatedPath}${suffix}`);
+    } else {
+      const truncatedPath = makeClickablePath(source.path, maxPathLength);
+      lines.push(`${chalk.dim(sourceLabel)} ${truncatedPath}`);
+    }
+  }
+}
+
+/**
  * Format current time as HH:MM:SS for display in iteration boxes
  *
  * @returns Formatted string like "14:32:17"
@@ -243,6 +346,10 @@ function formatTimeOfDay(): string {
   const now = new Date();
   return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
 }
+
+// =============================================================================
+// Markdown Rendering
+// =============================================================================
 
 /**
  * Format an ISO 8601 timestamp for display
@@ -273,6 +380,10 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
   }
 }
 
+// =============================================================================
+// Plan Subtasks Summary Helpers
+// =============================================================================
+
 /**
  * Format a token count as a human-readable string
  *
@@ -300,10 +411,6 @@ function formatTokenCount(count: number): string {
   }
   return String(safeCount);
 }
-
-// =============================================================================
-// Markdown Rendering
-// =============================================================================
 
 /**
  * Format token usage as a display line
@@ -351,6 +458,21 @@ function getColoredStatus(status: IterationStatus): string {
       return status;
     }
   }
+}
+
+/**
+ * Get display label for a provider key.
+ */
+function getProviderLabel(provider: ProviderType): string {
+  const labels: Record<ProviderType, string> = {
+    claude: "Claude",
+    codex: "Codex",
+    cursor: "Cursor",
+    gemini: "Gemini",
+    opencode: "OpenCode",
+    pi: "Pi",
+  };
+  return labels[provider];
 }
 
 // =============================================================================
@@ -496,13 +618,16 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
           ? chalk.yellow(` (${subtask.attempts} attempts)`)
           : "";
       const idPart = chalk.cyan(subtask.id);
-      const summaryPart = truncate(subtask.summary, innerWidth - 20);
-      lines.push(`  • ${idPart}${retryNote}`);
+      lines.push(`  ${idPart}${retryNote}`);
       if (
         subtask.summary !== "" &&
         subtask.summary !== `Completed ${subtask.id}`
       ) {
-        lines.push(`    ${chalk.dim(summaryPart)}`);
+        // Wrap summary text instead of truncating - indent by 4 spaces
+        const wrappedSummary = wrapText(subtask.summary, innerWidth - 4);
+        for (const line of wrappedSummary) {
+          lines.push(`    ${chalk.dim(line)}`);
+        }
       }
     }
   }
@@ -572,13 +697,120 @@ function renderBuildSummary(data: BuildSummaryData): string {
 }
 
 /**
- * Render a styled separator for Claude invocation
+ * Render cascade progress line showing level progression
+ *
+ * Displays a visual progression through cascade levels with:
+ * - Completed levels shown in brackets with ✓
+ * - Current level shown in brackets with ◉
+ * - Remaining levels shown without brackets
+ *
+ * @param current - Name of the level currently executing
+ * @param completed - Array of level names that have completed
+ * @param remaining - Array of level names still to be executed
+ * @returns Styled progress string like "[stories] ✓ → [tasks] ◉ → subtasks → build"
+ *
+ * @example
+ * renderCascadeProgress('tasks', ['stories'], ['subtasks', 'build'])
+ * // Returns: "[stories] ✓ → [tasks] ◉ → subtasks → build"
+ */
+function renderCascadeProgress(
+  current: string,
+  completed: Array<string>,
+  remaining: Array<string>,
+): string {
+  const parts: Array<string> = [];
+
+  // Completed levels: [level] ✓ in green
+  for (const level of completed) {
+    parts.push(chalk.green(`[${level}] ✓`));
+  }
+
+  // Current level: [level] ◉ in cyan bold
+  parts.push(chalk.cyan.bold(`[${current}] ◉`));
+
+  // Remaining levels: just the name in dim
+  for (const level of remaining) {
+    parts.push(chalk.dim(level));
+  }
+
+  // Join with arrows
+  return parts.join(chalk.dim(" → "));
+}
+
+/**
+ * Render cascade summary box showing cascade execution results
+ *
+ * Displays a boxen-formatted summary with:
+ * - Success/failure status header
+ * - List of completed levels
+ * - Where cascade stopped (if not fully complete)
+ * - Error message (if cascade failed)
+ *
+ * @param result - CascadeResult from runCascadeFrom()
+ * @returns Boxen-formatted string suitable for console output
+ *
+ * @example
+ * const result = { success: true, completedLevels: ['build', 'calibrate'], error: null, stoppedAt: null };
+ * console.log(renderCascadeSummary(result));
+ */
+function renderCascadeSummary(result: CascadeResult): string {
+  const innerWidth = BOX_WIDTH - 4;
+  const lines: Array<string> = [];
+
+  // Status header
+  if (result.success) {
+    lines.push(chalk.green.bold("✓ Cascade Complete"));
+  } else {
+    lines.push(chalk.red.bold("✗ Cascade Stopped"));
+  }
+
+  lines.push("─".repeat(innerWidth));
+
+  // Completed levels
+  if (result.completedLevels.length > 0) {
+    lines.push(chalk.dim("Completed levels:"));
+    for (const level of result.completedLevels) {
+      lines.push(`  ${chalk.green("✓")} ${chalk.cyan(level)}`);
+    }
+  } else {
+    lines.push(chalk.dim("No levels completed"));
+  }
+
+  // Stopped at (if not success)
+  if (result.stoppedAt !== null) {
+    lines.push("");
+    lines.push(
+      `${chalk.yellow("Stopped at:")} ${chalk.yellow.bold(result.stoppedAt)}`,
+    );
+  }
+
+  // Error message (if present)
+  if (result.error !== null) {
+    lines.push("");
+    lines.push(`${chalk.red("Error:")} ${result.error}`);
+  }
+
+  return renderSafeBox(lines.join("\n"), {
+    borderColor: result.success ? "green" : "red",
+    borderStyle: "round",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: "Cascade Summary",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+/**
+ * Render a styled separator for provider invocation
  *
  * @param mode - "headless" or "supervised" execution mode
- * @returns Styled line like "──────────── Invoking Claude (headless) ────────────"
+ * @returns Styled line like "──────────── Invoking OpenCode (headless) ────────────"
  */
-function renderInvocationHeader(mode: "headless" | "supervised"): string {
-  const label = ` Invoking Claude (${mode}) `;
+function renderInvocationHeader(
+  mode: "headless" | "supervised",
+  provider: ProviderType = "claude",
+): string {
+  const label = ` Invoking ${getProviderLabel(provider)} (${mode}) `;
   const lineChar = "─";
   const totalWidth = BOX_WIDTH;
   const sideLength = Math.floor((totalWidth - label.length) / 2);
@@ -765,52 +997,52 @@ function renderMarkdown(markdown: string): string {
  */
 function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
   const {
+    addedCount,
     costUsd,
     durationMs,
     error,
     milestone,
     outputPath,
     sizeMode,
+    skippedTasks,
     source,
     storyRef,
     subtasks,
+    totalCount,
   } = data;
 
   const innerWidth = BOX_WIDTH - 4;
   const lines: Array<string> = [];
 
-  // Stats line: Created N   Duration Xs   Cost $X.XX
+  // Stats line: Created X (Total: Y)   Duration Xs   Cost $X.XX
+  // Falls back to "Created N" when new count fields aren't provided
   const hasSubtasks = subtasks.length > 0;
-  const createdPart = hasSubtasks
-    ? `${chalk.dim("Created")} ${chalk.cyan.bold(String(subtasks.length))}   `
-    : "";
+  const createdPart = formatCreatedPart({
+    addedCount,
+    hasSubtasks,
+    subtasksLength: subtasks.length,
+    totalCount,
+  });
   const durationPart = `${chalk.dim("Duration")} ${chalk.cyan(formatDuration(durationMs))}`;
   const costPart = `${chalk.dim("Cost")} ${chalk.magenta(`$${costUsd.toFixed(2)}`)}`;
   lines.push(`${createdPart}${durationPart}   ${costPart}`);
 
+  // Skipped section: show when tasks were skipped due to existing subtasks
+  if (skippedTasks !== undefined && skippedTasks.length > 0) {
+    formatSkippedSection(lines, skippedTasks);
+  }
+
   // Separator
   lines.push("─".repeat(innerWidth));
 
-  // Source info
-  const sourceLabels: Record<
-    PlanSubtasksSummaryData["source"]["type"],
-    string
-  > = {
-    file: "Source (file):",
-    review: "Source (review):",
-    text: "Source (text):",
-  };
-  const sourceLabel = sourceLabels[source.type];
+  // Source info - skip if source duplicates storyRef
+  const isStorySource =
+    source.type === "file" &&
+    storyRef !== undefined &&
+    source.path === storyRef;
 
-  if (source.type === "text" && source.text !== undefined) {
-    const truncatedText = truncate(source.text, innerWidth - 16);
-    lines.push(`${chalk.dim(sourceLabel)} ${truncatedText}`);
-  } else if (source.path !== undefined) {
-    const pathDisplay =
-      source.type === "review" && source.findingsCount !== undefined
-        ? `${source.path} (${source.findingsCount} findings)`
-        : source.path;
-    lines.push(`${chalk.dim(sourceLabel)} ${pathDisplay}`);
+  if (!isStorySource) {
+    formatSourceInfo(lines, source, innerWidth);
   }
 
   // Configuration: milestone, size mode, story ref
@@ -819,7 +1051,13 @@ function renderPlanSubtasksSummary(data: PlanSubtasksSummaryData): string {
   }
   lines.push(`${chalk.dim("Size mode:")} ${sizeMode}`);
   if (storyRef !== undefined) {
-    lines.push(`${chalk.dim("Story:")} ${storyRef}`);
+    // "Story:" label is 7 chars, apply path truncation
+    const storyLabelWidth = 7;
+    const truncatedStoryPath = makeClickablePath(
+      storyRef,
+      innerWidth - storyLabelWidth,
+    );
+    lines.push(`${chalk.dim("Story:")} ${truncatedStoryPath}`);
   }
 
   // Separator before subtasks or error
@@ -910,12 +1148,12 @@ function renderProgressBar(
 // BOX_WIDTH defined at top of file for marked config
 
 /**
- * Render a styled separator for Claude response output
+ * Render a styled separator for provider response output
  *
- * @returns Styled line like "──────────────── Claude Response ────────────────"
+ * @returns Styled line like "─────────────── OpenCode Response ───────────────"
  */
-function renderResponseHeader(): string {
-  const label = " Claude Response ";
+function renderResponseHeader(provider: ProviderType = "claude"): string {
+  const label = ` ${getProviderLabel(provider)} Response `;
   const lineChar = "─";
   const totalWidth = BOX_WIDTH;
   const labelLength = label.length;
@@ -1027,6 +1265,7 @@ function wrapText(text: string, width: number): Array<string> {
 const colorStatus = getColoredStatus;
 
 export {
+  BOX_WIDTH,
   type BuildSummaryData,
   colorStatus,
   formatDuration,
@@ -1038,6 +1277,8 @@ export {
   type PlanSubtasksSummaryData,
   renderBuildPracticalSummary,
   renderBuildSummary,
+  renderCascadeProgress,
+  renderCascadeSummary,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,

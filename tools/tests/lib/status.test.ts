@@ -1,3 +1,4 @@
+import { readIterationDiary } from "@tools/commands/ralph/status";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -124,5 +125,58 @@ describe("getMilestoneLogsDirectory derivation", () => {
 
     expect(logsDirectory).toContain("002-ralph-💪");
     expect(logsDirectory).toEndWith("/logs");
+  });
+});
+
+describe("readIterationDiary timing compatibility", () => {
+  const temporaryDirectory = join(
+    import.meta.dirname,
+    "../../tmp/status-timing-compat-logs",
+  );
+
+  beforeEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("normalizes legacy claudeMs timing to providerMs", () => {
+    const legacyEntry = {
+      sessionId: "legacy-session",
+      status: "completed",
+      subtaskId: "SUB-LEGACY",
+      summary: "Legacy timing entry",
+      timestamp: "2026-01-26T10:00:00Z",
+      timing: { claudeMs: 1200, hookMs: 25, metricsMs: 12, summaryMs: 40 },
+    };
+    const providerEntry = {
+      sessionId: "provider-session",
+      status: "completed",
+      subtaskId: "SUB-PROVIDER",
+      summary: "Provider timing entry",
+      timestamp: "2026-01-26T10:05:00Z",
+      timing: { hookMs: 20, metricsMs: 10, providerMs: 2400, summaryMs: 35 },
+    };
+
+    writeFileSync(
+      join(temporaryDirectory, "2026-01-26.jsonl"),
+      `${JSON.stringify(legacyEntry)}\n${JSON.stringify(providerEntry)}\n`,
+    );
+
+    const entries = readIterationDiary(temporaryDirectory);
+    const legacy = entries.find((entry) => entry.subtaskId === "SUB-LEGACY");
+    const provider = entries.find(
+      (entry) => entry.subtaskId === "SUB-PROVIDER",
+    );
+
+    expect(legacy?.timing?.providerMs).toBe(1200);
+    expect(provider?.timing?.providerMs).toBe(2400);
   });
 });

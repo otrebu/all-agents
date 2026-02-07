@@ -3,11 +3,18 @@
  */
 
 import type { BuildPracticalSummary } from "@tools/commands/ralph/summary";
+import type { CascadeResult } from "@tools/commands/ralph/types";
 
 import {
   formatDuration,
   formatTokenCount,
+  type PlanSubtasksSummaryData,
   renderBuildPracticalSummary,
+  renderCascadeProgress,
+  renderCascadeSummary,
+  renderInvocationHeader,
+  renderPlanSubtasksSummary,
+  renderResponseHeader,
   truncate,
 } from "@tools/commands/ralph/display";
 import { describe, expect, test } from "bun:test";
@@ -224,6 +231,243 @@ describe("display utilities", () => {
 
       // Should NOT display tokens line when all zero
       expect(result).not.toContain("MaxCtx:");
+    });
+  });
+
+  describe("renderCascadeProgress", () => {
+    test("renders correct format with completed, current, and remaining levels", () => {
+      const result = renderCascadeProgress(
+        "tasks",
+        ["stories"],
+        ["subtasks", "build"],
+      );
+
+      // Should contain completed level with check mark
+      expect(result).toContain("[stories]");
+      expect(result).toContain("✓");
+
+      // Should contain current level with bullet
+      expect(result).toContain("[tasks]");
+      expect(result).toContain("◉");
+
+      // Should contain remaining levels without brackets
+      expect(result).toContain("subtasks");
+      expect(result).toContain("build");
+
+      // Should contain arrows
+      expect(result).toContain("→");
+    });
+
+    test("handles empty completed levels", () => {
+      const result = renderCascadeProgress(
+        "stories",
+        [],
+        ["tasks", "subtasks"],
+      );
+
+      expect(result).toContain("[stories]");
+      expect(result).toContain("◉");
+      expect(result).toContain("tasks");
+      expect(result).toContain("subtasks");
+    });
+
+    test("handles empty remaining levels", () => {
+      const result = renderCascadeProgress("calibrate", ["build"], []);
+
+      expect(result).toContain("[build]");
+      expect(result).toContain("✓");
+      expect(result).toContain("[calibrate]");
+      expect(result).toContain("◉");
+    });
+
+    test("handles multiple completed levels", () => {
+      const result = renderCascadeProgress(
+        "subtasks",
+        ["stories", "tasks"],
+        ["build"],
+      );
+
+      expect(result).toContain("[stories]");
+      expect(result).toContain("[tasks]");
+      expect(result).toContain("[subtasks]");
+      expect(result).toContain("build");
+    });
+  });
+
+  describe("renderCascadeSummary", () => {
+    test("renders success state correctly", () => {
+      const result: CascadeResult = {
+        completedLevels: ["build", "calibrate"],
+        error: null,
+        stoppedAt: null,
+        success: true,
+      };
+
+      const output = renderCascadeSummary(result);
+
+      expect(output).toContain("Cascade Summary");
+      expect(output).toContain("Cascade Complete");
+      expect(output).toContain("build");
+      expect(output).toContain("calibrate");
+      expect(output).toContain("✓");
+    });
+
+    test("renders failure state with error message", () => {
+      const result: CascadeResult = {
+        completedLevels: ["build"],
+        error: "Calibration failed",
+        stoppedAt: "calibrate",
+        success: false,
+      };
+
+      const output = renderCascadeSummary(result);
+
+      expect(output).toContain("Cascade Summary");
+      expect(output).toContain("Cascade Stopped");
+      expect(output).toContain("build");
+      expect(output).toContain("Stopped at:");
+      expect(output).toContain("calibrate");
+      expect(output).toContain("Error:");
+      expect(output).toContain("Calibration failed");
+    });
+
+    test("renders empty completed levels state", () => {
+      const result: CascadeResult = {
+        completedLevels: [],
+        error: "Invalid cascade target",
+        stoppedAt: "tasks",
+        success: false,
+      };
+
+      const output = renderCascadeSummary(result);
+
+      expect(output).toContain("No levels completed");
+      expect(output).toContain("Invalid cascade target");
+    });
+
+    test("function is exported", () => {
+      expect(typeof renderCascadeSummary).toBe("function");
+    });
+
+    test("function accepts CascadeResult type", () => {
+      const result: CascadeResult = {
+        completedLevels: ["build"],
+        error: null,
+        stoppedAt: null,
+        success: true,
+      };
+
+      // Should not throw
+      const output = renderCascadeSummary(result);
+      expect(typeof output).toBe("string");
+    });
+  });
+
+  describe("renderPlanSubtasksSummary", () => {
+    test("shows only Story line when source.path equals storyRef", () => {
+      const data: PlanSubtasksSummaryData = {
+        costUsd: 1.5,
+        durationMs: 60_000,
+        outputPath: "/path/to/subtasks.json",
+        sessionId: "test-session",
+        sizeMode: "medium",
+        source: { path: "/path/to/story.md", type: "file" },
+        storyRef: "/path/to/story.md",
+        subtasks: [{ id: "SUB-001", title: "Test subtask" }],
+      };
+
+      const result = renderPlanSubtasksSummary(data);
+
+      // Should show Story line
+      expect(result).toContain("Story:");
+      expect(result).toContain("/path/to/story.md");
+
+      // Should NOT show duplicate Source (file) line
+      expect(result).not.toContain("Source (file):");
+    });
+
+    test("shows both Source and Story lines when they differ", () => {
+      const data: PlanSubtasksSummaryData = {
+        costUsd: 1.5,
+        durationMs: 60_000,
+        outputPath: "/path/to/subtasks.json",
+        sessionId: "test-session",
+        sizeMode: "medium",
+        source: { path: "/path/to/task.md", type: "file" },
+        storyRef: "/path/to/story.md",
+        subtasks: [{ id: "SUB-001", title: "Test subtask" }],
+      };
+
+      const result = renderPlanSubtasksSummary(data);
+
+      // Should show both lines since paths differ
+      expect(result).toContain("Source (file):");
+      expect(result).toContain("Story:");
+    });
+
+    test("shows Source line when source type is not file", () => {
+      const data: PlanSubtasksSummaryData = {
+        costUsd: 1.5,
+        durationMs: 60_000,
+        outputPath: "/path/to/subtasks.json",
+        sessionId: "test-session",
+        sizeMode: "medium",
+        source: { path: "/path/to/review.json", type: "review" },
+        storyRef: "/path/to/review.json",
+        subtasks: [{ id: "SUB-001", title: "Test subtask" }],
+      };
+
+      const result = renderPlanSubtasksSummary(data);
+
+      // Should show Source line for review type even if path matches storyRef
+      expect(result).toContain("Source (review):");
+    });
+
+    test("shows Source line when storyRef is undefined", () => {
+      const data: PlanSubtasksSummaryData = {
+        costUsd: 1.5,
+        durationMs: 60_000,
+        outputPath: "/path/to/subtasks.json",
+        sessionId: "test-session",
+        sizeMode: "medium",
+        source: { path: "/path/to/file.md", type: "file" },
+        subtasks: [{ id: "SUB-001", title: "Test subtask" }],
+      };
+
+      const result = renderPlanSubtasksSummary(data);
+
+      // Should show Source line when there's no storyRef
+      expect(result).toContain("Source (file):");
+    });
+
+    test("function is exported", () => {
+      expect(typeof renderPlanSubtasksSummary).toBe("function");
+    });
+  });
+
+  describe("provider-aware headers", () => {
+    test("renders invocation header with default Claude provider", () => {
+      const result = renderInvocationHeader("headless");
+
+      expect(result).toContain("Invoking Claude (headless)");
+    });
+
+    test("renders invocation header with OpenCode provider", () => {
+      const result = renderInvocationHeader("headless", "opencode");
+
+      expect(result).toContain("Invoking OpenCode (headless)");
+    });
+
+    test("renders response header with default Claude provider", () => {
+      const result = renderResponseHeader();
+
+      expect(result).toContain("Claude Response");
+    });
+
+    test("renders response header with OpenCode provider", () => {
+      const result = renderResponseHeader("opencode");
+
+      expect(result).toContain("OpenCode Response");
     });
   });
 });

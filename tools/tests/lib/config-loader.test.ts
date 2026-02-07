@@ -97,6 +97,24 @@ describe("loadAaaConfig", () => {
     );
   });
 
+  test("preserves ralph provider and model defaults", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: {
+        lightweightModel: "claude-3-5-haiku-latest",
+        model: "openai/gpt-4o",
+        provider: "opencode",
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    expect(loaded.ralph?.provider).toBe("opencode");
+    expect(loaded.ralph?.model).toBe("openai/gpt-4o");
+    expect(loaded.ralph?.lightweightModel).toBe("claude-3-5-haiku-latest");
+  });
+
   test("logs warning and returns defaults for invalid JSON", () => {
     const configPath = join(temporaryDirectory, CONFIG_FILENAME);
     writeFileSync(configPath, "{ invalid json }");
@@ -234,5 +252,126 @@ describe("loadAaaConfig", () => {
 describe("CONFIG_FILENAME", () => {
   test("exports correct filename", () => {
     expect(CONFIG_FILENAME).toBe("aaa.config.json");
+  });
+});
+
+describe("approvals config merge", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(tmpdir(), `aaa-config-test-${Date.now()}`);
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("deep merges nested ralph.approvals", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: { approvals: { createStories: "always" } },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    // Custom approvals gate
+    expect(loaded.ralph?.approvals?.createStories).toBe("always");
+
+    // Default suggestWaitSeconds preserved
+    expect(loaded.ralph?.approvals?.suggestWaitSeconds).toBe(180);
+  });
+
+  test("suggestWaitSeconds defaults to 180 when not specified by user", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: {
+        approvals: {
+          createRoadmap: "auto",
+          // suggestWaitSeconds not specified - should get default
+        },
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    expect(loaded.ralph?.approvals?.suggestWaitSeconds).toBe(180);
+    expect(loaded.ralph?.approvals?.createRoadmap).toBe("auto");
+  });
+
+  test("user-specified gate values preserved after merge", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: {
+        approvals: {
+          correctionTasks: "auto",
+          createAtomicDocs: "always",
+          createStories: "always",
+          createTasks: "suggest",
+          onDriftDetected: "auto",
+        },
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    expect(loaded.ralph?.approvals?.createStories).toBe("always");
+    expect(loaded.ralph?.approvals?.createTasks).toBe("suggest");
+    expect(loaded.ralph?.approvals?.createAtomicDocs).toBe("always");
+    expect(loaded.ralph?.approvals?.onDriftDetected).toBe("auto");
+    expect(loaded.ralph?.approvals?.correctionTasks).toBe("auto");
+  });
+
+  test("partial user approvals config merged with defaults", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: {
+        approvals: { createSubtasks: "always", suggestWaitSeconds: 300 },
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    // User-specified values
+    expect(loaded.ralph?.approvals?.createSubtasks).toBe("always");
+    expect(loaded.ralph?.approvals?.suggestWaitSeconds).toBe(300);
+
+    // Unspecified gates remain undefined
+    expect(loaded.ralph?.approvals?.createStories).toBeUndefined();
+    expect(loaded.ralph?.approvals?.createRoadmap).toBeUndefined();
+  });
+
+  test("unspecified gates remain undefined after merge", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: {
+        approvals: {
+          // Only specify suggestWaitSeconds, no gates
+          suggestWaitSeconds: 120,
+        },
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    // suggestWaitSeconds from user
+    expect(loaded.ralph?.approvals?.suggestWaitSeconds).toBe(120);
+
+    // All gates should remain undefined (sparse defaults)
+    expect(loaded.ralph?.approvals?.createRoadmap).toBeUndefined();
+    expect(loaded.ralph?.approvals?.createStories).toBeUndefined();
+    expect(loaded.ralph?.approvals?.createTasks).toBeUndefined();
+    expect(loaded.ralph?.approvals?.createSubtasks).toBeUndefined();
+    expect(loaded.ralph?.approvals?.createAtomicDocs).toBeUndefined();
+    expect(loaded.ralph?.approvals?.onDriftDetected).toBeUndefined();
+    expect(loaded.ralph?.approvals?.correctionTasks).toBeUndefined();
+    expect(loaded.ralph?.approvals?.promptChanges).toBeUndefined();
   });
 });

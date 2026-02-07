@@ -114,6 +114,31 @@ describe("eventConfigSchema", () => {
   test("rejects invalid priority in event config", () => {
     expect(() => eventConfigSchema.parse({ priority: "ultra-high" })).toThrow();
   });
+
+  test("accepts enabled field set to true", () => {
+    const config: EventConfig = { enabled: true };
+    expect(eventConfigSchema.parse(config)).toEqual({ enabled: true });
+  });
+
+  test("accepts enabled field set to false", () => {
+    const config: EventConfig = { enabled: false };
+    expect(eventConfigSchema.parse(config)).toEqual({ enabled: false });
+  });
+
+  test("accepts full event config with enabled field", () => {
+    const config: EventConfig = {
+      enabled: false,
+      priority: "high",
+      tags: ["alert", "failure"],
+      topic: "critical",
+    };
+    expect(eventConfigSchema.parse(config)).toEqual(config);
+  });
+
+  test("enabled field defaults to undefined when omitted", () => {
+    const config = eventConfigSchema.parse({ priority: "default" });
+    expect(config.enabled).toBeUndefined();
+  });
 });
 
 // =============================================================================
@@ -223,10 +248,23 @@ describe("ralphSectionSchema", () => {
     expect(ralphSectionSchema.parse(config)).toEqual(config);
   });
 
+  test("accepts provider and model defaults in ralph config", () => {
+    const config: RalphSection = {
+      lightweightModel: "claude-3-5-haiku-latest",
+      model: "claude-sonnet-4",
+      provider: "opencode",
+    };
+    expect(ralphSectionSchema.parse(config)).toEqual(config);
+  });
+
   test("rejects negative maxIterations", () => {
     expect(() =>
       ralphSectionSchema.parse({ build: { maxIterations: -1 } }),
     ).toThrow();
+  });
+
+  test("rejects invalid provider value", () => {
+    expect(() => ralphSectionSchema.parse({ provider: "invalid" })).toThrow();
   });
 
   test("accepts zero for calibrateEvery (disabled)", () => {

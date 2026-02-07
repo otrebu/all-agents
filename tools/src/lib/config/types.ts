@@ -41,6 +41,8 @@ const quietHoursSchema = z.object({
  * Allows routing different events to different topics with different priorities
  */
 interface EventConfig {
+  /** Whether this event is enabled (defaults to true if omitted) */
+  enabled?: boolean;
   /** Override priority for this event */
   priority?: Priority;
   /** Optional tags for the notification */
@@ -50,6 +52,7 @@ interface EventConfig {
 }
 
 const eventConfigSchema = z.object({
+  enabled: z.boolean().optional(),
   priority: prioritySchema.optional(),
   tags: z.array(z.string()).optional(),
   topic: z.string().optional(),
@@ -129,6 +132,81 @@ type SelfImprovementMode = "autofix" | "off" | "suggest";
 const selfImprovementModeSchema = z.enum(["autofix", "off", "suggest"]);
 
 /**
+ * Approval mode for artifact creation gates
+ * - "always": Explicit approval required; prompt in TTY or exit with unstaged in headless
+ * - "auto": Immediate write without prompting (fastest, good for trusted automation)
+ * - "suggest": Show artifact and pause; prompt in TTY or notify-wait in headless
+ */
+type ApprovalMode = "always" | "auto" | "suggest";
+
+const approvalModeSchema = z.enum(["always", "auto", "suggest"]);
+
+/**
+ * Approval gate names - artifact creation events that can trigger approval
+ */
+const approvalGates = [
+  "correctionTasks",
+  "createAtomicDocs",
+  "createRoadmap",
+  "createStories",
+  "createSubtasks",
+  "createTasks",
+  "onDriftDetected",
+  "promptChanges",
+] as const;
+
+type ApprovalGate = (typeof approvalGates)[number];
+
+/**
+ * Approval configuration for artifact creation gates
+ *
+ * Gates define checkpoints where Ralph can pause for user approval before
+ * creating artifacts. Each gate can be set to a different approval mode.
+ *
+ * Gate triggers:
+ * - createRoadmap: Generating roadmap.md
+ * - createStories: Generating story files
+ * - createTasks: Generating task files
+ * - createSubtasks: Generating subtasks.json
+ * - createAtomicDocs: Generating @context docs
+ * - onDriftDetected: Calibration detects drift
+ * - correctionTasks: Creating correction tasks from drift
+ * - promptChanges: Modifying prompt files
+ */
+interface ApprovalsConfig {
+  /** Approval mode when modifying correction tasks */
+  correctionTasks?: ApprovalMode;
+  /** Approval mode when generating @context docs */
+  createAtomicDocs?: ApprovalMode;
+  /** Approval mode when generating roadmap.md */
+  createRoadmap?: ApprovalMode;
+  /** Approval mode when generating story files */
+  createStories?: ApprovalMode;
+  /** Approval mode when generating subtasks.json */
+  createSubtasks?: ApprovalMode;
+  /** Approval mode when generating task files */
+  createTasks?: ApprovalMode;
+  /** Approval mode when calibration detects drift */
+  onDriftDetected?: ApprovalMode;
+  /** Approval mode when modifying prompt files */
+  promptChanges?: ApprovalMode;
+  /** Seconds to wait in suggest mode before proceeding (default: 180) */
+  suggestWaitSeconds?: number;
+}
+
+const approvalsConfigSchema = z.object({
+  correctionTasks: approvalModeSchema.optional(),
+  createAtomicDocs: approvalModeSchema.optional(),
+  createRoadmap: approvalModeSchema.optional(),
+  createStories: approvalModeSchema.optional(),
+  createSubtasks: approvalModeSchema.optional(),
+  createTasks: approvalModeSchema.optional(),
+  onDriftDetected: approvalModeSchema.optional(),
+  promptChanges: approvalModeSchema.optional(),
+  suggestWaitSeconds: z.number().int().min(0).optional(),
+});
+
+/**
  * Self-improvement configuration
  */
 interface SelfImprovementConfig {
@@ -138,6 +216,28 @@ interface SelfImprovementConfig {
 
 const selfImprovementConfigSchema = z.object({
   mode: selfImprovementModeSchema.optional(),
+});
+
+/**
+ * Timeout configuration for Ralph build processes
+ *
+ * Two-layer detection system:
+ * - Stall detection: Catches stuck processes fast (no stderr output)
+ * - Hard timeout: Safety net for edge cases (total elapsed time)
+ */
+interface TimeoutsConfig {
+  /** Grace period in seconds before SIGKILL after SIGTERM (default: 5) */
+  graceSeconds?: number;
+  /** Hard timeout in minutes - safety net for edge cases (default: 60) */
+  hardMinutes?: number;
+  /** Stall detection threshold in minutes - no stderr output (default: 10) */
+  stallMinutes?: number;
+}
+
+const timeoutsConfigSchema = z.object({
+  graceSeconds: z.number().int().min(1).optional(),
+  hardMinutes: z.number().int().min(1).optional(),
+  stallMinutes: z.number().int().min(1).optional(),
 });
 
 /**
@@ -158,19 +258,52 @@ const buildConfigSchema = z.object({
 /**
  * Ralph section of the unified config
  */
+/** Valid provider values for Ralph config */
+type RalphProvider =
+  | "claude"
+  | "codex"
+  | "cursor"
+  | "gemini"
+  | "opencode"
+  | "pi";
+
 interface RalphSection {
+  /** Approvals configuration */
+  approvals?: ApprovalsConfig;
   /** Build configuration */
   build?: BuildConfig;
   /** Hook configuration */
   hooks?: HooksConfig;
+  /** Lightweight model for summary tasks */
+  lightweightModel?: string;
+  /** Default model override */
+  model?: string;
+  /** Default provider selection */
+  provider?: RalphProvider;
   /** Self-improvement configuration */
   selfImprovement?: SelfImprovementConfig;
+  /** Timeout configuration for build processes */
+  timeouts?: TimeoutsConfig;
 }
 
+const ralphProviderSchema = z.enum([
+  "claude",
+  "codex",
+  "cursor",
+  "gemini",
+  "opencode",
+  "pi",
+]);
+
 const ralphSectionSchema = z.object({
+  approvals: approvalsConfigSchema.optional(),
   build: buildConfigSchema.optional(),
   hooks: hooksConfigSchema.optional(),
+  lightweightModel: z.string().optional(),
+  model: z.string().optional(),
+  provider: ralphProviderSchema.optional(),
   selfImprovement: selfImprovementConfigSchema.optional(),
+  timeouts: timeoutsConfigSchema.optional(),
 });
 
 // =============================================================================
@@ -277,6 +410,12 @@ const aaaConfigSchema = z.object({
 export {
   type AaaConfig,
   aaaConfigSchema,
+  type ApprovalGate,
+  approvalGates,
+  type ApprovalMode,
+  approvalModeSchema,
+  type ApprovalsConfig,
+  approvalsConfigSchema,
   type BuildConfig,
   buildConfigSchema,
   type EventConfig,
@@ -296,6 +435,8 @@ export {
   prioritySchema,
   type QuietHoursConfig,
   quietHoursSchema,
+  type RalphProvider,
+  ralphProviderSchema,
   type RalphSection,
   ralphSectionSchema,
   type ResearchSection,
@@ -306,4 +447,6 @@ export {
   selfImprovementConfigSchema,
   type SelfImprovementMode,
   selfImprovementModeSchema,
+  type TimeoutsConfig,
+  timeoutsConfigSchema,
 };

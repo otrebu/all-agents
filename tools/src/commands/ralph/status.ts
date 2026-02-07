@@ -15,20 +15,20 @@ import { dirname, join } from "node:path";
 
 import type { IterationDiaryEntry, Subtask } from "./types";
 
+import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import {
   getCompletedSubtasks,
   getMilestoneFromSubtasks,
   getNextSubtask,
   loadSubtasksFile,
 } from "./config";
-import { formatTimestamp, renderProgressBar, truncate } from "./display";
-import { normalizeStatus } from "./types";
-
-// =============================================================================
-// Constants
-// =============================================================================
-
-const BOX_WIDTH = 64;
+import {
+  BOX_WIDTH,
+  formatTimestamp,
+  renderProgressBar,
+  truncate,
+} from "./display";
+import { normalizeIterationDiaryEntry, normalizeStatus } from "./types";
 
 // =============================================================================
 // Helper Functions
@@ -183,7 +183,8 @@ function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
     return lines
       .map((line) => {
         try {
-          return JSON.parse(line) as IterationDiaryEntry;
+          const entry = JSON.parse(line) as IterationDiaryEntry;
+          return normalizeIterationDiaryEntry(entry);
         } catch {
           return null;
         }
@@ -240,7 +241,7 @@ function renderHeader(): void {
   console.log();
   console.log(chalk.bold(`╔${"═".repeat(BOX_WIDTH - 2)}╗`));
   console.log(
-    chalk.bold(`║${"Ralph Build Status".padStart(41).padEnd(BOX_WIDTH - 2)}║`),
+    chalk.bold(`║${"Ralph Build Status".padStart(43).padEnd(BOX_WIDTH - 2)}║`),
   );
   console.log(chalk.bold(`╚${"═".repeat(BOX_WIDTH - 2)}╝`));
   console.log();
@@ -290,6 +291,17 @@ function renderSubtaskDetails(subtasksPath: string): void {
     // Progress bar
     console.log(`  Progress: ${renderProgressBar(doneCount, total)}`);
 
+    // File size warning
+    const sizeCheck = checkSubtasksSize(subtasksPath);
+    if (sizeCheck.exceeded) {
+      const tokensK = Math.round(sizeCheck.tokens / 1000);
+      const limitK = Math.round(SUBTASKS_TOKEN_SOFT_LIMIT / 1000);
+      const sizeWarning = sizeCheck.hardLimitExceeded
+        ? chalk.red(`~${tokensK}K tokens (consider archiving)`)
+        : chalk.yellow(`~${tokensK}K tokens (limit: ${limitK}K)`);
+      console.log(`  Size:     ${sizeWarning}`);
+    }
+
     // Last completed
     const lastCompleted = getLastCompletedSubtask(subtasks);
     if (lastCompleted !== null) {
@@ -309,6 +321,19 @@ function renderSubtaskDetails(subtasksPath: string): void {
       }
     } else if (doneCount === total) {
       console.log(`  Next up:   ${chalk.green("All complete!")}`);
+    } else {
+      const pending = subtasks.filter((s) => !s.done);
+      const blockedCount = pending.length;
+      console.log(
+        `  Next up:   ${chalk.red("Blocked")} (${blockedCount} pending)`,
+      );
+      const preview = pending.slice(0, 3).map((s) => {
+        const deps = (s.blockedBy ?? []).join(", ");
+        return `${s.id}${deps === "" ? "" : ` (blockedBy: ${deps})`}`;
+      });
+      if (preview.length > 0) {
+        console.log(`             ${chalk.dim(preview.join("; "))}`);
+      }
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

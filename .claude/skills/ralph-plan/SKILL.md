@@ -150,21 +150,73 @@ Then follow ALL phases in the workflow file you just read.
 - Better quality: Smaller context per agent
 - Consistent: Same patterns applied across all stories
 
-### If argument is `subtasks` (with required source):
+### If argument is `tasks --file` or `tasks --text` (alternative source):
+
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/tasks-from-source.md` (relative to project root). DO NOT proceed without reading this file first - it contains the workflow for generating tasks from alternative sources.
+
+1. An alternative source must be provided - one of:
+   - `--file <path>` (e.g., `/ralph-plan tasks --file ./spec.md`)
+   - `--text <string>` (e.g., `/ralph-plan tasks --text "Add user auth"`)
+2. Read the source and extract actionable items
+3. Generate tasks following the template
+4. Write to `docs/planning/tasks/`
+
+Begin the session with:
+
+---
+
+"I'll generate tasks from the provided source.
+
+**Source:** [file path / text description]
+
+Let me read and analyze the source to extract requirements..."
+
+---
+
+Then follow ALL steps in the workflow file you just read.
+
+### If argument is `subtasks --milestone` or `subtasks --story` (hierarchy source):
+
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-from-hierarchy.md` (relative to project root). DO NOT proceed without reading this file first - it contains the parallel agent orchestration workflow.
+
+**CRITICAL - Append, Don't Overwrite:** When writing subtasks.json, use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`. This function appends new subtasks to existing files instead of overwriting them. Never use `saveSubtasksFile()` directly for subtask planning - it destroys existing subtasks.
+
+1. A hierarchy source must be provided:
+   - `--milestone <name>` to process all tasks in the milestone
+   - `--story <path>` to process all tasks linked to that story
+2. Discover all tasks for the given scope
+3. Spawn parallel agents (one per task) to generate subtasks
+4. Aggregate results to `docs/planning/milestones/<milestone>/subtasks.json` using appendSubtasksToFile()
+
+Begin the session with:
+
+---
+
+"I'll generate subtasks for all tasks in the [milestone/story].
+
+**Source:** [milestone name / story path]
+**Mode:** Hierarchy-based (processing all tasks)
+
+Let me discover the tasks and spawn parallel agents..."
+
+---
+
+Then follow ALL steps in the workflow file you just read.
+
+### If argument is `subtasks` with `--file`, `--text`, or `--review` (alternative source):
 
 **MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-from-source.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full workflow you MUST follow.
 
-1. A source must be provided - either:
-   - A file path (e.g., `/ralph-plan subtasks ./review-findings.md`)
-   - A text description (e.g., `/ralph-plan subtasks "Fix array bounds check"`)
-   - The `--review` flag to parse `logs/reviews.jsonl`
-2. If no source and no `--review` flag, ask the user what source to use
-3. Optionally accept `--milestone <name>` to set target milestone
-4. Optionally accept `--story <ref>` to link subtasks to a story
-5. Optionally accept `--1-to-1` flag to bypass decomposition/sizing logic (one input item → one subtask)
-6. Read the source and extract actionable items
-7. Generate subtasks following the schema and sizing constraints from the workflow (unless `--1-to-1` is set)
-8. Write to `docs/planning/milestones/<milestone>/subtasks.json` (append or create)
+**CRITICAL - Append, Don't Overwrite:** When writing subtasks.json, use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`. This function appends new subtasks to existing files instead of overwriting them. Never use `saveSubtasksFile()` directly for subtask planning - it destroys existing subtasks.
+
+1. An alternative source must be provided - one of:
+   - `--file <path>` (e.g., `/ralph-plan subtasks --file ./review-findings.md`)
+   - `--text <string>` (e.g., `/ralph-plan subtasks --text "Fix array bounds check"`)
+   - `--review` flag to parse `logs/reviews.jsonl`
+2. Optionally accept `--1-to-1` flag to bypass decomposition/sizing logic (one input item → one subtask)
+3. Read the source and extract actionable items
+4. Generate subtasks following the schema and sizing constraints from the workflow (unless `--1-to-1` is set)
+5. Write to `docs/planning/subtasks.json` or specified milestone location using appendSubtasksToFile()
 
 Begin the session with:
 
@@ -173,9 +225,33 @@ Begin the session with:
 "I'll generate subtasks from the provided source.
 
 **Source:** [file path / text / review diary]
-**Target:** [milestone / story if provided]
 
 Let me read and analyze the source to extract actionable items..."
+
+---
+
+Then follow ALL steps in the workflow file you just read.
+
+### If argument is `subtasks --task` (single task source):
+
+**MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-auto.md` (relative to project root). DO NOT proceed without reading this file first.
+
+**CRITICAL - Append, Don't Overwrite:** When writing subtasks.json, use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`. This function appends new subtasks to existing files instead of overwriting them. Never use `saveSubtasksFile()` directly for subtask planning - it destroys existing subtasks.
+
+1. A task path is required via `--task <path>`
+2. Read the task file to understand the implementation scope
+3. Generate subtasks for that specific task
+4. Write to appropriate subtasks.json location using appendSubtasksToFile()
+
+Begin the session with:
+
+---
+
+"I'll generate subtasks for the specified task.
+
+**Task:** [task path]
+
+Let me read and analyze the task..."
 
 ---
 
@@ -337,44 +413,67 @@ aaa ralph plan tasks --milestone <name> --auto
 
 ## Subtasks Planning
 
-Generate subtasks from any source: file, text description, or review diary.
+Generate subtasks from hierarchy (tasks in milestone/story) or alternative sources (file, text, review).
+
+### Source Types
+
+**Hierarchy Sources (scope = source):**
+| Flag | Example | Meaning |
+|------|---------|---------|
+| `--milestone` | `--milestone 003-ralph` | All tasks in milestone → subtasks |
+| `--story` | `--story STORY-001` | All tasks for that story → subtasks |
+| `--task` | `--task TASK-001` | That task → subtasks |
+
+**Alternative Sources:**
+| Flag | Example | Meaning |
+|------|---------|---------|
+| `--file` | `--file ./spec.md` | File content → subtasks |
+| `--text` | `--text "Fix bug"` | Text description → subtasks |
+| `--review` | `--review` | Review diary findings → subtasks |
 
 ### Invocation
 
-```
-/ralph-plan subtasks <source>
-/ralph-plan subtasks --review
-/ralph-plan subtasks <source> --1-to-1
-```
+```bash
+# Hierarchy sources (scope flags)
+aaa ralph plan subtasks --milestone 003-ralph-workflow --headless
+aaa ralph plan subtasks --story STORY-001 --headless
+aaa ralph plan subtasks --task TASK-001 --headless
 
-### Input Sources
+# Alternative sources (explicit flags)
+aaa ralph plan subtasks --file ./review-findings.md
+aaa ralph plan subtasks --text "Fix array bounds check"
+aaa ralph plan subtasks --review
 
-| Source Type | Example |
-|-------------|---------|
-| File path | `/ralph-plan subtasks ./review-findings.md` |
-| Text description | `/ralph-plan subtasks "Fix array bounds check"` |
-| Review diary | `/ralph-plan subtasks --review` |
+# With sizing
+aaa ralph plan subtasks --milestone 003-ralph --size small --headless
+```
 
 ### Optional Flags
 
-- `--milestone <name>` - Target milestone for subtasks.json location
-- `--story <ref>` - Link subtasks to a parent story
-- `--1-to-1` - Direct mapping mode: bypass decomposition/sizing logic and map each input item directly to one subtask
+- `--size <mode>` - Slice thickness: small, medium (default), large
+- `--1-to-1` - Direct mapping mode: bypass decomposition/sizing logic
 
 ### What Happens
 
+**For hierarchy sources:**
+1. Discovers all tasks in the scope (milestone or story)
+2. Spawns parallel agents (one per task)
+3. Each agent generates subtasks for its task
+4. Aggregates to `docs/planning/milestones/<milestone>/subtasks.json`
+
+**For alternative sources:**
 1. Reads the source (file content, text, or logs/reviews.jsonl)
 2. Extracts actionable items from the source
 3. Generates subtasks following schema and sizing constraints
-4. Validates each subtask fits single context window
-5. Writes to `docs/planning/milestones/<milestone>/subtasks.json`
+4. Writes to `docs/planning/subtasks.json` or specified milestone location
 
 ### Important Notes
 
+- Hierarchy sources (`--milestone`, `--story`) are the primary way to generate subtasks
+- Alternative sources bypass the planning hierarchy for ad-hoc use cases
 - Each subtask should touch 1-3 files (not counting tests)
 - Subtasks must be completable in 15-30 tool calls
 - IDs are globally unique (SUB-NNN format)
-- Uses supervised mode by default (user watches generation)
 
 ### When to Use `--1-to-1`
 
@@ -396,10 +495,20 @@ This skill provides the same functionality as:
 aaa ralph plan vision
 aaa ralph plan roadmap
 aaa ralph plan stories --milestone <name>
-aaa ralph plan tasks --story <story-id>           # Single story
-aaa ralph plan tasks --milestone <name> --auto    # All stories in milestone
-aaa ralph plan subtasks <source> --milestone <name>   # From file/text
-aaa ralph plan subtasks --review --milestone <name>   # From review diary
+# Tasks from hierarchy
+aaa ralph plan tasks --story <story-id>           # Story → tasks
+aaa ralph plan tasks --milestone <name> --auto    # All stories in milestone → tasks
+# Tasks from alternative sources
+aaa ralph plan tasks --file ./spec.md             # File → tasks
+aaa ralph plan tasks --text "Add auth"            # Text → tasks
+# Subtasks from hierarchy
+aaa ralph plan subtasks --milestone <name>        # All tasks in milestone → subtasks
+aaa ralph plan subtasks --story <story-id>        # All tasks for story → subtasks
+aaa ralph plan subtasks --task <task-id>          # Single task → subtasks
+# Subtasks from alternative sources
+aaa ralph plan subtasks --file ./spec.md          # File → subtasks
+aaa ralph plan subtasks --text "Fix bug"          # Text → subtasks
+aaa ralph plan subtasks --review                  # Review diary → subtasks
 ```
 
 ## References
@@ -409,6 +518,8 @@ aaa ralph plan subtasks --review --milestone <name>   # From review diary
 - **Stories prompt:** `context/workflows/ralph/planning/stories-interactive.md`
 - **Tasks prompt:** `context/workflows/ralph/planning/tasks-interactive.md`
 - **Tasks milestone prompt:** `context/workflows/ralph/planning/tasks-milestone.md`
+- **Tasks from source:** `context/workflows/ralph/planning/tasks-from-source.md`
+- **Subtasks from hierarchy:** `context/workflows/ralph/planning/subtasks-from-hierarchy.md`
 - **Subtasks from source:** `context/workflows/ralph/planning/subtasks-from-source.md`
 - **Subtasks from task:** `context/workflows/ralph/planning/subtasks-auto.md`
 - **Task generator agent:** `.claude/agents/task-generator.md`

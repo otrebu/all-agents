@@ -1,0 +1,5 @@
+{"type":"step_start","timestamp":1704067200000,"sessionID":"ses_multi001"}
+{"type":"text","timestamp":1704067200100,"part":{"text":"First line of output.\n"}}
+{"type":"text","timestamp":1704067200200,"part":{"text":"Second line of output.\n"}}
+{"type":"text","timestamp":1704067200300,"part":{"text":"Third and final line."}}
+{"type":"step_finish","timestamp":1704067201000,"part":{"reason":"stop","cost":0.0150,"tokens":{"input":5000,"output":1200,"reasoning":300,"cacheRead":2000,"cacheWrite":500}}}

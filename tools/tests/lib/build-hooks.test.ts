@@ -37,20 +37,25 @@ describe("build.ts hook integration", () => {
 
   describe("onSubtaskComplete hook", () => {
     test("hook is called when didComplete is true", () => {
-      // Verify the hook call exists in the didComplete block
+      // Verify the helper function call exists in the didComplete block
       const subtaskHookPattern =
-        /if\s*\(\s*didComplete\s*\)[\s\S]*?executeHook\s*\(\s*["']onSubtaskComplete["']/;
+        /if\s*\(\s*didComplete\s*\)[\s\S]*?fireSubtaskCompleteHook\s*\(/;
       expect(subtaskHookPattern.test(buildContent)).toBe(true);
+    });
+
+    test("helper function invokes executeHook with onSubtaskComplete", () => {
+      // Verify the helper function calls executeHook with correct event
+      expect(buildContent).toContain('executeHook("onSubtaskComplete"');
     });
 
     test("hook context includes subtaskId", () => {
       // Verify the hook context includes subtaskId field
-      expect(buildContent).toContain("subtaskId: currentSubtask.id");
+      expect(buildContent).toContain("subtaskId: subtask.id");
     });
 
     test("hook message includes subtask title", () => {
       // Verify the hook message includes subtask details
-      expect(buildContent).toContain("currentSubtask.title");
+      expect(buildContent).toContain("subtask.title");
     });
   });
 

@@ -18,6 +18,7 @@ import notifyCommand from "./commands/notify/index";
 import parallelSearchCommand from "./commands/parallel-search/index";
 import ralphCommand from "./commands/ralph/index";
 import reviewCommand from "./commands/review/index";
+import sessionCommand from "./commands/session/index";
 import setupCommand from "./commands/setup/index";
 import createStoryCommand from "./commands/story";
 import runSyncContextCli from "./commands/sync-context";
@@ -189,6 +190,9 @@ program.addCommand(ralphCommand);
 
 // Review - parallel multi-agent code review
 program.addCommand(reviewCommand);
+
+// Session - Claude session file management
+program.addCommand(sessionCommand);
 
 // Notify - push notifications via ntfy.sh
 program.addCommand(notifyCommand);

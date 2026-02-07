@@ -49,6 +49,9 @@ const LEGACY_RALPH_CONFIG = "ralph.config.json";
 /** Legacy ralph config structure */
 interface LegacyRalphConfig {
   hooks?: HooksConfig;
+  lightweightModel?: string;
+  model?: string;
+  provider?: RalphSection["provider"];
   selfImprovement?: SelfImprovementConfig;
 }
 
@@ -143,6 +146,9 @@ function loadLegacyRalphConfig(projectRoot: string): null | Partial<AaaConfig> {
     // Map legacy format to new format
     const ralph: RalphSection = {
       hooks: parsed.hooks,
+      lightweightModel: parsed.lightweightModel,
+      model: parsed.model,
+      provider: parsed.provider,
       selfImprovement: parsed.selfImprovement,
     };
     return { ralph };
@@ -226,6 +232,9 @@ function mergeRalph(
   return {
     ...defaultValue,
     ...userValue,
+    approvals: userValue.approvals
+      ? { ...defaultValue.approvals, ...userValue.approvals }
+      : defaultValue.approvals,
     build: userValue.build
       ? { ...defaultValue.build, ...userValue.build }
       : defaultValue.build,

@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+import type { ProviderType } from "../ralph/providers/types";
 import type {
   Finding,
   ReviewDiaryEntry,
@@ -12,9 +13,16 @@ import type {
   TriageDecision,
 } from "./types";
 
-import { invokeClaudeChat, invokeClaudeHeadless } from "../ralph/claude";
+import { loadRalphConfig, loadTimeoutConfig } from "../ralph/config";
 import { formatDuration, renderMarkdown } from "../ralph/display";
 import { executeHook, type HookContext } from "../ralph/hooks";
+import { validateModelSelection } from "../ralph/providers/models";
+import {
+  formatProviderFailureOutcome,
+  invokeWithProviderOutcome,
+  resolveProvider,
+  validateProviderInvocationPreflight,
+} from "../ralph/providers/registry";
 import { calculatePriority, FindingsArraySchema } from "./types";
 
 /**
@@ -157,6 +165,8 @@ const reviewCommand = new Command("review")
   .option("--range <range>", "Compare specific commits (format: from..to)")
   .option("--staged-only", "Review only staged changes")
   .option("--unstaged-only", "Review only unstaged changes")
+  .option("--provider <name>", "AI provider to use (default: claude)")
+  .option("--model <name>", "Model to use (validated against model registry)")
   .action((options) => {
     // Validate: --dry-run requires --headless
     if (options.dryRun === true && options.headless !== true) {
@@ -206,13 +216,15 @@ const reviewCommand = new Command("review")
     const { diffTarget } = diffTargetResult as { diffTarget: DiffTarget };
 
     if (options.headless === true) {
-      void runHeadlessReview(
-        options.dryRun === true,
-        options.requireApproval === true,
+      void runHeadlessReview({
         diffTarget,
-      );
+        isDryRun: options.dryRun === true,
+        isRequireApproval: options.requireApproval === true,
+        modelOverride: options.model,
+        providerOverride: options.provider,
+      });
     } else if (options.supervised === true) {
-      runSupervisedReview(diffTarget);
+      void runSupervisedReview(diffTarget, options.provider, options.model);
     } else {
       // No mode specified - prompt user to choose
       promptForMode();
@@ -834,6 +846,23 @@ function renderFindingsSummary(
 }
 
 /**
+ * Resolve model selection with priority:
+ * CLI flag > config file
+ */
+function resolveModel(modelOverride?: string): string | undefined {
+  if (modelOverride !== undefined && modelOverride !== "") {
+    return modelOverride;
+  }
+
+  try {
+    const config = loadRalphConfig();
+    return config.model;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Run review in headless mode
  *
  * Invokes Claude headless with the code-review skill.
@@ -844,11 +873,20 @@ function renderFindingsSummary(
  * @param requireApproval - If true, pause after triage for user confirmation
  * @param diffTarget - The diff target configuration
  */
-async function runHeadlessReview(
-  isDryRun: boolean,
-  isRequireApproval: boolean,
-  diffTarget: DiffTarget,
-): Promise<void> {
+async function runHeadlessReview(options: {
+  diffTarget: DiffTarget;
+  isDryRun: boolean;
+  isRequireApproval: boolean;
+  modelOverride?: string;
+  providerOverride?: string;
+}): Promise<void> {
+  const {
+    diffTarget,
+    isDryRun,
+    isRequireApproval,
+    modelOverride,
+    providerOverride,
+  } = options;
   if (isDryRun) {
     console.log(chalk.bold("Starting headless code review (dry-run)...\n"));
     console.log(chalk.dim("Findings will be displayed but not auto-fixed.\n"));
@@ -886,15 +924,59 @@ async function runHeadlessReview(
     skillPath,
   });
 
-  console.log(chalk.dim("Invoking Claude in headless mode...\n"));
-
-  // Invoke Claude headless
-  const result = invokeClaudeHeadless({ prompt });
-
-  if (result === null) {
-    console.error(chalk.red("\nHeadless review failed or was interrupted"));
+  // Select provider (CLI > env > config > auto) and preflight mode support.
+  let provider: ProviderType = "claude";
+  try {
+    provider = await resolveProvider({ cliFlag: providerOverride });
+    await validateProviderInvocationPreflight(provider, "headless");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Error: ${message}`));
     process.exit(1);
   }
+  console.log(chalk.dim(`Using provider: ${provider}`));
+
+  // Select model (CLI flag > config)
+  const model = resolveModel(modelOverride);
+
+  // Validate model selection if specified
+  if (model !== undefined) {
+    const modelResult = validateModelSelection(model, provider);
+    if (!modelResult.valid) {
+      console.error(chalk.red(`\nError: ${modelResult.error}`));
+      if (modelResult.suggestions.length > 0) {
+        console.error(chalk.yellow("\nDid you mean:"));
+        for (const suggestion of modelResult.suggestions) {
+          console.error(chalk.yellow(`  - ${suggestion}`));
+        }
+      }
+      process.exit(1);
+    }
+    console.log(chalk.dim(`Using model: ${model} (${modelResult.cliFormat})`));
+  }
+
+  console.log(chalk.dim("Invoking in headless mode...\n"));
+
+  // Invoke provider headless with timeout protection
+  const timeoutConfig = loadTimeoutConfig();
+  const invocationOutcome = await invokeWithProviderOutcome(provider, {
+    gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+    mode: "headless",
+    model,
+    prompt,
+    stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+    timeout: timeoutConfig.hardMinutes * 60 * 1000,
+  });
+
+  if (invocationOutcome.status !== "success") {
+    const formatted = formatProviderFailureOutcome(invocationOutcome);
+    const color =
+      invocationOutcome.status === "fatal" ? chalk.red : chalk.yellow;
+    console.error(color(`\n${formatted}`));
+    process.exit(1);
+  }
+
+  const { result } = invocationOutcome;
 
   // Display Claude's response (excluding the JSON block for cleaner output)
   const displayOutput = result.result
@@ -915,9 +997,9 @@ async function runHeadlessReview(
       chalk.dim("Review completed but findings summary unavailable."),
     );
     console.log(
-      `\n${chalk.dim("Duration:")} ${formatDuration(result.duration)}`,
+      `\n${chalk.dim("Duration:")} ${formatDuration(result.durationMs)}`,
     );
-    console.log(`${chalk.dim("Cost:")} $${result.cost.toFixed(4)}`);
+    console.log(`${chalk.dim("Cost:")} $${result.costUsd.toFixed(4)}`);
     return;
   }
 
@@ -940,8 +1022,8 @@ async function runHeadlessReview(
 
   // Session stats
   console.log(chalk.dim("─".repeat(68)));
-  console.log(`${chalk.dim("Duration:")} ${formatDuration(result.duration)}`);
-  console.log(`${chalk.dim("Cost:")} $${result.cost.toFixed(4)}`);
+  console.log(`${chalk.dim("Duration:")} ${formatDuration(result.durationMs)}`);
+  console.log(`${chalk.dim("Cost:")} $${result.costUsd.toFixed(4)}`);
   console.log(`${chalk.dim("Session:")} ${result.sessionId}`);
 
   // If approval required, prompt user before proceeding
@@ -1153,7 +1235,11 @@ function runReviewStatus(): void {
  *
  * @param diffTarget - The diff target configuration
  */
-function runSupervisedReview(diffTarget: DiffTarget): void {
+async function runSupervisedReview(
+  diffTarget: DiffTarget,
+  providerOverride?: string,
+  modelOverride?: string,
+): Promise<void> {
   console.log(chalk.bold("Starting supervised code review...\n"));
 
   // Find project root and skill prompt
@@ -1181,12 +1267,41 @@ function runSupervisedReview(diffTarget: DiffTarget): void {
       ? "1. Gather the diff of current changes"
       : `1. Gather changes using: \`${diffCommand}\``;
 
-  // Invoke Claude in chat/supervised mode
+  // Select provider (CLI > env > config > auto) and preflight mode support.
+  let provider: ProviderType = "claude";
+  try {
+    provider = await resolveProvider({ cliFlag: providerOverride });
+    await validateProviderInvocationPreflight(provider, "supervised");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Error: ${message}`));
+    process.exit(1);
+  }
+  console.log(chalk.dim(`Using provider: ${provider}`));
+
+  // Select model (CLI flag > config)
+  const model = resolveModel(modelOverride);
+
+  // Validate model selection if specified
+  if (model !== undefined) {
+    const modelResult = validateModelSelection(model, provider);
+    if (!modelResult.valid) {
+      console.error(chalk.red(`\nError: ${modelResult.error}`));
+      if (modelResult.suggestions.length > 0) {
+        console.error(chalk.yellow("\nDid you mean:"));
+        for (const suggestion of modelResult.suggestions) {
+          console.error(chalk.yellow(`  - ${suggestion}`));
+        }
+      }
+      process.exit(1);
+    }
+    console.log(chalk.dim(`Using model: ${model} (${modelResult.cliFormat})`));
+  }
+
+  // Invoke in chat/supervised mode
   // User can watch and type during the session
-  const result = invokeClaudeChat(
-    promptPath,
-    "code review",
-    `Execute the parallel code review workflow as defined in this skill document.
+  const invocationOutcome = await invokeWithProviderOutcome(provider, {
+    context: `Execute the parallel code review workflow as defined in this skill document.
 
 Run all phases:
 ${diffInstruction}
@@ -1195,21 +1310,18 @@ ${diffInstruction}
 4. Present findings for triage
 
 Start by gathering the diff.`,
-  );
+    mode: "supervised",
+    model,
+    promptPath,
+    sessionName: "code review",
+  });
 
-  // Handle result
-  if (result.interrupted) {
-    console.log(chalk.yellow("\nCode review session interrupted by user."));
-    process.exit(0);
-  }
-
-  if (!result.success) {
-    console.error(
-      chalk.red(
-        `\nCode review session failed with exit code ${result.exitCode}`,
-      ),
-    );
-    process.exit(result.exitCode ?? 1);
+  if (invocationOutcome.status !== "success") {
+    const formatted = formatProviderFailureOutcome(invocationOutcome);
+    const color =
+      invocationOutcome.status === "fatal" ? chalk.red : chalk.yellow;
+    console.error(color(`\n${formatted}`));
+    process.exit(1);
   }
 
   console.log(chalk.green("\nCode review session completed."));

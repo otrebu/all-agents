@@ -1,5 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "cleanupPeriodDays": 90,
   "permissions": {
     "allow": [
       "Read",
@@ -174,13 +175,24 @@
     "defaultMode": "plan"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.session_id' > \"$CLAUDE_PROJECT_DIR/.claude/current-session\""
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "aaa notify --event claude:stop --title 'Claude Code' 'Response ready - check terminal' --quiet"
+            "command": "aaa notify --event claude:stop --title 'Claude Code' 'Response ready - check terminal' --quiet >/dev/null 2>&1 &"
           }
         ]
       }
@@ -191,7 +203,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "aaa notify --event claude:permissionPrompt --title 'Claude Code' 'Permission required - action needed' --quiet"
+            "command": "aaa notify --event claude:permissionPrompt --title 'Claude Code' 'Permission required - action needed' --quiet >/dev/null 2>&1 &"
           }
         ]
       }

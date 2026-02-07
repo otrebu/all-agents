@@ -23,11 +23,13 @@ import type { NotifyConfig, Priority } from "./types";
 
 import { sendNotification } from "./client";
 import {
+  DEFAULT_EVENTS,
   DEFAULT_NOTIFY_CONFIG,
   getConfigPath,
   isInQuietHours,
   loadNotifyConfig,
   saveNotifyConfig,
+  saveNotifyConfigWithEvents,
 } from "./config";
 import { NtfyNetworkError, NtfyRateLimitError, priorities } from "./types";
 
@@ -210,9 +212,13 @@ notifyCommand
       if (options.event === undefined) {
         // No event specified, skip event line
       } else {
-        const suffix =
+        const enabledSuffix =
+          eventConfig?.enabled === false ? chalk.yellow(" (disabled)") : "";
+        const notFoundSuffix =
           eventConfig === undefined ? chalk.yellow(" (not found)") : "";
-        console.log(`  Event:    ${options.event}${suffix}`);
+        console.log(
+          `  Event:    ${options.event}${notFoundSuffix}${enabledSuffix}`,
+        );
       }
       console.log(
         `  Topic:    ${resolved.topic || chalk.yellow("(not configured)")}`,
@@ -225,6 +231,11 @@ notifyCommand
       }
       console.log(`  Message:  ${message}`);
       return;
+    }
+
+    // Check if event is explicitly disabled (exit silently - safe for hooks)
+    if (eventConfig?.enabled === false) {
+      process.exit(0);
     }
 
     // Check if notifications should be sent
@@ -385,8 +396,8 @@ notifyCommand
       username: DEFAULT_NOTIFY_CONFIG.username,
     };
 
-    saveNotifyConfig(config);
-    p.log.success("Configuration saved");
+    saveNotifyConfigWithEvents(config, DEFAULT_EVENTS);
+    p.log.success("Configuration saved (with default event routing)");
 
     // Send test notification
     const spinner = ora("Sending test notification...").start();
@@ -439,14 +450,14 @@ Quiet:    ${config.quietHours.enabled ? `${config.quietHours.startHour}:00 - ${c
     "Stop": [{
       "hooks": [{
         "type": "command",
-        "command": "aaa notify --event claude:stop --title 'Claude Code' 'Response ready - check terminal' --quiet"
+        "command": "aaa notify --event claude:stop --title 'Claude Code' 'Response ready - check terminal' --quiet >/dev/null 2>&1 &"
       }]
     }],
     "Notification": [{
       "matcher": "permission_prompt",
       "hooks": [{
         "type": "command",
-        "command": "aaa notify --event claude:permissionPrompt --title 'Claude Code' 'Permission required - action needed' --quiet"
+        "command": "aaa notify --event claude:permissionPrompt --title 'Claude Code' 'Permission required - action needed' --quiet >/dev/null 2>&1 &"
       }]
     }]
   }

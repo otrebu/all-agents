@@ -3,7 +3,7 @@
  *
  * This module handles post-iteration processing:
  * - runPostIterationHook() - Main entry point, orchestrates all post-iteration actions
- * - generateSummary() - Uses Haiku with timeout for summary generation
+ * - generateSummary() - Uses provider lightweight model with timeout
  * - writeDiaryEntry() - Appends JSON line to logs/iterations.jsonl
  * - getFilesChanged() - Uses git diff + session log fallback
  *
@@ -15,6 +15,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
+import type { ProviderType } from "./providers/types";
 import type {
   IterationDiaryEntry,
   IterationStatus,
@@ -22,15 +23,13 @@ import type {
   Subtask,
 } from "./types";
 
-import { invokeClaudeHaiku } from "./claude";
-import { getIterationLogPath } from "./config";
+import { getIterationLogPath, loadRalphConfig } from "./config";
 import {
-  calculateDurationMs,
-  countToolCalls,
-  getFilesFromSession,
-  getSessionJsonlPath,
-  getTokenUsageFromSession,
-} from "./session";
+  EMPTY_SESSION_METRICS,
+  extractSessionMetricsForProvider,
+  resolveSessionForProvider,
+} from "./providers/session-adapter";
+import { invokeProviderSummary } from "./providers/summary";
 
 // =============================================================================
 // Types
@@ -40,14 +39,14 @@ import {
  * Options for getFilesChanged()
  */
 interface GetFilesChangedOptions {
-  /** Commit hash after Claude invocation */
+  /** Commit hash after provider invocation */
   commitAfter?: null | string;
-  /** Commit hash before Claude invocation */
+  /** Commit hash before provider invocation */
   commitBefore?: null | string;
   /** Repository root path for git commands */
   repoRoot: string;
-  /** Path to session JSONL file (for fallback) */
-  sessionPath: null | string;
+  /** Provider-derived changed files (fallback when git diff is empty) */
+  sessionFiles: Array<string>;
 }
 
 /**
@@ -64,12 +63,12 @@ interface LinesChangedResult {
  * Options for running the post-iteration hook
  */
 interface PostIterationOptions {
-  /** Time spent in Claude Code invocation (ms) - passed from build.ts */
-  claudeMs?: number;
-  /** Git commit hash after Claude invocation completed */
+  /** Git commit hash after provider invocation completed */
   commitAfter?: null | string;
-  /** Git commit hash before Claude invocation started */
+  /** Git commit hash before provider invocation started */
   commitBefore?: null | string;
+  /** All-agents context root (for prompt templates) */
+  contextRoot: string;
   /** Total cost in USD for this iteration */
   costUsd?: number;
   /** Current iteration attempt number (1 = first try) */
@@ -80,13 +79,17 @@ interface PostIterationOptions {
   milestone?: string;
   /** Execution mode: 'headless' or 'supervised' */
   mode?: "headless" | "supervised";
+  /** Provider used for this iteration */
+  provider?: ProviderType;
+  /** Time spent in provider invocation (ms) - passed from build.ts */
+  providerMs?: number;
   /** Number of remaining subtasks after this iteration */
   remaining?: number;
   /** Repository root path for session discovery */
   repoRoot: string;
-  /** Claude session ID (required - hook is skipped without this) */
+  /** Provider session ID (required - hook is skipped without this) */
   sessionId: string;
-  /** Skip Haiku summary generation to reduce latency and cost */
+  /** Skip lightweight summary generation to reduce latency and cost */
   skipSummary?: boolean;
   /** The iteration status */
   status: IterationStatus;
@@ -116,8 +119,10 @@ interface PostIterationResult {
 // Lines Changed
 // =============================================================================
 
+type SummaryInvoker = typeof invokeProviderSummary;
+
 /**
- * Result from Haiku summary generation
+ * Result from lightweight summary generation
  */
 interface SummaryResult {
   /** Key findings from the iteration */
@@ -133,24 +138,26 @@ interface SummaryResult {
 // =============================================================================
 
 /**
- * Generate iteration summary using Claude Haiku
+ * Generate iteration summary using provider lightweight model
  *
  * Uses the iteration-summary.md prompt template with placeholder substitution.
- * Falls back to a default summary if Haiku fails or times out.
+ * Falls back to a default summary if model invocation fails or times out.
  * When skipSummary is true, returns a placeholder summary immediately.
  *
  * @param options - PostIterationOptions containing subtask and session info
  * @param sessionPath - Path to session JSONL file
  * @returns SummaryResult with summary text, key findings, and timing
  */
-function generateSummary(
+async function generateSummary(
   options: PostIterationOptions,
   sessionPath: null | string,
-): SummaryResult {
+  summaryInvoker: SummaryInvoker = invokeProviderSummary,
+): Promise<SummaryResult> {
   const {
+    contextRoot,
     iterationNumber = 1,
     milestone = "",
-    repoRoot,
+    provider = "claude",
     skipSummary: shouldSkipSummary = false,
     status,
     subtask,
@@ -158,7 +165,7 @@ function generateSummary(
 
   const summaryStart = Date.now();
 
-  // Skip Haiku if skipSummary is true
+  // Skip lightweight summary model if skipSummary is true
   if (shouldSkipSummary) {
     return {
       keyFindings: [],
@@ -167,7 +174,7 @@ function generateSummary(
     };
   }
 
-  // Skip Haiku if no session (Haiku can't read files in -p mode anyway)
+  // Skip model invocation if no session content is available
   if (sessionPath === null) {
     return {
       keyFindings: [],
@@ -176,7 +183,8 @@ function generateSummary(
     };
   }
 
-  const promptPath = `${repoRoot}/context/workflows/ralph/hooks/iteration-summary.md`;
+  // Use all-agents contextRoot for prompt template (not target project repoRoot)
+  const promptPath = `${contextRoot}/context/workflows/ralph/hooks/iteration-summary.md`;
 
   // Check if prompt template exists
   if (!existsSync(promptPath)) {
@@ -187,7 +195,7 @@ function generateSummary(
     };
   }
 
-  // Read session content to pass directly (Haiku can't read files with -p flag)
+  // Read session content to pass directly (providers may not read files in headless mode)
   let sessionContent = "";
   try {
     const rawContent = readFileSync(sessionPath, "utf8");
@@ -210,8 +218,21 @@ function generateSummary(
     .replaceAll("{{ITERATION_NUM}}", String(iterationNumber))
     .replaceAll("{{SESSION_CONTENT}}", sessionContent);
 
-  // Invoke Haiku with 30 second timeout
-  const result = invokeClaudeHaiku({ prompt: promptContent, timeout: 30_000 });
+  const configuredLightweightModel = (() => {
+    try {
+      return loadRalphConfig().lightweightModel ?? "";
+    } catch {
+      return "";
+    }
+  })();
+
+  // Invoke provider summary model with 30 second timeout
+  const result = await summaryInvoker({
+    configuredModel: configuredLightweightModel,
+    prompt: promptContent,
+    provider,
+    timeoutMs: 30_000,
+  });
 
   if (result === null || result.trim() === "") {
     return {
@@ -221,7 +242,7 @@ function generateSummary(
     };
   }
 
-  // Parse JSON from Haiku response
+  // Parse JSON from provider summary response
   try {
     // The result may be inside a code block, try to extract JSON
     let jsonString = result;
@@ -262,11 +283,11 @@ function generateSummary(
  *
  * Uses git diff --name-only to list files modified
  * across all commits in the range. This accurately measures
- * what Claude committed during an iteration.
+ * what the provider committed during an iteration.
  *
  * @param repoRoot - Repository root path for git commands
- * @param before - Commit hash before Claude invocation
- * @param after - Commit hash after Claude invocation
+ * @param before - Commit hash before provider invocation
+ * @param after - Commit hash after provider invocation
  * @returns Array of file paths changed in the range
  */
 function getCommitRangeFiles(
@@ -280,7 +301,7 @@ function getCommitRangeFiles(
 
   const proc = Bun.spawnSync(
     ["git", "diff", "--name-only", `${before}..${after}`],
-    { cwd: repoRoot },
+    { cwd: repoRoot, timeout: 30_000 },
   );
 
   if (proc.exitCode !== 0) {
@@ -299,11 +320,11 @@ function getCommitRangeFiles(
  *
  * Uses git diff --numstat to count insertions and deletions
  * across all commits in the range. This accurately measures
- * what Claude committed during an iteration.
+ * what the provider committed during an iteration.
  *
  * @param repoRoot - Repository root path for git commands
- * @param before - Commit hash before Claude invocation
- * @param after - Commit hash after Claude invocation
+ * @param before - Commit hash before provider invocation
+ * @param after - Commit hash after provider invocation
  * @returns LinesChangedResult with totals
  */
 function getCommitRangeLines(
@@ -317,7 +338,7 @@ function getCommitRangeLines(
 
   const proc = Bun.spawnSync(
     ["git", "diff", "--numstat", `${before}..${after}`],
-    { cwd: repoRoot },
+    { cwd: repoRoot, timeout: 30_000 },
   );
 
   if (proc.exitCode !== 0) {
@@ -352,7 +373,7 @@ function getCommitRangeLines(
  * @returns Array of file paths (max 50)
  */
 function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
-  const { commitAfter, commitBefore, repoRoot, sessionPath } = options;
+  const { commitAfter, commitBefore, repoRoot, sessionFiles } = options;
   const files = new Set<string>();
 
   // Primary source: git commit range (most accurate)
@@ -372,9 +393,8 @@ function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
     }
   }
 
-  // Fallback: session parsing if git shows nothing
-  if (files.size === 0 && sessionPath !== null) {
-    const sessionFiles = getFilesFromSession(sessionPath);
+  // Fallback: provider session parsing if git shows nothing
+  if (files.size === 0) {
     for (const file of sessionFiles) {
       // Normalize to relative path if absolute
       const relativePath = file.startsWith(repoRoot)
@@ -388,7 +408,7 @@ function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
   try {
     const stagedProc = Bun.spawnSync(
       ["git", "diff", "--cached", "--name-only"],
-      { cwd: repoRoot },
+      { cwd: repoRoot, timeout: 30_000 },
     );
     const staged = stagedProc.stdout.toString("utf8").trim();
 
@@ -402,6 +422,7 @@ function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
 
     const unstagedProc = Bun.spawnSync(["git", "diff", "--name-only"], {
       cwd: repoRoot,
+      timeout: 30_000,
     });
     const unstaged = unstagedProc.stdout.toString("utf8").trim();
 
@@ -434,7 +455,7 @@ function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
  * Uses git diff --numstat to count insertions and deletions.
  * Includes both staged and unstaged changes.
  * Falls back to git show --numstat HEAD when no uncommitted changes exist
- * (handles case where Claude already committed during the iteration).
+ * (handles case where the provider already committed during the iteration).
  *
  * @param repoRoot - Repository root path for git commands
  * @returns LinesChangedResult with totals
@@ -447,6 +468,7 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     // Get staged changes
     const stagedProc = Bun.spawnSync(["git", "diff", "--cached", "--numstat"], {
       cwd: repoRoot,
+      timeout: 30_000,
     });
     const staged = stagedProc.stdout.toString("utf8");
 
@@ -457,6 +479,7 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     // Get unstaged changes
     const unstagedProc = Bun.spawnSync(["git", "diff", "--numstat"], {
       cwd: repoRoot,
+      timeout: 30_000,
     });
     const unstaged = unstagedProc.stdout.toString("utf8");
 
@@ -465,10 +488,11 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     linesRemoved += unstagedResult.linesRemoved;
 
     // Fallback: if no uncommitted changes, get lines from the latest commit
-    // This handles the case where Claude already committed during the iteration
+    // This handles the case where the provider already committed during the iteration
     if (linesAdded === 0 && linesRemoved === 0) {
       const headProc = Bun.spawnSync(["git", "show", "--numstat", "HEAD"], {
         cwd: repoRoot,
+        timeout: 30_000,
       });
       const headCommit = headProc.stdout.toString("utf8");
 
@@ -538,26 +562,27 @@ function parseNumstat(numstatOutput: string): LinesChangedResult {
  *
  * The hook:
  * 1. Finds the session JSONL file
- * 2. Generates a summary using Haiku (with timing)
+ * 2. Generates a summary using lightweight provider model (with timing)
  * 3. Collects metrics (tool calls, duration, files changed) with timing
  * 4. Writes a diary entry to logs/iterations.jsonl with timing breakdown
  *
  * @param options - PostIterationOptions with session and subtask info
  * @returns Result with diary entry and paths, or null if hook was skipped
  */
-function runPostIterationHook(
+async function runPostIterationHook(
   options: PostIterationOptions,
-): null | PostIterationResult {
+): Promise<null | PostIterationResult> {
   const hookStart = Date.now();
 
   const {
-    claudeMs = 0,
     commitAfter,
     commitBefore,
     costUsd,
     iterationNumber = 1,
     milestone = "",
     mode,
+    provider = "claude",
+    providerMs = 0,
     repoRoot,
     sessionId,
     status,
@@ -570,25 +595,37 @@ function runPostIterationHook(
     return null;
   }
 
-  // Find session JSONL path
-  const sessionPath = getSessionJsonlPath(sessionId, repoRoot);
+  const resolvedSession = resolveSessionForProvider(
+    provider,
+    sessionId,
+    repoRoot,
+  );
+  const sessionPath = resolvedSession?.path ?? null;
 
-  // Generate summary using Haiku (silent - no console output)
-  const summaryResult = generateSummary(options, sessionPath);
+  // Generate summary using provider adapter (silent - no console output)
+  const summaryResult = await generateSummary(options, sessionPath);
 
   // Collect metrics with timing
   const metricsStart = Date.now();
-  const toolCalls = sessionPath === null ? 0 : countToolCalls(sessionPath);
-  const duration = sessionPath === null ? 0 : calculateDurationMs(sessionPath);
+  const sessionMetrics =
+    resolvedSession === null
+      ? EMPTY_SESSION_METRICS
+      : extractSessionMetricsForProvider(provider, resolvedSession, repoRoot);
+  const {
+    durationMs: duration,
+    filesChanged: sessionFiles,
+    tokenUsage,
+    toolCalls,
+  } = sessionMetrics;
   const filesChanged = getFilesChanged({
     commitAfter,
     commitBefore,
     repoRoot,
-    sessionPath,
+    sessionFiles,
   });
 
-  // If commits are different, use commit range diff to accurately measure what Claude committed
-  // If same (Claude didn't commit), fall back to staged+unstaged changes
+  // If commits are different, use commit range diff to accurately measure provider commits
+  // If same (provider didn't commit), fall back to staged+unstaged changes
   const hasValidCommitRange =
     commitBefore !== null &&
     commitBefore !== undefined &&
@@ -601,8 +638,6 @@ function runPostIterationHook(
     ? getCommitRangeLines(repoRoot, commitBefore, commitAfter)
     : getLinesChanged(repoRoot);
 
-  const tokenUsage =
-    sessionPath === null ? undefined : getTokenUsageFromSession(sessionPath);
   const metricsMs = Date.now() - metricsStart;
 
   // Calculate hook total time
@@ -610,9 +645,9 @@ function runPostIterationHook(
 
   // Build timing breakdown
   const timing: IterationTiming = {
-    claudeMs,
     hookMs,
     metricsMs,
+    providerMs,
     summaryMs: summaryResult.summaryMs,
   };
 

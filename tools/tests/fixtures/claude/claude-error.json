@@ -1,0 +1,13 @@
+[
+  { "type": "system", "subtype": "init", "session_id": "err-session-789" },
+  {
+    "type": "result",
+    "subtype": "error_max_turns",
+    "result": "",
+    "session_id": "err-session-789",
+    "duration_ms": 120000,
+    "total_cost_usd": 0.25,
+    "num_turns": 10,
+    "is_error": true
+  }
+]

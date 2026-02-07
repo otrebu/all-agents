@@ -32,6 +32,11 @@
     },
     "selfImprovement": {
       "mode": "suggest"
+    },
+    "timeouts": {
+      "stallMinutes": 10,
+      "hardMinutes": 60,
+      "graceSeconds": 5
     }
   }
 }

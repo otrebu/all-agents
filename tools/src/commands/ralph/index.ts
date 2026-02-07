@@ -1,6 +1,7 @@
 import { Command } from "@commander-js/extra-typings";
 import { discoverMilestones, getMilestonePaths } from "@lib/milestones";
 import { findProjectRoot, getContextRoot } from "@tools/utils/paths";
+import chalk from "chalk";
 import {
   appendFileSync,
   existsSync,
@@ -10,23 +11,57 @@ import {
 } from "node:fs";
 import path from "node:path";
 
+import type { ProviderType } from "./providers/types";
+
+import { runArchive } from "./archive";
 import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
+import { runCascadeFrom, validateCascadeTarget } from "./cascade";
 import {
-  buildPrompt,
-  invokeClaudeChat as invokeClaudeChatFromModule,
-  invokeClaudeHeadless as invokeClaudeHeadlessFromModule,
-} from "./claude";
-import {
+  countSubtasksInFile,
+  discoverTasksFromMilestone,
+  getExistingTaskReferences,
   getPlanningLogPath as getMilestonePlanningLogPath,
+  loadRalphConfig,
   loadSubtasksFile,
+  loadTimeoutConfig,
   ORPHAN_MILESTONE_ROOT,
 } from "./config";
 import {
   type PlanSubtasksSummaryData,
+  renderInvocationHeader,
   renderPlanSubtasksSummary,
 } from "./display";
+import {
+  buildPrompt,
+  invokeClaudeChat as invokeClaudeChatFromModule,
+  invokeClaudeHeadlessAsync as invokeClaudeHeadlessAsyncFromModule,
+} from "./providers/claude";
+import {
+  getAllModels,
+  getModelsForProvider,
+  type ModelInfo,
+} from "./providers/models";
+import {
+  invokeWithProvider,
+  resolveProvider,
+  validateProvider,
+} from "./providers/registry";
+import { runRefreshModels } from "./refresh-models";
 import { runStatus } from "./status";
+
+/**
+ * Extract task reference from a task path
+ *
+ * The task reference is the filename without the .md extension.
+ * For example: "TASK-008-approval-types.md" -> "TASK-008-approval-types"
+ *
+ * @param taskPath - Full path to the task file
+ * @returns The task reference (filename without extension)
+ */
+function extractTaskReference(taskPath: string): string {
+  return path.basename(taskPath, ".md");
+}
 
 /**
  * Resolve and validate milestone - exit with helpful error if not found
@@ -81,6 +116,35 @@ function resolveMilestonePath(input: string): null | string {
 
   const paths = getMilestonePaths(input);
   return paths?.root ?? null;
+}
+
+/**
+ * Resolve output directory from --output-dir flag or milestone path.
+ * Accepts either a path or a milestone name (auto-resolved).
+ */
+function resolveOutputDirectory(
+  outputDirectory: string | undefined,
+  milestonePath: null | string | undefined,
+): string {
+  // Priority 1: Explicit --output-dir
+  if (outputDirectory !== undefined) {
+    // Check if it's a milestone name (no slashes) - try to resolve it
+    if (!outputDirectory.includes("/") && !outputDirectory.includes("\\")) {
+      const resolved = resolveMilestonePath(outputDirectory);
+      if (resolved !== null) return resolved;
+    }
+    // Otherwise treat as literal path
+    return outputDirectory;
+  }
+
+  // Priority 2: Milestone source implies output location
+  if (milestonePath !== undefined && milestonePath !== null) {
+    return milestonePath;
+  }
+
+  // Priority 3: Default fallback
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  return path.join(projectRoot, "docs/planning");
 }
 
 /**
@@ -189,8 +253,12 @@ const DEFAULT_SUBTASKS_PATH = "subtasks.json";
 interface HeadlessWithLoggingOptions {
   extraContext?: string;
   logFile: string;
+  model?: string;
   promptPath: string;
+  provider?: string;
   sessionName: string;
+  /** Size mode for styled pre-execution display (e.g., 'small', 'medium', 'large') */
+  sizeMode?: string;
 }
 
 /**
@@ -200,8 +268,35 @@ interface HeadlessWithLoggingResult {
   costUsd: number;
   durationMs: number;
   numTurns: number;
+  provider: ProviderType;
   result: string;
   sessionId: string;
+}
+
+interface PlanningSupervisedOptions {
+  extraContext?: string;
+  model?: string;
+  promptPath: string;
+  provider?: string;
+  sessionName: string;
+}
+
+interface RalphModelsOptions {
+  isJson?: boolean;
+  provider?: string;
+}
+
+function formatModelRow(model: ModelInfo): string {
+  const aliasSuffix =
+    model.description?.toLowerCase().includes("alias") === true
+      ? " [alias]"
+      : "";
+
+  if (model.id === model.cliFormat) {
+    return `${model.id} (${model.costHint})${aliasSuffix}`;
+  }
+
+  return `${model.id} (${model.costHint}) -> ${model.cliFormat}${aliasSuffix}`;
 }
 
 /**
@@ -234,13 +329,13 @@ function getPlanningLogPath(milestonePath?: string): string {
 function invokeClaudeChat(
   promptPath: string,
   sessionName: string,
-  extraContext?: string,
+  options: { extraContext?: string; model?: string } = {},
 ): void {
-  const result = invokeClaudeChatFromModule(
-    promptPath,
-    sessionName,
+  const { extraContext, model } = options;
+  const result = invokeClaudeChatFromModule(promptPath, sessionName, {
     extraContext,
-  );
+    model,
+  });
 
   if (!result.success && !result.interrupted) {
     process.exit(result.exitCode ?? 1);
@@ -252,10 +347,18 @@ function invokeClaudeChat(
  * Reads prompt from file, invokes Claude headless, and logs results.
  * Exits process on failure.
  */
-function invokeClaudeHeadless(
+async function invokeClaudeHeadless(
   options: HeadlessWithLoggingOptions,
-): HeadlessWithLoggingResult {
-  const { extraContext, logFile, promptPath, sessionName } = options;
+): Promise<HeadlessWithLoggingResult> {
+  const {
+    extraContext,
+    logFile,
+    model: modelOverride,
+    promptPath,
+    provider: providerOverride,
+    sessionName,
+    sizeMode,
+  } = options;
 
   if (!existsSync(promptPath)) {
     console.error(`Prompt not found: ${promptPath}`);
@@ -264,19 +367,45 @@ function invokeClaudeHeadless(
 
   const promptContent = readFileSync(promptPath, "utf8");
   const fullPrompt = buildPrompt(promptContent, extraContext);
+  const provider = await resolvePlanningProvider(providerOverride);
+  const model = resolvePlanningModel(modelOverride);
 
-  console.log(`Running ${sessionName} in headless mode...`);
-  console.log(`Prompt: ${promptPath}`);
-  console.log(`Log file: ${logFile}`);
-  if (extraContext !== undefined && extraContext !== "") {
-    console.log(`Context: ${extraContext}`);
+  // Styled pre-execution header
+  console.log(renderInvocationHeader("headless", provider));
+  console.log();
+  console.log(`${chalk.dim("Source:")}  ${chalk.cyan(promptPath)}`);
+  if (sizeMode !== undefined) {
+    console.log(`${chalk.dim("Size:")}    ${chalk.yellow(sizeMode)}`);
   }
+  if (model !== undefined && model !== "") {
+    console.log(`${chalk.dim("Model:")}   ${chalk.yellow(model)}`);
+  }
+  console.log(`${chalk.dim("Log:")}     ${logFile}`);
   console.log();
 
-  const result = invokeClaudeHeadlessFromModule({ prompt: fullPrompt });
+  const timeoutConfig = loadTimeoutConfig();
+  const result =
+    provider === "claude"
+      ? await invokeClaudeHeadlessAsyncFromModule({
+          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+          model,
+          prompt: fullPrompt,
+          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+          timeout: timeoutConfig.hardMinutes * 60 * 1000,
+        })
+      : await invokeWithProvider(provider, {
+          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+          mode: "headless",
+          model,
+          prompt: fullPrompt,
+          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+          timeout: timeoutConfig.hardMinutes * 60 * 1000,
+        });
 
   if (result === null) {
-    console.error("Claude headless invocation failed or was interrupted");
+    console.error(
+      `${provider} headless invocation failed, was interrupted, or timed out`,
+    );
     process.exit(1);
   }
 
@@ -287,9 +416,11 @@ function invokeClaudeHeadless(
   }
 
   const logEntry = {
-    costUsd: result.cost,
-    durationMs: result.duration,
+    costUsd: result.costUsd,
+    durationMs: result.durationMs,
     extraContext: extraContext ?? "",
+    model: model ?? "",
+    provider,
     result: result.result,
     sessionId: result.sessionId,
     sessionName,
@@ -298,20 +429,147 @@ function invokeClaudeHeadless(
   };
   appendFileSync(logFile, `${JSON.stringify(logEntry)}\n`);
 
-  console.log(`Session completed: ${result.sessionId || "unknown"}`);
-  console.log(
-    `Duration: ${Math.round(result.duration / 1000)}s | Cost: $${result.cost}`,
-  );
-  console.log();
+  // Session ID useful for debugging; duration/cost now shown in styled summary boxes
+  console.log(`Session: ${result.sessionId || "unknown"}`);
 
   return {
-    costUsd: result.cost,
-    durationMs: result.duration,
-    // numTurns not available from the module's HeadlessResult
+    costUsd: result.costUsd,
+    durationMs: result.durationMs,
     numTurns: 0,
+    provider,
     result: result.result,
     sessionId: result.sessionId,
   };
+}
+
+/**
+ * Supervised planning wrapper with optional provider/model override.
+ * Defaults to Claude for backward compatibility.
+ */
+async function invokePlanningSupervised(
+  options: PlanningSupervisedOptions,
+): Promise<void> {
+  const {
+    extraContext,
+    model: modelOverride,
+    promptPath,
+    provider: providerOverride,
+    sessionName,
+  } = options;
+
+  const provider = await resolvePlanningProvider(providerOverride);
+  const model = resolvePlanningModel(modelOverride);
+
+  if (provider === "claude") {
+    invokeClaudeChat(promptPath, sessionName, { extraContext, model });
+    return;
+  }
+
+  const result = await invokeWithProvider(provider, {
+    context: extraContext,
+    mode: "supervised",
+    model,
+    promptPath,
+    sessionName,
+  });
+
+  if (result === null) {
+    console.error(`${provider} supervised invocation failed`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Resolve model selection for planning commands.
+ * Priority: CLI flag > config file
+ */
+function resolvePlanningModel(modelOverride?: string): string | undefined {
+  if (modelOverride !== undefined && modelOverride !== "") {
+    return modelOverride;
+  }
+
+  try {
+    const config = loadRalphConfig();
+    return config.model;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve provider selection for planning commands.
+ * Planning commands default to Claude unless explicitly overridden by CLI flag.
+ */
+async function resolvePlanningProvider(
+  providerOverride?: string,
+): Promise<ProviderType> {
+  if (providerOverride === undefined || providerOverride === "") {
+    return "claude";
+  }
+
+  return resolveProvider({ cliFlag: providerOverride });
+}
+
+function runModels(options: RalphModelsOptions): void {
+  const { isJson = false, provider } = options;
+
+  const providerFilter: ProviderType | undefined =
+    provider === undefined || provider === ""
+      ? undefined
+      : validateProviderOrExit(provider);
+
+  const models = providerFilter
+    ? getModelsForProvider(providerFilter)
+    : getAllModels();
+  const sorted = [...models].sort((a, b) => {
+    if (a.provider !== b.provider) {
+      return a.provider.localeCompare(b.provider);
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  if (isJson) {
+    console.log(JSON.stringify({ models: sorted }, null, 2));
+    return;
+  }
+
+  if (sorted.length === 0) {
+    if (providerFilter === undefined) {
+      console.log("No models configured.");
+    } else {
+      console.log(`No models configured for provider '${providerFilter}'.`);
+    }
+    return;
+  }
+
+  if (providerFilter !== undefined) {
+    console.log(`Available models for provider '${providerFilter}':`);
+    for (const model of sorted) {
+      console.log(`  ${formatModelRow(model)}`);
+    }
+    return;
+  }
+
+  console.log("Available models:");
+  let currentProvider: null | string = null;
+  for (const model of sorted) {
+    if (currentProvider !== model.provider) {
+      currentProvider = model.provider;
+      console.log(`\n${currentProvider}:`);
+    }
+    console.log(`  ${formatModelRow(model)}`);
+  }
+}
+
+function validateProviderOrExit(provider: string): ProviderType {
+  try {
+    return validateProvider(provider);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exit(1);
+    throw new Error("unreachable");
+  }
 }
 
 const ralphCommand = new Command("ralph").description(
@@ -323,7 +581,7 @@ ralphCommand.addCommand(
   new Command("build")
     .description("Run subtask iteration loop using ralph-iteration.md prompt")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
-    .option("-p, --print", "Print prompt without executing Claude")
+    .option("-p, --print", "Print prompt without executing provider")
     .option(
       "-i, --interactive",
       "Pause between iterations (legacy, use --supervised)",
@@ -335,7 +593,7 @@ ralphCommand.addCommand(
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .option(
       "-S, --skip-summary",
-      "Skip Haiku summary generation in headless mode",
+      "Skip lightweight summary generation in headless mode",
     )
     .option("-q, --quiet", "Suppress terminal summary output")
     .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
@@ -345,6 +603,12 @@ ralphCommand.addCommand(
       "0",
     )
     .option("--validate-first", "Run pre-build validation before building")
+    .option("--provider <name>", "AI provider to use (default: claude)")
+    .option("--model <name>", "Model to use (validated against model registry)")
+    .option(
+      "--cascade <target>",
+      "Continue to target level after build completes (calibrate)",
+    )
     .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
@@ -398,6 +662,15 @@ ralphCommand.addCommand(
       // Determine execution mode: headless or supervised (default)
       const mode = options.headless === true ? "headless" : "supervised";
 
+      // Validate cascade target early (before running build)
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget("build", options.cascade);
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+      }
+
       // Map CLI options to BuildOptions and call runBuild()
       await runBuild(
         {
@@ -405,6 +678,8 @@ ralphCommand.addCommand(
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
+          model: options.model,
+          provider: options.provider as ProviderType,
           quiet: options.quiet === true,
           skipSummary: options.skipSummary === true,
           subtasksPath,
@@ -412,6 +687,23 @@ ralphCommand.addCommand(
         },
         contextRoot,
       );
+
+      // Handle cascade if requested (after build completes successfully)
+      if (options.cascade !== undefined) {
+        console.log(`\nCascading from build to ${options.cascade}...\n`);
+        const result = await runCascadeFrom("build", options.cascade, {
+          contextRoot,
+          subtasksPath,
+        });
+
+        if (!result.success) {
+          console.error(`Cascade failed: ${result.error}`);
+          if (result.stoppedAt !== null) {
+            console.error(`Stopped at: ${result.stoppedAt}`);
+          }
+          process.exit(1);
+        }
+      }
     }),
 );
 
@@ -419,6 +711,266 @@ ralphCommand.addCommand(
 const planCommand = new Command("plan").description(
   "Planning tools for vision, roadmap, stories, tasks, and subtasks",
 );
+
+/** Options for cascade execution helper */
+interface HandleCascadeOptions {
+  /** Run calibration every N build iterations during cascade (0 = disabled) */
+  calibrateEvery?: number;
+  cascadeTarget: string;
+  contextRoot: string;
+  fromLevel: string;
+  resolvedMilestonePath: null | string;
+  /** Override subtasks path (used when different from milestone default) */
+  subtasksPath?: string;
+}
+
+/** Options for running subtasks in headless mode */
+interface RunSubtasksHeadlessOptions {
+  beforeCount: number;
+  extraContext: string;
+  hasMilestone: boolean;
+  hasStory: boolean;
+  milestone: string | undefined;
+  model?: string;
+  outputDirectory: string | undefined;
+  promptPath: string;
+  provider?: string;
+  resolvedMilestonePath: null | string | undefined;
+  sizeMode: "large" | "medium" | "small";
+  skippedTasks: Array<string>;
+  sourceInfo: PlanSubtasksSummaryData["source"];
+  storyRef: string | undefined;
+}
+
+/** Result of subtasks pre-check for --milestone and --story modes */
+interface SubtasksPreCheckResult {
+  /** Count of subtasks before Claude invocation */
+  beforeCount: number;
+  /** Whether to skip entirely (all tasks already have subtasks) */
+  shouldSkip: boolean;
+  /** Array of taskRefs that were skipped */
+  skippedTasks: Array<string>;
+  /** Total number of tasks discovered */
+  totalTasks: number;
+}
+
+// Helper type for subtasks source context
+interface SubtasksSourceContext {
+  contextParts: Array<string>;
+  sourceInfo: PlanSubtasksSummaryData["source"];
+}
+
+// Helper type for subtasks source flags
+interface SubtasksSourceFlags {
+  hasFile: boolean;
+  hasMilestone: boolean;
+  hasReview: boolean;
+  hasStory: boolean;
+  hasTask: boolean;
+  hasText: boolean;
+}
+
+/** Options for tasks milestone mode execution */
+interface TasksMilestoneOptions {
+  contextRoot: string;
+  isAutoMode: boolean;
+  isHeadless: boolean;
+  milestone: string;
+  model?: string;
+  provider?: string;
+}
+
+/** Options for tasks source mode execution */
+interface TasksSourceOptions {
+  contextRoot: string;
+  file: string | undefined;
+  hasFile: boolean;
+  isHeadless: boolean;
+  isSupervised: boolean;
+  model?: string;
+  provider?: string;
+  text: string | undefined;
+}
+
+/** Options for tasks story mode execution */
+interface TasksStoryOptions {
+  contextRoot: string;
+  isAutoMode: boolean;
+  isHeadless: boolean;
+  isSupervised: boolean;
+  model?: string;
+  provider?: string;
+  story: string;
+}
+
+// Helper to build subtasks context and source info
+function buildSubtasksSourceContext(
+  flags: SubtasksSourceFlags,
+  options: {
+    file?: string;
+    milestone?: string;
+    resolvedMilestonePath?: null | string;
+    story?: string;
+    task?: string;
+    text?: string;
+  },
+): SubtasksSourceContext {
+  const contextParts: Array<string> = [];
+  let sourceInfo: PlanSubtasksSummaryData["source"] = {
+    text: "",
+    type: "text",
+  };
+
+  if (flags.hasMilestone && options.milestone !== undefined) {
+    contextParts.push(
+      `Generating subtasks for all tasks in milestone: ${options.milestone}`,
+    );
+    contextParts.push(`Milestone path: ${options.resolvedMilestonePath}`);
+    sourceInfo = { path: options.milestone, type: "file" };
+  } else if (flags.hasStory && options.story !== undefined) {
+    contextParts.push(
+      `Generating subtasks for all tasks in story: ${options.story}`,
+    );
+    sourceInfo = { path: options.story, type: "file" };
+  } else if (flags.hasTask && options.task !== undefined) {
+    const taskPath = requireTask(options.task);
+    contextParts.push(`Generating subtasks for task: ${taskPath}`);
+    sourceInfo = { path: taskPath, type: "file" };
+  } else if (flags.hasReview) {
+    contextParts.push(
+      "Generating subtasks from review diary: logs/reviews.jsonl",
+    );
+    sourceInfo = { path: "logs/reviews.jsonl", type: "review" };
+  } else if (flags.hasFile && options.file !== undefined) {
+    contextParts.push(`Generating subtasks from file: ${options.file}`);
+    sourceInfo = { path: options.file, type: "file" };
+  } else if (flags.hasText && options.text !== undefined) {
+    contextParts.push(`Generating subtasks from description: ${options.text}`);
+    sourceInfo = { text: options.text, type: "text" };
+  }
+
+  return { contextParts, sourceInfo };
+}
+
+/**
+ * Perform pre-check for --milestone and --story modes
+ *
+ * Discovers tasks from the milestone, checks which ones already have subtasks,
+ * and returns information needed for filtering and summary display.
+ *
+ * @param milestonePath - Resolved milestone path
+ * @param outputDirectory - Directory where subtasks.json is/will be
+ * @returns Pre-check result with counts and skip info
+ */
+function checkSubtasksPreCheck(
+  milestonePath: string,
+  outputDirectory: string,
+): SubtasksPreCheckResult {
+  const subtasksPath = path.join(outputDirectory, "subtasks.json");
+
+  // Capture before count for later delta calculation
+  const beforeCount = countSubtasksInFile(subtasksPath);
+
+  // Get existing taskRefs from the subtasks file
+  const existingTaskReferences = getExistingTaskReferences(subtasksPath);
+
+  // Discover tasks from milestone
+  const allTasks = discoverTasksFromMilestone(milestonePath);
+
+  // Filter tasks and track skipped ones
+  const skippedTasks: Array<string> = [];
+  for (const taskPath of allTasks) {
+    const taskReference = extractTaskReference(taskPath);
+    if (existingTaskReferences.has(taskReference)) {
+      skippedTasks.push(taskReference);
+    }
+  }
+
+  // Determine if all tasks already have subtasks
+  const shouldSkip =
+    allTasks.length > 0 && skippedTasks.length === allTasks.length;
+
+  return { beforeCount, shouldSkip, skippedTasks, totalTasks: allTasks.length };
+}
+
+/**
+ * Check if a task should be skipped because it already has subtasks
+ * @param taskPath - Path to the task file
+ * @param outputDirectory - Output directory option (may be undefined)
+ * @returns true if the task should be skipped
+ */
+function checkTaskHasSubtasks(
+  taskPath: string,
+  outputDirectory: string | undefined,
+): boolean {
+  const taskReference = extractTaskReference(taskPath);
+
+  // Infer milestone from task path if it's in a milestone folder
+  const milestoneMatch = /milestones\/(?<slug>[^/]+)\//.exec(taskPath);
+  const inferredMilestonePath =
+    milestoneMatch?.groups?.slug === undefined
+      ? null
+      : resolveMilestonePath(milestoneMatch.groups.slug);
+
+  // Determine output path for subtasks.json
+  const preCheckOutputDirectory = resolveOutputDirectory(
+    outputDirectory,
+    inferredMilestonePath,
+  );
+  const preCheckSubtasksPath = path.join(
+    preCheckOutputDirectory,
+    "subtasks.json",
+  );
+
+  // Check if this task already has subtasks
+  const existingTaskReferences =
+    getExistingTaskReferences(preCheckSubtasksPath);
+  return existingTaskReferences.has(taskReference);
+}
+
+/**
+ * Print error message for missing subtasks source and exit
+ */
+function exitWithSubtasksSourceError(): never {
+  console.error("Error: Must provide a source");
+  console.log("\nHierarchy sources (scope = source):");
+  console.log(
+    "  aaa ralph plan subtasks --milestone <name>  # All tasks in milestone → subtasks",
+  );
+  console.log(
+    "  aaa ralph plan subtasks --story <path>      # All tasks for story → subtasks",
+  );
+  console.log(
+    "  aaa ralph plan subtasks --task <path>       # Task → subtasks",
+  );
+  console.log("\nAlternative sources:");
+  console.log(
+    "  aaa ralph plan subtasks --file <path>       # File → subtasks",
+  );
+  console.log(
+    '  aaa ralph plan subtasks --text "Fix bug"    # Text → subtasks',
+  );
+  console.log(
+    "  aaa ralph plan subtasks --review            # Review diary → subtasks",
+  );
+  process.exit(1);
+}
+
+/**
+ * Print error message for missing tasks source and exit
+ */
+function exitWithTasksSourceError(): never {
+  console.error("Error: Must provide a source");
+  console.log("\nHierarchy sources (scope = source):");
+  console.log("  aaa ralph plan tasks --story <path>       # Story → tasks");
+  console.log(
+    "  aaa ralph plan tasks --milestone <path>   # All stories in milestone → tasks",
+  );
+  console.log("\nAlternative sources:");
+  console.log("  aaa ralph plan tasks --file <path>        # File → tasks");
+  console.log('  aaa ralph plan tasks --text "Add auth"    # Text → tasks');
+  process.exit(1);
+}
 
 // Helper to get prompt path based on session type and auto mode
 function getPromptPath(
@@ -433,12 +985,80 @@ function getPromptPath(
   );
 }
 
+// Helper to determine subtasks prompt path based on source type
+function getSubtasksPromptPath(
+  contextRoot: string,
+  flags: SubtasksSourceFlags,
+): string {
+  if (flags.hasMilestone || flags.hasStory) {
+    return path.join(
+      contextRoot,
+      "context/workflows/ralph/planning/subtasks-from-hierarchy.md",
+    );
+  }
+  if (flags.hasTask) {
+    return getPromptPath(contextRoot, "subtasks", true);
+  }
+  return path.join(
+    contextRoot,
+    "context/workflows/ralph/planning/subtasks-from-source.md",
+  );
+}
+
+/**
+ * Handle cascade execution after a planning level completes
+ *
+ * Validates cascade target, runs cascade, and exits on failure.
+ */
+async function handleCascadeExecution(
+  options: HandleCascadeOptions,
+): Promise<void> {
+  const {
+    calibrateEvery,
+    cascadeTarget,
+    contextRoot,
+    fromLevel,
+    resolvedMilestonePath,
+    subtasksPath: explicitSubtasksPath,
+  } = options;
+
+  // Validate cascade target
+  const validationError = validateCascadeTarget(fromLevel, cascadeTarget);
+  if (validationError !== null) {
+    console.error(`Error: ${validationError}`);
+    process.exit(1);
+  }
+
+  // Determine subtasks path: use explicit path if provided, otherwise derive from milestone
+  console.log(`\nCascading from ${fromLevel} to ${cascadeTarget}...\n`);
+  const subtasksPath =
+    explicitSubtasksPath ??
+    (resolvedMilestonePath === null
+      ? path.join(contextRoot, "subtasks.json")
+      : path.join(resolvedMilestonePath, "subtasks.json"));
+
+  const result = await runCascadeFrom(fromLevel, cascadeTarget, {
+    calibrateEvery,
+    contextRoot,
+    subtasksPath,
+  });
+
+  if (!result.success) {
+    console.error(`Cascade failed: ${result.error}`);
+    if (result.stoppedAt !== null) {
+      console.error(`Stopped at: ${result.stoppedAt}`);
+    }
+    process.exit(1);
+  }
+}
+
 // Helper to invoke Claude with a prompt file for interactive session
 function invokeClaude(
   promptPath: string,
   sessionName: string,
-  extraContext?: string,
+  options: { extraContext?: string; model?: string } = {},
 ): void {
+  const { extraContext, model } = options;
   if (!existsSync(promptPath)) {
     console.error(`Prompt not found: ${promptPath}`);
     process.exit(1);
@@ -463,17 +1083,25 @@ function invokeClaude(
   // Use Bun.spawnSync with argument array to avoid shell parsing entirely
   // This prevents issues with special characters like parentheses in the prompt
   // --permission-mode bypassPermissions prevents inheriting plan mode from user settings
-  const proc = Bun.spawnSync(
-    [
-      "claude",
-      "--permission-mode",
-      "bypassPermissions",
-      "--append-system-prompt",
-      fullPrompt,
-      `Please begin the ${sessionName} planning session following the instructions provided.`,
-    ],
-    { stdio: ["inherit", "inherit", "inherit"] },
+  const args = [
+    "claude",
+    "--permission-mode",
+    "bypassPermissions",
+    "--append-system-prompt",
+    fullPrompt,
+  ];
+
+  if (model !== undefined && model !== "") {
+    args.push("--model", model);
+  }
+
+  args.push(
+    `Please begin the ${sessionName} planning session following the instructions provided.`,
   );
+
+  const proc = Bun.spawnSync(args, {
+    stdio: ["inherit", "inherit", "inherit"],
+  });
 
   // Exit with non-zero exit code when process fails
   // proc.exitCode: 0 = success, positive number = error, null = killed by signal
@@ -482,6 +1110,283 @@ function invokeClaude(
   if (exitCode !== null && exitCode !== 0) {
     process.exit(exitCode);
   }
+}
+
+/**
+ * Resolve milestone path from options or infer from story path
+ *
+ * @param milestoneOption - Explicit --milestone flag value
+ * @param storyOption - Story path (to infer milestone from)
+ * @param hasStory - Whether story flag is provided
+ * @returns Resolved milestone path, or undefined if not determinable
+ */
+function resolveMilestoneFromOptions(
+  milestoneOption: string | undefined,
+  storyOption: string | undefined,
+  hasStory: boolean,
+): null | string | undefined {
+  if (milestoneOption !== undefined) {
+    // Explicit milestone flag
+    return resolveMilestonePath(milestoneOption);
+  }
+  if (hasStory && storyOption !== undefined) {
+    // Infer milestone from resolved story path
+    const resolvedStory = resolveStoryPath(storyOption);
+    if (resolvedStory !== null) {
+      const match = /milestones\/(?<slug>[^/]+)\//.exec(resolvedStory);
+      if (match?.groups?.slug !== undefined) {
+        return resolveMilestonePath(match.groups.slug);
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Run subtasks generation in headless mode and render summary
+ */
+async function runSubtasksHeadless(
+  options: RunSubtasksHeadlessOptions,
+): Promise<void> {
+  const {
+    beforeCount,
+    extraContext,
+    hasMilestone,
+    hasStory,
+    milestone,
+    model,
+    outputDirectory: outputDirectoryOption,
+    promptPath,
+    provider,
+    resolvedMilestonePath,
+    sizeMode,
+    skippedTasks,
+    sourceInfo,
+    storyRef,
+  } = options;
+
+  const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
+  const result = await invokeClaudeHeadless({
+    extraContext,
+    logFile,
+    model,
+    promptPath,
+    provider,
+    sessionName: "subtasks",
+    sizeMode,
+  });
+
+  // Determine output path using resolveOutputDirectory
+  const resolvedOutputDirectory = resolveOutputDirectory(
+    outputDirectoryOption,
+    resolvedMilestonePath,
+  );
+  const outputPath = path.join(resolvedOutputDirectory, "subtasks.json");
+
+  // Try to load generated subtasks
+  const loadResult = ((): {
+    error?: string;
+    subtasks: Array<{ id: string; title: string }>;
+  } => {
+    try {
+      const file = loadSubtasksFile(outputPath);
+      return {
+        subtasks: file.subtasks.map((s) => ({ id: s.id, title: s.title })),
+      };
+    } catch {
+      return { error: "No subtasks file found", subtasks: [] };
+    }
+  })();
+
+  // Calculate counts for summary display (for --milestone and --story modes)
+  const afterCount = loadResult.subtasks.length;
+  const addedCount =
+    hasMilestone || hasStory ? afterCount - beforeCount : undefined;
+  const totalCount = hasMilestone || hasStory ? afterCount : undefined;
+
+  // Render summary
+  console.log(
+    renderPlanSubtasksSummary({
+      addedCount,
+      costUsd: result.costUsd,
+      durationMs: result.durationMs,
+      error: loadResult.error,
+      milestone,
+      outputPath,
+      sessionId: result.sessionId,
+      sizeMode,
+      skippedTasks: skippedTasks.length > 0 ? skippedTasks : undefined,
+      source: sourceInfo,
+      storyRef,
+      subtasks: loadResult.subtasks,
+      totalCount,
+    }),
+  );
+}
+
+/**
+ * Execute tasks planning in milestone mode
+ *
+ * @returns Resolved milestone path
+ */
+async function runTasksMilestoneMode(
+  options: TasksMilestoneOptions,
+): Promise<string> {
+  const { contextRoot, isAutoMode, isHeadless, milestone, model, provider } =
+    options;
+
+  if (!isAutoMode) {
+    console.error(
+      "Error: --milestone requires --supervised or --headless mode",
+    );
+    console.log(
+      "\nUsage: aaa ralph plan tasks --milestone <path> --supervised",
+    );
+    process.exit(1);
+  }
+
+  const milestonePath = requireMilestone(milestone);
+  const promptPath = path.join(
+    contextRoot,
+    "context/workflows/ralph/planning/tasks-milestone.md",
+  );
+  const extraContext = `Generating tasks for all stories in milestone: ${milestonePath}`;
+
+  if (isHeadless) {
+    const logFile = getPlanningLogPath(milestonePath);
+    await invokeClaudeHeadless({
+      extraContext,
+      logFile,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks-milestone",
+    });
+  } else {
+    await invokePlanningSupervised({
+      extraContext,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks-milestone",
+    });
+  }
+
+  return milestonePath;
+}
+
+/**
+ * Execute tasks planning from file or text source
+ */
+async function runTasksSourceMode(options: TasksSourceOptions): Promise<void> {
+  const {
+    contextRoot,
+    file,
+    hasFile,
+    isHeadless,
+    isSupervised,
+    model,
+    provider,
+    text,
+  } = options;
+
+  const promptPath = path.join(
+    contextRoot,
+    "context/workflows/ralph/planning/tasks-from-source.md",
+  );
+
+  const extraContext =
+    hasFile && file !== undefined
+      ? `Generating tasks from file: ${file}`
+      : `Generating tasks from description: ${text}`;
+
+  if (isHeadless) {
+    const logFile = getPlanningLogPath();
+    await invokeClaudeHeadless({
+      extraContext,
+      logFile,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks-source",
+    });
+  } else if (isSupervised) {
+    await invokePlanningSupervised({
+      extraContext,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks-source",
+    });
+  } else {
+    const resolvedProvider = await resolvePlanningProvider(provider);
+    if (resolvedProvider === "claude") {
+      invokeClaude(promptPath, "tasks-source", { extraContext, model });
+    } else {
+      await invokePlanningSupervised({
+        extraContext,
+        model,
+        promptPath,
+        provider,
+        sessionName: "tasks-source",
+      });
+    }
+  }
+}
+
+/**
+ * Execute tasks planning in story mode
+ *
+ * @returns Resolved milestone path if story is in a milestone, null otherwise
+ */
+async function runTasksStoryMode(
+  options: TasksStoryOptions,
+): Promise<null | string> {
+  const {
+    contextRoot,
+    isAutoMode,
+    isHeadless,
+    isSupervised,
+    model,
+    provider,
+    story,
+  } = options;
+
+  const storyPath = requireStory(story);
+
+  // Try to extract milestone from story path
+  const milestoneMatch = /milestones\/(?<slug>[^/]+)\//.exec(storyPath);
+  const resolvedMilestonePath =
+    milestoneMatch?.groups?.slug === undefined
+      ? null
+      : resolveMilestonePath(milestoneMatch.groups.slug);
+
+  const promptPath = getPromptPath(contextRoot, "tasks", isAutoMode);
+  const extraContext = `Planning tasks for story: ${storyPath}`;
+
+  if (isHeadless) {
+    const logFile = getPlanningLogPath();
+    await invokeClaudeHeadless({
+      extraContext,
+      logFile,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks",
+    });
+  } else if (isSupervised) {
+    await invokePlanningSupervised({
+      extraContext,
+      model,
+      promptPath,
+      provider,
+      sessionName: "tasks",
+    });
+  } else {
+    invokeClaude(promptPath, "tasks", { extraContext, model });
+  }
+
+  return resolvedMilestonePath;
 }
 
 // ralph plan vision - interactive vision planning
@@ -504,13 +1409,44 @@ planCommand.addCommand(
 planCommand.addCommand(
   new Command("roadmap")
     .description("Start interactive roadmap planning session")
-    .action(() => {
+    .option(
+      "--cascade <target>",
+      "Continue to target level after completion (stories, tasks, subtasks, build, calibrate)",
+    )
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
         "context/workflows/ralph/planning/roadmap-interactive.md",
       );
       invokeClaude(promptPath, "roadmap");
+
+      // Handle cascade if requested
+      if (options.cascade !== undefined) {
+        const cascadeTarget = options.cascade;
+
+        // Validate cascade target
+        const validationError = validateCascadeTarget("roadmap", cascadeTarget);
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+
+        // Run cascade from roadmap to target
+        console.log(`\nCascading from roadmap to ${cascadeTarget}...\n`);
+        const result = await runCascadeFrom("roadmap", cascadeTarget, {
+          contextRoot,
+          subtasksPath: path.join(contextRoot, "subtasks.json"),
+        });
+
+        if (!result.success) {
+          console.error(`Cascade failed: ${result.error}`);
+          if (result.stoppedAt !== null) {
+            console.error(`Stopped at: ${result.stoppedAt}`);
+          }
+          process.exit(1);
+        }
+      }
     }),
 );
 
@@ -524,7 +1460,16 @@ planCommand.addCommand(
     )
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use for planning (default: claude)",
+    )
+    .option("--model <name>", "Model to use for planning invocation")
+    .option(
+      "--cascade <target>",
+      "Continue to target level after completion (tasks, subtasks, build, calibrate)",
+    )
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
 
@@ -533,142 +1478,197 @@ planCommand.addCommand(
         options.supervised === true || options.headless === true;
       const promptPath = getPromptPath(contextRoot, "stories", isAutoMode);
       const extraContext = `Planning stories for milestone: ${milestonePath}`;
+      const planningModel = options.model;
+      const planningProvider = options.provider;
 
       // Determine execution mode
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
+          model: planningModel,
           promptPath,
+          provider: planningProvider,
           sessionName: "stories",
         });
       } else if (options.supervised === true) {
         // Supervised mode: user watches chat
-        invokeClaudeChat(promptPath, "stories", extraContext);
+        await invokePlanningSupervised({
+          extraContext,
+          model: planningModel,
+          promptPath,
+          provider: planningProvider,
+          sessionName: "stories",
+        });
       } else {
         // Interactive mode (default): full interactive session
-        invokeClaude(promptPath, "stories", extraContext);
+        const resolvedProvider =
+          await resolvePlanningProvider(planningProvider);
+        if (resolvedProvider === "claude") {
+          invokeClaude(promptPath, "stories", {
+            extraContext,
+            model: planningModel,
+          });
+        } else {
+          await invokePlanningSupervised({
+            extraContext,
+            model: planningModel,
+            promptPath,
+            provider: planningProvider,
+            sessionName: "stories",
+          });
+        }
+      }
+
+      // Handle cascade if requested
+      if (options.cascade !== undefined) {
+        const cascadeTarget = options.cascade;
+
+        // Validate cascade target
+        const validationError = validateCascadeTarget("stories", cascadeTarget);
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+
+        // Run cascade from stories to target
+        console.log(`\nCascading from stories to ${cascadeTarget}...\n`);
+        const result = await runCascadeFrom("stories", cascadeTarget, {
+          contextRoot,
+          subtasksPath: path.join(milestonePath, "subtasks.json"),
+        });
+
+        if (!result.success) {
+          console.error(`Cascade failed: ${result.error}`);
+          if (result.stoppedAt !== null) {
+            console.error(`Stopped at: ${result.stoppedAt}`);
+          }
+          process.exit(1);
+        }
       }
     }),
 );
 
-// ralph plan tasks - task planning (requires --story OR --milestone)
+// ralph plan tasks - task planning from hierarchy (--story, --milestone) or alternative sources (--file, --text)
 planCommand.addCommand(
   new Command("tasks")
     .description(
-      "Plan tasks for a story (--story) or all stories in a milestone (--milestone)",
+      "Plan tasks from hierarchy (--story, --milestone) or alternative sources (--file, --text)",
     )
     .option("--story <path>", "Story file path to plan tasks for")
     .option(
       "--milestone <path>",
-      "Milestone file path to plan tasks for (all stories)",
+      "Milestone path to plan tasks for (all stories)",
     )
+    .option("--file <path>", "File path as source for task generation")
+    .option("--text <string>", "Text description as source for task generation")
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .option(
+      "--provider <name>",
+      "AI provider to use for planning (default: claude)",
+    )
+    .option("--model <name>", "Model to use for planning invocation")
+    .option(
+      "--cascade <target>",
+      "Continue to target level after completion (subtasks, build, calibrate)",
+    )
+    .action(async (options) => {
       const hasStory = options.story !== undefined;
       const hasMilestone = options.milestone !== undefined;
+      const hasFile = options.file !== undefined;
+      const hasText = options.text !== undefined;
 
-      // Validate: require exactly one of --story or --milestone
-      if (!hasStory && !hasMilestone) {
-        console.error(
-          "Error: Must specify either --story <path> or --milestone <path>",
-        );
-        console.log("\nUsage:");
-        console.log(
-          "  aaa ralph plan tasks --story <path>      # Single story",
-        );
-        console.log(
-          "  aaa ralph plan tasks --milestone <path> --supervised  # All stories in milestone",
-        );
-        process.exit(1);
+      // Validate: require exactly one source
+      const sourceCount = [hasStory, hasMilestone, hasFile, hasText].filter(
+        Boolean,
+      ).length;
+      if (sourceCount === 0) {
+        exitWithTasksSourceError();
       }
-      if (hasStory && hasMilestone) {
-        console.error("Error: Cannot specify both --story and --milestone");
+      if (sourceCount > 1) {
+        console.error(
+          "Error: Cannot combine multiple sources. Provide exactly one of: --story, --milestone, --file, --text",
+        );
         process.exit(1);
       }
 
       const contextRoot = getContextRoot();
-
-      // Determine if using auto prompt
       const isAutoMode =
         options.supervised === true || options.headless === true;
 
-      // Milestone mode
+      // Track resolved milestone path for cascade
+      let resolvedMilestonePath: null | string = null;
+
+      // Execute based on source type
       if (hasMilestone && options.milestone !== undefined) {
-        if (!isAutoMode) {
-          console.error(
-            "Error: --milestone requires --supervised or --headless mode",
-          );
-          console.log(
-            "\nUsage: aaa ralph plan tasks --milestone <path> --supervised",
-          );
-          process.exit(1);
-        }
-
-        const milestonePath = requireMilestone(options.milestone);
-
-        const promptPath = path.join(
+        resolvedMilestonePath = await runTasksMilestoneMode({
           contextRoot,
-          "context/workflows/ralph/planning/tasks-milestone.md",
-        );
-        const extraContext = `Generating tasks for all stories in milestone: ${milestonePath}`;
-
-        if (options.headless === true) {
-          const logFile = getPlanningLogPath(milestonePath);
-          invokeClaudeHeadless({
-            extraContext,
-            logFile,
-            promptPath,
-            sessionName: "tasks-milestone",
-          });
-        } else {
-          invokeClaudeChat(promptPath, "tasks-milestone", extraContext);
-        }
-        return;
-      }
-
-      // Story mode
-      // At this point we know hasStory is true (not hasMilestone), so options.story is defined
-      if (options.story === undefined) {
-        // This should never happen due to earlier validation, but satisfies TypeScript
-        process.exit(1);
-      }
-      const storyPath = requireStory(options.story);
-
-      const promptPath = getPromptPath(contextRoot, "tasks", isAutoMode);
-      const extraContext = `Planning tasks for story: ${storyPath}`;
-
-      if (options.headless === true) {
-        // Story mode doesn't have direct milestone, use orphan fallback
-        const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "tasks",
+          isAutoMode,
+          isHeadless: options.headless === true,
+          milestone: options.milestone,
+          model: options.model,
+          provider: options.provider,
         });
-      } else if (options.supervised === true) {
-        invokeClaudeChat(promptPath, "tasks", extraContext);
+      } else if (hasStory && options.story !== undefined) {
+        resolvedMilestonePath = await runTasksStoryMode({
+          contextRoot,
+          isAutoMode,
+          isHeadless: options.headless === true,
+          isSupervised: options.supervised === true,
+          model: options.model,
+          provider: options.provider,
+          story: options.story,
+        });
       } else {
-        invokeClaude(promptPath, "tasks", extraContext);
+        await runTasksSourceMode({
+          contextRoot,
+          file: options.file,
+          hasFile,
+          isHeadless: options.headless === true,
+          isSupervised: options.supervised === true,
+          model: options.model,
+          provider: options.provider,
+          text: options.text,
+        });
+      }
+
+      // Handle cascade if requested
+      if (options.cascade !== undefined) {
+        await handleCascadeExecution({
+          cascadeTarget: options.cascade,
+          contextRoot,
+          fromLevel: "tasks",
+          resolvedMilestonePath,
+        });
       }
     }),
 );
 
 // ralph plan subtasks - subtask generation from any source
-// Accepts: file path, text description, or --review flag
+// Accepts: hierarchy flags (--milestone, --story, --task) or alternative sources (--file, --text, --review)
 planCommand.addCommand(
   new Command("subtasks")
     .description(
-      "Generate subtasks from any source (file, text, or review diary)",
+      "Generate subtasks from hierarchy (--milestone, --story, --task) or alternative sources (--file, --text, --review)",
     )
-    .argument("[source]", "File path or text description")
+    .option("--file <path>", "File path as source")
+    .option("--text <string>", "Text description as source")
     .option("--review", "Parse logs/reviews.jsonl for findings")
-    .option("--task <path>", "Task file path (legacy mode)")
-    .option("--story <ref>", "Link subtasks to a parent story")
-    .option("--milestone <name>", "Target milestone for output location")
+    .option("--task <path>", "Task file path as source")
+    .option(
+      "--story <path>",
+      "Story path - generate subtasks for all tasks in story",
+    )
+    .option(
+      "--milestone <name>",
+      "Milestone name - generate subtasks for all tasks in milestone",
+    )
+    .option(
+      "--output-dir <path>",
+      "Output directory (path or milestone name) - use with --file/--text",
+    )
     .option(
       "--size <mode>",
       "Slice thickness: small (thinnest viable), medium (one PR per subtask, default), large (major boundaries only)",
@@ -679,95 +1679,163 @@ planCommand.addCommand(
       "Supervised mode: watch chat, can intervene (default)",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((source: string | undefined, options) => {
-      const hasSource = source !== undefined && source !== "";
+    .option(
+      "--cascade <target>",
+      "Continue to target level after completion (build, calibrate)",
+    )
+    .option(
+      "--calibrate-every <n>",
+      "Run calibration every N build iterations during cascade (0 = disabled)",
+      "0",
+    )
+    .option(
+      "--provider <name>",
+      "AI provider to use for planning (default: claude)",
+    )
+    .option("--model <name>", "Model to use for planning invocation")
+    .action(async (options) => {
+      const hasFile = options.file !== undefined;
+      const hasText = options.text !== undefined;
       const hasReview = options.review === true;
       const hasTask = options.task !== undefined;
+      const hasStory = options.story !== undefined;
+      const hasMilestone = options.milestone !== undefined;
+      const hasOutputDirectory = options.outputDir !== undefined;
 
-      // Validate: require one of source, --review, or --task (legacy)
-      if (!hasSource && !hasReview && !hasTask) {
+      // Validate: require exactly one source
+      const sourceCount = [
+        hasFile,
+        hasText,
+        hasReview,
+        hasTask,
+        hasStory,
+        hasMilestone,
+      ].filter(Boolean).length;
+      if (sourceCount === 0) {
+        exitWithSubtasksSourceError();
+      }
+      if (sourceCount > 1) {
         console.error(
-          "Error: Must provide a source (file path or text), --review, or --task",
+          "Error: Cannot combine multiple sources. Provide exactly one of: --milestone, --story, --task, --file, --text, --review",
         );
-        console.log("\nUsage:");
-        console.log("  aaa ralph plan subtasks ./file.md          # From file");
-        console.log('  aaa ralph plan subtasks "Fix bug"          # From text');
-        console.log(
-          "  aaa ralph plan subtasks --review           # From review diary",
-        );
-        console.log(
-          "  aaa ralph plan subtasks --task <path>      # Legacy: from task file",
-        );
-        console.log("\nOptional flags:");
-        console.log(
-          "  --milestone <name>  Target milestone for subtasks.json location",
-        );
-        console.log("  --story <ref>       Link subtasks to a parent story");
         process.exit(1);
+      }
+
+      // Validate: --milestone and --output-dir are mutually exclusive
+      if (hasMilestone && hasOutputDirectory) {
+        console.error(
+          "Error: --milestone and --output-dir are mutually exclusive.",
+        );
+        console.error(
+          "Use --milestone for both source and output, or use --file/--text with --output-dir",
+        );
+        process.exit(1);
+      }
+
+      // Validate cascade target early (before running Claude session)
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget(
+          "subtasks",
+          options.cascade,
+        );
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
       }
 
       const contextRoot = getContextRoot();
 
-      // Resolve milestone path if provided (used for log file location)
-      const resolvedMilestonePath =
-        options.milestone === undefined
-          ? undefined
-          : resolveMilestonePath(options.milestone);
-
-      // Determine which prompt to use
-      // Legacy --task mode uses subtasks-auto.md, new modes use subtasks-from-source.md
-      const promptPath = hasTask
-        ? getPromptPath(contextRoot, "subtasks", true)
-        : path.join(
-            contextRoot,
-            "context/workflows/ralph/planning/subtasks-from-source.md",
-          );
-
-      // Collect source info for summary display
-      // Initialize with default that will be overwritten
-      let sourceInfo: PlanSubtasksSummaryData["source"] = {
-        text: "",
-        type: "text",
-      };
-
-      // Build context string with all relevant info
-      const contextParts: Array<string> = [];
-
-      // Legacy task mode
+      // Pre-check for --task mode: skip if task already has subtasks
       if (hasTask && options.task !== undefined) {
         const taskPath = requireTask(options.task);
-        contextParts.push(`Generating subtasks for task: ${taskPath}`);
-        sourceInfo = { path: taskPath, type: "file" };
-      }
-      // New source-based modes
-      else if (hasReview) {
-        contextParts.push(
-          "Generating subtasks from review diary: logs/reviews.jsonl",
-        );
-        sourceInfo = { path: "logs/reviews.jsonl", type: "review" };
-      } else if (hasSource) {
-        // Check if source is a file path or text
-        if (existsSync(source)) {
-          contextParts.push(`Generating subtasks from file: ${source}`);
-          sourceInfo = { path: source, type: "file" };
-        } else {
-          contextParts.push(`Generating subtasks from description: ${source}`);
-          sourceInfo = { text: source, type: "text" };
+        if (checkTaskHasSubtasks(taskPath, options.outputDir)) {
+          const taskReference = extractTaskReference(taskPath);
+          console.log(`Task ${taskReference} already has subtasks - skipping`);
+          return;
         }
       }
-      // Note: else case not needed - earlier validation ensures one of the above is true
 
-      // Add optional metadata
-      if (options.milestone !== undefined) {
-        contextParts.push(`Target milestone: ${options.milestone}`);
+      // Determine which prompt to use based on source type
+      // - Hierarchy sources (--milestone, --story) use subtasks-from-hierarchy.md
+      // - Task source uses subtasks-auto.md (legacy)
+      // - Alternative sources (--file, --text, --review) use subtasks-from-source.md
+      // Create flags object for helper functions
+      const sourceFlags: SubtasksSourceFlags = {
+        hasFile,
+        hasMilestone,
+        hasReview,
+        hasStory,
+        hasTask,
+        hasText,
+      };
+
+      const promptPath = getSubtasksPromptPath(contextRoot, sourceFlags);
+
+      // Resolve milestone path - from explicit --milestone flag or inferred from story path
+      // This is used for log file location and to determine output directory for subtasks.json
+      const resolvedMilestonePath = resolveMilestoneFromOptions(
+        options.milestone,
+        options.story,
+        hasStory,
+      );
+
+      // Pre-check for --milestone and --story modes: filter tasks that already have subtasks
+      // Track skipped tasks and counts for summary display
+      let skippedTasks: Array<string> = [];
+      let beforeCount = 0;
+
+      if (
+        (hasMilestone || hasStory) &&
+        resolvedMilestonePath !== undefined &&
+        resolvedMilestonePath !== null
+      ) {
+        const outputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          resolvedMilestonePath,
+        );
+        const preCheckResult = checkSubtasksPreCheck(
+          resolvedMilestonePath,
+          outputDirectory,
+        );
+
+        ({ beforeCount } = preCheckResult);
+        ({ skippedTasks } = preCheckResult);
+
+        // If all tasks already have subtasks, exit cleanly
+        if (preCheckResult.shouldSkip) {
+          console.log(
+            `All ${preCheckResult.totalTasks} tasks already have subtasks - nothing to generate`,
+          );
+          return;
+        }
+
+        // If some tasks have subtasks, log info about filtering
+        if (skippedTasks.length > 0) {
+          const remainingCount =
+            preCheckResult.totalTasks - skippedTasks.length;
+          console.log(
+            `Pre-check: ${skippedTasks.length} tasks already have subtasks, ${remainingCount} to process`,
+          );
+        }
       }
-      if (options.story !== undefined) {
-        contextParts.push(`Link to story: ${options.story}`);
-      }
+
+      // Build source context and info using helper
+      const { contextParts, sourceInfo } = buildSubtasksSourceContext(
+        sourceFlags,
+        {
+          file: options.file,
+          milestone: options.milestone,
+          resolvedMilestonePath,
+          story: options.story,
+          task: options.task,
+          text: options.text,
+        },
+      );
 
       // Add sizing mode context
       const sizeMode = options.size as "large" | "medium" | "small";
-      const sizeDescriptions = {
+      const sizeDescriptions: Record<typeof sizeMode, string> = {
         large:
           "Large slices: Only split at major functional boundaries. One subtask per logical feature. Prefer fewer, larger subtasks.",
         medium:
@@ -778,61 +1846,59 @@ planCommand.addCommand(
       contextParts.push(`Sizing mode: ${sizeMode}`);
       contextParts.push(`Sizing guidance: ${sizeDescriptions[sizeMode]}`);
 
+      // Add output directory to context if specified
+      if (hasOutputDirectory) {
+        const resolvedOutput = resolveOutputDirectory(options.outputDir, null);
+        contextParts.push(`Output directory: ${resolvedOutput}`);
+      }
+
       const extraContext = contextParts.join("\n");
 
-      if (options.headless === true) {
-        // Headless mode with summary
-        const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
-        const result = invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "subtasks",
-        });
-
-        // Determine output path
-        const projectRoot = findProjectRoot() ?? process.cwd();
-        const outputPath =
-          resolvedMilestonePath !== undefined && resolvedMilestonePath !== null
-            ? path.join(resolvedMilestonePath, "subtasks.json")
-            : path.join(projectRoot, "docs/planning/subtasks.json");
-
-        // Try to load generated subtasks
-        const loadResult = ((): {
-          error?: string;
-          subtasks: Array<{ id: string; title: string }>;
-        } => {
-          try {
-            const file = loadSubtasksFile(outputPath);
-            return {
-              subtasks: file.subtasks.map((s) => ({
-                id: s.id,
-                title: s.title,
-              })),
-            };
-          } catch {
-            return { error: "No subtasks file found", subtasks: [] };
-          }
-        })();
-
-        // Render summary
-        console.log(
-          renderPlanSubtasksSummary({
-            costUsd: result.costUsd,
-            durationMs: result.durationMs,
-            error: loadResult.error,
+      await (options.headless === true
+        ? runSubtasksHeadless({
+            beforeCount,
+            extraContext,
+            hasMilestone,
+            hasStory,
             milestone: options.milestone,
-            outputPath,
-            sessionId: result.sessionId,
+            model: options.model,
+            outputDirectory: options.outputDir,
+            promptPath,
+            provider: options.provider,
+            resolvedMilestonePath,
             sizeMode,
-            source: sourceInfo,
+            skippedTasks,
+            sourceInfo,
             storyRef: options.story,
-            subtasks: loadResult.subtasks,
-          }),
+          })
+        : invokePlanningSupervised({
+            extraContext,
+            model: options.model,
+            promptPath,
+            provider: options.provider,
+            sessionName: "subtasks",
+          }));
+
+      // Handle cascade if requested
+      if (options.cascade !== undefined) {
+        // Determine subtasks path for cascade
+        const resolvedOutputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          resolvedMilestonePath,
         );
-      } else {
-        // Default: supervised mode (user watches)
-        invokeClaudeChat(promptPath, "subtasks", extraContext);
+        const subtasksPath = path.join(
+          resolvedOutputDirectory,
+          "subtasks.json",
+        );
+
+        await handleCascadeExecution({
+          calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+          cascadeTarget: options.cascade,
+          contextRoot,
+          fromLevel: "subtasks",
+          resolvedMilestonePath: resolvedMilestonePath ?? null,
+          subtasksPath,
+        });
       }
     }),
 );
@@ -869,7 +1935,7 @@ reviewCommand.addCommand(
       "Milestone path to review stories for",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
       const promptPath = getReviewPromptPath(contextRoot, "stories", false);
@@ -877,14 +1943,14 @@ reviewCommand.addCommand(
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
           sessionName: "stories-review",
         });
       } else {
-        invokeClaudeChat(promptPath, "stories-review", extraContext);
+        invokeClaudeChat(promptPath, "stories-review", { extraContext });
       }
     }),
 );
@@ -894,21 +1960,21 @@ reviewCommand.addCommand(
   new Command("roadmap")
     .description("Review roadmap milestones for quality and completeness")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "roadmap", false);
       const extraContext = "Reviewing roadmap for quality and completeness";
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
           sessionName: "roadmap-review",
         });
       } else {
-        invokeClaudeChat(promptPath, "roadmap-review", extraContext);
+        invokeClaudeChat(promptPath, "roadmap-review", { extraContext });
       }
     }),
 );
@@ -923,21 +1989,21 @@ gapCommand.addCommand(
   new Command("roadmap")
     .description("Cold analysis of roadmap for gaps and risks")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "roadmap", true);
       const extraContext = "Gap analysis of roadmap for risks and blind spots";
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
           sessionName: "roadmap-gap",
         });
       } else {
-        invokeClaudeChat(promptPath, "roadmap-gap", extraContext);
+        invokeClaudeChat(promptPath, "roadmap-gap", { extraContext });
       }
     }),
 );
@@ -951,7 +2017,7 @@ gapCommand.addCommand(
       "Milestone path to analyze stories for",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
       const promptPath = getReviewPromptPath(contextRoot, "stories", true);
@@ -959,14 +2025,14 @@ gapCommand.addCommand(
 
       if (options.headless === true) {
         const logFile = getPlanningLogPath(milestonePath);
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
           sessionName: "stories-gap",
         });
       } else {
-        invokeClaudeChat(promptPath, "stories-gap", extraContext);
+        invokeClaudeChat(promptPath, "stories-gap", { extraContext });
       }
     }),
 );
@@ -977,7 +2043,7 @@ gapCommand.addCommand(
     .description("Cold analysis of tasks for gaps and risks")
     .requiredOption("--story <path>", "Story path to analyze tasks for")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const storyPath = requireStory(options.story);
       const promptPath = getReviewPromptPath(contextRoot, "tasks", true);
@@ -986,14 +2052,14 @@ gapCommand.addCommand(
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
           sessionName: "tasks-gap",
         });
       } else {
-        invokeClaudeChat(promptPath, "tasks-gap", extraContext);
+        invokeClaudeChat(promptPath, "tasks-gap", { extraContext });
       }
     }),
 );
@@ -1004,7 +2070,7 @@ gapCommand.addCommand(
     .description("Cold analysis of subtask queue for gaps and risks")
     .requiredOption("--subtasks <path>", "Subtasks file path to analyze")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = getReviewPromptPath(contextRoot, "subtasks", true);
       const extraContext = `Gap analysis of subtasks file: ${options.subtasks}`;
@@ -1012,14 +2078,14 @@ gapCommand.addCommand(
       if (options.headless === true) {
         // Subtasks mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
           sessionName: "subtasks-gap",
         });
       } else {
-        invokeClaudeChat(promptPath, "subtasks-gap", extraContext);
+        invokeClaudeChat(promptPath, "subtasks-gap", { extraContext });
       }
     }),
 );
@@ -1032,7 +2098,7 @@ reviewCommand.addCommand(
     .description("Review tasks for a story")
     .requiredOption("--story <path>", "Story path to review tasks for")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const storyPath = requireStory(options.story);
       const promptPath = getReviewPromptPath(contextRoot, "tasks", false);
@@ -1041,14 +2107,14 @@ reviewCommand.addCommand(
       if (options.headless === true) {
         // Story mode doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
           sessionName: "tasks-review",
         });
       } else {
-        invokeClaudeChat(promptPath, "tasks-review", extraContext);
+        invokeClaudeChat(promptPath, "tasks-review", { extraContext });
       }
     }),
 );
@@ -1059,7 +2125,7 @@ reviewCommand.addCommand(
     .description("Review subtask queue before building")
     .requiredOption("--subtasks <path>", "Subtasks file path to review")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
-    .action((options) => {
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
@@ -1070,14 +2136,14 @@ reviewCommand.addCommand(
       if (options.headless === true) {
         // Subtasks review doesn't have direct milestone, use orphan fallback
         const logFile = getPlanningLogPath();
-        invokeClaudeHeadless({
+        await invokeClaudeHeadless({
           extraContext,
           logFile,
           promptPath,
           sessionName: "subtasks-review",
         });
       } else {
-        invokeClaudeChat(promptPath, "subtasks-review", extraContext);
+        invokeClaudeChat(promptPath, "subtasks-review", { extraContext });
       }
     }),
 );
@@ -1129,6 +2195,17 @@ ralphCommand.addCommand(
     }),
 );
 
+// ralph models - list model table used for validation/completion
+ralphCommand.addCommand(
+  new Command("models")
+    .description("List available model names from the registry table")
+    .option("--provider <name>", "Filter models by provider")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      runModels({ isJson: options.json === true, provider: options.provider });
+    }),
+);
+
 // ralph calibrate - run calibration checks
 // Uses real Commander subcommands for proper --help support
 
@@ -1155,19 +2232,27 @@ function resolveCalibrateSubtasksPath(
 /**
  * Helper to run calibrate subcommand and exit on failure
  */
-function runCalibrateSubcommand(
+async function runCalibrateSubcommand(
   subcommand: CalibrateSubcommand,
-  options: { force?: boolean; review?: boolean; subtasks: string },
-): void {
+  options: {
+    force?: boolean;
+    model?: string;
+    provider?: string;
+    review?: boolean;
+    subtasks: string;
+  },
+): Promise<void> {
   const contextRoot = getContextRoot();
   const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
     options.subtasks,
     contextRoot,
   );
 
-  const didSucceed = runCalibrate(subcommand, {
+  const didSucceed = await runCalibrate(subcommand, {
     contextRoot,
     force: options.force,
+    model: options.model,
+    provider: options.provider,
     review: options.review,
     subtasksPath: resolvedSubtasksPath,
   });
@@ -1182,10 +2267,12 @@ calibrateCommand.addCommand(
   new Command("intention")
     .description("Check for intention drift (code vs planning docs)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--provider <name>", "AI provider to use for calibration")
+    .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("intention", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("intention", options);
     }),
 );
 
@@ -1194,10 +2281,12 @@ calibrateCommand.addCommand(
   new Command("technical")
     .description("Check for technical drift (code quality issues)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--provider <name>", "AI provider to use for calibration")
+    .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("technical", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("technical", options);
     }),
 );
 
@@ -1206,10 +2295,12 @@ calibrateCommand.addCommand(
   new Command("improve")
     .description("Run self-improvement analysis on session logs")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--provider <name>", "AI provider to use for calibration")
+    .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("improve", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("improve", options);
     }),
 );
 
@@ -1218,13 +2309,77 @@ calibrateCommand.addCommand(
   new Command("all")
     .description("Run all calibration checks sequentially")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--provider <name>", "AI provider to use for calibration")
+    .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
     .option("--review", "Require approval even if config says 'autofix'")
-    .action((options) => {
-      runCalibrateSubcommand("all", options);
+    .action(async (options) => {
+      await runCalibrateSubcommand("all", options);
     }),
 );
 
 ralphCommand.addCommand(calibrateCommand);
+
+// =============================================================================
+// ralph archive - archive completed subtasks and old progress sessions
+// =============================================================================
+
+const archiveCommand = new Command("archive").description(
+  "Archive completed subtasks and old PROGRESS.md sessions to manage file sizes",
+);
+
+// ralph archive subtasks - archive completed subtasks
+archiveCommand.addCommand(
+  new Command("subtasks")
+    .description("Archive completed subtasks to reduce subtasks.json size")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .option("--milestone <name>", "Milestone name for archive naming")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      runArchive(
+        {
+          milestone: options.milestone,
+          subtasks: true,
+          subtasksPath: options.subtasks,
+        },
+        contextRoot,
+      );
+    }),
+);
+
+// ralph archive progress - archive old PROGRESS.md sessions
+archiveCommand.addCommand(
+  new Command("progress")
+    .description("Archive old sessions from PROGRESS.md")
+    .option("--progress <path>", "PROGRESS.md file path")
+    .action((options) => {
+      const contextRoot = getContextRoot();
+      runArchive(
+        { progress: true, progressPath: options.progress },
+        contextRoot,
+      );
+    }),
+);
+
+ralphCommand.addCommand(archiveCommand);
+
+// =============================================================================
+// ralph refresh-models - discover models from CLI providers
+// =============================================================================
+
+ralphCommand.addCommand(
+  new Command("refresh-models")
+    .description(
+      "Discover available models from CLI providers and update dynamic registry",
+    )
+    .option("--dry-run", "Show what would be discovered without writing")
+    .option("--provider <name>", "Discover models from specific provider only")
+    .action((options) => {
+      runRefreshModels({
+        isDryRun: options.dryRun === true,
+        provider: options.provider,
+      });
+    }),
+);
 
 export default ralphCommand;

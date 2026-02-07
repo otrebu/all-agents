@@ -50,6 +50,8 @@ tools/
 │   │   ├── review/               # Code review CLI (modes: supervised, headless)
 │   │   │   ├── index.ts          # CLI commands and mode logic
 │   │   │   └── types.ts          # Finding, DiaryEntry, triage types
+│   │   ├── session/              # Session file management (simple)
+│   │   │   └── index.ts          # path and current commands
 │   │   └── setup/
 │   │       ├── index.ts
 │   │       └── utils.ts
@@ -84,6 +86,29 @@ tools/
 
 - > 30 lines of type definitions → separate file
 - Keeps `index.ts` readable, prevents scrolling hell
+
+## Repo-Specific Execution Hygiene
+
+When running validation commands for `tools/` work, use these conventions:
+
+- Run commands from `tools/` (set workdir to `tools`), not repo root.
+- Prefer package scripts over direct runners (for example `bun run lint` instead of `bunx eslint`).
+- For targeted checks, use script forwarding: `bun run lint -- <paths>` and `bun test <path>`.
+- If re-running a command, say why (`failed due to path`, `after fixes`, `final verify`) so output volume is predictable.
+- If a command emits noisy TUI/control output, summarize key lines in updates instead of pasting raw escape-heavy logs.
+
+### Fast Iteration Defaults
+
+Use this loop during implementation to minimize repeated full-tree scans:
+
+- Use direct binaries for targeted checks:
+  - `./node_modules/.bin/eslint <changed-files...>`
+  - `./node_modules/.bin/prettier --check <changed-files...>`
+  - `./node_modules/.bin/prettier --write <changed-files...>` (only when needed)
+- Prefer targeted tests (`bun test <file-or-pattern>`) over `bun run test`.
+- Do not run full `eslint .` repeatedly during edit loops.
+- Before commit, run only targeted checks already needed; rely on pre-commit hooks for one final full validation pass.
+- If pre-commit fails on formatting, format only reported files, re-stage, and commit again.
 
 ## Core Patterns
 

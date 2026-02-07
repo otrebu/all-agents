@@ -113,6 +113,12 @@ Answer these questions:
 - What existing patterns should be followed?
 - What dependencies exist that affect implementation order?
 
+### Phase 2b: Testing & Verification
+
+When no parent task provides testing context:
+
+@context/workflows/ralph/planning/components/testing-guidance.md
+
 ### Phase 3: Generate Subtasks
 
 For each actionable item, create a subtask following the schema in subtask-spec.md.
@@ -350,10 +356,21 @@ After triage, write final subtasks to the destination:
 - If `--milestone` provided: `docs/planning/milestones/<milestone>/subtasks.json`
 - Otherwise: `docs/planning/subtasks.json`
 
-**Behavior:**
-- If file exists: Append new subtasks to existing array
-- If file doesn't exist: Create new file with proper structure
-- Remove `isDraft` from metadata
+**IMPORTANT: Use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`**
+
+This function handles the append-vs-create logic automatically:
+- If file exists: Appends new subtasks to existing array (skips duplicates by ID)
+- If file doesn't exist: Creates new file with proper structure
+
+**Never use `saveSubtasksFile()` directly** - it overwrites the entire file and will destroy existing subtasks.
+
+Example usage:
+```typescript
+import { appendSubtasksToFile } from "@tools/commands/ralph/config";
+
+const result = appendSubtasksToFile(subtasksPath, newSubtasks, metadata);
+console.log(`Added ${result.added} subtasks, skipped ${result.skipped} duplicates`);
+```
 
 **Schema reference:**
 ```json

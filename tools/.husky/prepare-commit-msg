@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+
+# Append cc-session-id trailer to commit messages for session interrogation
+# Reads the session ID from .claude/current-session (written by SessionStart hook)
+
+COMMIT_MSG_FILE="$1"
+COMMIT_SOURCE="$2"
+SESSION_FILE=".claude/current-session"
+
+# Skip for merge commits, squash commits, or when amending
+# (These already have their messages and shouldn't be modified)
+if [ "$COMMIT_SOURCE" = "merge" ] || [ "$COMMIT_SOURCE" = "squash" ]; then
+    exit 0
+fi
+
+# Skip if session file doesn't exist
+if [ ! -f "$SESSION_FILE" ]; then
+    exit 0
+fi
+
+SESSION_ID=$(cat "$SESSION_FILE")
+
+# Skip if session ID is empty
+if [ -z "$SESSION_ID" ]; then
+    exit 0
+fi
+
+# Skip if trailer already exists (idempotency)
+if grep -q "^cc-session-id:" "$COMMIT_MSG_FILE" 2>/dev/null; then
+    exit 0
+fi
+
+# Append trailer with blank line separator
+# The trailer format follows git convention: "key: value"
+echo "" >> "$COMMIT_MSG_FILE"
+echo "cc-session-id: $SESSION_ID" >> "$COMMIT_MSG_FILE"

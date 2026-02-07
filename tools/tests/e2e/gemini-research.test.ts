@@ -8,18 +8,19 @@ import { access, readFile } from "node:fs/promises";
 const RESEARCH_DIR = getOutputDir("research/google");
 const TIMEOUT_MS = 120_000;
 
-describe("gemini-research E2E", () => {
+function hasGeminiApiKey(): boolean {
+  return (
+    process.env.GEMINI_API_KEY !== undefined &&
+    process.env.GEMINI_API_KEY !== ""
+  );
+}
+
+const SKIP_REASON = "Skipping: GEMINI_API_KEY not set";
+
+describe.skipIf(!hasGeminiApiKey())("gemini-research E2E", () => {
   beforeAll(() => {
-    // Check for Gemini API key
-    if (
-      process.env.GEMINI_API_KEY === undefined ||
-      process.env.GEMINI_API_KEY === ""
-    ) {
-      throw new Error(
-        "GEMINI_API_KEY required.\n\n" +
-          "Get key at: https://makersuite.google.com/app/apikey\n" +
-          "Then: export GEMINI_API_KEY=your-key\n",
-      );
+    if (!hasGeminiApiKey()) {
+      console.log(SKIP_REASON);
     }
   });
 

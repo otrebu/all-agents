@@ -1,0 +1,79 @@
+/**
+ * Provider abstraction barrel export
+ *
+ * Re-exports all public types and constants from the providers module.
+ */
+export {
+  DISCOVERED_MODELS,
+  getAllModels,
+  getModelById,
+  getModelCompletions,
+  getModelCompletionsForProvider,
+  getModelsForProvider,
+  type ModelInfo,
+  type ModelValidationResult,
+  REFRESH_HINT,
+  validateModelForProvider,
+  validateModelSelection,
+} from "./models";
+export {
+  autoDetectProvider,
+  createProviderInvocationFailure,
+  formatProviderFailureOutcome,
+  getInstallInstructions,
+  type HeadlessProviderOptions,
+  invokeWithProvider,
+  invokeWithProviderOutcome,
+  isBinaryAvailable,
+  ProviderError,
+  type ProviderInvokeOptions,
+  type ProviderSelectionContext,
+  REGISTRY,
+  resolveProvider,
+  type RuntimeInvocationMode,
+  selectProvider,
+  selectProviderFromEnv,
+  type SupervisedProviderOptions,
+  validateProvider,
+  validateProviderInvocationPreflight,
+} from "./registry";
+export {
+  discoverRecentSessionForProvider,
+  EMPTY_SESSION_METRICS,
+  extractSessionMetricsForProvider,
+  getProviderSessionAdapter,
+  NOOP_SESSION_ADAPTER,
+  type ProviderSession,
+  type ProviderSessionAdapter,
+  type ProviderSessionMetrics,
+  resolveSessionForProvider,
+  SESSION_ADAPTERS,
+} from "./session-adapter";
+export {
+  DEFAULT_LIGHTWEIGHT_MODELS,
+  invokeProviderSummary,
+  type ProviderSummaryOptions,
+  resolveLightweightModelForProvider,
+} from "./summary";
+export {
+  type AgentResult,
+  type BaseProviderConfig,
+  type ClaudeConfig,
+  type CodexConfig,
+  type CursorConfig,
+  type GeminiConfig,
+  type InvocationMode,
+  type InvocationOptions,
+  type InvokerFunction,
+  type OpencodeConfig,
+  type PiConfig,
+  PROVIDER_BINARIES,
+  type ProviderCapabilities,
+  type ProviderConfig,
+  type ProviderFailureOutcome,
+  type ProviderFailureReason,
+  type ProviderInvocationOutcome,
+  type ProviderSuccessOutcome,
+  type ProviderType,
+  type TokenUsage,
+} from "./types";

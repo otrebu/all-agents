@@ -1,10 +1,16 @@
+import { getContextRoot } from "@tools/utils/paths";
 import { describe, expect, test } from "bun:test";
 import { execa } from "execa";
+import { join } from "node:path";
+
+const TOOLS_DIR = join(getContextRoot(), "tools");
 
 describe("aaa CLI", () => {
   // Basic CLI
   test("--help shows usage and commands", async () => {
-    const { exitCode, stdout } = await execa("bun", ["run", "dev", "--help"]);
+    const { exitCode, stdout } = await execa("bun", ["run", "dev", "--help"], {
+      cwd: TOOLS_DIR,
+    });
     expect(exitCode).toBe(0);
     expect(stdout).toContain("All-Agents CLI Toolkit");
     expect(stdout).toContain("Usage:");
@@ -16,20 +22,21 @@ describe("aaa CLI", () => {
   });
 
   test("--version shows version", async () => {
-    const { exitCode, stdout } = await execa("bun", [
-      "run",
-      "dev",
-      "--version",
-    ]);
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "--version"],
+      { cwd: TOOLS_DIR },
+    );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("1.0.0");
+    // Check version matches semver pattern (e.g., "1.14.1")
+    expect(stdout).toMatch(/\d+\.\d+\.\d+/);
   });
 
   test("unknown command fails with error", async () => {
     const { exitCode, stderr } = await execa(
       "bun",
       ["run", "dev", "nonexistent-command"],
-      { reject: false },
+      { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("unknown command");
@@ -40,7 +47,7 @@ describe("aaa CLI", () => {
     const { exitCode, stderr } = await execa(
       "bun",
       ["run", "dev", "gh-search"],
-      { reject: false },
+      { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("missing required argument");
@@ -50,7 +57,7 @@ describe("aaa CLI", () => {
     const { exitCode, stderr } = await execa(
       "bun",
       ["run", "dev", "gemini-research"],
-      { reject: false },
+      { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("missing required argument");
@@ -60,7 +67,7 @@ describe("aaa CLI", () => {
     const { exitCode, stderr } = await execa(
       "bun",
       ["run", "dev", "parallel-search"],
-      { reject: false },
+      { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(1);
     expect(stderr).toContain("required option");
@@ -73,6 +80,7 @@ describe("aaa CLI", () => {
       "bun",
       ["run", "dev", "parallel-search", "--objective", "test query"],
       {
+        cwd: TOOLS_DIR,
         env: { ...process.env, AAA_PARALLEL_API_KEY: "", PARALLEL_API_KEY: "" },
         reject: false,
       },

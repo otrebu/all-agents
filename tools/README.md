@@ -88,6 +88,10 @@ aaa story create "As a user, I want to login"
 | `ralph build`                | Run subtask iteration loop (autonomous dev)                                | `subtasks.json`            |
 | `ralph status`               | Display build status and progress                                          | -                          |
 | `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                           | -                          |
+| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer         | stdout                     |
+| `session current`            | Get current session ID from .claude/current-session                        | stdout                     |
+| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)            | stdout                     |
+| `session list`               | List recent sessions (--verbose for table, --limit N)                      | stdout                     |
 | `completion <shell>`         | Generate shell completion script (bash, zsh, fish)                         | stdout                     |
 
 ### Command Examples
@@ -342,6 +346,45 @@ aaa ralph build --validate-first
 aaa ralph build -p
 ```
 
+**Cascade mode** (chain levels together):
+
+```bash
+# Chain from stories through to calibrate
+aaa ralph plan stories --milestone docs/planning/milestones/003-feature --cascade calibrate
+
+# Chain from subtasks to build only
+aaa ralph plan subtasks --milestone 003-feature --cascade build
+
+# Chain from build to calibrate
+aaa ralph build --cascade calibrate
+
+# Run calibration every 5 build iterations
+aaa ralph build --calibrate-every 5
+```
+
+Level sequence: `roadmap → stories → tasks → subtasks → build → calibrate`
+
+Cascade flows forward only. TTY mode prompts for confirmation between levels; non-TTY (headless/CI) continues automatically.
+
+**Subtask planning options:**
+
+```bash
+# Hierarchy sources (generate subtasks for all tasks in scope)
+aaa ralph plan subtasks --milestone 003-feature
+aaa ralph plan subtasks --story STORY-001
+aaa ralph plan subtasks --task TASK-014
+
+# Alternative sources (generate from arbitrary input)
+aaa ralph plan subtasks --file ./review-findings.md
+aaa ralph plan subtasks --text "Fix array bounds check in review command"
+aaa ralph plan subtasks --review   # Parse logs/reviews.jsonl
+
+# Size control (subtask granularity)
+aaa ralph plan subtasks --milestone 003-feature --size small   # 1-2 AC per subtask
+aaa ralph plan subtasks --milestone 003-feature --size medium  # 2-4 AC (default)
+aaa ralph plan subtasks --milestone 003-feature --size large   # 4-5 AC per subtask
+```
+
 **Status command:**
 
 ```bash
@@ -425,6 +468,64 @@ aaa ralph build
 # 4. Check for drift periodically
 aaa ralph calibrate all
 ```
+
+#### session
+
+Manage and retrieve Claude session files. Useful for interrogation workflows and debugging cascade runs.
+
+```bash
+# Get session file path by ID
+aaa session path abc123-def456
+
+# Get session file path from a commit's cc-session-id trailer
+aaa session path --commit HEAD
+aaa session path --commit abc1234
+
+# Get current session ID (from .claude/current-session)
+aaa session current
+
+# Output session JSONL content to stdout
+aaa session cat abc123-def456
+aaa session cat --commit HEAD
+
+# List recent sessions (machine-parseable, one session-id per line)
+aaa session list
+aaa session list --limit 10
+
+# List recent sessions (human-readable table format)
+aaa session list --verbose
+```
+
+**Use cases:**
+
+- Look up session files for forensic analysis of past work
+- Extract session ID from commits made during a Claude session
+- Get the current session ID for scripts/automation
+- Output session content for piping to other tools or subagents
+- List recent sessions to find sessions to analyze
+- Debug cascade runs by examining session logs for each level
+
+**Cascade integration:**
+
+After a cascade run completes, use session commands to investigate each level:
+
+```bash
+# Find the commit made during a cascade build
+git log --oneline -5
+
+# Get the session for that commit
+aaa session cat --commit abc1234 | head -100
+
+# Or look up session from subtasks.json completion record
+jq '.subtasks[] | select(.done==true) | .sessionId' subtasks.json
+```
+
+**Error handling:**
+
+- Exits with code 1 if session file not found
+- Exits with code 1 if commit has no cc-session-id trailer
+- Exits with code 1 if .claude/current-session doesn't exist or is empty
+- Exits with code 1 if no sessions found (for `list` command)
 
 ## Shell Completion
 
@@ -609,6 +710,8 @@ tools/
 │   │   │   ├── calibrate.ts # Calibrate command
 │   │   │   ├── build.ts    # Build loop
 │   │   │   └── post-iteration.ts # Post-iteration hook
+│   │   ├── session/        # Session file management
+│   │   │   └── index.ts    # path and current commands
 │   │   ├── setup/
 │   │   ├── story.ts
 │   │   ├── task.ts

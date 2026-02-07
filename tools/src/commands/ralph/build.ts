@@ -5,7 +5,7 @@
  * 1. Loads subtasks from subtasks.json
  * 2. Gets the next pending subtask
  * 3. Tracks retry attempts per subtask
- * 4. Invokes Claude in supervised or headless mode
+ * 4. Invokes the selected provider in supervised or headless mode
  * 5. Reloads subtasks.json after each iteration to check completion
  *
  * @see docs/planning/ralph-migration-implementation-plan.md
@@ -17,15 +17,22 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as readline from "node:readline";
 
+import type { ProviderType } from "./providers/types";
 import type { BuildOptions, Subtask } from "./types";
 
+import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
+import {
+  checkAssignedCompletionInvariant,
+  formatCompletionInvariantViolation,
+} from "./build-invariant";
 import { runCalibrate } from "./calibrate";
-import { buildPrompt, invokeClaudeChat, invokeClaudeHeadless } from "./claude";
 import {
   countRemaining,
   getMilestoneFromSubtasks,
   getNextSubtask,
+  loadRalphConfig,
   loadSubtasksFile,
+  loadTimeoutConfig,
 } from "./config";
 import {
   renderBuildPracticalSummary,
@@ -40,9 +47,18 @@ import {
   type PostIterationResult,
   runPostIterationHook,
 } from "./post-iteration";
-import { discoverRecentSession } from "./session";
+import { buildPrompt } from "./providers/claude";
+import { validateModelSelection } from "./providers/models";
+import {
+  formatProviderFailureOutcome,
+  invokeWithProviderOutcome,
+  resolveProvider,
+  validateProviderInvocationPreflight,
+} from "./providers/registry";
+import { discoverRecentSessionForProvider } from "./providers/session-adapter";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
+import { getProviderTimingMs } from "./types";
 
 // =============================================================================
 // Constants
@@ -65,7 +81,9 @@ interface HeadlessIterationContext {
   currentSubtask: Subtask;
   iteration: number;
   maxIterations: number;
+  model?: string;
   prompt: string;
+  provider: ProviderType;
   remaining: number;
   shouldSkipSummary: boolean;
   subtasksPath: string;
@@ -82,6 +100,16 @@ interface HeadlessIterationResult {
 }
 
 /**
+ * Options for checking if max iterations exceeded
+ */
+interface MaxIterationsCheckOptions {
+  currentAttempts: number;
+  maxIterations: number;
+  milestone?: string;
+  subtaskId: string;
+}
+
+/**
  * Options for periodic calibration
  */
 interface PeriodicCalibrationOptions {
@@ -89,6 +117,23 @@ interface PeriodicCalibrationOptions {
   contextRoot: string;
   iteration: number;
   subtasksPath: string;
+}
+
+/**
+ * Options for enforcing single-subtask completion per iteration.
+ */
+interface SingleSubtaskInvariantOptions {
+  assignedSubtaskId: string;
+  preSubtasks: Array<Subtask>;
+  subtasksPath: string;
+}
+
+/**
+ * Options for firing the onSubtaskComplete hook
+ */
+interface SubtaskCompleteHookOptions {
+  hookResult: null | PostIterationResult;
+  subtask: Subtask;
 }
 
 /**
@@ -113,6 +158,8 @@ interface SupervisedIterationContext {
   currentSubtask: Subtask;
   iteration: number;
   maxIterations: number;
+  model?: string;
+  provider: ProviderType;
   remaining: number;
   subtasksPath: string;
 }
@@ -150,10 +197,11 @@ let summaryContext: null | SummaryContext = null;
  *
  * @param contextRoot - Repository root path
  * @param subtasksPath - Path to subtasks.json file
- * @returns Full prompt string for Claude
+ * @returns Full prompt string for the selected provider
  */
 function buildIterationPrompt(
   contextRoot: string,
+  currentSubtask: Subtask,
   subtasksPath: string,
 ): string {
   const promptPath = path.join(contextRoot, ITERATION_PROMPT_PATH);
@@ -164,28 +212,105 @@ function buildIterationPrompt(
 
   const promptContent = readFileSync(promptPath, "utf8");
 
-  // Derive PROGRESS.md location from subtasks.json location
-  const subtasksDirectory = path.dirname(subtasksPath);
-  const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
+  // Use the canonical PROGRESS.md location relative to the target repo root.
+  const projectRoot = findProjectRoot() ?? contextRoot;
+  const progressPath = path.join(projectRoot, "docs/planning/PROGRESS.md");
 
-  // Build context with file references (Claude will read them)
-  const extraContext = `Execute one iteration of the Ralph build loop.
+  const subtaskJson = JSON.stringify(currentSubtask, null, 2);
 
-Follow the instructions in @${promptPath}
+  // Build context with assigned subtask and paths (avoid inlining large files)
+  const extraContext =
+    `Execute one iteration of the Ralph build loop.
 
-Subtasks file: @${subtasksPath}
+Work ONLY on the assigned subtask below. Do not pick a different subtask.
 
-Context files:
-@${path.join(contextRoot, "CLAUDE.md")}
-@${progressPath}
+Assigned subtask:
+\`\`\`json
+${subtaskJson}
+\`\`\`
 
-After completing ONE subtask:
-1. Update subtasks.json with done: true, completedAt, commitHash, sessionId
+Subtasks file path: ${subtasksPath}
+Progress log path: ${progressPath}
+
+If you need to inspect the queue, do not read the entire subtasks file; use ` +
+    `jq to view only pending items.
+
+After completing the assigned subtask (${currentSubtask.id}):
+1. Update subtasks.json for ${currentSubtask.id} with done: true, completedAt, commitHash, sessionId
 2. Append to PROGRESS.md
 3. Create the commit
 4. STOP - do not continue to the next subtask`;
 
   return buildPrompt(promptContent, extraContext);
+}
+
+/**
+ * Enforce the one-subtask-per-iteration invariant.
+ *
+ * Returns whether the assigned subtask transitioned from done:false to done:true.
+ * Exits with non-zero status when unexpected subtasks were completed.
+ */
+function enforceSingleSubtaskInvariant(
+  options: SingleSubtaskInvariantOptions,
+): boolean {
+  const { assignedSubtaskId, preSubtasks, subtasksPath } = options;
+  const postIterationSubtasksFile = loadSubtasksFile(subtasksPath);
+  const completionInvariant = checkAssignedCompletionInvariant({
+    assignedSubtaskId,
+    postSubtasks: postIterationSubtasksFile.subtasks,
+    preSubtasks,
+  });
+
+  if (completionInvariant.isViolation) {
+    console.error(
+      chalk.red(`\n${formatCompletionInvariantViolation(completionInvariant)}`),
+    );
+    process.exit(1);
+  }
+
+  return completionInvariant.completedIds.includes(assignedSubtaskId);
+}
+
+/**
+ * Fire the onSubtaskComplete hook with metrics from the iteration result
+ *
+ * @param options - Subtask and hook result containing metrics
+ */
+async function fireSubtaskCompleteHook(
+  options: SubtaskCompleteHookOptions,
+): Promise<void> {
+  const { hookResult, subtask } = options;
+  const entry = hookResult?.entry;
+  const providerMs = getProviderTimingMs(entry?.timing);
+
+  await executeHook("onSubtaskComplete", {
+    costUsd: entry?.costUsd,
+    duration: providerMs === undefined ? undefined : formatDuration(providerMs),
+    filesChanged: entry?.filesChanged?.length,
+    linesAdded: entry?.linesAdded,
+    linesRemoved: entry?.linesRemoved,
+    message: `Subtask ${subtask.id} completed: ${subtask.title}`,
+    milestone: entry?.milestone,
+    sessionId: entry?.sessionId,
+    subtaskId: subtask.id,
+  });
+}
+
+/**
+ * Format duration in milliseconds to human-readable string
+ *
+ * @param ms - Duration in milliseconds
+ * @returns Formatted string (e.g., "2m 30s" or "45s")
+ */
+function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+  return `${seconds}s`;
 }
 
 /**
@@ -268,20 +393,16 @@ function getLatestCommitHash(projectRoot: string): null | string {
   return proc.stdout.toString("utf8").trim();
 }
 
-// =============================================================================
-// Build Loop Implementation
-// =============================================================================
-
 /**
  * Check if max iterations exceeded and handle failure
  *
  * @returns true if exceeded and should exit, false to continue
  */
 async function handleMaxIterationsExceeded(
-  currentAttempts: number,
-  maxIterations: number,
-  subtaskId: string,
+  options: MaxIterationsCheckOptions,
 ): Promise<boolean> {
+  const { currentAttempts, maxIterations, milestone, subtaskId } = options;
+
   if (maxIterations <= 0 || currentAttempts <= maxIterations) {
     return false;
   }
@@ -292,7 +413,10 @@ async function handleMaxIterationsExceeded(
   console.error(`Subtask failed after ${maxIterations} attempts`);
 
   await executeHook("onMaxIterationsExceeded", {
+    iterationNumber: currentAttempts,
+    maxIterations,
     message: `Subtask ${subtaskId} failed after ${maxIterations} attempts`,
+    milestone,
     subtaskId,
   });
 
@@ -300,78 +424,155 @@ async function handleMaxIterationsExceeded(
 }
 
 /**
+ * Validate model selection and exit with formatted error if invalid.
+ *
+ * If model is undefined, does nothing (model is optional).
+ * If valid, logs the model + cliFormat.
+ * If invalid, logs error with suggestions and exits.
+ *
+ * @param model - User-provided model ID (undefined = skip validation)
+ * @param provider - Target provider to validate against
+ */
+function handleModelValidation(
+  model: string | undefined,
+  provider: ProviderType,
+): void {
+  if (model === undefined) {
+    return;
+  }
+  const result = validateModelSelection(model, provider);
+  if (result.valid) {
+    console.log(chalk.dim(`Using model: ${model} (${result.cliFormat})`));
+    return;
+  }
+  console.error(chalk.red(`\nError: ${result.error}`));
+  if (result.suggestions.length > 0) {
+    console.error(chalk.yellow("\nDid you mean:"));
+    for (const suggestion of result.suggestions) {
+      console.error(chalk.yellow(`  - ${suggestion}`));
+    }
+  }
+  process.exit(1);
+}
+
+// =============================================================================
+// Build Loop Implementation
+// =============================================================================
+
+/**
  * Process a single headless iteration
  *
  * @returns Result with cost, duration, diary entry, and completion status
  */
-function processHeadlessIteration(
+async function processHeadlessIteration(
   context: HeadlessIterationContext,
-): HeadlessIterationResult | null {
+): Promise<HeadlessIterationResult | null> {
   const {
     contextRoot,
     currentAttempts,
     currentSubtask,
     iteration,
     maxIterations,
+    model,
     prompt,
-    remaining,
+    provider,
     shouldSkipSummary,
     subtasksPath,
   } = context;
 
-  console.log(renderInvocationHeader("headless"));
+  console.log(renderInvocationHeader("headless", provider));
   console.log();
 
   // Use target project root for logs (not all-agents)
   const projectRoot = findProjectRoot() ?? contextRoot;
 
-  // Capture commit hash before Claude invocation
+  // Capture commit hash before provider invocation
   const commitBefore = getLatestCommitHash(projectRoot);
 
-  // Time Claude invocation for metrics
-  const claudeStart = Date.now();
-  const result = invokeClaudeHeadless({ prompt });
-  const claudeMs = Date.now() - claudeStart;
+  // Load timeout configuration
+  const timeoutConfig = loadTimeoutConfig();
+  const stallTimeoutMs = timeoutConfig.stallMinutes * 60 * 1000;
+  const hardTimeoutMs = timeoutConfig.hardMinutes * 60 * 1000;
+  const gracePeriodMs = timeoutConfig.graceSeconds * 1000;
 
-  // Capture commit hash after Claude invocation
+  // Time provider invocation for metrics
+  const providerStart = Date.now();
+  const stopHeartbeat = startHeartbeat(provider, 30_000);
+  const invocationOutcome = await (async () => {
+    try {
+      return await invokeWithProviderOutcome(provider, {
+        gracePeriodMs,
+        mode: "headless",
+        model,
+        onStderrActivity: () => {
+          // Activity tracking is handled internally, but we could extend
+          // the heartbeat here if needed in the future
+        },
+        prompt,
+        stallTimeoutMs,
+        timeout: hardTimeoutMs,
+      });
+    } finally {
+      stopHeartbeat();
+    }
+  })();
+  const providerMs = Date.now() - providerStart;
+
+  // Capture commit hash after provider invocation
   const commitAfter = getLatestCommitHash(projectRoot);
 
-  if (result === null) {
-    console.error("Claude headless invocation failed or was interrupted");
+  if (invocationOutcome.status !== "success") {
+    const formatted = formatProviderFailureOutcome(invocationOutcome);
+    if (invocationOutcome.status === "fatal") {
+      console.error(chalk.red(`\n✖ ${formatted}`));
+      process.exit(1);
+    }
+    console.log(chalk.yellow(`\n⚠ ${formatted}`));
     return null;
   }
 
+  const { result } = invocationOutcome;
+
   // Display result with markdown rendering
-  console.log(`\n${renderResponseHeader()}`);
+  console.log(`\n${renderResponseHeader(provider)}`);
   console.log(renderMarkdown(result.result));
   console.log();
 
   // Reload subtasks to check if current one was completed
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
   const postRemaining = countRemaining(postIterationSubtasks.subtasks);
-  const didComplete = postRemaining < remaining;
+  const didComplete =
+    postIterationSubtasks.subtasks.find((s) => s.id === currentSubtask.id)
+      ?.done === true;
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
   let hookResult: null | PostIterationResult = null;
   try {
-    hookResult = runPostIterationHook({
-      claudeMs,
-      commitAfter,
-      commitBefore,
-      costUsd: result.cost,
-      iterationNumber: currentAttempts,
-      maxAttempts: maxIterations,
-      milestone,
-      mode: "headless",
-      remaining: postRemaining,
-      repoRoot: projectRoot,
-      sessionId: result.sessionId,
-      skipSummary: shouldSkipSummary,
-      status: iterationStatus,
-      subtask: currentSubtask,
-      subtasksPath,
-    });
+    const stopPostIterationHeartbeat = startHeartbeat("Post-iteration", 30_000);
+    try {
+      hookResult = await runPostIterationHook({
+        commitAfter,
+        commitBefore,
+        contextRoot,
+        costUsd: result.costUsd,
+        iterationNumber: currentAttempts,
+        maxAttempts: maxIterations,
+        milestone,
+        mode: "headless",
+        provider,
+        providerMs,
+        remaining: postRemaining,
+        repoRoot: projectRoot,
+        sessionId: result.sessionId,
+        skipSummary: shouldSkipSummary,
+        status: iterationStatus,
+        subtask: currentSubtask,
+        subtasksPath,
+      });
+    } finally {
+      stopPostIterationHeartbeat();
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
@@ -386,9 +587,9 @@ function processHeadlessIteration(
     console.log(
       renderIterationEnd({
         attempt: currentAttempts,
-        costUsd: result.cost,
+        costUsd: result.costUsd,
         diaryPath,
-        durationMs: result.duration,
+        durationMs: result.durationMs,
         filesChanged: entry.filesChanged?.length ?? 0,
         iteration,
         keyFindings: entry.keyFindings,
@@ -408,9 +609,9 @@ function processHeadlessIteration(
   }
 
   return {
-    costUsd: result.cost,
+    costUsd: result.costUsd,
     didComplete,
-    durationMs: result.duration,
+    durationMs: result.durationMs,
     hookResult,
   };
 }
@@ -423,78 +624,101 @@ function processHeadlessIteration(
  *
  * @returns Result with completion status and hook result, or null on failure
  */
-function processSupervisedIteration(
+async function processSupervisedIteration(
   context: SupervisedIterationContext,
-): null | SupervisedIterationResult {
+): Promise<null | SupervisedIterationResult> {
   const {
     contextRoot,
     currentAttempts,
     currentSubtask,
     iteration,
     maxIterations,
-    remaining,
+    model,
+    provider,
     subtasksPath,
   } = context;
 
-  console.log(renderInvocationHeader("supervised"));
+  console.log(renderInvocationHeader("supervised", provider));
   console.log();
 
   // Use target project root for logs
   const projectRoot = findProjectRoot() ?? contextRoot;
 
-  // Derive PROGRESS.md location from subtasks.json location
-  const subtasksDirectory = path.dirname(subtasksPath);
-  const progressPath = path.join(subtasksDirectory, "PROGRESS.md");
+  // PROGRESS.md is referenced relative to the target repo root in the iteration prompt.
+  const progressPath = path.join(projectRoot, "docs/planning/PROGRESS.md");
 
-  // Capture commit hash before Claude invocation
+  // Capture commit hash before provider invocation
   const commitBefore = getLatestCommitHash(projectRoot);
 
-  // Capture start time for session discovery
-  const startTime = Date.now();
+  // Capture invocation start for timing + session fallback discovery
+  const invocationStart = Date.now();
 
-  const chatResult = invokeClaudeChat(
-    path.join(contextRoot, ITERATION_PROMPT_PATH),
-    "build iteration",
-    `Subtasks file: @${subtasksPath}\n\nContext files:\n@${path.join(contextRoot, "CLAUDE.md")}\n@${progressPath}`,
-  );
+  const invocationOutcome = await invokeWithProviderOutcome(provider, {
+    context: `Work ONLY on the assigned subtask below. Do not pick a different subtask.\n\nAssigned subtask:\n${JSON.stringify(currentSubtask, null, 2)}\n\nSubtasks file path: ${subtasksPath}\nProgress log path: ${progressPath}`,
+    mode: "supervised",
+    model,
+    promptPath: path.join(contextRoot, ITERATION_PROMPT_PATH),
+    sessionName: "build iteration",
+  });
 
-  if (!chatResult.success && !chatResult.interrupted) {
-    console.error("Supervised session failed");
-    process.exit(chatResult.exitCode ?? 1);
+  if (invocationOutcome.status !== "success") {
+    const formatted = formatProviderFailureOutcome(invocationOutcome);
+    if (invocationOutcome.status === "fatal") {
+      console.error(chalk.red(`\n✖ ${formatted}`));
+      process.exit(1);
+    }
+    console.log(chalk.yellow(`\n⚠ ${formatted}`));
+    return null;
   }
 
-  // Capture commit hash after Claude invocation
+  const supervisedResult = invocationOutcome.result;
+
+  // Capture commit hash after provider invocation
   const commitAfter = getLatestCommitHash(projectRoot);
 
-  // Calculate elapsed time for Claude invocation
-  const claudeMs = Date.now() - startTime;
+  // Calculate elapsed time for provider invocation
+  const providerMs = Date.now() - invocationStart;
 
-  console.log("\nSupervised session completed");
+  // Prefer provider-native session capture, then provider adapter discovery.
+  const hasProviderSessionId = supervisedResult.sessionId !== "";
+  const discoveredSession = hasProviderSessionId
+    ? null
+    : discoverRecentSessionForProvider(provider, invocationStart, projectRoot);
+  const sessionId = hasProviderSessionId
+    ? supervisedResult.sessionId
+    : (discoveredSession?.sessionId ?? "");
 
-  // Discover the session file created during the interactive session
-  const discoveredSession = discoverRecentSession(startTime);
+  const sessionSuffix =
+    sessionId === "" ? "" : ` (session: ${sessionId.slice(0, 12)}...)`;
+  console.log(
+    `\n${provider} interactive supervised session completed${sessionSuffix}`,
+  );
 
   // Reload subtasks to check completion status
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
   const postRemaining = countRemaining(postIterationSubtasks.subtasks);
-  const didComplete = postRemaining < remaining;
+  const didComplete =
+    postIterationSubtasks.subtasks.find((s) => s.id === currentSubtask.id)
+      ?.done === true;
   const milestone = getMilestoneFromSubtasks(postIterationSubtasks);
   const iterationStatus = didComplete ? "completed" : "retrying";
 
-  // Run post-iteration hook if session was discovered
+  // Run post-iteration hook when a session ID is available
   let hookResult: null | PostIterationResult = null;
-  if (discoveredSession !== null) {
-    hookResult = runPostIterationHook({
-      claudeMs,
+  if (sessionId !== "") {
+    hookResult = await runPostIterationHook({
       commitAfter,
       commitBefore,
+      contextRoot,
       iterationNumber: currentAttempts,
       maxAttempts: maxIterations,
       milestone,
       mode: "supervised",
+      provider,
+      providerMs,
       remaining: postRemaining,
       repoRoot: projectRoot,
-      sessionId: discoveredSession.sessionId,
+      sessionId,
       skipSummary: true,
       status: iterationStatus,
       subtask: currentSubtask,
@@ -508,7 +732,7 @@ function processSupervisedIteration(
         renderIterationEnd({
           attempt: currentAttempts,
           diaryPath,
-          durationMs: claudeMs,
+          durationMs: providerMs,
           filesChanged: entry.filesChanged?.length ?? 0,
           iteration,
           keyFindings: entry.keyFindings,
@@ -530,10 +754,6 @@ function processSupervisedIteration(
 
   return { didComplete, hookResult };
 }
-
-// =============================================================================
-// Interactive Prompts
-// =============================================================================
 
 /**
  * Prompt user to continue to next iteration
@@ -559,6 +779,12 @@ async function promptContinue(): Promise<boolean> {
       output: process.stdout,
     });
 
+    // Handle Ctrl+C explicitly - propagate to process-level handler
+    rl.on("SIGINT", () => {
+      rl.close();
+      process.emit("SIGINT");
+    });
+
     rl.question(
       "Continue to next iteration? [Y/n] (Ctrl+C to abort): ",
       (answer) => {
@@ -575,13 +801,24 @@ async function promptContinue(): Promise<boolean> {
   });
 }
 
+// =============================================================================
+// Interactive Prompts
+// =============================================================================
+
 /**
  * Register signal handlers for graceful shutdown
  *
  * SIGINT (Ctrl+C): exit code 130
  * SIGTERM: exit code 143
+ *
+ * Removes existing handlers first to prevent accumulation
+ * when runBuild() is called multiple times (e.g., cascade mode).
  */
 function registerSignalHandlers(): void {
+  // Remove existing handlers to prevent accumulation
+  process.removeAllListeners("SIGINT");
+  process.removeAllListeners("SIGTERM");
+
   process.on("SIGINT", () => {
     generateSummaryAndExit(130);
   });
@@ -591,14 +828,43 @@ function registerSignalHandlers(): void {
   });
 }
 
-// =============================================================================
-// Build Loop Implementation
-// =============================================================================
+/**
+ * Resolve model selection with priority:
+ * CLI flag > config file
+ */
+function resolveModel(modelOverride?: string): string | undefined {
+  if (modelOverride !== undefined && modelOverride !== "") {
+    return modelOverride;
+  }
+
+  try {
+    const config = loadRalphConfig();
+    return config.model;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve provider selection and exit with a clean error if invalid.
+ */
+async function resolveProviderOrExit(
+  providerOverride: string | undefined,
+): Promise<ProviderType> {
+  try {
+    return await resolveProvider({ cliFlag: providerOverride });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Error: ${message}`));
+    process.exit(1);
+    throw new Error(message);
+  }
+}
 
 /**
  * Run the build loop
  *
- * Iterates through subtasks, invoking Claude for each until all are done
+ * Iterates through subtasks, invoking the selected provider until all are done
  * or max iterations is exceeded for a subtask.
  *
  * @param options - Build configuration options
@@ -614,11 +880,24 @@ async function runBuild(
     interactive: isInteractive,
     maxIterations,
     mode,
+    model: modelOverride,
     quiet: isQuiet,
     skipSummary: shouldSkipSummary,
     subtasksPath,
     validateFirst: shouldValidateFirst,
   } = options;
+
+  // Select provider (CLI flag > env var > default)
+  const provider = await resolveProviderOrExit(options.provider);
+  console.log(chalk.dim(`Using provider: ${provider}`));
+
+  // Select model (CLI flag > config) and validate against provider registry
+  const model = resolveModel(modelOverride);
+  handleModelValidation(model, provider);
+
+  // Reset module-level state for cascade mode / multiple runBuild() calls
+  hasSummaryBeenGenerated = false;
+  summaryContext = null;
 
   // Register signal handlers for graceful summary on interrupt
   registerSignalHandlers();
@@ -628,6 +907,35 @@ async function runBuild(
     console.error(`Subtasks file not found: ${subtasksPath}`);
     console.error(`Create one with: aaa ralph plan subtasks --task <task-id>`);
     process.exit(1);
+  }
+
+  // Fail fast when provider/mode combination is unsupported.
+  await runProviderPreflightOrExit(provider, mode);
+
+  // Pre-build size check: warn if subtasks.json is getting large
+  const sizeCheck = checkSubtasksSize(subtasksPath);
+  if (sizeCheck.exceeded) {
+    const tokensK = Math.round(sizeCheck.tokens / 1000);
+    const limitK = Math.round(SUBTASKS_TOKEN_SOFT_LIMIT / 1000);
+    console.log(
+      chalk.yellow(
+        `\n  subtasks.json is ~${tokensK}K tokens (limit: ${limitK}K)`,
+      ),
+    );
+    console.log(
+      chalk.dim(`  Run: aaa ralph archive subtasks --subtasks ${subtasksPath}`),
+    );
+    if (sizeCheck.hardLimitExceeded) {
+      console.log(
+        chalk.red(
+          `\n  Provider invocation may not be able to update this file via Edit tool.`,
+        ),
+      );
+      console.log(
+        chalk.dim(`  The prompt instructs the agent to use jq instead.`),
+      );
+    }
+    console.log();
   }
 
   // Track retry attempts per subtask ID
@@ -680,32 +988,62 @@ async function runBuild(
       // eslint-disable-next-line no-await-in-loop -- Must await before returning
       await executeHook("onMilestoneComplete", {
         message: `Milestone ${milestone} completed! All ${completedThisRun.length} subtasks done.`,
+        milestone,
       });
 
       // Mark summary as generated to prevent double execution on signal
       hasSummaryBeenGenerated = true;
-      return;
+
+      // Explicit clean exit to ensure process terminates after successful build
+      // This prevents hanging when provider subprocesses have internal Stop events
+      process.exit(0);
     }
 
     // Get the next pending subtask
     const currentSubtask = getNextSubtask(subtasksFile.subtasks);
 
     if (currentSubtask === null) {
-      console.error("Error: Could not determine next subtask");
+      const milestone = getMilestoneFromSubtasks(subtasksFile);
+      const pending = subtasksFile.subtasks.filter((s) => !s.done);
+      const blockedList = pending
+        .map((s) => {
+          const blockedBy = s.blockedBy ?? [];
+          const deps =
+            blockedBy.length === 0
+              ? "(no blockedBy listed)"
+              : blockedBy.join(", ");
+          return `- ${s.id}: blockedBy ${deps}`;
+        })
+        .join("\n");
+
+      console.error("Error: No runnable subtasks found.");
+      console.error(
+        "All remaining subtasks appear blocked by incomplete dependencies.",
+      );
+      if (blockedList !== "") {
+        console.error(`\nPending subtasks:\n${blockedList}`);
+      }
+
+      // eslint-disable-next-line no-await-in-loop -- Must notify before exiting
+      await executeHook("onValidationFail", {
+        message: `No runnable subtasks found for milestone ${milestone}. All remaining subtasks appear blocked.`,
+        milestone,
+      });
+
       process.exit(1);
     }
 
     // Track attempts for this specific subtask
     const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
-    attempts.set(currentSubtask.id, currentAttempts);
 
     // Check if we've exceeded max iterations for this subtask
     // eslint-disable-next-line no-await-in-loop -- Must check before continuing
-    const didExceedMaxIterations = await handleMaxIterationsExceeded(
+    const didExceedMaxIterations = await handleMaxIterationsExceeded({
       currentAttempts,
       maxIterations,
-      currentSubtask.id,
-    );
+      milestone: getMilestoneFromSubtasks(subtasksFile),
+      subtaskId: currentSubtask.id,
+    });
     if (didExceedMaxIterations) {
       process.exit(1);
     }
@@ -724,64 +1062,83 @@ async function runBuild(
     );
 
     // Build the prompt
-    const prompt = buildIterationPrompt(contextRoot, subtasksPath);
+    const prompt = buildIterationPrompt(
+      contextRoot,
+      currentSubtask,
+      subtasksPath,
+    );
 
-    // Invoke Claude based on mode
+    // Invoke selected provider based on mode
     let didComplete = false;
+    let iterationHookResult: null | PostIterationResult = null;
 
     if (mode === "headless") {
-      const headlessResult = processHeadlessIteration({
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      const headlessResult = await processHeadlessIteration({
         contextRoot,
         currentAttempts,
         currentSubtask,
         iteration,
         maxIterations,
+        model,
         prompt,
+        provider,
         remaining,
         shouldSkipSummary,
         subtasksPath,
       });
 
       if (headlessResult === null) {
-        // Claude invocation failed (API error, rate limit, network issue)
-        // Treat as failed attempt - will retry on next iteration
+        // Retryable provider outcome: count the attempt and retry.
+        attempts.set(currentSubtask.id, currentAttempts);
         console.log(
           chalk.yellow(
-            "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
+            `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
           ),
         );
         didComplete = false;
       } else {
-        ({ didComplete } = headlessResult);
+        attempts.set(currentSubtask.id, currentAttempts);
+        ({ didComplete, hookResult: iterationHookResult } = headlessResult);
       }
     } else {
-      const supervisedResult = processSupervisedIteration({
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      const supervisedResult = await processSupervisedIteration({
         contextRoot,
         currentAttempts,
         currentSubtask,
         iteration,
         maxIterations,
+        model,
+        provider,
         remaining,
         subtasksPath,
       });
 
       if (supervisedResult === null) {
-        // Claude invocation failed (API error, rate limit, network issue)
-        // Treat as failed attempt - will retry on next iteration
+        // Retryable provider outcome: count the attempt and retry.
+        attempts.set(currentSubtask.id, currentAttempts);
         console.log(
           chalk.yellow(
-            "\n⚠ Claude invocation failed. Will retry on next iteration.\n",
+            `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
           ),
         );
         didComplete = false;
       } else {
-        ({ didComplete } = supervisedResult);
+        attempts.set(currentSubtask.id, currentAttempts);
+        ({ didComplete, hookResult: iterationHookResult } = supervisedResult);
       }
 
       if (didComplete) {
         console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
       }
     }
+
+    didComplete = enforceSingleSubtaskInvariant({
+      assignedSubtaskId: currentSubtask.id,
+      preSubtasks: subtasksFile.subtasks,
+      subtasksPath,
+    });
 
     // Handle completion tracking
     if (didComplete) {
@@ -791,11 +1148,11 @@ async function runBuild(
         id: currentSubtask.id,
       });
 
-      // Fire onSubtaskComplete hook
+      // Fire onSubtaskComplete hook with metrics from iteration result
       // eslint-disable-next-line no-await-in-loop -- Must await before continuing
-      await executeHook("onSubtaskComplete", {
-        message: `Subtask ${currentSubtask.id} completed: ${currentSubtask.title}`,
-        subtaskId: currentSubtask.id,
+      await fireSubtaskCompleteHook({
+        hookResult: iterationHookResult,
+        subtask: currentSubtask,
       });
     }
 
@@ -812,7 +1169,8 @@ async function runBuild(
     iteration += 1;
 
     // Run calibration every N iterations (if enabled)
-    runPeriodicCalibration({
+    // eslint-disable-next-line no-await-in-loop -- Must await calibration before next iteration
+    await runPeriodicCalibration({
       calibrateEvery,
       contextRoot,
       iteration,
@@ -821,18 +1179,91 @@ async function runBuild(
   }
 }
 
+// =============================================================================
+// Build Loop Implementation
+// =============================================================================
+
 /**
  * Run periodic calibration if enabled and due
  * Placed after runBuild for alphabetical sorting per lint rules.
  */
-function runPeriodicCalibration(options: PeriodicCalibrationOptions): void {
+async function runPeriodicCalibration(
+  options: PeriodicCalibrationOptions,
+): Promise<void> {
   const { calibrateEvery, contextRoot, iteration, subtasksPath } = options;
   if (calibrateEvery > 0 && iteration % calibrateEvery === 0) {
     console.log(
       `\n=== Running calibration (every ${calibrateEvery} iterations) ===\n`,
     );
-    runCalibrate("all", { contextRoot, subtasksPath });
+    await runCalibrate("all", { contextRoot, subtasksPath });
   }
+}
+
+/**
+ * Enforce provider capability gating and binary availability before build starts.
+ */
+async function runProviderPreflightOrExit(
+  provider: ProviderType,
+  mode: "headless" | "supervised",
+): Promise<void> {
+  try {
+    await validateProviderInvocationPreflight(provider, mode);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Error: ${message}`));
+    process.exit(1);
+  }
+}
+
+/**
+ * Start a periodic heartbeat log while waiting for a long-running operation.
+ *
+ * NOTE: Requires an async wait to allow timers to run (won't work with spawnSync).
+ */
+function startHeartbeat(label: string, intervalMs = 30_000): () => void {
+  const startedAt = Date.now();
+  const VERBOSE_INTERVAL_MS = 10 * 60 * 1000;
+  let hasPendingDots = false;
+  let nextVerboseAt = startedAt + VERBOSE_INTERVAL_MS;
+
+  function writeHeartbeat(text: string): void {
+    try {
+      process.stdout.write(text);
+    } catch {
+      // Extremely rare, but avoid crashing the build loop.
+      console.log(text);
+    }
+  }
+
+  const timer = setInterval(() => {
+    writeHeartbeat(".");
+    hasPendingDots = true;
+
+    const now = Date.now();
+    if (now >= nextVerboseAt) {
+      const elapsed = now - startedAt;
+      writeHeartbeat("\n");
+      hasPendingDots = false;
+      console.log(
+        chalk.dim(`[${label}] still running (${formatDuration(elapsed)})...`),
+      );
+      nextVerboseAt = now + VERBOSE_INTERVAL_MS;
+    }
+  }, intervalMs);
+
+  // Avoid keeping the process alive solely because of the heartbeat.
+  const maybeTimer = timer as unknown as { unref?: () => void };
+  if (typeof maybeTimer.unref === "function") {
+    maybeTimer.unref();
+  }
+
+  return () => {
+    clearInterval(timer);
+    if (hasPendingDots) {
+      writeHeartbeat("\n");
+      hasPendingDots = false;
+    }
+  };
 }
 
 // =============================================================================

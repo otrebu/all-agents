@@ -103,6 +103,7 @@ git commit -m "feat(auth): add JWT token signing" -m "Implements RS256 algorithm
 - Generate from diff, not user's words
 - ❗ NEVER add AI signatures
 - Atomic: one logical change per commit
+- The `cc-session-id` trailer is automatically added by the prepare-commit-msg hook
 
 ### 6. Repeat
 

@@ -3,7 +3,14 @@
  */
 import type { Mock } from "bun:test";
 
-import { DEFAULT_CONFIG, loadRalphConfig } from "@tools/commands/ralph/config";
+import {
+  DEFAULT_CONFIG,
+  getExistingTaskReferences,
+  getMilestonesBasePath,
+  listAvailableMilestones,
+  loadRalphConfig,
+  resolveMilestonePath,
+} from "@tools/commands/ralph/config";
 import * as unifiedConfig from "@tools/lib/config/loader";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -31,6 +38,9 @@ describe("loadRalphConfig", () => {
             onSubtaskComplete: ["log"],
             onValidationFail: ["log"],
           },
+          lightweightModel: "claude-3-5-haiku-latest",
+          model: "claude-sonnet-4",
+          provider: "claude",
           selfImprovement: { mode: "autofix" },
         },
         research: {},
@@ -42,6 +52,9 @@ describe("loadRalphConfig", () => {
       expect(loadAaaConfigSpy).toHaveBeenCalled();
       expect(config.hooks).toBeDefined();
       expect(config.hooks?.onMaxIterationsExceeded).toEqual(["log", "notify"]);
+      expect(config.provider).toBe("claude");
+      expect(config.model).toBe("claude-sonnet-4");
+      expect(config.lightweightModel).toBe("claude-3-5-haiku-latest");
       expect(config.selfImprovement?.mode).toBe("autofix");
     });
 
@@ -57,6 +70,9 @@ describe("loadRalphConfig", () => {
       const config = loadRalphConfig();
 
       expect(config.hooks).toBeDefined();
+      expect(config.provider).toBeUndefined();
+      expect(config.model).toBeUndefined();
+      expect(config.lightweightModel).toBeUndefined();
       expect(config.selfImprovement?.mode).toBe("suggest");
     });
 
@@ -180,5 +196,198 @@ describe("loadRalphConfig", () => {
         "Failed to parse ralph.config.json",
       );
     });
+  });
+});
+
+describe("resolveMilestonePath", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(tmpdir(), `milestone-test-${Date.now()}`);
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("returns absolute path unchanged when it exists", () => {
+    // Use the temporary directory as an existing absolute path
+    const result = resolveMilestonePath(temporaryDirectory);
+    expect(result).toBe(temporaryDirectory);
+  });
+
+  test("throws for absolute path that does not exist", () => {
+    const nonexistentPath = join(temporaryDirectory, "nonexistent-milestone");
+    expect(() => resolveMilestonePath(nonexistentPath)).toThrow(
+      "Milestone path not found",
+    );
+  });
+
+  test("returns relative path unchanged when it exists", () => {
+    // Use a known existing relative path (the milestones base itself)
+    const basePath = getMilestonesBasePath();
+    const result = resolveMilestonePath(basePath);
+    expect(result).toBe(basePath);
+  });
+
+  test("resolves milestone name to full path", () => {
+    // Use an existing milestone from the real project
+    const basePath = getMilestonesBasePath();
+    const result = resolveMilestonePath("001-ralph");
+    expect(result).toBe(join(basePath, "001-ralph"));
+  });
+
+  test("resolves milestone name with emoji to full path", () => {
+    // Test milestone with emoji (002-ralph-💪)
+    const basePath = getMilestonesBasePath();
+    const result = resolveMilestonePath("002-ralph-💪");
+    expect(result).toBe(join(basePath, "002-ralph-💪"));
+  });
+
+  test("throws for nonexistent milestone name with available list", () => {
+    expect(() => resolveMilestonePath("nonexistent-milestone")).toThrow(
+      /Available milestones/,
+    );
+  });
+
+  test("error message includes actual milestone names", () => {
+    try {
+      resolveMilestonePath("nonexistent-milestone");
+      expect(true).toBe(false);
+    } catch (error) {
+      const { message } = error as Error;
+      expect(message).toContain("Milestone not found: nonexistent-milestone");
+      expect(message).toContain("Available milestones:");
+      expect(message).toMatch(/001-ralph|002-ralph|003-ralph/);
+    }
+  });
+});
+
+describe("listAvailableMilestones", () => {
+  test("returns array of milestone names", () => {
+    const milestones = listAvailableMilestones();
+    expect(Array.isArray(milestones)).toBe(true);
+    expect(milestones.length).toBeGreaterThan(0);
+  });
+
+  test("excludes directories starting with underscore", () => {
+    const milestones = listAvailableMilestones();
+    const hasUnderscore = milestones.some((name) => name.startsWith("_"));
+    expect(hasUnderscore).toBe(false);
+  });
+
+  test("returns sorted milestone names", () => {
+    const milestones = listAvailableMilestones();
+    const sorted = [...milestones].sort();
+    expect(milestones).toEqual(sorted);
+  });
+
+  test("includes known milestones", () => {
+    const milestones = listAvailableMilestones();
+    // These should exist in the real project
+    expect(milestones).toContain("001-ralph");
+    expect(milestones).toContain("003-ralph-workflow");
+  });
+});
+
+describe("getExistingTaskReferences", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(tmpdir(), `task-refs-test-${Date.now()}`);
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("returns empty Set when file does not exist", () => {
+    const nonexistentPath = join(temporaryDirectory, "nonexistent.json");
+    const result = getExistingTaskReferences(nonexistentPath);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+  });
+
+  test("returns empty Set on invalid JSON", () => {
+    const invalidPath = join(temporaryDirectory, "invalid.json");
+    writeFileSync(invalidPath, "not valid json {{{");
+    const result = getExistingTaskReferences(invalidPath);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+  });
+
+  test("returns empty Set when subtasks is not an array", () => {
+    const invalidPath = join(temporaryDirectory, "invalid-format.json");
+    writeFileSync(invalidPath, JSON.stringify({ subtasks: "not an array" }));
+    const result = getExistingTaskReferences(invalidPath);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+  });
+
+  test("returns Set of taskRefs from pending subtasks only", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({
+        subtasks: [
+          { done: false, id: "SUB-001", taskRef: "TASK-001" },
+          { done: true, id: "SUB-002", taskRef: "TASK-002" },
+          { done: false, id: "SUB-003", taskRef: "TASK-001" },
+          { done: false, id: "SUB-004", taskRef: "TASK-003" },
+        ],
+      }),
+    );
+    const result = getExistingTaskReferences(subtasksPath);
+    expect(result.size).toBe(2);
+    expect(result.has("TASK-001")).toBe(true);
+    expect(result.has("TASK-003")).toBe(true);
+    expect(result.has("TASK-002")).toBe(false);
+  });
+
+  test("returns unique taskRefs (dedupes)", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({
+        subtasks: [
+          { done: false, id: "SUB-001", taskRef: "TASK-001" },
+          { done: false, id: "SUB-002", taskRef: "TASK-001" },
+          { done: false, id: "SUB-003", taskRef: "TASK-001" },
+        ],
+      }),
+    );
+    const result = getExistingTaskReferences(subtasksPath);
+    expect(result.size).toBe(1);
+    expect(result.has("TASK-001")).toBe(true);
+  });
+
+  test("handles empty subtasks array", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(subtasksPath, JSON.stringify({ subtasks: [] }));
+    const result = getExistingTaskReferences(subtasksPath);
+    expect(result).toBeInstanceOf(Set);
+    expect(result.size).toBe(0);
+  });
+
+  test("handles subtasks without taskRef field", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({
+        subtasks: [
+          { done: false, id: "SUB-001" },
+          { done: false, id: "SUB-002", taskRef: "TASK-001" },
+        ],
+      }),
+    );
+    const result = getExistingTaskReferences(subtasksPath);
+    expect(result.size).toBe(1);
+    expect(result.has("TASK-001")).toBe(true);
   });
 });

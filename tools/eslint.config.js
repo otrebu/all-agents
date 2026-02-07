@@ -12,7 +12,7 @@ export default [
     },
   },
   {
-    files: ["tests/**/*.ts"],
+    files: ["tests/**/*.ts", "src/**/*.test.ts"],
     settings: {
       // Tell eslint-plugin-import that bun:test and ajv subpaths are valid modules
       "import/core-modules": ["bun:test", "ajv/dist/2020"],

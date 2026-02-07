@@ -1,29 +1,63 @@
 import type {
   AaaConfig,
+  ApprovalsConfig,
   NotifySection,
   RalphSection,
   ResearchSection,
   ReviewSection,
+  TimeoutsConfig,
 } from "./types";
 
 /**
  * Default notify section configuration
  */
 export const DEFAULT_NOTIFY: NotifySection = {
-  defaultPriority: "default",
+  defaultPriority: "high",
   defaultTopic: "",
   enabled: true,
-  events: {},
+  events: {
+    "claude:permissionPrompt": { priority: "max", tags: ["warning"] },
+    "claude:stop": { enabled: false },
+    "ralph:maxIterationsExceeded": {
+      priority: "max",
+      tags: ["rotating_light"],
+    },
+    "ralph:milestoneComplete": { priority: "high", tags: ["tada"] },
+    "ralph:subtaskComplete": { priority: "default" },
+    "ralph:validationFail": { priority: "high", tags: ["warning"] },
+  },
   quietHours: { enabled: false, endHour: 8, startHour: 22 },
   server: "https://ntfy.sh",
-  title: "aaa",
+  title: "aaa notify",
   username: "admin",
+};
+
+/**
+ * Default approvals configuration
+ * Gate fields are intentionally omitted - they default to undefined
+ * and runtime applies "suggest" fallback via ?? operator
+ */
+export const DEFAULT_APPROVALS: ApprovalsConfig = { suggestWaitSeconds: 180 };
+
+/**
+ * Default timeout configuration for Ralph build processes
+ *
+ * Two-layer detection:
+ * - stallMinutes: Catches stuck processes fast (no stderr output for 10min)
+ * - hardMinutes: Safety net for edge cases (60min total elapsed)
+ * - graceSeconds: Time to wait after SIGTERM before SIGKILL (5s)
+ */
+export const DEFAULT_TIMEOUTS: TimeoutsConfig = {
+  graceSeconds: 5,
+  hardMinutes: 60,
+  stallMinutes: 10,
 };
 
 /**
  * Default ralph section configuration
  */
 export const DEFAULT_RALPH: RalphSection = {
+  approvals: DEFAULT_APPROVALS,
   build: { calibrateEvery: 0, maxIterations: 3 },
   hooks: {
     onIterationComplete: ["log"],
@@ -33,6 +67,7 @@ export const DEFAULT_RALPH: RalphSection = {
     onValidationFail: ["log", "notify"],
   },
   selfImprovement: { mode: "suggest" },
+  timeouts: DEFAULT_TIMEOUTS,
 };
 
 /**

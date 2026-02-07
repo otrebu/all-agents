@@ -20,10 +20,12 @@
 // Defaults
 export {
   DEFAULT_AAA_CONFIG,
+  DEFAULT_APPROVALS,
   DEFAULT_NOTIFY,
   DEFAULT_RALPH,
   DEFAULT_RESEARCH,
   DEFAULT_REVIEW,
+  DEFAULT_TIMEOUTS,
 } from "./defaults";
 
 // Environment variables
@@ -36,6 +38,12 @@ export { CONFIG_FILENAME, loadAaaConfig } from "./loader";
 export {
   type AaaConfig,
   aaaConfigSchema,
+  type ApprovalGate,
+  approvalGates,
+  type ApprovalMode,
+  approvalModeSchema,
+  type ApprovalsConfig,
+  approvalsConfigSchema,
   type BuildConfig,
   buildConfigSchema,
   type EventConfig,
@@ -65,4 +73,6 @@ export {
   selfImprovementConfigSchema,
   type SelfImprovementMode,
   selfImprovementModeSchema,
+  type TimeoutsConfig,
+  timeoutsConfigSchema,
 } from "./types";

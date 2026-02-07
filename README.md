@@ -93,6 +93,8 @@ aaa ralph build                    # Run iteration loop
 aaa ralph build -i                 # Pause between iterations
 aaa ralph build --headless         # Headless mode with JSON capture
 aaa ralph build --quiet            # Suppress terminal summary (still writes file)
+aaa ralph build --cascade calibrate # Chain build → calibrate
+aaa ralph plan subtasks --milestone 003-feature --cascade build  # Chain subtasks → build
 aaa ralph status --subtasks        # Show progress
 aaa ralph review subtasks          # Review before building
 aaa ralph review tasks --story     # Review tasks for a story
@@ -291,7 +293,7 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Skills</strong> (16 skills)</summary>
+<summary><strong>Skills</strong> (17 skills)</summary>
 
 | Skill                  | Description                                    | Stability    | Created    | DRY | CLI Sibling | Action |
 | :--------------------- | :--------------------------------------------- | :----------- | :--------- | :-- | :---------- | :----- |
@@ -308,6 +310,7 @@ Claude Code extends with three mechanisms:
 | `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental | 2026-01-23 | ✓   | `aaa ralph plan` | FIX: (1) add argument-hint frontmatter (2) clarify --task mode in docs (3) add --1-to-1 flag for direct tasks→subtasks mapping (no decomposition) |
 | `ralph-review`         | Review auto-generated planning artifacts       | experimental | 2026-01-23 | ✓   | -           | FIX: Coverage gaps — Tasks: QR+GA+auto all missing. Subtasks: GA+auto missing. Vision: all missing (low priority). CLI: expose --headless flag (auto workflows exist but not accessible). Consolidate duplicate gap workflows (planning/ vs review/). |
 | `ralph-status`         | Display build progress and stats               | experimental | 2026-01-23 | ✓   | `aaa ralph status` | ✓ KEEP |
+| `setup-lint-staged`    | Set up lint-staged for optimized pre-commit validation | experimental | 2026-02-04 | ✓   | -           | - |
 | `story-create`         | Create story files, prompt for linked tasks    | beta         | 2026-01-06 | ✓   | `aaa story create` | ✓ KEEP (add note: "for guided planning use /ralph-plan stories") |
 | `task-create`          | Create task files                              | beta         | 2025-12-03 | ✓   | `aaa task create` | FIX: document --dir flag in skill workflow for milestone-scoped tasks |
 | `walkthrough`          | Present items one at a time interactively      | experimental | 2026-01-26 | ✓   | -           | ✓ KEEP |
@@ -459,7 +462,7 @@ Create `aaa.config.json` in your project root for unified configuration across a
       "ralph:maxIterationsExceeded": { "topic": "critical", "priority": "max", "tags": ["warning", "sos"] },
       "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
       "ralph:subtaskComplete": { "priority": "default" },
-      "claude:stop": { "topic": "claude", "priority": "default" },
+      "claude:stop": { "enabled": false },
       "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
     }
   },
@@ -505,6 +508,28 @@ Create `aaa.config.json` in your project root for unified configuration across a
 | `review`   | Code review auto-fix threshold and diary location  |
 | `research` | Research output directory and result limits        |
 | `debug`    | Enable debug logging across all commands           |
+
+**Event config options:**
+
+Each event in `notify.events` supports these fields:
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `enabled` | boolean | Set to `false` to disable the event entirely |
+| `topic` | string | Override the default ntfy topic |
+| `priority` | string | Notification priority: `min`, `low`, `default`, `high`, `max` |
+| `tags` | array | Emoji tags for the notification (e.g., `["tada", "warning"]`) |
+
+Example: Disable `claude:stop` notifications while keeping others:
+```json
+{
+  "notify": {
+    "events": {
+      "claude:stop": { "enabled": false }
+    }
+  }
+}
+```
 
 **Legacy config migration:** If you have `ralph.config.json` or `~/.config/aaa/notify.json`, the CLI will read them with a deprecation warning. Migrate to `aaa.config.json` for unified configuration.
 

@@ -3,7 +3,7 @@
  *
  * This module provides:
  * - loadNotifyConfig() - Load notify config from unified aaa.config.json
- * - saveNotifyConfig() - Write config to aaa.config.json (or legacy path for testing)
+ * - saveNotifyConfig() - Write config to aaa.config.json
  * - isInQuietHours() - Check if current time is within quiet hours
  *
  * Primary config: aaa.config.json in project root
@@ -12,6 +12,7 @@
 import {
   CONFIG_FILENAME,
   DEFAULT_NOTIFY,
+  type EventConfig,
   loadAaaConfig,
   type NotifySection,
 } from "@tools/lib/config";
@@ -40,6 +41,19 @@ const DEFAULT_NOTIFY_CONFIG: NotifyConfig = {
   title: "aaa notify",
   topic: "",
   username: "admin",
+};
+
+/**
+ * Default event configurations for notify init
+ * These are written to aaa.config.json when initializing
+ */
+const DEFAULT_EVENTS: Record<string, EventConfig> = {
+  "claude:permissionPrompt": { priority: "max", tags: ["warning"] },
+  "claude:stop": { enabled: false },
+  "ralph:maxIterationsExceeded": { priority: "max", tags: ["rotating_light"] },
+  "ralph:milestoneComplete": { priority: "high", tags: ["tada"] },
+  "ralph:subtaskComplete": { priority: "default" },
+  "ralph:validationFail": { priority: "high", tags: ["warning"] },
 };
 
 // =============================================================================
@@ -108,64 +122,15 @@ function isInQuietHours(
  * 1. aaa.config.json in project root
  * 2. Default configuration
  *
- * @param configPath - Optional override path (for testing only). When provided,
- *                     bypasses the unified loader and reads directly from the file.
- *                     This is kept for backward compatibility with existing tests.
  * @returns NotifyConfig with all fields populated
  */
-function loadNotifyConfig(configPath?: string): NotifyConfig {
-  // If a specific configPath is provided (testing scenario), use legacy loading
-  // This maintains backward compatibility with existing tests that pass explicit paths
-  if (configPath !== undefined) {
-    return loadNotifyConfigLegacy(configPath);
-  }
-
+function loadNotifyConfig(): NotifyConfig {
   // Use unified config loader and extract notify section
   const aaaConfig = loadAaaConfig();
   const notify = aaaConfig.notify ?? DEFAULT_NOTIFY;
 
   // Map the unified NotifySection to the NotifyConfig interface
   return mapNotifySectionToConfig(notify);
-}
-
-/**
- * Legacy config loading for backward compatibility with tests
- *
- * @internal
- * @param configPath - Path to legacy notify.json
- * @returns Parsed NotifyConfig object
- */
-function loadNotifyConfigLegacy(configPath: string): NotifyConfig {
-  if (!existsSync(configPath)) {
-    return { ...DEFAULT_NOTIFY_CONFIG };
-  }
-
-  try {
-    const content = readFileSync(configPath, "utf8");
-    const parsed = JSON.parse(content) as Partial<NotifyConfig>;
-
-    // Merge quietHours with defaults
-    const parsedQuietHours = parsed.quietHours;
-    const quietHours = parsedQuietHours
-      ? { ...DEFAULT_NOTIFY_CONFIG.quietHours, ...parsedQuietHours }
-      : DEFAULT_NOTIFY_CONFIG.quietHours;
-
-    // Merge with defaults for any missing fields
-    const merged = { ...DEFAULT_NOTIFY_CONFIG, ...parsed, quietHours };
-
-    // Validate with Zod
-    const result = notifyConfigSchema.safeParse(merged);
-    if (!result.success) {
-      throw new Error(`Invalid config: ${result.error.message}`);
-    }
-
-    return result.data;
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      throw new TypeError(`Invalid JSON in ${configPath}: ${error.message}`);
-    }
-    throw error;
-  }
 }
 
 /**
@@ -190,48 +155,19 @@ function mapNotifySectionToConfig(notify: NotifySection): NotifyConfig {
 }
 
 /**
- * Save notify configuration to legacy path (for testing)
- *
- * @internal
- */
-function saveLegacyNotifyConfig(
-  config: NotifyConfig,
-  configPath: string,
-): void {
-  // Create parent directory if needed
-  const dir = dirname(configPath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-
-  // Write atomically with formatted JSON
-  const content = JSON.stringify(config, null, 2);
-  writeFileSync(configPath, `${content}\n`, "utf8");
-}
-
-/**
  * Save notify configuration to aaa.config.json
  *
  * Writes the notify section to the unified config file (aaa.config.json) in the
- * project root. For backward compatibility with tests, an explicit configPath can
- * be provided which writes to the legacy format.
+ * project root.
  *
  * @param config - Configuration to save
- * @param configPath - Optional override path (for testing). When provided, writes
- *                     to that path in legacy format instead of unified config.
  * @throws Error if write fails
  */
-function saveNotifyConfig(config: NotifyConfig, configPath?: string): void {
+function saveNotifyConfig(config: NotifyConfig): void {
   // Validate before saving
   const result = notifyConfigSchema.safeParse(config);
   if (!result.success) {
     throw new Error(`Invalid config: ${result.error.message}`);
-  }
-
-  // If explicit path provided (testing), use legacy format
-  if (configPath !== undefined) {
-    saveLegacyNotifyConfig(config, configPath);
-    return;
   }
 
   // Write to unified aaa.config.json
@@ -274,14 +210,76 @@ function saveNotifyConfig(config: NotifyConfig, configPath?: string): void {
   writeFileSync(unifiedPath, `${content}\n`, "utf8");
 }
 
+/**
+ * Save notify configuration with events to aaa.config.json
+ *
+ * Similar to saveNotifyConfig but also writes the events section.
+ * Used by the init command to set up default event routing.
+ *
+ * @param config - Configuration to save
+ * @param events - Event configurations to include
+ * @throws Error if write fails
+ */
+function saveNotifyConfigWithEvents(
+  config: NotifyConfig,
+  events: Record<string, EventConfig>,
+): void {
+  // Validate before saving
+  const result = notifyConfigSchema.safeParse(config);
+  if (!result.success) {
+    throw new Error(`Invalid config: ${result.error.message}`);
+  }
+
+  // Write to unified aaa.config.json
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const unifiedPath = join(projectRoot, CONFIG_FILENAME);
+
+  // Load existing config to preserve other sections
+  let existingConfig: Record<string, unknown> = {};
+  if (existsSync(unifiedPath)) {
+    try {
+      const content = readFileSync(unifiedPath, "utf8");
+      existingConfig = JSON.parse(content) as Record<string, unknown>;
+    } catch {
+      // If file exists but can't be parsed, start fresh
+    }
+  }
+
+  // Map NotifyConfig to NotifySection format with events
+  const notifySection: NotifySection = {
+    defaultPriority: config.defaultPriority,
+    defaultTopic: config.topic,
+    enabled: config.enabled,
+    events,
+    quietHours: config.quietHours,
+    server: config.server,
+    title: config.title,
+  };
+
+  // Merge notify section into existing config
+  existingConfig.notify = notifySection;
+
+  // Create parent directory if needed
+  const dir = dirname(unifiedPath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  // Write atomically with formatted JSON
+  const content = JSON.stringify(existingConfig, null, 2);
+  writeFileSync(unifiedPath, `${content}\n`, "utf8");
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
 
 export {
+  DEFAULT_EVENTS,
   DEFAULT_NOTIFY_CONFIG,
   getConfigPath,
   isInQuietHours,
   loadNotifyConfig,
   saveNotifyConfig,
+  saveNotifyConfigWithEvents,
 };

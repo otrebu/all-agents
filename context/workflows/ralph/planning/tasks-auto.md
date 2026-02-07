@@ -278,41 +278,9 @@ Technical details to include:
 - Multiple unrelated outcomes
 - Vague steps like "implement feature"
 
-### UI Testing Guidance
+## Testing & Verification
 
-When generating tasks for **frontend-related work** (React components, page layouts, user flows), include UI testing considerations:
-
-#### When to Include Browser Testing
-
-| Change Type | Test Approach |
-|-------------|---------------|
-| API/backend | Unit/integration tests |
-| CLI command | E2E with process execution |
-| React component | Unit tests + browser visual verification |
-| Page layout/styling | Browser visual verification |
-| Form validation | Unit tests + browser E2E |
-| User flow/interaction | Browser E2E with Playwright MCP |
-
-#### Tools for Browser Testing
-
-1. **agent-browser** - For visual verification during development. Claude can visually inspect rendered pages to verify layout, styling, and visual elements.
-
-2. **Playwright MCP on Chrome** - For automated browser E2E tests in Claude Code. Supports page navigation, interactions, assertions, and screenshot capture.
-
-#### Test Plan Section for Frontend Tasks
-
-For frontend tasks, the Test Plan should explicitly include:
-- Unit tests for component logic
-- Visual verification steps using agent-browser
-- E2E browser tests if user flows are involved
-
-**Example:**
-```markdown
-### Test Plan
-- [ ] Unit tests for form validation logic in `components/__tests__/LoginForm.test.tsx`
-- [ ] Visual verification: Use agent-browser to confirm form renders correctly
-- [ ] E2E test: Playwright MCP to test login flow end-to-end
-```
+@context/workflows/ralph/planning/components/testing-guidance.md
 
 ## Codebase Integration
 

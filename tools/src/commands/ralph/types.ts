@@ -11,6 +11,8 @@
  * @see docs/planning/schemas/iteration-diary.schema.json
  */
 
+import type { ProviderType } from "./providers/types";
+
 // =============================================================================
 // Build State Types
 // =============================================================================
@@ -27,14 +29,68 @@ interface BuildOptions {
   maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
+  /** Model to use (validated against registry before provider invocation) */
+  model?: string;
+  /** AI provider to use (default: "claude") */
+  provider?: ProviderType;
   /** Suppress terminal summary output */
   quiet: boolean;
-  /** Skip Haiku summary generation in headless mode to reduce latency and cost */
+  /** Skip lightweight summary generation in headless mode to reduce latency and cost */
   skipSummary: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
   /** Run pre-build validation before starting */
   validateFirst: boolean;
+}
+
+// =============================================================================
+// Cascade Types
+// =============================================================================
+
+/**
+ * Definition of a cascade level
+ *
+ * Represents a single level in the Ralph cascade hierarchy
+ * (roadmap → stories → tasks → subtasks → build → calibrate)
+ */
+interface CascadeLevel {
+  /** Human-readable name of the level (e.g., 'stories', 'build') */
+  name: string;
+  /** Numeric order in the cascade sequence (lower = earlier) */
+  order: number;
+}
+
+/**
+ * Options for cascade execution
+ *
+ * Controls how Ralph cascades through planning levels
+ * (roadmap → stories → tasks → subtasks → build → calibrate)
+ */
+interface CascadeOptions {
+  /** Interval for running calibration (e.g., every N subtasks completed) */
+  calibrateEvery: number;
+  /** Skip confirmation prompts between cascade levels */
+  force: boolean;
+  /** Run without TTY prompts (for CI/automation) */
+  headless: boolean;
+  /** Target milestone path or name for cascade scope */
+  milestone: string;
+}
+
+/**
+ * Result of a cascade execution
+ *
+ * Tracks which levels completed and where the cascade stopped
+ */
+interface CascadeResult {
+  /** Levels that completed successfully (e.g., ['stories', 'tasks']) */
+  completedLevels: Array<string>;
+  /** Error message if cascade failed, null on success */
+  error: null | string;
+  /** Level where cascade stopped (on error or user abort), null if completed */
+  stoppedAt: null | string;
+  /** Whether the cascade completed all requested levels */
+  success: boolean;
 }
 
 // =============================================================================
@@ -97,7 +153,7 @@ interface IterationDiaryEntry {
   milestone?: string;
   /** Execution mode: 'headless' or 'supervised' */
   mode?: "headless" | "supervised";
-  /** Claude Code session ID */
+  /** Provider session ID */
   sessionId: string;
   /** Outcome of this iteration */
   status: IterationStatus;
@@ -140,13 +196,15 @@ type IterationStatus = "completed" | "failed" | "retrying";
  * Tracks where time is spent during a Ralph build iteration
  */
 interface IterationTiming {
-  /** Time spent in Claude Code invocation (ms) */
-  claudeMs: number;
+  /** Legacy field from older diary entries (pre provider-neutral naming) */
+  claudeMs?: number;
   /** Time spent in post-iteration hook (ms) */
   hookMs: number;
   /** Time spent collecting metrics (ms) */
   metricsMs: number;
-  /** Time spent generating Haiku summary (ms) */
+  /** Time spent in provider invocation (ms) */
+  providerMs?: number;
+  /** Time spent generating lightweight summary (ms) */
   summaryMs: number;
 }
 
@@ -177,6 +235,12 @@ interface PostIterationHookConfig extends HookConfig {
 interface RalphConfig {
   /** Hook configuration */
   hooks?: HooksConfig;
+  /** Lightweight model for summary tasks (provider-specific model string) */
+  lightweightModel?: string;
+  /** Default model override */
+  model?: string;
+  /** Default provider selection */
+  provider?: ProviderType;
   /** Self-improvement configuration */
   selfImprovement?: SelfImprovementConfig;
 }
@@ -196,6 +260,8 @@ interface SelfImprovementConfig {
 interface Subtask {
   /** Plain English descriptions of how to verify the subtask is complete */
   acceptanceCriteria: Array<string>;
+  /** IDs of subtasks that must complete before this one */
+  blockedBy?: Array<string>;
   /** Git commit hash that completed this subtask */
   commitHash?: string;
   /** Git commit message - helps calibration trace intent */
@@ -210,7 +276,7 @@ interface Subtask {
   filesToRead: Array<string>;
   /** Unique subtask identifier (e.g., 'SUB-001') */
   id: string;
-  /** Claude Code session ID that completed this subtask */
+  /** Provider session ID that completed this subtask */
   sessionId?: string;
   /** Reference to grandparent story if task has one */
   storyRef?: null | string;
@@ -240,6 +306,8 @@ interface SubtaskMetadata {
  * Root structure of subtasks.json
  */
 interface SubtasksFile {
+  /** JSON Schema reference for validation */
+  $schema?: string;
   /** Optional metadata about this subtasks queue */
   metadata?: SubtaskMetadata;
   /** The queue of subtasks for autonomous agents to process */
@@ -248,7 +316,7 @@ interface SubtasksFile {
 
 /**
  * Token usage for an iteration
- * Tracks token consumption from Claude Code session
+ * Tracks token consumption from provider session telemetry
  */
 interface TokenUsage {
   /** Final context window size (input + cached tokens at last API call) */
@@ -260,6 +328,65 @@ interface TokenUsage {
 // =============================================================================
 // Utility Functions
 // =============================================================================
+
+/**
+ * Resolve provider invocation timing from either new or legacy timing fields.
+ */
+function getProviderTimingMs(
+  timing: IterationTiming | undefined,
+): number | undefined {
+  if (timing === undefined) {
+    return undefined;
+  }
+
+  if (typeof timing.providerMs === "number") {
+    return timing.providerMs;
+  }
+
+  if (typeof timing.claudeMs === "number") {
+    return timing.claudeMs;
+  }
+
+  return undefined;
+}
+
+/**
+ * Normalize diary payloads for backward compatibility with legacy logs.
+ */
+function normalizeIterationDiaryEntry(
+  entry: IterationDiaryEntry,
+): IterationDiaryEntry {
+  const normalizedStatus = normalizeStatus(entry.status);
+  const normalizedTiming = normalizeIterationTiming(entry.timing);
+
+  if (normalizedStatus === entry.status && normalizedTiming === entry.timing) {
+    return entry;
+  }
+
+  return { ...entry, status: normalizedStatus, timing: normalizedTiming };
+}
+
+/**
+ * Normalize timing payloads so legacy `claudeMs` logs expose `providerMs` too.
+ */
+function normalizeIterationTiming(
+  timing: IterationTiming | undefined,
+): IterationTiming | undefined {
+  if (timing === undefined) {
+    return undefined;
+  }
+
+  const providerMs = getProviderTimingMs(timing);
+  if (providerMs === undefined) {
+    return timing;
+  }
+
+  if (timing.providerMs === providerMs) {
+    return timing;
+  }
+
+  return { ...timing, providerMs };
+}
 
 /**
  * Normalize status values for backward compatibility
@@ -299,12 +426,18 @@ function normalizeStatus(raw: string): IterationStatus {
 
 export {
   type BuildOptions,
+  type CascadeLevel,
+  type CascadeOptions,
+  type CascadeResult,
+  getProviderTimingMs,
   type HookAction,
   type HookConfig,
   type HooksConfig,
   type IterationDiaryEntry,
   type IterationStatus,
   type IterationTiming,
+  normalizeIterationDiaryEntry,
+  normalizeIterationTiming,
   normalizeStatus,
   type PostIterationHookConfig,
   type RalphConfig,
