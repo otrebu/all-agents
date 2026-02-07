@@ -37,7 +37,8 @@ interface ModelValidationSuccess {
 // Constants
 // =============================================================================
 
-const REFRESH_HINT = "Run 'aaa ralph refresh-models' to discover new models.";
+const REFRESH_HINT =
+  "Run 'aaa ralph models' to see available models. Use 'aaa ralph refresh-models' to update discovered models.";
 
 // =============================================================================
 // Registry Functions
@@ -50,9 +51,9 @@ function getAllModels(): Array<ModelInfo> {
   return [...STATIC_MODELS, ...uniqueDynamic];
 }
 
-/** Look up a model by ID */
+/** Look up a model by ID or cliFormat */
 function getModelById(id: string): ModelInfo | undefined {
-  return getAllModels().find((m) => m.id === id);
+  return getAllModels().find((m) => m.id === id || m.cliFormat === id);
 }
 
 /** Sorted unique model ID list for tab completion */
@@ -88,8 +89,7 @@ function validateModelForProvider(
       .slice(0, 5);
     throw new Error(
       `Unknown model '${modelId}' for provider '${provider}'\n` +
-        `Did you mean: ${suggestions.join(", ")}?\n` +
-        `Run 'aaa ralph refresh-models' to discover new models.`,
+        `Did you mean: ${suggestions.join(", ")}?\n${REFRESH_HINT}`,
     );
   }
 
@@ -100,8 +100,7 @@ function validateModelForProvider(
     throw new Error(
       `Model '${modelId}' belongs to provider '${model.provider}', ` +
         `not '${provider}'\n` +
-        `Did you mean: ${providerModels.join(", ")}?\n` +
-        `Run 'aaa ralph refresh-models' to discover new models.`,
+        `Did you mean: ${providerModels.join(", ")}?\n${REFRESH_HINT}`,
     );
   }
 

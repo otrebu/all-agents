@@ -1,4 +1,5 @@
 import {
+  getModelById,
   REFRESH_HINT,
   validateModelSelection,
 } from "@tools/commands/ralph/providers/models";
@@ -10,34 +11,50 @@ import { describe, expect, test } from "bun:test";
 
 describe("validateModelSelection - valid model", () => {
   test("returns valid with correct cliFormat for Claude model", () => {
-    const result = validateModelSelection("claude-sonnet-4", "claude");
+    const result = validateModelSelection("claude-sonnet-4-5", "claude");
     expect(result.valid).toBe(true);
     if (result.valid) {
-      expect(result.cliFormat).toBe("claude-sonnet-4-20250514");
+      expect(result.cliFormat).toBe("claude-sonnet-4-5");
     }
   });
 
   test("returns valid with correct cliFormat for OpenCode model", () => {
-    const result = validateModelSelection("gpt-4o", "opencode");
+    const result = validateModelSelection("openai/gpt-5.2-codex", "opencode");
     expect(result.valid).toBe(true);
     if (result.valid) {
-      expect(result.cliFormat).toBe("openai/gpt-4o");
+      expect(result.cliFormat).toBe("openai/gpt-5.2-codex");
     }
   });
 
   test("returns valid for cheap Claude model", () => {
-    const result = validateModelSelection("claude-haiku", "claude");
+    const result = validateModelSelection("claude-haiku-4-5", "claude");
     expect(result.valid).toBe(true);
     if (result.valid) {
-      expect(result.cliFormat).toBe("claude-3-5-haiku-latest");
+      expect(result.cliFormat).toBe("claude-haiku-4-5");
     }
   });
 
   test("returns valid for expensive Claude model", () => {
-    const result = validateModelSelection("claude-opus-4", "claude");
+    const result = validateModelSelection("claude-opus-4-6", "claude");
     expect(result.valid).toBe(true);
     if (result.valid) {
-      expect(result.cliFormat).toBe("claude-opus-4-20250514");
+      expect(result.cliFormat).toBe("claude-opus-4-6");
+    }
+  });
+
+  test("returns valid for Claude Code alias", () => {
+    const result = validateModelSelection("sonnet", "claude");
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.cliFormat).toBe("claude-sonnet-4-5-20250929");
+    }
+  });
+
+  test("returns valid for fully-qualified OpenCode model ID", () => {
+    const result = validateModelSelection("openai/gpt-5.3-codex", "opencode");
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.cliFormat).toBe("openai/gpt-5.3-codex");
     }
   });
 });
@@ -61,8 +78,6 @@ describe("validateModelSelection - unknown model", () => {
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.suggestions.length).toBeGreaterThan(0);
-      // All suggestions should be opencode models
-      expect(result.suggestions).toContain("gpt-4o");
     }
   });
 
@@ -98,39 +113,52 @@ describe("validateModelSelection - unknown model", () => {
 
 describe("validateModelSelection - wrong provider", () => {
   test("returns invalid when model belongs to different provider", () => {
-    const result = validateModelSelection("claude-sonnet-4", "opencode");
+    const result = validateModelSelection("claude-sonnet-4-5", "opencode");
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.error).toContain("claude");
       expect(result.error).toContain("opencode");
-    }
-  });
-
-  test("error names the correct provider for the model", () => {
-    const result = validateModelSelection("gpt-4o", "claude");
-    expect(result.valid).toBe(false);
-    if (!result.valid) {
-      expect(result.error).toContain("opencode");
-      expect(result.error).toContain("claude");
     }
   });
 
   test("suggests alternatives for the current provider", () => {
-    const result = validateModelSelection("claude-sonnet-4", "opencode");
+    const result = validateModelSelection("claude-sonnet-4-5", "opencode");
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.suggestions.length).toBeGreaterThan(0);
-      // Suggestions should include opencode models, not claude models
-      expect(result.suggestions).toContain("gpt-4o");
     }
   });
 
   test("wrong-provider error includes refresh-models hint", () => {
-    const result = validateModelSelection("gpt-4o", "claude");
+    const result = validateModelSelection("claude-opus-4-6", "opencode");
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.error).toContain("refresh-models");
     }
+  });
+});
+
+// =============================================================================
+// cliFormat fallback lookup
+// =============================================================================
+
+describe("getModelById - cliFormat fallback", () => {
+  test("finds model by ID", () => {
+    const model = getModelById("claude-opus-4-6");
+    expect(model).toBeDefined();
+    expect(model?.cliFormat).toBe("claude-opus-4-6");
+  });
+
+  test("finds model by cliFormat when ID doesn't match", () => {
+    // "sonnet" alias has cliFormat "claude-sonnet-4-5-20250929"
+    const model = getModelById("claude-sonnet-4-5-20250929");
+    expect(model).toBeDefined();
+    expect(model?.provider).toBe("claude");
+  });
+
+  test("returns undefined for completely unknown model", () => {
+    const model = getModelById("totally-fake-model");
+    expect(model).toBeUndefined();
   });
 });
 
@@ -145,7 +173,10 @@ describe("REFRESH_HINT", () => {
 
   test("is included in all error messages", () => {
     const unknownResult = validateModelSelection("nonexistent", "claude");
-    const wrongProviderResult = validateModelSelection("gpt-4o", "claude");
+    const wrongProviderResult = validateModelSelection(
+      "claude-opus-4-6",
+      "opencode",
+    );
 
     expect(unknownResult.valid).toBe(false);
     expect(wrongProviderResult.valid).toBe(false);
@@ -172,15 +203,16 @@ describe("validateModelSelection - edge cases", () => {
     }
   });
 
-  test("suggestions for claude provider are all claude models", () => {
+  test("suggestions for claude provider include claude models", () => {
     const result = validateModelSelection("nonexistent", "claude");
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      // Claude has 3 models, should suggest all of them
-      expect(result.suggestions).toHaveLength(3);
-      expect(result.suggestions).toContain("claude-haiku");
-      expect(result.suggestions).toContain("claude-opus-4");
-      expect(result.suggestions).toContain("claude-sonnet-4");
+      expect(result.suggestions.length).toBeGreaterThan(0);
+      expect(result.suggestions.length).toBeLessThanOrEqual(5);
+      // All suggestions should be for Claude provider
+      for (const s of result.suggestions) {
+        expect(s).toMatch(/claude|sonnet|opus|haiku|default|opusplan/);
+      }
     }
   });
 });

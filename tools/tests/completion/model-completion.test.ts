@@ -18,9 +18,9 @@ describe("__complete model", () => {
     );
     expect(exitCode).toBe(0);
     // Should contain known models from both providers
-    expect(stdout).toContain("claude-sonnet-4");
-    expect(stdout).toContain("gpt-4o");
-    expect(stdout).toContain("claude-haiku");
+    expect(stdout).toContain("claude-sonnet-4-5");
+    expect(stdout).toContain("openai/gpt-5.2-codex");
+    expect(stdout).toContain("claude-haiku-4-5");
   });
 
   test("returns only Claude model IDs with --provider claude", async () => {
@@ -30,12 +30,12 @@ describe("__complete model", () => {
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("claude-sonnet-4");
-    expect(stdout).toContain("claude-haiku");
-    expect(stdout).toContain("claude-opus-4");
+    expect(stdout).toContain("claude-sonnet-4-5");
+    expect(stdout).toContain("claude-haiku-4-5");
+    expect(stdout).toContain("claude-opus-4-6");
     // Should NOT contain OpenCode models
-    expect(stdout).not.toContain("gpt-4o\t");
-    expect(stdout).not.toContain("gpt-4o-mini");
+    expect(stdout).not.toContain("openai/");
+    expect(stdout).not.toContain("github-copilot/");
   });
 
   test("returns only OpenCode model IDs with --provider opencode", async () => {
@@ -45,11 +45,11 @@ describe("__complete model", () => {
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("gpt-4o");
-    expect(stdout).toContain("gpt-4o-mini");
-    // Should NOT contain native Claude models
-    expect(stdout).not.toContain("claude-sonnet-4\t");
-    expect(stdout).not.toContain("claude-opus-4\t");
+    expect(stdout).toContain("openai/gpt-5.2-codex");
+    expect(stdout).toContain("github-copilot/gpt-4o");
+    // Should NOT contain native Claude models (non-alias)
+    expect(stdout).not.toContain("claude-sonnet-4-5\t");
+    expect(stdout).not.toContain("claude-opus-4-6\t");
   });
 
   test("returns empty output for unknown provider", async () => {

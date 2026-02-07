@@ -33,19 +33,30 @@ interface RefreshOptions {
 const DISCOVERABLE_PROVIDERS: Array<ProviderType> = ["opencode"];
 
 /**
- * Derive a user-friendly model ID from the record data
+ * Derive a stable registry model ID from discovered model record data.
+ *
+ * For strict table-based validation, prefer fully-qualified provider/model IDs.
  */
 function deriveFriendlyId(
   record: Record<string, unknown>,
   cliFormat: string,
   fallback: string,
 ): string {
-  if (typeof record.name === "string" && record.name !== "") {
-    return record.name;
-  }
   if (cliFormat.includes("/")) {
-    return cliFormat.split("/").pop() ?? fallback;
+    return cliFormat;
   }
+  if (fallback.includes("/")) {
+    return fallback;
+  }
+
+  const providerId =
+    extractStringField(record, "providerID") ??
+    extractStringField(record, "provider");
+
+  if (providerId !== undefined && providerId !== "") {
+    return `${providerId}/${fallback}`;
+  }
+
   return fallback;
 }
 
@@ -67,9 +78,9 @@ function discoverFromProviders(
 }
 
 /**
- * Discover models from the OpenCode CLI via `opencode models --json`
+ * Discover models from the OpenCode CLI via `opencode models --verbose`
  *
- * Spawns the opencode binary, parses JSON output, and maps to ModelInfo[].
+ * Spawns the opencode binary, parses verbose output, and maps to ModelInfo[].
  * Returns empty array if CLI is not installed or command fails.
  */
 function discoverOpencodeModels(): Array<ModelInfo> {
@@ -84,7 +95,7 @@ function discoverOpencodeModels(): Array<ModelInfo> {
   }
 
   try {
-    const proc = Bun.spawnSync(["opencode", "models", "--json"], {
+    const proc = Bun.spawnSync(["opencode", "models", "--verbose"], {
       stderr: "pipe",
       stdout: "pipe",
     });
@@ -102,13 +113,20 @@ function discoverOpencodeModels(): Array<ModelInfo> {
       return [];
     }
 
-    const parsed: unknown = JSON.parse(stdout);
-    return parseOpencodeModelsOutput(parsed);
+    return parseOpencodeModelsOutput(stdout);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Error discovering opencode models: ${message}`);
     return [];
   }
+}
+
+function extractStringField(
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = record[key];
+  return typeof value === "string" ? value : undefined;
 }
 
 /**
@@ -181,49 +199,84 @@ function getDynamicModelsPath(): string {
 }
 
 /**
- * Parse the JSON output from `opencode models --json` into ModelInfo[]
+ * Parse the verbose output from `opencode models --verbose` into ModelInfo[]
  *
- * Expected format: array of objects with at minimum an "id" field,
- * plus optional "name", "provider" fields.
+ * Format: each model is a `provider/model-id` header line followed by a
+ * `{...}` JSON metadata block. We split on header lines, parse each JSON
+ * blob, and map to ModelInfo[].
  */
 function parseOpencodeModelsOutput(data: unknown): Array<ModelInfo> {
-  if (!Array.isArray(data)) {
-    console.error("Error: opencode models output is not an array");
+  if (typeof data !== "string") {
+    console.error("Error: opencode models output is not a string");
+    return [];
+  }
+
+  if (data.trim() === "") {
     return [];
   }
 
   const now = new Date().toISOString().split("T")[0] ?? "";
   const models: Array<ModelInfo> = [];
 
-  for (const entry of data) {
-    if (typeof entry !== "object" || entry === null) {
-      // Skip non-object entries
-    } else {
-      const record = entry as Record<string, unknown>;
-      const id = typeof record.id === "string" ? record.id : undefined;
-      if (id === undefined || id === "") {
-        // Skip entries without a valid id
-      } else {
-        const cliFormat =
-          typeof record.cliFormat === "string" ? record.cliFormat : id;
-        const costHint =
-          typeof record.costHint === "string" &&
-          ["cheap", "expensive", "standard"].includes(record.costHint)
-            ? (record.costHint as "cheap" | "expensive" | "standard")
-            : "standard";
+  // Split into blocks: each block starts with a header line (provider/model-id)
+  // followed by a JSON object. Header lines match "word/word" at line start.
+  const headerPattern = /^(?<header>[a-zA-Z0-9_-]+\/[a-zA-Z0-9._-]+)$/;
+  const lines = data.split("\n");
+  // eslint-disable-next-line @typescript-eslint/init-declarations -- reassigned in loop
+  let currentHeader: string | undefined;
+  let jsonLines: Array<string> = [];
 
-        const friendlyId = deriveFriendlyId(record, cliFormat, id);
+  function processBlock(): void {
+    if (currentHeader === undefined || jsonLines.length === 0) {
+      return;
+    }
+    try {
+      const record = JSON.parse(jsonLines.join("\n")) as Record<
+        string,
+        unknown
+      >;
+      const id =
+        typeof record.id === "string"
+          ? record.id
+          : (currentHeader.split("/").pop() ?? currentHeader);
+      const cliFormat = currentHeader;
 
-        models.push({
-          cliFormat,
-          costHint,
-          discoveredAt: now,
-          id: friendlyId,
-          provider: "opencode" as ProviderType,
-        });
+      // Derive cost hint from cost data if available
+      const cost = record.cost as Record<string, unknown> | undefined;
+      const inputCost = typeof cost?.input === "number" ? cost.input : 0;
+      let costHint: "cheap" | "expensive" | "standard" = "standard";
+      if (inputCost === 0) {
+        costHint = "cheap";
+      } else if (inputCost >= 10) {
+        costHint = "expensive";
       }
+
+      const friendlyId = deriveFriendlyId(record, cliFormat, id);
+
+      models.push({
+        cliFormat,
+        costHint,
+        discoveredAt: now,
+        id: friendlyId,
+        provider: "opencode" as ProviderType,
+      });
+    } catch {
+      // Skip blocks with unparseable JSON
+    }
+    jsonLines = [];
+  }
+
+  for (const line of lines) {
+    const match = headerPattern.exec(line.trim());
+    if (match?.groups?.header === undefined) {
+      jsonLines.push(line);
+    } else {
+      processBlock();
+      currentHeader = match.groups.header;
+      jsonLines = [];
     }
   }
+  processBlock();
 
   return models;
 }
