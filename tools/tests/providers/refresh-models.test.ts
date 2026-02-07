@@ -2,6 +2,7 @@ import type { ModelInfo } from "@tools/commands/ralph/providers/models-static";
 
 import { STATIC_MODELS } from "@tools/commands/ralph/providers/models-static";
 import {
+  deriveFriendlyId,
   DISCOVERABLE_PROVIDERS,
   filterDuplicates,
   generateDynamicFileContent,
@@ -10,63 +11,90 @@ import {
 import { describe, expect, test } from "bun:test";
 
 // =============================================================================
-// parseOpencodeModelsOutput
+// parseOpencodeModelsOutput (verbose format)
 // =============================================================================
 
 describe("parseOpencodeModelsOutput", () => {
-  test("parses valid model array with all fields", () => {
+  test("parses verbose output with header + JSON blocks", () => {
     const input = [
-      {
-        cliFormat: "google/gemini-2.5-pro-preview-05-06",
-        costHint: "standard",
-        id: "gemini-2.5-pro",
-        name: "gemini-2.5-pro",
-      },
-      {
-        cliFormat: "openai/o3-mini",
-        costHint: "cheap",
-        id: "o3-mini",
-        name: "o3-mini",
-      },
-    ];
+      "openai/gpt-5.3-codex",
+      JSON.stringify(
+        {
+          cost: { input: 15, output: 60 },
+          id: "gpt-5.3-codex",
+          name: "GPT-5.3 Codex",
+          providerID: "openai",
+        },
+        null,
+        2,
+      ),
+      "github-copilot/gpt-4o",
+      JSON.stringify(
+        {
+          cost: { input: 2.5, output: 10 },
+          id: "gpt-4o",
+          name: "GPT-4o",
+          providerID: "github-copilot",
+        },
+        null,
+        2,
+      ),
+    ].join("\n");
 
     const result = parseOpencodeModelsOutput(input);
     expect(result).toHaveLength(2);
-    expect(result[0]?.id).toBe("gemini-2.5-pro");
-    expect(result[0]?.cliFormat).toBe("google/gemini-2.5-pro-preview-05-06");
-    expect(result[0]?.costHint).toBe("standard");
+    expect(result[0]?.id).toBe("openai/gpt-5.3-codex");
+    expect(result[0]?.cliFormat).toBe("openai/gpt-5.3-codex");
+    expect(result[0]?.costHint).toBe("expensive");
     expect(result[0]?.provider).toBe("opencode");
     expect(result[0]?.discoveredAt).toBeDefined();
-    expect(result[1]?.id).toBe("o3-mini");
-    expect(result[1]?.costHint).toBe("cheap");
+    expect(result[1]?.id).toBe("github-copilot/gpt-4o");
+    expect(result[1]?.costHint).toBe("standard");
   });
 
-  test("derives friendly ID from cliFormat when name is missing", () => {
-    const input = [{ cliFormat: "provider/my-model-name", id: "some-model" }];
+  test("derives cost hint from cost.input field", () => {
+    const input = [
+      "opencode/free-model",
+      JSON.stringify({
+        cost: { input: 0, output: 0 },
+        id: "free-model",
+        providerID: "opencode",
+      }),
+      "openai/expensive-model",
+      JSON.stringify({
+        cost: { input: 15, output: 60 },
+        id: "expensive-model",
+        providerID: "openai",
+      }),
+      "openai/standard-model",
+      JSON.stringify({
+        cost: { input: 5, output: 15 },
+        id: "standard-model",
+        providerID: "openai",
+      }),
+    ].join("\n");
+
+    const result = parseOpencodeModelsOutput(input);
+    expect(result).toHaveLength(3);
+    expect(result[0]?.costHint).toBe("cheap");
+    expect(result[1]?.costHint).toBe("expensive");
+    expect(result[2]?.costHint).toBe("standard");
+  });
+
+  test("uses header as cliFormat and derives fully-qualified ID", () => {
+    const input = [
+      "provider/my-model-name",
+      JSON.stringify({ id: "my-model-name", providerID: "provider" }),
+    ].join("\n");
 
     const result = parseOpencodeModelsOutput(input);
     expect(result).toHaveLength(1);
-    expect(result[0]?.id).toBe("my-model-name");
+    expect(result[0]?.cliFormat).toBe("provider/my-model-name");
+    expect(result[0]?.id).toBe("provider/my-model-name");
   });
 
-  test("uses id as fallback when cliFormat has no slash and no name", () => {
-    const input = [{ id: "simple-model" }];
-
-    const result = parseOpencodeModelsOutput(input);
-    expect(result).toHaveLength(1);
-    expect(result[0]?.id).toBe("simple-model");
-    expect(result[0]?.cliFormat).toBe("simple-model");
-  });
-
-  test("defaults costHint to standard for unknown values", () => {
-    const input = [{ cliFormat: "test/test", costHint: "unknown", id: "test" }];
-
-    const result = parseOpencodeModelsOutput(input);
-    expect(result[0]?.costHint).toBe("standard");
-  });
-
-  test("returns empty array for non-array input", () => {
-    const result = parseOpencodeModelsOutput({ models: [] });
+  test("returns empty array for non-string input", () => {
+    const result = parseOpencodeModelsOutput([{ id: "test" }]);
     expect(result).toHaveLength(0);
   });
 
@@ -75,27 +103,32 @@ describe("parseOpencodeModelsOutput", () => {
     expect(result).toHaveLength(0);
   });
 
-  test("skips entries without id", () => {
-    const input = [
-      { cliFormat: "provider/model" },
-      { cliFormat: "provider/valid", id: "valid" },
-      { cliFormat: "provider/empty-id", id: "" },
-    ];
-
-    const result = parseOpencodeModelsOutput(input);
-    expect(result).toHaveLength(1);
-    expect(result[0]?.id).toBe("valid");
+  test("returns empty array for empty string", () => {
+    const result = parseOpencodeModelsOutput("");
+    expect(result).toHaveLength(0);
   });
 
-  test("skips non-object entries", () => {
-    const input = ["string", 42, null, { cliFormat: "p/valid", id: "valid" }];
+  test("skips blocks with invalid JSON", () => {
+    const input = [
+      "provider/good-model",
+      JSON.stringify({ id: "good-model", providerID: "provider" }),
+      "provider/bad-model",
+      "not valid json {{{",
+      "provider/another-good",
+      JSON.stringify({ id: "another-good", providerID: "provider" }),
+    ].join("\n");
 
     const result = parseOpencodeModelsOutput(input);
-    expect(result).toHaveLength(1);
+    expect(result).toHaveLength(2);
+    expect(result[0]?.id).toBe("provider/good-model");
+    expect(result[1]?.id).toBe("provider/another-good");
   });
 
   test("sets discoveredAt to ISO date format (YYYY-MM-DD)", () => {
-    const input = [{ cliFormat: "p/test", id: "test" }];
+    const input = [
+      "provider/test",
+      JSON.stringify({ id: "test", providerID: "provider" }),
+    ].join("\n");
 
     const result = parseOpencodeModelsOutput(input);
     expect(result[0]?.discoveredAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -103,14 +136,76 @@ describe("parseOpencodeModelsOutput", () => {
 
   test("sets provider to opencode for all entries", () => {
     const input = [
-      { cliFormat: "p/a", id: "a" },
-      { cliFormat: "p/b", id: "b" },
-    ];
+      "openai/model-a",
+      JSON.stringify({ id: "model-a", providerID: "openai" }),
+      "github-copilot/model-b",
+      JSON.stringify({ id: "model-b", providerID: "github-copilot" }),
+    ].join("\n");
 
     const result = parseOpencodeModelsOutput(input);
     for (const model of result) {
       expect(model.provider).toBe("opencode");
     }
+  });
+
+  test("handles pretty-printed JSON blocks", () => {
+    const input = [
+      "opencode/big-pickle",
+      JSON.stringify(
+        {
+          cost: { input: 0, output: 0 },
+          id: "big-pickle",
+          name: "Big Pickle",
+          providerID: "opencode",
+        },
+        null,
+        2,
+      ),
+    ].join("\n");
+
+    const result = parseOpencodeModelsOutput(input);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("opencode/big-pickle");
+    expect(result[0]?.cliFormat).toBe("opencode/big-pickle");
+  });
+});
+
+// =============================================================================
+// deriveFriendlyId
+// =============================================================================
+
+describe("deriveFriendlyId", () => {
+  test("returns cliFormat when it contains a slash", () => {
+    const result = deriveFriendlyId({}, "openai/gpt-4o", "gpt-4o");
+    expect(result).toBe("openai/gpt-4o");
+  });
+
+  test("returns fallback when it contains a slash", () => {
+    const result = deriveFriendlyId({}, "gpt-4o", "openai/gpt-4o");
+    expect(result).toBe("openai/gpt-4o");
+  });
+
+  test("constructs provider/fallback from record.providerID", () => {
+    const result = deriveFriendlyId(
+      { providerID: "openai" },
+      "gpt-4o",
+      "gpt-4o",
+    );
+    expect(result).toBe("openai/gpt-4o");
+  });
+
+  test("falls back to record.provider when providerID missing", () => {
+    const result = deriveFriendlyId(
+      { provider: "github-copilot" },
+      "gpt-4o",
+      "gpt-4o",
+    );
+    expect(result).toBe("github-copilot/gpt-4o");
+  });
+
+  test("returns plain fallback when no provider info available", () => {
+    const result = deriveFriendlyId({}, "gpt-4o", "gpt-4o");
+    expect(result).toBe("gpt-4o");
   });
 });
 
@@ -120,28 +215,28 @@ describe("parseOpencodeModelsOutput", () => {
 
 describe("filterDuplicates", () => {
   test("removes models with IDs matching STATIC_MODELS", () => {
+    // Use an actual static model ID from the expanded registry
+    const staticId = STATIC_MODELS[0]?.id ?? "";
     const discovered: Array<ModelInfo> = [
       {
-        cliFormat: "openai/gpt-4o",
+        cliFormat: staticId,
         costHint: "standard",
         discoveredAt: "2026-02-06",
-        // gpt-4o exists in STATIC_MODELS
-        id: "gpt-4o",
+        id: staticId,
         provider: "opencode",
       },
       {
         cliFormat: "google/gemini-2.5-pro",
         costHint: "standard",
         discoveredAt: "2026-02-06",
-        // gemini-2.5-pro does NOT exist in STATIC_MODELS
-        id: "gemini-2.5-pro",
+        id: "google/gemini-2.5-pro",
         provider: "opencode",
       },
     ];
 
     const result = filterDuplicates(discovered);
     expect(result).toHaveLength(1);
-    expect(result[0]?.id).toBe("gemini-2.5-pro");
+    expect(result[0]?.id).toBe("google/gemini-2.5-pro");
   });
 
   test("returns all models when none match static IDs", () => {
@@ -150,7 +245,7 @@ describe("filterDuplicates", () => {
         cliFormat: "google/gemini-flash",
         costHint: "cheap",
         discoveredAt: "2026-02-06",
-        id: "gemini-flash",
+        id: "google/gemini-flash",
         provider: "opencode",
       },
     ];
@@ -209,7 +304,7 @@ describe("generateDynamicFileContent", () => {
         cliFormat: "google/gemini-2.5-pro",
         costHint: "standard",
         discoveredAt: "2026-02-06",
-        id: "gemini-2.5-pro",
+        id: "google/gemini-2.5-pro",
         provider: "opencode",
       },
     ];
@@ -218,7 +313,6 @@ describe("generateDynamicFileContent", () => {
     expect(content).toContain('"google/gemini-2.5-pro"');
     expect(content).toContain('"standard"');
     expect(content).toContain('"2026-02-06"');
-    expect(content).toContain('"gemini-2.5-pro"');
     expect(content).toContain('"opencode"');
   });
 
@@ -246,7 +340,6 @@ describe("generateDynamicFileContent", () => {
 
   test("includes generation timestamp in ISO format", () => {
     const content = generateDynamicFileContent([]);
-    // Match ISO date pattern in the Generated: comment
     expect(content).toMatch(/Generated: \d{4}-\d{2}-\d{2}T/);
   });
 });

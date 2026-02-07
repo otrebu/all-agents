@@ -118,7 +118,7 @@ describe("--provider CLI flag", () => {
     );
     expect(exitCode).toBe(0);
     expect(stdout).toContain('"models"');
-    expect(stdout).toContain('"claude-sonnet-4"');
+    expect(stdout).toContain('"claude-sonnet-4-5"');
   });
 
   test("ralph models rejects invalid provider", async () => {
