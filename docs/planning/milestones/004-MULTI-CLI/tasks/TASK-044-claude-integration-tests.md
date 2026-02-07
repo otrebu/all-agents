@@ -40,25 +40,25 @@ Integration tests verify that the Claude provider correctly handles subprocess l
 4. Run tests to verify they pass
 
 ### Acceptance Criteria
-- [ ] `tools/tests/providers/claude.integration.test.ts` exists
-- [ ] Mock utilities for process and stream creation
-- [ ] Test cases for:
-  - [ ] Subprocess spawning with correct arguments
-  - [ ] Stall detection triggers after timeout without activity
-  - [ ] Stall detection resets on stderr activity
-  - [ ] SIGTERM sent on stall timeout
-  - [ ] SIGKILL sent after grace period if SIGTERM fails
-  - [ ] Exit code 0 returns success
-  - [ ] Exit codes 1, 2, 127 return errors
-  - [ ] JSON output parsed and normalized correctly
-- [ ] All tests pass with `bun test`
-- [ ] Tests use Bun's built-in test runner with mocking
+- [x] `tools/tests/providers/claude.integration.test.ts` exists
+- [x] Mock utilities for process and stream creation
+- [x] Test cases for:
+  - [x] Subprocess spawning with correct arguments
+  - [x] Stall detection triggers after timeout without activity
+  - [x] Stall detection resets on stderr activity
+  - [x] SIGTERM sent on stall timeout
+  - [x] SIGKILL sent after grace period if SIGTERM fails
+  - [x] Exit code 0 returns success
+  - [x] Exit codes 1, 2, 127 return errors
+  - [x] JSON output parsed and normalized correctly
+- [x] All tests pass with `bun test`
+- [x] Tests use Bun's built-in test runner with mocking
 
 ### Test Plan
-- [ ] Integration tests run without real Claude CLI
-- [ ] Tests verify subprocess lifecycle management
-- [ ] Tests verify timeout and signal handling
-- [ ] Tests are deterministic (no timing-dependent failures)
+- [x] Integration tests run without real Claude CLI
+- [x] Tests verify subprocess lifecycle management
+- [x] Tests verify timeout and signal handling
+- [x] Tests are deterministic (no timing-dependent failures)
 
 ### Scope
 - **In:** Mock-based integration tests for subprocess handling, timeout logic, signal escalation

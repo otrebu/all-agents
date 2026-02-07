@@ -44,25 +44,25 @@ The refresh command queries providers that support model listing (starting with 
 5. Register command in CLI
 
 ### Acceptance Criteria
-- [ ] `aaa ralph refresh-models` command exists and is registered
-- [ ] `--dry-run` flag shows what would be discovered without writing
-- [ ] `--provider` flag restricts discovery to specific provider
-- [ ] OpenCode model discovery works via `opencode models --json`
-- [ ] Discovered models written to `models-dynamic.ts`
-- [ ] Dynamic models include discoveredAt timestamp
-- [ ] Duplicate models (same ID as static) are filtered out
-- [ ] Errors handled gracefully (missing CLI, discovery failures)
-- [ ] Success message shows count of discovered models
+- [x] `aaa ralph refresh-models` command exists and is registered
+- [x] `--dry-run` flag shows what would be discovered without writing
+- [x] `--provider` flag restricts discovery to specific provider
+- [x] OpenCode model discovery works via `opencode models --json`
+- [x] Discovered models written to `models-dynamic.ts`
+- [x] Dynamic models include discoveredAt timestamp
+- [x] Duplicate models (same ID as static) are filtered out
+- [x] Errors handled gracefully (missing CLI, discovery failures)
+- [x] Success message shows count of discovered models
 
 ### Test Plan
-- [ ] Unit tests for discovery functions with mock provider output
-- [ ] Test `--dry-run` doesn't modify files
-- [ ] Test `--provider` filtering
-- [ ] Test duplicate filtering logic
-- [ ] Test error handling for missing CLI
-- [ ] Integration test: mock opencode models output
-- [ ] Manual test: `aaa ralph refresh-models` discovers models
-- [ ] Manual test: `aaa ralph refresh-models --dry-run` shows preview
+- [x] Unit tests for discovery functions with mock provider output
+- [x] Test `--dry-run` doesn't modify files
+- [x] Test `--provider` filtering
+- [x] Test duplicate filtering logic
+- [x] Test error handling for missing CLI
+- [x] Integration test: mock opencode models output
+- [x] Manual test: `aaa ralph refresh-models` discovers models
+- [x] Manual test: `aaa ralph refresh-models --dry-run` shows preview
 
 ### Scope
 - **In:** Refresh command, dynamic model discovery, file generation, CLI options

@@ -30,22 +30,22 @@ The provider registry is the central hub for provider management. It maintains t
 3. Run TypeScript compiler and tests to verify
 
 ### Acceptance Criteria
-- [ ] `tools/src/commands/ralph/providers/registry.ts` exists with all functions
-- [ ] `REGISTRY` constant has all 6 providers with `available: false` (not yet implemented)
-- [ ] `isBinaryAvailable()` checks PATH using `which` command
-- [ ] `getInstallInstructions()` returns installation instructions for each provider
-- [ ] `ProviderError` includes provider name, message, and optional cause
-- [ ] `invokeWithProvider()` validates binary exists before invoking
-- [ ] `invokeWithProvider()` throws helpful error with install instructions when binary missing
-- [ ] `selectProvider()` follows priority: CLI flag > env var > config > auto-detect
-- [ ] `selectProviderFromEnv()` reads `process.argv`, `process.env.RALPH_PROVIDER`, and config
-- [ ] `validateProvider()` throws `ProviderError` for invalid providers
-- [ ] `autoDetectProvider()` checks binaries in priority order
-- [ ] Unit tests cover selection logic, validation, and error cases
-- [ ] TypeScript compiles without errors
+- [x] `tools/src/commands/ralph/providers/registry.ts` exists with all functions
+- [x] `REGISTRY` constant has all 6 providers with `available: false` (not yet implemented)
+- [x] `isBinaryAvailable()` checks PATH using `which` command
+- [x] `getInstallInstructions()` returns installation instructions for each provider
+- [x] `ProviderError` includes provider name, message, and optional cause
+- [x] `invokeWithProvider()` validates binary exists before invoking
+- [x] `invokeWithProvider()` throws helpful error with install instructions when binary missing
+- [x] `selectProvider()` follows priority: CLI flag > env var > config > auto-detect
+- [x] `selectProviderFromEnv()` reads `process.argv`, `process.env.RALPH_PROVIDER`, and config
+- [x] `validateProvider()` throws `ProviderError` for invalid providers
+- [x] `autoDetectProvider()` checks binaries in priority order
+- [x] Unit tests cover selection logic, validation, and error cases
+- [x] TypeScript compiles without errors
 
 ### Test Plan
-- [ ] Unit tests in `tools/tests/providers/registry.test.ts`:
+- [x] Unit tests in `tools/tests/providers/registry.test.ts`:
   - `selectProvider()` returns CLI flag when provided
   - `selectProvider()` falls back through priority chain correctly
   - `validateProvider()` accepts valid providers

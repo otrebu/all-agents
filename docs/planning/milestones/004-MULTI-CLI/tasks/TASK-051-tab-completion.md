@@ -43,22 +43,22 @@ This requires integrating the model registry with the CLI completion system, whi
 6. Test completion output format
 
 ### Acceptance Criteria
-- [ ] Tab completion works for `--model` flag on build/review commands
-- [ ] Completions filtered by selected `--provider` value
-- [ ] Cost hints shown in completion descriptions
-- [ ] Completions include both static and dynamic models
-- [ ] Provider tab completion shows available providers
-- [ ] Completion works when no provider specified (shows all models)
-- [ ] Completion gracefully handles unknown providers
+- [x] Tab completion works for `--model` flag on build/review commands
+- [x] Completions filtered by selected `--provider` value
+- [x] Cost hints shown in completion descriptions
+- [x] Completions include both static and dynamic models
+- [x] Provider tab completion shows available providers
+- [x] Completion works when no provider specified (shows all models)
+- [x] Completion gracefully handles unknown providers
 
 ### Test Plan
-- [ ] Unit tests for completion generation
-- [ ] Test provider-specific filtering
-- [ ] Test cost hint inclusion in descriptions
-- [ ] Test edge cases: no provider, unknown provider
-- [ ] Manual test: `aaa ralph build --model <TAB>` shows models
-- [ ] Manual test: `aaa ralph build --provider opencode --model <TAB>` shows OpenCode models
-- [ ] Manual test: completions update when provider changes
+- [x] Unit tests for completion generation
+- [x] Test provider-specific filtering
+- [x] Test cost hint inclusion in descriptions
+- [x] Test edge cases: no provider, unknown provider
+- [x] Manual test: `aaa ralph build --model <TAB>` shows models
+- [x] Manual test: `aaa ralph build --provider opencode --model <TAB>` shows OpenCode models
+- [x] Manual test: completions update when provider changes
 
 ### Scope
 - **In:** Tab completion integration, completion handlers, provider/model completions

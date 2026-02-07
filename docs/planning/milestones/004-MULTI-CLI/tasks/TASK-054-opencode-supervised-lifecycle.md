@@ -25,16 +25,16 @@ OpenCode currently reuses a non-interactive invocation path for supervised mode 
 6. Add integration coverage in `tools/tests/providers/opencode.integration.test.ts` for PTY-gated behavior, interrupt handling, and session ID capture.
 
 ### Acceptance Criteria
-- [ ] OpenCode supervised mode is interactive when PTY is available.
-- [ ] Non-TTY supervised runs fail with clear remediation guidance.
-- [ ] Supervised OpenCode runs return/persist session ID for hook integration.
-- [ ] Interrupt and shutdown paths do not leave orphaned provider processes.
-- [ ] Integration tests cover success and interruption lifecycle branches.
+- [x] OpenCode supervised mode is interactive when PTY is available.
+- [x] Non-TTY supervised runs fail with clear remediation guidance.
+- [x] Supervised OpenCode runs return/persist session ID for hook integration.
+- [x] Interrupt and shutdown paths do not leave orphaned provider processes.
+- [x] Integration tests cover success and interruption lifecycle branches.
 
 ### Test Plan
-- [ ] `cd tools && bun test tests/providers/opencode.integration.test.ts`
-- [ ] Add supervised lifecycle tests for PTY and non-PTY execution branches.
-- [ ] Manual: run `aaa ralph build --provider opencode --mode supervised` and verify live intervention behavior.
+- [x] `cd tools && bun test tests/providers/opencode.integration.test.ts`
+- [x] Add supervised lifecycle tests for PTY and non-PTY execution branches.
+- [x] Manual: run `aaa ralph build --provider opencode --mode supervised` and verify live intervention behavior.
 
 ### Scope
 - **In:** OpenCode supervised runtime implementation and lifecycle reliability.

@@ -38,22 +38,22 @@ The provider must handle these quirks while presenting a clean interface through
 5. Add comprehensive error handling for API errors, parse errors, timeouts
 
 ### Acceptance Criteria
-- [ ] `invokeOpencode()` function exists and implements provider interface
-- [ ] JSONL parsing correctly extracts result from `step_finish` events
-- [ ] Hard timeout kills process after configured duration (Issue #8203)
-- [ ] Permission bypass works via `OPENCODE_PERMISSION` env var
-- [ ] Model selection accepts "provider/model" format
-- [ ] Clear error message when `opencode` binary not found in PATH
-- [ ] Process terminates correctly even without stderr output
-- [ ] All OpenCode-specific quirks documented in code comments
+- [x] `invokeOpencode()` function exists and implements provider interface
+- [x] JSONL parsing correctly extracts result from `step_finish` events
+- [x] Hard timeout kills process after configured duration (Issue #8203)
+- [x] Permission bypass works via `OPENCODE_PERMISSION` env var
+- [x] Model selection accepts "provider/model" format
+- [x] Clear error message when `opencode` binary not found in PATH
+- [x] Process terminates correctly even without stderr output
+- [x] All OpenCode-specific quirks documented in code comments
 
 ### Test Plan
-- [ ] Unit tests with static JSONL fixtures (see TASK-046)
-- [ ] Integration tests for hard timeout behavior (see TASK-047)
-- [ ] Manual testing: `aaa ralph build --provider opencode` works end-to-end
-- [ ] Verify permission bypass via environment variable
-- [ ] Verify model selection with provider/model format
-- [ ] Test error handling when binary not found
+- [x] Unit tests with static JSONL fixtures (see TASK-046)
+- [x] Integration tests for hard timeout behavior (see TASK-047)
+- [x] Manual testing: `aaa ralph build --provider opencode` works end-to-end
+- [x] Verify permission bypass via environment variable
+- [x] Verify model selection with provider/model format
+- [x] Test error handling when binary not found
 
 ### Scope
 - **In:** OpenCode provider implementation, JSONL parsing, hard timeout, permission bypass

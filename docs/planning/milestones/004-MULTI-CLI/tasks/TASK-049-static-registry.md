@@ -42,22 +42,22 @@ Static models are the safety net - they ensure ralph works out of the box withou
 4. Export all registry functions for use in CLI commands
 
 ### Acceptance Criteria
-- [ ] `models-static.ts` exists with baseline models for Claude and OpenCode
-- [ ] `ModelInfo` interface defined with id, provider, cliFormat, costHint fields
-- [ ] `models.ts` exports registry functions: getAllModels, getModelsForProvider, getModelById
-- [ ] Tab completion helpers return sorted model ID lists
-- [ ] Static models include cost hints (cheap/standard/expensive)
-- [ ] Model validation provides helpful error messages with suggestions
-- [ ] Static models work without any dynamic discovery
+- [x] `models-static.ts` exists with baseline models for Claude and OpenCode
+- [x] `ModelInfo` interface defined with id, provider, cliFormat, costHint fields
+- [x] `models.ts` exports registry functions: getAllModels, getModelsForProvider, getModelById
+- [x] Tab completion helpers return sorted model ID lists
+- [x] Static models include cost hints (cheap/standard/expensive)
+- [x] Model validation provides helpful error messages with suggestions
+- [x] Static models work without any dynamic discovery
 
 ### Test Plan
-- [ ] Unit tests for model registry functions
-- [ ] Test static model count and fields
-- [ ] Test provider filtering (getModelsForProvider)
-- [ ] Test model lookup (getModelById)
-- [ ] Test tab completion generation
-- [ ] Test validation with known/unknown models
-- [ ] Test error messages include suggestions
+- [x] Unit tests for model registry functions
+- [x] Test static model count and fields
+- [x] Test provider filtering (getModelsForProvider)
+- [x] Test model lookup (getModelById)
+- [x] Test tab completion generation
+- [x] Test validation with known/unknown models
+- [x] Test error messages include suggestions
 
 ### Scope
 - **In:** Static model definitions, registry functions, validation helpers, tab completion

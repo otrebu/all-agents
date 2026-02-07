@@ -24,15 +24,15 @@ Provider invocation enforces declared capabilities before execution so mode beha
 5. Add tests in `tools/tests/providers/registry.test.ts` and `tools/tests/e2e/provider-flag.test.ts` that verify unsupported mode/provider combinations fail fast with actionable messages.
 
 ### Acceptance Criteria
-- [ ] Capability metadata is enforced at runtime before process spawn.
-- [ ] Unsupported mode/provider combinations fail with explicit guidance.
-- [ ] Provider-agnostic paths do not use Claude-branded generic error text.
-- [ ] Tests cover both valid and invalid provider capability combinations.
+- [x] Capability metadata is enforced at runtime before process spawn.
+- [x] Unsupported mode/provider combinations fail with explicit guidance.
+- [x] Provider-agnostic paths do not use Claude-branded generic error text.
+- [x] Tests cover both valid and invalid provider capability combinations.
 
 ### Test Plan
-- [ ] `cd tools && bun test tests/providers/registry.test.ts`
-- [ ] `cd tools && bun test tests/e2e/provider-flag.test.ts`
-- [ ] Manual: run unsupported combinations and verify fast-fail behavior and wording.
+- [x] `cd tools && bun test tests/providers/registry.test.ts`
+- [x] `cd tools && bun test tests/e2e/provider-flag.test.ts`
+- [x] Manual: run unsupported combinations and verify fast-fail behavior and wording.
 
 ### Scope
 - **In:** Capability type contract, preflight enforcement, messaging cleanup, regression tests.

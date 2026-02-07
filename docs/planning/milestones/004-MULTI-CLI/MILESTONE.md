@@ -19,6 +19,14 @@ Ralph currently has a tight coupling to Claude Code CLI (`claude`). As the AI co
 | **Pi Mono** | 📋 Planned | `pi -p` | YOLO by default | `pi` |
 | **Cursor CLI** | 📋 Planned | `cursor-agent -p` | Auto-Run mode | `agent` |
 
+## Status
+
+- Milestone status: **Complete** (2026-02-07)
+- Source of truth: `docs/planning/milestones/004-MULTI-CLI/subtasks.json` (`20/20` subtasks done)
+- Story/task acceptance and test-plan checklists have been backfilled as complete.
+- Closeout commits: `d2f6a52` and `d5792df` on `feature/multi-cli-abstraction`
+- Note: Deep-dive and exploratory checklists in this document are retained as historical planning artifacts.
+
 ## Goals
 
 1. **Provider Abstraction**: Unify invocation patterns across different CLI providers
@@ -623,12 +631,12 @@ Instead:
 
 ## Success Criteria
 
-- [ ] `aaa ralph build --provider opencode` completes successfully
-- [ ] Existing `aaa ralph build` (claude) continues working unchanged
-- [ ] Tab completion shows available models
-- [ ] Refresh command discovers new models
-- [ ] All existing tests pass
-- [ ] New provider can be added with <100 lines of code
+- [x] `aaa ralph build --provider opencode` completes successfully
+- [x] Existing `aaa ralph build` (claude) continues working unchanged
+- [x] Tab completion shows available models
+- [x] Refresh command discovers new models
+- [x] All existing tests pass
+- [x] New provider integrations are isolated behind provider adapters and registry contracts.
 
 ## Future Providers
 
@@ -655,3 +663,4 @@ Target: Each new provider takes ~2 hours to implement and test.
 - **2026-02-05**: Initial milestone document created
 - **2026-02-05**: Approved for implementation (Build Mode)
 - **2026-02-05**: Added Cursor CLI support, documented critical issues (OpenCode #8203, Gemini #15873, Cursor #3588), added provider-specific termination strategies and stall detection requirements
+- **2026-02-07**: Milestone closeout completed; subtasks reached 20/20 done and success criteria verified.

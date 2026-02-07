@@ -44,20 +44,20 @@ Tests use mock processes (not real OpenCode) to simulate the hang behavior deter
 5. Verify cleanup: timers cleared, processes killed, no resource leaks
 
 ### Acceptance Criteria
-- [ ] Mock process that hangs silently simulates Issue #8203
-- [ ] Hard timeout triggers SIGKILL after configured duration
-- [ ] Timeout error message references Issue #8203
-- [ ] Normal completion before timeout does not trigger false positive
-- [ ] Process termination works without stderr output
-- [ ] Cleanup verified: no lingering timers or zombie processes
-- [ ] Tests run deterministically (no timing flakes)
+- [x] Mock process that hangs silently simulates Issue #8203
+- [x] Hard timeout triggers SIGKILL after configured duration
+- [x] Timeout error message references Issue #8203
+- [x] Normal completion before timeout does not trigger false positive
+- [x] Process termination works without stderr output
+- [x] Cleanup verified: no lingering timers or zombie processes
+- [x] Tests run deterministically (no timing flakes)
 
 ### Test Plan
-- [ ] Run `vitest run opencode.integration.test.ts` - all tests pass
-- [ ] Verify hard timeout triggers at correct duration
-- [ ] Verify SIGKILL escalation (not just SIGTERM)
-- [ ] Verify no false positives on normal completion
-- [ ] Verify proper cleanup of resources
+- [x] Run `vitest run opencode.integration.test.ts` - all tests pass
+- [x] Verify hard timeout triggers at correct duration
+- [x] Verify SIGKILL escalation (not just SIGTERM)
+- [x] Verify no false positives on normal completion
+- [x] Verify proper cleanup of resources
 
 ### Scope
 - **In:** Integration tests for hard timeout, mock hung processes, SIGKILL verification

@@ -68,26 +68,26 @@ The async conversion is complete. The remaining task is purely a provider abstra
    - Test with `--provider claude` flag to verify explicit selection works
 
 ### Acceptance Criteria
-- [ ] `calibrate.ts` imports provider functions from `./providers/registry` instead of `invokeClaudeHeadlessAsync` from `./claude`
-- [ ] `runCalibrate` is async and calls `selectProvider()` at start
+- [x] `calibrate.ts` imports provider functions from `./providers/registry` instead of `invokeClaudeHeadlessAsync` from `./claude`
+- [x] `runCalibrate` is async and calls `selectProvider()` at start
 - [x] All three check functions (`runImproveCheck`, `runIntentionCheck`, `runTechnicalCheck`) are async *(completed in timeout protection migration)*
-- [ ] All three `invokeClaudeHeadlessAsync` calls replaced with `await invokeWithProvider`
-- [ ] Provider selection respects CLI flag `--provider` > env var `RALPH_PROVIDER` > config > auto-detect
-- [ ] Calibration works with `--provider claude` explicit selection
-- [ ] Calibration falls back to auto-detected provider when none specified
-- [ ] Error messages are helpful when provider binary is missing
-- [ ] No TypeScript compilation errors
-- [ ] Existing tests pass
-- [ ] No orphaned processes after calibration (SIGTERM/SIGKILL handling preserved)
+- [x] All three `invokeClaudeHeadlessAsync` calls replaced with `await invokeWithProvider`
+- [x] Provider selection respects CLI flag `--provider` > env var `RALPH_PROVIDER` > config > auto-detect
+- [x] Calibration works with `--provider claude` explicit selection
+- [x] Calibration falls back to auto-detected provider when none specified
+- [x] Error messages are helpful when provider binary is missing
+- [x] No TypeScript compilation errors
+- [x] Existing tests pass
+- [x] No orphaned processes after calibration (SIGTERM/SIGKILL handling preserved)
 
 ### Test Plan
-- [ ] Unit tests: Verify `selectProvider` is called with correct priority in calibration context
-- [ ] Unit tests: Mock `invokeWithProvider` and verify it's called with correct prompt and mode
-- [ ] Integration test: Run `aaa ralph calibrate intention --provider claude` and verify it works
-- [ ] Integration test: Run `aaa ralph calibrate all` without `--provider` and verify auto-detection
-- [ ] Integration test: Verify error handling when provider binary is missing
-- [ ] Manual test: Run full calibration workflow and verify output matches pre-migration behavior
-- [ ] Regression test: Ensure Ctrl+C interrupt still exits cleanly
+- [x] Unit tests: Verify `selectProvider` is called with correct priority in calibration context
+- [x] Unit tests: Mock `invokeWithProvider` and verify it's called with correct prompt and mode
+- [x] Integration test: Run `aaa ralph calibrate intention --provider claude` and verify it works
+- [x] Integration test: Run `aaa ralph calibrate all` without `--provider` and verify auto-detection
+- [x] Integration test: Verify error handling when provider binary is missing
+- [x] Manual test: Run full calibration workflow and verify output matches pre-migration behavior
+- [x] Regression test: Ensure Ctrl+C interrupt still exits cleanly
 
 ### Scope
 - **In:**

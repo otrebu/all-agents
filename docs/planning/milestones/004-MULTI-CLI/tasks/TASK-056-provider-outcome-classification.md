@@ -33,7 +33,7 @@ Provider CLIs do not share a single failure contract. Some errors are retryable,
 ### Test Plan
 - [x] `cd tools && bun test tests/providers/opencode.test.ts tests/providers/claude.integration.test.ts`
 - [x] Add outcome classification unit tests for fatal and retryable branches.
-- [ ] Manual: simulate invalid model, invalid auth, and timeout to verify behavior.
+- [x] Manual: simulate invalid model, invalid auth, and timeout to verify behavior.
 
 ### Scope
 - **In:** Outcome model, provider mapping, retry control updates, regression tests.

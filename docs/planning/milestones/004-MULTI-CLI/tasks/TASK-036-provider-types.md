@@ -38,22 +38,22 @@ Key design decisions:
 4. Run TypeScript compiler to verify no type errors
 
 ### Acceptance Criteria
-- [ ] `tools/src/commands/ralph/providers/types.ts` exists with all type definitions
-- [ ] `tools/src/commands/ralph/providers/index.ts` exports all public types
-- [ ] All 6 providers have discriminated union config types with required `provider` field
-- [ ] `AgentResult` uses normalized naming (costUsd, durationMs, sessionId)
-- [ ] `InvocationMode` has exactly 3 values (no haiku mode)
-- [ ] `PROVIDER_BINARIES` maps all providers to their CLI binary names
+- [x] `tools/src/commands/ralph/providers/types.ts` exists with all type definitions
+- [x] `tools/src/commands/ralph/providers/index.ts` exports all public types
+- [x] All 6 providers have discriminated union config types with required `provider` field
+- [x] `AgentResult` uses normalized naming (costUsd, durationMs, sessionId)
+- [x] `InvocationMode` has exactly 3 values (no haiku mode)
+- [x] `PROVIDER_BINARIES` maps all providers to their CLI binary names
 
-- [ ] RalphConfig in types.ts includes provider, model, and lightweightModel options
-- [ ] TypeScript compiles without errors
+- [x] RalphConfig in types.ts includes provider, model, and lightweightModel options
+- [x] TypeScript compiles without errors
 
 ### Test Plan
-- [ ] Create unit tests in `tools/tests/providers/types.test.ts`:
+- [x] Create unit tests in `tools/tests/providers/types.test.ts`:
   - Type narrowing works with discriminated unions
   - ProviderError can be instantiated with all fields
   - PROVIDER_BINARIES has all 6 providers
-- [ ] Manual verification: Import types in a test file and verify IntelliSense/type checking works
+- [x] Manual verification: Import types in a test file and verify IntelliSense/type checking works
 
 ### Scope
 - **In:** Type definitions, discriminated unions, error class, barrel export, config type extensions

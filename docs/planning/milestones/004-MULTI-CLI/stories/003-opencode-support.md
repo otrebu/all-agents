@@ -27,14 +27,14 @@ OpenCode is the first new provider to implement after the foundation. It has dif
 - Cannot rely on stderr for stall detection
 
 ### Acceptance Criteria
-- [ ] `aaa ralph build --provider opencode` works end-to-end
-- [ ] Permission bypass via `OPENCODE_PERMISSION` environment variable works
-- [ ] Model selection with provider/model format works
-- [ ] JSONL parsing extracts correct result, cost, and token usage
-- [ ] Hard timeout triggers correctly when API errors occur (Issue #8203)
-- [ ] Process terminates correctly even without stderr output
-- [ ] No false positives in stall detection
-- [ ] Clear error when `opencode` binary not found in PATH
+- [x] `aaa ralph build --provider opencode` works end-to-end
+- [x] Permission bypass via `OPENCODE_PERMISSION` environment variable works
+- [x] Model selection with provider/model format works
+- [x] JSONL parsing extracts correct result, cost, and token usage
+- [x] Hard timeout triggers correctly when API errors occur (Issue #8203)
+- [x] Process terminates correctly even without stderr output
+- [x] No false positives in stall detection
+- [x] Clear error when `opencode` binary not found in PATH
 
 ### Tasks
 - [TASK-045-opencode-implementation](../tasks/TASK-045-opencode-implementation.md) - OpenCode provider implementation with JSONL parsing and hard timeout
@@ -164,14 +164,14 @@ OpenCode uses "provider/model" format for model selection:
 - Process termination without stderr output
 
 **Manual Testing Checklist:**
-- [ ] `aaa ralph build --provider opencode` works
-- [ ] Permission bypass via env var works
-- [ ] Model selection with provider/model format works
-- [ ] JSONL parsing extracts correct result
-- [ ] **Hard timeout triggers when API errors occur (Issue #8203)**
-- [ ] **Process terminates correctly even without stderr output**
-- [ ] No false positives in stall detection
-- [ ] Clear error when `opencode` binary not found
+- [x] `aaa ralph build --provider opencode` works
+- [x] Permission bypass via env var works
+- [x] Model selection with provider/model format works
+- [x] JSONL parsing extracts correct result
+- [x] **Hard timeout triggers when API errors occur (Issue #8203)**
+- [x] **Process terminates correctly even without stderr output**
+- [x] No false positives in stall detection
+- [x] Clear error when `opencode` binary not found
 
 **Files Created:**
 - `tools/src/commands/ralph/providers/opencode.ts` - OpenCode provider implementation

@@ -40,19 +40,19 @@ Unit tests must be deterministic and fast - no actual process spawning, just par
 4. Ensure tests run fast (< 100ms each)
 
 ### Acceptance Criteria
-- [ ] Test fixtures created for success, partial, error, empty, and multiline cases
-- [ ] `normalizeOpencodeResult()` tested with all fixtures
-- [ ] Correct extraction of result text from concatenated `text` events
-- [ ] Correct extraction of costUsd, sessionId, tokenUsage from `step_finish`
-- [ ] Error handling tested for malformed JSON and missing events
-- [ ] All tests deterministic and fast (< 100ms each)
-- [ ] Tests document expected JSONL format for future maintainers
+- [x] Test fixtures created for success, partial, error, empty, and multiline cases
+- [x] `normalizeOpencodeResult()` tested with all fixtures
+- [x] Correct extraction of result text from concatenated `text` events
+- [x] Correct extraction of costUsd, sessionId, tokenUsage from `step_finish`
+- [x] Error handling tested for malformed JSON and missing events
+- [x] All tests deterministic and fast (< 100ms each)
+- [x] Tests document expected JSONL format for future maintainers
 
 ### Test Plan
-- [ ] Run `vitest run opencode.test.ts` - all tests pass
-- [ ] Verify test coverage for JSONL parsing logic
-- [ ] Verify fixtures are valid JSONL format
-- [ ] Test edge cases: null values, undefined fields, extra whitespace
+- [x] Run `vitest run opencode.test.ts` - all tests pass
+- [x] Verify test coverage for JSONL parsing logic
+- [x] Verify fixtures are valid JSONL format
+- [x] Test edge cases: null values, undefined fields, extra whitespace
 
 ### Scope
 - **In:** Unit tests for JSONL parsing, test fixtures, parser edge cases

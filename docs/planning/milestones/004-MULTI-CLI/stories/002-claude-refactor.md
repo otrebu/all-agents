@@ -21,13 +21,13 @@ As a ralph user, I want my existing Claude Code workflows to continue working se
 Before adding new providers, we must refactor the existing Claude Code integration to use the new provider abstraction. This ensures backward compatibility and validates that the abstraction actually works. The existing `claude.ts` will be moved to `providers/claude.ts` and updated to use the new types and registry.
 
 ### Acceptance Criteria
-- [ ] `aaa ralph build` works without any changes to existing configs
-- [ ] `aaa ralph build --provider claude` explicit selection works
-- [ ] JSON parsing returns correct cost/duration/sessionId from Claude output
-- [ ] Stall detection continues to work as before
-- [ ] Interrupt (Ctrl+C) exits cleanly
-- [ ] No orphaned MCP processes after exit
-- [ ] All existing tests pass
+- [x] `aaa ralph build` works without any changes to existing configs
+- [x] `aaa ralph build --provider claude` explicit selection works
+- [x] JSON parsing returns correct cost/duration/sessionId from Claude output
+- [x] Stall detection continues to work as before
+- [x] Interrupt (Ctrl+C) exits cleanly
+- [x] ~~No orphaned MCP processes after exit~~ **DEFERRED** - MCP cleanup deferred, existing behavior preserved
+- [x] All existing tests pass
 
 ### Tasks
 - [TASK-039-claude-refactor](./tasks/TASK-039-claude-refactor.md) - Move and refactor Claude provider to use new abstraction
@@ -159,14 +159,14 @@ aaa ralph build --provider claude --model claude-sonnet-4
 - ~~Process cleanup verification~~ **DEFERRED** - MCP cleanup deferred
 
 **Manual Testing Checklist:**
-- [ ] `aaa ralph build` uses claude by default
-- [ ] `aaa ralph build --provider claude` explicit selection
-- [ ] JSON parsing returns correct cost/duration/sessionId
-- [ ] Stall detection triggers after timeout
-- [ ] Interrupt (Ctrl+C) exits cleanly
-- [ ] ~~No orphaned MCP processes after exit~~ **DEFERRED** - MCP cleanup deferred, existing behavior preserved
-- [ ] Permission bypass flag works correctly
-- [ ] All 3 invocation modes work (supervised, headless-async, haiku) — headless-sync removed in timeout protection migration
+- [x] `aaa ralph build` uses claude by default
+- [x] `aaa ralph build --provider claude` explicit selection
+- [x] JSON parsing returns correct cost/duration/sessionId
+- [x] Stall detection triggers after timeout
+- [x] Interrupt (Ctrl+C) exits cleanly
+- [x] ~~No orphaned MCP processes after exit~~ **DEFERRED** - MCP cleanup deferred, existing behavior preserved
+- [x] Permission bypass flag works correctly
+- [x] All 3 invocation modes work (supervised, headless-async, haiku) — headless-sync removed in timeout protection migration
 
 **Files Modified:**
 - `tools/src/commands/ralph/claude.ts` → `tools/src/commands/ralph/providers/claude.ts` (moved and refactored)

@@ -34,19 +34,19 @@ The registry acts as the central dispatch point - when a user runs `aaa ralph bu
 4. Verify model configuration accepts provider/model format
 
 ### Acceptance Criteria
-- [ ] `OpencodeConfig` type defined in `providers/types.ts`
-- [ ] OpenCode registered in `REGISTRY` with correct capabilities
-- [ ] `aaa ralph build --provider opencode` routes to OpenCode implementation
-- [ ] Provider availability check works (binary detection)
-- [ ] Supported modes correctly listed (no haiku mode)
-- [ ] Model configuration accepts "provider/model" format
+- [x] `OpencodeConfig` type defined in `providers/types.ts`
+- [x] OpenCode registered in `REGISTRY` with correct capabilities
+- [x] `aaa ralph build --provider opencode` routes to OpenCode implementation
+- [x] Provider availability check works (binary detection)
+- [x] Supported modes correctly listed (no haiku mode)
+- [x] Model configuration accepts "provider/model" format
 
 ### Test Plan
-- [ ] Unit test: Registry returns correct provider for 'opencode'
-- [ ] Unit test: `OpencodeConfig` type validation
-- [ ] Integration test: Provider selection via CLI flag
-- [ ] Manual test: `aaa ralph build --provider opencode` works
-- [ ] Verify error when opencode binary not available
+- [x] Unit test: Registry returns correct provider for 'opencode'
+- [x] Unit test: `OpencodeConfig` type validation
+- [x] Integration test: Provider selection via CLI flag
+- [x] Manual test: `aaa ralph build --provider opencode` works
+- [x] Verify error when opencode binary not available
 
 ### Scope
 - **In:** Type definitions, registry registration, provider routing

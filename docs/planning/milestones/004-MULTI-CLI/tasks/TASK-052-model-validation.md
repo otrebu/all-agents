@@ -44,24 +44,24 @@ This improves UX by catching errors early and guiding users to valid selections.
    - Suggestion generation
 
 ### Acceptance Criteria
-- [ ] Build command validates model against registry
-- [ ] Review command validates model against registry
-- [ ] Invalid model ID shows error with suggestions
-- [ ] Model for wrong provider shows helpful error
-- [ ] Valid model converted to cliFormat for provider invocation
-- [ ] Validation works for CLI flags and config file
-- [ ] Suggestions limited to 5 most relevant models
-- [ ] Error messages include hint to run `refresh-models`
+- [x] Build command validates model against registry
+- [x] Review command validates model against registry
+- [x] Invalid model ID shows error with suggestions
+- [x] Model for wrong provider shows helpful error
+- [x] Valid model converted to cliFormat for provider invocation
+- [x] Validation works for CLI flags and config file
+- [x] Suggestions limited to 5 most relevant models
+- [x] Error messages include hint to run `refresh-models`
 
 ### Test Plan
-- [ ] Unit tests for validation helper
-- [ ] Test valid model returns correct cliFormat
-- [ ] Test invalid model returns suggestions
-- [ ] Test wrong provider error
-- [ ] Test suggestion ranking (same provider first)
-- [ ] Integration test: build with invalid model
-- [ ] Integration test: build with wrong provider model
-- [ ] Manual test: error messages are helpful
+- [x] Unit tests for validation helper
+- [x] Test valid model returns correct cliFormat
+- [x] Test invalid model returns suggestions
+- [x] Test wrong provider error
+- [x] Test suggestion ranking (same provider first)
+- [x] Integration test: build with invalid model
+- [x] Integration test: build with wrong provider model
+- [x] Manual test: error messages are helpful
 
 ### Scope
 - **In:** Model validation in build/review, validation helper, error messages

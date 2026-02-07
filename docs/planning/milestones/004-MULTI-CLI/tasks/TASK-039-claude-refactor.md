@@ -69,20 +69,20 @@ Key constraints:
 
 ### Acceptance Criteria
 
-- [ ] `tools/src/commands/ralph/providers/claude.ts` exists with all functionality migrated
-- [ ] All imports updated to use `./types.ts` and `./utils.ts`
-- [ ] `normalizeClaudeResult()` function implemented and extracts all required fields
-- [ ] `invokeClaudeHeadlessAsync()` returns `Promise<AgentResult>` with normalized data
-- [ ] `invokeClaudeHaiku()` refactored to use shared utilities
-- [ ] All 3 invocation modes work: supervised, headless-async, haiku
-- [ ] Backward compatibility maintained - existing `aaa ralph build` works unchanged
-- [ ] Original `tools/src/commands/ralph/claude.ts` deleted after migration verified
-- [ ] TypeScript compiles without errors
-- [ ] No functionality lost (stall detection, timeouts, signal handling all work)
+- [x] `tools/src/commands/ralph/providers/claude.ts` exists with all functionality migrated
+- [x] All imports updated to use `./types.ts` and `./utils.ts`
+- [x] `normalizeClaudeResult()` function implemented and extracts all required fields
+- [x] `invokeClaudeHeadlessAsync()` returns `Promise<AgentResult>` with normalized data
+- [x] `invokeClaudeHaiku()` refactored to use shared utilities
+- [x] All 3 invocation modes work: supervised, headless-async, haiku
+- [x] Backward compatibility maintained - existing `aaa ralph build` works unchanged
+- [x] Original `tools/src/commands/ralph/claude.ts` deleted after migration verified
+- [x] TypeScript compiles without errors
+- [x] No functionality lost (stall detection, timeouts, signal handling all work)
 
 ### Test Plan
 
-- [ ] Unit tests in `tools/tests/providers/claude.test.ts`:
+- [x] Unit tests in `tools/tests/providers/claude.test.ts`:
   - `normalizeClaudeResult()` parses valid Claude JSON array correctly
   - `normalizeClaudeResult()` throws on missing result entry
   - `normalizeClaudeResult()` handles partial data (missing optional fields)
@@ -90,13 +90,13 @@ Key constraints:
     - `fixtures/claude-success.json` - Normal successful response
     - `fixtures/claude-error.json` - Error response format
     - `fixtures/claude-malformed.json` - Invalid JSON handling
-- [ ] Integration verification:
+- [x] Integration verification:
   - Run `aaa ralph build` with refactored provider
   - Verify headless mode returns correct cost/duration/sessionId
   - Verify stall detection triggers after timeout
   - Verify interrupt (Ctrl+C) exits cleanly
   - Verify all 3 invocation modes work correctly (supervised, headless-async, haiku)
-- [ ] Regression tests:
+- [x] Regression tests:
   - All existing tests in `tools/tests/` pass
   - No changes needed to test assertions
 
@@ -161,14 +161,14 @@ Create test fixtures in `tools/tests/fixtures/`:
 
 **Migration Verification Checklist:**
 Before deleting original `claude.ts`:
-- [ ] All imports updated in build.ts
-- [ ] All imports updated in review/index.ts
-- [ ] `aaa ralph build` works with no config changes
-- [ ] `aaa ralph build --provider claude` works
-- [ ] JSON parsing returns correct cost/duration/sessionId
-- [ ] Stall detection works
-- [ ] Interrupt exits cleanly
-- [ ] All tests pass
+- [x] All imports updated in build.ts
+- [x] All imports updated in review/index.ts
+- [x] `aaa ralph build` works with no config changes
+- [x] `aaa ralph build --provider claude` works
+- [x] JSON parsing returns correct cost/duration/sessionId
+- [x] Stall detection works
+- [x] Interrupt exits cleanly
+- [x] All tests pass
 
 ### Related Documentation
 

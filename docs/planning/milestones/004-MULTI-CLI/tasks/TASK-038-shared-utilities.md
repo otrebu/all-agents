@@ -51,26 +51,26 @@ Key utilities to extract:
 4. Run TypeScript compiler and tests to verify
 
 ### Acceptance Criteria
-- [ ] `tools/src/commands/ralph/providers/utils.ts` exists with all utility functions
-- [ ] `StallDetectionConfig`, `ProcessExecutionOptions`, `ProcessExecutionResult` interfaces defined
-- [ ] `executeWithTimeout()` executes command with stall detection and hard timeout
-- [ ] `createStallDetector()` returns promise that resolves on stall and cleanup function
-- [ ] `createTimeoutPromise()` resolves with specified outcome after timeout
-- [ ] `killProcessGracefully()` implements two-phase termination
-- [ ] `readStderrWithActivityTracking()` forwards stderr and calls onActivity callback
-- [ ] `safeJsonParse()` parses valid JSON and returns default for invalid
-- [ ] `parseJsonl()` parses newline-delimited JSON array
-- [ ] `claude.ts` refactored to import utilities from utils.ts
-- [ ] No functionality lost in claude.ts after refactoring
-- [ ] Unit tests cover all utility functions
-- [ ] TypeScript compiles without errors
+- [x] `tools/src/commands/ralph/providers/utils.ts` exists with all utility functions
+- [x] `StallDetectionConfig`, `ProcessExecutionOptions`, `ProcessExecutionResult` interfaces defined
+- [x] `executeWithTimeout()` executes command with stall detection and hard timeout
+- [x] `createStallDetector()` returns promise that resolves on stall and cleanup function
+- [x] `createTimeoutPromise()` resolves with specified outcome after timeout
+- [x] `killProcessGracefully()` implements two-phase termination
+- [x] `readStderrWithActivityTracking()` forwards stderr and calls onActivity callback
+- [x] `safeJsonParse()` parses valid JSON and returns default for invalid
+- [x] `parseJsonl()` parses newline-delimited JSON array
+- [x] `claude.ts` refactored to import utilities from utils.ts
+- [x] No functionality lost in claude.ts after refactoring
+- [x] Unit tests cover all utility functions
+- [x] TypeScript compiles without errors
 
 ### Test Plan
-- [ ] Unit tests in `tools/tests/providers/utils.test.ts`:
+- [x] Unit tests in `tools/tests/providers/utils.test.ts`:
   - JSON parsing utilities (safeJsonParse, parseJsonl)
   - Timeout and promise utilities (createTimeoutPromise)
   - Process management utilities (killProcessGracefully - mocked)
-- [ ] Integration verification:
+- [x] Integration verification:
   - Run existing ralph build with refactored claude.ts
   - Verify headless mode still works
   - Verify stall detection still works

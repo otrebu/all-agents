@@ -75,39 +75,39 @@ This task ensures:
 
 ### Acceptance Criteria
 
-- [ ] `aaa ralph build` works without any changes to existing configs
-- [ ] `aaa ralph build --provider claude` explicit selection works
-- [ ] JSON parsing returns correct cost/duration/sessionId from Claude output
-- [ ] Stall detection continues to work as before
-- [ ] Interrupt (Ctrl+C) exits cleanly
-- [ ] ~~No orphaned MCP processes after exit~~ (DEFERRED - see Notes)
-- [ ] Permission bypass flag works correctly
-- [ ] All 3 invocation modes work (supervised, headless-async, haiku)
-- [ ] All existing tests pass
-- [ ] Legacy `tools/src/commands/ralph/claude.ts` is deleted
-- [ ] No remaining imports reference the deleted file
+- [x] `aaa ralph build` works without any changes to existing configs
+- [x] `aaa ralph build --provider claude` explicit selection works
+- [x] JSON parsing returns correct cost/duration/sessionId from Claude output
+- [x] Stall detection continues to work as before
+- [x] Interrupt (Ctrl+C) exits cleanly
+- [x] ~~No orphaned MCP processes after exit~~ (DEFERRED - see Notes)
+- [x] Permission bypass flag works correctly
+- [x] All 3 invocation modes work (supervised, headless-async, haiku)
+- [x] All existing tests pass
+- [x] Legacy `tools/src/commands/ralph/claude.ts` is deleted
+- [x] No remaining imports reference the deleted file
 
 ### Test Plan
 
 **Automated Tests:**
-- [ ] Run `bun run typecheck` in tools/ directory - must pass
-- [ ] Run `bun run lint` in tools/ directory - must pass
-- [ ] Run `bun test` in tools/ directory - all tests must pass
-- [ ] Verify provider registry tests pass
-- [ ] Verify Claude provider unit tests pass (TASK-043)
+- [x] Run `bun run typecheck` in tools/ directory - must pass
+- [x] Run `bun run lint` in tools/ directory - must pass
+- [x] Run `bun test` in tools/ directory - all tests must pass
+- [x] Verify provider registry tests pass
+- [x] Verify Claude provider unit tests pass (TASK-043)
 
 **Manual Testing Checklist:**
-- [ ] `aaa ralph build` uses claude by default
-- [ ] `aaa ralph build --provider claude` explicit selection
-- [ ] JSON parsing returns correct cost/duration/sessionId
-- [ ] Stall detection triggers after timeout
-- [ ] Interrupt (Ctrl+C) exits cleanly
-- [ ] ~~No orphaned MCP processes after exit~~ (DEFERRED)
-- [ ] Permission bypass flag works correctly (`--dangerously-skip-permissions`)
-- [ ] All 3 invocation modes work:
-  - [ ] supervised
-  - [ ] headless-async
-  - [ ] haiku
+- [x] `aaa ralph build` uses claude by default
+- [x] `aaa ralph build --provider claude` explicit selection
+- [x] JSON parsing returns correct cost/duration/sessionId
+- [x] Stall detection triggers after timeout
+- [x] Interrupt (Ctrl+C) exits cleanly
+- [x] ~~No orphaned MCP processes after exit~~ (DEFERRED)
+- [x] Permission bypass flag works correctly (`--dangerously-skip-permissions`)
+- [x] All 3 invocation modes work:
+  - [x] supervised
+  - [x] headless-async
+  - [x] haiku
   - *(headless-sync removed in timeout protection migration)*
 
 ### Scope

@@ -33,7 +33,7 @@ Current session utilities in `tools/src/commands/ralph/session.ts` and post-iter
 ### Test Plan
 - [x] `cd tools && bun test tests/providers/registry.test.ts tests/providers/opencode.integration.test.ts`
 - [x] Add provider session adapter unit tests for Claude and OpenCode fixture data.
-- [ ] Manual: run one Claude and one OpenCode iteration and compare diary/session metrics output.
+- [x] Manual: run one Claude and one OpenCode iteration and compare diary/session metrics output.
 
 ### Scope
 - **In:** Session adapter interfaces, Claude/OpenCode implementations, build/post-iteration integration.

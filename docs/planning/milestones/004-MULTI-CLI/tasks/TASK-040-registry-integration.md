@@ -92,31 +92,31 @@ The provider registry (TASK-037) provides a centralized way to select and invoke
 
 ### Acceptance Criteria
 
-- [ ] `tools/src/commands/ralph/build.ts` imports from `./providers/registry` instead of `./claude`
-- [ ] `tools/src/commands/review/index.ts` imports from `../ralph/providers/registry` instead of `../ralph/claude`
-- [ ] `runBuild()` calls `selectProvider()` at start and logs selected provider
-- [ ] `processHeadlessIteration()` uses `invokeWithProvider()` instead of `invokeClaudeHeadlessAsync()`
-- [ ] `processSupervisedIteration()` uses `invokeWithProvider()` instead of `invokeClaudeChat()`
-- [ ] `runHeadlessReview()` uses `invokeWithProvider()` instead of `invokeClaudeHeadlessAsync()`
-- [ ] `runSupervisedReview()` uses `invokeWithProvider()` instead of `invokeClaudeChat()`
-- [ ] `--provider` CLI flag works for both `aaa ralph build` and `aaa review` commands
-- [ ] `aaa ralph build` without `--provider` defaults to 'claude' (backward compatibility)
-- [ ] `aaa review` without `--provider` defaults to 'claude' (backward compatibility)
-- [ ] All result handling updated to use normalized `AgentResult` interface
-- [ ] TypeScript compiles without errors
-- [ ] All existing tests pass
+- [x] `tools/src/commands/ralph/build.ts` imports from `./providers/registry` instead of `./claude`
+- [x] `tools/src/commands/review/index.ts` imports from `../ralph/providers/registry` instead of `../ralph/claude`
+- [x] `runBuild()` calls `selectProvider()` at start and logs selected provider
+- [x] `processHeadlessIteration()` uses `invokeWithProvider()` instead of `invokeClaudeHeadlessAsync()`
+- [x] `processSupervisedIteration()` uses `invokeWithProvider()` instead of `invokeClaudeChat()`
+- [x] `runHeadlessReview()` uses `invokeWithProvider()` instead of `invokeClaudeHeadlessAsync()`
+- [x] `runSupervisedReview()` uses `invokeWithProvider()` instead of `invokeClaudeChat()`
+- [x] `--provider` CLI flag works for both `aaa ralph build` and `aaa review` commands
+- [x] `aaa ralph build` without `--provider` defaults to 'claude' (backward compatibility)
+- [x] `aaa review` without `--provider` defaults to 'claude' (backward compatibility)
+- [x] All result handling updated to use normalized `AgentResult` interface
+- [x] TypeScript compiles without errors
+- [x] All existing tests pass
 
 ### Test Plan
 
-- [ ] Unit tests for provider selection in registry (already in TASK-037)
-- [ ] Manual test: `aaa ralph build` uses claude by default
-- [ ] Manual test: `aaa ralph build --provider claude` explicit selection works
-- [ ] Manual test: `RALPH_PROVIDER=claude aaa ralph build` env var override works
-- [ ] Manual test: `aaa review --headless` uses claude by default
-- [ ] Manual test: `aaa review --headless --provider claude` explicit selection works
-- [ ] Verify result parsing returns correct cost/duration/sessionId from provider
-- [ ] Verify interrupt (Ctrl+C) exits cleanly with provider registry
-- [ ] Run full test suite: `cd tools && bun test`
+- [x] Unit tests for provider selection in registry (already in TASK-037)
+- [x] Manual test: `aaa ralph build` uses claude by default
+- [x] Manual test: `aaa ralph build --provider claude` explicit selection works
+- [x] Manual test: `RALPH_PROVIDER=claude aaa ralph build` env var override works
+- [x] Manual test: `aaa review --headless` uses claude by default
+- [x] Manual test: `aaa review --headless --provider claude` explicit selection works
+- [x] Verify result parsing returns correct cost/duration/sessionId from provider
+- [x] Verify interrupt (Ctrl+C) exits cleanly with provider registry
+- [x] Run full test suite: `cd tools && bun test`
 
 ### Scope
 

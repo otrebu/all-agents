@@ -33,22 +33,22 @@ The Claude provider needs unit tests to verify that JSON parsing from Claude CLI
 4. Run tests to verify they pass
 
 ### Acceptance Criteria
-- [ ] `tools/tests/fixtures/claude/` directory exists with 7 fixture files
-- [ ] `tools/tests/providers/claude.parser.test.ts` exists with tests for:
-  - [ ] Parsing complete result entry correctly
-  - [ ] Extracting all fields: result, costUsd, durationMs, sessionId, tokenUsage
-  - [ ] Throwing on missing result entry
-  - [ ] Throwing on malformed JSON
-  - [ ] Handling partial result (missing optional fields)
-  - [ ] Handling numeric string conversion for cost/duration
-- [ ] `tools/tests/providers/claude.config.test.ts` exists with config validation tests
-- [ ] All tests pass with `bun test`
-- [ ] Tests use Bun's built-in test runner (not Vitest)
+- [x] `tools/tests/fixtures/claude/` directory exists with 7 fixture files
+- [x] `tools/tests/providers/claude.parser.test.ts` exists with tests for:
+  - [x] Parsing complete result entry correctly
+  - [x] Extracting all fields: result, costUsd, durationMs, sessionId, tokenUsage
+  - [x] Throwing on missing result entry
+  - [x] Throwing on malformed JSON
+  - [x] Handling partial result (missing optional fields)
+  - [x] Handling numeric string conversion for cost/duration
+- [x] `tools/tests/providers/claude.config.test.ts` exists with config validation tests
+- [x] All tests pass with `bun test`
+- [x] Tests use Bun's built-in test runner (not Vitest)
 
 ### Test Plan
-- [ ] Unit tests run in isolation without Claude CLI
-- [ ] Tests cover all JSON parsing edge cases
-- [ ] Tests verify type safety through TypeScript
+- [x] Unit tests run in isolation without Claude CLI
+- [x] Tests cover all JSON parsing edge cases
+- [x] Tests verify type safety through TypeScript
 
 ### Scope
 - **In:** JSON parsing tests, fixture files, config validation tests

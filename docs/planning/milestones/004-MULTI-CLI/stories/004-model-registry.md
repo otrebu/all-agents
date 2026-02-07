@@ -33,14 +33,14 @@ The model registry provides:
 4. **Cost hints** - Cheap/standard/expensive categorization
 
 ### Acceptance Criteria
-- [ ] Tab completion shows available models for current provider
-- [ ] Static baseline models work without refresh
-- [ ] `aaa ralph refresh-models` discovers new models from providers
-- [ ] `aaa ralph refresh-models --dry-run` shows what would be discovered
-- [ ] `aaa ralph refresh-models --provider opencode` refreshes specific provider
-- [ ] Unknown model ID shows helpful error with suggestions
-- [ ] Model registry merges static + dynamic without duplicates
-- [ ] Cost hints guide model selection (cheap/standard/expensive)
+- [x] Tab completion shows available models for current provider
+- [x] Static baseline models work without refresh
+- [x] `aaa ralph refresh-models` discovers new models from providers
+- [x] `aaa ralph refresh-models --dry-run` shows what would be discovered
+- [x] `aaa ralph refresh-models --provider opencode` refreshes specific provider
+- [x] Unknown model ID shows helpful error with suggestions
+- [x] Model registry merges static + dynamic without duplicates
+- [x] Cost hints guide model selection (cheap/standard/expensive)
 
 ### Tasks
 - [TASK-049-static-registry](../tasks/TASK-049-static-registry.md) - Create static model registry with baseline models
@@ -304,13 +304,13 @@ aaa ralph build --provider opencode --model <TAB>
 - Error handling for unknown models
 
 **Manual Testing Checklist:**
-- [ ] Tab completion shows merged static + dynamic models
-- [ ] `aaa ralph refresh-models` updates dynamic models
-- [ ] `aaa ralph refresh-models --dry-run` shows preview
-- [ ] `aaa ralph refresh-models --provider opencode` refreshes only opencode
-- [ ] Unknown model ID shows helpful error with suggestions
-- [ ] Model validation rejects wrong provider models
-- [ ] Cost hints display in tab completion
+- [x] Tab completion shows merged static + dynamic models
+- [x] `aaa ralph refresh-models` updates dynamic models
+- [x] `aaa ralph refresh-models --dry-run` shows preview
+- [x] `aaa ralph refresh-models --provider opencode` refreshes only opencode
+- [x] Unknown model ID shows helpful error with suggestions
+- [x] Model validation rejects wrong provider models
+- [x] Cost hints display in tab completion
 
 **Files Created:**
 - `tools/src/commands/ralph/providers/models-static.ts` - Static baseline models

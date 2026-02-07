@@ -20,12 +20,12 @@ As a ralph developer, I want a unified provider abstraction layer so that I can 
 Ralph currently has tight coupling to Claude Code CLI. As the AI coding agent ecosystem grows (OpenCode, Codex, Gemini CLI, Pi Mono), we need to abstract the provider layer to support multiple CLIs while maintaining a unified interface. This foundation story creates the core types, registry pattern, and utilities that all providers will use.
 
 ### Acceptance Criteria
-- [ ] Provider types use discriminated unions (no classes)
-- [ ] Registry pattern supports lazy availability checking
-- [ ] Shared utilities extracted from existing claude.ts (stall detection, timeouts)
-- [ ] Provider selection follows priority: CLI flag > env var > config > auto-detect
-- [ ] Clear error messages when provider binary not found
-- [ ] All code follows gate-standards (linting, formatting, type safety)
+- [x] Provider types use discriminated unions (no classes)
+- [x] Registry pattern supports lazy availability checking
+- [x] Shared utilities extracted from existing claude.ts (stall detection, timeouts)
+- [x] Provider selection follows priority: CLI flag > env var > config > auto-detect
+- [x] Clear error messages when provider binary not found
+- [x] All code follows gate-standards (linting, formatting, type safety)
 
 ### Tasks
 - [TASK-036-provider-types](./tasks/TASK-036-provider-types.md) - Provider types with discriminated unions
@@ -510,11 +510,11 @@ aaa ralph build --provider opencode --model gpt-4o
 - JSON/JSONL parsing edge cases
 
 **Manual Testing Checklist:**
-- [ ] Provider selection follows priority order
-- [ ] Clear error when provider binary not found
-- [ ] Helpful install instructions in error messages
-- [ ] Auto-detect finds available providers
-- [ ] Invalid provider shows helpful error with valid options
+- [x] Provider selection follows priority order
+- [x] Clear error when provider binary not found
+- [x] Helpful install instructions in error messages
+- [x] Auto-detect finds available providers
+- [x] Invalid provider shows helpful error with valid options
 
 **Implementation Details:**
 
