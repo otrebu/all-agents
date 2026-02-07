@@ -25,15 +25,15 @@ Post-iteration summary, timing, and diary telemetry are provider-neutral and wor
 6. Ensure existing diary readers and status commands can parse both old and new telemetry field names.
 
 ### Acceptance Criteria
-- [ ] Post-iteration summary invocation path is provider-neutral.
-- [ ] Telemetry/timing naming is provider-neutral in output and diary entries.
-- [ ] Existing historical logs remain readable after the field migration.
-- [ ] Claude and OpenCode both generate valid post-iteration summaries and metrics.
+- [x] Post-iteration summary invocation path is provider-neutral.
+- [x] Telemetry/timing naming is provider-neutral in output and diary entries.
+- [x] Existing historical logs remain readable after the field migration.
+- [x] Claude and OpenCode both generate valid post-iteration summaries and metrics.
 
 ### Test Plan
-- [ ] `cd tools && bun test tests/providers/registry.test.ts`
-- [ ] Add post-iteration tests covering old and new timing field compatibility.
-- [ ] Manual: run one Claude headless iteration and one OpenCode headless iteration; verify parity in diary entries.
+- [x] `cd tools && bun test tests/providers/registry.test.ts`
+- [x] Add post-iteration tests covering old and new timing field compatibility.
+- [x] Manual: run one Claude headless iteration and one OpenCode headless iteration; verify parity in diary entries.
 
 ### Scope
 - **In:** Post-iteration summary abstraction, telemetry naming migration, display text cleanup, compatibility tests.

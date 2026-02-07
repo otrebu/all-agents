@@ -31,12 +31,12 @@ Milestone 004 delivered provider abstraction for core invocation, but runtime be
 This story closes those gaps with provider-neutral contracts implemented first, then OpenCode parity on top of those contracts.
 
 ### Acceptance Criteria
-- [ ] Provider capability checks are enforced before invocation with clear mode/provider errors
-- [ ] OpenCode supervised mode is truly interactive and PTY-gated
-- [ ] Session discovery/metrics use provider adapters instead of direct `.claude` assumptions
-- [ ] Build retry behavior uses normalized provider outcomes (`success`, `retryable`, `fatal`)
-- [ ] Post-iteration summary and timing fields are provider-neutral
-- [ ] Claude and OpenCode both pass parity tests for headless and supervised runtime paths
+- [x] Provider capability checks are enforced before invocation with clear mode/provider errors
+- [x] OpenCode supervised mode is truly interactive and PTY-gated
+- [x] Session discovery/metrics use provider adapters instead of direct `.claude` assumptions
+- [x] Build retry behavior uses normalized provider outcomes (`success`, `retryable`, `fatal`)
+- [x] Post-iteration summary and timing fields are provider-neutral
+- [x] Claude and OpenCode both pass parity tests for headless and supervised runtime paths
 
 ### Tasks
 - [TASK-053-provider-capability-gating](../tasks/TASK-053-provider-capability-gating.md) - Enforce runtime capability gating and truthful mode messaging
