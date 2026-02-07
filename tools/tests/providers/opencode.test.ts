@@ -79,6 +79,17 @@ describe("normalizeOpencodeResult - valid JSONL fixture", () => {
     expect(result.tokenUsage?.cacheRead).toBe(0);
     expect(result.tokenUsage?.cacheWrite).toBe(0);
   });
+
+  test("supports cache tokens from modern nested cache shape", () => {
+    const jsonl = [
+      '{"type":"step_start","timestamp":1704067200000,"sessionID":"ses_nested_cache"}',
+      '{"type":"step_finish","timestamp":1704067201000,"part":{"reason":"stop","cost":0.001,"tokens":{"input":100,"output":10,"cache":{"read":7,"write":3}}}}',
+    ].join("\n");
+
+    const result = normalizeOpencodeResult(jsonl);
+    expect(result.tokenUsage?.cacheRead).toBe(7);
+    expect(result.tokenUsage?.cacheWrite).toBe(3);
+  });
 });
 
 // =============================================================================
@@ -249,24 +260,23 @@ describe("buildOpencodeArguments - model format", () => {
     expect(args[0]).toBe("run");
   });
 
-  test("includes --output jsonl flag", () => {
+  test("includes --format json flag", () => {
     const config: OpencodeConfig = { provider: "opencode" };
     const args = buildOpencodeArguments(config, "test prompt");
 
-    expect(args).toContain("--output");
-    expect(args).toContain("jsonl");
-    // Verify order: --output comes before jsonl
-    const outputIndex = args.indexOf("--output");
-    expect(args[outputIndex + 1]).toBe("jsonl");
+    expect(args).toContain("--format");
+    expect(args).toContain("json");
+    // Verify order: --format comes before json
+    const formatIndex = args.indexOf("--format");
+    expect(args[formatIndex + 1]).toBe("json");
   });
 
-  test("includes --prompt with prompt text", () => {
+  test("passes prompt as positional message argument", () => {
     const config: OpencodeConfig = { provider: "opencode" };
     const args = buildOpencodeArguments(config, "build the feature");
 
-    expect(args).toContain("--prompt");
-    const promptIndex = args.indexOf("--prompt");
-    expect(args[promptIndex + 1]).toBe("build the feature");
+    expect(args).not.toContain("--prompt");
+    expect(args.at(-1)).toBe("build the feature");
   });
 
   test("includes --model with provider/model format", () => {

@@ -97,6 +97,19 @@ When running validation commands for `tools/` work, use these conventions:
 - If re-running a command, say why (`failed due to path`, `after fixes`, `final verify`) so output volume is predictable.
 - If a command emits noisy TUI/control output, summarize key lines in updates instead of pasting raw escape-heavy logs.
 
+### Fast Iteration Defaults
+
+Use this loop during implementation to minimize repeated full-tree scans:
+
+- Use direct binaries for targeted checks:
+  - `./node_modules/.bin/eslint <changed-files...>`
+  - `./node_modules/.bin/prettier --check <changed-files...>`
+  - `./node_modules/.bin/prettier --write <changed-files...>` (only when needed)
+- Prefer targeted tests (`bun test <file-or-pattern>`) over `bun run test`.
+- Do not run full `eslint .` repeatedly during edit loops.
+- Before commit, run only targeted checks already needed; rely on pre-commit hooks for one final full validation pass.
+- If pre-commit fails on formatting, format only reported files, re-stage, and commit again.
+
 ## Core Patterns
 
 ### Path Resolution

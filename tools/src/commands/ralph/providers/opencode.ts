@@ -7,7 +7,8 @@
  * ## OpenCode-Specific Quirks
  *
  * ### JSONL Output Format
- * OpenCode outputs newline-delimited JSON events to stdout:
+ * OpenCode outputs newline-delimited JSON events to stdout via
+ * `opencode run --format json`:
  * ```jsonl
  * {"type":"step_start","timestamp":...,"sessionID":"ses_XXX"}
  * {"type":"text","timestamp":...,"part":{"text":"Hello!"}}
@@ -68,6 +69,7 @@ interface OpencodeEvent {
     reason?: string;
     text?: string;
     tokens?: {
+      cache?: { read?: number; write?: number };
       cacheRead?: number;
       cacheWrite?: number;
       input?: number;
@@ -89,6 +91,8 @@ interface OpencodeSessionListEntry {
   title?: string;
   updated?: number;
 }
+
+type OpencodeTokens = NonNullable<NonNullable<OpencodeEvent["part"]>["tokens"]>;
 
 type TerminationSignal = "SIGINT" | "SIGTERM";
 
@@ -187,7 +191,7 @@ const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 /**
  * Build CLI arguments for the OpenCode process.
  *
- * Uses `opencode run` and always includes `--output jsonl` for machine-readable output.
+ * Uses `opencode run --format json` for machine-readable output.
  * Model is passed in "provider/model" format (e.g., "anthropic/claude-sonnet-4-20250514").
  *
  * @param config - OpenCode provider configuration
@@ -198,12 +202,14 @@ function buildOpencodeArguments(
   config: OpencodeConfig,
   prompt: string,
 ): Array<string> {
-  const args = ["run", "--output", "jsonl", "--prompt", prompt];
+  const args = ["run", "--format", "json"];
 
   // Model format: "provider/model" (e.g., "anthropic/claude-sonnet-4-20250514")
   if (config.model !== undefined && config.model !== "") {
     args.push("--model", config.model);
   }
+
+  args.push(prompt);
 
   return args;
 }
@@ -322,7 +328,7 @@ function getSessionTimestamp(session: OpencodeSessionListEntry): number {
  * Registry-compatible invoker for the OpenCode provider.
  *
  * Dispatches to one of two execution paths:
- * - headless: `opencode run --output jsonl` with hard timeout enforcement
+ * - headless: `opencode run --format json` with hard timeout enforcement
  * - supervised: interactive `opencode --prompt ...` with PTY requirements
  *
  * The registry composes prompt-file content + context and passes it as
@@ -352,7 +358,7 @@ async function invokeOpencode(
 }
 
 /**
- * Headless OpenCode invocation path (`opencode run --output jsonl`).
+ * Headless OpenCode invocation path (`opencode run --format json`).
  */
 async function invokeOpencodeHeadless(
   options: InvocationOptions,
@@ -431,8 +437,11 @@ async function invokeOpencodeHeadless(
 
   if (proc.exitCode !== 0) {
     const stderr = await stderrPromise;
+    const stdout = await stdoutPromise;
+    const trimmedStderr = stderr.trim();
+    const details = trimmedStderr === "" ? stdout.trim() : stderr;
     throw new Error(
-      `OpenCode exited with code ${String(proc.exitCode)}: ${stderr || "(no stderr)"}`,
+      `OpenCode exited with code ${String(proc.exitCode)}: ${details || "(no output)"}`,
     );
   }
 
@@ -614,22 +623,7 @@ function mapOpencodeInvocationError(error: unknown): ProviderFailureOutcome {
  * @throws Error if JSONL is empty, malformed, or missing required events
  */
 function normalizeOpencodeResult(jsonlOutput: string): AgentResult {
-  const lines = jsonlOutput.split("\n").filter((line) => line.trim() !== "");
-
-  if (lines.length === 0) {
-    throw new Error("Empty JSONL output from OpenCode");
-  }
-
-  const events: Array<OpencodeEvent> = [];
-  for (const line of lines) {
-    try {
-      events.push(JSON.parse(line) as OpencodeEvent);
-    } catch {
-      throw new Error(
-        `Malformed JSON line in OpenCode output: ${line.slice(0, 100)}`,
-      );
-    }
-  }
+  const events = parseOpencodeEvents(jsonlOutput);
 
   // Extract text from all text events (concatenated in order)
   const resultText = events
@@ -667,18 +661,30 @@ function normalizeOpencodeResult(jsonlOutput: string): AgentResult {
       : 0;
 
   // Extract token usage
-  const tokens = finishEvent.part?.tokens;
-  const tokenUsage: TokenUsage | undefined = tokens
-    ? {
-        cacheRead: tokens.cacheRead,
-        cacheWrite: tokens.cacheWrite,
-        input: tokens.input ?? 0,
-        output: tokens.output ?? 0,
-        reasoning: tokens.reasoning,
-      }
-    : undefined;
+  const tokenUsage = toTokenUsage(finishEvent.part?.tokens);
 
   return { costUsd, durationMs, result: resultText, sessionId, tokenUsage };
+}
+
+function parseOpencodeEvents(jsonlOutput: string): Array<OpencodeEvent> {
+  const lines = jsonlOutput.split("\n").filter((line) => line.trim() !== "");
+
+  if (lines.length === 0) {
+    throw new Error("Empty JSONL output from OpenCode");
+  }
+
+  const events: Array<OpencodeEvent> = [];
+  for (const line of lines) {
+    try {
+      events.push(JSON.parse(line) as OpencodeEvent);
+    } catch {
+      throw new Error(
+        `Malformed JSON line in OpenCode output: ${line.slice(0, 100)}`,
+      );
+    }
+  }
+
+  return events;
 }
 
 /**
@@ -759,6 +765,28 @@ function sendSignalToProcessTree(
   } catch {
     // Process may already be terminated.
   }
+}
+
+function toTokenUsage(
+  tokens: OpencodeTokens | undefined,
+): TokenUsage | undefined {
+  if (tokens === undefined) {
+    return undefined;
+  }
+
+  const { cache, input, output, reasoning } = tokens;
+  const cacheRead =
+    typeof tokens.cacheRead === "number" ? tokens.cacheRead : cache?.read;
+  const cacheWrite =
+    typeof tokens.cacheWrite === "number" ? tokens.cacheWrite : cache?.write;
+
+  return {
+    cacheRead,
+    cacheWrite,
+    input: input ?? 0,
+    output: output ?? 0,
+    reasoning,
+  };
 }
 
 // =============================================================================
