@@ -132,7 +132,7 @@ interface PlanSubtasksSummaryData {
   milestone?: string;
   /** Path where subtasks.json was written */
   outputPath: string;
-  /** Claude session ID */
+  /** Provider session ID */
   sessionId: string;
   /** Sizing mode used */
   sizeMode: "large" | "medium" | "small";

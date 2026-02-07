@@ -5,7 +5,7 @@
  * 1. Loads subtasks from subtasks.json
  * 2. Gets the next pending subtask
  * 3. Tracks retry attempts per subtask
- * 4. Invokes Claude in supervised or headless mode
+ * 4. Invokes the selected provider in supervised or headless mode
  * 5. Reloads subtasks.json after each iteration to check completion
  *
  * @see docs/planning/ralph-migration-implementation-plan.md
@@ -58,6 +58,7 @@ import {
 import { discoverRecentSessionForProvider } from "./providers/session-adapter";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
+import { getProviderTimingMs } from "./types";
 
 // =============================================================================
 // Constants
@@ -196,7 +197,7 @@ let summaryContext: null | SummaryContext = null;
  *
  * @param contextRoot - Repository root path
  * @param subtasksPath - Path to subtasks.json file
- * @returns Full prompt string for Claude
+ * @returns Full prompt string for the selected provider
  */
 function buildIterationPrompt(
   contextRoot: string,
@@ -280,11 +281,11 @@ async function fireSubtaskCompleteHook(
 ): Promise<void> {
   const { hookResult, subtask } = options;
   const entry = hookResult?.entry;
-  const claudeMs = entry?.timing?.claudeMs;
+  const providerMs = getProviderTimingMs(entry?.timing);
 
   await executeHook("onSubtaskComplete", {
     costUsd: entry?.costUsd,
-    duration: claudeMs === undefined ? undefined : formatDuration(claudeMs),
+    duration: providerMs === undefined ? undefined : formatDuration(providerMs),
     filesChanged: entry?.filesChanged?.length,
     linesAdded: entry?.linesAdded,
     linesRemoved: entry?.linesRemoved,
@@ -485,7 +486,7 @@ async function processHeadlessIteration(
   // Use target project root for logs (not all-agents)
   const projectRoot = findProjectRoot() ?? contextRoot;
 
-  // Capture commit hash before Claude invocation
+  // Capture commit hash before provider invocation
   const commitBefore = getLatestCommitHash(projectRoot);
 
   // Load timeout configuration
@@ -494,8 +495,8 @@ async function processHeadlessIteration(
   const hardTimeoutMs = timeoutConfig.hardMinutes * 60 * 1000;
   const gracePeriodMs = timeoutConfig.graceSeconds * 1000;
 
-  // Time Claude invocation for metrics
-  const claudeStart = Date.now();
+  // Time provider invocation for metrics
+  const providerStart = Date.now();
   const stopHeartbeat = startHeartbeat(provider, 30_000);
   const invocationOutcome = await (async () => {
     try {
@@ -515,9 +516,9 @@ async function processHeadlessIteration(
       stopHeartbeat();
     }
   })();
-  const claudeMs = Date.now() - claudeStart;
+  const providerMs = Date.now() - providerStart;
 
-  // Capture commit hash after Claude invocation
+  // Capture commit hash after provider invocation
   const commitAfter = getLatestCommitHash(projectRoot);
 
   if (invocationOutcome.status !== "success") {
@@ -551,7 +552,6 @@ async function processHeadlessIteration(
     const stopPostIterationHeartbeat = startHeartbeat("Post-iteration", 30_000);
     try {
       hookResult = await runPostIterationHook({
-        claudeMs,
         commitAfter,
         commitBefore,
         contextRoot,
@@ -561,6 +561,7 @@ async function processHeadlessIteration(
         milestone,
         mode: "headless",
         provider,
+        providerMs,
         remaining: postRemaining,
         repoRoot: projectRoot,
         sessionId: result.sessionId,
@@ -676,7 +677,7 @@ async function processSupervisedIteration(
   const commitAfter = getLatestCommitHash(projectRoot);
 
   // Calculate elapsed time for provider invocation
-  const claudeMs = Date.now() - invocationStart;
+  const providerMs = Date.now() - invocationStart;
 
   // Prefer provider-native session capture, then provider adapter discovery.
   const hasProviderSessionId = supervisedResult.sessionId !== "";
@@ -706,7 +707,6 @@ async function processSupervisedIteration(
   let hookResult: null | PostIterationResult = null;
   if (sessionId !== "") {
     hookResult = await runPostIterationHook({
-      claudeMs,
       commitAfter,
       commitBefore,
       contextRoot,
@@ -715,6 +715,7 @@ async function processSupervisedIteration(
       milestone,
       mode: "supervised",
       provider,
+      providerMs,
       remaining: postRemaining,
       repoRoot: projectRoot,
       sessionId,
@@ -731,7 +732,7 @@ async function processSupervisedIteration(
         renderIterationEnd({
           attempt: currentAttempts,
           diaryPath,
-          durationMs: claudeMs,
+          durationMs: providerMs,
           filesChanged: entry.filesChanged?.length ?? 0,
           iteration,
           keyFindings: entry.keyFindings,
@@ -863,7 +864,7 @@ async function resolveProviderOrExit(
 /**
  * Run the build loop
  *
- * Iterates through subtasks, invoking Claude for each until all are done
+ * Iterates through subtasks, invoking the selected provider until all are done
  * or max iterations is exceeded for a subtask.
  *
  * @param options - Build configuration options
@@ -994,7 +995,7 @@ async function runBuild(
       hasSummaryBeenGenerated = true;
 
       // Explicit clean exit to ensure process terminates after successful build
-      // This prevents hanging when Claude subprocesses have internal Stop events
+      // This prevents hanging when provider subprocesses have internal Stop events
       process.exit(0);
     }
 

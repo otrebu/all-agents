@@ -3,7 +3,7 @@
  *
  * This module handles post-iteration processing:
  * - runPostIterationHook() - Main entry point, orchestrates all post-iteration actions
- * - generateSummary() - Uses Haiku with timeout for summary generation
+ * - generateSummary() - Uses provider lightweight model with timeout
  * - writeDiaryEntry() - Appends JSON line to logs/iterations.jsonl
  * - getFilesChanged() - Uses git diff + session log fallback
  *
@@ -23,13 +23,13 @@ import type {
   Subtask,
 } from "./types";
 
-import { getIterationLogPath } from "./config";
-import { invokeClaudeHaiku } from "./providers/claude";
+import { getIterationLogPath, loadRalphConfig } from "./config";
 import {
   EMPTY_SESSION_METRICS,
   extractSessionMetricsForProvider,
   resolveSessionForProvider,
 } from "./providers/session-adapter";
+import { invokeProviderSummary } from "./providers/summary";
 
 // =============================================================================
 // Types
@@ -39,9 +39,9 @@ import {
  * Options for getFilesChanged()
  */
 interface GetFilesChangedOptions {
-  /** Commit hash after Claude invocation */
+  /** Commit hash after provider invocation */
   commitAfter?: null | string;
-  /** Commit hash before Claude invocation */
+  /** Commit hash before provider invocation */
   commitBefore?: null | string;
   /** Repository root path for git commands */
   repoRoot: string;
@@ -63,11 +63,9 @@ interface LinesChangedResult {
  * Options for running the post-iteration hook
  */
 interface PostIterationOptions {
-  /** Time spent in Claude Code invocation (ms) - passed from build.ts */
-  claudeMs?: number;
-  /** Git commit hash after Claude invocation completed */
+  /** Git commit hash after provider invocation completed */
   commitAfter?: null | string;
-  /** Git commit hash before Claude invocation started */
+  /** Git commit hash before provider invocation started */
   commitBefore?: null | string;
   /** All-agents context root (for prompt templates) */
   contextRoot: string;
@@ -83,13 +81,15 @@ interface PostIterationOptions {
   mode?: "headless" | "supervised";
   /** Provider used for this iteration */
   provider?: ProviderType;
+  /** Time spent in provider invocation (ms) - passed from build.ts */
+  providerMs?: number;
   /** Number of remaining subtasks after this iteration */
   remaining?: number;
   /** Repository root path for session discovery */
   repoRoot: string;
-  /** Claude session ID (required - hook is skipped without this) */
+  /** Provider session ID (required - hook is skipped without this) */
   sessionId: string;
-  /** Skip Haiku summary generation to reduce latency and cost */
+  /** Skip lightweight summary generation to reduce latency and cost */
   skipSummary?: boolean;
   /** The iteration status */
   status: IterationStatus;
@@ -119,8 +119,10 @@ interface PostIterationResult {
 // Lines Changed
 // =============================================================================
 
+type SummaryInvoker = typeof invokeProviderSummary;
+
 /**
- * Result from Haiku summary generation
+ * Result from lightweight summary generation
  */
 interface SummaryResult {
   /** Key findings from the iteration */
@@ -136,10 +138,10 @@ interface SummaryResult {
 // =============================================================================
 
 /**
- * Generate iteration summary using Claude Haiku
+ * Generate iteration summary using provider lightweight model
  *
  * Uses the iteration-summary.md prompt template with placeholder substitution.
- * Falls back to a default summary if Haiku fails or times out.
+ * Falls back to a default summary if model invocation fails or times out.
  * When skipSummary is true, returns a placeholder summary immediately.
  *
  * @param options - PostIterationOptions containing subtask and session info
@@ -149,11 +151,13 @@ interface SummaryResult {
 async function generateSummary(
   options: PostIterationOptions,
   sessionPath: null | string,
+  summaryInvoker: SummaryInvoker = invokeProviderSummary,
 ): Promise<SummaryResult> {
   const {
     contextRoot,
     iterationNumber = 1,
     milestone = "",
+    provider = "claude",
     skipSummary: shouldSkipSummary = false,
     status,
     subtask,
@@ -161,7 +165,7 @@ async function generateSummary(
 
   const summaryStart = Date.now();
 
-  // Skip Haiku if skipSummary is true
+  // Skip lightweight summary model if skipSummary is true
   if (shouldSkipSummary) {
     return {
       keyFindings: [],
@@ -170,7 +174,7 @@ async function generateSummary(
     };
   }
 
-  // Skip Haiku if no session (Haiku can't read files in -p mode anyway)
+  // Skip model invocation if no session content is available
   if (sessionPath === null) {
     return {
       keyFindings: [],
@@ -191,7 +195,7 @@ async function generateSummary(
     };
   }
 
-  // Read session content to pass directly (Haiku can't read files with -p flag)
+  // Read session content to pass directly (providers may not read files in headless mode)
   let sessionContent = "";
   try {
     const rawContent = readFileSync(sessionPath, "utf8");
@@ -214,10 +218,20 @@ async function generateSummary(
     .replaceAll("{{ITERATION_NUM}}", String(iterationNumber))
     .replaceAll("{{SESSION_CONTENT}}", sessionContent);
 
-  // Invoke Haiku with 30 second timeout
-  const result = await invokeClaudeHaiku({
+  const configuredLightweightModel = (() => {
+    try {
+      return loadRalphConfig().lightweightModel ?? "";
+    } catch {
+      return "";
+    }
+  })();
+
+  // Invoke provider summary model with 30 second timeout
+  const result = await summaryInvoker({
+    configuredModel: configuredLightweightModel,
     prompt: promptContent,
-    timeout: 30_000,
+    provider,
+    timeoutMs: 30_000,
   });
 
   if (result === null || result.trim() === "") {
@@ -228,7 +242,7 @@ async function generateSummary(
     };
   }
 
-  // Parse JSON from Haiku response
+  // Parse JSON from provider summary response
   try {
     // The result may be inside a code block, try to extract JSON
     let jsonString = result;
@@ -269,11 +283,11 @@ async function generateSummary(
  *
  * Uses git diff --name-only to list files modified
  * across all commits in the range. This accurately measures
- * what Claude committed during an iteration.
+ * what the provider committed during an iteration.
  *
  * @param repoRoot - Repository root path for git commands
- * @param before - Commit hash before Claude invocation
- * @param after - Commit hash after Claude invocation
+ * @param before - Commit hash before provider invocation
+ * @param after - Commit hash after provider invocation
  * @returns Array of file paths changed in the range
  */
 function getCommitRangeFiles(
@@ -306,11 +320,11 @@ function getCommitRangeFiles(
  *
  * Uses git diff --numstat to count insertions and deletions
  * across all commits in the range. This accurately measures
- * what Claude committed during an iteration.
+ * what the provider committed during an iteration.
  *
  * @param repoRoot - Repository root path for git commands
- * @param before - Commit hash before Claude invocation
- * @param after - Commit hash after Claude invocation
+ * @param before - Commit hash before provider invocation
+ * @param after - Commit hash after provider invocation
  * @returns LinesChangedResult with totals
  */
 function getCommitRangeLines(
@@ -441,7 +455,7 @@ function getFilesChanged(options: GetFilesChangedOptions): Array<string> {
  * Uses git diff --numstat to count insertions and deletions.
  * Includes both staged and unstaged changes.
  * Falls back to git show --numstat HEAD when no uncommitted changes exist
- * (handles case where Claude already committed during the iteration).
+ * (handles case where the provider already committed during the iteration).
  *
  * @param repoRoot - Repository root path for git commands
  * @returns LinesChangedResult with totals
@@ -474,7 +488,7 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
     linesRemoved += unstagedResult.linesRemoved;
 
     // Fallback: if no uncommitted changes, get lines from the latest commit
-    // This handles the case where Claude already committed during the iteration
+    // This handles the case where the provider already committed during the iteration
     if (linesAdded === 0 && linesRemoved === 0) {
       const headProc = Bun.spawnSync(["git", "show", "--numstat", "HEAD"], {
         cwd: repoRoot,
@@ -548,7 +562,7 @@ function parseNumstat(numstatOutput: string): LinesChangedResult {
  *
  * The hook:
  * 1. Finds the session JSONL file
- * 2. Generates a summary using Haiku (with timing)
+ * 2. Generates a summary using lightweight provider model (with timing)
  * 3. Collects metrics (tool calls, duration, files changed) with timing
  * 4. Writes a diary entry to logs/iterations.jsonl with timing breakdown
  *
@@ -561,7 +575,6 @@ async function runPostIterationHook(
   const hookStart = Date.now();
 
   const {
-    claudeMs = 0,
     commitAfter,
     commitBefore,
     costUsd,
@@ -569,6 +582,7 @@ async function runPostIterationHook(
     milestone = "",
     mode,
     provider = "claude",
+    providerMs = 0,
     repoRoot,
     sessionId,
     status,
@@ -588,7 +602,7 @@ async function runPostIterationHook(
   );
   const sessionPath = resolvedSession?.path ?? null;
 
-  // Generate summary using Haiku (silent - no console output)
+  // Generate summary using provider adapter (silent - no console output)
   const summaryResult = await generateSummary(options, sessionPath);
 
   // Collect metrics with timing
@@ -610,8 +624,8 @@ async function runPostIterationHook(
     sessionFiles,
   });
 
-  // If commits are different, use commit range diff to accurately measure what Claude committed
-  // If same (Claude didn't commit), fall back to staged+unstaged changes
+  // If commits are different, use commit range diff to accurately measure provider commits
+  // If same (provider didn't commit), fall back to staged+unstaged changes
   const hasValidCommitRange =
     commitBefore !== null &&
     commitBefore !== undefined &&
@@ -631,9 +645,9 @@ async function runPostIterationHook(
 
   // Build timing breakdown
   const timing: IterationTiming = {
-    claudeMs,
     hookMs,
     metricsMs,
+    providerMs,
     summaryMs: summaryResult.summaryMs,
   };
 

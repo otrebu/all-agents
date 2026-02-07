@@ -35,7 +35,7 @@ interface BuildOptions {
   provider?: ProviderType;
   /** Suppress terminal summary output */
   quiet: boolean;
-  /** Skip Haiku summary generation in headless mode to reduce latency and cost */
+  /** Skip lightweight summary generation in headless mode to reduce latency and cost */
   skipSummary: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
@@ -153,7 +153,7 @@ interface IterationDiaryEntry {
   milestone?: string;
   /** Execution mode: 'headless' or 'supervised' */
   mode?: "headless" | "supervised";
-  /** Claude Code session ID */
+  /** Provider session ID */
   sessionId: string;
   /** Outcome of this iteration */
   status: IterationStatus;
@@ -196,13 +196,15 @@ type IterationStatus = "completed" | "failed" | "retrying";
  * Tracks where time is spent during a Ralph build iteration
  */
 interface IterationTiming {
-  /** Time spent in Claude Code invocation (ms) */
-  claudeMs: number;
+  /** Legacy field from older diary entries (pre provider-neutral naming) */
+  claudeMs?: number;
   /** Time spent in post-iteration hook (ms) */
   hookMs: number;
   /** Time spent collecting metrics (ms) */
   metricsMs: number;
-  /** Time spent generating Haiku summary (ms) */
+  /** Time spent in provider invocation (ms) */
+  providerMs?: number;
+  /** Time spent generating lightweight summary (ms) */
   summaryMs: number;
 }
 
@@ -233,7 +235,7 @@ interface PostIterationHookConfig extends HookConfig {
 interface RalphConfig {
   /** Hook configuration */
   hooks?: HooksConfig;
-  /** Lightweight model for summary tasks (e.g., "claude-3-5-haiku-latest") */
+  /** Lightweight model for summary tasks (provider-specific model string) */
   lightweightModel?: string;
   /** Default model override */
   model?: string;
@@ -274,7 +276,7 @@ interface Subtask {
   filesToRead: Array<string>;
   /** Unique subtask identifier (e.g., 'SUB-001') */
   id: string;
-  /** Claude Code session ID that completed this subtask */
+  /** Provider session ID that completed this subtask */
   sessionId?: string;
   /** Reference to grandparent story if task has one */
   storyRef?: null | string;
@@ -314,7 +316,7 @@ interface SubtasksFile {
 
 /**
  * Token usage for an iteration
- * Tracks token consumption from Claude Code session
+ * Tracks token consumption from provider session telemetry
  */
 interface TokenUsage {
   /** Final context window size (input + cached tokens at last API call) */
@@ -326,6 +328,65 @@ interface TokenUsage {
 // =============================================================================
 // Utility Functions
 // =============================================================================
+
+/**
+ * Resolve provider invocation timing from either new or legacy timing fields.
+ */
+function getProviderTimingMs(
+  timing: IterationTiming | undefined,
+): number | undefined {
+  if (timing === undefined) {
+    return undefined;
+  }
+
+  if (typeof timing.providerMs === "number") {
+    return timing.providerMs;
+  }
+
+  if (typeof timing.claudeMs === "number") {
+    return timing.claudeMs;
+  }
+
+  return undefined;
+}
+
+/**
+ * Normalize diary payloads for backward compatibility with legacy logs.
+ */
+function normalizeIterationDiaryEntry(
+  entry: IterationDiaryEntry,
+): IterationDiaryEntry {
+  const normalizedStatus = normalizeStatus(entry.status);
+  const normalizedTiming = normalizeIterationTiming(entry.timing);
+
+  if (normalizedStatus === entry.status && normalizedTiming === entry.timing) {
+    return entry;
+  }
+
+  return { ...entry, status: normalizedStatus, timing: normalizedTiming };
+}
+
+/**
+ * Normalize timing payloads so legacy `claudeMs` logs expose `providerMs` too.
+ */
+function normalizeIterationTiming(
+  timing: IterationTiming | undefined,
+): IterationTiming | undefined {
+  if (timing === undefined) {
+    return undefined;
+  }
+
+  const providerMs = getProviderTimingMs(timing);
+  if (providerMs === undefined) {
+    return timing;
+  }
+
+  if (timing.providerMs === providerMs) {
+    return timing;
+  }
+
+  return { ...timing, providerMs };
+}
 
 /**
  * Normalize status values for backward compatibility
@@ -368,12 +429,15 @@ export {
   type CascadeLevel,
   type CascadeOptions,
   type CascadeResult,
+  getProviderTimingMs,
   type HookAction,
   type HookConfig,
   type HooksConfig,
   type IterationDiaryEntry,
   type IterationStatus,
   type IterationTiming,
+  normalizeIterationDiaryEntry,
+  normalizeIterationTiming,
   normalizeStatus,
   type PostIterationHookConfig,
   type RalphConfig,

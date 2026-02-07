@@ -4,7 +4,7 @@
  * This module provides functions for spawning Claude sessions in different modes:
  * - invokeClaudeChat: Supervised/interactive mode
  * - invokeClaudeHeadlessAsync: Async headless mode with JSON output
- * - invokeClaudeHaiku: Lightweight Haiku model for summaries
+ * - invokeClaudeHaiku: Lightweight model invocation for summaries
  * - invokeClaude: Registry-compatible async wrapper
  * - normalizeClaudeResult: Parse Claude JSON array format to AgentResult
  * - buildPrompt: Prompt composition helper
@@ -329,19 +329,23 @@ function invokeClaudeChat(
 }
 
 /**
- * Invoke Claude Haiku for lightweight tasks like summary generation
+ * Invoke Claude with a lightweight model for summary generation.
  *
- * Uses claude-3-5-haiku model with a real timeout (kills the process).
+ * Uses a configurable model (default: claude-3-5-haiku-latest) with a real
+ * timeout (kills the process).
  *
  * @param options - Options with prompt and optional timeout
  * @returns The result string, or null if timed out/interrupted/failed
  */
 async function invokeClaudeHaiku(options: {
+  model?: string;
   prompt: string;
   timeout?: number;
 }): Promise<null | string> {
-  const { prompt, timeout } = options;
+  const { model, prompt, timeout } = options;
   const timeoutMs = timeout ?? 30_000;
+  const lightweightModel =
+    model === undefined || model === "" ? "claude-3-5-haiku-latest" : model;
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 
   const proc = Bun.spawn(
@@ -350,7 +354,7 @@ async function invokeClaudeHaiku(options: {
       "-p",
       prompt,
       "--model",
-      "claude-3-5-haiku-latest",
+      lightweightModel,
       "--dangerously-skip-permissions",
       "--output-format",
       "json",

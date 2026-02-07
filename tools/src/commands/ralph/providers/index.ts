@@ -50,6 +50,12 @@ export {
   SESSION_ADAPTERS,
 } from "./session-adapter";
 export {
+  DEFAULT_LIGHTWEIGHT_MODELS,
+  invokeProviderSummary,
+  type ProviderSummaryOptions,
+  resolveLightweightModelForProvider,
+} from "./summary";
+export {
   type AgentResult,
   type BaseProviderConfig,
   type ClaudeConfig,

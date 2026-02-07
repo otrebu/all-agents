@@ -28,7 +28,7 @@ import {
   renderProgressBar,
   truncate,
 } from "./display";
-import { normalizeStatus } from "./types";
+import { normalizeIterationDiaryEntry, normalizeStatus } from "./types";
 
 // =============================================================================
 // Helper Functions
@@ -183,7 +183,8 @@ function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
     return lines
       .map((line) => {
         try {
-          return JSON.parse(line) as IterationDiaryEntry;
+          const entry = JSON.parse(line) as IterationDiaryEntry;
+          return normalizeIterationDiaryEntry(entry);
         } catch {
           return null;
         }

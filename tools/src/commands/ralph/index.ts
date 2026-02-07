@@ -581,7 +581,7 @@ ralphCommand.addCommand(
   new Command("build")
     .description("Run subtask iteration loop using ralph-iteration.md prompt")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
-    .option("-p, --print", "Print prompt without executing Claude")
+    .option("-p, --print", "Print prompt without executing provider")
     .option(
       "-i, --interactive",
       "Pause between iterations (legacy, use --supervised)",
@@ -593,7 +593,7 @@ ralphCommand.addCommand(
     .option("-H, --headless", "Headless mode: JSON output + file logging")
     .option(
       "-S, --skip-summary",
-      "Skip Haiku summary generation in headless mode",
+      "Skip lightweight summary generation in headless mode",
     )
     .option("-q, --quiet", "Suppress terminal summary output")
     .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
