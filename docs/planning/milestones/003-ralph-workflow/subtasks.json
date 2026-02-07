@@ -1105,7 +1105,10 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Update mergeRalph() to handle approvals nested merge",
       "description": "Update mergeRalph() in tools/src/lib/config/loader.ts to handle approvals nested merge. When userValue.approvals is provided, shallow merge with defaultValue.approvals. Preserves user-specified gate values while applying suggestWaitSeconds default.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-02-03T14:30:11+00:00",
+      "commitHash": "eb9a512d2b8e1de2713f09173d30b88f12543e9e",
+      "status": "completed",
       "acceptanceCriteria": [
         "mergeRalph() includes approvals merge logic matching pattern for build/hooks/selfImprovement",
         "User-specified gate values (e.g., createStories: \"always\") are preserved after merge",
@@ -1128,7 +1131,10 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Export DEFAULT_APPROVALS from lib/config/index.ts",
       "description": "Add DEFAULT_APPROVALS to the exports in tools/src/lib/config/index.ts. This enables other modules to import the default approvals config alongside other config defaults.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-02-03T14:36:30+00:00",
+      "commitHash": "2d1ee1e08cb7e6f4d9295786652a4d72fb645ac1",
+      "status": "completed",
       "acceptanceCriteria": [
         "DEFAULT_APPROVALS is exported from tools/src/lib/config/index.ts",
         "Import { DEFAULT_APPROVALS } from \"@tools/lib/config\" works in consuming code",
@@ -1148,7 +1154,10 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add unit tests for approvals config merge behavior",
       "description": "Add unit tests in tools/tests/lib/config-loader.test.ts for approvals merge behavior. Test cases: (1) approvals section merged correctly, (2) user-specified gates override undefined defaults, (3) suggestWaitSeconds defaults to 180, (4) partial user config merged with defaults, (5) unspecified gates remain undefined.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-02-03T14:44:35+00:00",
+      "commitHash": "a1c9cd56c27d6f739adc81792df418d1564513f9",
+      "status": "completed",
       "acceptanceCriteria": [
         "Test: deep merges nested ralph.approvals (following pattern from hooks test)",
         "Test: suggestWaitSeconds defaults to 180 when not specified by user",
@@ -1172,7 +1181,10 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add ApprovalGate type and approvalGates const array to types.ts",
       "description": "Add ApprovalGate type (union of 8 gate names) and approvalGates const array to tools/src/lib/config/types.ts. The type defines all artifact creation events that can trigger approval: createRoadmap, createStories, createTasks, createSubtasks, createAtomicDocs, onDriftDetected, correctionTasks, promptChanges. Export both from types.ts and re-export from lib/config/index.ts.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-02-03T14:53:47+00:00",
+      "commitHash": "978a504e5e44a292fb6b0681e1c1dce0766c6ef2",
+      "status": "completed",
       "acceptanceCriteria": [
         "ApprovalGate type defined as union of 8 gate name strings in types.ts",
         "approvalGates const array defined using \"as const\" pattern in types.ts",
@@ -1192,7 +1204,10 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Create approvals.ts with ApprovalAction and ApprovalContext types",
       "description": "Create new file tools/src/commands/ralph/approvals.ts with ApprovalAction type (\"write\" | \"prompt\" | \"notify-wait\" | \"exit-unstaged\") and ApprovalContext interface (forceFlag: boolean, isTTY: boolean, reviewFlag: boolean). Add JSDoc comments explaining action meanings and context fields. Export both types.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-02-03T16:23:51+00:00",
+      "commitHash": "9c9e6cf2ae035f581bc904aa5ba23af61d2fc143",
+      "status": "completed",
       "acceptanceCriteria": [
         "File tools/src/commands/ralph/approvals.ts exists",
         "ApprovalAction type defined with 4 values: \"write\", \"prompt\", \"notify-wait\", \"exit-unstaged\"",
@@ -1292,7 +1307,10 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add ApprovalMode type and approvalModeSchema in types.ts",
       "description": "Add the ApprovalMode type as a union of \"auto\" | \"suggest\" | \"always\" and the corresponding approvalModeSchema Zod schema using z.enum() in tools/src/lib/config/types.ts. Follow the existing pattern for similar types (e.g., SelfImprovementMode). Add JSDoc comments explaining each mode. Export both from the exports block.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-02-03T13:45:55+00:00",
+      "commitHash": "b0767cec253d68b7d4f12155dfdf11abc59d27aa",
+      "status": "completed",
       "acceptanceCriteria": [
         "ApprovalMode type defined as \"auto\" | \"suggest\" | \"always\"",
         "approvalModeSchema defined using z.enum([\"auto\", \"suggest\", \"always\"])",
@@ -1311,7 +1329,10 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add ApprovalsConfig interface and approvalsConfigSchema",
       "description": "Add the ApprovalsConfig interface with all 8 artifact gates (createRoadmap, createStories, createTasks, createSubtasks, createAtomicDocs, onDriftDetected, correctionTasks, promptChanges) and suggestWaitSeconds field. Add the approvalsConfigSchema Zod schema validating all fields. Each gate is optional ApprovalMode. suggestWaitSeconds is optional number with int().min(0). Export both from types.ts.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-02-03T14:11:12+00:00",
+      "commitHash": "5ba0f45d3ad9f6b6d6a9d7b1fcade6b41d0234e2",
+      "status": "completed",
       "acceptanceCriteria": [
         "ApprovalsConfig interface has all 8 gates: createRoadmap, createStories, createTasks, createSubtasks, createAtomicDocs, onDriftDetected, correctionTasks, promptChanges",
         "Each gate is typed as optional ApprovalMode (e.g., createRoadmap?: ApprovalMode)",
@@ -1336,7 +1357,10 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Update RalphSection with approvals field and re-export from index.ts",
       "description": "Add the approvals field to RalphSection interface and ralphSectionSchema Zod schema. Update lib/config/index.ts to re-export ApprovalMode, approvalModeSchema, ApprovalsConfig, and approvalsConfigSchema. Verify TypeScript compiles and existing tests pass.",
-      "done": false,
+      "done": true,
+      "completedAt": "2026-02-03T14:24:00+00:00",
+      "commitHash": "7aaaba707cfd7acf432aec3a95dffc10f6006a0a",
+      "status": "completed",
       "acceptanceCriteria": [
         "RalphSection interface has approvals?: ApprovalsConfig field",
         "ralphSectionSchema includes approvals: approvalsConfigSchema.optional()",
@@ -1464,14 +1488,15 @@
       "id": "SUB-211",
       "taskRef": "TASK-011-cli-approval-flags",
       "storyRef": "STORY-001-artifact-approvals",
-      "title": "Update HandleCascadeOptions interface with approval flags",
-      "description": "Update the HandleCascadeOptions interface in tools/src/commands/ralph/index.ts to include forceFlag, reviewFlag, and fromLevel fields. These fields will be passed through to runCascadeFrom() from the CLI commands. Update handleCascadeExecution() helper to pass the new flags through to runCascadeFrom().",
+      "title": "Update HandleCascadeOptions with approval and provider context",
+      "description": "Update the HandleCascadeOptions interface in tools/src/commands/ralph/index.ts to include forceFlag, reviewFlag, fromLevel, provider, and model fields. Pass these fields through handleCascadeExecution() into runCascadeFrom() so cascade inherits approval and multi-provider context from the originating CLI command.",
       "done": false,
       "acceptanceCriteria": [
         "HandleCascadeOptions interface has forceFlag?: boolean field",
         "HandleCascadeOptions interface has reviewFlag?: boolean field",
         "HandleCascadeOptions interface has fromLevel?: string field",
-        "handleCascadeExecution() passes forceFlag, reviewFlag, and fromLevel to runCascadeFrom()",
+        "HandleCascadeOptions interface has provider?: ProviderType and model?: string fields",
+        "handleCascadeExecution() passes forceFlag, reviewFlag, fromLevel, provider, and model to runCascadeFrom()",
         "bun run typecheck passes without errors"
       ],
       "filesToRead": [
@@ -1506,12 +1531,13 @@
       "taskRef": "TASK-011-cli-approval-flags",
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph plan tasks command",
-      "description": "Add the three approval control flags to the ralph plan tasks command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used.",
+      "description": "Add the three approval control flags to the ralph plan tasks command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used, along with provider/model so cascade stays on the same multi-provider context.",
       "done": false,
       "acceptanceCriteria": [
         "aaa ralph plan tasks --help shows --force, --review, and --from flags",
         "validateApprovalFlags called in tasks action before main logic",
         "Flags are passed through to handleCascadeExecution when --cascade is used",
+        "When --provider/--model are provided, tasks cascade passes them through handleCascadeExecution",
         "bun run typecheck passes"
       ],
       "filesToRead": [
@@ -1526,12 +1552,13 @@
       "taskRef": "TASK-011-cli-approval-flags",
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph plan subtasks command",
-      "description": "Add the three approval control flags to the ralph plan subtasks command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used.",
+      "description": "Add the three approval control flags to the ralph plan subtasks command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used, along with provider/model so cascade remains provider-consistent.",
       "done": false,
       "acceptanceCriteria": [
         "aaa ralph plan subtasks --help shows --force, --review, and --from flags",
         "validateApprovalFlags called in subtasks action before main logic",
         "Flags are passed through to handleCascadeExecution when --cascade is used",
+        "When --provider/--model are provided, subtasks cascade passes them through handleCascadeExecution",
         "bun run typecheck passes"
       ],
       "filesToRead": [
@@ -1546,13 +1573,14 @@
       "taskRef": "TASK-011-cli-approval-flags",
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add E2E tests for approval control flags",
-      "description": "Add E2E tests to tools/tests/e2e/ralph.test.ts verifying the new flags: (1) --help shows all three flags for each command, (2) --force --review together produces mutual exclusion error with exit code 1, (3) --from invalid-level produces error with valid levels list, (4) Valid combinations work without error.",
+      "description": "Add E2E tests to tools/tests/e2e/ralph.test.ts verifying the new flags: (1) --help shows all three flags for each command, (2) --force --review together produces mutual exclusion error with exit code 1, (3) --from invalid-level produces error with valid levels list, (4) valid combinations work without error. Include at least one provider-aware validation path to confirm approval-flag handling is provider-neutral.",
       "done": false,
       "acceptanceCriteria": [
         "Test: aaa ralph build --help includes --force, --review, --from options",
         "Test: aaa ralph plan subtasks --help includes --force, --review, --from options",
         "Test: aaa ralph plan subtasks --force --review exits 1 with \"Cannot use --force and --review together\"",
         "Test: aaa ralph plan subtasks --from invalid-level exits 1 with \"Invalid level\" and lists valid levels",
+        "Test: approval-flag validation behavior is unchanged when --provider is explicitly supplied",
         "All new tests pass: bun test tools/tests/e2e/ralph.test.ts",
         "Existing tests still pass"
       ],
@@ -1654,14 +1682,15 @@
       "id": "SUB-219",
       "taskRef": "TASK-011-cli-approval-flags",
       "storyRef": "STORY-001-artifact-approvals",
-      "title": "Update CascadeFromOptions interface with approval flags",
-      "description": "Update the CascadeFromOptions interface in tools/src/commands/ralph/cascade.ts to include forceFlag and reviewFlag fields. These boolean flags will control approval behavior during cascade execution. Also update RunLevelOptions to pass through the flags.",
+      "title": "Update CascadeFromOptions with approval and provider fields",
+      "description": "Update the CascadeFromOptions interface in tools/src/commands/ralph/cascade.ts to include forceFlag/reviewFlag for approvals and provider/model for multi-provider continuity. Update RunLevelOptions to carry the same fields so runLevel can forward them to runBuild/runCalibrate.",
       "done": false,
       "acceptanceCriteria": [
         "CascadeFromOptions interface has forceFlag?: boolean field with JSDoc comment",
         "CascadeFromOptions interface has reviewFlag?: boolean field with JSDoc comment",
-        "RunLevelOptions interface updated to pass through forceFlag and reviewFlag",
-        "JSDoc comments explain flag semantics: forceFlag skips approvals, reviewFlag requires approvals",
+        "CascadeFromOptions interface has provider?: ProviderType and model?: string fields",
+        "RunLevelOptions interface updated to pass through forceFlag, reviewFlag, provider, and model",
+        "JSDoc comments explain semantics for approval flags and provider/model propagation",
         "bun run typecheck passes without errors"
       ],
       "filesToRead": [
@@ -1675,7 +1704,7 @@
       "taskRef": "TASK-011-cli-approval-flags",
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph build command",
-      "description": "Add .option(\"--force\", \"Skip all approval prompts\"), .option(\"--review\", \"Require all approval prompts\"), and .option(\"--from <level>\", \"Resume cascade from this level\") to the ralph build command in index.ts. Call validateApprovalFlags() early in the action. Pass flags through to cascade when --cascade is used.",
+      "description": "Add .option(\"--force\", \"Skip all approval prompts\"), .option(\"--review\", \"Require all approval prompts\"), and .option(\"--from <level>\", \"Resume cascade from this level\") to the ralph build command in index.ts. Call validateApprovalFlags() early in the action. Pass flags through to cascade when --cascade is used, and preserve provider/model context for downstream levels.",
       "done": false,
       "acceptanceCriteria": [
         "aaa ralph build --help shows --force option with description \"Skip all approval prompts\"",
@@ -1683,6 +1712,7 @@
         "aaa ralph build --help shows --from <level> option with appropriate description",
         "validateApprovalFlags called in build action before main logic",
         "Flags are passed through to runCascadeFrom when --cascade is used",
+        "When --provider/--model are provided to build, cascade invocation forwards them to runCascadeFrom",
         "bun run typecheck passes"
       ],
       "filesToRead": [
@@ -1721,12 +1751,13 @@
       "taskRef": "TASK-011-cli-approval-flags",
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph plan stories command",
-      "description": "Add the three approval control flags to the ralph plan stories command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used.",
+      "description": "Add the three approval control flags to the ralph plan stories command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used, and forward provider/model context selected for stories planning.",
       "done": false,
       "acceptanceCriteria": [
         "aaa ralph plan stories --help shows --force, --review, and --from flags",
         "validateApprovalFlags called in stories action before main logic",
         "Flags are passed through to handleCascadeExecution when --cascade is used",
+        "When --provider/--model are provided, stories cascade passes them through handleCascadeExecution",
         "bun run typecheck passes"
       ],
       "filesToRead": [
@@ -1790,13 +1821,13 @@
       "taskRef": "TASK-013-cascade-approval-integration",
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Implement cascade approval integration",
-      "description": "Implement full cascade approval integration in tools/src/commands/ralph/cascade.ts: (1) Add levelToGate(level: CascadeLevelName): ApprovalGate | null function mapping cascade levels to approval gates (roadmap->createRoadmap, stories->createStories, tasks->createTasks, subtasks->createSubtasks, build/calibrate->null). (2) Update CascadeFromOptions interface with forceFlag?, reviewFlag?, headless? fields and add buildApprovalContext(options: CascadeFromOptions): ApprovalContext helper. (3) Add ApprovalResult type (\"continue\" | \"aborted\" | \"exit-unstaged\") and checkApprovalGate(level, config, context) async function that uses levelToGate, calls evaluateApproval, and dispatches to handlers. (4) Update runCascadeFrom() to load approval config, build context, call checkApprovalGate before each level, and handle aborted/exit-unstaged results appropriately.",
+      "description": "Implement full cascade approval integration in tools/src/commands/ralph/cascade.ts: (1) Add levelToGate(level: CascadeLevelName): ApprovalGate | null function mapping cascade levels to approval gates (roadmap->createRoadmap, stories->createStories, tasks->createTasks, subtasks->createSubtasks, build/calibrate->null). (2) Update CascadeFromOptions interface with forceFlag?, reviewFlag?, headless?, provider?, model? fields and add buildApprovalContext(options: CascadeFromOptions): ApprovalContext helper. (3) Add ApprovalResult type (\"continue\" | \"aborted\" | \"exit-unstaged\") and checkApprovalGate(level, config, context) async function that uses levelToGate, calls evaluateApproval, and dispatches to handlers. (4) Update runCascadeFrom() to load approval config, build context, call checkApprovalGate before each level, and handle aborted/exit-unstaged results appropriately while preserving provider/model context for downstream runLevel execution.",
       "done": false,
       "acceptanceCriteria": [
         "Function levelToGate(level: CascadeLevelName): ApprovalGate | null exists and is exported",
         "levelToGate returns correct gates: roadmap->createRoadmap, stories->createStories, tasks->createTasks, subtasks->createSubtasks",
         "levelToGate returns null for build and calibrate levels",
-        "CascadeFromOptions interface has forceFlag?, reviewFlag?, headless? fields",
+        "CascadeFromOptions interface has forceFlag?, reviewFlag?, headless?, provider?, model? fields",
         "Function buildApprovalContext(options: CascadeFromOptions): ApprovalContext exists",
         "buildApprovalContext correctly sets forceFlag, reviewFlag, and isTTY based on options",
         "Type ApprovalResult = \"continue\" | \"aborted\" | \"exit-unstaged\" is defined and exported",
@@ -1806,12 +1837,15 @@
         "checkApprovalGate handles notify-wait and exit-unstaged actions with placeholder logging",
         "runCascadeFrom loads approval config via loadAaaConfig().ralph?.approvals",
         "runCascadeFrom calls checkApprovalGate before runLevel for each planning level",
+        "runCascadeFrom forwards provider/model context into runLevel options so downstream execution stays provider-consistent",
         "\"aborted\" result returns { success: false, error: \"Aborted by user at approval prompt\", ... }",
         "\"exit-unstaged\" result returns { success: false, error: null, stoppedAt: currentLevel, ... }",
         "bun run typecheck passes"
       ],
       "filesToRead": [
         "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/calibrate.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md",
         "tools/src/lib/config/types.ts",
@@ -1875,13 +1909,13 @@
       "taskRef": "TASK-014-notify-wait-handler",
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add formatGateName helper and export approval module",
-      "description": "Add formatGateName(gate: ApprovalGate) helper function to approvals.ts that converts gate names like \"createStories\" to human-readable format \"Create Stories\". Export formatGateName along with handleNotifyWait, DEFAULT_SUGGEST_WAIT_SECONDS, and the existing ApprovalAction, ApprovalContext, evaluateApproval exports. This provides the display name formatting used in notification titles and console output.",
+      "description": "Add formatGateName(gate: ApprovalGate) helper function to approvals.ts that converts gate names like \"createStories\" to human-readable format \"Create Stories\" (matching the formatter behavior defined in SUB-213). Export formatGateName along with handleNotifyWait, DEFAULT_SUGGEST_WAIT_SECONDS, and the existing ApprovalAction, ApprovalContext, evaluateApproval exports. This provides the display name formatting used in notification titles and console output.",
       "done": false,
       "acceptanceCriteria": [
         "formatGateName(gate) function exists and is exported from approvals.ts",
         "formatGateName(\"createStories\") returns \"Create Stories\"",
         "formatGateName(\"createRoadmap\") returns \"Create Roadmap\"",
-        "formatGateName(\"onDriftDetected\") returns \"On Drift Detected\"",
+        "formatGateName(\"onDriftDetected\") returns \"Drift Detected\"",
         "Export block includes: ApprovalAction, ApprovalContext, DEFAULT_SUGGEST_WAIT_SECONDS, evaluateApproval, formatGateName, handleNotifyWait",
         "bun run typecheck passes"
       ],
@@ -1891,6 +1925,56 @@
       ],
       "blockedBy": [
         "SUB-237"
+      ]
+    },
+    {
+      "id": "SUB-239",
+      "taskRef": "TASK-013-cascade-approval-integration",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Thread provider/model context through cascade levels",
+      "description": "Update cascade execution so provider/model chosen on planning/build commands is preserved through runCascadeFrom() and runLevel(). Add provider/model to cascade option interfaces, pass them from CLI call sites (build, roadmap, stories, tasks, subtasks), and forward into runBuild()/runCalibrate(). Keep behavior provider-neutral and backward-compatible when options are omitted.",
+      "done": false,
+      "acceptanceCriteria": [
+        "CascadeFromOptions and RunLevelOptions include provider?: ProviderType and model?: string",
+        "All runCascadeFrom call sites pass provider/model when available (build, stories, tasks, subtasks, and roadmap where applicable)",
+        "runLevel('build') forwards provider/model into runBuild BuildOptions",
+        "runLevel('calibrate') forwards provider/model into runCalibrate options",
+        "Provider/model forwarding is optional and backward-compatible when flags are omitted",
+        "Unit or E2E coverage proves provider/model survive a cascade handoff path"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/providers/registry.ts"
+      ],
+      "blockedBy": [
+        "SUB-211",
+        "SUB-219"
+      ]
+    },
+    {
+      "id": "SUB-240",
+      "taskRef": "TASK-013-cascade-approval-integration",
+      "storyRef": "STORY-001-artifact-approvals",
+      "title": "Align cascade targets with executable levels",
+      "description": "Fix the mismatch between advertised cascade targets and actual runnable levels. Either implement planning-level execution adapters in runLevel() (stories/tasks/subtasks/roadmap) or fail early with explicit unsupported-target guidance so users do not hit late 'planning level not yet implemented' errors.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Cascade paths exposed by CLI are either executable or rejected early with actionable messaging",
+        "runCascadeFrom no longer fails mid-run with generic 'planning level not yet implemented' for supported target combinations",
+        "If adapters are deferred, validation explicitly lists currently supported cascade targets per entry command",
+        "Unit/E2E coverage updated to reflect intended behavior instead of codifying current placeholder failure path"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/tests/lib/cascade.test.ts",
+        "tools/tests/e2e/ralph.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-232"
       ]
     }
   ]
