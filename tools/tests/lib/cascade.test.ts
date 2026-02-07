@@ -8,17 +8,189 @@
  * - promptContinue() - TTY detection behavior
  */
 
+import type { Mock } from "bun:test";
+
+import * as approvals from "@tools/commands/ralph/approvals";
 import {
+  buildApprovalContext,
+  checkApprovalGate,
   getLevelsInRange,
   getValidLevelNames,
   isValidLevelName,
   LEVELS,
+  levelToGate,
   promptContinue,
   runCascadeFrom,
   runLevel,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as childProcess from "node:child_process";
+
+// =============================================================================
+// Approval Integration Tests
+// =============================================================================
+
+describe("levelToGate", () => {
+  test("maps planning levels to approval gates and executable levels to null", () => {
+    expect(levelToGate("roadmap")).toBe("createRoadmap");
+    expect(levelToGate("stories")).toBe("createStories");
+    expect(levelToGate("tasks")).toBe("createTasks");
+    expect(levelToGate("subtasks")).toBe("createSubtasks");
+    expect(levelToGate("build")).toBeNull();
+    expect(levelToGate("calibrate")).toBeNull();
+  });
+});
+
+describe("buildApprovalContext", () => {
+  test("builds non-interactive context in headless mode", () => {
+    const context = buildApprovalContext({
+      contextRoot: "/repo",
+      headless: true,
+      subtasksPath: "/repo/subtasks.json",
+    });
+
+    expect(context.forceFlag).toBe(false);
+    expect(context.reviewFlag).toBe(false);
+    expect(context.isTTY).toBe(false);
+  });
+
+  test("propagates force/review approval flags into context", () => {
+    const context = buildApprovalContext({
+      contextRoot: "/repo",
+      forceFlag: true,
+      reviewFlag: true,
+      subtasksPath: "/repo/subtasks.json",
+    });
+
+    expect(context.forceFlag).toBe(true);
+    expect(context.reviewFlag).toBe(true);
+  });
+});
+
+describe("checkApprovalGate", () => {
+  let execSyncSpy: Mock<typeof childProcess.execSync> | null = null;
+  let consoleLogSpy: Mock<typeof console.log> | null = null;
+
+  beforeEach(() => {
+    execSyncSpy = spyOn(childProcess, "execSync").mockImplementation(((
+      command: string,
+    ) => {
+      if (command === "git status --porcelain") {
+        return "";
+      }
+      return "";
+    }) as unknown as typeof childProcess.execSync);
+    consoleLogSpy = spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    execSyncSpy?.mockRestore();
+    execSyncSpy = null;
+    consoleLogSpy?.mockRestore();
+    consoleLogSpy = null;
+  });
+
+  test("returns continue for levels with no gate", async () => {
+    const result = await checkApprovalGate("build", undefined, {
+      cascadeTarget: "calibrate",
+      forceFlag: false,
+      isTTY: false,
+      milestonePath: "/tmp/milestone",
+      reviewFlag: false,
+    });
+
+    expect(result).toBe("continue");
+  });
+
+  test("returns continue for write action", async () => {
+    const result = await checkApprovalGate(
+      "stories",
+      { createStories: "auto" },
+      {
+        cascadeTarget: "build",
+        forceFlag: false,
+        isTTY: false,
+        milestonePath: "/tmp/milestone",
+        reviewFlag: false,
+      },
+    );
+
+    expect(result).toBe("continue");
+  });
+
+  test("calls promptApproval for prompt action and aborts on rejection", async () => {
+    const promptSpy = spyOn(approvals, "promptApproval").mockResolvedValue(
+      false,
+    );
+
+    const result = await checkApprovalGate(
+      "stories",
+      { createStories: "always" },
+      {
+        cascadeTarget: "build",
+        forceFlag: false,
+        isTTY: true,
+        milestonePath: "/tmp/milestone",
+        reviewFlag: false,
+      },
+    );
+
+    expect(promptSpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe("aborted");
+    promptSpy.mockRestore();
+  });
+
+  test("calls handleNotifyWait for notify-wait action", async () => {
+    const notifyWaitSpy = spyOn(
+      approvals,
+      "handleNotifyWait",
+    ).mockResolvedValue();
+
+    const result = await checkApprovalGate(
+      "stories",
+      { createStories: "suggest" },
+      {
+        cascadeTarget: "build",
+        forceFlag: false,
+        isTTY: false,
+        milestonePath: "/tmp/milestone",
+        reviewFlag: false,
+      },
+    );
+
+    expect(result).toBe("continue");
+    expect(notifyWaitSpy).toHaveBeenCalledWith(
+      "createStories",
+      { createStories: "suggest" },
+      "Proceeding with stories level",
+    );
+    notifyWaitSpy.mockRestore();
+  });
+
+  test("prepareExitUnstaged is triggered for always + headless", async () => {
+    const result = await checkApprovalGate(
+      "stories",
+      { createStories: "always" },
+      {
+        cascadeTarget: "build",
+        forceFlag: false,
+        isTTY: false,
+        milestonePath: "/tmp/milestone",
+        reviewFlag: false,
+      },
+    );
+
+    expect(result).toBe("exit-unstaged");
+    expect(execSyncSpy?.mock.calls[0]?.[0]).toBe("git add -A");
+    expect(execSyncSpy?.mock.calls[1]?.[0]).toBe("git status --porcelain");
+    expect(
+      consoleLogSpy?.mock.calls.some((call) =>
+        String(call[0]).includes("exit-unstaged"),
+      ),
+    ).toBe(true);
+  });
+});
 
 // =============================================================================
 // LEVELS Constant Tests
@@ -87,18 +259,19 @@ describe("getValidLevelNames", () => {
 // =============================================================================
 
 describe("validateCascadeTarget", () => {
-  test("returns null for valid forward cascade", () => {
-    expect(validateCascadeTarget("roadmap", "stories")).toBeNull();
-    expect(validateCascadeTarget("stories", "tasks")).toBeNull();
-    expect(validateCascadeTarget("tasks", "subtasks")).toBeNull();
+  test("returns null for executable forward cascades", () => {
     expect(validateCascadeTarget("subtasks", "build")).toBeNull();
     expect(validateCascadeTarget("build", "calibrate")).toBeNull();
+    expect(validateCascadeTarget("subtasks", "calibrate")).toBeNull();
   });
 
-  test("returns null for multi-level forward cascade", () => {
-    expect(validateCascadeTarget("roadmap", "calibrate")).toBeNull();
-    expect(validateCascadeTarget("stories", "build")).toBeNull();
-    expect(validateCascadeTarget("tasks", "calibrate")).toBeNull();
+  test("returns actionable error for unsupported planning-level paths", () => {
+    const error = validateCascadeTarget("stories", "build");
+
+    expect(error).not.toBeNull();
+    expect(error).toContain("not executable yet");
+    expect(error).toContain("Unsupported levels in path: tasks, subtasks");
+    expect(error).toContain("Supported targets from 'stories': none");
   });
 
   test("returns error for backward cascade", () => {
@@ -232,6 +405,19 @@ describe("runLevel", () => {
     // Should fail due to missing file, not due to options validation
     expect(error).not.toContain("Invalid level");
   });
+
+  test("accepts approval/provider passthrough fields in run options", async () => {
+    const error = await runLevel("calibrate", {
+      contextRoot: "/nonexistent/path",
+      forceFlag: true,
+      model: "claude-sonnet-4-5",
+      provider: "claude",
+      reviewFlag: false,
+      subtasksPath: "/nonexistent/subtasks.json",
+    });
+
+    expect(error).not.toContain("Invalid level");
+  });
 });
 
 // =============================================================================
@@ -241,6 +427,7 @@ describe("runLevel", () => {
 describe("runCascadeFrom", () => {
   const options = {
     contextRoot: "/nonexistent/path",
+    forceFlag: true,
     headless: true,
     subtasksPath: "/nonexistent/subtasks.json",
   };
@@ -259,6 +446,31 @@ describe("runCascadeFrom", () => {
     expect(result.error).toContain("Invalid target level 'invalid'");
     expect(result.completedLevels).toEqual([]);
     expect(result.stoppedAt).toBe("tasks");
+  });
+
+  test("returns error when fromLevel override is invalid", async () => {
+    const result = await runCascadeFrom("roadmap", "build", {
+      ...options,
+      fromLevel: "invalid-level",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.completedLevels).toEqual([]);
+    expect(result.stoppedAt).toBe("invalid-level");
+    expect(result.error).toBe(
+      "Invalid level 'invalid-level'. Valid levels: roadmap, stories, tasks, subtasks, build, calibrate",
+    );
+  });
+
+  test("uses fromLevel override as cascade entry point", async () => {
+    const result = await runCascadeFrom("roadmap", "tasks", {
+      ...options,
+      fromLevel: "stories",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.stoppedAt).toBe("stories");
+    expect(result.error).toContain("not executable yet");
   });
 
   test("returns error for backward cascade", async () => {
@@ -283,20 +495,17 @@ describe("runCascadeFrom", () => {
   });
 
   test("uses getLevelsInRange to get levels to execute", async () => {
-    // Since planning levels aren't implemented, cascading from roadmap to stories
-    // will attempt to run stories and fail with "not yet implemented"
     const result = await runCascadeFrom("roadmap", "stories", options);
     expect(result.success).toBe(false);
-    expect(result.error).toContain("planning level");
-    expect(result.stoppedAt).toBe("stories");
+    expect(result.error).toContain("not executable yet");
+    expect(result.stoppedAt).toBe("roadmap");
   });
 
   test("proceeds through multiple levels in headless mode", async () => {
-    // In headless mode, promptContinue is skipped
-    // Will fail at first planning level (stories)
     const result = await runCascadeFrom("roadmap", "tasks", options);
-    expect(result.stoppedAt).toBe("stories");
+    expect(result.stoppedAt).toBe("roadmap");
     expect(result.completedLevels).toEqual([]);
+    expect(result.error).toContain("not executable yet");
   });
 
   test("returns CascadeResult with correct shape", async () => {
@@ -314,19 +523,19 @@ describe("runCascadeFrom", () => {
   test("stops at first failing level and reports it in stoppedAt", async () => {
     const result = await runCascadeFrom("roadmap", "calibrate", options);
     expect(result.success).toBe(false);
-    // First level after roadmap is stories
-    expect(result.stoppedAt).toBe("stories");
+    expect(result.stoppedAt).toBe("roadmap");
     expect(result.completedLevels).toEqual([]);
-    expect(result.error).toContain("planning level");
+    expect(result.error).toContain("not executable yet");
   });
 
   test("accepts headless option to skip prompts", async () => {
     // Verify headless mode works (already used in other tests)
     const result = await runCascadeFrom("roadmap", "stories", {
       contextRoot: "/nonexistent",
+      forceFlag: true,
       headless: true,
       subtasksPath: "/nonexistent/subtasks.json",
     });
-    expect(result.stoppedAt).toBe("stories");
+    expect(result.stoppedAt).toBe("roadmap");
   });
 });

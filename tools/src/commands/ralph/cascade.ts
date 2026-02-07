@@ -12,16 +12,33 @@
  * @see docs/planning/milestones/003-ralph-workflow/tasks/TASK-002-cascade-module.md
  */
 
+import { type ApprovalsConfig, loadAaaConfig } from "@tools/lib/config";
 import * as readline from "node:readline";
 
+import type { ProviderType } from "./providers/types";
 import type { BuildOptions } from "./types";
 
+import {
+  type ApprovalAction,
+  type ApprovalContext,
+  type ApprovalGate,
+  evaluateApproval,
+  finalizeExitUnstaged,
+  handleNotifyWait,
+  prepareExitUnstaged,
+  promptApproval,
+} from "./approvals";
 import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 
 // =============================================================================
 // Types
 // =============================================================================
+
+/**
+ * Result of an approval gate check.
+ */
+type ApprovalResult = "aborted" | "continue" | "exit-unstaged";
 
 /**
  * Options for cascade execution
@@ -33,8 +50,20 @@ interface CascadeFromOptions {
   calibrateEvery?: number;
   /** Repository root path */
   contextRoot: string;
+  /** Skip approvals by forcing write actions at all gates (`--force`) */
+  forceFlag?: boolean;
+  /** Optional level to resume from; overrides the runCascadeFrom start argument */
+  fromLevel?: string;
   /** Skip confirmation prompts between cascade levels (for CI/automation) */
   headless?: boolean;
+  /** Absolute or workspace path to the milestone directory */
+  milestonePath?: string;
+  /** Provider model identifier to propagate across cascaded levels */
+  model?: string;
+  /** Provider selection to propagate across cascaded levels */
+  provider?: ProviderType;
+  /** Require approvals by forcing gate review behavior (`--review`) */
+  reviewFlag?: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
 }
@@ -68,6 +97,14 @@ interface CascadeLevelDefinition {
 }
 
 /**
+ * Approval context with optional metadata used for exit-unstaged handling.
+ */
+interface CheckApprovalContext extends ApprovalContext {
+  cascadeTarget?: string;
+  milestonePath?: string;
+}
+
+/**
  * Options for runLevel dispatcher
  *
  * Contains the minimum context needed to execute any cascade level.
@@ -78,6 +115,14 @@ interface RunLevelOptions {
   calibrateEvery?: number;
   /** Repository root path */
   contextRoot: string;
+  /** Skip approvals by forcing write actions at all gates (`--force`) */
+  forceFlag?: boolean;
+  /** Provider model identifier to pass through to build/calibrate */
+  model?: string;
+  /** Provider selection to pass through to build/calibrate */
+  provider?: ProviderType;
+  /** Require approvals by forcing gate review behavior (`--review`) */
+  reviewFlag?: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
 }
@@ -112,9 +157,91 @@ type CascadeLevelName =
   | "subtasks"
   | "tasks";
 
+/**
+ * Cascade levels with runnable adapters in runLevel().
+ *
+ * Planning levels are intentionally excluded until adapters are implemented.
+ */
+const EXECUTABLE_LEVELS: ReadonlySet<CascadeLevelName> = new Set([
+  "build",
+  "calibrate",
+]);
+
 // =============================================================================
 // Validation Functions
 // =============================================================================
+
+/**
+ * Build approval context from cascade options.
+ */
+function buildApprovalContext(options: CascadeFromOptions): ApprovalContext {
+  return {
+    forceFlag: options.forceFlag === true,
+    isTTY: Boolean(process.stdin.isTTY) && options.headless !== true,
+    reviewFlag: options.reviewFlag === true,
+  };
+}
+
+/**
+ * Check approval gate before executing a cascade level.
+ */
+async function checkApprovalGate(
+  level: CascadeLevelName,
+  approvalConfig: ApprovalsConfig | undefined,
+  context: CheckApprovalContext,
+): Promise<ApprovalResult> {
+  const gate = levelToGate(level);
+
+  if (gate === null) {
+    return "continue";
+  }
+
+  const action: ApprovalAction = evaluateApproval(
+    gate,
+    approvalConfig,
+    context,
+  );
+
+  switch (action) {
+    case "exit-unstaged": {
+      console.log(
+        `[Approval] exit-unstaged for ${gate} - manual review required`,
+      );
+      if (
+        context.cascadeTarget !== undefined &&
+        context.milestonePath !== undefined
+      ) {
+        prepareExitUnstaged({
+          cascadeTarget: context.cascadeTarget,
+          gate,
+          level,
+          milestonePath: context.milestonePath,
+        });
+      }
+      return "exit-unstaged";
+    }
+
+    case "notify-wait": {
+      const summary = `Proceeding with ${level} level`;
+      await handleNotifyWait(gate, approvalConfig, summary);
+      return "continue";
+    }
+
+    case "prompt": {
+      const summary = `Proceeding with ${level} level`;
+      const isApproved = await promptApproval(gate, summary);
+      return isApproved ? "continue" : "aborted";
+    }
+
+    case "write": {
+      return "continue";
+    }
+
+    default: {
+      return "continue";
+    }
+  }
+}
 
 /**
  * Find a level definition by name
@@ -161,12 +288,67 @@ function getLevelsInRange(from: string, to: string): Array<string> {
 }
 
 /**
+ * Get runnable cascade targets from a specific starting level.
+ */
+function getSupportedCascadeTargets(
+  from: CascadeLevelName,
+): Array<CascadeLevelName> {
+  const fromLevel = findLevel(from);
+  if (fromLevel === undefined) {
+    return [];
+  }
+
+  const supportedTargets: Array<CascadeLevelName> = [];
+
+  for (const candidate of LEVELS) {
+    if (candidate.order > fromLevel.order && isValidLevelName(candidate.name)) {
+      const pathLevels = getLevelsInRange(from, candidate.name);
+      const isRunnablePath = pathLevels.every(
+        (levelName) =>
+          isValidLevelName(levelName) && isExecutableLevel(levelName),
+      );
+
+      if (isRunnablePath) {
+        supportedTargets.push(candidate.name);
+      }
+    }
+  }
+
+  return supportedTargets;
+}
+
+/**
+ * Get unsupported (non-executable) levels in a cascade path.
+ */
+function getUnsupportedLevelsInPath(
+  from: CascadeLevelName,
+  to: CascadeLevelName,
+): Array<CascadeLevelName> {
+  const unsupportedLevels: Array<CascadeLevelName> = [];
+
+  for (const level of getLevelsInRange(from, to)) {
+    if (isValidLevelName(level) && !isExecutableLevel(level)) {
+      unsupportedLevels.push(level);
+    }
+  }
+
+  return unsupportedLevels;
+}
+
+/**
  * Get list of valid level names for error messages
  *
  * @returns Comma-separated list of valid level names
  */
 function getValidLevelNames(): string {
   return LEVELS.map((level) => level.name).join(", ");
+}
+
+/**
+ * Check whether a level can be dispatched by runLevel().
+ */
+function isExecutableLevel(level: CascadeLevelName): boolean {
+  return EXECUTABLE_LEVELS.has(level);
 }
 
 /**
@@ -177,6 +359,22 @@ function getValidLevelNames(): string {
  */
 function isValidLevelName(name: string): name is CascadeLevelName {
   return LEVELS.some((level) => level.name === name);
+}
+
+/**
+ * Map cascade level to approval gate.
+ */
+function levelToGate(level: CascadeLevelName): ApprovalGate | null {
+  const mapping: Record<CascadeLevelName, ApprovalGate | null> = {
+    build: null,
+    calibrate: null,
+    roadmap: "createRoadmap",
+    stories: "createStories",
+    subtasks: "createSubtasks",
+    tasks: "createTasks",
+  };
+
+  return mapping[level];
 }
 
 /**
@@ -268,37 +466,56 @@ async function runCascadeFrom(
   target: string,
   options: CascadeFromOptions,
 ): Promise<CascadeFromResult> {
+  const aaaConfig = loadAaaConfig();
+  const approvalConfig = aaaConfig.ralph?.approvals;
+  const approvalContext = buildApprovalContext(options);
+  const resolvedMilestonePath = options.milestonePath ?? options.contextRoot;
+  const effectiveStart = options.fromLevel ?? start;
+
+  if (options.fromLevel !== undefined && !isValidLevelName(options.fromLevel)) {
+    return {
+      completedLevels: [],
+      error: `Invalid level '${options.fromLevel}'. Valid levels: ${getValidLevelNames()}`,
+      stoppedAt: options.fromLevel,
+      success: false,
+    };
+  }
+
   const runOptions: RunLevelOptions = {
     calibrateEvery: options.calibrateEvery,
     contextRoot: options.contextRoot,
+    forceFlag: options.forceFlag,
+    model: options.model,
+    provider: options.provider,
+    reviewFlag: options.reviewFlag,
     subtasksPath: options.subtasksPath,
   };
 
   // Step 1: Validate cascade direction
-  const validationError = validateCascadeTarget(start, target);
+  const validationError = validateCascadeTarget(effectiveStart, target);
   if (validationError !== null) {
     return {
       completedLevels: [],
       error: validationError,
-      stoppedAt: start,
+      stoppedAt: effectiveStart,
       success: false,
     };
   }
 
   // Step 2: Get levels to execute
-  const levelsToExecute = getLevelsInRange(start, target);
+  const levelsToExecute = getLevelsInRange(effectiveStart, target);
   if (levelsToExecute.length === 0) {
     return {
       completedLevels: [],
-      error: `No levels between '${start}' and '${target}'`,
-      stoppedAt: start,
+      error: `No levels between '${effectiveStart}' and '${target}'`,
+      stoppedAt: effectiveStart,
       success: false,
     };
   }
 
   // Step 3: Execute each level in sequence
   const completedLevels: Array<string> = [];
-  let lastCompletedLevel = start;
+  let lastCompletedLevel = effectiveStart;
   let isFirstLevel = true;
 
   for (const currentLevel of levelsToExecute) {
@@ -320,6 +537,37 @@ async function runCascadeFrom(
     }
     isFirstLevel = false;
 
+    if (!isValidLevelName(currentLevel)) {
+      return {
+        completedLevels,
+        error: `Invalid level '${currentLevel}'. Valid levels: ${getValidLevelNames()}`,
+        stoppedAt: currentLevel,
+        success: false,
+      };
+    }
+
+    const approvalGate = levelToGate(currentLevel);
+
+    // eslint-disable-next-line no-await-in-loop -- Approval must be checked per level before execution
+    const approvalResult = await checkApprovalGate(
+      currentLevel,
+      approvalConfig,
+      {
+        ...approvalContext,
+        cascadeTarget: target,
+        milestonePath: resolvedMilestonePath,
+      },
+    );
+
+    if (approvalResult === "aborted") {
+      return {
+        completedLevels,
+        error: "Aborted by user at approval prompt",
+        stoppedAt: currentLevel,
+        success: false,
+      };
+    }
+
     console.log(`\n=== Running cascade level: ${currentLevel} ===\n`);
 
     // Execute the level
@@ -329,6 +577,34 @@ async function runCascadeFrom(
       return {
         completedLevels,
         error: levelError,
+        stoppedAt: currentLevel,
+        success: false,
+      };
+    }
+
+    if (approvalResult === "exit-unstaged") {
+      if (approvalGate === null) {
+        return {
+          completedLevels,
+          error: "Internal error: exit-unstaged without approval gate",
+          stoppedAt: currentLevel,
+          success: false,
+        };
+      }
+
+      finalizeExitUnstaged(
+        {
+          cascadeTarget: target,
+          gate: approvalGate,
+          level: currentLevel,
+          milestonePath: resolvedMilestonePath,
+        },
+        `Generated artifacts for ${currentLevel} level.`,
+      );
+
+      return {
+        completedLevels,
+        error: null,
         stoppedAt: currentLevel,
         success: false,
       };
@@ -367,7 +643,15 @@ async function runLevel(
   level: string,
   options: RunLevelOptions,
 ): Promise<null | string> {
-  const { calibrateEvery = 0, contextRoot, subtasksPath } = options;
+  const {
+    calibrateEvery = 0,
+    contextRoot,
+    forceFlag: isForceFlag,
+    model,
+    provider,
+    reviewFlag: isReviewFlag,
+    subtasksPath,
+  } = options;
 
   // Validate level name
   if (!isValidLevelName(level)) {
@@ -382,6 +666,8 @@ async function runLevel(
         interactive: false,
         maxIterations: 0,
         mode: "headless",
+        model,
+        provider,
         quiet: false,
         skipSummary: false,
         subtasksPath,
@@ -401,6 +687,10 @@ async function runLevel(
       const calibrateSubcommand: CalibrateSubcommand = "all";
       const didSucceed = await runCalibrate(calibrateSubcommand, {
         contextRoot,
+        force: isForceFlag,
+        model,
+        provider,
+        review: isReviewFlag,
         subtasksPath,
       });
       return didSucceed ? null : "Calibration failed";
@@ -465,6 +755,17 @@ function validateCascadeTarget(from: string, to: string): null | string {
     return `Cannot cascade backward from '${from}' to '${to}'. Cascade must flow forward through: ${getValidLevelNames()}`;
   }
 
+  const supportedTargets = getSupportedCascadeTargets(from);
+  if (!supportedTargets.includes(to)) {
+    const unsupportedLevels = getUnsupportedLevelsInPath(from, to);
+    const supportedList =
+      supportedTargets.length === 0 ? "none" : supportedTargets.join(", ");
+    const unsupportedList =
+      unsupportedLevels.length === 0 ? "none" : unsupportedLevels.join(", ");
+
+    return `Cascade from '${from}' to '${to}' is not executable yet. Unsupported levels in path: ${unsupportedList}. Supported targets from '${from}': ${supportedList}.`;
+  }
+
   return null;
 }
 
@@ -473,14 +774,19 @@ function validateCascadeTarget(from: string, to: string): null | string {
 // =============================================================================
 
 export {
+  type ApprovalResult,
+  buildApprovalContext,
   type CascadeFromOptions,
   type CascadeFromResult,
   type CascadeLevelDefinition,
   type CascadeLevelName,
+  type CheckApprovalContext,
+  checkApprovalGate,
   getLevelsInRange,
   getValidLevelNames,
   isValidLevelName,
   LEVELS,
+  levelToGate,
   promptContinue,
   runCascadeFrom,
   runLevel,

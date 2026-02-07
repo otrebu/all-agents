@@ -8,6 +8,309 @@
 
 ## Session Notes
 
+## 2026-02-07
+
+### SUB-413 (tracking sync)
+- **Problem:** `SUB-413` remained pending in `subtasks.json` even though `validation-batch.test.ts` already covered all required batch orchestrator scenarios and summary/milestone assertions.
+- **Changes:** Re-verified the SUB-413 acceptance criteria in `validation-batch.test.ts` (all-aligned batch result, headless failure hook behavior, supervised skip/continue handling, summary output assertions, milestone basename extraction), ran `bun test tests/lib/validation-batch.test.ts`, then marked the subtask complete with completion metadata.
+- **Files:** `tools/tests/lib/validation-batch.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-412 (tracking sync)
+- **Problem:** `SUB-412` remained pending in `subtasks.json` even though build-loop batch validation integration and skip tracking were already implemented in `build.ts` with dedicated integration coverage.
+- **Changes:** Re-verified `build.ts` against all acceptance criteria (validation import wiring, pre-build pending-subtask batch validation call, skipped-ID mapping, and iteration skip gate), ran `bun test tests/lib/build-validation-integration.test.ts` and `bun run typecheck`, then marked `SUB-412` complete with implementation commit/session metadata.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-411 (tracking sync)
+- **Problem:** `SUB-411` remained pending in `subtasks.json` even though batch validation orchestration and summary reporting were already implemented in `validation.ts` with dedicated unit coverage.
+- **Changes:** Re-verified `BatchValidationResult`, `validateAllSubtasks()`, `printValidationSummary()`, and `getMilestoneFromPath()` against all acceptance criteria, ran `bun test tests/lib/validation-batch.test.ts` and `bun run typecheck`, then marked `SUB-411` complete with completion metadata.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-batch.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-409
+- **Problem:** `handleHeadlessValidationFailure()` needed to guarantee an absolute feedback file path and strict date-based filename generation for headless validation output.
+- **Changes:** Updated `validation.ts` to resolve `milestonePath` before file I/O and use `new Date().toISOString().split("T")[0]` for the filename prefix; extended `validation-headless.test.ts` to call the handler with a relative milestone path while asserting absolute return-path behavior, file naming, file content, and log output.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-headless.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-408 (tracking sync)
+- **Problem:** `SUB-408` was still pending in `subtasks.json` even though `SkippedSubtask` and `generateValidationFeedback()` were already implemented with dedicated headless validation tests.
+- **Changes:** Re-verified `validation.ts` exports and markdown-generation behavior against all acceptance criteria, ran `bun test tests/lib/validation-headless.test.ts` and `bun run typecheck`, then marked `SUB-408` complete with implementation commit/session metadata.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-headless.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-403 (tracking sync)
+- **Problem:** `SUB-403` was pending in `subtasks.json` even though validation invocation and timeout handling were already implemented and covered by unit tests.
+- **Changes:** Re-verified `validateSubtask()` behavior in `validation.ts` against all acceptance criteria (start log, provider invocation with `VALIDATION_TIMEOUT_MS`, timeout/failure fail-open warnings, and parser handoff), ran `bun test tests/lib/validation-invoke.test.ts`, then marked `SUB-403` complete with implementation commit/session metadata.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-invoke.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-406 (tracking sync)
+- **Problem:** `SUB-406` was marked pending in `subtasks.json` even though supervised validation failure display and prompt handling were already implemented and covered by unit tests.
+- **Changes:** Re-verified supervised-mode acceptance criteria in `validation.ts` and `validation.test.ts`, ran `bun test tests/lib/validation.test.ts` and `bun run typecheck`, then marked `SUB-406` complete with completion metadata referencing the implementation commit.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-405 (tracking sync)
+- **Problem:** `SUB-405` was still marked pending in `subtasks.json` even though `validation.ts` already exported `SupervisedValidationAction`, `formatIssueType()`, and `wrapText()` with unit coverage.
+- **Changes:** Re-verified all `SUB-405` acceptance criteria against `validation.ts` and `validation.test.ts`, ran `bun test tests/lib/validation.test.ts` plus `bun run typecheck`, and marked the subtask complete with implementation commit/session metadata.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-402 (tracking sync)
+- **Problem:** `SUB-402` remained pending in the queue even though parent-chain resolution and validation prompt assembly were already implemented and tested.
+- **Changes:** Re-verified `resolveParentTask()`, `resolveParentStory()`, and `buildValidationPrompt()` in `validation.ts`, ran `bun test ./tests/lib/validation-prompt.test.ts`, confirmed acceptance-criteria coverage (full chain, missing task/story, missing storyRef, missing prompt template, storyRef regex), and marked `SUB-402` complete with implementation commit/session metadata.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-prompt.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-400
+- **Problem:** Validation parser scenario coverage needed to explicitly assert warning behavior for missing `aligned` field handling while completing the TASK-016 parser test matrix.
+- **Changes:** Tightened `validation.test.ts` by asserting `console.warn` output for the missing-`aligned` response path, then re-ran targeted validation parser tests to confirm all parsing scenarios pass.
+- **Files:** `tools/tests/lib/validation.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-399 (tracking sync)
+- **Problem:** `SUB-399` was still marked pending in `subtasks.json` even though the validation parser/types implementation and tests had already landed.
+- **Changes:** Re-validated `validation.ts` and `validation.test.ts` against the TASK-016 acceptance criteria (including parser behavior and type exports), ran targeted validation tests plus `bun run typecheck`, then marked `SUB-399` done with completion metadata pointing to the original implementation commit.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-388
+- **Problem:** SUB-388 remained pending in `subtasks.json` even though `generateSummary()` had already been refactored to use centralized template substitution.
+- **Changes:** Re-verified `post-iteration.ts` uses `substituteTemplate()` with typed template variables and deferred session-content replacement, re-ran targeted unit and E2E post-iteration tests, then marked SUB-388 done with completion metadata.
+- **Files:** `tools/src/commands/ralph/post-iteration.ts`, `tools/tests/lib/post-iteration.test.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-393
+- **Problem:** `generateSummary()` needed complete substitution support for `SESSION_JSONL_PATH`, `SUBTASK_DESCRIPTION`, and `SESSION_JSONL_CONTENT`, including null-safe handling for missing session paths.
+- **Changes:** Updated post-iteration summary generation to always populate the three variables (`SESSION_JSONL_PATH` now defaults to an empty string when `sessionPath` is null) and added regression coverage that validates null-path behavior plus content aliasing in prompt substitution.
+- **Files:** `tools/src/commands/ralph/post-iteration.ts`, `tools/tests/lib/post-iteration.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-383
+- **Problem:** SUB-383 was still pending in the queue and needed completion evidence for the new template variable typing contract.
+- **Changes:** Verified `TemplateVariables` already exports all 10 required keys with per-property purpose/source/format JSDoc, confirmed `substituteTemplate()` accepts `Partial<TemplateVariables>`, and validated targeted unit tests plus typecheck before marking the subtask complete in tracking.
+- **Files:** `tools/src/commands/ralph/template.ts`, `tools/tests/lib/template.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-378
+- **Problem:** The queue still listed SUB-378 as pending even though the template substitution utility and its unit coverage were already implemented, so Ralph could not treat the task as complete.
+- **Changes:** Re-validated the existing `substituteTemplate()` implementation and template unit suite, then reconciled queue metadata by marking SUB-378 done with completion timestamp, implementation commit hash, and current session ID.
+- **Files:** `tools/src/commands/ralph/template.ts`, `tools/tests/lib/template.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-413
+- **Problem:** Batch validation orchestrator coverage was missing required scenarios for all-aligned results, supervised skip behavior, and summary label assertions tied to task acceptance criteria.
+- **Changes:** Expanded `validation-batch.test.ts` with new unit coverage for all-aligned `validateAllSubtasks()` success output, supervised mode skip-path accumulation, and updated skipped-summary assertions using explicit subtask IDs and formatted issue labels; retained and validated headless hook and milestone extraction tests.
+- **Files:** `tools/tests/lib/validation-batch.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-412
+- **Problem:** `ralph build --validate-first` still used a stub log, so batch validation results were not wired into iteration selection and misaligned subtasks were not excluded.
+- **Changes:** Integrated `validateAllSubtasks()` into `runBuild()` preflight, added typed `skippedSubtaskIds` tracking initialized to `null`, and added iteration-level skip gating for validated failures with `Skipping <id> (failed validation)` logging. Added static integration coverage in `build-validation-integration.test.ts` for import wiring, pending subtask flow, skipped-ID mapping, and loop skip behavior.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-411
+- **Problem:** Pre-build validation had single-subtask pieces but no batch orchestrator to validate all pending subtasks, report results, and trigger failure hooks before build iterations.
+- **Changes:** Added and exported `BatchValidationResult`, `validateAllSubtasks()`, `printValidationSummary()`, and `getMilestoneFromPath()` in `validation.ts`. The batch flow now validates pending subtasks sequentially, logs aligned/misaligned status with chalk colors, handles supervised continue/skip decisions, writes headless feedback via `handleHeadlessValidationFailure()`, and executes `executeHook("onValidationFail", { subtaskId, milestone, message })` per headless failure. Added `validation-batch.test.ts` for supervised continue accounting, headless skip + hook behavior, summary output, and milestone basename extraction.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-batch.test.ts`
+
+### SUB-409
+- **Problem:** Headless pre-build validation needed a concrete file writer to persist misalignment feedback for skipped subtasks.
+- **Changes:** Added and exported `handleHeadlessValidationFailure(subtask, result, milestonePath)` in `validation.ts`; it now creates `<milestone>/feedback`, writes `YYYY-MM-DD_validation_<subtask.id>.md` from `generateValidationFeedback()`, logs the output path, and returns the created file path. Expanded `validation-headless.test.ts` with temp-dir lifecycle coverage for feedback directory creation, filename pattern, content checks (including reason), returned path equality, and console log assertions.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-headless.test.ts`
+
+### SUB-408
+- **Problem:** Headless validation flow needed a reusable markdown generator and typed skip-tracking record for misaligned subtasks before build iterations continue.
+- **Changes:** Added and exported `SkippedSubtask` plus pure `generateValidationFeedback(subtask, result)` in `validation.ts` to emit self-contained markdown with header metadata, failure reason defaults, optional suggestion section, subtask JSON block, and three resolution options. Added `validation-headless.test.ts` covering required sections, suggestion include/omit behavior, storyRef include/omit behavior, subtask JSON presence, issue-type label formatting, and unknown/default fallbacks.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-headless.test.ts`
+
+### SUB-403
+- **Problem:** Pre-build validation still lacked the provider invocation layer to run a single-subtask check with timeout-aware fail-open behavior.
+- **Changes:** Added `validateSubtask()` and exported `VALIDATION_TIMEOUT_MS` in `validation.ts`; the function now logs the start line, builds the validation prompt, invokes `invokeProviderSummary()` with a 60-second timeout, distinguishes timeout-vs-invocation-failure null outcomes for warning text, and parses successful string responses via `parseValidationResponse()`. Added `validation-invoke.test.ts` with mocked provider invocation coverage for timeout path, invocation-failure path, aligned parse path, and misaligned parse path.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-invoke.test.ts`
+
+### SUB-406
+- **Problem:** Supervised pre-build validation still needed a user-facing failure display and deterministic skip/continue prompt handling for TTY and non-TTY execution paths.
+- **Changes:** Added and exported `handleSupervisedValidationFailure()` in `validation.ts` to render a fixed-width (64-char) Unicode box with yellow borders, formatted issue labels, and wrapped reason/suggestion content at 56 characters. Added and exported `promptSkipOrContinue()` using `node:readline` with `Skip SUB-XXX? [Y/n]` semantics (`Enter/y/yes => "skip"`, `n/no => "continue"`), non-TTY default skip behavior, and SIGINT propagation via `process.emit("SIGINT")`. Expanded `validation.test.ts` with unit coverage for prompt decision paths, non-TTY fallback, SIGINT propagation, and supervised failure box logging assertions.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation.test.ts`
+
+### SUB-405
+- **Problem:** Supervised pre-build validation lacked local helpers to format issue labels and wrap long reason/suggestion text for fixed-width Unicode box rendering.
+- **Changes:** Added and exported `SupervisedValidationAction` (`"continue" | "skip"`), `formatIssueType()` with friendly labels for all four known issue types plus raw-string fallback, and `wrapText()` with word-boundary wrapping, long-word truncation, and guaranteed non-empty output for empty strings. Expanded unit tests to cover all required format and wrapping edge cases plus export availability.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation.test.ts`
+
+### SUB-402
+- **Problem:** Pre-build validation still lacked parent chain resolution and prompt assembly, so build-time validation could not include parent task/story context or graceful placeholders.
+- **Changes:** Added `resolveParentTask()`, `resolveParentStory()`, and `buildValidationPrompt()` in `validation.ts` to load parent files by ref-prefix matching, extract story refs from `**Story:**` markdown links, throw when the base prompt template is missing, and include `*Not found: <ref>*` placeholders when parent files are absent. Added comprehensive temp-directory unit coverage for full chain assembly, missing task/story handling, no-story-link behavior, missing prompt template errors, and storyRef extraction.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-prompt.test.ts`
+
+### SUB-400
+- **Problem:** Validation parsing behavior needed explicit, scenario-driven unit coverage to lock parser behavior for aligned/misaligned responses and fail-open warning cases.
+- **Changes:** Updated `validation.test.ts` to cover the TASK-016 matrix: aligned parsing, full misaligned parsing, fenced markdown JSON extraction, empty/invalid input warnings, missing `aligned` handling, explicit `parseIssueType` valid/invalid checks, and partial misaligned defaults for reason/suggestion.
+- **Files:** `tools/tests/lib/validation.test.ts`
+
+### SUB-399
+- **Problem:** Ralph pre-build validation needed a typed response contract and safe parser for Claude JSON output, including fenced markdown extraction and fail-open behavior.
+- **Changes:** Added `validation.ts` with exported `ValidationIssueType`, `ValidationResult`, and `ValidationContext` plus `parseIssueType()` and `parseValidationResponse()` to validate `aligned`, extract misalignment details, and warn/return `{ aligned: true }` on malformed responses. Added focused unit tests covering aligned/misaligned parsing, markdown code block extraction, invalid/missing JSON warnings, invalid `aligned` type, and default values.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation.test.ts`
+
+### SUB-398
+- **Problem:** `iteration-summary.md` still documented template inputs as ad-hoc required/optional lists instead of a complete, structured variable contract.
+- **Changes:** Replaced "Required Inputs" and "Optional Context Fields" with an "Available Template Variables" markdown table covering all 10 supported substitutions (`SUBTASK_ID`, `SUBTASK_TITLE`, `SUBTASK_DESCRIPTION`, `STATUS`, `MILESTONE`, `TASK_REF`, `ITERATION_NUM`, `SESSION_CONTENT`, `SESSION_JSONL_PATH`, `SESSION_JSONL_CONTENT`) including description, example, and required/optional status. Added notes that missing variables remain literal `{{VAR}}` text and that `SESSION_CONTENT` is substituted last.
+- **Files:** `context/workflows/ralph/hooks/iteration-summary.md`
+
+### SUB-398 (tracking sync)
+- **Problem:** Queue state was stale: SUB-398 remained pending in `subtasks.json` even though `iteration-summary.md` already matched the required variable-documentation contract.
+- **Changes:** Re-verified all four acceptance criteria directly in the prompt template (table structure, all 10 variables, literal `{{VAR}}` fallback note, and `SESSION_CONTENT` substitution ordering note), then marked SUB-398 complete in queue metadata with timestamp/commit/session fields.
+- **Files:** `context/workflows/ralph/hooks/iteration-summary.md`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-393
+- **Problem:** `generateSummary()` did not populate `SESSION_JSONL_PATH`, `SUBTASK_DESCRIPTION`, or `SESSION_JSONL_CONTENT`, so story-defined prompt placeholders were not fully available.
+- **Changes:** Added template variable mapping for `SESSION_JSONL_PATH` and `SUBTASK_DESCRIPTION`, mapped `SESSION_JSONL_CONTENT` to the same deferred token flow used for `SESSION_CONTENT`, and expanded post-iteration unit tests to verify all three placeholders populate correctly plus nullish-input handling.
+- **Files:** `tools/src/commands/ralph/post-iteration.ts`, `tools/tests/lib/post-iteration.test.ts`
+
+### SUB-388
+- **Problem:** `generateSummary()` in `post-iteration.ts` still used an inline `replaceAll()` chain, duplicating template logic and bypassing centralized missing-variable warning behavior.
+- **Changes:** Switched prompt substitution to `substituteTemplate()` with a typed `Partial<TemplateVariables>` for core variables (`SUBTASK_ID`, `STATUS`, `SUBTASK_TITLE`, `MILESTONE`, `TASK_REF`, `ITERATION_NUM`) and kept `SESSION_CONTENT` applied last via a deferred token replacement. Added regression tests validating all seven variables still substitute correctly, `SESSION_CONTENT` remains last and preserves `{{...}}` content from session logs, and missing variables warn without breaking summary generation.
+- **Files:** `tools/src/commands/ralph/post-iteration.ts`, `tools/tests/lib/post-iteration.test.ts`
+
+### SUB-383
+- **Problem:** Template variable support lacked a formal, documented contract for all story-required placeholders and backward-compatible aliases.
+- **Changes:** Added an exported `TemplateVariables` interface in `template.ts` with all 10 supported variables and per-property JSDoc covering purpose/source/format; kept `substituteTemplate()` explicitly typed to accept `Partial<TemplateVariables>`; added unit coverage that verifies partial substitution usage and asserts the full key set.
+- **Files:** `tools/src/commands/ralph/template.ts`, `tools/tests/lib/template.test.ts`
+
+### SUB-378
+- **Problem:** Template placeholder substitution logic was duplicated inline, with no shared utility or explicit warning behavior for missing variables.
+- **Changes:** Added a new `substituteTemplate()` utility and `TemplateVariables` type in `tools/src/commands/ralph/template.ts` that replace `{{VAR}}` placeholders, preserve missing placeholders as literals, and emit `console.warn` for missing/undefined values. Added unit tests covering basic and multi-variable substitution, missing-variable warning + literal preservation, undefined handling, empty template, and no-placeholder passthrough.
+- **Files:** `tools/src/commands/ralph/template.ts`, `tools/tests/lib/template.test.ts`
+
+### SUB-240
+- **Problem:** Cascade target validation allowed planning-level paths that were not executable, causing late failures with generic "planning level not yet implemented" errors.
+- **Changes:** Added runnable-level aware cascade validation that rejects non-executable paths early with explicit unsupported-level and supported-target guidance. Added early `--cascade` validation for roadmap/stories/tasks/subtasks entry commands, and updated unit/E2E regression coverage to assert the new early-failure messaging and supported-target lists.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/src/commands/ralph/index.ts`, `tools/tests/lib/cascade.test.ts`, `tools/tests/e2e/ralph.test.ts`
+
+### SUB-239
+- **Problem:** Cascade provider/model forwarding behavior needed explicit regression coverage to prove context survives handoff from `runCascadeFrom()` into `runLevel()` and downstream build/calibrate dispatch.
+- **Changes:** Added a dedicated unit test suite that mocks `build` and `calibrate` modules to verify `runLevel("build")` forwards `provider`/`model` to `runBuild`, `runLevel("calibrate")` forwards them to `runCalibrate`, cascade handoff preserves both values, and omission remains backward-compatible.
+- **Files:** `tools/tests/lib/cascade-provider-forwarding.test.ts`
+
+### SUB-224
+- **Problem:** `handleNotifyWait()` needed explicit unit coverage for notify config edge cases and wait-duration defaults to keep headless suggest-mode behavior deterministic.
+- **Changes:** Extended `approvals.test.ts` with cases that verify notify skip + wait when server/topic is missing, and default 180-second fallback when `suggestWaitSeconds` is undefined; kept `sendNotification` and timer interactions mocked to avoid real side effects.
+- **Files:** `tools/tests/lib/approvals.test.ts`
+
+### SUB-223
+- **Problem:** `checkApprovalGate()` needed to use the real notify-wait handler path so headless suggest approvals notify, wait, and continue deterministically instead of relying on placeholder behavior.
+- **Changes:** Updated `checkApprovalGate()` to pass `approvalConfig` into `handleNotifyWait()` with summary text `Proceeding with {level} level` and continue after completion; aligned cascade approval regression coverage by mocking `handleNotifyWait()` and asserting the exact call contract in `cascade-approval.test.ts`.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/cascade-approval.test.ts`
+
+### SUB-238
+- **Problem:** Notify-wait approval output depends on exported gate-name formatting and regression checks, but explicit coverage for `createRoadmap` was missing from current unit tests.
+- **Changes:** Added a `formatGateName("createRoadmap") === "Create Roadmap"` unit test in the approvals suite to lock the formatter behavior used in notification titles and console output; verified existing exports already include `ApprovalAction`, `ApprovalContext`, `DEFAULT_SUGGEST_WAIT_SECONDS`, `evaluateApproval`, `formatGateName`, and `handleNotifyWait`.
+- **Files:** `tools/tests/lib/approvals.test.ts`
+
+### SUB-237
+- **Problem:** Headless suggest-mode approvals still used a placeholder notify-wait path, so cascade execution could not notify users, pause for a configured window, and then continue safely.
+- **Changes:** Added `DEFAULT_SUGGEST_WAIT_SECONDS`, `sleep()`, and `handleNotifyWait()` in `approvals.ts` with config-aware notification delivery, skip behavior when notifications are disabled/misconfigured, warning-only error handling, and wait/complete logging. Updated `checkApprovalGate()` in `cascade.ts` to call `handleNotifyWait()` for `"notify-wait"` actions. Added unit tests for wait timing, default fallback, notification payload/skip/error behavior, and cascade dispatch integration.
+- **Files:** `tools/src/commands/ralph/approvals.ts`, `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/approvals.test.ts`, `tools/tests/lib/cascade.test.ts`
+
+### SUB-233
+- **Problem:** Cascade approval integration needed dedicated unit coverage in a focused test file for gate mapping, approval context construction, and action-dispatch behavior.
+- **Changes:** Added `cascade-approval.test.ts` with tests for `levelToGate` mappings (including null gates for build/calibrate), `buildApprovalContext` flag/isTTY behavior, and `checkApprovalGate` dispatch outcomes (`continue`, `aborted`, `exit-unstaged`) using mocked `evaluateApproval` and `promptApproval`.
+- **Files:** `tools/tests/lib/cascade-approval.test.ts`
+
+### SUB-232
+- **Problem:** Cascade execution needed complete approval integration so each level evaluates approval gates consistently, supports abort/exit flows, and preserves provider/model context for downstream execution.
+- **Changes:** Updated `checkApprovalGate()` to run per-level gate evaluation with explicit action dispatch (`write`, `prompt`, `notify-wait`, `exit-unstaged`) and placeholder logging for notify/exit paths, while keeping exit-unstaged artifact checkpoint handling when cascade metadata is present. Updated `runCascadeFrom()` to pass approval metadata through context and continue forwarding provider/model into `runLevel()` options. Expanded `cascade.test.ts` with approval-action unit coverage for no-gate continue, write continue, prompt abort path, notify-wait logging, and exit-unstaged behavior.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/cascade.test.ts`
+
+### SUB-218
+- **Problem:** Approval control flags lacked E2E coverage for invalid `--from` handling and explicit provider-aware validation paths, leaving gaps in regression protection for `TASK-011`.
+- **Changes:** Added E2E tests in `ralph.test.ts` to verify `ralph plan subtasks --from invalid-level` fails with exit code 1 and prints valid levels, and to confirm `--force --review` mutual-exclusion behavior is unchanged when `--provider opencode` is explicitly supplied. Existing help/mutual-exclusion approval-flag tests for `ralph build` and `ralph plan subtasks` continue to run in the same suite.
+- **Files:** `tools/tests/e2e/ralph.test.ts`
+
+### SUB-217
+- **Problem:** `ralph plan subtasks` lacked approval control flags and had no way to forward those approval overrides (and provider/model consistency) into cascade execution; additionally, its existing `--review` source flag conflicted with the new approval-review flag name.
+- **Changes:** Added `--force`, `--review`, and `--from <level>` to subtasks planning, called `validateApprovalFlags()` at the top of the action, and forwarded `forceFlag`, `reviewFlag`, `fromLevel` (`options.from ?? "subtasks"`), `provider`, and `model` into `handleCascadeExecution()` for `--cascade` runs. Renamed the review diary source selector to `--review-diary` to avoid the flag collision and updated help/docs/completion entries plus E2E coverage for subtasks approval flag help and early mutual-exclusion validation.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `tools/README.md`, `tools/src/commands/completion/bash.ts`, `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`
+
+### SUB-216
+- **Problem:** `ralph plan tasks` did not expose approval override flags or cascade resume-from control, and tasks cascades were not forwarding approval context through the shared cascade helper.
+- **Changes:** Added `--force`, `--review`, and `--from <level>` options to tasks planning; called `validateApprovalFlags()` at the start of the tasks action; and forwarded `forceFlag`, `reviewFlag`, `fromLevel` (`options.from ?? "tasks"`), `provider`, and `model` into `handleCascadeExecution()` when `--cascade` is used. Added E2E coverage for tasks help flag visibility and early mutual-exclusion validation.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`
+
+### SUB-222
+- **Problem:** `ralph plan stories` lacked approval override flags and direct cascade handoff through the shared helper, so stories cascades could miss approval/provider/model context and had no resume-from control.
+- **Changes:** Added `--force`, `--review`, and `--from <level>` options to stories planning; called `validateApprovalFlags()` at the top of the stories action; and switched stories cascade handling to `handleCascadeExecution()` with forwarded `forceFlag`, `reviewFlag`, `fromLevel` (`options.from ?? "stories"`), `provider`, and `model`. Added E2E coverage for stories help flag visibility and early mutual-exclusion validation.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `tools/README.md`
+
+### SUB-221
+- **Problem:** `ralph plan roadmap` did not expose approval override flags or cascade resume-from support, and its cascade path bypassed the shared helper used by other planning levels.
+- **Changes:** Added `--force`, `--review`, and `--from <level>` options to roadmap planning; called `validateApprovalFlags()` at the start of the roadmap action; and switched roadmap cascade handling to `handleCascadeExecution()` while forwarding `forceFlag`, `reviewFlag`, and `fromLevel` (`options.from ?? "roadmap"`). Added E2E coverage for roadmap help output and early mutually-exclusive approval flag validation.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`
+
+### SUB-220
+- **Problem:** `ralph build` did not expose approval override and cascade-resume flags, and cascade handoff from build could drop approval/provider/model context.
+- **Changes:** Added `--force`, `--review`, and `--from <level>` options to `ralph build`; called `validateApprovalFlags()` at the start of the build action; forwarded force/review/from plus provider/model into `runCascadeFrom()` when `--cascade` is used. Added E2E coverage for build help flag visibility and early mutual-exclusion validation.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`
+
+### SUB-211
+- **Problem:** `HandleCascadeOptions` in `ralph/index.ts` did not carry approval/provider context through the cascade helper, so downstream cascade execution could lose originating CLI context.
+- **Changes:** Added `forceFlag`, `reviewFlag`, `fromLevel`, `provider`, and `model` to `HandleCascadeOptions`; updated `handleCascadeExecution()` to pass those fields through to `runCascadeFrom()`; and threaded `provider`/`model` from tasks/subtasks command options into the helper calls.
+- **Files:** `tools/src/commands/ralph/index.ts`
+
+### SUB-219
+- **Problem:** Cascade option types did not carry approval override flags or provider/model overrides end-to-end, so cascaded `runLevel()` calls could lose approval semantics and provider continuity.
+- **Changes:** Extended `CascadeFromOptions` and `RunLevelOptions` with `forceFlag`, `reviewFlag`, `provider`, and `model` plus JSDoc semantics, wired `buildApprovalContext()` to consume approval flags, threaded the fields through `runCascadeFrom()` into `runLevel()`, and forwarded provider/model to `runBuild()` plus force/review + provider/model to `runCalibrate()`. Added unit assertions for approval context propagation and run-level options acceptance.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/cascade.test.ts`
+
+### SUB-210
+- **Problem:** `runCascadeFrom()` could not override the cascade entry point when resuming a flow, and it lacked explicit `fromLevel` validation/error handling.
+- **Changes:** Added optional `fromLevel?: string` to `CascadeFromOptions`, introduced `effectiveStart` in `runCascadeFrom()`, validated `fromLevel` with `isValidLevelName()` before target validation, and routed validation/range/stopped-at logic through the effective start level. Added unit tests for invalid `fromLevel` errors (with valid-level list) and for override behavior changing the first executed level.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/cascade.test.ts`
+
+### SUB-226
+- **Problem:** Cascade approval flow still used a placeholder for `exit-unstaged`, so headless `always` approvals could not checkpoint before generation, finalize feedback artifacts after generation, or return a clean manual-review stop state.
+- **Changes:** Integrated approval-gate wiring in `cascade.ts` with `prepareExitUnstaged()` in `checkApprovalGate()`, added `milestonePath?: string` to `CascadeFromOptions`, and added post-level `finalizeExitUnstaged()` handling in `runCascadeFrom()` that returns `success: false`, `error: null`, and `stoppedAt` at the current level for manual review handoff. Added unit coverage for gate mapping, approval context building, and the exit-unstaged gate path.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/cascade.test.ts`
+
+### SUB-231
+- **Problem:** Exit-unstaged workflow lacked E2E coverage for checkpoint behavior, feedback artifact content, and end-to-end prepare/finalize integration.
+- **Changes:** Added `tools/tests/e2e/approvals.test.ts` with E2E cases for `gitCheckpoint()` clean-tree false return, dirty-tree checkpoint commit creation, `writeFeedbackFile()` output in `feedback/` with approve/reject/modify content and resume command, plus a full headless always-mode flow that verifies `evaluateApproval()` returns `exit-unstaged`, checkpoint preparation runs, a simulated level execution occurs, feedback is written, and instructions are printed.
+- **Files:** `tools/tests/e2e/approvals.test.ts`
+
+### SUB-225
+- **Problem:** The exit-unstaged approval path needed concrete helper functions for checkpointing git state, writing reviewer feedback artifacts, and printing deterministic resume instructions for headless approval pauses.
+- **Changes:** Expanded `approvals.ts` with artifact-centric `ApprovalGate`, `FeedbackContext`/`ExitUnstagedContext`, `gitCheckpoint()`, `getNextLevel()`, `writeFeedbackFile()`, `printExitInstructions()`, and two-phase `prepareExitUnstaged()` + `finalizeExitUnstaged()` handlers; added focused unit coverage for checkpoint behavior, next-level mapping, feedback content, exit instructions, and phase handler behavior.
+- **Files:** `tools/src/commands/ralph/approvals.ts`, `tools/tests/lib/approvals.test.ts`
+
+### SUB-212
+- **Problem:** Calibrate CLI accepted both `--force` and `--review` together, which creates conflicting approval override semantics.
+- **Changes:** Added `validateApprovalFlags()` in `ralph/index.ts`, wired it into `runCalibrateSubcommand()`, and added unit tests for valid flag combinations and the mutual-exclusion error/exit path.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/lib/ralph-index.test.ts`
+
+### SUB-215
+- **Problem:** Approval prompt coverage still missed explicit unit checks for some gate-name display mappings and module export verification expected by TASK-012.
+- **Changes:** Extended `approvals.test.ts` with explicit `formatGateName()` tests for `createRoadmap` and `createAtomicDocs`, a full all-gates mapping assertion, export checks for `evaluateApproval`, `formatGateName`, and `promptApproval`, compile-time type usage for `ApprovalAction` and `ApprovalContext`, and a documented manual promptApproval TTY/headless test plan comment block.
+- **Files:** `tools/tests/lib/approvals.test.ts`
+
+### SUB-214
+- **Problem:** Ralph approval flow needed an interactive TTY prompt helper to show artifact context and collect explicit approval decisions for `"prompt"` gates.
+- **Changes:** Added and exported `promptApproval(gate, summary)` in `approvals.ts` using `readline.createInterface` with `process.stdin/stdout`, formatted gate display via `formatGateName()`, prompt text `Approve? [Y/n]: `, default-yes behavior, and explicit reject on `n/no`. Added unit tests covering display order, prompt text, input handling, interface creation, and close lifecycle.
+- **Files:** `tools/src/commands/ralph/approvals.ts`, `tools/tests/lib/approvals.test.ts`
+
+### SUB-213
+- **Problem:** Approval gates needed a reusable helper to convert internal camelCase gate IDs into user-facing labels for TTY approval prompts.
+- **Changes:** Added and exported `formatGateName(gate: ApprovalGate): string` in `approvals.ts`, with create/on prefix handling plus camelCase spacing; added unit tests covering all required gate display mappings.
+- **Files:** `tools/src/commands/ralph/approvals.ts`, `tools/tests/lib/approvals.test.ts`
+
+### 2026-02-07
+
+#### SUB-208
+- **Problem:** Needed targeted regression coverage for `evaluateApproval()` CLI override behavior so `--force` and `--review` semantics stay deterministic across TTY/headless execution.
+- **Changes:** Updated `approvals.test.ts` with explicit override-focused unit tests for `--force` (`auto`+TTY and `always`+headless) and gate-wide `--review` behavior (`prompt` in TTY, `exit-unstaged` headless) while preserving existing mode-mapping coverage.
+- **Files:**
+  - `tools/tests/lib/approvals.test.ts` - Added explicit override tests and gate-wide review assertions
+
+#### SUB-209
+- **Problem:** Needed explicit per-combination regression tests for `evaluateApproval()` mode x TTY mapping and null-config fallback behavior.
+- **Changes:** Split grouped mode-mapping assertions into six dedicated unit tests (`auto/suggest/always` x `TTY true/false`) and added a null-config fallback test to verify default `suggest` behavior in both TTY and headless contexts.
+- **Files:**
+  - `tools/tests/lib/approvals.test.ts` - Added explicit mode x TTY tests and null-config fallback coverage
+
+#### SUB-207
+- **Problem:** Ralph approval gates had type definitions but no pure evaluator to translate gate config + runtime flags into actionable approval behavior.
+- **Changes:** Implemented `evaluateApproval(gate, config, context)` in `approvals.ts` with force override (`write`), per-gate mode fallback via `config?.[gate] ?? "suggest"`, review override to `always`, and deterministic TTY-aware mapping (`auto` -> `write`, `suggest` -> `write/notify-wait`, `always` -> `prompt/exit-unstaged`). Added focused unit tests covering force/review overrides, all mode + TTY mappings, undefined config fallback, and missing-gate fallback.
+- **Files:**
+  - `tools/src/commands/ralph/approvals.ts` - Added exported pure evaluateApproval function
+  - `tools/tests/lib/approvals.test.ts` - Added 8 unit tests for approval evaluation behavior
+
 ### 2026-02-06
 
 #### SUB-201

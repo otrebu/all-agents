@@ -210,7 +210,7 @@ _aaa_completions() {
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--review --task --story --milestone --size -s --supervised -H --headless --cascade --calibrate-every --file --text" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--force --review --review-diary --from --task --story --milestone --size -s --supervised -H --headless --cascade --calibrate-every --file --text" -- "$cur"))
                                 return
                                 ;;
                         esac

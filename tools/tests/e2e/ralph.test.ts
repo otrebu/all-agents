@@ -57,6 +57,21 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("tasks");
   });
 
+  test("ralph plan roadmap --help shows approval and resume flags", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "roadmap", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--force");
+    expect(stdout).toContain("Skip all approval prompts");
+    expect(stdout).toContain("--review");
+    expect(stdout).toContain("Require all approval prompts");
+    expect(stdout).toContain("--from <level>");
+    expect(stdout).toContain("Resume cascade from this level");
+  });
+
   test("ralph build --help shows build options", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
@@ -72,6 +87,207 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("--supervised");
     expect(stdout).toContain("--headless");
     expect(stdout).toContain("--skip-summary");
+    expect(stdout).toContain("--force");
+    expect(stdout).toContain("Skip all approval prompts");
+    expect(stdout).toContain("--review");
+    expect(stdout).toContain("Require all approval prompts");
+    expect(stdout).toContain("--from <level>");
+    expect(stdout).toContain("Resume cascade from this level");
+  });
+
+  test("ralph build rejects --force with --review before running build logic", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "build",
+        "--subtasks",
+        "missing-subtasks.json",
+        "--force",
+        "--review",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Cannot use --force and --review together");
+    expect(stderr).not.toContain("Subtasks file not found");
+  });
+
+  test("ralph plan roadmap rejects --force with --review before main logic", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "roadmap",
+        "--cascade",
+        "stories",
+        "--force",
+        "--review",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Cannot use --force and --review together");
+  });
+
+  test("ralph plan stories --help shows approval and resume flags", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "stories", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--force");
+    expect(stdout).toContain("Skip all approval prompts");
+    expect(stdout).toContain("--review");
+    expect(stdout).toContain("Require all approval prompts");
+    expect(stdout).toContain("--from <level>");
+    expect(stdout).toContain("Resume cascade from this level");
+  });
+
+  test("ralph plan stories rejects --force with --review before main logic", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        "nonexistent",
+        "--force",
+        "--review",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Cannot use --force and --review together");
+    expect(stderr).not.toContain("milestone not found");
+  });
+
+  test("ralph plan tasks --help shows approval and resume flags", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "tasks", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--force");
+    expect(stdout).toContain("Skip all approval prompts");
+    expect(stdout).toContain("--review");
+    expect(stdout).toContain("Require all approval prompts");
+    expect(stdout).toContain("--from <level>");
+    expect(stdout).toContain("Resume cascade from this level");
+  });
+
+  test("ralph plan tasks rejects --force with --review before main logic", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "tasks", "--force", "--review"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Cannot use --force and --review together");
+    expect(stderr).not.toContain("Must provide a source");
+  });
+
+  test("ralph plan subtasks --help shows approval and resume flags", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "subtasks", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--force");
+    expect(stdout).toContain("Skip all approval prompts");
+    expect(stdout).toContain("--review");
+    expect(stdout).toContain("Require all approval prompts");
+    expect(stdout).toContain("--from <level>");
+    expect(stdout).toContain("Resume cascade from this level");
+  });
+
+  test("ralph plan subtasks rejects --force with --review before main logic", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "subtasks", "--force", "--review"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Cannot use --force and --review together");
+    expect(stderr).not.toContain("Must provide a source");
+  });
+
+  test("ralph plan subtasks rejects invalid --from level and lists valid levels", async () => {
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(mockClaudePath, "#!/bin/bash\nexit 0\n", { mode: 0o755 });
+
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "subtasks",
+        "--text",
+        "Check approval flags",
+        "--cascade",
+        "build",
+        "--from",
+        "invalid-level",
+      ],
+      {
+        cwd: TOOLS_DIR,
+        env: {
+          ...process.env,
+          PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+        },
+        reject: false,
+      },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Invalid starting level 'invalid-level'");
+    expect(stderr).toContain("Valid levels:");
+    expect(stderr).toContain("roadmap");
+    expect(stderr).toContain("stories");
+    expect(stderr).toContain("tasks");
+    expect(stderr).toContain("subtasks");
+    expect(stderr).toContain("build");
+    expect(stderr).toContain("calibrate");
+  });
+
+  test("ralph plan subtasks approval validation is provider-neutral", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "subtasks",
+        "--provider",
+        "opencode",
+        "--force",
+        "--review",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Cannot use --force and --review together");
+    expect(stderr).not.toContain("provider binary not found");
   });
 
   test("ralph build with missing subtasks shows error", async () => {
@@ -613,6 +829,64 @@ kill -s INT $$
       expect(exitCode).toBe(1);
       // 'subtasks' is before 'build' in cascade order, so it's a backward cascade
       expect(stderr).toContain("Cannot cascade backward");
+    });
+
+    test("plan tasks --cascade build fails early with executable-target guidance", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "tasks",
+          "--text",
+          "test tasks cascade",
+          "--cascade",
+          "build",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("not executable yet");
+      expect(stderr).toContain("Supported targets from 'tasks': none");
+      expect(stderr).not.toContain("provider binary not found");
+    });
+
+    test("plan stories --cascade build fails before milestone validation", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "stories",
+          "--milestone",
+          "nonexistent",
+          "--cascade",
+          "build",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("not executable yet");
+      expect(stderr).toContain("Supported targets from 'stories': none");
+      expect(stderr).not.toContain("milestone not found");
+    });
+
+    test("plan roadmap --cascade stories fails early with supported target guidance", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "plan", "roadmap", "--cascade", "stories"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("not executable yet");
+      expect(stderr).toContain("Supported targets from 'roadmap': none");
     });
   });
 

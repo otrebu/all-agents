@@ -242,7 +242,10 @@ function __fish_aaa_ralph_plan_subtasks
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = subtasks
 end
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l task -d 'Task file (legacy)' -xa '(aaa __complete task 2>/dev/null; __fish_complete_suffix .md)'
-complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l review -d 'Parse logs/reviews.jsonl for findings'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l force -d 'Skip all approval prompts'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l review -d 'Require all approval prompts'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l review-diary -d 'Parse logs/reviews.jsonl for findings'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l from -d 'Resume cascade from this level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l story -d 'Link subtasks to parent story' -xa '(aaa __complete story 2>/dev/null; __fish_complete_suffix .md)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l milestone -d 'Target milestone' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l size -d 'Slice thickness' -xa 'small medium large'

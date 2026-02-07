@@ -605,11 +605,16 @@ ralphCommand.addCommand(
     .option("--validate-first", "Run pre-build validation before building")
     .option("--provider <name>", "AI provider to use (default: claude)")
     .option("--model <name>", "Model to use (validated against model registry)")
+    .option("--force", "Skip all approval prompts")
+    .option("--review", "Require all approval prompts")
+    .option("--from <level>", "Resume cascade from this level")
     .option(
       "--cascade <target>",
       "Continue to target level after build completes (calibrate)",
     )
     .action(async (options) => {
+      validateApprovalFlags(options.force, options.review);
+
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
@@ -693,6 +698,11 @@ ralphCommand.addCommand(
         console.log(`\nCascading from build to ${options.cascade}...\n`);
         const result = await runCascadeFrom("build", options.cascade, {
           contextRoot,
+          forceFlag: options.force === true,
+          fromLevel: options.from,
+          model: options.model,
+          provider: options.provider as ProviderType,
+          reviewFlag: options.review === true,
           subtasksPath,
         });
 
@@ -718,8 +728,17 @@ interface HandleCascadeOptions {
   calibrateEvery?: number;
   cascadeTarget: string;
   contextRoot: string;
-  fromLevel: string;
+  /** Skip approvals by forcing write actions at all gates (`--force`) */
+  forceFlag?: boolean;
+  /** Optional level to resume from; overrides the cascade start argument */
+  fromLevel?: string;
+  /** Provider model identifier to propagate across cascaded levels */
+  model?: string;
+  /** Provider selection to propagate across cascaded levels */
+  provider?: ProviderType;
   resolvedMilestonePath: null | string;
+  /** Require approvals by forcing gate review behavior (`--review`) */
+  reviewFlag?: boolean;
   /** Override subtasks path (used when different from milestone default) */
   subtasksPath?: string;
 }
@@ -951,7 +970,7 @@ function exitWithSubtasksSourceError(): never {
     '  aaa ralph plan subtasks --text "Fix bug"    # Text → subtasks',
   );
   console.log(
-    "  aaa ralph plan subtasks --review            # Review diary → subtasks",
+    "  aaa ralph plan subtasks --review-diary      # Review diary → subtasks",
   );
   process.exit(1);
 }
@@ -983,6 +1002,10 @@ function getPromptPath(
     contextRoot,
     `context/workflows/ralph/planning/${sessionName}-${suffix}.md`,
   );
+}
+
+function getSubtasksCascadeFromLevel(fromOption: string | undefined): string {
+  return fromOption ?? "subtasks";
 }
 
 // Helper to determine subtasks prompt path based on source type
@@ -1017,10 +1040,19 @@ async function handleCascadeExecution(
     calibrateEvery,
     cascadeTarget,
     contextRoot,
+    forceFlag: isForceFlag,
     fromLevel,
+    model,
+    provider,
     resolvedMilestonePath,
+    reviewFlag: isReviewFlag,
     subtasksPath: explicitSubtasksPath,
   } = options;
+
+  if (fromLevel === undefined) {
+    console.error("Error: missing cascade starting level");
+    process.exit(1);
+  }
 
   // Validate cascade target
   const validationError = validateCascadeTarget(fromLevel, cascadeTarget);
@@ -1040,6 +1072,12 @@ async function handleCascadeExecution(
   const result = await runCascadeFrom(fromLevel, cascadeTarget, {
     calibrateEvery,
     contextRoot,
+    forceFlag: isForceFlag,
+    fromLevel,
+    milestonePath: resolvedMilestonePath ?? undefined,
+    model,
+    provider,
+    reviewFlag: isReviewFlag,
     subtasksPath,
   });
 
@@ -1409,11 +1447,27 @@ planCommand.addCommand(
 planCommand.addCommand(
   new Command("roadmap")
     .description("Start interactive roadmap planning session")
+    .option("--force", "Skip all approval prompts")
+    .option("--review", "Require all approval prompts")
+    .option("--from <level>", "Resume cascade from this level")
     .option(
       "--cascade <target>",
-      "Continue to target level after completion (stories, tasks, subtasks, build, calibrate)",
+      "Continue to target level after completion (validated against executable cascade levels)",
     )
     .action(async (options) => {
+      validateApprovalFlags(options.force, options.review);
+
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget(
+          options.from ?? "roadmap",
+          options.cascade,
+        );
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+      }
+
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
@@ -1423,29 +1477,15 @@ planCommand.addCommand(
 
       // Handle cascade if requested
       if (options.cascade !== undefined) {
-        const cascadeTarget = options.cascade;
-
-        // Validate cascade target
-        const validationError = validateCascadeTarget("roadmap", cascadeTarget);
-        if (validationError !== null) {
-          console.error(`Error: ${validationError}`);
-          process.exit(1);
-        }
-
-        // Run cascade from roadmap to target
-        console.log(`\nCascading from roadmap to ${cascadeTarget}...\n`);
-        const result = await runCascadeFrom("roadmap", cascadeTarget, {
+        await handleCascadeExecution({
+          cascadeTarget: options.cascade,
           contextRoot,
+          forceFlag: options.force === true,
+          fromLevel: options.from ?? "roadmap",
+          resolvedMilestonePath: null,
+          reviewFlag: options.review === true,
           subtasksPath: path.join(contextRoot, "subtasks.json"),
         });
-
-        if (!result.success) {
-          console.error(`Cascade failed: ${result.error}`);
-          if (result.stoppedAt !== null) {
-            console.error(`Stopped at: ${result.stoppedAt}`);
-          }
-          process.exit(1);
-        }
       }
     }),
 );
@@ -1460,6 +1500,9 @@ planCommand.addCommand(
     )
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--force", "Skip all approval prompts")
+    .option("--review", "Require all approval prompts")
+    .option("--from <level>", "Resume cascade from this level")
     .option(
       "--provider <name>",
       "AI provider to use for planning (default: claude)",
@@ -1467,9 +1510,22 @@ planCommand.addCommand(
     .option("--model <name>", "Model to use for planning invocation")
     .option(
       "--cascade <target>",
-      "Continue to target level after completion (tasks, subtasks, build, calibrate)",
+      "Continue to target level after completion (validated against executable cascade levels)",
     )
     .action(async (options) => {
+      validateApprovalFlags(options.force, options.review);
+
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget(
+          options.from ?? "stories",
+          options.cascade,
+        );
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+      }
+
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
 
@@ -1523,29 +1579,16 @@ planCommand.addCommand(
 
       // Handle cascade if requested
       if (options.cascade !== undefined) {
-        const cascadeTarget = options.cascade;
-
-        // Validate cascade target
-        const validationError = validateCascadeTarget("stories", cascadeTarget);
-        if (validationError !== null) {
-          console.error(`Error: ${validationError}`);
-          process.exit(1);
-        }
-
-        // Run cascade from stories to target
-        console.log(`\nCascading from stories to ${cascadeTarget}...\n`);
-        const result = await runCascadeFrom("stories", cascadeTarget, {
+        await handleCascadeExecution({
+          cascadeTarget: options.cascade,
           contextRoot,
-          subtasksPath: path.join(milestonePath, "subtasks.json"),
+          forceFlag: options.force === true,
+          fromLevel: options.from ?? "stories",
+          model: planningModel,
+          provider: planningProvider as ProviderType,
+          resolvedMilestonePath: milestonePath,
+          reviewFlag: options.review === true,
         });
-
-        if (!result.success) {
-          console.error(`Cascade failed: ${result.error}`);
-          if (result.stoppedAt !== null) {
-            console.error(`Stopped at: ${result.stoppedAt}`);
-          }
-          process.exit(1);
-        }
       }
     }),
 );
@@ -1565,6 +1608,9 @@ planCommand.addCommand(
     .option("--text <string>", "Text description as source for task generation")
     .option("-s, --supervised", "Supervised mode: watch chat, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--force", "Skip all approval prompts")
+    .option("--review", "Require all approval prompts")
+    .option("--from <level>", "Resume cascade from this level")
     .option(
       "--provider <name>",
       "AI provider to use for planning (default: claude)",
@@ -1572,9 +1618,11 @@ planCommand.addCommand(
     .option("--model <name>", "Model to use for planning invocation")
     .option(
       "--cascade <target>",
-      "Continue to target level after completion (subtasks, build, calibrate)",
+      "Continue to target level after completion (validated against executable cascade levels)",
     )
     .action(async (options) => {
+      validateApprovalFlags(options.force, options.review);
+
       const hasStory = options.story !== undefined;
       const hasMilestone = options.milestone !== undefined;
       const hasFile = options.file !== undefined;
@@ -1592,6 +1640,17 @@ planCommand.addCommand(
           "Error: Cannot combine multiple sources. Provide exactly one of: --story, --milestone, --file, --text",
         );
         process.exit(1);
+      }
+
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget(
+          options.from ?? "tasks",
+          options.cascade,
+        );
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
       }
 
       const contextRoot = getContextRoot();
@@ -1639,8 +1698,12 @@ planCommand.addCommand(
         await handleCascadeExecution({
           cascadeTarget: options.cascade,
           contextRoot,
-          fromLevel: "tasks",
+          forceFlag: options.force === true,
+          fromLevel: options.from ?? "tasks",
+          model: options.model,
+          provider: options.provider as ProviderType,
           resolvedMilestonePath,
+          reviewFlag: options.review === true,
         });
       }
     }),
@@ -1655,7 +1718,7 @@ planCommand.addCommand(
     )
     .option("--file <path>", "File path as source")
     .option("--text <string>", "Text description as source")
-    .option("--review", "Parse logs/reviews.jsonl for findings")
+    .option("--review-diary", "Parse logs/reviews.jsonl for findings")
     .option("--task <path>", "Task file path as source")
     .option(
       "--story <path>",
@@ -1679,6 +1742,9 @@ planCommand.addCommand(
       "Supervised mode: watch chat, can intervene (default)",
     )
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--force", "Skip all approval prompts")
+    .option("--review", "Require all approval prompts")
+    .option("--from <level>", "Resume cascade from this level")
     .option(
       "--cascade <target>",
       "Continue to target level after completion (build, calibrate)",
@@ -1694,9 +1760,11 @@ planCommand.addCommand(
     )
     .option("--model <name>", "Model to use for planning invocation")
     .action(async (options) => {
+      validateApprovalFlags(options.force, options.review);
+
       const hasFile = options.file !== undefined;
       const hasText = options.text !== undefined;
-      const hasReview = options.review === true;
+      const hasReviewDiary = options.reviewDiary === true;
       const hasTask = options.task !== undefined;
       const hasStory = options.story !== undefined;
       const hasMilestone = options.milestone !== undefined;
@@ -1706,7 +1774,7 @@ planCommand.addCommand(
       const sourceCount = [
         hasFile,
         hasText,
-        hasReview,
+        hasReviewDiary,
         hasTask,
         hasStory,
         hasMilestone,
@@ -1734,8 +1802,9 @@ planCommand.addCommand(
 
       // Validate cascade target early (before running Claude session)
       if (options.cascade !== undefined) {
+        const cascadeStartLevel = getSubtasksCascadeFromLevel(options.from);
         const validationError = validateCascadeTarget(
-          "subtasks",
+          cascadeStartLevel,
           options.cascade,
         );
         if (validationError !== null) {
@@ -1764,7 +1833,7 @@ planCommand.addCommand(
       const sourceFlags: SubtasksSourceFlags = {
         hasFile,
         hasMilestone,
-        hasReview,
+        hasReview: hasReviewDiary,
         hasStory,
         hasTask,
         hasText,
@@ -1895,8 +1964,12 @@ planCommand.addCommand(
           calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
           cascadeTarget: options.cascade,
           contextRoot,
-          fromLevel: "subtasks",
+          forceFlag: options.force === true,
+          fromLevel: getSubtasksCascadeFromLevel(options.from),
+          model: options.model,
+          provider: options.provider as ProviderType,
           resolvedMilestonePath: resolvedMilestonePath ?? null,
+          reviewFlag: options.review === true,
           subtasksPath,
         });
       }
@@ -2248,6 +2321,8 @@ async function runCalibrateSubcommand(
     contextRoot,
   );
 
+  validateApprovalFlags(options.force, options.review);
+
   const didSucceed = await runCalibrate(subcommand, {
     contextRoot,
     force: options.force,
@@ -2258,6 +2333,19 @@ async function runCalibrateSubcommand(
   });
 
   if (!didSucceed) {
+    process.exit(1);
+  }
+}
+
+/**
+ * Validate mutual exclusion for approval override flags.
+ */
+function validateApprovalFlags(
+  isForce: boolean | undefined,
+  isReview: boolean | undefined,
+): void {
+  if (isForce === true && isReview === true) {
+    console.error("Cannot use --force and --review together");
     process.exit(1);
   }
 }
@@ -2382,4 +2470,5 @@ ralphCommand.addCommand(
     }),
 );
 
+export { validateApprovalFlags };
 export default ralphCommand;

@@ -30,6 +30,7 @@ import {
   countRemaining,
   getMilestoneFromSubtasks,
   getNextSubtask,
+  getPendingSubtasks,
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
@@ -59,6 +60,7 @@ import { discoverRecentSessionForProvider } from "./providers/session-adapter";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
 import { getProviderTimingMs } from "./types";
+import { validateAllSubtasks } from "./validation";
 
 // =============================================================================
 // Constants
@@ -861,6 +863,47 @@ async function resolveProviderOrExit(
   }
 }
 
+// eslint-disable-next-line perfectionist/sort-modules -- Helper is grouped with SUB-412 validation integration utilities
+function isValidatedSubtaskSkipped(
+  currentSubtask: Subtask,
+  skippedSubtaskIds: null | Set<string>,
+): boolean {
+  if (skippedSubtaskIds?.has(currentSubtask.id) === true) {
+    console.log(`Skipping ${currentSubtask.id} (failed validation)`);
+    return true;
+  }
+
+  return false;
+}
+
+async function resolveSkippedSubtaskIds(options: {
+  contextRoot: string;
+  mode: "headless" | "supervised";
+  shouldValidateFirst: boolean;
+  subtasksPath: string;
+}): Promise<null | Set<string>> {
+  const { contextRoot, mode, shouldValidateFirst, subtasksPath } = options;
+  if (!shouldValidateFirst) {
+    return null;
+  }
+
+  const initialSubtasksFile = loadSubtasksFile(subtasksPath);
+  const pendingSubtasks = getPendingSubtasks(initialSubtasksFile.subtasks);
+  if (pendingSubtasks.length === 0) {
+    return null;
+  }
+
+  const milestonePath = path.dirname(subtasksPath);
+  const validationResult = await validateAllSubtasks(
+    pendingSubtasks,
+    { mode, subtasksPath },
+    milestonePath,
+    contextRoot,
+  );
+
+  return new Set(validationResult.skippedSubtasks.map((s) => s.subtaskId));
+}
+
 /**
  * Run the build loop
  *
@@ -947,13 +990,14 @@ async function runBuild(
   // Initialize summary context for signal handlers
   summaryContext = { completedThisRun, quiet: isQuiet, subtasksPath };
 
-  // Optional pre-build validation (TODO: implement in SUB-025/26)
-  if (shouldValidateFirst) {
-    console.log(
-      "Pre-build validation requested but not yet implemented in TypeScript",
-    );
-    console.log("Continuing with build...\n");
-  }
+  // eslint-disable-next-line perfectionist/sort-union-types -- Keep declared order for SUB-412 acceptance criteria
+  let skippedSubtaskIds: Set<string> | null = null;
+  skippedSubtaskIds = await resolveSkippedSubtaskIds({
+    contextRoot,
+    mode,
+    shouldValidateFirst,
+    subtasksPath,
+  });
 
   let iteration = 1;
 
@@ -1033,136 +1077,138 @@ async function runBuild(
       process.exit(1);
     }
 
-    // Track attempts for this specific subtask
-    const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
+    if (!isValidatedSubtaskSkipped(currentSubtask, skippedSubtaskIds)) {
+      // Track attempts for this specific subtask
+      const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
 
-    // Check if we've exceeded max iterations for this subtask
-    // eslint-disable-next-line no-await-in-loop -- Must check before continuing
-    const didExceedMaxIterations = await handleMaxIterationsExceeded({
-      currentAttempts,
-      maxIterations,
-      milestone: getMilestoneFromSubtasks(subtasksFile),
-      subtaskId: currentSubtask.id,
-    });
-    if (didExceedMaxIterations) {
-      process.exit(1);
-    }
-
-    // Display iteration start box
-    console.log("\n");
-    console.log(
-      renderIterationStart({
-        attempt: currentAttempts,
-        iteration,
-        maxAttempts: maxIterations,
-        remaining,
+      // Check if we've exceeded max iterations for this subtask
+      // eslint-disable-next-line no-await-in-loop -- Must check before continuing
+      const didExceedMaxIterations = await handleMaxIterationsExceeded({
+        currentAttempts,
+        maxIterations,
+        milestone: getMilestoneFromSubtasks(subtasksFile),
         subtaskId: currentSubtask.id,
-        subtaskTitle: currentSubtask.title,
-      }),
-    );
+      });
+      if (didExceedMaxIterations) {
+        process.exit(1);
+      }
 
-    // Build the prompt
-    const prompt = buildIterationPrompt(
-      contextRoot,
-      currentSubtask,
-      subtasksPath,
-    );
+      // Display iteration start box
+      console.log("\n");
+      console.log(
+        renderIterationStart({
+          attempt: currentAttempts,
+          iteration,
+          maxAttempts: maxIterations,
+          remaining,
+          subtaskId: currentSubtask.id,
+          subtaskTitle: currentSubtask.title,
+        }),
+      );
 
-    // Invoke selected provider based on mode
-    let didComplete = false;
-    let iterationHookResult: null | PostIterationResult = null;
-
-    if (mode === "headless") {
-      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
-      const headlessResult = await processHeadlessIteration({
+      // Build the prompt
+      const prompt = buildIterationPrompt(
         contextRoot,
-        currentAttempts,
         currentSubtask,
-        iteration,
-        maxIterations,
-        model,
-        prompt,
-        provider,
-        remaining,
-        shouldSkipSummary,
+        subtasksPath,
+      );
+
+      // Invoke selected provider based on mode
+      let didComplete = false;
+      let iterationHookResult: null | PostIterationResult = null;
+
+      if (mode === "headless") {
+        // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+        const headlessResult = await processHeadlessIteration({
+          contextRoot,
+          currentAttempts,
+          currentSubtask,
+          iteration,
+          maxIterations,
+          model,
+          prompt,
+          provider,
+          remaining,
+          shouldSkipSummary,
+          subtasksPath,
+        });
+
+        if (headlessResult === null) {
+          // Retryable provider outcome: count the attempt and retry.
+          attempts.set(currentSubtask.id, currentAttempts);
+          console.log(
+            chalk.yellow(
+              `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
+            ),
+          );
+          didComplete = false;
+        } else {
+          attempts.set(currentSubtask.id, currentAttempts);
+          ({ didComplete, hookResult: iterationHookResult } = headlessResult);
+        }
+      } else {
+        // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+        const supervisedResult = await processSupervisedIteration({
+          contextRoot,
+          currentAttempts,
+          currentSubtask,
+          iteration,
+          maxIterations,
+          model,
+          provider,
+          remaining,
+          subtasksPath,
+        });
+
+        if (supervisedResult === null) {
+          // Retryable provider outcome: count the attempt and retry.
+          attempts.set(currentSubtask.id, currentAttempts);
+          console.log(
+            chalk.yellow(
+              `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
+            ),
+          );
+          didComplete = false;
+        } else {
+          attempts.set(currentSubtask.id, currentAttempts);
+          ({ didComplete, hookResult: iterationHookResult } = supervisedResult);
+        }
+
+        if (didComplete) {
+          console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
+        }
+      }
+
+      didComplete = enforceSingleSubtaskInvariant({
+        assignedSubtaskId: currentSubtask.id,
+        preSubtasks: subtasksFile.subtasks,
         subtasksPath,
       });
 
-      if (headlessResult === null) {
-        // Retryable provider outcome: count the attempt and retry.
-        attempts.set(currentSubtask.id, currentAttempts);
-        console.log(
-          chalk.yellow(
-            `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
-          ),
-        );
-        didComplete = false;
-      } else {
-        attempts.set(currentSubtask.id, currentAttempts);
-        ({ didComplete, hookResult: iterationHookResult } = headlessResult);
-      }
-    } else {
-      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
-      const supervisedResult = await processSupervisedIteration({
-        contextRoot,
-        currentAttempts,
-        currentSubtask,
-        iteration,
-        maxIterations,
-        model,
-        provider,
-        remaining,
-        subtasksPath,
-      });
-
-      if (supervisedResult === null) {
-        // Retryable provider outcome: count the attempt and retry.
-        attempts.set(currentSubtask.id, currentAttempts);
-        console.log(
-          chalk.yellow(
-            `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
-          ),
-        );
-        didComplete = false;
-      } else {
-        attempts.set(currentSubtask.id, currentAttempts);
-        ({ didComplete, hookResult: iterationHookResult } = supervisedResult);
-      }
-
+      // Handle completion tracking
       if (didComplete) {
-        console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
+        attempts.delete(currentSubtask.id);
+        completedThisRun.push({
+          attempts: currentAttempts,
+          id: currentSubtask.id,
+        });
+
+        // Fire onSubtaskComplete hook with metrics from iteration result
+        // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+        await fireSubtaskCompleteHook({
+          hookResult: iterationHookResult,
+          subtask: currentSubtask,
+        });
       }
-    }
 
-    didComplete = enforceSingleSubtaskInvariant({
-      assignedSubtaskId: currentSubtask.id,
-      preSubtasks: subtasksFile.subtasks,
-      subtasksPath,
-    });
-
-    // Handle completion tracking
-    if (didComplete) {
-      attempts.delete(currentSubtask.id);
-      completedThisRun.push({
-        attempts: currentAttempts,
-        id: currentSubtask.id,
-      });
-
-      // Fire onSubtaskComplete hook with metrics from iteration result
-      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
-      await fireSubtaskCompleteHook({
-        hookResult: iterationHookResult,
-        subtask: currentSubtask,
-      });
-    }
-
-    // Interactive mode: prompt for continuation
-    if (isInteractive) {
-      // eslint-disable-next-line no-await-in-loop -- Interactive prompt must block
-      const shouldContinue = await promptContinue();
-      if (!shouldContinue) {
-        console.log("\nBuild loop aborted by user");
-        return;
+      // Interactive mode: prompt for continuation
+      if (isInteractive) {
+        // eslint-disable-next-line no-await-in-loop -- Interactive prompt must block
+        const shouldContinue = await promptContinue();
+        if (!shouldContinue) {
+          console.log("\nBuild loop aborted by user");
+          return;
+        }
       }
     }
 

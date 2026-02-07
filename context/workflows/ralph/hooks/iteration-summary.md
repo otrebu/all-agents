@@ -4,22 +4,27 @@ You are generating a concise iteration summary for the Ralph build system. This 
 
 ## Input
 
-### Required Inputs
+### Available Template Variables
 
-These inputs must be provided for the summary to be generated:
+These variables are substituted before the prompt is sent to the summary model.
 
-- **Subtask ID:** `{{SUBTASK_ID}}` - The ID of the subtask that was processed (e.g., "task-015-04")
-- **Status:** `{{STATUS}}` - The iteration status: "success", "failure", or "partial"
-- **Session Content:** The session transcript is provided below in the "Session Content" section
+| Variable | Description | Example Value | Required |
+|---|---|---|---|
+| `{{SUBTASK_ID}}` | Current subtask identifier. | `SUB-398` | Yes |
+| `{{SUBTASK_TITLE}}` | Human-readable subtask title. | `Add Available Variables documentation section to iteration-summary.md prompt` | Yes |
+| `{{SUBTASK_DESCRIPTION}}` | Detailed subtask description text. | `Update context/workflows/ralph/hooks/iteration-summary.md to add a comprehensive "Available Template Variables" section...` | No |
+| `{{STATUS}}` | Iteration outcome. | `success` | Yes |
+| `{{MILESTONE}}` | Parent milestone identifier/name. | `003-ralph-workflow` | No |
+| `{{TASK_REF}}` | Parent task reference. | `035-document-template-variables` | No |
+| `{{ITERATION_NUM}}` | Iteration attempt number (1-based). | `1` | No |
+| `{{SESSION_CONTENT}}` | Session JSONL content excerpt (trimmed for prompt size). | `{"type":"tool_call",...}` | No |
+| `{{SESSION_JSONL_PATH}}` | Absolute path to the session JSONL file. | `/home/user/.claude/projects/.../session.jsonl` | No |
+| `{{SESSION_JSONL_CONTENT}}` | Alias of session JSONL content (same value source as `SESSION_CONTENT`). | `{"type":"tool_call",...}` | No |
 
-### Optional Context Fields
+Notes:
 
-These inputs provide additional context when available:
-
-- **Subtask Title:** `{{SUBTASK_TITLE}}` - Human-readable title of the subtask (defaults to subtaskId if not provided)
-- **Milestone:** `{{MILESTONE}}` - Name of the parent milestone (e.g., "authentication-mvp")
-- **Task Reference:** `{{TASK_REF}}` - Reference to the parent task file (e.g., "docs/planning/tasks/015-auth.md")
-- **Iteration Number:** `{{ITERATION_NUM}}` - Current iteration attempt number (e.g., 1, 2, 3)
+- Missing variables are left as literal `{{VAR}}` text and are not replaced.
+- `SESSION_CONTENT` is substituted last because it may be large and can contain `{{...}}` text.
 
 ## Task
 

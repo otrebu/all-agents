@@ -1,0 +1,623 @@
+import chalk from "chalk";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import path from "node:path";
+import * as readline from "node:readline";
+
+import type { Subtask } from "./types";
+
+import { executeHook } from "./hooks";
+import { invokeProviderSummary } from "./providers/summary";
+
+interface BatchValidationResult {
+  aligned: number;
+  skippedSubtasks: Array<SkippedSubtask>;
+  success: boolean;
+  total: number;
+}
+
+interface SkippedSubtask {
+  feedbackPath: string;
+  issueType?: ValidationIssueType;
+  reason: string;
+  subtaskId: string;
+}
+
+type SupervisedValidationAction = "continue" | "skip";
+
+interface ValidationContext {
+  milestonePath: string;
+  subtask: Subtask;
+  subtasksPath: string;
+}
+
+type ValidationIssueType =
+  | "scope_creep"
+  | "too_broad"
+  | "too_narrow"
+  | "unfaithful";
+
+interface ValidationResult {
+  aligned: boolean;
+  issueType?: ValidationIssueType;
+  reason?: string;
+  suggestion?: string;
+}
+
+const VALID_ISSUE_TYPES = new Set<ValidationIssueType>([
+  "scope_creep",
+  "too_broad",
+  "too_narrow",
+  "unfaithful",
+]);
+
+const VALIDATION_PROMPT_PATH =
+  "context/workflows/ralph/building/pre-build-validation.md";
+const VALIDATION_TIMEOUT_MS = 60_000;
+const TIMEOUT_WARNING_THRESHOLD_MS = 1000;
+const STORY_REF_PATTERN =
+  /\*\*Story:\*\*\s*\[(?<storyReference>[^\]]+)\]\([^)]+\)/;
+const VALIDATION_BOX_WIDTH = 64;
+const VALIDATION_BOX_INNER_WIDTH = VALIDATION_BOX_WIDTH - 2;
+const VALIDATION_CONTENT_WIDTH = 56;
+const VALIDATION_LINE_CONTENT_WIDTH = VALIDATION_BOX_WIDTH - 4;
+
+function buildValidationBoxLine(content: string): string {
+  const normalized = content.slice(0, VALIDATION_LINE_CONTENT_WIDTH);
+  return `${chalk.yellow("║")} ${normalized.padEnd(VALIDATION_LINE_CONTENT_WIDTH, " ")} ${chalk.yellow("║")}`;
+}
+
+function buildValidationDivider(): string {
+  return `${chalk.yellow("╠")}${chalk.yellow("═".repeat(VALIDATION_BOX_INNER_WIDTH))}${chalk.yellow("╣")}`;
+}
+
+function buildValidationPrompt(
+  subtask: Subtask,
+  milestonePath: string,
+  contextRoot: string,
+): string {
+  const promptPath = path.join(contextRoot, VALIDATION_PROMPT_PATH);
+  if (!existsSync(promptPath)) {
+    throw new Error(`Validation prompt not found: ${promptPath}`);
+  }
+
+  const basePrompt = readFileSync(promptPath, "utf8");
+  const taskReference = subtask.taskRef;
+  const { storyRef, taskContent } = resolveParentTask(
+    taskReference,
+    milestonePath,
+  );
+
+  const sections = [
+    "## Subtask Definition",
+    "",
+    "```json",
+    JSON.stringify(subtask, null, 2),
+    "```",
+    "",
+    "## Parent Task",
+    "",
+    taskContent ?? `*Not found: ${taskReference}*`,
+  ];
+
+  if (storyRef !== null) {
+    sections.push("", "## Parent Story", "");
+    const storyContent = resolveParentStory(storyRef, milestonePath);
+    sections.push(storyContent ?? `*Not found: ${storyRef}*`);
+  }
+
+  return `${basePrompt}\n\n---\n\n# Validation Input\n\n${sections.join("\n")}`;
+}
+
+function formatIssueType(issueType: string): string {
+  switch (issueType) {
+    case "scope_creep": {
+      return "Scope Creep";
+    }
+    case "too_broad": {
+      return "Too Broad";
+    }
+    case "too_narrow": {
+      return "Too Narrow";
+    }
+    case "unfaithful": {
+      return "Unfaithful to Parent";
+    }
+    default: {
+      return issueType;
+    }
+  }
+}
+
+function generateValidationFeedback(
+  subtask: Subtask,
+  result: ValidationResult,
+): string {
+  const issueLabel =
+    result.issueType === undefined
+      ? "Unknown"
+      : formatIssueType(result.issueType);
+  const reason = result.reason ?? "No reason provided.";
+
+  const sections: Array<string> = [];
+
+  sections.push(`# Validation Feedback: ${subtask.id}`);
+  sections.push("");
+  sections.push(`**Generated:** ${new Date().toISOString()}`);
+  sections.push(`**Subtask:** ${subtask.id} - ${subtask.title}`);
+  sections.push(`**Issue Type:** ${issueLabel}`);
+  sections.push(`**Task Reference:** ${subtask.taskRef}`);
+  if (subtask.storyRef !== undefined && subtask.storyRef !== null) {
+    sections.push(`**Story Reference:** ${subtask.storyRef}`);
+  }
+  sections.push("");
+
+  sections.push("## Validation Failure");
+  sections.push("");
+  sections.push(reason);
+  sections.push("");
+
+  if (result.suggestion !== undefined) {
+    sections.push("## Suggested Fix");
+    sections.push("");
+    sections.push(result.suggestion);
+    sections.push("");
+  }
+
+  sections.push("## Subtask Definition");
+  sections.push("");
+  sections.push("```json");
+  sections.push(JSON.stringify(subtask, null, 2));
+  sections.push("```");
+  sections.push("");
+
+  sections.push("## How to Resolve");
+  sections.push("");
+  sections.push(
+    "1. **Fix subtask:** update the subtask to align with its parent task/story intent.",
+  );
+  sections.push(
+    "2. **Skip validation:** proceed without `--validate-first` when this misalignment is acceptable.",
+  );
+  sections.push(
+    "3. **Remove subtask:** delete this subtask from the queue if it should not be implemented.",
+  );
+  sections.push("");
+
+  return sections.join("\n");
+}
+
+function getMilestoneFromPath(milestonePath: string): string {
+  return path.basename(milestonePath);
+}
+
+function handleHeadlessValidationFailure(
+  subtask: Subtask,
+  result: ValidationResult,
+  milestonePath: string,
+): string {
+  const absoluteMilestonePath = path.resolve(milestonePath);
+  const feedbackDirectory = path.join(absoluteMilestonePath, "feedback");
+  mkdirSync(feedbackDirectory, { recursive: true });
+
+  const date = new Date().toISOString().split("T")[0];
+  const filePath = path.join(
+    feedbackDirectory,
+    `${date}_validation_${subtask.id}.md`,
+  );
+  const content = generateValidationFeedback(subtask, result);
+
+  writeFileSync(filePath, content, "utf8");
+  console.log(`[Validation:${subtask.id}] Wrote feedback: ${filePath}`);
+
+  return filePath;
+}
+
+async function handleSupervisedValidationFailure(
+  subtask: Subtask,
+  result: ValidationResult,
+): Promise<SupervisedValidationAction> {
+  const lines: Array<string> = [
+    `${chalk.yellow("╔")}${chalk.yellow("═".repeat(VALIDATION_BOX_INNER_WIDTH))}${chalk.yellow("╗")}`,
+    buildValidationBoxLine(chalk.bold.red("VALIDATION FAILED")),
+    buildValidationDivider(),
+    buildValidationBoxLine(`Subtask: ${subtask.id}`),
+  ];
+
+  for (const line of wrapText(subtask.title, VALIDATION_CONTENT_WIDTH)) {
+    lines.push(buildValidationBoxLine(`  ${line}`));
+  }
+
+  if (result.issueType !== undefined) {
+    lines.push(buildValidationDivider());
+    lines.push(
+      buildValidationBoxLine(`Issue: ${formatIssueType(result.issueType)}`),
+    );
+  }
+
+  if (result.reason !== undefined) {
+    lines.push(buildValidationDivider());
+    lines.push(buildValidationBoxLine(chalk.bold("Reason:")));
+    for (const line of wrapText(result.reason, VALIDATION_CONTENT_WIDTH)) {
+      lines.push(buildValidationBoxLine(`  ${line}`));
+    }
+  }
+
+  if (result.suggestion !== undefined) {
+    lines.push(buildValidationDivider());
+    lines.push(buildValidationBoxLine(chalk.bold("Suggestion:")));
+    for (const line of wrapText(result.suggestion, VALIDATION_CONTENT_WIDTH)) {
+      lines.push(buildValidationBoxLine(`  ${line}`));
+    }
+  }
+
+  lines.push(
+    `${chalk.yellow("╚")}${chalk.yellow("═".repeat(VALIDATION_BOX_INNER_WIDTH))}${chalk.yellow("╝")}`,
+  );
+
+  console.log(lines.join("\n"));
+  return promptSkipOrContinue(subtask.id);
+}
+
+function parseIssueType(value: unknown): undefined | ValidationIssueType {
+  if (
+    typeof value === "string" &&
+    VALID_ISSUE_TYPES.has(value as ValidationIssueType)
+  ) {
+    return value as ValidationIssueType;
+  }
+
+  return undefined;
+}
+
+function parseValidationResponse(
+  rawResponse: string,
+  subtaskId: string,
+): ValidationResult {
+  try {
+    const codeBlockMatch = /```(?:json)?\s*(?<content>[\s\S]*?)```/i.exec(
+      rawResponse,
+    );
+    const candidate = codeBlockMatch?.groups?.content ?? rawResponse;
+    const jsonMatch = /\{[\s\S]*\}/.exec(candidate);
+
+    if (jsonMatch === null) {
+      console.warn(
+        `[Validation:${subtaskId}] No JSON found in response, treating as aligned`,
+      );
+      return { aligned: true };
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]) as {
+      aligned?: unknown;
+      issue_type?: unknown;
+      reason?: unknown;
+      suggestion?: unknown;
+    };
+
+    if (typeof parsed.aligned !== "boolean") {
+      console.warn(
+        `[Validation:${subtaskId}] Invalid response format (aligned must be boolean), treating as aligned`,
+      );
+      return { aligned: true };
+    }
+
+    if (parsed.aligned) {
+      return { aligned: true };
+    }
+
+    return {
+      aligned: false,
+      issueType: parseIssueType(parsed.issue_type),
+      reason:
+        typeof parsed.reason === "string" && parsed.reason.trim() !== ""
+          ? parsed.reason
+          : "Unknown alignment issue",
+      suggestion:
+        typeof parsed.suggestion === "string" && parsed.suggestion.trim() !== ""
+          ? parsed.suggestion
+          : undefined,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[Validation:${subtaskId}] Failed to parse validation response: ${message}`,
+    );
+    return { aligned: true };
+  }
+}
+
+function printValidationSummary(
+  total: number,
+  aligned: number,
+  skipped: Array<SkippedSubtask>,
+): void {
+  if (skipped.length === 0) {
+    console.log(
+      chalk.green(`Validated ${total}/${total} subtasks. All aligned.`),
+    );
+    return;
+  }
+
+  console.log(
+    chalk.yellow(
+      `Validated ${aligned}/${total} subtasks. ${skipped.length} skipped due to misalignment.`,
+    ),
+  );
+  for (const skippedSubtask of skipped) {
+    const issueTypeLabel =
+      skippedSubtask.issueType === undefined
+        ? "Unknown"
+        : formatIssueType(skippedSubtask.issueType);
+    const feedbackPathLabel =
+      skippedSubtask.feedbackPath === ""
+        ? "(not generated in supervised mode)"
+        : skippedSubtask.feedbackPath;
+
+    console.log(
+      `  - ${skippedSubtask.subtaskId} (${issueTypeLabel}) -> ${feedbackPathLabel}`,
+    );
+  }
+}
+
+async function promptSkipOrContinue(
+  subtaskId: string,
+): Promise<SupervisedValidationAction> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    return "skip";
+  }
+
+  // eslint-disable-next-line promise/avoid-new -- readline question API is callback-based
+  return new Promise<SupervisedValidationAction>((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.on("SIGINT", () => {
+      rl.close();
+      process.emit("SIGINT");
+      resolve("skip");
+    });
+
+    rl.question(`Skip ${subtaskId}? [Y/n] `, (answer) => {
+      rl.close();
+      const normalized = answer.trim().toLowerCase();
+      if (normalized === "n" || normalized === "no") {
+        resolve("continue");
+        return;
+      }
+
+      resolve("skip");
+    });
+  });
+}
+
+function resolveParentStory(
+  storyReference: string,
+  milestonePath: string,
+): null | string {
+  if (storyReference.trim() === "") {
+    return null;
+  }
+
+  const storiesDirectory = path.join(milestonePath, "stories");
+  if (!existsSync(storiesDirectory)) {
+    return null;
+  }
+
+  const storyFileName = readdirSync(storiesDirectory).find((entry) =>
+    entry.startsWith(storyReference),
+  );
+
+  if (storyFileName === undefined) {
+    return null;
+  }
+
+  try {
+    const storyPath = path.join(storiesDirectory, storyFileName);
+    return readFileSync(storyPath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function resolveParentTask(
+  taskReference: string,
+  milestonePath: string,
+): { storyRef: null | string; taskContent: null | string } {
+  if (taskReference.trim() === "") {
+    return { storyRef: null, taskContent: null };
+  }
+
+  const tasksDirectory = path.join(milestonePath, "tasks");
+  if (!existsSync(tasksDirectory)) {
+    return { storyRef: null, taskContent: null };
+  }
+
+  const taskFileName = readdirSync(tasksDirectory).find((entry) =>
+    entry.startsWith(taskReference),
+  );
+
+  if (taskFileName === undefined) {
+    return { storyRef: null, taskContent: null };
+  }
+
+  try {
+    const taskPath = path.join(tasksDirectory, taskFileName);
+    const taskContent = readFileSync(taskPath, "utf8");
+    const storyMatch = STORY_REF_PATTERN.exec(taskContent);
+
+    return {
+      storyRef: storyMatch?.groups?.storyReference ?? null,
+      taskContent,
+    };
+  } catch {
+    return { storyRef: null, taskContent: null };
+  }
+}
+
+// eslint-disable-next-line max-params -- Signature intentionally mirrors build-loop callsite and acceptance criteria
+async function validateAllSubtasks(
+  pendingSubtasks: Array<Subtask>,
+  options: { mode: "headless" | "supervised"; subtasksPath: string },
+  milestonePath: string,
+  contextRoot: string,
+): Promise<BatchValidationResult> {
+  const skippedSubtasks: Array<SkippedSubtask> = [];
+  let alignedCount = 0;
+
+  console.log("=== Pre-build Validation ===");
+
+  for (const subtask of pendingSubtasks) {
+    // eslint-disable-next-line no-await-in-loop -- Validation runs sequentially for deterministic prompts and output
+    const result = await validateSubtask(
+      { milestonePath, subtask, subtasksPath: options.subtasksPath },
+      contextRoot,
+    );
+
+    if (result.aligned) {
+      alignedCount += 1;
+      console.log(`  ${subtask.id}: ${chalk.green("aligned")}`);
+    } else {
+      const reason = result.reason ?? "Unknown alignment issue";
+      console.log(`  ${subtask.id}: ${chalk.red("misaligned")} - ${reason}`);
+
+      if (options.mode === "supervised") {
+        // eslint-disable-next-line no-await-in-loop -- Prompt handling must stay in sequence
+        const action = await handleSupervisedValidationFailure(subtask, result);
+        if (action === "continue") {
+          alignedCount += 1;
+        } else {
+          skippedSubtasks.push({
+            feedbackPath: "",
+            issueType: result.issueType,
+            reason,
+            subtaskId: subtask.id,
+          });
+        }
+      } else {
+        const feedbackPath = handleHeadlessValidationFailure(
+          subtask,
+          result,
+          milestonePath,
+        );
+        skippedSubtasks.push({
+          feedbackPath,
+          issueType: result.issueType,
+          reason,
+          subtaskId: subtask.id,
+        });
+
+        // eslint-disable-next-line no-await-in-loop -- Hook should run immediately for each failed subtask
+        await executeHook("onValidationFail", {
+          message: `Subtask ${subtask.id} failed validation: ${reason}`,
+          milestone: getMilestoneFromPath(milestonePath),
+          subtaskId: subtask.id,
+        });
+      }
+    }
+  }
+
+  printValidationSummary(pendingSubtasks.length, alignedCount, skippedSubtasks);
+
+  return {
+    aligned: alignedCount,
+    skippedSubtasks,
+    success: skippedSubtasks.length === 0,
+    total: pendingSubtasks.length,
+  };
+}
+
+async function validateSubtask(
+  context: ValidationContext,
+  contextRoot: string,
+): Promise<ValidationResult> {
+  const { milestonePath, subtask } = context;
+
+  console.log(`[Validation] Validating ${subtask.id}: ${subtask.title}`);
+
+  const prompt = buildValidationPrompt(subtask, milestonePath, contextRoot);
+  const startedAt = Date.now();
+  const response = await invokeProviderSummary({
+    prompt,
+    provider: "claude",
+    timeoutMs: VALIDATION_TIMEOUT_MS,
+  });
+  const elapsedMs = Date.now() - startedAt;
+
+  if (response === null) {
+    if (elapsedMs >= VALIDATION_TIMEOUT_MS - TIMEOUT_WARNING_THRESHOLD_MS) {
+      console.warn(
+        `[Validation:${subtask.id}] Timed out after ${Math.round(elapsedMs / 1000)}s, proceeding as aligned`,
+      );
+      return { aligned: true };
+    }
+
+    console.warn(
+      `[Validation:${subtask.id}] Invocation failed, proceeding as aligned`,
+    );
+    return { aligned: true };
+  }
+
+  return parseValidationResponse(response, subtask.id);
+}
+
+function wrapText(text: string, width: number): Array<string> {
+  if (text.trim() === "") {
+    return [""];
+  }
+
+  const words = text.trim().split(/\s+/);
+  const lines: Array<string> = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const normalizedWord = word.length > width ? word.slice(0, width) : word;
+
+    if (currentLine === "") {
+      currentLine = normalizedWord;
+    } else if (currentLine.length + normalizedWord.length + 1 <= width) {
+      currentLine = `${currentLine} ${normalizedWord}`;
+    } else {
+      lines.push(currentLine);
+      currentLine = normalizedWord;
+    }
+  }
+
+  if (currentLine !== "") {
+    lines.push(currentLine);
+  }
+
+  return lines.length === 0 ? [""] : lines;
+}
+
+export {
+  type BatchValidationResult,
+  buildValidationPrompt,
+  formatIssueType,
+  generateValidationFeedback,
+  getMilestoneFromPath,
+  handleHeadlessValidationFailure,
+  handleSupervisedValidationFailure,
+  parseIssueType,
+  parseValidationResponse,
+  printValidationSummary,
+  promptSkipOrContinue,
+  resolveParentStory,
+  resolveParentTask,
+  type SkippedSubtask,
+  type SupervisedValidationAction,
+  validateAllSubtasks,
+  validateSubtask,
+  VALIDATION_TIMEOUT_MS,
+  type ValidationContext,
+  type ValidationIssueType,
+  type ValidationResult,
+  wrapText,
+};

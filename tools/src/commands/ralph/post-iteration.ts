@@ -30,6 +30,7 @@ import {
   resolveSessionForProvider,
 } from "./providers/session-adapter";
 import { invokeProviderSummary } from "./providers/summary";
+import { substituteTemplate, type TemplateVariables } from "./template";
 
 // =============================================================================
 // Types
@@ -174,15 +175,6 @@ async function generateSummary(
     };
   }
 
-  // Skip model invocation if no session content is available
-  if (sessionPath === null) {
-    return {
-      keyFindings: [],
-      summary: `Iteration ${status} for ${subtask.id}: ${subtask.title}`,
-      summaryMs: Date.now() - summaryStart,
-    };
-  }
-
   // Use all-agents contextRoot for prompt template (not target project repoRoot)
   const promptPath = `${contextRoot}/context/workflows/ralph/hooks/iteration-summary.md`;
 
@@ -196,27 +188,30 @@ async function generateSummary(
   }
 
   // Read session content to pass directly (providers may not read files in headless mode)
-  let sessionContent = "";
-  try {
-    const rawContent = readFileSync(sessionPath, "utf8");
-    // Extract last ~50 lines or 10KB, whichever is smaller
-    const lines = rawContent.split("\n").slice(-50);
-    sessionContent = lines.join("\n").slice(-10_000);
-  } catch {
-    sessionContent = "(session log unavailable)";
-  }
+  const sessionContent = loadSessionContent(sessionPath);
 
   // Read and substitute placeholders in prompt template
-  // SESSION_CONTENT is substituted LAST to prevent template corruption if session contains {{
-  let promptContent = readFileSync(promptPath, "utf8");
-  promptContent = promptContent
-    .replaceAll("{{SUBTASK_ID}}", subtask.id)
-    .replaceAll("{{STATUS}}", status)
-    .replaceAll("{{SUBTASK_TITLE}}", subtask.title)
-    .replaceAll("{{MILESTONE}}", milestone)
-    .replaceAll("{{TASK_REF}}", subtask.taskRef)
-    .replaceAll("{{ITERATION_NUM}}", String(iterationNumber))
-    .replaceAll("{{SESSION_CONTENT}}", sessionContent);
+  // Session content placeholders are substituted LAST to prevent template
+  // corruption if session content contains {{...}} tokens.
+  const sessionContentToken = "__RALPH_SESSION_CONTENT__";
+  const subtaskDescription = (subtask as { description?: string }).description;
+  const templateVariables: Partial<TemplateVariables> = {
+    ITERATION_NUM: String(iterationNumber),
+    MILESTONE: milestone,
+    SESSION_CONTENT: sessionContentToken,
+    SESSION_JSONL_CONTENT: sessionContentToken,
+    SESSION_JSONL_PATH: sessionPath ?? "",
+    STATUS: status,
+    SUBTASK_DESCRIPTION: subtaskDescription ?? "",
+    SUBTASK_ID: subtask.id,
+    SUBTASK_TITLE: subtask.title,
+    TASK_REF: subtask.taskRef,
+  };
+
+  const promptContent = substituteTemplate(
+    readFileSync(promptPath, "utf8"),
+    templateVariables,
+  ).replaceAll(sessionContentToken, sessionContent);
 
   const configuredLightweightModel = (() => {
     try {
@@ -504,6 +499,21 @@ function getLinesChanged(repoRoot: string): LinesChangedResult {
   }
 
   return { linesAdded, linesRemoved };
+}
+
+function loadSessionContent(sessionPath: null | string): string {
+  if (sessionPath === null) {
+    return "(session log unavailable)";
+  }
+
+  try {
+    const rawContent = readFileSync(sessionPath, "utf8");
+    // Extract last ~50 lines or 10KB, whichever is smaller
+    const lines = rawContent.split("\n").slice(-50);
+    return lines.join("\n").slice(-10_000);
+  } catch {
+    return "(session log unavailable)";
+  }
 }
 
 /**

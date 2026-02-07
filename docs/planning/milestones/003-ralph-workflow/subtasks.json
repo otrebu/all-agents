@@ -1230,7 +1230,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Implement evaluateApproval pure function",
       "description": "Implement evaluateApproval(gate, config, context) pure function in tools/src/commands/ralph/approvals.ts. Logic: (1) --force flag returns \"write\", (2) get mode from config with \"suggest\" fallback, (3) --review flag overrides to \"always\", (4) map mode + TTY to action. Function is pure with no side effects. Export the function.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "evaluateApproval(gate, config, context) function exists in approvals.ts",
         "context.forceFlag === true always returns \"write\" regardless of mode/TTY",
@@ -1248,7 +1248,10 @@
       ],
       "blockedBy": [
         "SUB-206"
-      ]
+      ],
+      "completedAt": "2026-02-07T12:56:01Z",
+      "commitHash": "18528c23f4995bb0221ff8e7df192408654dc363",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-208",
@@ -1256,7 +1259,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add unit tests for evaluateApproval CLI flag overrides",
       "description": "Create tools/tests/lib/approvals.test.ts with unit tests for CLI flag overrides in evaluateApproval(). Test: --force returns \"write\" regardless of mode or TTY, --review + TTY returns \"prompt\", --review + headless returns \"exit-unstaged\". Use bun:test patterns from existing test files.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Test file tools/tests/lib/approvals.test.ts exists",
         "Test: --force returns \"write\" with mode=\"auto\", TTY=true",
@@ -1273,7 +1276,10 @@
       ],
       "blockedBy": [
         "SUB-207"
-      ]
+      ],
+      "completedAt": "2026-02-07T13:01:26Z",
+      "commitHash": "7cebf03e6b549a4eba5a4fd826bea532f2d8ae39",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-209",
@@ -1281,7 +1287,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add unit tests for evaluateApproval mode x TTY combinations",
       "description": "Extend tools/tests/lib/approvals.test.ts with unit tests for all mode x TTY combinations: auto+TTY=\"write\", auto+headless=\"write\", suggest+TTY=\"write\", suggest+headless=\"notify-wait\", always+TTY=\"prompt\", always+headless=\"exit-unstaged\". Also test undefined config fallback behavior.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Test: mode=\"auto\" + TTY=true returns \"write\"",
         "Test: mode=\"auto\" + TTY=false returns \"write\"",
@@ -1299,7 +1305,10 @@
       ],
       "blockedBy": [
         "SUB-208"
-      ]
+      ],
+      "completedAt": "2026-02-07T13:05:27Z",
+      "commitHash": "f236b8911bbb729f325abd8bdeb533d4ff32a69a",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-197",
@@ -1386,7 +1395,7 @@
       "storyRef": "001-artifact-approvals",
       "title": "Add formatGateName() helper function to approvals.ts",
       "description": "Create the formatGateName() helper function in tools/src/commands/ralph/approvals.ts that converts ApprovalGate camelCase names to human-readable display format. The function should: replace 'create' prefix with 'Create ', remove 'on' prefix, insert spaces before capital letters, and trim whitespace. Examples: createStories → 'Create Stories', onDriftDetected → 'Drift Detected', correctionTasks → 'Correction Tasks'. Import ApprovalGate type from lib/config. Export the function.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "formatGateName() function exists in tools/src/commands/ralph/approvals.ts",
         "Function signature: formatGateName(gate: ApprovalGate): string",
@@ -1403,7 +1412,10 @@
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-012-tty-approval-prompt.md",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md",
         "tools/src/lib/config/types.ts"
-      ]
+      ],
+      "completedAt": "2026-02-07T13:12:46Z",
+      "commitHash": "84e7ce8072286a8ec64890c3b1d580994bb71ef6",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-214",
@@ -1411,7 +1423,7 @@
       "storyRef": "001-artifact-approvals",
       "title": "Implement promptApproval() async function with readline",
       "description": "Add promptApproval() async function to tools/src/commands/ralph/approvals.ts that prompts user to approve artifact creation in TTY mode. The function receives a gate name and summary string, displays the formatted gate name and summary, shows 'Approve? [Y/n]: ' prompt, and returns Promise<boolean>. Uses readline.createInterface pattern from cascade.ts. Default is Yes (empty input or 'y' approves). Only 'n' or 'no' rejects. Any other input approves. Function uses formatGateName() for display.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "promptApproval(gate: ApprovalGate, summary: string): Promise<boolean> function exists",
         "Function displays formatted gate name using formatGateName()",
@@ -1433,7 +1445,10 @@
       ],
       "blockedBy": [
         "SUB-213"
-      ]
+      ],
+      "completedAt": "2026-02-07T13:21:28Z",
+      "commitHash": "a11852dd3ccaaee9571a6b7f0f9468690c1bb106",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-215",
@@ -1441,7 +1456,7 @@
       "storyRef": "001-artifact-approvals",
       "title": "Add unit tests for formatGateName() and verify promptApproval exports",
       "description": "Add unit tests in tools/tests/lib/approvals.test.ts for formatGateName() function covering all gate name formats. Verify that all exports (formatGateName, promptApproval, plus existing evaluateApproval, ApprovalAction, ApprovalContext) are correctly exported from approvals.ts. The tests should verify: all gate name transformations work correctly, function handles edge cases. Manual test plan items for promptApproval() should be documented in test file comments.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Unit test file tools/tests/lib/approvals.test.ts exists or is extended",
         "Test: formatGateName('createStories') === 'Create Stories'",
@@ -1461,7 +1476,10 @@
       ],
       "blockedBy": [
         "SUB-214"
-      ]
+      ],
+      "completedAt": "2026-02-07T13:27:05Z",
+      "commitHash": "6288fc05054b58b402b8a58c4f92ca1535b686e9",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-210",
@@ -1469,7 +1487,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add fromLevel parameter to runCascadeFrom function",
       "description": "Update runCascadeFrom() in cascade.ts to accept an optional fromLevel parameter that overrides the start parameter. When provided, validate that fromLevel is a valid level name using isValidLevelName(). Update the function signature and internal logic to use fromLevel when specified.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "runCascadeFrom accepts optional fromLevel?: string parameter",
         "When fromLevel is provided, it overrides the start parameter for cascade entry point",
@@ -1482,7 +1500,10 @@
       ],
       "blockedBy": [
         "SUB-219"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:14:43Z",
+      "commitHash": "1e097d84062011fcfc3afe0bae7f05ecd56d1dd8",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-211",
@@ -1490,7 +1511,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Update HandleCascadeOptions with approval and provider context",
       "description": "Update the HandleCascadeOptions interface in tools/src/commands/ralph/index.ts to include forceFlag, reviewFlag, fromLevel, provider, and model fields. Pass these fields through handleCascadeExecution() into runCascadeFrom() so cascade inherits approval and multi-provider context from the originating CLI command.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "HandleCascadeOptions interface has forceFlag?: boolean field",
         "HandleCascadeOptions interface has reviewFlag?: boolean field",
@@ -1505,7 +1526,10 @@
       ],
       "blockedBy": [
         "SUB-210"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:19:51Z",
+      "commitHash": "134cf7d25e3564ceccd08cfecac6eecb74a954e5",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-212",
@@ -1513,7 +1537,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Create validateApprovalFlags helper for mutual exclusion check",
       "description": "Add a validateApprovalFlags(force: boolean | undefined, review: boolean | undefined) function in tools/src/commands/ralph/index.ts that validates --force and --review are not used together. If both are true, exit with error message \"Cannot use --force and --review together\". Return void on success.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "validateApprovalFlags(force, review) function exists in index.ts",
         "Returns void when neither flag is set",
@@ -1524,7 +1548,10 @@
       ],
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
-      ]
+      ],
+      "completedAt": "2026-02-07T13:33:44Z",
+      "commitHash": "050ae494f9120f6b195a745f2e3b7106be4d4d30",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-216",
@@ -1532,7 +1559,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph plan tasks command",
       "description": "Add the three approval control flags to the ralph plan tasks command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used, along with provider/model so cascade stays on the same multi-provider context.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "aaa ralph plan tasks --help shows --force, --review, and --from flags",
         "validateApprovalFlags called in tasks action before main logic",
@@ -1545,7 +1572,10 @@
       ],
       "blockedBy": [
         "SUB-222"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:41:28Z",
+      "commitHash": "eda16219ea664e67130edc6f6fe60ff4888a1331",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-217",
@@ -1553,7 +1583,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph plan subtasks command",
       "description": "Add the three approval control flags to the ralph plan subtasks command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used, along with provider/model so cascade remains provider-consistent.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "aaa ralph plan subtasks --help shows --force, --review, and --from flags",
         "validateApprovalFlags called in subtasks action before main logic",
@@ -1566,7 +1596,10 @@
       ],
       "blockedBy": [
         "SUB-216"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:50:14Z",
+      "commitHash": "4f454fc2d0377df2f4699f80e65850da0b8161f6",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-218",
@@ -1574,7 +1607,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add E2E tests for approval control flags",
       "description": "Add E2E tests to tools/tests/e2e/ralph.test.ts verifying the new flags: (1) --help shows all three flags for each command, (2) --force --review together produces mutual exclusion error with exit code 1, (3) --from invalid-level produces error with valid levels list, (4) valid combinations work without error. Include at least one provider-aware validation path to confirm approval-flag handling is provider-neutral.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Test: aaa ralph build --help includes --force, --review, --from options",
         "Test: aaa ralph plan subtasks --help includes --force, --review, --from options",
@@ -1590,7 +1623,10 @@
       ],
       "blockedBy": [
         "SUB-217"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:56:57Z",
+      "commitHash": "c1e0de0b36085110722bab2fbe527371ea4c1218",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-225",
@@ -1598,7 +1634,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Create approvals.ts module with exit-unstaged types and functions",
       "description": "Create tools/src/commands/ralph/approvals.ts module with all types and functions for the exit-unstaged workflow. Add ApprovalGate type alias for artifact-centric gates. Add FeedbackContext interface with cascadeTarget, gate, level, milestonePath, summary fields. Add ExitUnstagedContext interface with cascadeTarget, gate, level, milestonePath fields. Implement gitCheckpoint(gate: ApprovalGate): boolean that stages all changes (git add -A), checks for changes (git status --porcelain), creates checkpoint commit with message \"chore(ralph): checkpoint before <gate>\", returns true if created, false if clean. Implement getNextLevel(level: string): string | null helper for cascade level progression. Implement formatGateName(gate: ApprovalGate): string to convert camelCase to human-readable. Implement writeFeedbackFile(context: FeedbackContext): string that creates feedback markdown file in <milestonePath>/feedback/ with approve/reject/modify instructions. Implement printExitInstructions(feedbackPath: string, resumeCommand: string): void for console output. Implement prepareExitUnstaged(context: ExitUnstagedContext): void and finalizeExitUnstaged(context: ExitUnstagedContext, summary: string): void as two-phase handler. Export all types and functions.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/approvals.ts exists",
         "ApprovalGate type includes: createRoadmap, createStories, createTasks, createSubtasks, onDriftDetected, correctionTasks",
@@ -1626,7 +1662,10 @@
         "tools/src/commands/ralph/cascade.ts",
         "tools/src/commands/ralph/display.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-015-git-workflow-exit-unstaged.md"
-      ]
+      ],
+      "completedAt": "2026-02-07T13:43:42Z",
+      "commitHash": "86fc4c6d0de42405850aabb3d6fb167013d3c225",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-226",
@@ -1634,7 +1673,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Integrate exit-unstaged handler into cascade.ts",
       "description": "Update cascade.ts to import prepareExitUnstaged and finalizeExitUnstaged from approvals.ts. In checkApprovalGate() replace the placeholder \"exit-unstaged\" case with actual implementation: call prepareExitUnstaged before returning the result. Add milestonePath to CascadeFromOptions interface. Update runCascadeFrom to handle exit-unstaged by calling finalizeExitUnstaged after level execution when the approval result is exit-unstaged.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "cascade.ts imports prepareExitUnstaged and finalizeExitUnstaged from approvals.ts",
         "CascadeFromOptions interface includes milestonePath?: string field",
@@ -1651,7 +1690,10 @@
       ],
       "blockedBy": [
         "SUB-225"
-      ]
+      ],
+      "completedAt": "2026-02-07T13:56:48Z",
+      "commitHash": "5732a5e7a6dc1af794e2a0698865d146a142cd36",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-231",
@@ -1659,7 +1701,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add E2E tests for exit-unstaged workflow in cascade",
       "description": "Create tools/tests/e2e/approvals.test.ts with tests for the exit-unstaged workflow. Test gitCheckpoint behavior (returns false when clean, creates commit when dirty). Test writeFeedbackFile creates file with correct content. Test full exit-unstaged flow integration: approval gate returns exit-unstaged, checkpoint created, level executed, feedback written, instructions printed.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/tests/e2e/approvals.test.ts exists",
         "Test verifies gitCheckpoint returns false on clean working tree",
@@ -1676,7 +1718,10 @@
       ],
       "blockedBy": [
         "SUB-226"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:03:47Z",
+      "commitHash": "91e061e71c33ebddd416599799ee69e7fd7b18bc",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-219",
@@ -1684,7 +1729,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Update CascadeFromOptions with approval and provider fields",
       "description": "Update the CascadeFromOptions interface in tools/src/commands/ralph/cascade.ts to include forceFlag/reviewFlag for approvals and provider/model for multi-provider continuity. Update RunLevelOptions to carry the same fields so runLevel can forward them to runBuild/runCalibrate.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "CascadeFromOptions interface has forceFlag?: boolean field with JSDoc comment",
         "CascadeFromOptions interface has reviewFlag?: boolean field with JSDoc comment",
@@ -1697,7 +1742,10 @@
         "tools/src/commands/ralph/cascade.ts",
         "tools/src/commands/ralph/types.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-011-cli-approval-flags.md"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:09:15Z",
+      "commitHash": "ce3535686ac8fbecb6bf0df087581845acab387c",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-220",
@@ -1705,7 +1753,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph build command",
       "description": "Add .option(\"--force\", \"Skip all approval prompts\"), .option(\"--review\", \"Require all approval prompts\"), and .option(\"--from <level>\", \"Resume cascade from this level\") to the ralph build command in index.ts. Call validateApprovalFlags() early in the action. Pass flags through to cascade when --cascade is used, and preserve provider/model context for downstream levels.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "aaa ralph build --help shows --force option with description \"Skip all approval prompts\"",
         "aaa ralph build --help shows --review option with description \"Require all approval prompts\"",
@@ -1722,7 +1770,10 @@
         "SUB-211",
         "SUB-212",
         "SUB-219"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:25:24Z",
+      "commitHash": "7925fd846ae86ef7953b9ff5cda0d198f7aa1257",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-221",
@@ -1730,7 +1781,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph plan roadmap command",
       "description": "Add .option(\"--force\", \"Skip all approval prompts\"), .option(\"--review\", \"Require all approval prompts\"), and .option(\"--from <level>\", \"Resume cascade from this level\") to the ralph plan roadmap command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "aaa ralph plan roadmap --help shows --force, --review, and --from flags",
         "validateApprovalFlags called in roadmap action before main logic",
@@ -1744,7 +1795,10 @@
         "SUB-211",
         "SUB-212",
         "SUB-219"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:30:09Z",
+      "commitHash": "a2aedeb1f989fa07db9d02d1894c3b038a431655",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-222",
@@ -1752,7 +1806,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add --force, --review, --from flags to ralph plan stories command",
       "description": "Add the three approval control flags to the ralph plan stories command. Call validateApprovalFlags() early in action. Pass flags through handleCascadeExecution() when --cascade is used, and forward provider/model context selected for stories planning.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "aaa ralph plan stories --help shows --force, --review, and --from flags",
         "validateApprovalFlags called in stories action before main logic",
@@ -1765,7 +1819,10 @@
       ],
       "blockedBy": [
         "SUB-221"
-      ]
+      ],
+      "completedAt": "2026-02-07T14:36:21Z",
+      "commitHash": "c5df8137b067d5a8830fb4826f678d8615bdf2c5",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-223",
@@ -1773,7 +1830,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Integrate handleNotifyWait into cascade checkApprovalGate",
       "description": "Update checkApprovalGate() in tools/src/commands/ralph/cascade.ts to replace the placeholder notify-wait implementation with a call to handleNotifyWait(). Import handleNotifyWait from approvals.ts. The notify-wait case should build a summary like \"Proceeding with {level} level\", call await handleNotifyWait(gate, approvalConfig, summary), and return \"continue\" after the wait completes.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "cascade.ts imports handleNotifyWait from \"./approvals\"",
         "checkApprovalGate notify-wait case calls handleNotifyWait(gate, approvalConfig, summary)",
@@ -1788,7 +1845,10 @@
       ],
       "blockedBy": [
         "SUB-238"
-      ]
+      ],
+      "completedAt": "2026-02-07T15:34:25Z",
+      "commitHash": "0c13523540a2f779e4a6189a51060996a91ecb83",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-224",
@@ -1796,7 +1856,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add unit tests for handleNotifyWait function",
       "description": "Create unit tests for the handleNotifyWait function in tools/tests/lib/approvals.test.ts. Test scenarios: (1) With valid notify config - notification sent and wait occurs, (2) With notify.enabled: false - skips notification but still waits, (3) With missing server/topic - skips notification but still waits, (4) Uses custom suggestWaitSeconds when specified, (5) Falls back to 180 when suggestWaitSeconds not specified. Use mocking/spying for sendNotification and setTimeout to avoid actual delays in tests.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Test file tools/tests/lib/approvals.test.ts exists or is extended",
         "Test: handleNotifyWait with valid config sends notification",
@@ -1814,7 +1874,10 @@
       ],
       "blockedBy": [
         "SUB-223"
-      ]
+      ],
+      "completedAt": "2026-02-07T15:39:16Z",
+      "commitHash": "249f91e34f663de00f2e9311ac3ea271cd67b03f",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-232",
@@ -1822,7 +1885,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Implement cascade approval integration",
       "description": "Implement full cascade approval integration in tools/src/commands/ralph/cascade.ts: (1) Add levelToGate(level: CascadeLevelName): ApprovalGate | null function mapping cascade levels to approval gates (roadmap->createRoadmap, stories->createStories, tasks->createTasks, subtasks->createSubtasks, build/calibrate->null). (2) Update CascadeFromOptions interface with forceFlag?, reviewFlag?, headless?, provider?, model? fields and add buildApprovalContext(options: CascadeFromOptions): ApprovalContext helper. (3) Add ApprovalResult type (\"continue\" | \"aborted\" | \"exit-unstaged\") and checkApprovalGate(level, config, context) async function that uses levelToGate, calls evaluateApproval, and dispatches to handlers. (4) Update runCascadeFrom() to load approval config, build context, call checkApprovalGate before each level, and handle aborted/exit-unstaged results appropriately while preserving provider/model context for downstream runLevel execution.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Function levelToGate(level: CascadeLevelName): ApprovalGate | null exists and is exported",
         "levelToGate returns correct gates: roadmap->createRoadmap, stories->createStories, tasks->createTasks, subtasks->createSubtasks",
@@ -1850,7 +1913,10 @@
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md",
         "tools/src/lib/config/types.ts",
         "tools/src/lib/config/index.ts"
-      ]
+      ],
+      "completedAt": "2026-02-07T15:04:40Z",
+      "commitHash": "82e6bf55dad52352a2830019cbf4a9471e1acdce",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-233",
@@ -1858,7 +1924,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add unit tests for cascade approval integration",
       "description": "Add unit tests to tools/tests/lib/cascade-approval.test.ts (new file) testing: (1) levelToGate returns correct gates for all levels, (2) buildApprovalContext constructs context correctly with various options, (3) checkApprovalGate returns expected results for different actions. Use mocking for evaluateApproval and promptApproval to test the dispatch logic without actual prompts.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Test file tools/tests/lib/cascade-approval.test.ts exists",
         "Test: levelToGate returns correct ApprovalGate for roadmap, stories, tasks, subtasks",
@@ -1876,7 +1942,10 @@
       ],
       "blockedBy": [
         "SUB-232"
-      ]
+      ],
+      "completedAt": "2026-02-07T15:10:35Z",
+      "commitHash": "6c58da6080ee27bb3da916f52b2a4094f2db3237",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-237",
@@ -1884,7 +1953,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add sleep helper and handleNotifyWait function to approvals.ts",
       "description": "Create approvals.ts file in tools/src/commands/ralph/ with the sleep() helper function and handleNotifyWait() function. The sleep helper returns a Promise that resolves after a given number of milliseconds. handleNotifyWait() sends a notification about pending artifact creation, waits for suggestWaitSeconds (defaulting to DEFAULT_SUGGEST_WAIT_SECONDS = 180), then returns to continue. Import sendNotification from notify/client and loadAaaConfig from lib/config. The function gracefully handles notification errors (logs warning but continues) and works when notifications are disabled (skips notify, still waits). Console output shows: notification status, wait duration, and completion message.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "File tools/src/commands/ralph/approvals.ts exists with sleep() and handleNotifyWait() functions",
         "sleep(ms) returns Promise<void> that resolves after ms milliseconds",
@@ -1902,7 +1971,10 @@
         "tools/src/commands/notify/client.ts",
         "tools/src/lib/config/types.ts",
         "tools/src/commands/ralph/cascade.ts"
-      ]
+      ],
+      "completedAt": "2026-02-07T15:22:10Z",
+      "commitHash": "53dc16e8e9715c3fdf061ff9da4d82c08dc3de2a",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-238",
@@ -1910,7 +1982,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Add formatGateName helper and export approval module",
       "description": "Add formatGateName(gate: ApprovalGate) helper function to approvals.ts that converts gate names like \"createStories\" to human-readable format \"Create Stories\" (matching the formatter behavior defined in SUB-213). Export formatGateName along with handleNotifyWait, DEFAULT_SUGGEST_WAIT_SECONDS, and the existing ApprovalAction, ApprovalContext, evaluateApproval exports. This provides the display name formatting used in notification titles and console output.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "formatGateName(gate) function exists and is exported from approvals.ts",
         "formatGateName(\"createStories\") returns \"Create Stories\"",
@@ -1925,7 +1997,10 @@
       ],
       "blockedBy": [
         "SUB-237"
-      ]
+      ],
+      "completedAt": "2026-02-07T15:26:34Z",
+      "commitHash": "48be8372eae26b9179f4fe2702f0ef4bd25d9359",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-239",
@@ -1933,7 +2008,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Thread provider/model context through cascade levels",
       "description": "Update cascade execution so provider/model chosen on planning/build commands is preserved through runCascadeFrom() and runLevel(). Add provider/model to cascade option interfaces, pass them from CLI call sites (build, roadmap, stories, tasks, subtasks), and forward into runBuild()/runCalibrate(). Keep behavior provider-neutral and backward-compatible when options are omitted.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "CascadeFromOptions and RunLevelOptions include provider?: ProviderType and model?: string",
         "All runCascadeFrom call sites pass provider/model when available (build, stories, tasks, subtasks, and roadmap where applicable)",
@@ -1952,7 +2027,10 @@
       "blockedBy": [
         "SUB-211",
         "SUB-219"
-      ]
+      ],
+      "completedAt": "2026-02-07T15:53:18Z",
+      "commitHash": "8588e2944ad7895fb1d30abc37ae7b0f0028169a",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
     },
     {
       "id": "SUB-240",
@@ -1960,7 +2038,7 @@
       "storyRef": "STORY-001-artifact-approvals",
       "title": "Align cascade targets with executable levels",
       "description": "Fix the mismatch between advertised cascade targets and actual runnable levels. Either implement planning-level execution adapters in runLevel() (stories/tasks/subtasks/roadmap) or fail early with explicit unsupported-target guidance so users do not hit late 'planning level not yet implemented' errors.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Cascade paths exposed by CLI are either executable or rejected early with actionable messaging",
         "runCascadeFrom no longer fails mid-run with generic 'planning level not yet implemented' for supported target combinations",
@@ -1975,7 +2053,488 @@
       ],
       "blockedBy": [
         "SUB-232"
-      ]
+      ],
+      "completedAt": "2026-02-07T16:04:32Z",
+      "commitHash": "687dacdca360eb3cbe3e5f0d5d8538fc6c6af9e2",
+      "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
+    },
+    {
+      "id": "SUB-378",
+      "taskRef": "031-template-utility-function",
+      "storyRef": "STORY-006-template-substitution",
+      "title": "Implement substituteTemplate() utility function with unit tests",
+      "description": "Create tools/src/commands/ralph/template.ts with a substituteTemplate(template, variables) function that replaces {{VAR}} placeholders with provided values. Define a TemplateVariables type for supported variables. Missing variables should log a warning via console.warn but not throw, leaving the {{VAR}} literal in the output. Add comprehensive unit tests in tools/tests/lib/template.test.ts covering basic substitution, multiple variables, missing variables (warning + literal preserved), empty template, no-placeholder passthrough, and undefined values.",
+      "done": true,
+      "acceptanceCriteria": [
+        "substituteTemplate() function exists in tools/src/commands/ralph/template.ts and is exported",
+        "Function replaces all {{VAR}} patterns with corresponding values from the variables argument",
+        "Missing variables log a warning via console.warn but do not throw; {{VAR}} literal is left in output",
+        "Edge cases handled: empty template returns empty string, template with no placeholders returns unchanged, undefined values treated as missing",
+        "Unit tests in tools/tests/lib/template.test.ts cover: basic substitution, multiple variables, missing variable warning (mocked), missing variable literal preservation, empty template, no-placeholder template"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-031-template-utility-function.md",
+        "docs/planning/milestones/003-ralph-workflow/stories/STORY-006-template-substitution.md",
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/src/commands/ralph/types.ts"
+      ],
+      "completedAt": "2026-02-07T22:44:35Z",
+      "commitHash": "df7f356890856dc4f8cd16860d753316e157c91a",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-388",
+      "taskRef": "033-integrate-template-into-hooks",
+      "storyRef": "STORY-006-template-substitution",
+      "title": "Replace inline replaceAll chain with substituteTemplate() in post-iteration.ts",
+      "description": "Refactor generateSummary() in post-iteration.ts to use the centralized substituteTemplate() function from template.ts instead of the manual chain of .replaceAll() calls. Build a TemplateVariables object from the available context (SUBTASK_ID, STATUS, SUBTASK_TITLE, MILESTONE, TASK_REF, ITERATION_NUM), call substituteTemplate() for the main variables, then apply SESSION_CONTENT last via a single replaceAll() to prevent template corruption if session content contains {{ delimiters. Verify all existing variables are substituted correctly, missing variables log a warning without breaking summary generation, and all E2E tests continue to pass.",
+      "done": true,
+      "acceptanceCriteria": [
+        "post-iteration.ts imports substituteTemplate (and optionally TemplateVariables) from template.ts",
+        "generateSummary() builds a TemplateVariables object and calls substituteTemplate() instead of inline .replaceAll() chain",
+        "SESSION_CONTENT is still applied last (after substituteTemplate) to prevent template corruption from {{ in session logs",
+        "All 7 existing variables (SUBTASK_ID, STATUS, SUBTASK_TITLE, MILESTONE, TASK_REF, ITERATION_NUM, SESSION_CONTENT) produce identical output as before",
+        "E2E tests pass: ralph build generates diary entries with substituted values, no {{VAR}} literals in output"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/post-iteration.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-033-integrate-template-into-hooks.md",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-031-template-substitution-utility.md",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-032-template-variables-interface.md"
+      ],
+      "blockedBy": [
+        "SUB-378",
+        "SUB-383"
+      ],
+      "completedAt": "2026-02-07T22:48:41Z",
+      "commitHash": "e020556d5a940c4e76454fd9ccc119e009811b92",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-393",
+      "taskRef": "034-add-new-template-variables",
+      "storyRef": "STORY-006-template-substitution",
+      "title": "Add SESSION_JSONL_PATH, SUBTASK_DESCRIPTION, and SESSION_JSONL_CONTENT template variables",
+      "description": "Add three missing template variables to the generateSummary() function in post-iteration.ts: SESSION_JSONL_PATH (from sessionPath parameter, defaulting to empty string when null), SUBTASK_DESCRIPTION (from subtask.description), and SESSION_JSONL_CONTENT (alias for SESSION_CONTENT). Update the replaceAll chain to substitute all three new placeholders in prompt templates. Add unit tests in post-iteration.test.ts verifying each new variable is populated correctly, including null/undefined graceful handling.",
+      "done": true,
+      "acceptanceCriteria": [
+        "SESSION_JSONL_PATH is substituted with absolute session file path (or empty string when sessionPath is null)",
+        "SUBTASK_DESCRIPTION is substituted from subtask.description field",
+        "SESSION_JSONL_CONTENT is substituted with the same value as SESSION_CONTENT",
+        "Unit tests verify all three new variables are populated and handle null/undefined gracefully"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/post-iteration.ts",
+        "tools/tests/lib/post-iteration.test.ts",
+        "context/workflows/ralph/hooks/iteration-summary.md"
+      ],
+      "blockedBy": [
+        "SUB-388"
+      ],
+      "completedAt": "2026-02-07T22:58:05Z",
+      "commitHash": "4dce424a8cf0a8e2592e90d10394bff8de467bfc",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-398",
+      "taskRef": "035-document-template-variables",
+      "storyRef": "STORY-006-template-substitution",
+      "title": "Add Available Variables documentation section to iteration-summary.md prompt",
+      "description": "Update context/workflows/ralph/hooks/iteration-summary.md to add a comprehensive \"Available Template Variables\" section documenting all substitution variables. Replace the current ad-hoc \"Required Inputs\" and \"Optional Context Fields\" sections with a structured variables table listing each variable name, description, example value, and required/optional status. Document all seven story-specified variables (SUBTASK_ID, SUBTASK_TITLE, SUBTASK_DESCRIPTION, STATUS, MILESTONE, TASK_REF, ITERATION_NUM) plus SESSION_CONTENT, SESSION_JSONL_PATH, and SESSION_JSONL_CONTENT. Add a note that missing variables are left as literal {{VAR}} text (not replaced). Add a note about variable ordering (SESSION_CONTENT substituted last since it may be large).",
+      "done": true,
+      "acceptanceCriteria": [
+        "iteration-summary.md contains an \"Available Template Variables\" section with a markdown table documenting all variables",
+        "All ten variables documented with name, description, example value, and required vs optional status",
+        "Documentation includes note that missing variables become literal {{VAR}} (not replaced)",
+        "SESSION_CONTENT substitution-ordering note is present"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-035-document-template-variables.md",
+        "docs/planning/milestones/003-ralph-workflow/stories/STORY-006-template-substitution.md",
+        "context/workflows/ralph/hooks/iteration-summary.md",
+        "tools/src/commands/ralph/post-iteration.ts"
+      ],
+      "blockedBy": [
+        "SUB-393"
+      ],
+      "completedAt": "2026-02-07T22:59:51Z",
+      "commitHash": "a9e90e26946dc0d1f0c9324ce9d9561b18480364",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-383",
+      "taskRef": "032-template-variables-interface",
+      "storyRef": "STORY-006-template-substitution",
+      "title": "Add TemplateVariables interface with JSDoc to template.ts",
+      "description": "Add a TemplateVariables interface to tools/src/commands/ralph/template.ts (created by TASK-031) that formalizes all supported template variables. The interface must include all seven story-specified variables (SESSION_JSONL_CONTENT, SESSION_JSONL_PATH, SUBTASK_ID, SUBTASK_TITLE, SUBTASK_DESCRIPTION, MILESTONE, ITERATION_NUM) plus STATUS, TASK_REF (already in use in post-iteration.ts lines 213-218), and SESSION_CONTENT (backward-compat alias for SESSION_JSONL_CONTENT). Each property must have a JSDoc comment documenting its purpose, source, and format. All properties should be typed as string. The interface must be exported. Update substituteTemplate() signature to accept Partial<TemplateVariables> instead of Record<string, string | undefined>. Add a unit test in tools/tests/lib/template.test.ts verifying that substituteTemplate() accepts Partial<TemplateVariables> and that all expected properties exist on the interface.",
+      "done": true,
+      "acceptanceCriteria": [
+        "TemplateVariables interface exported from template.ts with all 10 properties: ITERATION_NUM, MILESTONE, SESSION_CONTENT, SESSION_JSONL_CONTENT, SESSION_JSONL_PATH, STATUS, SUBTASK_DESCRIPTION, SUBTASK_ID, SUBTASK_TITLE, TASK_REF",
+        "Each property has a JSDoc comment describing purpose, source, and format",
+        "substituteTemplate() accepts Partial<TemplateVariables> as its variables parameter",
+        "Unit test in tools/tests/lib/template.test.ts verifies substituteTemplate works with Partial<TemplateVariables> and typecheck passes",
+        "bun run typecheck passes with no errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/template.ts",
+        "tools/src/commands/ralph/post-iteration.ts",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-032-template-variables-interface.md",
+        "docs/planning/milestones/003-ralph-workflow/stories/STORY-006-template-substitution.md"
+      ],
+      "blockedBy": [
+        "SUB-378"
+      ],
+      "completedAt": "2026-02-07T22:46:56Z",
+      "commitHash": "5bc206a35f549135b24eadbe97c39244e6b57f36",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-399",
+      "taskRef": "TASK-016-validation-types",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Create validation.ts with types and response parser",
+      "description": "Create new file tools/src/commands/ralph/validation.ts containing: (1) ValidationIssueType union type for the four issue categories (scope_creep, too_broad, too_narrow, unfaithful), (2) ValidationResult interface with aligned boolean plus optional issueType, reason, and suggestion fields, (3) ValidationContext interface with milestonePath, subtask, and subtasksPath fields, (4) parseIssueType() helper that validates issue_type values against the valid set and returns undefined for invalid values, (5) parseValidationResponse(rawResponse, subtaskId) function that extracts JSON from raw Claude output (handling markdown code block wrapping), validates the aligned field, extracts misalignment details with defaults, and returns {aligned: true} on any parse failure with console.warn logging. Export all types and functions.",
+      "done": true,
+      "acceptanceCriteria": [
+        "File tools/src/commands/ralph/validation.ts exists",
+        "ValidationIssueType is defined as 'scope_creep' | 'too_broad' | 'too_narrow' | 'unfaithful'",
+        "ValidationResult interface has aligned: boolean, optional issueType?: ValidationIssueType, reason?: string, suggestion?: string",
+        "ValidationContext interface has milestonePath: string, subtask: Subtask, subtasksPath: string",
+        "parseIssueType(value) returns the value for valid issue types and undefined for invalid values",
+        "parseValidationResponse(raw, id) returns {aligned: true} for '{\"aligned\": true}' input",
+        "parseValidationResponse returns full misaligned result with issueType, reason, suggestion for valid misaligned JSON",
+        "parseValidationResponse extracts JSON from markdown code block wrapping (```json ... ```)",
+        "parseValidationResponse returns {aligned: true} and logs console.warn when JSON is invalid or missing",
+        "parseValidationResponse returns {aligned: true} and logs console.warn when aligned field is not boolean",
+        "All types and functions exported from validation.ts",
+        "bun run typecheck passes with no errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-016-validation-types.md",
+        "context/workflows/ralph/building/pre-build-validation.md",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/approvals.ts"
+      ],
+      "completedAt": "2026-02-07T23:02:03Z",
+      "commitHash": "55af6ec3326b21c0f056e792724c9769146f25b3",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-400",
+      "taskRef": "TASK-016-validation-types",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Add unit tests for validation response parser",
+      "description": "Create tools/tests/lib/validation.test.ts with comprehensive unit tests for parseValidationResponse() and parseIssueType() from validation.ts. Cover all eight test scenarios from the task plan: (1) aligned response parsing, (2) full misaligned response with all fields, (3) JSON wrapped in markdown code block, (4) empty string input, (5) invalid JSON string, (6) missing aligned field, (7) invalid issue_type value, (8) partial misaligned response with missing optional fields. Use bun:test patterns consistent with existing test files. Mock console.warn to verify warning messages are logged for error cases.",
+      "done": true,
+      "acceptanceCriteria": [
+        "Test file tools/tests/lib/validation.test.ts exists",
+        "Test: parseValidationResponse('{\"aligned\": true}', 'SUB-001') returns {aligned: true}",
+        "Test: parseValidationResponse with full misaligned JSON extracts issueType, reason, and suggestion correctly",
+        "Test: parseValidationResponse extracts JSON from ```json\\n{...}\\n``` markdown wrapping",
+        "Test: parseValidationResponse('', 'SUB-001') returns {aligned: true} and warns",
+        "Test: parseValidationResponse('not json', 'SUB-001') returns {aligned: true} and warns",
+        "Test: parseValidationResponse('{\"foo\": \"bar\"}', 'SUB-001') returns {aligned: true} (missing aligned field)",
+        "Test: parseIssueType('invalid_value') returns undefined",
+        "Test: parseIssueType('scope_creep') returns 'scope_creep'",
+        "Test: partial misaligned response (missing suggestion) fills default reason, undefined suggestion",
+        "All tests pass: bun test tools/tests/lib/validation.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/validation.ts",
+        "tools/tests/lib/approvals.test.ts",
+        "tools/tests/lib/ralph-config.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-399"
+      ],
+      "completedAt": "2026-02-07T23:06:22Z",
+      "commitHash": "5e81761575150eab1e918bc16d49968b8aff0d09",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-405",
+      "taskRef": "TASK-018-validation-supervised",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Add formatIssueType, wrapText helpers and SupervisedValidationAction type to validation.ts",
+      "description": "Add the SupervisedValidationAction type (\"continue\" | \"skip\"), formatIssueType() helper that converts snake_case issue types to human-readable labels (e.g., \"scope_creep\" -> \"Scope Creep\"), and wrapText() helper that wraps text to a specified width respecting word boundaries (words longer than width are truncated). Note: display.ts already has a wrapText using wrap-ansi; this is a simpler standalone implementation for the validation box which uses manual Unicode box-drawing characters (not boxen). Add unit tests verifying formatIssueType covers all four issue types plus unknown values, and wrapText handles normal text, single words longer than width, and empty strings. Export all new types and functions from validation.ts.",
+      "done": true,
+      "acceptanceCriteria": [
+        "SupervisedValidationAction type exported from validation.ts as \"continue\" | \"skip\"",
+        "formatIssueType(\"scope_creep\") returns \"Scope Creep\", formatIssueType(\"too_broad\") returns \"Too Broad\", formatIssueType(\"too_narrow\") returns \"Too Narrow\", formatIssueType(\"unfaithful\") returns \"Unfaithful to Parent\"",
+        "formatIssueType returns the raw string for unknown values (fallback)",
+        "wrapText(\"long text here\", 10) returns array of lines each at most 10 chars wide",
+        "wrapText handles single word longer than width by truncating to width",
+        "wrapText(\"\", 56) returns [\"\"]—never an empty array",
+        "Unit test in tools/tests/lib/validation.test.ts passes covering formatIssueType and wrapText edge cases",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-018-validation-supervised.md",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/types.ts"
+      ],
+      "blockedBy": [
+        "SUB-402"
+      ],
+      "completedAt": "2026-02-07T23:10:03Z",
+      "commitHash": "5f02224",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-406",
+      "taskRef": "TASK-018-validation-supervised",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Add handleSupervisedValidationFailure display and promptSkipOrContinue to validation.ts",
+      "description": "Implement handleSupervisedValidationFailure() that displays a formatted Unicode box (using chalk and manual box-drawing characters, not boxen) with validation failure details: subtask ID/title, issue type (via formatIssueType), reason (wrapped via wrapText at 56 chars), and suggestion (wrapped). Box width is fixed at 64 characters. Implement promptSkipOrContinue() using node:readline that prompts \"Skip SUB-XXX? [Y/n]\" where default is skip (Enter, y, yes -> \"skip\"; n, no -> \"continue\"). In non-TTY mode, return \"skip\" without prompting. Handle SIGINT by propagating to process. Add unit tests for promptSkipOrContinue non-TTY fallback behavior, and verify handleSupervisedValidationFailure calls console.log with expected box structure (mock console.log, check output contains subtask ID, issue type label, reason, suggestion). Export both functions from validation.ts.",
+      "done": true,
+      "acceptanceCriteria": [
+        "handleSupervisedValidationFailure(subtask, result) displays chalk-styled box with yellow Unicode border characters",
+        "Display box includes subtask.id and subtask.title",
+        "Display box includes formatted issue type when result.issueType is present",
+        "Display box includes reason wrapped at 56 chars when result.reason is present",
+        "Display box includes suggestion wrapped at 56 chars when result.suggestion is present",
+        "promptSkipOrContinue returns \"skip\" on Enter, \"y\", or \"yes\" input",
+        "promptSkipOrContinue returns \"continue\" on \"n\" or \"no\" input",
+        "promptSkipOrContinue returns \"skip\" in non-TTY mode without prompting",
+        "SIGINT handler propagates to process via process.emit(\"SIGINT\")",
+        "Unit tests in tools/tests/lib/validation.test.ts pass for supervised handler and prompt logic",
+        "bun run typecheck passes"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-018-validation-supervised.md",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/display.ts",
+        "context/blocks/construct/chalk.md"
+      ],
+      "blockedBy": [
+        "SUB-405"
+      ],
+      "completedAt": "2026-02-07T23:11:48Z",
+      "commitHash": "4cb68b3",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-402",
+      "taskRef": "TASK-017-validation-invoke",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Implement parent chain resolution and validation prompt builder",
+      "description": "Add resolveParentTask(), resolveParentStory(), and buildValidationPrompt() functions to tools/src/commands/ralph/validation.ts (created by TASK-016). resolveParentTask() reads the task file from the milestone tasks/ directory by matching the taskRef prefix via readdirSync, extracts the storyRef from the Task's **Story:** markdown link pattern, and returns both the file content and storyRef (or nulls). resolveParentStory() reads the story file from the milestone stories/ directory by matching the storyRef prefix. buildValidationPrompt() reads the pre-build-validation.md prompt template from contextRoot, assembles the subtask JSON definition, parent Task content (or '*Not found*' placeholder), and parent Story content (if storyRef exists) into a single prompt string. All missing files are handled gracefully with placeholder text rather than thrown errors. Add comprehensive unit tests in tools/tests/lib/validation-prompt.test.ts using temp directories to verify prompt assembly with full parent chain, partial chain (missing story), partial chain (missing task), missing prompt file throws, and the storyRef extraction regex.",
+      "done": true,
+      "acceptanceCriteria": [
+        "resolveParentTask() exported from validation.ts; returns { taskContent: string | null, storyRef: string | null } after reading task file matching taskRef prefix from milestone tasks/ directory",
+        "resolveParentTask() extracts storyRef from **Story:** markdown link pattern in task content; returns null storyRef when pattern not found",
+        "resolveParentTask() returns { taskContent: null, storyRef: null } when tasks/ directory or matching task file is missing (no throw)",
+        "resolveParentStory() exported from validation.ts; returns story file content as string, or null when stories/ directory or matching story file is missing",
+        "buildValidationPrompt() exported from validation.ts; reads pre-build-validation.md from contextRoot, assembles subtask JSON + parent task + parent story into combined prompt string",
+        "buildValidationPrompt() throws Error when pre-build-validation.md prompt file does not exist at expected path",
+        "buildValidationPrompt() includes '*Not found: <ref>*' placeholder text when parent task or story file is missing",
+        "Unit tests in tools/tests/lib/validation-prompt.test.ts pass covering: full chain assembly, missing task file, missing story file, missing storyRef in task markdown, prompt-file-missing throws, storyRef extraction regex"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-017-validation-invoke.md",
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-016-validation-types.md",
+        "docs/planning/milestones/003-ralph-workflow/stories/STORY-002-prebuild-validation.md",
+        "tools/src/commands/ralph/types.ts",
+        "context/workflows/ralph/building/pre-build-validation.md",
+        "tools/tests/lib/build-hooks.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-399"
+      ],
+      "completedAt": "2026-02-07T23:08:11Z",
+      "commitHash": "c0ab03f81f6ade632c88acd9823501f1306af9e7",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-403",
+      "taskRef": "TASK-017-validation-invoke",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Implement validateSubtask() with provider invocation and timeout handling",
+      "description": "Add the validateSubtask() async function to tools/src/commands/ralph/validation.ts that orchestrates the full validation flow for a single subtask. It accepts a ValidationContext and contextRoot, calls buildValidationPrompt() to assemble the prompt, then invokes invokeProviderSummary (from providers/summary.ts) with a 60-second timeout (VALIDATION_TIMEOUT_MS constant). It handles three outcomes: (1) null result after elapsed time near the timeout -- returns {aligned: true} with a '[Validation:<id>] Timed out' warning, (2) null result before timeout (invocation failure) -- returns {aligned: true} with an '[Validation:<id>] Invocation failed' warning, (3) successful string result -- passes to parseValidationResponse() (from TASK-016) and returns the parsed ValidationResult. Logs '[Validation] Validating <id>: <title>' at the start. Add unit tests in tools/tests/lib/validation-invoke.test.ts that mock invokeProviderSummary to test timeout path, failure path, aligned parse path, and misaligned parse path.",
+      "done": true,
+      "acceptanceCriteria": [
+        "validateSubtask() exported from validation.ts; accepts ValidationContext and contextRoot string, returns Promise<ValidationResult>",
+        "VALIDATION_TIMEOUT_MS constant exported and set to 60000 (60 seconds), used as timeout for provider invocation",
+        "On null result with elapsed time near timeout threshold, returns {aligned: true} and logs warning containing 'Timed out'",
+        "On null result before timeout threshold, returns {aligned: true} and logs warning containing 'Invocation failed'",
+        "On successful string result, passes to parseValidationResponse() and returns the parsed ValidationResult",
+        "Console output includes '[Validation] Validating <id>: <title>' at start of each validation",
+        "Unit tests in tools/tests/lib/validation-invoke.test.ts pass covering: timeout path, failure path, aligned result parse, misaligned result parse (all with mocked provider invocation)"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-017-validation-invoke.md",
+        "tools/src/commands/ralph/providers/summary.ts",
+        "tools/src/commands/ralph/providers/claude.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/tests/lib/summary.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-399",
+        "SUB-402"
+      ],
+      "completedAt": "2026-02-07T23:13:38Z",
+      "commitHash": "d06c5eaec31411e23b709f4a1e706ec8517e16a8",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-408",
+      "taskRef": "TASK-019-validation-headless",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Add SkippedSubtask type and generateValidationFeedback() to validation.ts",
+      "description": "Add the SkippedSubtask tracking interface and the generateValidationFeedback() pure function to tools/src/commands/ralph/validation.ts. The SkippedSubtask interface records a subtask skipped due to validation failure with fields: subtaskId (string), reason (string), feedbackPath (string), and optional issueType (ValidationIssueType). The generateValidationFeedback(subtask, result) function produces a self-contained markdown string with sections: header (subtask ID, title, timestamp, issue type via formatIssueType from SUB-405, task/story refs), 'Validation Failure' section with result.reason (default 'No reason provided.'), 'Suggested Fix' section (only when result.suggestion is defined), 'Subtask Definition' section with full JSON in a code block, and 'How to Resolve' section with three options (fix subtask, skip validation, remove subtask). Falls back to 'Unknown' when issueType is undefined. Export both the type and function. Add unit tests in tools/tests/lib/validation-headless.test.ts verifying: all required markdown sections present, optional suggestion section included when result has suggestion, suggestion section omitted when result has no suggestion, storyRef line present when subtask has storyRef and absent when null, subtask JSON block contains the subtask id, issue type label rendered correctly.",
+      "done": true,
+      "acceptanceCriteria": [
+        "SkippedSubtask interface exported from validation.ts with fields: subtaskId (string), reason (string), feedbackPath (string), issueType? (ValidationIssueType)",
+        "generateValidationFeedback(subtask, result) exported from validation.ts and returns a markdown string",
+        "Output markdown contains '# Validation Feedback: <subtask.id>' header with timestamp, title, issue type label, and taskRef",
+        "Output markdown contains '## Validation Failure' section with result.reason (defaults to 'No reason provided.')",
+        "Output markdown contains '## Suggested Fix' section only when result.suggestion is defined",
+        "Output markdown contains '## Subtask Definition' section with full subtask JSON in a ```json code block",
+        "Output markdown contains '## How to Resolve' section with three options: fix subtask, skip validation, remove subtask",
+        "Output markdown includes '**Story Reference:**' line when subtask.storyRef is defined, omits it when null/undefined",
+        "Unit test file tools/tests/lib/validation-headless.test.ts exists and all tests pass",
+        "Tests cover: all sections present, suggestion included/omitted, storyRef included/omitted, subtask JSON correctness, issue type label",
+        "bun run typecheck passes with no errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-019-validation-headless.md",
+        "docs/planning/milestones/003-ralph-workflow/stories/STORY-002-prebuild-validation.md",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/tests/lib/approvals.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-405"
+      ],
+      "completedAt": "2026-02-07T23:15:19Z",
+      "commitHash": "54238c67a216a08548b75c616ad10efc9384a54f",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-409",
+      "taskRef": "TASK-019-validation-headless",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Add handleHeadlessValidationFailure() with feedback file I/O to validation.ts",
+      "description": "Add the handleHeadlessValidationFailure(subtask, result, milestonePath) function to tools/src/commands/ralph/validation.ts. This function: (1) ensures the feedback directory exists at <milestonePath>/feedback/ using mkdirSync with recursive:true, (2) generates a date-prefixed filename in format YYYY-MM-DD_validation_<subtask.id>.md using new Date().toISOString().split('T')[0], (3) calls generateValidationFeedback(subtask, result) from SUB-408 to produce the markdown content, (4) writes the file using writeFileSync with utf8 encoding, (5) logs '[Validation:<subtask.id>] Wrote feedback: <filepath>' to console, (6) returns the absolute path to the created file. Export the function. Add unit tests in tools/tests/lib/validation-headless.test.ts (append to existing file from SUB-408) that: create a temp directory via mkdtempSync, call handleHeadlessValidationFailure with test subtask/result/tempDir, verify the feedback/ subdirectory was created, verify the file exists matching YYYY-MM-DD_validation_SUB-XXX.md pattern, verify file content contains expected sections (subtask ID, reason), verify the returned path matches the written file location, verify console.log was called with the file path. Clean up temp directory in afterEach. Pattern follows writeFeedbackFile() in approvals.ts.",
+      "done": true,
+      "acceptanceCriteria": [
+        "handleHeadlessValidationFailure(subtask, result, milestonePath) exported from validation.ts",
+        "Function creates <milestonePath>/feedback/ directory if it does not exist (mkdirSync recursive)",
+        "Feedback file written with naming format YYYY-MM-DD_validation_<subtask.id>.md",
+        "File content matches output of generateValidationFeedback(subtask, result)",
+        "Function returns the absolute path string to the created feedback file",
+        "Console output logs '[Validation:<subtask.id>] Wrote feedback: <path>'",
+        "Tests create temp directory via mkdtempSync and clean up in afterEach via rmSync recursive",
+        "Tests verify feedback/ subdirectory created, file exists with correct name pattern, and content contains subtask ID and reason",
+        "Tests verify returned path matches the file written to disk",
+        "All tests pass: bun test tools/tests/lib/validation-headless.test.ts"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-019-validation-headless.md",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/tests/lib/approvals.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-408"
+      ],
+      "completedAt": "2026-02-07T23:21:41Z",
+      "commitHash": "01d6707e913395ee8682bdd1128cf17f5ad530ba",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-411",
+      "taskRef": "TASK-020-validation-batch",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Add batch validation orchestrator and summary reporting to validation.ts",
+      "description": "Add the batch validation orchestrator to tools/src/commands/ralph/validation.ts: (1) BatchValidationResult interface with aligned (number), success (boolean), skippedSubtasks (Array<SkippedSubtask> from SUB-408), and total (number). (2) validateAllSubtasks() async function that prints '=== Pre-build Validation ===' header, iterates pending subtasks sequentially (eslint no-await-in-loop comment), calls validateSubtask() for each, logs aligned/misaligned status per subtask with chalk coloring, routes failures to handleSupervisedValidationFailure() (SUB-406) or handleHeadlessValidationFailure() (SUB-409) based on mode, fires executeHook('onValidationFail', {subtaskId, milestone, message}) for each headless failure, and returns BatchValidationResult. (3) printValidationSummary(total, aligned, skipped) function that outputs chalk.green 'Validated X/X subtasks. All aligned.' when no skipped, or chalk.yellow 'Validated X/Y subtasks. Z skipped due to misalignment.' with per-skipped-subtask detail lines showing issue type labels (via formatIssueType from SUB-405) and feedback paths. (4) getMilestoneFromPath(milestonePath) helper returning path.basename(). Export all new types and functions.",
+      "done": true,
+      "acceptanceCriteria": [
+        "BatchValidationResult interface exported from validation.ts with fields: aligned (number), success (boolean), skippedSubtasks (Array<SkippedSubtask>), total (number)",
+        "validateAllSubtasks() exported; accepts (pendingSubtasks: Array<Subtask>, options: {mode: 'headless'|'supervised', subtasksPath: string}, milestonePath: string, contextRoot: string) and returns Promise<BatchValidationResult>",
+        "validateAllSubtasks() calls validateSubtask() sequentially for each subtask with eslint no-await-in-loop comment",
+        "In supervised mode, calls handleSupervisedValidationFailure() and counts subtask as aligned when user chooses 'continue', adds to skippedSubtasks when 'skip'",
+        "In headless mode, calls handleHeadlessValidationFailure() then fires executeHook('onValidationFail', {subtaskId, milestone, message}) for each failure",
+        "printValidationSummary(3, 3, []) outputs chalk.green message containing 'All aligned'",
+        "printValidationSummary(3, 1, [skipped1, skipped2]) outputs chalk.yellow summary with skipped subtask IDs, formatted issue type labels, and feedback paths",
+        "getMilestoneFromPath('/path/to/003-ralph-workflow') returns '003-ralph-workflow'",
+        "bun run typecheck passes with no errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-020-validation-batch.md",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/hooks.ts",
+        "tools/src/commands/ralph/types.ts"
+      ],
+      "blockedBy": [
+        "SUB-406",
+        "SUB-409"
+      ],
+      "completedAt": "2026-02-07T23:23:18Z",
+      "commitHash": "4762d9c9d56a342206f750b9d9d944fa3bfeb870",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-412",
+      "taskRef": "TASK-020-validation-batch",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Integrate batch validation into build loop and add skip tracking",
+      "description": "Replace the --validate-first stub in tools/src/commands/ralph/build.ts (the shouldValidateFirst block at ~lines 950-956 that currently logs 'not yet implemented') with actual batch validation integration: (1) Add import { validateAllSubtasks } from './validation' to build.ts imports. (2) Declare skippedSubtaskIds variable typed as Set<string> | null, initialized to null, before the shouldValidateFirst block. (3) When shouldValidateFirst is true: load the initial subtasks file, call getPendingSubtasks() to get pending subtasks, compute milestonePath via path.dirname(subtasksPath), call await validateAllSubtasks(pendingSubtasks, {mode, subtasksPath}, milestonePath, contextRoot), populate skippedSubtaskIds from validationResult.skippedSubtasks.map(s => s.subtaskId). (4) In the main iteration loop, after getNextSubtask() returns a non-null currentSubtask, add a skip check: if skippedSubtaskIds is not null and contains currentSubtask.id, log 'Skipping <id> (failed validation)' and continue to next iteration. This ensures validated-failed subtasks are excluded from build iterations while the rest proceed normally.",
+      "done": true,
+      "acceptanceCriteria": [
+        "The stub console.log('Pre-build validation requested but not yet implemented...') at ~lines 950-956 in build.ts is replaced with validateAllSubtasks() call",
+        "import { validateAllSubtasks } from './validation' added to build.ts imports",
+        "skippedSubtaskIds variable declared as Set<string> | null, initialized to null before the validation block",
+        "When shouldValidateFirst is true, getPendingSubtasks() called and results passed to validateAllSubtasks() with mode, subtasksPath, milestonePath, and contextRoot",
+        "skippedSubtaskIds populated from validationResult.skippedSubtasks.map(s => s.subtaskId) wrapped in new Set()",
+        "In the iteration loop after getNextSubtask(), skip check: if (skippedSubtaskIds !== null && skippedSubtaskIds.has(currentSubtask.id)) logs and continues",
+        "When shouldValidateFirst is false, skippedSubtaskIds remains null and no skip checks trigger",
+        "bun run typecheck passes with no errors"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-020-validation-batch.md",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/config.ts"
+      ],
+      "blockedBy": [
+        "SUB-411"
+      ],
+      "completedAt": "2026-02-07T23:29:11Z",
+      "commitHash": "60ddc54cec7bf041b4f29295e7b740dfb3a65c6d",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
+    },
+    {
+      "id": "SUB-413",
+      "taskRef": "TASK-020-validation-batch",
+      "storyRef": "STORY-002-prebuild-validation",
+      "title": "Add unit tests for batch validation orchestrator and summary reporting",
+      "description": "Create tools/tests/lib/validation-batch.test.ts with unit tests for the batch validation orchestrator: (1) validateAllSubtasks() with all-aligned subtasks returns {aligned: N, total: N, success: true, skippedSubtasks: []}. (2) validateAllSubtasks() in headless mode with one misaligned subtask calls handleHeadlessValidationFailure, fires executeHook('onValidationFail') with correct subtaskId and milestone, and returns skippedSubtasks with one entry. (3) validateAllSubtasks() in supervised mode: when handleSupervisedValidationFailure returns 'skip', subtask added to skippedSubtasks. (4) validateAllSubtasks() in supervised mode: when handleSupervisedValidationFailure returns 'continue', subtask counted as aligned (not in skippedSubtasks). (5) printValidationSummary(3, 3, []) outputs green 'All aligned' message via console.log mock. (6) printValidationSummary(3, 1, [{subtaskId:'SUB-001',reason:'drift',feedbackPath:'/p',issueType:'scope_creep'},...]) outputs yellow summary with subtask IDs and formatted issue type labels. (7) getMilestoneFromPath('/path/to/003-ralph-workflow') returns '003-ralph-workflow'. Use bun:test mock/spyOn patterns to mock validateSubtask, handleSupervisedValidationFailure, handleHeadlessValidationFailure, and executeHook. Follow patterns from existing test files like approvals.test.ts.",
+      "done": true,
+      "acceptanceCriteria": [
+        "Test file tools/tests/lib/validation-batch.test.ts exists",
+        "Test: validateAllSubtasks() with all-aligned subtasks returns {aligned: N, total: N, success: true, skippedSubtasks: []}",
+        "Test: validateAllSubtasks() in headless mode with misaligned subtask returns correct skippedSubtasks and verifies executeHook('onValidationFail') called with subtaskId",
+        "Test: validateAllSubtasks() in supervised mode with 'skip' action adds subtask to skippedSubtasks array",
+        "Test: validateAllSubtasks() in supervised mode with 'continue' action counts subtask as aligned (not in skippedSubtasks)",
+        "Test: printValidationSummary(3, 3, []) calls console.log with string containing 'All aligned'",
+        "Test: printValidationSummary(3, 1, [skipped...]) calls console.log with string containing 'skipped due to misalignment' and subtask IDs",
+        "Test: getMilestoneFromPath('/path/to/003-ralph-workflow') returns '003-ralph-workflow'",
+        "All tests pass: bun test tools/tests/lib/validation-batch.test.ts"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/003-ralph-workflow/tasks/TASK-020-validation-batch.md",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/tests/lib/approvals.test.ts",
+        "tools/tests/lib/ralph-config.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-411"
+      ],
+      "completedAt": "2026-02-07T23:30:53Z",
+      "commitHash": "ad93af33fecea22b8bef0b371b6af58bfa4e1548",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
     }
   ]
 }

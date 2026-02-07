@@ -342,7 +342,10 @@ _aaa_ralph_plan() {
                 subtasks)
                     _arguments \\
                         '1:source:_files' \\
-                        '--review[Parse logs/reviews.jsonl for findings]' \\
+                        '--review[Require all approval prompts]' \\
+                        '--review-diary[Parse logs/reviews.jsonl for findings]' \\
+                        '--force[Skip all approval prompts]' \\
+                        '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--task[Task file (legacy)]:task:_aaa_task_or_file' \\
                         '--story[Link subtasks to parent story]:story:_aaa_story_or_file' \\
                         '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\

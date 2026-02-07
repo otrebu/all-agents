@@ -302,6 +302,8 @@ aaa ralph plan roadmap
 aaa ralph plan stories --milestone docs/planning/milestones/mvp.md
 aaa ralph plan stories --milestone docs/planning/milestones/mvp.md --supervised  # watch mode
 aaa ralph plan stories --milestone docs/planning/milestones/mvp.md --headless    # autonomous
+aaa ralph plan stories --milestone docs/planning/milestones/mvp.md --force       # skip approval prompts
+aaa ralph plan stories --milestone docs/planning/milestones/mvp.md --review      # require approval prompts
 
 # Task planning for a story
 aaa ralph plan tasks --story docs/planning/stories/001-user-auth.md
@@ -351,6 +353,7 @@ aaa ralph build -p
 ```bash
 # Chain from stories through to calibrate
 aaa ralph plan stories --milestone docs/planning/milestones/003-feature --cascade calibrate
+aaa ralph plan stories --milestone docs/planning/milestones/003-feature --cascade calibrate --from stories
 
 # Chain from subtasks to build only
 aaa ralph plan subtasks --milestone 003-feature --cascade build
@@ -377,7 +380,12 @@ aaa ralph plan subtasks --task TASK-014
 # Alternative sources (generate from arbitrary input)
 aaa ralph plan subtasks --file ./review-findings.md
 aaa ralph plan subtasks --text "Fix array bounds check in review command"
-aaa ralph plan subtasks --review   # Parse logs/reviews.jsonl
+aaa ralph plan subtasks --review-diary   # Parse logs/reviews.jsonl
+
+# Approval controls
+aaa ralph plan subtasks --milestone 003-feature --force
+aaa ralph plan subtasks --milestone 003-feature --review
+aaa ralph plan subtasks --milestone 003-feature --cascade build --from subtasks
 
 # Size control (subtask granularity)
 aaa ralph plan subtasks --milestone 003-feature --size small   # 1-2 AC per subtask
