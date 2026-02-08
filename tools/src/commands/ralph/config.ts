@@ -599,7 +599,20 @@ function getPlanningLogPath(milestonePath: string): string {
  * @param data - SubtasksFile object to write
  */
 function saveSubtasksFile(subtasksPath: string, data: SubtasksFile): void {
-  const content = JSON.stringify(data, null, 2);
+  const normalizedData: SubtasksFile = {
+    ...data,
+    subtasks: data.subtasks.map((subtask) => {
+      const subtaskRecord = subtask as unknown as Record<string, unknown>;
+      if (!("status" in subtaskRecord)) {
+        return subtask;
+      }
+
+      const { status: _legacyStatus, ...normalizedSubtask } = subtaskRecord;
+      return normalizedSubtask as unknown as Subtask;
+    }),
+  };
+
+  const content = JSON.stringify(normalizedData, null, 2);
   writeFileSync(subtasksPath, `${content}\n`, "utf8");
 }
 

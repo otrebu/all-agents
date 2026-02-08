@@ -1,4 +1,8 @@
-import { readIterationDiary } from "@tools/commands/ralph/status";
+import {
+  loadSubtasksFile,
+  saveSubtasksFile,
+} from "@tools/commands/ralph/config";
+import { readIterationDiary, runStatus } from "@tools/commands/ralph/status";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -178,5 +182,94 @@ describe("readIterationDiary timing compatibility", () => {
 
     expect(legacy?.timing?.providerMs).toBe(1200);
     expect(provider?.timing?.providerMs).toBe(2400);
+  });
+});
+
+describe("runStatus progress compatibility", () => {
+  const temporaryDirectory = join(
+    import.meta.dirname,
+    "../../tmp/status-progress-compat",
+  );
+
+  function captureRunStatusOutput(subtasksPath: string): Array<string> {
+    const output: Array<string> = [];
+    const originalLog = console.log;
+    console.log = (...args: Array<unknown>) => {
+      output.push(args.map(String).join(" "));
+    };
+
+    try {
+      runStatus(subtasksPath, temporaryDirectory);
+    } finally {
+      console.log = originalLog;
+    }
+
+    return output;
+  }
+
+  function getProgressLine(output: Array<string>): string {
+    return output.find((line) => line.includes("Progress:")) ?? "";
+  }
+
+  beforeEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("progress display is unchanged after save normalization removes legacy status", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "status-progress", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Done item"],
+              description: "completed by done",
+              done: true,
+              filesToRead: [],
+              id: "SUB-001",
+              status: "pending",
+              taskRef: "TASK-001",
+              title: "Done",
+            },
+            {
+              acceptanceCriteria: ["Pending item"],
+              description: "pending by done",
+              done: false,
+              filesToRead: [],
+              id: "SUB-002",
+              status: "completed",
+              taskRef: "TASK-001",
+              title: "Pending",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const beforeOutput = captureRunStatusOutput(subtasksPath);
+    const progressBefore = getProgressLine(beforeOutput);
+
+    const loaded = loadSubtasksFile(subtasksPath);
+    saveSubtasksFile(subtasksPath, loaded);
+
+    const afterOutput = captureRunStatusOutput(subtasksPath);
+    const progressAfter = getProgressLine(afterOutput);
+
+    expect(progressBefore).not.toBe("");
+    expect(progressAfter).toBe(progressBefore);
   });
 });

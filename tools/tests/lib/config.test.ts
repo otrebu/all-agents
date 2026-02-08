@@ -1,4 +1,4 @@
-import type { Subtask } from "@tools/commands/ralph/types";
+import type { Subtask, SubtasksFile } from "@tools/commands/ralph/types";
 
 import {
   appendSubtasksToFile,
@@ -7,9 +7,16 @@ import {
   getPlanningLogPath,
   loadSubtasksFile,
   ORPHAN_MILESTONE_ROOT,
+  saveSubtasksFile,
 } from "@tools/commands/ralph/config";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -323,5 +330,73 @@ describe("appendSubtasksToFile", () => {
     expect(() => appendSubtasksToFile(testPath, "not an array")).toThrow(
       /must be an array/,
     );
+  });
+
+  test("loadSubtasksFile tolerates legacy status fields", () => {
+    writeFileSync(
+      testPath,
+      JSON.stringify({
+        metadata: { milestoneRef: "legacy-test", scope: "milestone" },
+        subtasks: [
+          {
+            acceptanceCriteria: ["Legacy compatibility"],
+            description: "Legacy queue entry",
+            done: false,
+            filesToRead: [],
+            id: "SUB-001",
+            status: "completed",
+            taskRef: "TASK-001",
+            title: "Legacy status",
+          },
+        ],
+      }),
+    );
+
+    const loaded = loadSubtasksFile(testPath);
+
+    expect(loaded.subtasks).toHaveLength(1);
+    expect(loaded.subtasks[0]?.id).toBe("SUB-001");
+    expect(loaded.subtasks[0]?.done).toBe(false);
+  });
+
+  test("saveSubtasksFile strips legacy status while preserving required fields", () => {
+    const queueWithLegacyStatus = {
+      metadata: { milestoneRef: "legacy-test", scope: "milestone" },
+      subtasks: [
+        {
+          acceptanceCriteria: ["Preserve required fields"],
+          description: "Legacy queue entry",
+          done: true,
+          filesToRead: ["tools/src/commands/ralph/config.ts"],
+          id: "SUB-009",
+          status: "completed",
+          taskRef: "TASK-009",
+          title: "Legacy status save",
+        },
+      ],
+    };
+
+    saveSubtasksFile(
+      testPath,
+      queueWithLegacyStatus as unknown as SubtasksFile,
+    );
+
+    const raw = JSON.parse(readFileSync(testPath, "utf8")) as {
+      subtasks: Array<Record<string, unknown>>;
+    };
+    const savedSubtask = raw.subtasks[0] ?? {};
+
+    expect(savedSubtask.status).toBeUndefined();
+    expect(savedSubtask.id).toBe("SUB-009");
+    expect(savedSubtask.taskRef).toBe("TASK-009");
+    expect(savedSubtask.title).toBe("Legacy status save");
+    expect(savedSubtask.done).toBe(true);
+    expect(savedSubtask.description).toBe("Legacy queue entry");
+    expect(savedSubtask.acceptanceCriteria).toEqual([
+      "Preserve required fields",
+    ]);
+    expect(savedSubtask.filesToRead).toEqual([
+      "tools/src/commands/ralph/config.ts",
+    ]);
   });
 });
