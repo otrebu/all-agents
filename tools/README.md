@@ -72,28 +72,28 @@ aaa story create "As a user, I want to login"
 
 ## Commands
 
-| Command                      | Description                                                                | Output Location            |
-| ---------------------------- | -------------------------------------------------------------------------- | -------------------------- |
-| `sync-context`               | Sync context/ folder to target project (with --watch)                      | Target project's context/  |
-| `download <urls...>`         | Fetch URLs, extract text, save as markdown                                 | `docs/research/downloads/` |
-| `extract-conversations`      | Extract Claude Code conversation history as markdown                       | stdout or file             |
-| `gh-search <query>`          | GitHub code search with intent-based ranking                               | `docs/research/github/`    |
-| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)                    | `docs/research/google/`    |
-| `parallel-search <query>`    | Multi-angle web research with configurable depth                           | `docs/research/parallel/`  |
-| `task create <description>`  | Create auto-numbered task file (NNN-name.md), with optional `--story` link | `docs/planning/tasks/`     |
-| `story create <description>` | Create auto-numbered story file (NNN-name.md)                              | `docs/planning/stories/`   |
-| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                  | -                          |
-| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                 | -                          |
-| `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                     | `docs/planning/`           |
-| `ralph build`                | Run subtask iteration loop (autonomous dev)                                | `subtasks.json`            |
-| `ralph subtasks <op>`        | Queue operations (`next`, `list`, `complete`) scoped to a milestone        | milestone `subtasks.json`  |
-| `ralph status`               | Display build status and progress                                          | -                          |
-| `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                           | -                          |
-| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer         | stdout                     |
-| `session current`            | Get current session ID from .claude/current-session                        | stdout                     |
-| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)            | stdout                     |
-| `session list`               | List recent sessions (--verbose for table, --limit N)                      | stdout                     |
-| `completion <shell>`         | Generate shell completion script (bash, zsh, fish)                         | stdout                     |
+| Command                      | Description                                                                        | Output Location                             |
+| ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------- |
+| `sync-context`               | Sync context/ folder to target project (with --watch)                              | Target project's context/                   |
+| `download <urls...>`         | Fetch URLs, extract text, save as markdown                                         | `docs/research/downloads/`                  |
+| `extract-conversations`      | Extract Claude Code conversation history as markdown                               | stdout or file                              |
+| `gh-search <query>`          | GitHub code search with intent-based ranking                                       | `docs/research/github/`                     |
+| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)                            | `docs/research/google/`                     |
+| `parallel-search <query>`    | Multi-angle web research with configurable depth                                   | `docs/research/parallel/`                   |
+| `task create <description>`  | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)  | milestone `tasks/` (or legacy global dir)   |
+| `story create <description>` | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`) | milestone `stories/` (or legacy global dir) |
+| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                          | -                                           |
+| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                         | -                                           |
+| `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                             | `docs/planning/`                            |
+| `ralph build`                | Run subtask iteration loop (autonomous dev)                                        | `subtasks.json`                             |
+| `ralph subtasks <op>`        | Queue operations (`next`, `list`, `complete`) scoped to a milestone                | milestone `subtasks.json`                   |
+| `ralph status`               | Display build status and progress                                                  | -                                           |
+| `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                                   | -                                           |
+| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer                 | stdout                                      |
+| `session current`            | Get current session ID from .claude/current-session                                | stdout                                      |
+| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)                    | stdout                                      |
+| `session list`               | List recent sessions (--verbose for table, --limit N)                              | stdout                                      |
+| `completion <shell>`         | Generate shell completion script (bash, zsh, fish)                                 | stdout                                      |
 
 ### Command Examples
 
@@ -246,7 +246,12 @@ Output:
 ```bash
 # Create task
 aaa task create "Implement user authentication"
+# ⚠ legacy default path + deprecation warning
 # → docs/planning/tasks/001-implement-user-authentication.md
+
+# Recommended milestone-scoped task
+aaa task create "Implement user authentication" --milestone 005-consolidate-simplify
+# → docs/planning/milestones/005-consolidate-simplify/tasks/001-TASK-implement-user-authentication.md
 
 # Create task linked to story
 aaa task create "Implement auth API" --story 001
@@ -258,7 +263,12 @@ aaa task create "Add login form" -s 1
 
 # Create story
 aaa story create "As a user, I want to reset my password"
+# ⚠ legacy default path + deprecation warning
 # → docs/planning/stories/001-as-a-user-i-want-to-reset-my-password.md
+
+# Recommended milestone-scoped story
+aaa story create "As a user, I want to reset my password" --milestone 005-consolidate-simplify
+# → docs/planning/milestones/005-consolidate-simplify/stories/001-STORY-as-a-user-i-want-to-reset-my-password.md
 
 # Custom directory
 aaa task create "Setup CI/CD pipeline" -d "backend/tasks"
@@ -269,7 +279,8 @@ Files are auto-numbered incrementally (001, 002, 003...).
 
 **Options:**
 
-- `-d, --dir <path>` - Custom tasks directory (default: `docs/planning/tasks`)
+- `-m, --milestone <name|path>` - Recommended milestone target (writes to milestone `tasks/` or `stories/`)
+- `-d, --dir <path>` - Custom directory override (legacy default fallback remains global planning directories)
 - `-s, --story <number>` - Link task to story by number (e.g., `001` or `1`)
 
 #### ralph

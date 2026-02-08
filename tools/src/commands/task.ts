@@ -1,8 +1,13 @@
 import log from "@lib/log";
 import { createNumberedFile, type CreateResult } from "@lib/numbered-files";
+import { resolveMilestonePath } from "@tools/commands/ralph/config";
+import {
+  formatTaskFilename,
+  nextArtifactNumber,
+} from "@tools/commands/ralph/naming";
 import { getContextRoot } from "@tools/utils/paths";
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 // Custom Error
 class TaskError extends Error {
@@ -27,6 +32,7 @@ interface StoryInfo {
 
 interface TaskCreateOptions {
   dir?: string;
+  milestone?: string;
   // For testing: override stories directory lookup
   storiesDirectory?: string;
   story?: string;
@@ -34,6 +40,12 @@ interface TaskCreateOptions {
 
 function createTaskCommand(name: string, options: TaskCreateOptions): void {
   try {
+    if (options.milestone === undefined && options.dir === undefined) {
+      log.warn(
+        "Creating tasks in docs/planning/tasks is deprecated; use --milestone <name|path> for milestone-scoped placement.",
+      );
+    }
+
     const result = generateTaskFile(name, options);
     // Output just the filepath for CLI consumption
     log.plain(result.filepath);
@@ -95,6 +107,26 @@ function generateTaskFile(
   name: string,
   options: TaskCreateOptions = {},
 ): CreateResult {
+  if (options.milestone !== undefined && options.milestone !== "") {
+    const milestonePath = resolveMilestonePath(options.milestone);
+    const tasksDirectory = join(milestonePath, "tasks");
+    const storyLookupDirectory =
+      options.storiesDirectory ?? join(milestonePath, "stories");
+
+    const storyInfo =
+      options.story === undefined
+        ? undefined
+        : findStoryFile(options.story, storyLookupDirectory);
+
+    mkdirSync(tasksDirectory, { recursive: true });
+    const number = nextArtifactNumber(tasksDirectory);
+    const filename = formatTaskFilename(name, number);
+    const filepath = resolve(tasksDirectory, filename);
+    writeFileSync(filepath, renderTaskTemplate(name, storyInfo));
+
+    return { filepath, number };
+  }
+
   const storyInfo =
     options.story === undefined
       ? undefined

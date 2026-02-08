@@ -152,7 +152,11 @@ taskCommand.addCommand(
     .argument("<name>", "Task name in kebab-case")
     .option(
       "-d, --dir <path>",
-      "Custom tasks directory (default: docs/planning/tasks)",
+      "Custom tasks directory (legacy fallback default: docs/planning/tasks)",
+    )
+    .option(
+      "-m, --milestone <name|path>",
+      "Milestone name/path (recommended; writes to milestone tasks/)",
     )
     .option(
       "-s, --story <number>",
@@ -178,7 +182,11 @@ storyCommand.addCommand(
     .argument("<name>", "Story name in kebab-case")
     .option(
       "-d, --dir <path>",
-      "Custom stories directory (default: docs/planning/stories)",
+      "Custom stories directory (legacy fallback default: docs/planning/stories)",
+    )
+    .option(
+      "-m, --milestone <name|path>",
+      "Milestone name/path (recommended; writes to milestone stories/)",
     )
     .action(createStoryCommand),
 );

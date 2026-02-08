@@ -52,6 +52,7 @@ describe("task E2E", () => {
     );
     expect(exitCode).toBe(0);
     expect(stdout).toContain("--dir");
+    expect(stdout).toContain("--milestone");
     expect(stdout).toContain("Custom tasks directory");
   });
 
@@ -191,6 +192,50 @@ describe("task E2E", () => {
     // stdout should be the full path
     const expectedPath = join(temporaryDirectory, "001-path-test.md");
     expect(stdout.trim()).toBe(expectedPath);
+  });
+
+  test("create with --milestone writes to milestone tasks directory", async () => {
+    const milestoneDirectory = join(
+      temporaryDirectory,
+      "005-consolidate-simplify",
+    );
+    mkdirSync(milestoneDirectory, { recursive: true });
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "task",
+        "create",
+        "foo",
+        "--milestone",
+        milestoneDirectory,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const expectedPath = join(milestoneDirectory, "tasks", "001-TASK-foo.md");
+    expect(stdout.trim()).toBe(expectedPath);
+    expect(existsSync(expectedPath)).toBe(true);
+  });
+
+  test("create without --milestone and without --dir shows deprecation warning", async () => {
+    const { exitCode, stderr, stdout } = await execa(
+      "bun",
+      ["run", "dev", "task", "create", "legacy-default-warning-test"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stderr).toContain("deprecated");
+    expect(stderr).toContain("--milestone");
+
+    const createdPath = stdout.trim();
+    if (createdPath !== "" && existsSync(createdPath)) {
+      rmSync(createdPath, { force: true });
+    }
   });
 
   test("create: handles multiple sequential creates", async () => {
