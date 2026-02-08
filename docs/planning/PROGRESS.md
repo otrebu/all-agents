@@ -15,6 +15,11 @@
 - **Changes:** Deleted the two legacy skill directories, removed legacy skill-table/help-text references from README, removed related eval script coverage from `.claude/scripts/eval.sh`, and cleaned remaining docs references to the removed skills.
 - **Files:** `.claude/skills/story-create/SKILL.md`, `.claude/skills/task-create/SKILL.md`, `.claude/scripts/eval.sh`, `README.md`, `docs/planning/consolidating.md`, `docs/planning/claude-setup-review.md`, `docs/planning/milestones/002-ralph-💪/subtasks.json`, `docs/planning/milestones/002-ralph-💪/PROGRESS.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`
 
+### SUB-002
+- **Problem:** Phase 1 consolidation needed a shared naming utility to enforce milestone-scoped numbering and file patterns for milestones, stories/tasks, and subtask IDs.
+- **Changes:** Added `naming.ts` with milestone directory numbering from `docs/planning/milestones/` numeric dirs only, folder-local artifact number allocation, story/task filename formatting (`<NNN>-STORY-<slug>.md`, `<NNN>-TASK-<slug>.md`), and milestone-local `SUB-<NNN>` allocation from a single target `subtasks.json`. Added unit coverage for numeric milestone scanning (ignoring `_orphan`/non-matching entries), sparse folder numbering, formatter output, and file-local subtask ID scope.
+- **Files:** `tools/src/commands/ralph/naming.ts`, `tools/tests/lib/naming.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

@@ -32,7 +32,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Implement naming utility for planning artifacts",
       "description": "Create a TypeScript naming utility module (e.g., `tools/src/commands/ralph/naming.ts`) that provides: (1) milestone directory name generation as `<NNN>-<slug>` by scanning `docs/planning/milestones/` for numeric directories only (ignoring _orphan), (2) story/task filename generation as `<NNN>-STORY-<slug>.md` and `<NNN>-TASK-<slug>.md` with folder-local numbering, (3) milestone-scoped subtask ID allocation reading only the target milestone `subtasks.json`. Phase 1 infrastructure.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Module exists at tools/src/commands/ralph/naming.ts (or similar path)",
         "nextMilestoneNumber() scans only docs/planning/milestones/ directories matching ^[0-9]{3}-, ignoring _orphan",
@@ -46,7 +46,10 @@
         "context/blocks/docs/naming-convention.md",
         "tools/src/commands/ralph/config.ts",
         "docs/planning/consolidating.md"
-      ]
+      ],
+      "completedAt": "2026-02-08T18:14:03Z",
+      "commitHash": "bb2113ca41926f5dcea6febb40dbc11345f1104c",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-003",
