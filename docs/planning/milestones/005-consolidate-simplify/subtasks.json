@@ -104,7 +104,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Implement ralph subtasks next/list/complete commands",
       "description": "Implement CLI subcommands for queue operations: (1) `aaa ralph subtasks next --milestone <name|filepath> [--json]` using same getNextSubtask logic as build, (2) `aaa ralph subtasks list --milestone <name|filepath> --pending --limit N [--json]`, (3) `aaa ralph subtasks complete --milestone <name|filepath> --id <SUB-...> --commit <hash> --session <id> [--at <iso>]`. All commands require milestone context. Phase 2.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "`aaa ralph subtasks next --milestone 005-consolidate-simplify` returns the next pending subtask or clear empty message",
         "`aaa ralph subtasks list --milestone 005-consolidate-simplify --pending` lists pending subtasks",
@@ -121,7 +121,10 @@
       ],
       "blockedBy": [
         "SUB-004"
-      ]
+      ],
+      "completedAt": "2026-02-08T18:35:27Z",
+      "commitHash": "d1ac7331225f0ea8005b13022c86338926ca1556",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-006",
