@@ -380,6 +380,252 @@ kill -s INT $$
     expect(stdout).toContain("--subtasks");
   });
 
+  describe("ralph subtasks queue commands", () => {
+    test("subtasks next returns next runnable pending subtask", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "005-test-subtasks-next",
+      );
+      mkdirSync(milestoneDirectory, { recursive: true });
+
+      writeFileSync(
+        join(milestoneDirectory, "subtasks.json"),
+        JSON.stringify(
+          {
+            metadata: {
+              milestoneRef: "005-test-subtasks-next",
+              scope: "milestone",
+            },
+            subtasks: [
+              {
+                acceptanceCriteria: ["Blocked until SUB-002"],
+                blockedBy: ["SUB-002"],
+                description: "Blocked subtask",
+                done: false,
+                filesToRead: [],
+                id: "SUB-001",
+                taskRef: "TASK-001-test",
+                title: "Blocked",
+              },
+              {
+                acceptanceCriteria: ["Runnable now"],
+                description: "Ready subtask",
+                done: false,
+                filesToRead: [],
+                id: "SUB-002",
+                taskRef: "TASK-001-test",
+                title: "Ready",
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "subtasks",
+          "next",
+          "--milestone",
+          milestoneDirectory,
+        ],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("SUB-002: Ready");
+    });
+
+    test("subtasks list --pending lists pending subtasks", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "005-test-subtasks-list",
+      );
+      mkdirSync(milestoneDirectory, { recursive: true });
+
+      writeFileSync(
+        join(milestoneDirectory, "subtasks.json"),
+        JSON.stringify(
+          {
+            metadata: {
+              milestoneRef: "005-test-subtasks-list",
+              scope: "milestone",
+            },
+            subtasks: [
+              {
+                acceptanceCriteria: ["Done"],
+                description: "Already done",
+                done: true,
+                filesToRead: [],
+                id: "SUB-001",
+                taskRef: "TASK-001-test",
+                title: "Done item",
+              },
+              {
+                acceptanceCriteria: ["Pending"],
+                description: "Still pending",
+                done: false,
+                filesToRead: [],
+                id: "SUB-002",
+                taskRef: "TASK-001-test",
+                title: "Pending item",
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "subtasks",
+          "list",
+          "--milestone",
+          milestoneDirectory,
+          "--pending",
+        ],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("SUB-002 [pending] Pending item");
+      expect(stdout).not.toContain("SUB-001 [done] Done item");
+    });
+
+    test("subtasks complete marks subtask done with metadata", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "005-test-subtasks-complete",
+      );
+      mkdirSync(milestoneDirectory, { recursive: true });
+      const subtasksPath = join(milestoneDirectory, "subtasks.json");
+
+      writeFileSync(
+        subtasksPath,
+        JSON.stringify(
+          {
+            metadata: {
+              milestoneRef: "005-test-subtasks-complete",
+              scope: "milestone",
+            },
+            subtasks: [
+              {
+                acceptanceCriteria: ["Can complete"],
+                description: "Pending completion",
+                done: false,
+                filesToRead: [],
+                id: "SUB-001",
+                taskRef: "TASK-001-test",
+                title: "Complete me",
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      );
+
+      const completionTimestamp = "2026-02-08T12:00:00Z";
+      const { exitCode } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "subtasks",
+          "complete",
+          "--milestone",
+          milestoneDirectory,
+          "--id",
+          "SUB-001",
+          "--commit",
+          "abc1234",
+          "--session",
+          "s1",
+          "--at",
+          completionTimestamp,
+        ],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+
+      const updated = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+        subtasks: Array<{
+          commitHash?: string;
+          completedAt?: string;
+          done: boolean;
+          id: string;
+          sessionId?: string;
+        }>;
+      };
+      const updatedSubtask = updated.subtasks.find(
+        (subtask) => subtask.id === "SUB-001",
+      );
+
+      expect(updatedSubtask).toBeDefined();
+      expect(updatedSubtask?.done).toBe(true);
+      expect(updatedSubtask?.commitHash).toBe("abc1234");
+      expect(updatedSubtask?.sessionId).toBe("s1");
+      expect(updatedSubtask?.completedAt).toBe(completionTimestamp);
+    });
+
+    test("subtasks next/list/complete fail when --milestone is missing", async () => {
+      const nextResult = await execa(
+        "bun",
+        ["run", "dev", "ralph", "subtasks", "next"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      const listResult = await execa(
+        "bun",
+        ["run", "dev", "ralph", "subtasks", "list"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      const completeResult = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "subtasks",
+          "complete",
+          "--id",
+          "SUB-001",
+          "--commit",
+          "abc1234",
+          "--session",
+          "s1",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      expect(nextResult.exitCode).toBe(1);
+      expect(nextResult.stderr).toContain(
+        "required option '--milestone <name|filepath>'",
+      );
+
+      expect(listResult.exitCode).toBe(1);
+      expect(listResult.stderr).toContain(
+        "required option '--milestone <name|filepath>'",
+      );
+
+      expect(completeResult.exitCode).toBe(1);
+      expect(completeResult.stderr).toContain(
+        "required option '--milestone <name|filepath>'",
+      );
+    });
+  });
+
   test("ralph archive progress supports --progress path", async () => {
     const planningDirectory = join(temporaryDirectory, "docs/planning");
     mkdirSync(planningDirectory, { recursive: true });

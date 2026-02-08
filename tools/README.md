@@ -86,6 +86,7 @@ aaa story create "As a user, I want to login"
 | `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                 | -                          |
 | `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                     | `docs/planning/`           |
 | `ralph build`                | Run subtask iteration loop (autonomous dev)                                | `subtasks.json`            |
+| `ralph subtasks <op>`        | Queue operations (`next`, `list`, `complete`) scoped to a milestone        | milestone `subtasks.json`  |
 | `ralph status`               | Display build status and progress                                          | -                          |
 | `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                           | -                          |
 | `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer         | stdout                     |
@@ -391,6 +392,21 @@ aaa ralph plan subtasks --milestone 003-feature --cascade build --from subtasks
 aaa ralph plan subtasks --milestone 003-feature --size small   # 1-2 AC per subtask
 aaa ralph plan subtasks --milestone 003-feature --size medium  # 2-4 AC (default)
 aaa ralph plan subtasks --milestone 003-feature --size large   # 4-5 AC per subtask
+```
+
+**Subtask queue operations:**
+
+```bash
+# Get the next runnable subtask for a milestone
+aaa ralph subtasks next --milestone 005-consolidate-simplify
+aaa ralph subtasks next --milestone docs/planning/milestones/005-consolidate-simplify --json
+
+# List subtasks (optionally pending-only and capped)
+aaa ralph subtasks list --milestone 005-consolidate-simplify --pending --limit 10
+aaa ralph subtasks list --milestone 005-consolidate-simplify --json
+
+# Mark a subtask complete with commit/session metadata
+aaa ralph subtasks complete --milestone 005-consolidate-simplify --id SUB-001 --commit abc1234 --session s1
 ```
 
 **Status command:**

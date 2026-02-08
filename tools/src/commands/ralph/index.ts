@@ -22,10 +22,12 @@ import {
   discoverTasksFromMilestone,
   getExistingTaskReferences,
   getPlanningLogPath as getMilestonePlanningLogPath,
+  getNextSubtask,
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
   ORPHAN_MILESTONE_ROOT,
+  saveSubtasksFile,
 } from "./config";
 import {
   formatDuration,
@@ -2339,6 +2341,32 @@ const calibrateCommand = new Command("calibrate").description(
   "Run calibration checks on completed subtasks",
 );
 
+function parseLimitOrExit(rawLimit: string): number {
+  const parsed = Number.parseInt(rawLimit, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    console.error(
+      `Error: --limit must be a positive integer, got '${rawLimit}'`,
+    );
+    process.exit(1);
+  }
+  return parsed;
+}
+
+function requireMilestoneSubtasksPath(milestone: string): string {
+  const milestonePath = requireMilestone(milestone);
+  const subtasksPath = path.join(milestonePath, "subtasks.json");
+
+  if (!existsSync(subtasksPath)) {
+    console.error(`Error: subtasks file not found: ${subtasksPath}`);
+    console.error(
+      `Create one with: aaa ralph plan subtasks --milestone ${milestone}`,
+    );
+    process.exit(1);
+  }
+
+  return subtasksPath;
+}
+
 /**
  * Helper to resolve subtasks path relative to context root if not found at cwd
  */
@@ -2402,6 +2430,132 @@ function validateApprovalFlags(
     process.exit(1);
   }
 }
+
+// ralph subtasks - queue operations scoped to a milestone
+const subtasksCommand = new Command("subtasks").description(
+  "Subtask queue operations (next/list/complete)",
+);
+
+subtasksCommand.addCommand(
+  new Command("next")
+    .description("Get next runnable subtask from a milestone queue")
+    .requiredOption(
+      "--milestone <name|filepath>",
+      "Milestone name or path containing subtasks.json",
+    )
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const subtasksPath = requireMilestoneSubtasksPath(options.milestone);
+      const subtasksFile = loadSubtasksFile(subtasksPath);
+      const subtask = getNextSubtask(subtasksFile.subtasks);
+
+      if (options.json === true) {
+        console.log(JSON.stringify({ subtask }, null, 2));
+        return;
+      }
+
+      if (subtask === null) {
+        console.log(`No pending subtasks in milestone '${options.milestone}'.`);
+        return;
+      }
+
+      console.log(`${subtask.id}: ${subtask.title}`);
+      console.log(`taskRef: ${subtask.taskRef}`);
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("list")
+    .description("List subtasks for a milestone queue")
+    .requiredOption(
+      "--milestone <name|filepath>",
+      "Milestone name or path containing subtasks.json",
+    )
+    .option("--pending", "Only show pending subtasks")
+    .option("--limit <n>", "Maximum number of subtasks to show", "50")
+    .option("--json", "Output as JSON")
+    .action((options) => {
+      const subtasksPath = requireMilestoneSubtasksPath(options.milestone);
+      const limit = parseLimitOrExit(options.limit);
+      const subtasksFile = loadSubtasksFile(subtasksPath);
+
+      const filtered =
+        options.pending === true
+          ? subtasksFile.subtasks.filter((subtask) => !subtask.done)
+          : subtasksFile.subtasks;
+      const subtasks = filtered.slice(0, limit);
+
+      if (options.json === true) {
+        console.log(
+          JSON.stringify(
+            {
+              limit,
+              pendingOnly: options.pending === true,
+              subtasks,
+              total: filtered.length,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      if (subtasks.length === 0) {
+        console.log("No subtasks found.");
+        return;
+      }
+
+      for (const subtask of subtasks) {
+        const status = subtask.done ? "done" : "pending";
+        console.log(`${subtask.id} [${status}] ${subtask.title}`);
+      }
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("complete")
+    .description("Mark a subtask complete in a milestone queue")
+    .requiredOption(
+      "--milestone <name|filepath>",
+      "Milestone name or path containing subtasks.json",
+    )
+    .requiredOption("--id <subtaskId>", "Subtask ID (e.g. SUB-001)")
+    .requiredOption("--commit <hash>", "Commit hash for this completion")
+    .requiredOption("--session <id>", "Session ID for this completion")
+    .option("--at <iso>", "Completion timestamp (ISO 8601)")
+    .action((options) => {
+      const subtasksPath = requireMilestoneSubtasksPath(options.milestone);
+      const subtasksFile = loadSubtasksFile(subtasksPath);
+      const completedAt =
+        options.at === undefined || options.at === ""
+          ? new Date().toISOString()
+          : options.at;
+
+      const subtask = subtasksFile.subtasks.find(
+        (item) => item.id === options.id,
+      );
+      if (subtask === undefined) {
+        console.error(`Error: subtask not found: ${options.id}`);
+        process.exit(1);
+      }
+
+      if (subtask.done) {
+        console.error(`Error: subtask already completed: ${options.id}`);
+        process.exit(1);
+      }
+
+      subtask.done = true;
+      subtask.commitHash = options.commit;
+      subtask.completedAt = completedAt;
+      subtask.sessionId = options.session;
+
+      saveSubtasksFile(subtasksPath, subtasksFile);
+      console.log(`Marked ${options.id} as done in ${subtasksPath}`);
+    }),
+);
+
+ralphCommand.addCommand(subtasksCommand);
 
 // ralph calibrate intention - check for intention drift
 calibrateCommand.addCommand(
