@@ -392,7 +392,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Update standalone task/story CLI commands for milestone defaults",
       "description": "Update `aaa task create` and `aaa story create` standalone CLI commands to use milestone-scoped defaults: (1) Add `--milestone <name|path>` option to both commands, (2) When `--milestone` is provided, place files in milestone's `tasks/` or `stories/` subdirectory using `<NNN>-TASK-<slug>.md` or `<NNN>-STORY-<slug>.md` format, (3) When no `--milestone` and no `--dir` provided, emit deprecation notice about global directory usage, (4) Update help text to recommend milestone-scoped usage. Per plan target design 4.10: global dirs become legacy/orphan-only paths. Uses naming utility from SUB-002.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "`aaa task create foo --milestone 005-consolidate-simplify` creates file in milestone's tasks/ dir",
         "`aaa story create foo --milestone 005-consolidate-simplify` creates file in milestone's stories/ dir",
@@ -411,6 +411,111 @@
       ],
       "blockedBy": [
         "SUB-002"
+      ],
+      "completedAt": "2026-02-08T19:41:58Z",
+      "commitHash": "091d97f879d4d84ce5f03b1b369f11b4581b650b",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
+    },
+    {
+      "id": "SUB-017",
+      "taskRef": "consolidate-simplify",
+      "title": "Align plan subtasks source messaging to --review-diary",
+      "description": "Update `aaa ralph plan subtasks` user-facing source/help/error messaging in `tools/src/commands/ralph/index.ts` so source selector language consistently uses `--review-diary` (not `--review`) wherever sources are listed or validated.",
+      "done": false,
+      "acceptanceCriteria": [
+        "`aaa ralph plan subtasks --help` shows `--review-diary` as the review source selector",
+        "Missing-source error text lists `--review-diary` in the allowed source set",
+        "Multiple-source validation error text lists `--review-diary` (not `--review`)",
+        "Subtasks source-routing comments and user-facing strings in `index.ts` are consistent with `--review-diary`"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/tests/e2e/ralph.test.ts",
+        "tools/README.md"
+      ]
+    },
+    {
+      "id": "SUB-018",
+      "taskRef": "consolidate-simplify",
+      "title": "Enforce deterministic headless completion for plan subtasks",
+      "description": "Harden `runSubtasksHeadless()` in `tools/src/commands/ralph/index.ts` to require an observable queue outcome. If provider execution returns but no valid subtasks queue result is produced (outside explicit skip paths), exit non-zero with a clear diagnostic. Ensure successful runs summarize and exit immediately.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Headless subtasks run exits non-zero when provider returns success but no valid queue outcome is produced",
+        "Existing explicit skip paths (already-covered task/milestone) still exit 0 with skip messaging",
+        "Successful headless generation prints summary including added count and output path, then exits promptly",
+        "Cascade behavior remains unchanged after successful subtasks generation"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/e2e/ralph.test.ts"
+      ],
+      "blockedBy": [
+        "SUB-017"
+      ]
+    },
+    {
+      "id": "SUB-019",
+      "taskRef": "consolidate-simplify",
+      "title": "Simplify subtasks-from-source prompt for fast deterministic runs",
+      "description": "Refactor `context/workflows/ralph/planning/subtasks-from-source.md` to a deterministic path: parse -> analyze -> generate -> validate -> append -> summarize -> stop. Remove `--1-to-1` guidance and remove draft/reviewer/triage loop requirements that prolong headless execution.",
+      "done": false,
+      "acceptanceCriteria": [
+        "`subtasks-from-source.md` contains no `--1-to-1` references",
+        "Workflow no longer requires `tmp/subtasks-draft.json` draft-write phase",
+        "Workflow no longer requires Phase 8 reviewer/triage loop before final append",
+        "Prompt explicitly instructs to stop immediately after successful append and summary",
+        "Prompt still references `subtask-spec.md` for schema/validation rules"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        "context/workflows/ralph/planning/subtask-spec.md",
+        "docs/planning/consolidating.md"
+      ]
+    },
+    {
+      "id": "SUB-020",
+      "taskRef": "consolidate-simplify",
+      "title": "Clean skill and README docs for current subtasks contract",
+      "description": "Update docs to match desired user-facing contract: remove `--1-to-1` subtasks guidance from `.claude/skills/ralph-plan/SKILL.md` and remove `--review-diary` example from `tools/README.md` subtasks options, while leaving CLI capability unchanged.",
+      "done": false,
+      "acceptanceCriteria": [
+        "`.claude/skills/ralph-plan/SKILL.md` subtasks section has no `--1-to-1` mentions",
+        "`.claude/skills/ralph-plan/SKILL.md` has no stale `aaa ralph plan subtasks --review` source examples",
+        "`tools/README.md` subtasks options block does not list `aaa ralph plan subtasks --review-diary` example",
+        "Remaining README subtasks examples are valid (`--milestone`, `--story`, `--task`, `--file`, `--text`)"
+      ],
+      "filesToRead": [
+        ".claude/skills/ralph-plan/SKILL.md",
+        "tools/README.md",
+        "context/workflows/ralph/planning/subtasks-from-source.md"
+      ],
+      "blockedBy": [
+        "SUB-019"
+      ]
+    },
+    {
+      "id": "SUB-021",
+      "taskRef": "consolidate-simplify",
+      "title": "Add regression tests for subtasks contract and headless outcomes",
+      "description": "Add/adjust E2E coverage in `tools/tests/e2e/ralph.test.ts` for plan-subtasks source contract and deterministic headless completion, including failure when provider run returns without a valid queue outcome.",
+      "done": false,
+      "acceptanceCriteria": [
+        "E2E tests assert source validation/help text uses `--review-diary` naming consistently",
+        "A test covers headless failure path when no valid queue result is produced",
+        "Existing pre-check skip tests for already-covered tasks/milestones still pass",
+        "Touched test suites pass under project test command"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/ralph.test.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/config.ts"
+      ],
+      "blockedBy": [
+        "SUB-018",
+        "SUB-019",
+        "SUB-020"
       ]
     }
   ]

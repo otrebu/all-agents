@@ -85,6 +85,11 @@
 - **Changes:** Updated `subtasks-from-source.md` Phase 5 to explicitly require milestone-queue-only subtask ID allocation (no repo-wide scan), rewrote `tasks-interactive.md` and `tasks-from-source.md` task ID guidance to folder-local `<NNN>-TASK-<slug>.md` allocation from the destination folder, and updated `tasks-milestone.md` to calculate starting task IDs from the milestone task folder only.
 - **Files:** `context/workflows/ralph/planning/subtasks-from-source.md`, `context/workflows/ralph/planning/tasks-interactive.md`, `context/workflows/ralph/planning/tasks-from-source.md`, `context/workflows/ralph/planning/tasks-milestone.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-016
+- **Problem:** Standalone `aaa task create`/`aaa story create` still defaulted to legacy global planning folders and lacked milestone-scoped placement controls.
+- **Changes:** Added `--milestone <name|path>` support to both commands, wiring milestone resolution to create files in milestone `tasks/` and `stories/` directories using typed filename formats (`<NNN>-TASK-<slug>.md`, `<NNN>-STORY-<slug>.md`). Added deprecation warnings when commands run without `--milestone` and without `--dir`, updated CLI help text to recommend milestone-scoped usage, and added E2E + unit coverage for milestone placement, help text, and deprecation warnings.
+- **Files:** `tools/src/commands/task.ts`, `tools/src/commands/story.ts`, `tools/src/cli.ts`, `tools/tests/e2e/task.test.ts`, `tools/tests/e2e/story.test.ts`, `tools/tests/lib/task-story-milestone.test.ts`, `tools/README.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
