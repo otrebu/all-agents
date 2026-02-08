@@ -70,6 +70,11 @@
 - **Changes:** Updated subtask ID guidance to milestone-scoped queue allocation in `subtask-spec.md`, removed ALL-locations ID scan guidance from `subtasks-from-hierarchy.md`, switched story/task filename conventions to `<NNN>-STORY-<slug>.md` and `<NNN>-TASK-<slug>.md` with milestone-first placement in `stories-auto.md` and `tasks-auto.md`, and removed remaining "globally unique" subtask wording from `subtasks-from-source.md`.
 - **Files:** `context/workflows/ralph/planning/subtask-spec.md`, `context/workflows/ralph/planning/subtasks-from-hierarchy.md`, `context/workflows/ralph/planning/stories-auto.md`, `context/workflows/ralph/planning/tasks-auto.md`, `context/workflows/ralph/planning/subtasks-from-source.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-013
+- **Problem:** Planning docs and skill surfaces still duplicated naming/subtask-ID guidance, increasing drift risk instead of using canonical atomic references.
+- **Changes:** Replaced repeated naming/numbering blocks in `stories-auto.md` and `tasks-auto.md` with references to `@context/blocks/docs/naming-convention.md`, added a canonical-rules section to `.claude/skills/ralph-plan/SKILL.md`, and removed stale global-ID guidance in favor of milestone-scoped subtask ID references to `subtask-spec.md`.
+- **Files:** `context/workflows/ralph/planning/stories-auto.md`, `context/workflows/ralph/planning/tasks-auto.md`, `.claude/skills/ralph-plan/SKILL.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

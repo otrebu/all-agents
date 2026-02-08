@@ -305,7 +305,7 @@
       "taskRef": "consolidate-simplify",
       "title": "DRY pass: extract shared rules into atomic doc references",
       "description": "Update planning workflows and skills to reference canonical atomic docs (naming-convention.md, subtask-spec.md) instead of restating full rule tables. Remove duplicate 'ID Generation' blocks across prompts. Keep only workflow-specific instructions. Addresses Inconsistency 8. Phase 5.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Naming rules maintained in one canonical location (context/blocks/docs/naming-convention.md)",
         "Subtask ID rules maintained in subtask-spec.md with single canonical section",
@@ -323,7 +323,10 @@
       ],
       "blockedBy": [
         "SUB-012"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:19:57Z",
+      "commitHash": "47383c13a5abb2ec06e7923599229f0f1982accb",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-014",
