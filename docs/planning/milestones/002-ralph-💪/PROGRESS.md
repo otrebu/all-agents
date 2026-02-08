@@ -336,7 +336,7 @@
 
 ### SUB-117
 - **Problem:** Eight slash commands were redundant - either replaced by skills that auto-trigger or containing advice Claude already knows
-- **Changes:** Deleted 8 command files: /dev:code-review (parallel-code-review skill auto-triggers), /create-task (task-create skill auto-triggers), /download (WebFetch+Write sufficient, zero usage), /meta:claude-code:create-command (merged into create-skill), /meta:claude-code:create-plugin (superseded by official plugin), /meta:how-to-prompt (just read prompting.md directly), /meta:optimize-prompt (generic advice Claude already knows). Also deleted CLI implementation (tools/src/commands/download.ts), tests (tools/tests/e2e/download.test.ts), and unused doc (context/blocks/docs/prompting-optimize.md). Updated shell completion scripts (bash, zsh, fish) to remove download command. Updated README.md Commands table from 21 to 13 commands.
+- **Changes:** Deleted 8 command files: /dev:code-review (parallel-code-review skill auto-triggers), /create-task (legacy task creation skill auto-triggers), /download (WebFetch+Write sufficient, zero usage), /meta:claude-code:create-command (merged into create-skill), /meta:claude-code:create-plugin (superseded by official plugin), /meta:how-to-prompt (just read prompting.md directly), /meta:optimize-prompt (generic advice Claude already knows). Also deleted CLI implementation (tools/src/commands/download.ts), tests (tools/tests/e2e/download.test.ts), and unused doc (context/blocks/docs/prompting-optimize.md). Updated shell completion scripts (bash, zsh, fish) to remove download command. Updated README.md Commands table from 21 to 13 commands.
 - **Files:**
   - Deleted: .claude/commands/dev/code-review.md
   - Deleted: .claude/commands/create-task.md

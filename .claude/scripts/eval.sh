@@ -121,14 +121,14 @@ run_claude_researcher() {
 main() {
   echo "==========================================="
   echo "  Claude Code Command Evaluation"
-  echo "  10 Tests"
+  echo "  8 Tests"
   echo "==========================================="
   echo "Root dir: $ROOT_DIR"
   echo "Temp dir: $TMP_DIR"
   echo ""
 
   # Create subdirs
-  mkdir -p "$TMP_DIR"/{downloads,tasks,stories}
+  mkdir -p "$TMP_DIR"/{downloads}
 
   echo "==========================================="
   echo "  Phase 1: Fire All Commands (Parallel)"
@@ -136,66 +136,56 @@ main() {
   echo ""
 
   # --- Test 1: download (2 URLs) ---
-  echo -e "${BLUE}[1/11] download${NC} - Firing 2 URL downloads..."
+  echo -e "${BLUE}[1/8] download${NC} - Firing 2 URL downloads..."
   aaa download "https://docs.github.com/en/get-started" --dir "$TMP_DIR/downloads" > "$TMP_DIR/download1.out" 2>&1 &
   PIDS+=($!)
   aaa download "https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview" --dir "$TMP_DIR/downloads" > "$TMP_DIR/download2.out" 2>&1 &
   PIDS+=($!)
 
   # --- Test 2: gh-search (Claude researcher) ---
-  echo -e "${BLUE}[2/11] gh-search${NC} - Firing Claude researcher..."
+  echo -e "${BLUE}[2/8] gh-search${NC} - Firing Claude researcher..."
   run_claude_researcher "gh-search" \
     "Use the Skill tool to run /gh-search with query 'commander typescript CLI patterns'. Find real code examples showing commander.js usage in TypeScript projects. Summarize findings with repo names, stars, and code patterns found." \
     "Skill,Bash(aaa:*),Read" &
   PIDS+=($!)
 
   # --- Test 3: parallel-search (Claude researcher) ---
-  echo -e "${BLUE}[3/11] parallel-search${NC} - Firing Claude researcher..."
+  echo -e "${BLUE}[3/8] parallel-search${NC} - Firing Claude researcher..."
   run_claude_researcher "parallel-search" \
     "Use the Skill tool to run /parallel-search with query 'TypeScript best practices 2024'. Gather comprehensive research from multiple sources." \
     "Skill,Bash(aaa:*),Read" &
   PIDS+=($!)
 
-  # --- Test 4: task-create (direct command) ---
-  echo -e "${BLUE}[4/10] task-create${NC} - Running aaa task create..."
-  aaa task create "eval-test-task" --dir "$TMP_DIR/tasks" > "$TMP_DIR/task-create.out" 2>&1 &
-  PIDS+=($!)
-
-  # --- Test 5: story-create (direct command) ---
-  echo -e "${BLUE}[5/10] story-create${NC} - Running aaa story create..."
-  aaa story create "eval-test-story" --dir "$TMP_DIR/stories" > "$TMP_DIR/story-create.out" 2>&1 &
-  PIDS+=($!)
-
-  # --- Test 6: meta:claude-code:create-command (Claude runs skill) ---
-  echo -e "${BLUE}[6/10] create-command${NC} - Firing Claude to run skill..."
+  # --- Test 4: meta:claude-code:create-command (Claude runs skill) ---
+  echo -e "${BLUE}[4/8] create-command${NC} - Firing Claude to run skill..."
   run_claude_researcher "create-command" \
     "Create a Claude Code command called 'eval-test-command' for Docker deployment. Use the Skill tool with /meta:claude-code:create-command. IMPORTANT: Do NOT ask any questions - just create a simple command that runs 'docker build && docker push'. Write the file immediately without waiting for user input." \
     "Skill,Read,Write,Glob,Grep" &
   PIDS+=($!)
 
-  # --- Test 7: meta:claude-code:create-agent (Claude runs skill) ---
-  echo -e "${BLUE}[7/10] create-agent${NC} - Firing Claude to run skill..."
+  # --- Test 5: meta:claude-code:create-agent (Claude runs skill) ---
+  echo -e "${BLUE}[5/8] create-agent${NC} - Firing Claude to run skill..."
   run_claude_researcher "create-agent" \
     "Create a Claude Code agent called 'eval-test-agent' for reviewing code. Use the Skill tool with /meta:claude-code:create-agent. Follow the skill's guidance to create the agent file." \
     "Skill,Read,Write,Glob,Grep" &
   PIDS+=($!)
 
-  # --- Test 8: meta:claude-code:create-skill (Claude runs skill) ---
-  echo -e "${BLUE}[8/10] create-skill${NC} - Firing Claude to run skill..."
+  # --- Test 6: meta:claude-code:create-skill (Claude runs skill) ---
+  echo -e "${BLUE}[6/8] create-skill${NC} - Firing Claude to run skill..."
   run_claude_researcher "create-skill" \
     "Create a Claude Code skill called 'eval-test-skill' for git branch cleanup. Use the Skill tool with /meta:claude-code:create-skill. IMPORTANT: Do NOT ask questions or wait for plan approval - immediately create a simple SKILL.md that lists and deletes merged branches. Write files now." \
     "Skill,Read,Write,Bash,Glob,Grep" &
   PIDS+=($!)
 
-  # --- Test 9: meta:create-cursor-rule (Claude runs skill) ---
-  echo -e "${BLUE}[9/10] create-cursor-rule${NC} - Firing Claude to run skill..."
+  # --- Test 7: meta:create-cursor-rule (Claude runs skill) ---
+  echo -e "${BLUE}[7/8] create-cursor-rule${NC} - Firing Claude to run skill..."
   run_claude_researcher "create-cursor-rule" \
     "Create a Cursor rule called 'eval-test-rule' for TypeScript formatting. Use the Skill tool with /meta:create-cursor-rule. Follow the skill's guidance to create the rule file." \
     "Skill,Read,Write,Glob,Grep" &
   PIDS+=($!)
 
-  # --- Test 10: context:atomic-doc (Claude runs skill) ---
-  echo -e "${BLUE}[10/10] atomic-doc${NC} - Firing Claude to run skill..."
+  # --- Test 8: context:atomic-doc (Claude runs skill) ---
+  echo -e "${BLUE}[8/8] atomic-doc${NC} - Firing Claude to run skill..."
   run_claude_researcher "atomic-doc" \
     "Create an atomic doc at context/blocks/eval/eval-test-doc.md using /context:atomic-doc skill. IMPORTANT: Do NOT ask questions - immediately create a simple doc with frontmatter (depends: []) and basic content about testing. Write the file now." \
     "Skill,Read,Write,Edit,Glob,Grep" &
@@ -272,37 +262,7 @@ $file2_content" "Both URLs should be downloaded as .md files with reasonable con
   evaluate_async "parallel-search" "$parallel_out" "Should return structured research with sources and URLs. IGNORE any EOPNOTSUPP fs watch errors (environmental issue, not command fault). Score 8-10 if has 5+ sources with findings. Score 5-7 if sparse sources. Score 2-3 if command ran but API error. FAIL only if no research output at all." &
   PIDS+=($!)
 
-  # --- Eval 4: task-create ---
-  task_file=$(ls "$TMP_DIR/tasks"/*.md 2>/dev/null | head -1 || echo "")
-  if [[ -n "$task_file" && -f "$task_file" ]]; then
-    task_content=$(cat "$task_file")
-    task_name=$(basename "$task_file")
-  else
-    task_content="FILE NOT FOUND"
-    task_name="N/A"
-  fi
-  evaluate_async "task-create" "Filename: $task_name
-
-Content:
-$task_content" "File should be NNN-kebab-name.md format with '### Goal' and '### Acceptance Criteria'. Score 8-10 if proper naming + both sections. Score 5-7 if file exists but missing sections. FAIL if no file created." &
-  PIDS+=($!)
-
-  # --- Eval 6: story-create ---
-  story_file=$(ls "$TMP_DIR/stories"/*.md 2>/dev/null | head -1 || echo "")
-  if [[ -n "$story_file" && -f "$story_file" ]]; then
-    story_content=$(cat "$story_file")
-    story_name=$(basename "$story_file")
-  else
-    story_content="FILE NOT FOUND"
-    story_name="N/A"
-  fi
-  evaluate_async "story-create" "Filename: $story_name
-
-Content:
-$story_content" "File should be NNN-kebab-name.md with '### Narrative' and '### Acceptance Criteria'. Template placeholders like 'As a [persona]' ARE VALID - don't require filled content. Score 8-10 if has required sections with user story template. Score 5-7 if missing sections. FAIL only if no file." &
-  PIDS+=($!)
-
-  # --- Eval 7: create-command ---
+  # --- Eval 4: create-command ---
   cmd_file="$ROOT_DIR/.claude/commands/eval-test-command.md"
   if [[ -f "$cmd_file" ]]; then
     cmd_content=$(cat "$cmd_file")
@@ -317,7 +277,7 @@ Researcher log (last 50 lines):
 $researcher_log" "Command file should exist at .claude/commands/ with frontmatter (---) and clear instructions. Score 8-10 if well-structured. Score 5-7 if file exists but sparse. FAIL if FILE NOT FOUND." &
   PIDS+=($!)
 
-  # --- Eval 8: create-agent ---
+  # --- Eval 5: create-agent ---
   agent_file="$ROOT_DIR/.claude/agents/eval-test-agent.md"
   if [[ -f "$agent_file" ]]; then
     agent_content=$(cat "$agent_file")
@@ -332,7 +292,7 @@ Researcher log (last 50 lines):
 $researcher_log" "Agent file should exist at .claude/agents/ with frontmatter and agent definition. Score 8-10 if well-structured with clear role. Score 5-7 if exists but sparse. FAIL if FILE NOT FOUND." &
   PIDS+=($!)
 
-  # --- Eval 9: create-skill ---
+  # --- Eval 6: create-skill ---
   skill_file="$ROOT_DIR/.claude/skills/eval-test-skill/SKILL.md"
   if [[ -f "$skill_file" ]]; then
     skill_content=$(cat "$skill_file")
@@ -348,7 +308,7 @@ $researcher_log" "Skill should exist at .claude/skills/NAME/SKILL.md with frontm
   PIDS+=($!)
 
 
-  # --- Eval 11: create-cursor-rule ---
+  # --- Eval 7: create-cursor-rule ---
   rule_file="$ROOT_DIR/.cursor/rules/eval-test-rule.mdc"
   if [[ -f "$rule_file" ]]; then
     rule_content=$(cat "$rule_file")
@@ -363,7 +323,7 @@ Researcher log (last 50 lines):
 $researcher_log" "Cursor rule should exist at .cursor/rules/ with .mdc extension, frontmatter, globs. Score 8-10 if well-structured. Score 5-7 if exists but sparse. FAIL if FILE NOT FOUND." &
   PIDS+=($!)
 
-  # --- Eval 12: atomic-doc ---
+  # --- Eval 8: atomic-doc ---
   # Check multiple possible locations (skill may create in different subdirs)
   doc_file=""
   for path in "$ROOT_DIR/context/blocks/eval/eval-test-doc.md" \
@@ -396,7 +356,7 @@ $researcher_log" "Atomic doc should exist in context/blocks/ (any subdomain like
   TIMEOUT=180  # 3 minutes for evaluators
   INTERVAL=10
   elapsed=0
-  total_evals=10
+  total_evals=8
 
   while [[ $elapsed -lt $TIMEOUT ]]; do
     completed=$(ls "$TMP_DIR"/eval-*.json 2>/dev/null | wc -l | tr -d ' ')

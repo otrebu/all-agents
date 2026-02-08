@@ -1,0 +1,347 @@
+{
+  "$schema": "../../schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "005-consolidate-simplify"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-001",
+      "taskRef": "consolidate-simplify",
+      "title": "Delete legacy story/task creation skills",
+      "description": "Delete the two legacy planning-create skill directories under `.claude/skills/` and remove all references to them from README, docs, eval scripts, and skill listing tables. Phase 1 (Surface Cleanup), decision 5.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Both legacy planning-create skill directories under `.claude/skills/` do not exist",
+        "No legacy planning-create skill directory remains under `.claude/skills/`",
+        "grep checks for legacy planning-create skill names in .claude/, docs/, and README.md return no matches",
+        "No hyphenated legacy planning-create skill names remain in .claude/, docs/, or README.md",
+        "No references to `aaa story create` or `aaa task create` in skill tables or help text"
+      ],
+      "filesToRead": [
+        ".claude/skills/",
+        "README.md",
+        "docs/planning/consolidating.md"
+      ]
+    },
+    {
+      "id": "SUB-002",
+      "taskRef": "consolidate-simplify",
+      "title": "Implement naming utility for planning artifacts",
+      "description": "Create a TypeScript naming utility module (e.g., `tools/src/commands/ralph/naming.ts`) that provides: (1) milestone directory name generation as `<NNN>-<slug>` by scanning `docs/planning/milestones/` for numeric directories only (ignoring _orphan), (2) story/task filename generation as `<NNN>-STORY-<slug>.md` and `<NNN>-TASK-<slug>.md` with folder-local numbering, (3) milestone-scoped subtask ID allocation reading only the target milestone `subtasks.json`. Phase 1 infrastructure.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Module exists at tools/src/commands/ralph/naming.ts (or similar path)",
+        "nextMilestoneNumber() scans only docs/planning/milestones/ directories matching ^[0-9]{3}-, ignoring _orphan",
+        "nextArtifactNumber(dir) scans a target folder for max NNN and returns max+1",
+        "formatStoryFilename(slug) returns `<NNN>-STORY-<slug>.md` pattern",
+        "formatTaskFilename(slug) returns `<NNN>-TASK-<slug>.md` pattern",
+        "nextSubtaskId(subtasksPath) reads only that file and returns max SUB-NNN + 1",
+        "Unit test in tools/tests/lib/naming.test.ts passes covering: milestone numbering, sparse folder numbering, subtask ID from file-local scope"
+      ],
+      "filesToRead": [
+        "context/blocks/docs/naming-convention.md",
+        "tools/src/commands/ralph/config.ts",
+        "docs/planning/consolidating.md"
+      ]
+    },
+    {
+      "id": "SUB-003",
+      "taskRef": "consolidate-simplify",
+      "title": "Update naming-convention.md to match locked decisions",
+      "description": "Update `context/blocks/docs/naming-convention.md` to reflect locked naming decisions from consolidation plan: story files use `<NNN>-STORY-<slug>.md`, task files use `<NNN>-TASK-<slug>.md`, milestone directories use `<NNN>-<slug>/`. The current doc says 'do NOT include type prefixes' which conflicts with decision 6. Reconcile the doc to match locked decisions.",
+      "done": false,
+      "acceptanceCriteria": [
+        "naming-convention.md documents `<NNN>-STORY-<slug>.md` pattern for stories",
+        "naming-convention.md documents `<NNN>-TASK-<slug>.md` pattern for tasks",
+        "naming-convention.md documents `<NNN>-<slug>/` pattern for milestone directories",
+        "Legacy 'do NOT include type prefixes' guidance is removed or updated to match new convention",
+        "Migration note updated to reflect the new naming conventions"
+      ],
+      "filesToRead": [
+        "context/blocks/docs/naming-convention.md",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-002"]
+    },
+    {
+      "id": "SUB-004",
+      "taskRef": "consolidate-simplify",
+      "title": "Strengthen subtask ID uniqueness in config.ts",
+      "description": "Update `appendSubtasksToFile()` in `tools/src/commands/ralph/config.ts` to: (1) detect duplicate IDs within the incoming batch itself (not just against existing file), (2) reject writes with clear error on duplicates. Addresses Inconsistency 7 (runtime enforcement).",
+      "done": false,
+      "acceptanceCriteria": [
+        "appendSubtasksToFile() throws on duplicate IDs within an incoming batch",
+        "Unit test: passing batch with duplicate IDs fails fast with descriptive error",
+        "Unit test: two milestones can both have SUB-001 without conflict",
+        "Existing behavior for deduplication against existing file preserved"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/build-invariant.ts",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-002"]
+    },
+    {
+      "id": "SUB-005",
+      "taskRef": "consolidate-simplify",
+      "title": "Implement ralph subtasks next/list/complete commands",
+      "description": "Implement CLI subcommands for queue operations: (1) `aaa ralph subtasks next --milestone <name|filepath> [--json]` using same getNextSubtask logic as build, (2) `aaa ralph subtasks list --milestone <name|filepath> --pending --limit N [--json]`, (3) `aaa ralph subtasks complete --milestone <name|filepath> --id <SUB-...> --commit <hash> --session <id> [--at <iso>]`. All commands require milestone context. Phase 2.",
+      "done": false,
+      "acceptanceCriteria": [
+        "`aaa ralph subtasks next --milestone 005-consolidate-simplify` returns the next pending subtask or clear empty message",
+        "`aaa ralph subtasks list --milestone 005-consolidate-simplify --pending` lists pending subtasks",
+        "`aaa ralph subtasks complete --milestone ... --id SUB-001 --commit abc1234 --session s1` marks subtask done",
+        "All three commands fail with clear error when --milestone is missing",
+        "`next` uses the same getNextSubtask() function as the build loop",
+        "E2E or unit tests pass for next selection, list filtering, and completion updates"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/build.ts",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-004"]
+    },
+    {
+      "id": "SUB-006",
+      "taskRef": "consolidate-simplify",
+      "title": "Strip legacy status fields on queue write",
+      "description": "Add a normalization step in the subtasks.json save path (config.ts) that strips legacy `status` fields from subtask entries when writing. Loading continues to tolerate `status` for backward compatibility. Addresses Inconsistency 9.",
+      "done": false,
+      "acceptanceCriteria": [
+        "saveSubtasksFile() strips `status` key from each subtask entry before writing",
+        "loadSubtasksFile() still loads files with legacy `status` without error",
+        "Unit test: saving queue with legacy status drops status while preserving all required fields",
+        "Unit test: `aaa ralph status` progress display unchanged after normalization"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/status.ts",
+        "docs/planning/milestones/003-ralph-workflow/subtasks.json",
+        "docs/planning/consolidating.md"
+      ]
+    },
+    {
+      "id": "SUB-007",
+      "taskRef": "consolidate-simplify",
+      "title": "Unify headless and supervised iteration context builder",
+      "description": "Create a shared iteration-context builder function in build.ts that both headless (buildIterationPrompt) and supervised (inline context at ~line 839) paths consume. Guarantee same payload fields: subtask object, subtasks path, progress path, completion expectations. Remove inline supervised context string duplication. Addresses Inconsistency 3. Phase 3.",
+      "done": false,
+      "acceptanceCriteria": [
+        "One shared context builder function exists (e.g., buildIterationContext())",
+        "Headless invocation calls the shared builder",
+        "Supervised invocation calls the same shared builder",
+        "Both modes receive identical assignment payload structure (subtask, subtasksPath, progressPath)",
+        "Unit test verifies both mode call sites use the shared builder",
+        "No inline context string duplication in supervised path"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-005"]
+    },
+    {
+      "id": "SUB-008",
+      "taskRef": "consolidate-simplify",
+      "title": "Rewrite iteration prompt: remove shell-era jq/build.sh",
+      "description": "Rewrite `context/workflows/ralph/building/ralph-iteration.md`: (1) remove `build.sh` references, (2) remove `SUB-XXX`/`path/to/...` jq mutation recipes as primary path, (3) instruct queue operations via `aaa ralph subtasks next/list/complete --milestone`, (4) keep jq only as break-glass troubleshooting, (5) update Phase 7 tracking to reflect TypeScript runtime invariants. Addresses Inconsistency 2. Phase 3.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ralph-iteration.md does not contain 'build.sh' or 'outer loop' text",
+        "Queue mutation guidance uses `aaa ralph subtasks` CLI commands as primary path",
+        "jq mentioned only in troubleshooting section, not main workflow",
+        "No placeholder `SUB-XXX` or `path/to/subtasks.json` in main workflow steps",
+        "`aaa ralph build --print` output reflects the updated instructions"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/building/ralph-iteration.md",
+        "tools/src/commands/ralph/build.ts",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-005"]
+    },
+    {
+      "id": "SUB-009",
+      "taskRef": "consolidate-simplify",
+      "title": "Fix --print to show per-iteration effective prompt",
+      "description": "Rework `ralph build --print` in index.ts: (1) resolve next runnable subtask using same getNextSubtask logic, (2) print effective iteration prompt for that assignment (not full subtasks file), (3) show explicit note if queue empty or blocked. Addresses Inconsistency 4. Phase 4.",
+      "done": false,
+      "acceptanceCriteria": [
+        "`aaa ralph build --print` does not dump full subtasks.json content",
+        "--print shows effective per-iteration prompt for next selected subtask",
+        "--print selected subtask ID equals what runtime getNextSubtask returns",
+        "Queue empty/blocked produces clear message instead of empty dump",
+        "Integration test: --print output stays bounded for large queue"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/config.ts",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-007"]
+    },
+    {
+      "id": "SUB-010",
+      "taskRef": "consolidate-simplify",
+      "title": "Update ralph-build and ralph-status skills + README defaults",
+      "description": "Update `.claude/skills/ralph-build/SKILL.md`: correct --max-iterations default to 0 (unlimited), state supervised is default, remove divergent 'prompt for path' behavior, reference CLI as runtime source, use `aaa ralph subtasks next` for assignment. Update `.claude/skills/ralph-status/SKILL.md`: remove shell script refs, describe TypeScript behavior. Update `docs/ralph/README.md`: correct build mode default to supervised. Addresses Inconsistencies 1 and 5. Phase 5.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ralph-build SKILL.md states --max-iterations default is 0 (unlimited) and supervised is default",
+        "ralph-build SKILL.md references 'aaa ralph build' as runtime source and uses `subtasks next` for assignment",
+        "ralph-status SKILL.md does not reference any .sh script paths and describes TypeScript behavior",
+        "docs/ralph/README.md states build default is supervised mode",
+        "grep -r 'status.sh' .claude/skills/ returns no matches"
+      ],
+      "filesToRead": [
+        ".claude/skills/ralph-build/SKILL.md",
+        ".claude/skills/ralph-status/SKILL.md",
+        "docs/ralph/README.md",
+        "tools/src/commands/ralph/index.ts",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-005"]
+    },
+    {
+      "id": "SUB-011",
+      "taskRef": "consolidate-simplify",
+      "title": "Fix iteration-summary status vocabulary",
+      "description": "Update `context/workflows/ralph/hooks/iteration-summary.md` to use canonical status names (`completed|failed|retrying`) matching iteration-diary schema and TypeScript types, replacing `success|failure|partial`. Addresses Inconsistency 5 (status vocabulary). Phase 5.",
+      "done": false,
+      "acceptanceCriteria": [
+        "iteration-summary.md uses `completed|failed|retrying` not `success|failure|partial`",
+        "Status vocabulary matches iteration-diary.schema.json enum exactly",
+        "No 'success' or 'failure' or 'partial' as status values in iteration-summary.md"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/hooks/iteration-summary.md",
+        "docs/planning/schemas/iteration-diary.schema.json",
+        "tools/src/commands/ralph/types.ts",
+        "docs/planning/consolidating.md"
+      ]
+    },
+    {
+      "id": "SUB-012",
+      "taskRef": "consolidate-simplify",
+      "title": "Update planning workflow docs for milestone-scoped naming",
+      "description": "Update planning workflow docs: (1) `subtask-spec.md` - change ID Generation from global to milestone-scoped, (2) `subtasks-from-hierarchy.md` - remove ALL locations scan, (3) `stories-auto.md` - use `<NNN>-STORY-<slug>.md` and milestone-first placement, (4) `tasks-auto.md` - use `<NNN>-TASK-<slug>.md` and milestone-first placement. Addresses Inconsistencies 6 and 8. Phase 5.",
+      "done": false,
+      "acceptanceCriteria": [
+        "subtask-spec.md ID Generation section references milestone-scoped allocation only",
+        "subtasks-from-hierarchy.md no longer scans 'ALL locations' for subtask IDs",
+        "stories-auto.md uses <NNN>-STORY-<slug>.md format and milestone-first placement",
+        "tasks-auto.md uses <NNN>-TASK-<slug>.md format and milestone-first placement",
+        "No 'globally unique' subtask ID guidance remains in planning workflow docs"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtask-spec.md",
+        "context/workflows/ralph/planning/subtasks-from-hierarchy.md",
+        "context/workflows/ralph/planning/stories-auto.md",
+        "context/workflows/ralph/planning/tasks-auto.md",
+        "context/blocks/docs/naming-convention.md",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-003"]
+    },
+    {
+      "id": "SUB-013",
+      "taskRef": "consolidate-simplify",
+      "title": "DRY pass: extract shared rules into atomic doc references",
+      "description": "Update planning workflows and skills to reference canonical atomic docs (naming-convention.md, subtask-spec.md) instead of restating full rule tables. Remove duplicate 'ID Generation' blocks across prompts. Keep only workflow-specific instructions. Addresses Inconsistency 8. Phase 5.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Naming rules maintained in one canonical location (context/blocks/docs/naming-convention.md)",
+        "Subtask ID rules maintained in subtask-spec.md with single canonical section",
+        "Planning workflow docs reference canonical docs via @context/ paths instead of restating rules",
+        "No duplicate 'ID Generation' rule blocks across planning prompts",
+        "Ralph-plan SKILL.md references canonical docs instead of embedding rule tables"
+      ],
+      "filesToRead": [
+        "context/blocks/docs/naming-convention.md",
+        "context/workflows/ralph/planning/subtask-spec.md",
+        "context/workflows/ralph/planning/stories-auto.md",
+        "context/workflows/ralph/planning/tasks-auto.md",
+        ".claude/skills/ralph-plan/SKILL.md",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-012"]
+    },
+    {
+      "id": "SUB-014",
+      "taskRef": "consolidate-simplify",
+      "title": "Add integration tests for parity and naming validation",
+      "description": "Add integration tests: (1) build + subtasks next parity (same selection result), (2) headless/supervised shared assignment payload parity, (3) --print parity with runtime context, (4) story/task naming in milestone dirs, (5) folder-local numbering, (6) subtask file-local uniqueness. Add fixtures for large queues and pending=0 edge cases. Phase 6 validation.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Test: `subtasks next` and build loop select same subtask for identical queue state",
+        "Test: headless/supervised modes produce structurally identical assignment payloads",
+        "Test: --print output contains same subtask ID as runtime selection",
+        "Test: naming utility produces correct milestone dir, story, and task filenames",
+        "Test: subtask ID allocation is file-local (two milestones can have SUB-001)",
+        "Test: large queue (50+ items) with pending=0 handled gracefully",
+        "All tests pass in tools/tests/"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/",
+        "tools/tests/lib/build.test.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/config.ts",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-007", "SUB-009"]
+    },
+    {
+      "id": "SUB-015",
+      "taskRef": "consolidate-simplify",
+      "title": "Update remaining planning workflow docs for milestone-scoped naming",
+      "description": "Update planning workflow docs not covered by SUB-012 to use milestone-scoped naming and numbering: (1) `subtasks-from-source.md` - change 'globally unique' ID guidance to milestone-scoped allocation, (2) `tasks-interactive.md` - remove 'ALL locations' scan, use folder-local numbering, (3) `tasks-from-source.md` - remove 'ALL locations' scan and 'globally unique' claim, use milestone-scoped allocation, (4) `tasks-milestone.md` - remove 'ALL locations' scan, use milestone-first placement. Completes the naming normalization started by SUB-012.",
+      "done": false,
+      "acceptanceCriteria": [
+        "subtasks-from-source.md Phase 5 no longer says 'globally unique'",
+        "tasks-interactive.md no longer scans 'ALL locations' for task IDs",
+        "tasks-from-source.md no longer scans 'ALL locations' and uses milestone-scoped allocation",
+        "tasks-milestone.md no longer scans 'ALL locations' for task IDs",
+        "grep -r 'globally unique' context/workflows/ralph/planning/ returns no matches",
+        "grep -r 'ALL locations' context/workflows/ralph/planning/ returns no matches (case-sensitive)"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        "context/workflows/ralph/planning/tasks-interactive.md",
+        "context/workflows/ralph/planning/tasks-from-source.md",
+        "context/workflows/ralph/planning/tasks-milestone.md",
+        "context/blocks/docs/naming-convention.md",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-003"]
+    },
+    {
+      "id": "SUB-016",
+      "taskRef": "consolidate-simplify",
+      "title": "Update standalone task/story CLI commands for milestone defaults",
+      "description": "Update `aaa task create` and `aaa story create` standalone CLI commands to use milestone-scoped defaults: (1) Add `--milestone <name|path>` option to both commands, (2) When `--milestone` is provided, place files in milestone's `tasks/` or `stories/` subdirectory using `<NNN>-TASK-<slug>.md` or `<NNN>-STORY-<slug>.md` format, (3) When no `--milestone` and no `--dir` provided, emit deprecation notice about global directory usage, (4) Update help text to recommend milestone-scoped usage. Per plan target design 4.10: global dirs become legacy/orphan-only paths. Uses naming utility from SUB-002.",
+      "done": false,
+      "acceptanceCriteria": [
+        "`aaa task create foo --milestone 005-consolidate-simplify` creates file in milestone's tasks/ dir",
+        "`aaa story create foo --milestone 005-consolidate-simplify` creates file in milestone's stories/ dir",
+        "Files created with --milestone use <NNN>-TASK-<slug>.md or <NNN>-STORY-<slug>.md format",
+        "Running without --milestone and without --dir shows deprecation notice on stderr",
+        "Help text for both commands mentions --milestone option",
+        "Unit test: task/story creation with --milestone places file in correct milestone subdirectory"
+      ],
+      "filesToRead": [
+        "tools/src/commands/task.ts",
+        "tools/src/commands/story.ts",
+        "tools/src/cli.ts",
+        "tools/lib/numbered-files.ts",
+        "tools/src/commands/ralph/config.ts",
+        "docs/planning/consolidating.md"
+      ],
+      "blockedBy": ["SUB-002"]
+    }
+  ]
+}

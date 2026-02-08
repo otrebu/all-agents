@@ -79,9 +79,9 @@ aaa gh-search "react hooks typescript"
 aaa parallel-search --objective "RAG patterns" --queries "chunking" "retrieval"
 aaa parallel-search --objective "RAG patterns" --verbose  # Full report to stdout
 
-# Create numbered task/story files
-aaa task create my-feature
-aaa story create my-story
+# Plan work with Ralph
+aaa ralph plan tasks
+aaa ralph plan stories
 
 # Ralph - Autonomous Development Framework
 #
@@ -293,7 +293,7 @@ Claude Code extends with three mechanisms:
 </details>
 
 <details>
-<summary><strong>Skills</strong> (17 skills)</summary>
+<summary><strong>Skills</strong> (15 skills)</summary>
 
 | Skill                  | Description                                    | Stability    | Created    | DRY | CLI Sibling | Action |
 | :--------------------- | :--------------------------------------------- | :----------- | :--------- | :-- | :---------- | :----- |
@@ -311,8 +311,6 @@ Claude Code extends with three mechanisms:
 | `ralph-review`         | Review auto-generated planning artifacts       | experimental | 2026-01-23 | ✓   | -           | FIX: Coverage gaps — Tasks: QR+GA+auto all missing. Subtasks: GA+auto missing. Vision: all missing (low priority). CLI: expose --headless flag (auto workflows exist but not accessible). Consolidate duplicate gap workflows (planning/ vs review/). |
 | `ralph-status`         | Display build progress and stats               | experimental | 2026-01-23 | ✓   | `aaa ralph status` | ✓ KEEP |
 | `setup-lint-staged`    | Set up lint-staged for optimized pre-commit validation | experimental | 2026-02-04 | ✓   | -           | - |
-| `story-create`         | Create story files, prompt for linked tasks    | beta         | 2026-01-06 | ✓   | `aaa story create` | ✓ KEEP (add note: "for guided planning use /ralph-plan stories") |
-| `task-create`          | Create task files                              | beta         | 2025-12-03 | ✓   | `aaa task create` | FIX: document --dir flag in skill workflow for milestone-scoped tasks |
 | `walkthrough`          | Present items one at a time interactively      | experimental | 2026-01-26 | ✓   | -           | ✓ KEEP |
 
 </details>

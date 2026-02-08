@@ -6,7 +6,7 @@
 |------|-------|-------|
 | Agents | 2 | gemini-research, parallel-search |
 | Commands | 21 | Across dev, meta, context categories |
-| Skills | 3 | task-create, brainwriting, dev-work-summary |
+| Skills | 3 | legacy task creation skill, brainwriting, dev-work-summary |
 
 ---
 
@@ -94,7 +94,7 @@
 
 ## 🎯 SKILLS (3)
 
-### task-create
+### Legacy task creation skill
 **Purpose:** Create structured task files
 
 **Pros:**
@@ -142,7 +142,7 @@
 | Overlap | Items | Issue |
 |---------|-------|-------|
 | **Research duplication** | gemini-research (agent + command), parallel-search (agent + command) | Commands just delegate to agents — redundant |
-| **Task creation** | task-create skill ↔ create-task command | Same thing? Different names |
+| **Task creation** | legacy task creation skill ↔ create-task command | Same thing? Different names |
 | **Commit commands** | git-commit ↔ git-multiple-commits | When to use which unclear |
 
 ---
@@ -172,7 +172,7 @@
 ### Quick Wins
 1. **Merge duplicates:** Remove command wrappers for agents (gemini-research, parallel-search commands → just use agents)
 2. **Clarify commits:** Rename or merge git-commit + git-multiple-commits
-3. **Consolidate task:** task-create skill + create-task command → pick one
+3. **Consolidate task:** legacy task creation skill + create-task command → pick one
 
 ### Valuable Additions
 1. **`/dev/run-tests`** — Run tests with smart detection

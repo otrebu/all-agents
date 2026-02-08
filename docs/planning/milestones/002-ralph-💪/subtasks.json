@@ -1151,7 +1151,7 @@
         "context/workflows/manage-atomic-doc.md",
         "context/blocks/docs/atomic-documentation.md",
         "context/README.md",
-        ".claude/skills/task-create/SKILL.md"
+        "tools/src/commands/task.ts"
       ]
     },
     {
