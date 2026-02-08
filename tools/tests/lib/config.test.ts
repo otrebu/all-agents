@@ -225,6 +225,49 @@ describe("appendSubtasksToFile", () => {
     ]);
   });
 
+  test("throws on duplicate IDs within incoming batch", () => {
+    const withDuplicateIds = [
+      createSubtask("SUB-001"),
+      createSubtask("SUB-001"),
+    ];
+
+    expect(() => appendSubtasksToFile(testPath, withDuplicateIds)).toThrow(
+      /Duplicate subtask IDs in incoming batch: SUB-001/,
+    );
+    expect(existsSync(testPath)).toBe(false);
+  });
+
+  test("allows same SUB ID in different milestone queues", () => {
+    const milestoneOnePath = join(
+      testDirectory,
+      "milestone-one",
+      "subtasks.json",
+    );
+    const milestoneTwoPath = join(
+      testDirectory,
+      "milestone-two",
+      "subtasks.json",
+    );
+    mkdirSync(join(testDirectory, "milestone-one"), { recursive: true });
+    mkdirSync(join(testDirectory, "milestone-two"), { recursive: true });
+
+    const milestoneOneResult = appendSubtasksToFile(milestoneOnePath, [
+      createSubtask("SUB-001"),
+    ]);
+    const milestoneTwoResult = appendSubtasksToFile(milestoneTwoPath, [
+      createSubtask("SUB-001"),
+    ]);
+
+    expect(milestoneOneResult).toEqual({ added: 1, skipped: 0 });
+    expect(milestoneTwoResult).toEqual({ added: 1, skipped: 0 });
+    expect(
+      loadSubtasksFile(milestoneOnePath).subtasks.map((subtask) => subtask.id),
+    ).toEqual(["SUB-001"]);
+    expect(
+      loadSubtasksFile(milestoneTwoPath).subtasks.map((subtask) => subtask.id),
+    ).toEqual(["SUB-001"]);
+  });
+
   test("preserves existing metadata", () => {
     // Create file with metadata
     writeFileSync(

@@ -481,6 +481,24 @@ function appendSubtasksToFile(
     throw new TypeError("newSubtasks must be an array");
   }
 
+  const incomingIds = new Set<string>();
+  const duplicateIncomingIds = new Set<string>();
+  for (const subtask of newSubtasks) {
+    if (incomingIds.has(subtask.id)) {
+      duplicateIncomingIds.add(subtask.id);
+    } else {
+      incomingIds.add(subtask.id);
+    }
+  }
+
+  if (duplicateIncomingIds.size > 0) {
+    const duplicateList = [...duplicateIncomingIds].sort().join(", ");
+    throw new Error(
+      `Duplicate subtask IDs in incoming batch: ${duplicateList}. ` +
+        `Each subtask ID must be unique within a single append operation.`,
+    );
+  }
+
   let existingFile: SubtasksFile = {
     $schema: "../../schemas/subtasks.schema.json",
     metadata: metadata ?? { scope: "milestone" },
