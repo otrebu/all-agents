@@ -183,7 +183,7 @@ Apply Size Guidelines from subtask-spec.md using the vertical slice test from Ph
 
 ### Phase 5: ID Generation
 
-Follow ID Generation rules from subtask-spec.md (SUB-NNN pattern, milestone-scoped allocation in target queue).
+Follow ID Generation rules from subtask-spec.md (SUB-NNN pattern, milestone-scoped allocation in target queue file only; no repo-wide subtask ID scan).
 
 ### Phase 6: Validation
 

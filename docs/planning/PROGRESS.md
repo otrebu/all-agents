@@ -80,6 +80,11 @@
 - **Changes:** Expanded Ralph parity tests by asserting `subtasks next` and `build --print` select the same subtask ID, added a large completed queue (`50+`, `pending=0`) `--print` fixture to verify graceful bounded output, strengthened build unit coverage for shared assignment payload call-site parity and size-guidance behavior for large complete queues, and extended naming tests with explicit cross-milestone file-local `SUB-001` allocation checks.
 - **Files:** `tools/tests/e2e/ralph.test.ts`, `tools/tests/lib/build.test.ts`, `tools/tests/lib/naming.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-015
+- **Problem:** Remaining planning workflow docs still contained legacy global task/subtask numbering guidance (`ALL locations` scans) and inconsistent naming language after the initial normalization pass.
+- **Changes:** Updated `subtasks-from-source.md` Phase 5 to explicitly require milestone-queue-only subtask ID allocation (no repo-wide scan), rewrote `tasks-interactive.md` and `tasks-from-source.md` task ID guidance to folder-local `<NNN>-TASK-<slug>.md` allocation from the destination folder, and updated `tasks-milestone.md` to calculate starting task IDs from the milestone task folder only.
+- **Files:** `context/workflows/ralph/planning/subtasks-from-source.md`, `context/workflows/ralph/planning/tasks-interactive.md`, `context/workflows/ralph/planning/tasks-from-source.md`, `context/workflows/ralph/planning/tasks-milestone.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

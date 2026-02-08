@@ -70,15 +70,17 @@ For each actionable item, generate a task following the template in @context/blo
 
 ### Phase 4: Task ID Generation
 
-Each task MUST have a unique ID. Scan existing tasks in **ALL locations**:
-- `docs/planning/tasks/` (global/legacy)
-- `docs/planning/milestones/*/tasks/` (milestone-scoped)
+Use milestone-scoped, folder-local numbering:
 
-Extract all TASK-NNN patterns, find highest number, increment.
+1. Resolve output location first:
+   - `--milestone <name>`: `docs/planning/milestones/<name>/tasks/`
+   - no milestone: `docs/planning/tasks/` (legacy/orphan fallback)
+2. Scan task filenames in that folder only
+3. Extract `<NNN>` from `<NNN>-TASK-<slug>.md`, find max, increment by 1
 
 ### Phase 5: Output
 
-Write tasks to `docs/planning/tasks/` (default location for orphan tasks).
+Write tasks to milestone-first output when milestone context is provided; otherwise write to `docs/planning/tasks/` for orphan/legacy tasks.
 
 ## Task Template
 
@@ -166,8 +168,8 @@ After creating tasks, summarize:
 
 ```
 Created N tasks from [source type]:
-1. TASK-001-<slug>: <brief description>
-2. TASK-002-<slug>: <brief description>
+1. 001-TASK-<slug>: <brief description>
+2. 002-TASK-<slug>: <brief description>
 ...
 
 Files created in: docs/planning/tasks/

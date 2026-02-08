@@ -363,7 +363,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Update remaining planning workflow docs for milestone-scoped naming",
       "description": "Update planning workflow docs not covered by SUB-012 to use milestone-scoped naming and numbering: (1) `subtasks-from-source.md` - change 'globally unique' ID guidance to milestone-scoped allocation, (2) `tasks-interactive.md` - remove 'ALL locations' scan, use folder-local numbering, (3) `tasks-from-source.md` - remove 'ALL locations' scan and 'globally unique' claim, use milestone-scoped allocation, (4) `tasks-milestone.md` - remove 'ALL locations' scan, use milestone-first placement. Completes the naming normalization started by SUB-012.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "subtasks-from-source.md Phase 5 no longer says 'globally unique'",
         "tasks-interactive.md no longer scans 'ALL locations' for task IDs",
@@ -382,7 +382,10 @@
       ],
       "blockedBy": [
         "SUB-003"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:32:36Z",
+      "commitHash": "a80e2347a0f1c4b804dcabfbb0becb50967662f5",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-016",

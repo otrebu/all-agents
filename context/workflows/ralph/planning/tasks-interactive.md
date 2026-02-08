@@ -34,7 +34,7 @@ tasks-interactive.md <story-id>
 
 **Why:** Protects against crashes/disconnects, keeps context fresh, shows progress to user.
 
-**How to offer:** "This task is well-defined now. Want me to save it to `TASK-00X-slug.md`?"
+**How to offer:** "This task is well-defined now. Want me to save it to `00X-TASK-slug.md`?"
 
 ## Your Role
 
@@ -299,29 +299,28 @@ When the user indicates they're ready to save a task (or you've finished explori
 
 ### Task ID Generation
 
-Each task MUST have a unique ID:
+Each task uses a folder-local numeric ID:
 
 ```
-TASK-<NNN>
+<NNN>
 ```
 
 Where `<NNN>` is a zero-padded sequence number (001, 002, 003...).
 
-To generate the next unique ID:
-1. Scan existing tasks in ALL locations:
-   - `docs/planning/tasks/` (global/legacy)
-   - `docs/planning/milestones/*/tasks/` (milestone-scoped)
-2. Find the highest existing TASK-NNN number across all dirs
-3. Increment by 1 and zero-pad to 3 digits
+To generate the next ID:
+1. Resolve the output folder first (milestone-scoped by default; legacy/global only for legacy story paths)
+2. Scan task files in that folder only
+3. Find the highest `<NNN>` prefix in `<NNN>-TASK-<slug>.md`
+4. Increment by 1 and zero-pad to 3 digits
 
 ### File Naming Convention
 
 ```
-TASK-<NNN>-<slug>.md
+<NNN>-TASK-<slug>.md
 ```
 
 Where:
-- `TASK-<NNN>` is the unique task ID
+- `<NNN>` is the next folder-local task number
 - `<slug>` is a kebab-case description
 
 ### Output Location

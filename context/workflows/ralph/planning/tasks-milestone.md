@@ -53,13 +53,11 @@ Search for relevant atomic docs that apply to the milestone's domain. Pass these
 
 ### 4. Determine Starting Task ID
 
-Scan existing tasks in **ALL locations**:
-- `docs/planning/tasks/` (global/legacy)
-- `docs/planning/milestones/*/tasks/` (milestone-scoped)
+Use milestone-first, folder-local numbering:
 
-1. Extract all TASK-NNN patterns from filenames across all dirs
-2. Find highest existing number
-3. Starting ID = highest + 1 (or 1 if no tasks exist)
+1. Scan `docs/planning/milestones/<milestone>/tasks/` only
+2. Extract `<NNN>` from filenames matching `<NNN>-TASK-<slug>.md`
+3. Starting ID = highest + 1 in that milestone folder (or 1 if no tasks exist)
 
 ### 5. Spawn Parallel Task Generators
 
@@ -157,4 +155,4 @@ Before spawning agents, verify:
 - [ ] Milestone directory exists (`docs/planning/milestones/<milestone>/`)
 - [ ] Stories directory has .md files
 - [ ] Tasks directory exists or can be created (`docs/planning/milestones/<milestone>/tasks/`)
-- [ ] Starting ID is calculated correctly (scanning ALL task locations)
+- [ ] Starting ID is calculated correctly from milestone task files only
