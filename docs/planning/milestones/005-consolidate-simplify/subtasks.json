@@ -178,7 +178,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Rewrite iteration prompt: remove shell-era jq/build.sh",
       "description": "Rewrite `context/workflows/ralph/building/ralph-iteration.md`: (1) remove `build.sh` references, (2) remove `SUB-XXX`/`path/to/...` jq mutation recipes as primary path, (3) instruct queue operations via `aaa ralph subtasks next/list/complete --milestone`, (4) keep jq only as break-glass troubleshooting, (5) update Phase 7 tracking to reflect TypeScript runtime invariants. Addresses Inconsistency 2. Phase 3.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "ralph-iteration.md does not contain 'build.sh' or 'outer loop' text",
         "Queue mutation guidance uses `aaa ralph subtasks` CLI commands as primary path",
@@ -193,7 +193,10 @@
       ],
       "blockedBy": [
         "SUB-005"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:01:26Z",
+      "commitHash": "3d92488c944d21663a06761c43d2842a2675ab61",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-009",

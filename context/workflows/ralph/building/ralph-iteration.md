@@ -15,55 +15,42 @@ Gather context about the current state of the project and build queue.
 1. **@CLAUDE.md** - Understand project conventions, stack, and development workflow
 2. **Git status** - Run `git status` to understand current branch and uncommitted changes
 3. **@docs/planning/PROGRESS.md** - Review recent work and context from previous iterations
-4. **Subtasks file** - **Do not read the entire subtasks.json**. Use `jq` to inspect only pending subtasks, or to locate the assigned subtask by ID.
+4. **Queue state** - Use milestone-scoped CLI commands to inspect pending work and assignment state.
 
-**Subtasks file structure:**
-```json
-{
-  "subtasks": [
-    {"id": "SUB-001", "done": false, ...},
-    {"id": "SUB-002", "done": true, ...}
-  ]
-}
-```
-
-**CRITICAL:** Root is an OBJECT with a `subtasks` array, NOT a bare array.
-All jq queries must use `.subtasks[]` not `.[]`.
-
-**Recommended jq commands (avoid huge context):**
+**Recommended queue commands (avoid huge context):**
 ```bash
-# List pending subtasks (id + title)
-jq -r '.subtasks[] | select(.done==false) | "\(.id)\t\(.title)"' <subtasks.json> | head -50
+# List pending subtasks for a milestone
+aaa ralph subtasks list --milestone <name-or-path>
 
-# Show the assigned subtask by ID (replace SUB-123)
-jq -r '.subtasks[] | select(.id=="SUB-123")' <subtasks.json>
+# Show the next runnable subtask assignment
+aaa ralph subtasks next --milestone <name-or-path>
+
+# Mark assigned subtask complete after implementation
+aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id>
 ```
 
 ### Pre-flight Checks (Start of Every Iteration)
 
 Before proceeding past Phase 1:
 ```bash
-# 1. Subtasks file is valid JSON
-jq empty path/to/subtasks.json || echo "FAIL: Invalid JSON"
+# 1. Confirm pending queue is visible for the milestone
+aaa ralph subtasks list --milestone <name-or-path>
 
-# 2. Verify structure (root is object with subtasks array)
-jq -e 'type == "object" and has("subtasks")' path/to/subtasks.json > /dev/null || echo "FAIL: Invalid structure"
-
-# 3. Assigned subtask exists and is pending
-jq -e --arg id "SUB-XXX" '.subtasks[] | select(.id==$id and .done==false)' path/to/subtasks.json > /dev/null || echo "FAIL: Subtask not found or already done"
+# 2. Confirm assignment is still available
+aaa ralph subtasks next --milestone <name-or-path>
 ```
 
 **Orient checklist:**
 - [ ] Read CLAUDE.md for project context
 - [ ] Check git status for branch and changes
 - [ ] Read PROGRESS.md for recent iteration history
-- [ ] Use `jq` to confirm the assigned subtask is still pending
+- [ ] Confirm the assigned subtask is still pending with `aaa ralph subtasks next --milestone`
 
 ### Phase 2: Confirm Assignment
 
 Confirm the subtask you must work on for this iteration.
 
-**Rule:** The outer build loop assigns a subtask (provided in the system context). Work on **that exact subtask only**.
+**Rule:** Ralph runtime assigns a subtask (provided in the system context). Work on **that exact subtask only**.
 
 **MUST-STOP boundary:** After the assigned subtask is implemented, validated, committed, and tracked, **stop immediately**. Do not continue into discovery, planning, or execution for any other subtask in the same iteration.
 
@@ -350,7 +337,7 @@ Update tracking files to reflect the completed work.
 
 #### 1. Update subtasks.json
 
-**IMPORTANT:** Do not read the entire subtasks.json file (it may exceed context limits). Use `jq` to update only the completed subtask atomically.
+**IMPORTANT:** Use Ralph CLI queue commands as the primary completion path.
 
 **Required fields to add/update:**
 - `done`: Set to `true`
@@ -358,35 +345,24 @@ Update tracking files to reflect the completed work.
 - `commitHash`: Git commit hash from the commit phase
 - `sessionId`: The current Claude session ID (for self-improvement analysis)
 
-**Single-subtask invariant:** Only the assigned subtask may transition to `done: true` in this iteration.
+**Single-subtask invariant (TypeScript runtime):**
+- Runtime enforces that only the assigned subtask can transition from `done: false` to `done: true` in an iteration.
+- Runtime exits non-zero when unexpected completions occur.
 
-**Use this jq command pattern (replace SUB-XXX with the actual subtask ID):**
+Use this completion flow:
 
 ```bash
-# Verify subtask exists, then update atomically
-jq -e --arg id "SUB-XXX" '.subtasks[] | select(.id==$id)' path/to/subtasks.json > /dev/null && \
-jq --arg id "SUB-XXX" \
-   --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-   --arg commit "$(git rev-parse HEAD)" \
-   --arg session "$(cat .claude/current-session 2>/dev/null || echo '')" \
-   '(.subtasks[] | select(.id==$id)) |= . + {done:true, completedAt:$ts, commitHash:$commit, sessionId:$session}' \
-   path/to/subtasks.json > path/to/subtasks.tmp && \
-mv path/to/subtasks.tmp path/to/subtasks.json
+# 1) Confirm assignment before mutation
+aaa ralph subtasks next --milestone <name-or-path>
 
-# Verify update succeeded
-jq -e --arg id "SUB-XXX" '.subtasks[] | select(.id==$id) | .done' path/to/subtasks.json
+# 2) Mark the assigned subtask complete (writes done/completedAt/commitHash/sessionId)
+aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id>
 
-# Invariant check: exactly one subtask changed to done in this iteration
-# (capture done count before Phase 7 and compare after update)
-# if delta != 1, stop and report invariant violation
+# 3) Verify queue state after completion
+aaa ralph subtasks list --milestone <name-or-path>
 ```
 
-If you detect multiple subtasks changed to `done: true`, **stop immediately** and report: `Invariant violation: multiple subtasks marked done in one iteration`.
-
-**Why jq instead of Edit tool:**
-- The subtasks.json file may exceed 25K tokens (Edit tool's read limit)
-- jq operates on the file directly without loading it into context
-- The `-e` flag ensures the command fails if the subtask ID doesn't exist
+If queue mutation fails, use the break-glass troubleshooting commands in the Error Handling section.
 
 #### 2. Append to PROGRESS.md
 
@@ -485,11 +461,11 @@ After completing one subtask iteration:
 
 **MUST STOP:** End the session for this iteration. Do not pick, plan, or execute another subtask here.
 
-The outer loop (build.sh) will determine whether to continue with another iteration or stop.
+Ralph runtime determines whether to continue with another iteration or stop.
 
 ## Important Notes
 
-- **One subtask per iteration:** This prompt handles exactly one subtask. The outer loop handles repetition.
+- **One subtask per iteration:** This prompt handles exactly one subtask. Ralph runtime handles repetition.
 - **Traceability:** Every commit must reference its subtask ID
 - **Self-improvement:** The sessionId is recorded so session logs can be analyzed later for inefficiencies
 - **No templating:** This prompt uses @path references for file inclusion, not {{VAR}} templating syntax

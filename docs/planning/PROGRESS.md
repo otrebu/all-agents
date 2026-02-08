@@ -45,6 +45,11 @@
 - **Changes:** Added a shared `buildIterationContext()` builder in `build.ts`, routed both `buildIterationPrompt()` and supervised provider invocation through that same builder, and added unit coverage that checks canonical payload fields plus shared-builder usage at both call sites.
 - **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-008
+- **Problem:** `ralph-iteration.md` still used shell-era queue mutation guidance (`jq`, placeholder IDs/paths, and `build.sh` language) instead of the milestone-scoped `aaa ralph subtasks` runtime workflow.
+- **Changes:** Rewrote iteration workflow guidance to make `aaa ralph subtasks next|list|complete --milestone` the primary queue path in Orient, Pre-flight, and Phase 7; removed `build.sh`/"outer loop" wording and placeholder mutation recipes from main workflow steps; retained `jq` only as break-glass troubleshooting guidance and updated Phase 7 to describe the TypeScript single-subtask completion invariant.
+- **Files:** `context/workflows/ralph/building/ralph-iteration.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
