@@ -90,6 +90,11 @@
 - **Changes:** Added `--milestone <name|path>` support to both commands, wiring milestone resolution to create files in milestone `tasks/` and `stories/` directories using typed filename formats (`<NNN>-TASK-<slug>.md`, `<NNN>-STORY-<slug>.md`). Added deprecation warnings when commands run without `--milestone` and without `--dir`, updated CLI help text to recommend milestone-scoped usage, and added E2E + unit coverage for milestone placement, help text, and deprecation warnings.
 - **Files:** `tools/src/commands/task.ts`, `tools/src/commands/story.ts`, `tools/src/cli.ts`, `tools/tests/e2e/task.test.ts`, `tools/tests/e2e/story.test.ts`, `tools/tests/lib/task-story-milestone.test.ts`, `tools/README.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-017
+- **Problem:** `aaa ralph plan subtasks` still mixed legacy `--review` wording into source-selection help/error/comments even though the actual source selector flag is `--review-diary`.
+- **Changes:** Updated source-oriented subtasks messaging in `ralph/index.ts` so help description, multiple-source validation, and source-routing comments consistently use `--review-diary`; added E2E regression coverage that checks `--help`, missing-source guidance, and multiple-source error output for the review diary selector.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

@@ -421,7 +421,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Align plan subtasks source messaging to --review-diary",
       "description": "Update `aaa ralph plan subtasks` user-facing source/help/error messaging in `tools/src/commands/ralph/index.ts` so source selector language consistently uses `--review-diary` (not `--review`) wherever sources are listed or validated.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "`aaa ralph plan subtasks --help` shows `--review-diary` as the review source selector",
         "Missing-source error text lists `--review-diary` in the allowed source set",
@@ -432,7 +432,10 @@
         "tools/src/commands/ralph/index.ts",
         "tools/tests/e2e/ralph.test.ts",
         "tools/README.md"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:49:56Z",
+      "commitHash": "a8955c7d3b861ccaa458341d8fc282d840b5bec9",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-018",
