@@ -811,8 +811,6 @@ interface HandleCascadeOptions {
 interface RunSubtasksHeadlessOptions {
   beforeCount: number;
   extraContext: string;
-  hasMilestone: boolean;
-  hasStory: boolean;
   milestone: string | undefined;
   model?: string;
   outputDirectory: string | undefined;
@@ -1253,8 +1251,6 @@ async function runSubtasksHeadless(
   const {
     beforeCount,
     extraContext,
-    hasMilestone,
-    hasStory,
     milestone,
     model,
     outputDirectory: outputDirectoryOption,
@@ -1267,6 +1263,34 @@ async function runSubtasksHeadless(
     storyRef,
   } = options;
 
+  // Determine output path up front so we can verify deterministic queue outcomes.
+  const resolvedOutputDirectory = resolveOutputDirectory(
+    outputDirectoryOption,
+    resolvedMilestonePath,
+  );
+  const outputPath = path.join(resolvedOutputDirectory, "subtasks.json");
+
+  // Capture queue state before provider execution to enforce observable outcomes.
+  const beforeQueueRaw = existsSync(outputPath)
+    ? readFileSync(outputPath, "utf8")
+    : null;
+  const beforeQueueCount = (() => {
+    if (beforeQueueRaw === null) {
+      return 0;
+    }
+
+    try {
+      const parsed = JSON.parse(beforeQueueRaw) as {
+        subtasks?: Array<unknown>;
+      };
+      return Array.isArray(parsed.subtasks)
+        ? parsed.subtasks.length
+        : beforeCount;
+    } catch {
+      return beforeCount;
+    }
+  })();
+
   const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
   const result = await invokeClaudeHeadless({
     extraContext,
@@ -1277,13 +1301,6 @@ async function runSubtasksHeadless(
     sessionName: "subtasks",
     sizeMode,
   });
-
-  // Determine output path using resolveOutputDirectory
-  const resolvedOutputDirectory = resolveOutputDirectory(
-    outputDirectoryOption,
-    resolvedMilestonePath,
-  );
-  const outputPath = path.join(resolvedOutputDirectory, "subtasks.json");
 
   // Try to load generated subtasks
   const loadResult = ((): {
@@ -1300,11 +1317,37 @@ async function runSubtasksHeadless(
     }
   })();
 
+  const afterQueueRaw = existsSync(outputPath)
+    ? readFileSync(outputPath, "utf8")
+    : null;
+  const hasObservableQueueOutcome =
+    loadResult.error === undefined &&
+    afterQueueRaw !== null &&
+    afterQueueRaw !== beforeQueueRaw;
+
+  if (hasObservableQueueOutcome) {
+    // continue to summary rendering below
+  } else {
+    const message =
+      "Headless subtasks generation failed: provider returned successfully but no valid subtasks queue outcome was produced.";
+    console.error(message);
+    console.error(`Expected updated queue at: ${outputPath}`);
+
+    if (loadResult.error === undefined) {
+      console.error(
+        "Queue file was unchanged after provider execution (no observable update).",
+      );
+    } else {
+      console.error(`Queue load error: ${loadResult.error}`);
+    }
+
+    process.exit(1);
+  }
+
   // Calculate counts for summary display (for --milestone and --story modes)
   const afterCount = loadResult.subtasks.length;
-  const addedCount =
-    hasMilestone || hasStory ? afterCount - beforeCount : undefined;
-  const totalCount = hasMilestone || hasStory ? afterCount : undefined;
+  const addedCount = afterCount - beforeQueueCount;
+  const totalCount = afterCount;
 
   // Render summary
   console.log(
@@ -1991,8 +2034,6 @@ planCommand.addCommand(
         ? runSubtasksHeadless({
             beforeCount,
             extraContext,
-            hasMilestone,
-            hasStory,
             milestone: options.milestone,
             model: options.model,
             outputDirectory: options.outputDir,
