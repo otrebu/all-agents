@@ -57,7 +57,7 @@ ralph plan subtasks --milestone <path>   # Generate subtask queue
 ### Building
 
 ```bash
-ralph build                          # Run iteration loop (headless)
+ralph build                          # Run iteration loop (supervised default)
 ralph build -i                       # Interactive: pause each iteration
 ralph build --subtasks <path>        # Specify subtasks.json location
 ralph build --max-iterations 5       # Limit iterations
@@ -109,7 +109,7 @@ Use these in Claude Code sessions:
 | Mode | Invocation | Description |
 |------|------------|-------------|
 | **Interactive** | Skill (`/ralph-plan`) | Full Socratic dialogue, user participates |
-| **Supervised** | CLI (default for plan) | Spawns chat, user watches |
+| **Supervised** | CLI (default for build/plan) | Spawns chat, user watches |
 | **Headless** | CLI (`--headless`) | JSON output, for CI/automation |
 
 **Trust gradient:** Interactive → Supervised → Headless (increasing autonomy)

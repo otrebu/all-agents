@@ -55,6 +55,11 @@
 - **Changes:** Reworked `--print` to resolve the next runnable subtask via `getNextSubtask`, render the effective per-iteration prompt for only that assignment, and print explicit queue-empty or all-blocked messages when no runnable item exists. Exported `buildIterationPrompt()` for reuse and added E2E coverage for selection parity with `subtasks next`, bounded output on large queues, and empty/blocked messaging.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/build.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-010
+- **Problem:** Ralph docs/skills still drifted from runtime defaults and implementation details: `/ralph-build` listed a stale max-iterations default and path-prompt behavior, `/ralph-status` referenced removed shell scripts, and `docs/ralph/README.md` implied build defaults that did not match CLI supervised mode.
+- **Changes:** Updated `.claude/skills/ralph-build/SKILL.md` to align with runtime defaults (`--max-iterations` default `0`, supervised default mode), removed divergent path-prompt behavior, added milestone-scoped assignment guidance via `aaa ralph subtasks next`, and explicitly marked `aaa ralph build` as runtime source of truth. Updated `.claude/skills/ralph-status/SKILL.md` to describe TypeScript runtime behavior and removed shell script references. Updated `docs/ralph/README.md` build wording to supervised default and aligned execution-mode text.
+- **Files:** `.claude/skills/ralph-build/SKILL.md`, `.claude/skills/ralph-status/SKILL.md`, `docs/ralph/README.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

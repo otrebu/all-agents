@@ -10,14 +10,14 @@ Display the current Ralph build status, including subtask progress, iteration st
 ## Usage
 
 ```
-/ralph-status [subtasks-path]
+/ralph-status [--subtasks <path>]
 ```
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `subtasks-path` | Optional path to subtasks.json file (defaults to `subtasks.json` in project root) |
+| `--subtasks <path>` | Optional path to subtasks.json file (defaults to `subtasks.json`) |
 
 ## What It Shows
 
@@ -44,29 +44,26 @@ Display the current Ralph build status, including subtask progress, iteration st
 
 **Check status for a specific subtasks file:**
 ```
-/ralph-status docs/planning/milestones/ralph/subtasks.json
+/ralph-status --subtasks docs/planning/milestones/ralph/subtasks.json
 ```
 
 ## Execution
 
-When invoked, execute the status script:
+When invoked, this skill maps to the TypeScript runtime command in
+`tools/src/commands/ralph/status.ts` via `aaa ralph status`.
 
-```bash
-tools/src/commands/ralph/scripts/status.sh [subtasks-path]
-```
-
-The script handles:
+Runtime behavior handles:
 - Missing subtasks file (shows helpful guidance)
 - Empty subtask queue (shows empty state message)
 - Missing iteration diary (gracefully degrades)
-- Both jq and Node.js fallbacks for JSON parsing
+- Normalized diary statuses (`completed|failed|retrying`) for success-rate stats
 
 ## CLI Equivalent
 
 This skill provides the same functionality as:
 
 ```bash
-aaa ralph status [subtasks-path]
+aaa ralph status [--subtasks <path>]
 ```
 
 ## Related Skills

@@ -229,7 +229,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Update ralph-build and ralph-status skills + README defaults",
       "description": "Update `.claude/skills/ralph-build/SKILL.md`: correct --max-iterations default to 0 (unlimited), state supervised is default, remove divergent 'prompt for path' behavior, reference CLI as runtime source, use `aaa ralph subtasks next` for assignment. Update `.claude/skills/ralph-status/SKILL.md`: remove shell script refs, describe TypeScript behavior. Update `docs/ralph/README.md`: correct build mode default to supervised. Addresses Inconsistencies 1 and 5. Phase 5.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "ralph-build SKILL.md states --max-iterations default is 0 (unlimited) and supervised is default",
         "ralph-build SKILL.md references 'aaa ralph build' as runtime source and uses `subtasks next` for assignment",
@@ -246,7 +246,10 @@
       ],
       "blockedBy": [
         "SUB-005"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:11:44Z",
+      "commitHash": "25ece831c9131b518c4815e67d53a73264c90761",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-011",

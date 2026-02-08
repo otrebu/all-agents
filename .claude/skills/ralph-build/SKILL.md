@@ -17,19 +17,25 @@ Execute the Ralph autonomous build loop to process subtasks from a queue.
 
 | Option | Description |
 |--------|-------------|
-| `--subtasks <path>` | Path to subtasks.json file (will prompt if not provided) |
+| `--subtasks <path>` | Path to subtasks.json file (default: `subtasks.json`) |
+| `-s, --supervised` | Supervised mode (default) |
+| `-H, --headless` | Headless mode (for automation/CI) |
 | `-i, --interactive` | Pause between iterations for user review |
 | `-p, --print` | Output the prompt without executing (dry run) |
 | `--validate-first` | Run pre-build validation before starting the loop |
-| `--max-iterations <n>` | Maximum retry attempts per subtask (default: 3) |
+| `--max-iterations <n>` | Maximum retry attempts per subtask (`0` = unlimited, default: `0`) |
 
 ## Workflow
 
-### 1. Determine Subtasks Path
+### 1. Get Assignment from Queue
 
-If `--subtasks` is not provided, prompt the user:
+Use the same runtime queue logic as CLI build:
 
-> "Which subtasks.json file should I use? Provide the path or I'll look for `docs/planning/milestones/*/subtasks.json`"
+```bash
+aaa ralph subtasks next --milestone <name-or-path>
+```
+
+Use `aaa ralph subtasks list --milestone <name-or-path>` to inspect pending items.
 
 ### 2. Print Mode (-p)
 
@@ -65,6 +71,16 @@ If a subtask fails repeatedly:
 1. Track retry count per subtask
 2. Stop after `max-iterations` failures on the same subtask
 3. Report the failure and suggest next steps
+
+### Runtime Source of Truth
+
+Runtime behavior is defined by the TypeScript CLI implementation:
+
+```bash
+aaa ralph build [options]
+```
+
+This skill should follow CLI defaults and queue semantics.
 
 ## CLI Equivalent
 
