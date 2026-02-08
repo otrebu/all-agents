@@ -210,7 +210,7 @@ Let me discover the tasks and spawn parallel agents..."
 
 Then follow ALL steps in the workflow file you just read.
 
-### If argument is `subtasks` with `--file`, `--text`, or `--review` (alternative source):
+### If argument is `subtasks` with `--file`, `--text`, or `--review-diary` (alternative source):
 
 **MANDATORY FIRST STEP:** Use the Read tool to read `context/workflows/ralph/planning/subtasks-from-source.md` (relative to project root). DO NOT proceed without reading this file first - it contains the full workflow you MUST follow.
 
@@ -219,10 +219,9 @@ Then follow ALL steps in the workflow file you just read.
 1. An alternative source must be provided - one of:
    - `--file <path>` (e.g., `/ralph-plan subtasks --file ./review-findings.md`)
    - `--text <string>` (e.g., `/ralph-plan subtasks --text "Fix array bounds check"`)
-   - `--review` flag to parse `logs/reviews.jsonl`
-2. Optionally accept `--1-to-1` flag to bypass decomposition/sizing logic (one input item → one subtask)
+   - `--review-diary` flag to parse `logs/reviews.jsonl`
 3. Read the source and extract actionable items
-4. Generate subtasks following the schema and sizing constraints from the workflow (unless `--1-to-1` is set)
+4. Generate subtasks following the schema and sizing constraints from the workflow
 5. Write to `docs/planning/subtasks.json` or specified milestone location using appendSubtasksToFile()
 
 Begin the session with:
@@ -436,7 +435,7 @@ Generate subtasks from hierarchy (tasks in milestone/story) or alternative sourc
 |------|---------|---------|
 | `--file` | `--file ./spec.md` | File content → subtasks |
 | `--text` | `--text "Fix bug"` | Text description → subtasks |
-| `--review` | `--review` | Review diary findings → subtasks |
+| `--review-diary` | `--review-diary` | Review diary findings → subtasks |
 
 ### Invocation
 
@@ -449,7 +448,7 @@ aaa ralph plan subtasks --task TASK-001 --headless
 # Alternative sources (explicit flags)
 aaa ralph plan subtasks --file ./review-findings.md
 aaa ralph plan subtasks --text "Fix array bounds check"
-aaa ralph plan subtasks --review
+aaa ralph plan subtasks --review-diary
 
 # With sizing
 aaa ralph plan subtasks --milestone 003-ralph --size small --headless
@@ -458,7 +457,6 @@ aaa ralph plan subtasks --milestone 003-ralph --size small --headless
 ### Optional Flags
 
 - `--size <mode>` - Slice thickness: small, medium (default), large
-- `--1-to-1` - Direct mapping mode: bypass decomposition/sizing logic
 
 ### What Happens
 
@@ -482,18 +480,6 @@ aaa ralph plan subtasks --milestone 003-ralph --size small --headless
 - Subtasks must be completable in 15-30 tool calls
 - Subtask IDs use `SUB-NNN` and are milestone-scoped in the target queue (see `@context/workflows/ralph/planning/subtask-spec.md`)
 
-### When to Use `--1-to-1`
-
-Use the `--1-to-1` flag when:
-- **Tasks are already well-scoped** - Each input item is already the right size for a subtask
-- **You want predictable output** - One input item → one subtask, no splitting or merging
-- **Importing from external sources** - Converting issue tracker items or PR descriptions directly
-
-Do NOT use when:
-- Input items vary wildly in scope (some huge, some tiny)
-- You want intelligent sizing and decomposition
-- Items need to be grouped or split for optimal context window usage
-
 ## CLI Equivalent
 
 This skill provides the same functionality as:
@@ -515,7 +501,7 @@ aaa ralph plan subtasks --task <task-id>          # Single task → subtasks
 # Subtasks from alternative sources
 aaa ralph plan subtasks --file ./spec.md          # File → subtasks
 aaa ralph plan subtasks --text "Fix bug"          # Text → subtasks
-aaa ralph plan subtasks --review                  # Review diary → subtasks
+aaa ralph plan subtasks --review-diary            # Review diary → subtasks
 ```
 
 ## References

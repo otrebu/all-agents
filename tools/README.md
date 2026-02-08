@@ -392,7 +392,6 @@ aaa ralph plan subtasks --task TASK-014
 # Alternative sources (generate from arbitrary input)
 aaa ralph plan subtasks --file ./review-findings.md
 aaa ralph plan subtasks --text "Fix array bounds check in review command"
-aaa ralph plan subtasks --review-diary   # Parse logs/reviews.jsonl
 
 # Approval controls
 aaa ralph plan subtasks --milestone 003-feature --force
