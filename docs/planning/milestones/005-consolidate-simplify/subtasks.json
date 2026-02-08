@@ -80,7 +80,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Strengthen subtask ID uniqueness in config.ts",
       "description": "Update `appendSubtasksToFile()` in `tools/src/commands/ralph/config.ts` to: (1) detect duplicate IDs within the incoming batch itself (not just against existing file), (2) reject writes with clear error on duplicates. Addresses Inconsistency 7 (runtime enforcement).",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "appendSubtasksToFile() throws on duplicate IDs within an incoming batch",
         "Unit test: passing batch with duplicate IDs fails fast with descriptive error",
@@ -94,7 +94,10 @@
       ],
       "blockedBy": [
         "SUB-002"
-      ]
+      ],
+      "completedAt": "2026-02-08T18:23:23Z",
+      "commitHash": "416ed65f2380b7ee0941f432ec5930d38db4b895",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-005",

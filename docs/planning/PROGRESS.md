@@ -25,6 +25,11 @@
 - **Changes:** Updated the canonical naming doc to require `<NNN>-<slug>/` milestone directories plus `<NNN>-STORY-<slug>.md` and `<NNN>-TASK-<slug>.md` artifact filenames, replaced the legacy no-prefix guidance with explicit type-segment requirements, and refreshed JSON-ref and migration examples to the new conventions.
 - **Files:** `context/blocks/docs/naming-convention.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-004
+- **Problem:** `appendSubtasksToFile()` only de-duplicated against IDs already in the destination queue file, so a single incoming batch could still contain duplicate subtask IDs.
+- **Changes:** Added runtime duplicate-ID detection for incoming append batches in `config.ts` and fail-fast erroring before any write occurs. Expanded config unit tests with a regression case for duplicate IDs in one batch and a milestone-scope case proving two different milestone queues can each use `SUB-001` without conflict, while preserving existing duplicate-against-existing-file behavior.
+- **Files:** `tools/src/commands/ralph/config.ts`, `tools/tests/lib/config.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
