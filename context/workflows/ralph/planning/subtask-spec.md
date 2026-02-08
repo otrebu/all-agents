@@ -11,7 +11,7 @@ Each subtask MUST have these fields:
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Unique ID: `SUB-NNN` pattern (e.g., `SUB-001`) |
-| `taskRef` | string | Parent task reference: `NNN-slug` pattern (e.g., `014-review-code-quality`) |
+| `taskRef` | string | Parent task reference: `<NNN>-TASK-<slug>` pattern (e.g., `014-TASK-review-code-quality`) |
 | `title` | string | Short title (max 100 chars) for commits and tracking |
 | `description` | string | Detailed description of what to implement |
 | `done` | boolean | Always `false` for new subtasks |
@@ -30,8 +30,8 @@ Each subtask MUST have these fields:
 ```json
 {
   "id": "SUB-001",
-  "taskRef": "014-review-code-quality",
-  "storyRef": "001-parallel-code-review",
+  "taskRef": "014-TASK-review-code-quality",
+  "storyRef": "001-STORY-parallel-code-review",
   "title": "Create user input validation schema",
   "description": "Add Zod schema for CreateUserInput with email and password validation in src/schemas/user.ts",
   "done": false,
@@ -121,13 +121,13 @@ Each subtask should:
 
 To generate subtask IDs:
 
-1. **Scan existing subtasks** - Check all `subtasks.json` files in the project
-2. **Find highest SUB-NNN** - Determine the maximum number used
+1. **Target one milestone queue file** - Use only the destination `docs/planning/milestones/<milestone>/subtasks.json`
+2. **Find highest SUB-NNN in that file** - Determine the maximum number already present in the target queue
 3. **Increment** - New IDs start at max + 1, zero-padded to 3 digits
 
 If no subtasks exist, start with `SUB-001`.
 
-**IDs are globally unique** across all subtasks in the project.
+**IDs are milestone-scoped** to the target queue file and must be unique within that file.
 
 ## Validation Checklist
 

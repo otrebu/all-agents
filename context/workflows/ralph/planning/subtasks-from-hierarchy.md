@@ -42,13 +42,12 @@ If no tasks found:
 
 ### 2. Determine Starting Subtask ID
 
-Scan existing subtasks in **ALL locations**:
-- `docs/planning/subtasks.json` (global/legacy)
-- `docs/planning/milestones/*/subtasks.json` (milestone-scoped)
+Use milestone-scoped allocation from the target queue file only:
+- `docs/planning/milestones/<milestone>/subtasks.json`
 
-1. Extract all SUB-NNN patterns from existing subtasks
-2. Find highest existing number
-3. Starting ID = highest + 1 (or 1 if no subtasks exist)
+1. Extract existing `SUB-NNN` IDs from the target milestone queue
+2. Find highest existing number in that file
+3. Starting ID = highest + 1 (or 1 if the file is missing/empty)
 
 ### 3. Spawn Parallel Subtask Generators
 
@@ -148,7 +147,7 @@ Before spawning agents, verify:
 - [ ] Milestone directory exists (for `--milestone`)
 - [ ] Story exists and has linked tasks (for `--story`)
 - [ ] Tasks directory has .md files
-- [ ] Starting ID is calculated correctly (scanning ALL subtask locations)
+- [ ] Starting ID is calculated correctly from the target milestone queue only
 
 ## CLI Invocation
 

@@ -125,7 +125,7 @@ The Narrative section uses JTBD format to capture user motivation:
 
 Story files should be named:
 ```
-STORY-<NNN>-<slug>.md
+<NNN>-STORY-<slug>.md
 ```
 
 Where:
@@ -133,9 +133,9 @@ Where:
 - `<slug>` is a kebab-case description of the story
 
 **Examples:**
-- `STORY-001-developer-auth.md`
-- `STORY-002-project-setup.md`
-- `STORY-003-inline-errors.md`
+- `001-STORY-developer-auth.md`
+- `002-STORY-project-setup.md`
+- `003-STORY-inline-errors.md`
 
 ## Output Location
 
@@ -187,7 +187,7 @@ Before finalizing stories, verify compliance with @context/blocks/docs/story-tem
 - [ ] Personas are specific, not generic "user"
 - [ ] Acceptance criteria are user-visible, not technical
 - [ ] Stories belong to exactly one milestone
-- [ ] File names follow STORY-NNN-slug.md convention
+- [ ] File names follow `<NNN>-STORY-<slug>.md` convention
 
 ## Execution
 
@@ -206,8 +206,8 @@ After creating stories, summarize what you created:
 
 ```
 Created N stories for milestone '<milestone>':
-1. STORY-001-<slug>: <brief description>
-2. STORY-002-<slug>: <brief description>
+1. 001-STORY-<slug>: <brief description>
+2. 002-STORY-<slug>: <brief description>
 ...
 
 Files created in: docs/planning/milestones/<milestone>/stories/
