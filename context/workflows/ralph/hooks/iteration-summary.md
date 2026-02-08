@@ -13,7 +13,7 @@ These variables are substituted before the prompt is sent to the summary model.
 | `{{SUBTASK_ID}}` | Current subtask identifier. | `SUB-398` | Yes |
 | `{{SUBTASK_TITLE}}` | Human-readable subtask title. | `Add Available Variables documentation section to iteration-summary.md prompt` | Yes |
 | `{{SUBTASK_DESCRIPTION}}` | Detailed subtask description text. | `Update context/workflows/ralph/hooks/iteration-summary.md to add a comprehensive "Available Template Variables" section...` | No |
-| `{{STATUS}}` | Iteration outcome. | `success` | Yes |
+| `{{STATUS}}` | Iteration outcome. | `completed` | Yes |
 | `{{MILESTONE}}` | Parent milestone identifier/name. | `003-ralph-workflow` | No |
 | `{{TASK_REF}}` | Parent task reference. | `035-document-template-variables` | No |
 | `{{ITERATION_NUM}}` | Iteration attempt number (1-based). | `1` | No |
@@ -41,7 +41,7 @@ Output a JSON object with these fields:
 ```json
 {
   "subtaskId": "{{SUBTASK_ID}}",
-  "status": "success|failure|partial",
+  "status": "completed|failed|retrying",
   "summary": "1-3 sentence summary of what happened",
   "keyFindings": ["finding1", "finding2"]
 }
@@ -62,31 +62,31 @@ Output a JSON object with these fields:
 
 **Examples:**
 
-Success:
+Completed:
 ```json
 {
   "subtaskId": "task-015-04",
-  "status": "success",
+  "status": "completed",
   "summary": "Implemented user authentication. Added JWT token validation to 3 endpoints.",
   "keyFindings": ["Added auth middleware", "Updated user routes", "All tests passing"]
 }
 ```
 
-Failure:
+Failed:
 ```json
 {
   "subtaskId": "task-015-04",
-  "status": "failure",
+  "status": "failed",
   "summary": "Failed to implement auth - TypeScript errors in middleware. Tests blocked.",
   "keyFindings": ["Type mismatch in auth handler", "Missing jwt dependency", "3 test failures"]
 }
 ```
 
-Partial:
+Retrying:
 ```json
 {
   "subtaskId": "task-015-04",
-  "status": "partial",
+  "status": "retrying",
   "summary": "Auth middleware added but token validation incomplete. Tests skipped.",
   "keyFindings": ["Middleware scaffolded", "Validation logic TODO", "Needs follow-up"]
 }
