@@ -60,6 +60,11 @@
 - **Changes:** Updated `.claude/skills/ralph-build/SKILL.md` to align with runtime defaults (`--max-iterations` default `0`, supervised default mode), removed divergent path-prompt behavior, added milestone-scoped assignment guidance via `aaa ralph subtasks next`, and explicitly marked `aaa ralph build` as runtime source of truth. Updated `.claude/skills/ralph-status/SKILL.md` to describe TypeScript runtime behavior and removed shell script references. Updated `docs/ralph/README.md` build wording to supervised default and aligned execution-mode text.
 - **Files:** `.claude/skills/ralph-build/SKILL.md`, `.claude/skills/ralph-status/SKILL.md`, `docs/ralph/README.md`
 
+### SUB-011
+- **Problem:** `iteration-summary.md` still used legacy status vocabulary (`success|failure|partial`) that drifted from the canonical iteration diary schema and TypeScript `IterationStatus` union.
+- **Changes:** Updated the iteration summary hook prompt to use `completed|failed|retrying` in the `{{STATUS}}` example value, output JSON contract, and all status examples so prompt guidance matches runtime/schema vocabulary exactly.
+- **Files:** `context/workflows/ralph/hooks/iteration-summary.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

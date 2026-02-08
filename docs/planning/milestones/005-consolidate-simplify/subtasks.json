@@ -256,7 +256,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Fix iteration-summary status vocabulary",
       "description": "Update `context/workflows/ralph/hooks/iteration-summary.md` to use canonical status names (`completed|failed|retrying`) matching iteration-diary schema and TypeScript types, replacing `success|failure|partial`. Addresses Inconsistency 5 (status vocabulary). Phase 5.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "iteration-summary.md uses `completed|failed|retrying` not `success|failure|partial`",
         "Status vocabulary matches iteration-diary.schema.json enum exactly",
@@ -267,7 +267,10 @@
         "docs/planning/schemas/iteration-diary.schema.json",
         "tools/src/commands/ralph/types.ts",
         "docs/planning/consolidating.md"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:13:59Z",
+      "commitHash": "7158912b78f2ad1b9ee23b88dcb119957a16d367",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-012",
