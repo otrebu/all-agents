@@ -226,6 +226,8 @@ describe("ralph E2E", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("--review-diary");
     expect(stdout).toContain("--file, --text, --review-diary");
+    expect(stdout).toContain("sources (--file, --text, --review-diary)");
+    expect(stdout).toContain("Parse logs/reviews.jsonl for findings");
   });
 
   test("ralph plan subtasks missing-source guidance includes --review-diary", async () => {
@@ -238,6 +240,10 @@ describe("ralph E2E", () => {
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Must provide a source");
     expect(stdout).toContain("--review-diary");
+    expect(stdout).toContain(
+      "aaa ralph plan subtasks --review-diary      # Review diary",
+    );
+    expect(stdout).not.toContain("aaa ralph plan subtasks --review      #");
   });
 
   test("ralph plan subtasks multiple-source error lists --review-diary", async () => {
@@ -1579,6 +1585,77 @@ A test task for pre-check verification.
   });
 
   describe("subtask headless queue outcomes", () => {
+    test("plan subtasks --headless fails when provider returns success but queue is unchanged", async () => {
+      const outputDirectory = join(
+        temporaryDirectory,
+        "headless-out-unchanged",
+      );
+      mkdirSync(outputDirectory, { recursive: true });
+      const subtasksPath = join(outputDirectory, "subtasks.json");
+
+      writeFileSync(
+        subtasksPath,
+        JSON.stringify(
+          {
+            metadata: { milestoneRef: "test-headless", scope: "milestone" },
+            subtasks: [
+              {
+                acceptanceCriteria: ["Already exists"],
+                description: "Existing queue entry",
+                done: false,
+                filesToRead: [],
+                id: "SUB-001",
+                taskRef: "TASK-001-test",
+                title: "Existing",
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      );
+
+      const mockClaudePath = join(temporaryDirectory, "claude");
+      writeFileSync(
+        mockClaudePath,
+        `#!/bin/bash
+echo '[{"type":"result","result":"ok","duration_ms":10,"total_cost_usd":0.01,"session_id":"sess-unchanged"}]'
+`,
+        { mode: 0o755 },
+      );
+
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--text",
+          "Create queue",
+          "--headless",
+          "--output-dir",
+          outputDirectory,
+        ],
+        {
+          cwd: TOOLS_DIR,
+          env: {
+            ...process.env,
+            PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+          },
+          reject: false,
+        },
+      );
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("no valid subtasks queue outcome");
+      expect(stderr).toContain("Expected updated queue at:");
+      expect(stderr).toContain(
+        "Queue file was unchanged after provider execution (no observable update).",
+      );
+    });
+
     test("plan subtasks --headless fails when provider returns success but queue is not produced", async () => {
       const outputDirectory = join(temporaryDirectory, "headless-out-missing");
       mkdirSync(outputDirectory, { recursive: true });

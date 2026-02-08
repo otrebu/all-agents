@@ -110,6 +110,11 @@
 - **Changes:** Updated `.claude/skills/ralph-plan/SKILL.md` to remove all `--1-to-1` guidance and stale `aaa ralph plan subtasks --review` examples, and aligned remaining review-source references to `--review-diary`; removed the `--review-diary` example from the `tools/README.md` subtasks options block while preserving valid `--milestone`, `--story`, `--task`, `--file`, and `--text` examples.
 - **Files:** `.claude/skills/ralph-plan/SKILL.md`, `tools/README.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-021
+- **Problem:** E2E coverage needed stronger regression assertions for the subtasks source contract (`--review-diary`) and deterministic headless failure when provider success produces no observable queue result.
+- **Changes:** Expanded `ralph.test.ts` source-contract assertions to check help/missing-source text for `--review-diary` naming and added a dedicated headless regression that fails when provider execution returns success but leaves an existing queue unchanged; re-ran the full Ralph E2E suite plus targeted pre-check coverage to confirm existing skip behavior still passes.
+- **Files:** `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

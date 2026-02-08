@@ -512,7 +512,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Add regression tests for subtasks contract and headless outcomes",
       "description": "Add/adjust E2E coverage in `tools/tests/e2e/ralph.test.ts` for plan-subtasks source contract and deterministic headless completion, including failure when provider run returns without a valid queue outcome.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "E2E tests assert source validation/help text uses `--review-diary` naming consistently",
         "A test covers headless failure path when no valid queue result is produced",
@@ -528,7 +528,10 @@
         "SUB-018",
         "SUB-019",
         "SUB-020"
-      ]
+      ],
+      "completedAt": "2026-02-08T20:17:58Z",
+      "commitHash": "20f5e415f298ffd0e5879e5c98236cba6e02d1a6",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     }
   ]
 }
