@@ -65,6 +65,11 @@
 - **Changes:** Updated the iteration summary hook prompt to use `completed|failed|retrying` in the `{{STATUS}}` example value, output JSON contract, and all status examples so prompt guidance matches runtime/schema vocabulary exactly.
 - **Files:** `context/workflows/ralph/hooks/iteration-summary.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-012
+- **Problem:** Planning workflow docs still mixed global subtask-ID guidance and old story/task naming patterns, conflicting with milestone-scoped naming and placement decisions.
+- **Changes:** Updated subtask ID guidance to milestone-scoped queue allocation in `subtask-spec.md`, removed ALL-locations ID scan guidance from `subtasks-from-hierarchy.md`, switched story/task filename conventions to `<NNN>-STORY-<slug>.md` and `<NNN>-TASK-<slug>.md` with milestone-first placement in `stories-auto.md` and `tasks-auto.md`, and removed remaining "globally unique" subtask wording from `subtasks-from-source.md`.
+- **Files:** `context/workflows/ralph/planning/subtask-spec.md`, `context/workflows/ralph/planning/subtasks-from-hierarchy.md`, `context/workflows/ralph/planning/stories-auto.md`, `context/workflows/ralph/planning/tasks-auto.md`, `context/workflows/ralph/planning/subtasks-from-source.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

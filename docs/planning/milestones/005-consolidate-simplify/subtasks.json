@@ -277,7 +277,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Update planning workflow docs for milestone-scoped naming",
       "description": "Update planning workflow docs: (1) `subtask-spec.md` - change ID Generation from global to milestone-scoped, (2) `subtasks-from-hierarchy.md` - remove ALL locations scan, (3) `stories-auto.md` - use `<NNN>-STORY-<slug>.md` and milestone-first placement, (4) `tasks-auto.md` - use `<NNN>-TASK-<slug>.md` and milestone-first placement. Addresses Inconsistencies 6 and 8. Phase 5.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "subtask-spec.md ID Generation section references milestone-scoped allocation only",
         "subtasks-from-hierarchy.md no longer scans 'ALL locations' for subtask IDs",
@@ -295,7 +295,10 @@
       ],
       "blockedBy": [
         "SUB-003"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:17:20Z",
+      "commitHash": "d19295b669773561e45b15e598fd690e58a300c4",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-013",
