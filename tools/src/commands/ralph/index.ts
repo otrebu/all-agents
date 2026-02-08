@@ -28,6 +28,7 @@ import {
   ORPHAN_MILESTONE_ROOT,
 } from "./config";
 import {
+  formatDuration,
   type PlanSubtasksSummaryData,
   renderInvocationHeader,
   renderPlanSubtasksSummary,
@@ -384,23 +385,75 @@ async function invokeClaudeHeadless(
   console.log();
 
   const timeoutConfig = loadTimeoutConfig();
-  const result =
-    provider === "claude"
-      ? await invokeClaudeHeadlessAsyncFromModule({
-          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-          model,
-          prompt: fullPrompt,
-          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-          timeout: timeoutConfig.hardMinutes * 60 * 1000,
-        })
-      : await invokeWithProvider(provider, {
-          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-          mode: "headless",
-          model,
-          prompt: fullPrompt,
-          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-          timeout: timeoutConfig.hardMinutes * 60 * 1000,
-        });
+  const heartbeatStartedAt = Date.now();
+  const HEARTBEAT_INTERVAL_MS = 30_000;
+  const VERBOSE_INTERVAL_MS = 10 * 60 * 1000;
+  let hasPendingDots = false;
+  let nextVerboseAt = heartbeatStartedAt + VERBOSE_INTERVAL_MS;
+
+  function writeHeartbeat(text: string): void {
+    try {
+      process.stdout.write(text);
+    } catch {
+      // Extremely rare, but avoid crashing planning runs.
+      console.log(text);
+    }
+  }
+
+  const heartbeatTimer = setInterval(() => {
+    writeHeartbeat(".");
+    hasPendingDots = true;
+
+    const now = Date.now();
+    if (now >= nextVerboseAt) {
+      const elapsed = now - heartbeatStartedAt;
+      writeHeartbeat("\n");
+      hasPendingDots = false;
+      console.log(
+        chalk.dim(
+          `[${provider} planning] still running (${formatDuration(elapsed)})...`,
+        ),
+      );
+      nextVerboseAt = now + VERBOSE_INTERVAL_MS;
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+
+  // Avoid keeping the process alive solely because of the heartbeat timer.
+  const maybeTimer = heartbeatTimer as unknown as { unref?: () => void };
+  if (typeof maybeTimer.unref === "function") {
+    maybeTimer.unref();
+  }
+
+  function stopHeartbeat(): void {
+    clearInterval(heartbeatTimer);
+    if (hasPendingDots) {
+      writeHeartbeat("\n");
+      hasPendingDots = false;
+    }
+  }
+
+  const result = await (async () => {
+    try {
+      return provider === "claude"
+        ? await invokeClaudeHeadlessAsyncFromModule({
+            gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+            model,
+            prompt: fullPrompt,
+            stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+            timeout: timeoutConfig.hardMinutes * 60 * 1000,
+          })
+        : await invokeWithProvider(provider, {
+            gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+            mode: "headless",
+            model,
+            prompt: fullPrompt,
+            stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+            timeout: timeoutConfig.hardMinutes * 60 * 1000,
+          });
+    } finally {
+      stopHeartbeat();
+    }
+  })();
 
   if (result === null) {
     console.error(

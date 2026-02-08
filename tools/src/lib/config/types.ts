@@ -230,7 +230,7 @@ interface TimeoutsConfig {
   graceSeconds?: number;
   /** Hard timeout in minutes - safety net for edge cases (default: 60) */
   hardMinutes?: number;
-  /** Stall detection threshold in minutes - no stderr output (default: 10) */
+  /** Stall detection threshold in minutes - no stderr output (default: 25) */
   stallMinutes?: number;
 }
 
