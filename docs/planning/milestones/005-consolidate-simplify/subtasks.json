@@ -131,7 +131,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Strip legacy status fields on queue write",
       "description": "Add a normalization step in the subtasks.json save path (config.ts) that strips legacy `status` fields from subtask entries when writing. Loading continues to tolerate `status` for backward compatibility. Addresses Inconsistency 9.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "saveSubtasksFile() strips `status` key from each subtask entry before writing",
         "loadSubtasksFile() still loads files with legacy `status` without error",
@@ -143,7 +143,10 @@
         "tools/src/commands/ralph/status.ts",
         "docs/planning/milestones/003-ralph-workflow/subtasks.json",
         "docs/planning/consolidating.md"
-      ]
+      ],
+      "completedAt": "2026-02-08T18:46:01Z",
+      "commitHash": "bf3b18bbf3fd6f15461128e02b816ad266807736",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-007",

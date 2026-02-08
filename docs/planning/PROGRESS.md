@@ -35,6 +35,11 @@
 - **Changes:** Added `aaa ralph subtasks next|list|complete` commands with required `--milestone` context, wired `next` to reuse `getNextSubtask()` selection logic, added completion metadata persistence (`done`, `completedAt`, `commitHash`, `sessionId`), and added E2E coverage for selection behavior, pending list filtering, completion updates, and missing-milestone failures. Updated `tools/README.md` with new subtask queue command docs/examples.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `tools/README.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-006
+- **Problem:** Milestone queue files still carried legacy subtask-level `status` fields, creating a confusing mixed queue model even though runtime completion logic is keyed on `done`.
+- **Changes:** Added save-time queue normalization in `saveSubtasksFile()` to strip legacy `status` keys from each subtask entry while preserving other fields, kept `loadSubtasksFile()` backward-compatible for legacy files, and added regression tests for legacy-load tolerance, write normalization, and unchanged `aaa ralph status` progress output after normalization.
+- **Files:** `tools/src/commands/ralph/config.ts`, `tools/tests/lib/config.test.ts`, `tools/tests/lib/status.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
