@@ -93,4 +93,20 @@ describe("naming", () => {
 
     expect(nextSubtaskId(subtasksA)).toBe("SUB-005");
   });
+
+  test("nextSubtaskId is file-local across milestones", () => {
+    const milestoneA = join(testDirectory, "005-consolidate-simplify");
+    const milestoneB = join(testDirectory, "006-next-milestone");
+    mkdirSync(milestoneA, { recursive: true });
+    mkdirSync(milestoneB, { recursive: true });
+
+    const subtasksA = join(milestoneA, "subtasks.json");
+    const subtasksB = join(milestoneB, "subtasks.json");
+
+    writeFileSync(subtasksA, JSON.stringify({ subtasks: [] }, null, 2));
+    writeFileSync(subtasksB, JSON.stringify({ subtasks: [] }, null, 2));
+
+    expect(nextSubtaskId(subtasksA)).toBe("SUB-001");
+    expect(nextSubtaskId(subtasksB)).toBe("SUB-001");
+  });
 });

@@ -88,6 +88,21 @@ describe("buildIterationContext", () => {
       "context: `Work ONLY on the assigned subtask below.",
     );
   });
+
+  test("passes the same assignment payload inputs at both call sites", () => {
+    const source = readFileSync(
+      path.join(import.meta.dir, "../../src/commands/ralph/build.ts"),
+      "utf8",
+    );
+
+    const headlessCall =
+      /const extraContext = buildIterationContext\(\s*currentSubtask,\s*subtasksPath,\s*progressPath,\s*\);/m;
+    const supervisedCall =
+      /const iterationContext = buildIterationContext\(\s*currentSubtask,\s*subtasksPath,\s*progressPath,\s*\);/m;
+
+    expect(headlessCall.test(source)).toBe(true);
+    expect(supervisedCall.test(source)).toBe(true);
+  });
 });
 
 describe("getSubtasksSizeGuidanceLines", () => {
@@ -118,6 +133,25 @@ describe("getSubtasksSizeGuidanceLines", () => {
     expect(
       messages.some((m) => m.includes("Queue status: 12 total, 0 pending")),
     ).toBe(true);
+    expect(
+      messages.some((m) =>
+        m.includes("Provider invocation may not be able to update this file"),
+      ),
+    ).toBe(false);
+  });
+
+  test("handles large completed queues (50+) with pending=0 gracefully", () => {
+    const lines = getSubtasksSizeGuidanceLines({
+      queueStats: { completed: 55, pending: 0, total: 55 },
+      sizeCheck: { exceeded: true, hardLimitExceeded: true, tokens: 42_000 },
+      subtasksPath: "/repo/subtasks.json",
+    });
+
+    const messages = lines.map((line) => line.message);
+    expect(
+      messages.some((m) => m.includes("Queue status: 55 total, 0 pending")),
+    ).toBe(true);
+    expect(messages.some((m) => m.includes("archive subtasks"))).toBe(true);
     expect(
       messages.some((m) =>
         m.includes("Provider invocation may not be able to update this file"),

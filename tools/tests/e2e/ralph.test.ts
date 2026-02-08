@@ -374,6 +374,9 @@ describe("ralph E2E", () => {
       );
       expect(nextResult.stdout).toContain("SUB-002: Ready");
 
+      const nextMatch = /\b(?<subtaskId>SUB-\d{3})\b/.exec(nextResult.stdout);
+      expect(nextMatch).not.toBeNull();
+
       const printResult = await execa(
         "bun",
         ["run", "dev", "ralph", "build", "--print", "--subtasks", subtasksPath],
@@ -384,6 +387,14 @@ describe("ralph E2E", () => {
       expect(printResult.stdout).toContain("Selected subtask: SUB-002 (Ready)");
       expect(printResult.stdout).toContain("Assigned subtask:");
       expect(printResult.stdout).toContain('"id": "SUB-002"');
+      const printMatch =
+        /Selected subtask: (?<selectedSubtaskId>SUB-\d{3}) \(/.exec(
+          printResult.stdout,
+        );
+      expect(printMatch).not.toBeNull();
+      expect(printMatch?.groups?.selectedSubtaskId).toBe(
+        nextMatch?.groups?.subtaskId,
+      );
       expect(printResult.stdout).not.toContain(largeMarker);
       expect(printResult.stdout.length).toBeLessThan(90_000);
     });
@@ -431,6 +442,56 @@ describe("ralph E2E", () => {
       expect(stdout).toContain(
         "No runnable subtask: queue is empty (all subtasks are done).",
       );
+    });
+
+    test("handles large completed queues (50+) gracefully when pending=0", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "005-test-build-print-empty-large",
+      );
+      mkdirSync(milestoneDirectory, { recursive: true });
+      const subtasksPath = join(milestoneDirectory, "subtasks.json");
+
+      const completedSubtasks = Array.from({ length: 60 }, (_, index) => {
+        const id = String(index + 1).padStart(3, "0");
+        return {
+          acceptanceCriteria: ["Done"],
+          description: "Completed queue entry",
+          done: true,
+          filesToRead: [],
+          id: `SUB-${id}`,
+          taskRef: "TASK-001-test",
+          title: `Done ${id}`,
+        };
+      });
+
+      writeFileSync(
+        subtasksPath,
+        JSON.stringify(
+          {
+            metadata: {
+              milestoneRef: "005-test-build-print-empty-large",
+              scope: "milestone",
+            },
+            subtasks: completedSubtasks,
+          },
+          null,
+          2,
+        ),
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "build", "--print", "--subtasks", subtasksPath],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain(
+        "No runnable subtask: queue is empty (all subtasks are done).",
+      );
+      expect(stdout).not.toContain("SUB-060");
+      expect(stdout.length).toBeLessThan(5000);
     });
 
     test("prints clear blocked message when pending subtasks are blocked", async () => {
