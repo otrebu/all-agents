@@ -303,6 +303,195 @@ describe("ralph E2E", () => {
     expect(stderr).toContain("Subtasks file not found");
   });
 
+  describe("ralph build --print", () => {
+    test("prints effective prompt for next runnable subtask and keeps output bounded", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "005-test-build-print",
+      );
+      mkdirSync(milestoneDirectory, { recursive: true });
+      const subtasksPath = join(milestoneDirectory, "subtasks.json");
+
+      const largeMarker = "NON_SELECTED_QUEUE_SENTINEL-".repeat(3000);
+      const subtasks = [
+        {
+          acceptanceCriteria: ["Blocked"],
+          blockedBy: ["SUB-999"],
+          description: "Blocked first item",
+          done: false,
+          filesToRead: [],
+          id: "SUB-001",
+          taskRef: "TASK-001-test",
+          title: "Blocked",
+        },
+        {
+          acceptanceCriteria: ["Runnable now"],
+          description: "Runnable assignment",
+          done: false,
+          filesToRead: [],
+          id: "SUB-002",
+          taskRef: "TASK-001-test",
+          title: "Ready",
+        },
+        {
+          acceptanceCriteria: ["Pending"],
+          description: largeMarker,
+          done: false,
+          filesToRead: [],
+          id: "SUB-003",
+          taskRef: "TASK-001-test",
+          title: "Large non-selected",
+        },
+      ];
+
+      writeFileSync(
+        subtasksPath,
+        JSON.stringify(
+          {
+            metadata: {
+              milestoneRef: "005-test-build-print",
+              scope: "milestone",
+            },
+            subtasks,
+          },
+          null,
+          2,
+        ),
+      );
+
+      const nextResult = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "subtasks",
+          "next",
+          "--milestone",
+          milestoneDirectory,
+        ],
+        { cwd: TOOLS_DIR },
+      );
+      expect(nextResult.stdout).toContain("SUB-002: Ready");
+
+      const printResult = await execa(
+        "bun",
+        ["run", "dev", "ralph", "build", "--print", "--subtasks", subtasksPath],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(printResult.exitCode).toBe(0);
+      expect(printResult.stdout).toContain("Selected subtask: SUB-002 (Ready)");
+      expect(printResult.stdout).toContain("Assigned subtask:");
+      expect(printResult.stdout).toContain('"id": "SUB-002"');
+      expect(printResult.stdout).not.toContain(largeMarker);
+      expect(printResult.stdout.length).toBeLessThan(90_000);
+    });
+
+    test("prints clear message when queue is empty", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "005-test-build-print-empty",
+      );
+      mkdirSync(milestoneDirectory, { recursive: true });
+      const subtasksPath = join(milestoneDirectory, "subtasks.json");
+
+      writeFileSync(
+        subtasksPath,
+        JSON.stringify(
+          {
+            metadata: {
+              milestoneRef: "005-test-build-print-empty",
+              scope: "milestone",
+            },
+            subtasks: [
+              {
+                acceptanceCriteria: ["Done"],
+                description: "Already completed",
+                done: true,
+                filesToRead: [],
+                id: "SUB-001",
+                taskRef: "TASK-001-test",
+                title: "Done",
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "build", "--print", "--subtasks", subtasksPath],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain(
+        "No runnable subtask: queue is empty (all subtasks are done).",
+      );
+    });
+
+    test("prints clear blocked message when pending subtasks are blocked", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "005-test-build-print-blocked",
+      );
+      mkdirSync(milestoneDirectory, { recursive: true });
+      const subtasksPath = join(milestoneDirectory, "subtasks.json");
+
+      writeFileSync(
+        subtasksPath,
+        JSON.stringify(
+          {
+            metadata: {
+              milestoneRef: "005-test-build-print-blocked",
+              scope: "milestone",
+            },
+            subtasks: [
+              {
+                acceptanceCriteria: ["Blocked"],
+                blockedBy: ["SUB-999"],
+                description: "Blocked",
+                done: false,
+                filesToRead: [],
+                id: "SUB-001",
+                taskRef: "TASK-001-test",
+                title: "Blocked 1",
+              },
+              {
+                acceptanceCriteria: ["Blocked"],
+                blockedBy: ["SUB-998"],
+                description: "Blocked",
+                done: false,
+                filesToRead: [],
+                id: "SUB-002",
+                taskRef: "TASK-001-test",
+                title: "Blocked 2",
+              },
+            ],
+          },
+          null,
+          2,
+        ),
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "ralph", "build", "--print", "--subtasks", subtasksPath],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain(
+        "No runnable subtask: all pending subtasks are blocked.",
+      );
+      expect(stdout).toContain("- SUB-001: blockedBy SUB-999");
+      expect(stdout).toContain("- SUB-002: blockedBy SUB-998");
+    });
+  });
+
   test("ralph build exits cleanly on Ctrl+C during Claude invocation", async () => {
     // Mock claude CLI: terminate itself with SIGINT (simulates user Ctrl+C in child)
     const mockClaudePath = join(temporaryDirectory, "claude");

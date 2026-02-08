@@ -1502,6 +1502,7 @@ function startHeartbeat(label: string, intervalMs = 30_000): () => void {
 export {
   buildAssignedSubtaskJqSnippet,
   buildIterationContext,
+  buildIterationPrompt,
   getSubtaskQueueStats,
   getSubtasksSizeGuidanceLines,
 };

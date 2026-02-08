@@ -14,7 +14,7 @@ import path from "node:path";
 import type { ProviderType } from "./providers/types";
 
 import { runArchive } from "./archive";
-import runBuild from "./build";
+import runBuild, { buildIterationPrompt } from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import { runCascadeFrom, validateCascadeTarget } from "./cascade";
 import {
@@ -671,53 +671,62 @@ ralphCommand.addCommand(
       validateApprovalFlags(options.force, options.review);
 
       const contextRoot = getContextRoot();
-      const promptPath = path.join(
-        contextRoot,
-        "context/workflows/ralph/building/ralph-iteration.md",
-      );
-
-      // Read the prompt file
-      if (!existsSync(promptPath)) {
-        console.error(`Prompt not found: ${promptPath}`);
-        process.exit(1);
-      }
-      const promptContent = readFileSync(promptPath, "utf8");
-
-      // Read context files that would be included
-      const claudeMdPath = path.join(contextRoot, "CLAUDE.md");
-      const progressMdPath = path.join(
-        contextRoot,
-        "docs/planning/PROGRESS.md",
-      );
-
-      const claudeMdContent = existsSync(claudeMdPath)
-        ? readFileSync(claudeMdPath, "utf8")
-        : "# CLAUDE.md not found";
-      const progressMdContent = existsSync(progressMdPath)
-        ? readFileSync(progressMdPath, "utf8")
-        : "# PROGRESS.md not found";
-
-      // For --print mode, output the prompt with context
-      if (options.print) {
-        console.log("=== Ralph Build Prompt ===\n");
-        console.log("--- Prompt (ralph-iteration.md) ---");
-        console.log(promptContent);
-        console.log("\n--- Context: CLAUDE.md ---");
-        console.log(claudeMdContent);
-        console.log("\n--- Context: PROGRESS.md ---");
-        console.log(progressMdContent);
-        console.log(`\n--- Subtasks file: ${options.subtasks} ---`);
-        if (existsSync(options.subtasks)) {
-          console.log(readFileSync(options.subtasks, "utf8"));
-        } else {
-          console.log(`(File not found: ${options.subtasks})`);
-        }
-        console.log("\n=== End of Prompt ===");
-        return;
-      }
 
       // Resolve subtasks path
       const subtasksPath = path.resolve(options.subtasks);
+
+      // For --print mode, render the effective runtime prompt for next assignment.
+      if (options.print) {
+        if (!existsSync(subtasksPath)) {
+          console.error(`Subtasks file not found: ${subtasksPath}`);
+          process.exit(1);
+        }
+
+        const subtasksFile = loadSubtasksFile(subtasksPath);
+        const currentSubtask = getNextSubtask(subtasksFile.subtasks);
+
+        if (currentSubtask === null) {
+          const pending = subtasksFile.subtasks.filter(
+            (subtask) => !subtask.done,
+          );
+          console.log("=== Ralph Build Prompt (--print) ===\n");
+          if (pending.length === 0) {
+            console.log(
+              "No runnable subtask: queue is empty (all subtasks are done).",
+            );
+          } else {
+            console.log(
+              "No runnable subtask: all pending subtasks are blocked.",
+            );
+            console.log("Pending blocked subtasks:");
+            for (const subtask of pending) {
+              const blockedBy = subtask.blockedBy ?? [];
+              const dependencies =
+                blockedBy.length === 0
+                  ? "(no blockedBy listed)"
+                  : blockedBy.join(", ");
+              console.log(`- ${subtask.id}: blockedBy ${dependencies}`);
+            }
+          }
+          console.log("\n=== End of Prompt ===");
+          return;
+        }
+
+        const effectivePrompt = buildIterationPrompt(
+          contextRoot,
+          currentSubtask,
+          subtasksPath,
+        );
+        console.log("=== Ralph Build Prompt (--print) ===\n");
+        console.log(`Subtasks file: ${subtasksPath}`);
+        console.log(
+          `Selected subtask: ${currentSubtask.id} (${currentSubtask.title})`,
+        );
+        console.log("\n--- Effective Iteration Prompt ---");
+        console.log(effectivePrompt);
+        console.log("\n=== End of Prompt ===");
+        return;
+      }
 
       // Determine execution mode: headless or supervised (default)
       const mode = options.headless === true ? "headless" : "supervised";
