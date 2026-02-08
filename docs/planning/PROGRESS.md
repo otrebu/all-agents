@@ -50,6 +50,11 @@
 - **Changes:** Rewrote iteration workflow guidance to make `aaa ralph subtasks next|list|complete --milestone` the primary queue path in Orient, Pre-flight, and Phase 7; removed `build.sh`/"outer loop" wording and placeholder mutation recipes from main workflow steps; retained `jq` only as break-glass troubleshooting guidance and updated Phase 7 to describe the TypeScript single-subtask completion invariant.
 - **Files:** `context/workflows/ralph/building/ralph-iteration.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-009
+- **Problem:** `ralph build --print` dumped the full subtasks file and did not mirror runtime assignment selection/prompt assembly.
+- **Changes:** Reworked `--print` to resolve the next runnable subtask via `getNextSubtask`, render the effective per-iteration prompt for only that assignment, and print explicit queue-empty or all-blocked messages when no runnable item exists. Exported `buildIterationPrompt()` for reuse and added E2E coverage for selection parity with `subtasks next`, bounded output on large queues, and empty/blocked messaging.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/build.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

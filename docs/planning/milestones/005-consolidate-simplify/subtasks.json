@@ -203,7 +203,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Fix --print to show per-iteration effective prompt",
       "description": "Rework `ralph build --print` in index.ts: (1) resolve next runnable subtask using same getNextSubtask logic, (2) print effective iteration prompt for that assignment (not full subtasks file), (3) show explicit note if queue empty or blocked. Addresses Inconsistency 4. Phase 4.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "`aaa ralph build --print` does not dump full subtasks.json content",
         "--print shows effective per-iteration prompt for next selected subtask",
@@ -219,7 +219,10 @@
       ],
       "blockedBy": [
         "SUB-007"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:09:24Z",
+      "commitHash": "1c56d96ebc8e4e65a5e4b9623018fb074330863c",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-010",
