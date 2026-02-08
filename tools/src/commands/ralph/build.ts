@@ -139,6 +139,23 @@ interface SubtaskCompleteHookOptions {
 }
 
 /**
+ * Summary stats for a subtask queue.
+ */
+interface SubtaskQueueStats {
+  completed: number;
+  pending: number;
+  total: number;
+}
+
+/**
+ * A single line of size guidance output for oversized subtasks files.
+ */
+interface SubtasksSizeGuidanceLine {
+  message: string;
+  tone: "dim" | "red" | "yellow";
+}
+
+/**
  * Context for summary generation (populated during build)
  * Used by signal handlers to generate summary on interrupt
  */
@@ -195,6 +212,70 @@ let summaryContext: null | SummaryContext = null;
 // =============================================================================
 
 /**
+ * Build jq command guidance with concrete subtask ID and file path.
+ *
+ * This minimizes model mistakes when updating large subtasks files by ensuring
+ * commands always target `.subtasks[]` and the assigned subtask only.
+ */
+function buildAssignedSubtaskJqSnippet(
+  subtaskId: string,
+  subtasksPath: string,
+): string {
+  const quotedId = escapeShellArgument(subtaskId);
+  const quotedSubtasksPath = escapeShellArgument(subtasksPath);
+  const quotedTemporaryPath = escapeShellArgument(`${subtasksPath}.tmp`);
+
+  return `Use these exact jq commands for this assigned subtask:
+\`\`\`bash
+jq -e --arg id ${quotedId} '.subtasks[] | select(.id==$id and .done==false)' ${quotedSubtasksPath} > /dev/null
+jq --arg id ${quotedId} \\
+   --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \\
+   --arg commit "$(git rev-parse HEAD)" \\
+   --arg session "$(cat .claude/current-session 2>/dev/null || echo '')" \\
+   '(.subtasks[] | select(.id==$id)) |= . + {done:true, completedAt:$ts, commitHash:$commit, sessionId:$session}' \\
+   ${quotedSubtasksPath} > ${quotedTemporaryPath} && mv ${quotedTemporaryPath} ${quotedSubtasksPath}
+jq -e --arg id ${quotedId} '.subtasks[] | select(.id==$id and .done==true)' ${quotedSubtasksPath} > /dev/null
+\`\`\``;
+}
+
+/**
+ * Build shared assignment context consumed by both headless and supervised modes.
+ */
+function buildIterationContext(
+  currentSubtask: Subtask,
+  subtasksPath: string,
+  progressPath: string,
+): string {
+  const subtaskJson = JSON.stringify(currentSubtask, null, 2);
+  const jqCommands = buildAssignedSubtaskJqSnippet(
+    currentSubtask.id,
+    subtasksPath,
+  );
+
+  return `Execute one iteration of the Ralph build loop.
+
+Work ONLY on the assigned subtask below. Do not pick a different subtask.
+
+Assigned subtask:
+\`\`\`json
+${subtaskJson}
+\`\`\`
+
+Subtasks file path: ${subtasksPath}
+Progress log path: ${progressPath}
+
+If you need to inspect the queue, do not read the entire subtasks file; use jq to view only pending items.
+
+${jqCommands}
+
+After completing the assigned subtask (${currentSubtask.id}):
+1. Update subtasks.json for ${currentSubtask.id} with done: true, completedAt, commitHash, sessionId
+2. Append to PROGRESS.md
+3. Create the commit
+4. STOP - do not continue to the next subtask`;
+}
+
+/**
  * Build the iteration prompt with subtask context
  *
  * @param contextRoot - Repository root path
@@ -214,34 +295,12 @@ function buildIterationPrompt(
 
   const promptContent = readFileSync(promptPath, "utf8");
 
-  // Use the canonical PROGRESS.md location relative to the target repo root.
-  const projectRoot = findProjectRoot() ?? contextRoot;
-  const progressPath = path.join(projectRoot, "docs/planning/PROGRESS.md");
-
-  const subtaskJson = JSON.stringify(currentSubtask, null, 2);
-
-  // Build context with assigned subtask and paths (avoid inlining large files)
-  const extraContext =
-    `Execute one iteration of the Ralph build loop.
-
-Work ONLY on the assigned subtask below. Do not pick a different subtask.
-
-Assigned subtask:
-\`\`\`json
-${subtaskJson}
-\`\`\`
-
-Subtasks file path: ${subtasksPath}
-Progress log path: ${progressPath}
-
-If you need to inspect the queue, do not read the entire subtasks file; use ` +
-    `jq to view only pending items.
-
-After completing the assigned subtask (${currentSubtask.id}):
-1. Update subtasks.json for ${currentSubtask.id} with done: true, completedAt, commitHash, sessionId
-2. Append to PROGRESS.md
-3. Create the commit
-4. STOP - do not continue to the next subtask`;
+  const progressPath = resolveProgressPath(contextRoot);
+  const extraContext = buildIterationContext(
+    currentSubtask,
+    subtasksPath,
+    progressPath,
+  );
 
   return buildPrompt(promptContent, extraContext);
 }
@@ -271,6 +330,13 @@ function enforceSingleSubtaskInvariant(
   }
 
   return completionInvariant.completedIds.includes(assignedSubtaskId);
+}
+
+/**
+ * Escape an argument for POSIX shells.
+ */
+function escapeShellArgument(value: string): string {
+  return `'${value.replaceAll("'", `'"'"'`)}'`;
 }
 
 /**
@@ -396,6 +462,77 @@ function getLatestCommitHash(projectRoot: string): null | string {
 }
 
 /**
+ * Summarize pending/completed totals for a subtask list.
+ */
+function getSubtaskQueueStats(subtasks: Array<Subtask>): SubtaskQueueStats {
+  const total = subtasks.length;
+  const pending = countRemaining(subtasks);
+  return { completed: total - pending, pending, total };
+}
+
+/**
+ * Build contextual size warning lines for oversized subtasks.json files.
+ */
+function getSubtasksSizeGuidanceLines(options: {
+  queueStats: SubtaskQueueStats;
+  sizeCheck: { exceeded: boolean; hardLimitExceeded: boolean; tokens: number };
+  subtasksPath: string;
+}): Array<SubtasksSizeGuidanceLine> {
+  const { queueStats, sizeCheck, subtasksPath } = options;
+  if (!sizeCheck.exceeded) {
+    return [];
+  }
+
+  const lines: Array<SubtasksSizeGuidanceLine> = [];
+  const tokensK = Math.round(sizeCheck.tokens / 1000);
+  const limitK = Math.round(SUBTASKS_TOKEN_SOFT_LIMIT / 1000);
+  const archiveCommand = `Run: aaa ralph archive subtasks --subtasks ${subtasksPath}`;
+
+  lines.push({
+    message: `  subtasks.json is ~${tokensK}K tokens (limit: ${limitK}K)`,
+    tone: "yellow",
+  });
+
+  if (queueStats.pending === 0) {
+    lines.push({
+      message: `  Queue status: ${queueStats.total} total, 0 pending (build has nothing to execute).`,
+      tone: "dim",
+    });
+    if (queueStats.completed > 0) {
+      lines.push({
+        message: `  Optional housekeeping: ${archiveCommand}`,
+        tone: "dim",
+      });
+    }
+    return lines;
+  }
+
+  if (queueStats.completed > 0) {
+    lines.push({ message: `  ${archiveCommand}`, tone: "dim" });
+  } else {
+    lines.push({
+      message:
+        "  No completed subtasks to archive yet; keep queue entries compact to stay below hard limits.",
+      tone: "dim",
+    });
+  }
+
+  if (sizeCheck.hardLimitExceeded) {
+    lines.push({
+      message:
+        "  Provider invocation may not be able to update this file via Edit tool.",
+      tone: "red",
+    });
+    lines.push({
+      message: "  Use jq for in-place updates of the assigned subtask only.",
+      tone: "dim",
+    });
+  }
+
+  return lines;
+}
+
+/**
  * Check if max iterations exceeded and handle failure
  *
  * @returns true if exceeded and should exit, false to continue
@@ -455,6 +592,52 @@ function handleModelValidation(
     }
   }
   process.exit(1);
+}
+
+/**
+ * Log model selection based on whether the queue has runnable work.
+ */
+function logModelSelection(options: {
+  hasPendingSubtasks: boolean;
+  model: string | undefined;
+  provider: ProviderType;
+}): void {
+  const { hasPendingSubtasks, model, provider } = options;
+
+  if (hasPendingSubtasks) {
+    handleModelValidation(model, provider);
+    return;
+  }
+
+  if (model !== undefined) {
+    console.log(chalk.dim(`Using model: ${model}`));
+  }
+}
+
+/**
+ * Render and print subtasks size guidance to the terminal.
+ */
+function logSubtasksSizeGuidance(options: {
+  queueStats: SubtaskQueueStats;
+  sizeCheck: { exceeded: boolean; hardLimitExceeded: boolean; tokens: number };
+  subtasksPath: string;
+}): void {
+  const sizeGuidance = getSubtasksSizeGuidanceLines(options);
+  if (sizeGuidance.length === 0) {
+    return;
+  }
+
+  console.log();
+  for (const line of sizeGuidance) {
+    if (line.tone === "red") {
+      console.log(chalk.red(line.message));
+    } else if (line.tone === "yellow") {
+      console.log(chalk.yellow(line.message));
+    } else {
+      console.log(chalk.dim(line.message));
+    }
+  }
+  console.log();
 }
 
 // =============================================================================
@@ -645,9 +828,12 @@ async function processSupervisedIteration(
 
   // Use target project root for logs
   const projectRoot = findProjectRoot() ?? contextRoot;
-
-  // PROGRESS.md is referenced relative to the target repo root in the iteration prompt.
-  const progressPath = path.join(projectRoot, "docs/planning/PROGRESS.md");
+  const progressPath = resolveProgressPath(contextRoot);
+  const iterationContext = buildIterationContext(
+    currentSubtask,
+    subtasksPath,
+    progressPath,
+  );
 
   // Capture commit hash before provider invocation
   const commitBefore = getLatestCommitHash(projectRoot);
@@ -656,7 +842,7 @@ async function processSupervisedIteration(
   const invocationStart = Date.now();
 
   const invocationOutcome = await invokeWithProviderOutcome(provider, {
-    context: `Work ONLY on the assigned subtask below. Do not pick a different subtask.\n\nAssigned subtask:\n${JSON.stringify(currentSubtask, null, 2)}\n\nSubtasks file path: ${subtasksPath}\nProgress log path: ${progressPath}`,
+    context: iterationContext,
     mode: "supervised",
     model,
     promptPath: path.join(contextRoot, ITERATION_PROMPT_PATH),
@@ -848,6 +1034,14 @@ function resolveModel(modelOverride?: string): string | undefined {
 }
 
 /**
+ * Resolve the canonical PROGRESS.md path relative to the target repo root.
+ */
+function resolveProgressPath(contextRoot: string): string {
+  const projectRoot = findProjectRoot() ?? contextRoot;
+  return path.join(projectRoot, "docs/planning/PROGRESS.md");
+}
+
+/**
  * Resolve provider selection and exit with a clean error if invalid.
  */
 async function resolveProviderOrExit(
@@ -930,13 +1124,25 @@ async function runBuild(
     validateFirst: shouldValidateFirst,
   } = options;
 
+  // Validate subtasks file exists before provider/model setup.
+  if (!existsSync(subtasksPath)) {
+    console.error(`Subtasks file not found: ${subtasksPath}`);
+    console.error(`Create one with: aaa ralph plan subtasks --task <task-id>`);
+    process.exit(1);
+  }
+
+  const initialSubtasksFile = loadSubtasksFile(subtasksPath);
+  const initialQueueStats = getSubtaskQueueStats(initialSubtasksFile.subtasks);
+  const hasPendingSubtasks = initialQueueStats.pending > 0;
+
   // Select provider (CLI flag > env var > default)
   const provider = await resolveProviderOrExit(options.provider);
   console.log(chalk.dim(`Using provider: ${provider}`));
 
-  // Select model (CLI flag > config) and validate against provider registry
+  // Select model (CLI flag > config) and validate against provider registry.
+  // Skip strict validation when queue has no runnable work.
   const model = resolveModel(modelOverride);
-  handleModelValidation(model, provider);
+  logModelSelection({ hasPendingSubtasks, model, provider });
 
   // Reset module-level state for cascade mode / multiple runBuild() calls
   hasSummaryBeenGenerated = false;
@@ -945,41 +1151,18 @@ async function runBuild(
   // Register signal handlers for graceful summary on interrupt
   registerSignalHandlers();
 
-  // Validate subtasks file exists
-  if (!existsSync(subtasksPath)) {
-    console.error(`Subtasks file not found: ${subtasksPath}`);
-    console.error(`Create one with: aaa ralph plan subtasks --task <task-id>`);
-    process.exit(1);
+  // Fail fast on provider/mode support only when there is work to execute.
+  if (hasPendingSubtasks) {
+    await runProviderPreflightOrExit(provider, mode);
   }
-
-  // Fail fast when provider/mode combination is unsupported.
-  await runProviderPreflightOrExit(provider, mode);
 
   // Pre-build size check: warn if subtasks.json is getting large
   const sizeCheck = checkSubtasksSize(subtasksPath);
-  if (sizeCheck.exceeded) {
-    const tokensK = Math.round(sizeCheck.tokens / 1000);
-    const limitK = Math.round(SUBTASKS_TOKEN_SOFT_LIMIT / 1000);
-    console.log(
-      chalk.yellow(
-        `\n  subtasks.json is ~${tokensK}K tokens (limit: ${limitK}K)`,
-      ),
-    );
-    console.log(
-      chalk.dim(`  Run: aaa ralph archive subtasks --subtasks ${subtasksPath}`),
-    );
-    if (sizeCheck.hardLimitExceeded) {
-      console.log(
-        chalk.red(
-          `\n  Provider invocation may not be able to update this file via Edit tool.`,
-        ),
-      );
-      console.log(
-        chalk.dim(`  The prompt instructs the agent to use jq instead.`),
-      );
-    }
-    console.log();
-  }
+  logSubtasksSizeGuidance({
+    queueStats: initialQueueStats,
+    sizeCheck,
+    subtasksPath,
+  });
 
   // Track retry attempts per subtask ID
   const attempts = new Map<string, number>();
@@ -1316,4 +1499,10 @@ function startHeartbeat(label: string, intervalMs = 30_000): () => void {
 // Exports
 // =============================================================================
 
+export {
+  buildAssignedSubtaskJqSnippet,
+  buildIterationContext,
+  getSubtaskQueueStats,
+  getSubtasksSizeGuidanceLines,
+};
 export default runBuild;
