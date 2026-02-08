@@ -16,6 +16,8 @@ bin/aaa
 .claude/*.json.backup
 .claude/*.json.backup.*
 .claude/plugins/installed_plugins.json
+.claude/plugins/install-counts-cache.json
+.claude/current-session
 .claude/debug/
 .claude/file-history/
 .claude/history.jsonl
