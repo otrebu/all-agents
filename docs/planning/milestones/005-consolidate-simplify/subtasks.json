@@ -466,7 +466,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Simplify subtasks-from-source prompt for fast deterministic runs",
       "description": "Refactor `context/workflows/ralph/planning/subtasks-from-source.md` to a deterministic path: parse -> analyze -> generate -> validate -> append -> summarize -> stop. Remove `--1-to-1` guidance and remove draft/reviewer/triage loop requirements that prolong headless execution.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "`subtasks-from-source.md` contains no `--1-to-1` references",
         "Workflow no longer requires `tmp/subtasks-draft.json` draft-write phase",
@@ -478,7 +478,10 @@
         "context/workflows/ralph/planning/subtasks-from-source.md",
         "context/workflows/ralph/planning/subtask-spec.md",
         "docs/planning/consolidating.md"
-      ]
+      ],
+      "completedAt": "2026-02-08T20:08:08Z",
+      "commitHash": "2bb715cf0025d27125071afcb7967385e20c53a5",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-020",

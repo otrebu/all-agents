@@ -100,6 +100,11 @@
 - **Changes:** Hardened `runSubtasksHeadless()` to require an observable queue outcome by snapshotting `subtasks.json` before invocation and failing fast (exit 1) with a clear diagnostic when the queue is missing, invalid, or unchanged after provider success; updated summary counts to always include created/total from queue state; added E2E regression tests for the new failure path and the successful headless summary path (created count + output path) while preserving existing skip-path behavior.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-019
+- **Problem:** `subtasks-from-source.md` still included non-deterministic branches (`--1-to-1`, draft output, and review/triage loops) that slowed or prolonged headless runs.
+- **Changes:** Refactored the workflow into a deterministic sequence (`parse -> analyze -> generate -> validate -> append -> summarize -> stop`), removed all `--1-to-1` guidance and examples, removed draft/reviewer/triage phase requirements, and added an explicit stop-immediately instruction after append and summary while retaining references to `subtask-spec.md` for schema and validation rules.
+- **Files:** `context/workflows/ralph/planning/subtasks-from-source.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
