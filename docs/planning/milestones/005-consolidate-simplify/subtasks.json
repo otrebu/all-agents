@@ -442,7 +442,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Enforce deterministic headless completion for plan subtasks",
       "description": "Harden `runSubtasksHeadless()` in `tools/src/commands/ralph/index.ts` to require an observable queue outcome. If provider execution returns but no valid subtasks queue result is produced (outside explicit skip paths), exit non-zero with a clear diagnostic. Ensure successful runs summarize and exit immediately.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Headless subtasks run exits non-zero when provider returns success but no valid queue outcome is produced",
         "Existing explicit skip paths (already-covered task/milestone) still exit 0 with skip messaging",
@@ -456,7 +456,10 @@
       ],
       "blockedBy": [
         "SUB-017"
-      ]
+      ],
+      "completedAt": "2026-02-08T20:05:18Z",
+      "commitHash": "ea70df5f142abe0d4c4c447460478ce475f86bdb",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-019",

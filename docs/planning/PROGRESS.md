@@ -95,6 +95,11 @@
 - **Changes:** Updated source-oriented subtasks messaging in `ralph/index.ts` so help description, multiple-source validation, and source-routing comments consistently use `--review-diary`; added E2E regression coverage that checks `--help`, missing-source guidance, and multiple-source error output for the review diary selector.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-018
+- **Problem:** Headless `ralph plan subtasks` could return provider success without any deterministic queue artifact update, which left runs falsely "successful" and could continue into cascade without observable subtask results.
+- **Changes:** Hardened `runSubtasksHeadless()` to require an observable queue outcome by snapshotting `subtasks.json` before invocation and failing fast (exit 1) with a clear diagnostic when the queue is missing, invalid, or unchanged after provider success; updated summary counts to always include created/total from queue state; added E2E regression tests for the new failure path and the successful headless summary path (created count + output path) while preserving existing skip-path behavior.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
