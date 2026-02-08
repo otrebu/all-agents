@@ -75,6 +75,11 @@
 - **Changes:** Replaced repeated naming/numbering blocks in `stories-auto.md` and `tasks-auto.md` with references to `@context/blocks/docs/naming-convention.md`, added a canonical-rules section to `.claude/skills/ralph-plan/SKILL.md`, and removed stale global-ID guidance in favor of milestone-scoped subtask ID references to `subtask-spec.md`.
 - **Files:** `context/workflows/ralph/planning/stories-auto.md`, `context/workflows/ralph/planning/tasks-auto.md`, `.claude/skills/ralph-plan/SKILL.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-014
+- **Problem:** Phase 6 validation still needed explicit regression coverage for runtime assignment parity, shared headless/supervised assignment payload wiring, naming/file-local numbering behavior, and large completed queue edge handling.
+- **Changes:** Expanded Ralph parity tests by asserting `subtasks next` and `build --print` select the same subtask ID, added a large completed queue (`50+`, `pending=0`) `--print` fixture to verify graceful bounded output, strengthened build unit coverage for shared assignment payload call-site parity and size-guidance behavior for large complete queues, and extended naming tests with explicit cross-milestone file-local `SUB-001` allocation checks.
+- **Files:** `tools/tests/e2e/ralph.test.ts`, `tools/tests/lib/build.test.ts`, `tools/tests/lib/naming.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

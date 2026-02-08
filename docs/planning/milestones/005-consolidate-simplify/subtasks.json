@@ -333,7 +333,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Add integration tests for parity and naming validation",
       "description": "Add integration tests: (1) build + subtasks next parity (same selection result), (2) headless/supervised shared assignment payload parity, (3) --print parity with runtime context, (4) story/task naming in milestone dirs, (5) folder-local numbering, (6) subtask file-local uniqueness. Add fixtures for large queues and pending=0 edge cases. Phase 6 validation.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Test: `subtasks next` and build loop select same subtask for identical queue state",
         "Test: headless/supervised modes produce structurally identical assignment payloads",
@@ -353,7 +353,10 @@
       "blockedBy": [
         "SUB-007",
         "SUB-009"
-      ]
+      ],
+      "completedAt": "2026-02-08T19:29:11Z",
+      "commitHash": "836968f38a0481a485e535c4dacd54c8ab90d091",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-015",
