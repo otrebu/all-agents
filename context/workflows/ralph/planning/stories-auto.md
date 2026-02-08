@@ -121,21 +121,13 @@ The Narrative section uses JTBD format to capture user motivation:
 | As a **team lead**, I want **to view team progress at a glance** so that **I can identify blockers before standup** | As a user, I want a dashboard |
 | As a **new user**, I want **guided setup steps** so that **I can start using the product quickly** | As a user, I want onboarding |
 
-## File Naming Convention
+## Naming Rules (Canonical)
 
-Story files should be named:
-```
-<NNN>-STORY-<slug>.md
-```
+Use canonical naming and numbering rules from:
 
-Where:
-- `<NNN>` is a zero-padded sequence number (001, 002, 003...)
-- `<slug>` is a kebab-case description of the story
+- @context/blocks/docs/naming-convention.md
 
-**Examples:**
-- `001-STORY-developer-auth.md`
-- `002-STORY-project-setup.md`
-- `003-STORY-inline-errors.md`
+For stories, this means the filename pattern is `<NNN>-STORY-<slug>.md` in the target milestone folder.
 
 ## Output Location
 

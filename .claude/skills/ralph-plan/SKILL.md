@@ -8,6 +8,13 @@ argument-hint: <vision|roadmap|stories|tasks|subtasks> [options]
 
 Interactive planning tools for defining product vision, roadmap, user stories, and tasks.
 
+## Canonical Rules
+
+Use canonical atomic docs for shared planning rules instead of restating them:
+
+- Naming/numbering/placement: `@context/blocks/docs/naming-convention.md`
+- Subtask schema and ID allocation: `@context/workflows/ralph/planning/subtask-spec.md`
+
 ## Execution Instructions
 
 When this skill is invoked, check the ARGUMENTS provided:
@@ -140,7 +147,7 @@ Then follow ALL phases in the workflow file you just read.
 1. A milestone name must be provided (e.g., `/ralph-plan tasks --milestone ralph --auto`)
 2. Discover all stories in `docs/planning/milestones/<name>/stories/`
 3. If no stories found, report error with available milestones
-4. Calculate starting task ID by scanning ALL existing task directories
+4. Follow canonical folder-local task numbering rules from `@context/blocks/docs/naming-convention.md`
 5. Spawn parallel `task-generator` subagents (one per story)
 6. Each agent generates tasks for its story independently
 7. Report summary of all generated tasks
@@ -473,7 +480,7 @@ aaa ralph plan subtasks --milestone 003-ralph --size small --headless
 - Alternative sources bypass the planning hierarchy for ad-hoc use cases
 - Each subtask should touch 1-3 files (not counting tests)
 - Subtasks must be completable in 15-30 tool calls
-- IDs are globally unique (SUB-NNN format)
+- Subtask IDs use `SUB-NNN` and are milestone-scoped in the target queue (see `@context/workflows/ralph/planning/subtask-spec.md`)
 
 ### When to Use `--1-to-1`
 

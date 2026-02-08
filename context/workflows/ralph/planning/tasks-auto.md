@@ -139,34 +139,13 @@ This structure matches @context/blocks/docs/task-template.md exactly:
 - **Gap:** [topic] - created by subagent `[REVIEW]`
 ```
 
-## Task Number Generation
+## Naming Rules (Canonical)
 
-Task files use folder-local numbering in the destination milestone tasks directory.
+Use canonical naming and numbering rules from:
 
-To generate the next number:
+- @context/blocks/docs/naming-convention.md
 
-1. Scan `docs/planning/milestones/<milestone>/tasks/`
-2. Extract `<NNN>` from existing `<NNN>-TASK-<slug>.md` filenames
-3. Find the highest number in that folder
-4. Use next number (`max + 1`, zero-padded to 3 digits)
-
-If no task files exist in that milestone folder, start with `001`.
-
-## File Naming Convention
-
-Task files should be named using the task ID plus a slug:
-```
-<NNN>-TASK-<slug>.md
-```
-
-Where:
-- `<NNN>` is the folder-local task number (as generated above)
-- `<slug>` is a kebab-case description of the task
-
-**Examples:**
-- `001-TASK-setup-auth-api.md`
-- `002-TASK-implement-login-form.md`
-- `003-TASK-add-auth-tests.md`
+For tasks, use folder-local numbering in the destination milestone `tasks/` directory with filename pattern `<NNN>-TASK-<slug>.md`.
 
 ## Output Location
 
