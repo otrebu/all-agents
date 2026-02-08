@@ -488,7 +488,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Clean skill and README docs for current subtasks contract",
       "description": "Update docs to match desired user-facing contract: remove `--1-to-1` subtasks guidance from `.claude/skills/ralph-plan/SKILL.md` and remove `--review-diary` example from `tools/README.md` subtasks options, while leaving CLI capability unchanged.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "`.claude/skills/ralph-plan/SKILL.md` subtasks section has no `--1-to-1` mentions",
         "`.claude/skills/ralph-plan/SKILL.md` has no stale `aaa ralph plan subtasks --review` source examples",
@@ -502,7 +502,10 @@
       ],
       "blockedBy": [
         "SUB-019"
-      ]
+      ],
+      "completedAt": "2026-02-08T20:14:15Z",
+      "commitHash": "336308f760d4a348e5ce06da763abc78f9c12fdb",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-021",

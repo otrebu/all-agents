@@ -105,6 +105,11 @@
 - **Changes:** Refactored the workflow into a deterministic sequence (`parse -> analyze -> generate -> validate -> append -> summarize -> stop`), removed all `--1-to-1` guidance and examples, removed draft/reviewer/triage phase requirements, and added an explicit stop-immediately instruction after append and summary while retaining references to `subtask-spec.md` for schema and validation rules.
 - **Files:** `context/workflows/ralph/planning/subtasks-from-source.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-020
+- **Problem:** Skill and README docs still included stale subtasks source-contract guidance (`--1-to-1`, `--review`) that no longer matches current user-facing behavior.
+- **Changes:** Updated `.claude/skills/ralph-plan/SKILL.md` to remove all `--1-to-1` guidance and stale `aaa ralph plan subtasks --review` examples, and aligned remaining review-source references to `--review-diary`; removed the `--review-diary` example from the `tools/README.md` subtasks options block while preserving valid `--milestone`, `--story`, `--task`, `--file`, and `--text` examples.
+- **Files:** `.claude/skills/ralph-plan/SKILL.md`, `tools/README.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
