@@ -56,7 +56,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Update naming-convention.md to match locked decisions",
       "description": "Update `context/blocks/docs/naming-convention.md` to reflect locked naming decisions from consolidation plan: story files use `<NNN>-STORY-<slug>.md`, task files use `<NNN>-TASK-<slug>.md`, milestone directories use `<NNN>-<slug>/`. The current doc says 'do NOT include type prefixes' which conflicts with decision 6. Reconcile the doc to match locked decisions.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "naming-convention.md documents `<NNN>-STORY-<slug>.md` pattern for stories",
         "naming-convention.md documents `<NNN>-TASK-<slug>.md` pattern for tasks",
@@ -70,7 +70,10 @@
       ],
       "blockedBy": [
         "SUB-002"
-      ]
+      ],
+      "completedAt": "2026-02-08T18:15:54Z",
+      "commitHash": "101f27d2c548a4ba11502e3dd95e2316b807b9d6",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-004",

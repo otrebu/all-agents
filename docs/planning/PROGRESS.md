@@ -20,6 +20,11 @@
 - **Changes:** Added `naming.ts` with milestone directory numbering from `docs/planning/milestones/` numeric dirs only, folder-local artifact number allocation, story/task filename formatting (`<NNN>-STORY-<slug>.md`, `<NNN>-TASK-<slug>.md`), and milestone-local `SUB-<NNN>` allocation from a single target `subtasks.json`. Added unit coverage for numeric milestone scanning (ignoring `_orphan`/non-matching entries), sparse folder numbering, formatter output, and file-local subtask ID scope.
 - **Files:** `tools/src/commands/ralph/naming.ts`, `tools/tests/lib/naming.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-003
+- **Problem:** `context/blocks/docs/naming-convention.md` still documented `NNN-slug` naming and explicitly disallowed type segments, conflicting with locked consolidation decision 6.
+- **Changes:** Updated the canonical naming doc to require `<NNN>-<slug>/` milestone directories plus `<NNN>-STORY-<slug>.md` and `<NNN>-TASK-<slug>.md` artifact filenames, replaced the legacy no-prefix guidance with explicit type-segment requirements, and refreshed JSON-ref and migration examples to the new conventions.
+- **Files:** `context/blocks/docs/naming-convention.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
