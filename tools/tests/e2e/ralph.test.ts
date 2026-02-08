@@ -216,6 +216,52 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("Resume cascade from this level");
   });
 
+  test("ralph plan subtasks --help shows --review-diary source selector", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "subtasks", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--review-diary");
+    expect(stdout).toContain("--file, --text, --review-diary");
+  });
+
+  test("ralph plan subtasks missing-source guidance includes --review-diary", async () => {
+    const { exitCode, stderr, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "subtasks"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Must provide a source");
+    expect(stdout).toContain("--review-diary");
+  });
+
+  test("ralph plan subtasks multiple-source error lists --review-diary", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "subtasks",
+        "--text",
+        "from text",
+        "--review-diary",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain(
+      "Provide exactly one of: --milestone, --story, --task, --file, --text, --review-diary",
+    );
+  });
+
   test("ralph plan subtasks rejects --force with --review before main logic", async () => {
     const { exitCode, stderr } = await execa(
       "bun",

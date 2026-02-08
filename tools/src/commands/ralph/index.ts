@@ -1774,11 +1774,11 @@ planCommand.addCommand(
 );
 
 // ralph plan subtasks - subtask generation from any source
-// Accepts: hierarchy flags (--milestone, --story, --task) or alternative sources (--file, --text, --review)
+// Accepts: hierarchy flags (--milestone, --story, --task) or alternative sources (--file, --text, --review-diary)
 planCommand.addCommand(
   new Command("subtasks")
     .description(
-      "Generate subtasks from hierarchy (--milestone, --story, --task) or alternative sources (--file, --text, --review)",
+      "Generate subtasks from hierarchy (--milestone, --story, --task) or alternative sources (--file, --text, --review-diary)",
     )
     .option("--file <path>", "File path as source")
     .option("--text <string>", "Text description as source")
@@ -1848,7 +1848,7 @@ planCommand.addCommand(
       }
       if (sourceCount > 1) {
         console.error(
-          "Error: Cannot combine multiple sources. Provide exactly one of: --milestone, --story, --task, --file, --text, --review",
+          "Error: Cannot combine multiple sources. Provide exactly one of: --milestone, --story, --task, --file, --text, --review-diary",
         );
         process.exit(1);
       }
@@ -1892,7 +1892,7 @@ planCommand.addCommand(
       // Determine which prompt to use based on source type
       // - Hierarchy sources (--milestone, --story) use subtasks-from-hierarchy.md
       // - Task source uses subtasks-auto.md (legacy)
-      // - Alternative sources (--file, --text, --review) use subtasks-from-source.md
+      // - Alternative sources (--file, --text, --review-diary) use subtasks-from-source.md
       // Create flags object for helper functions
       const sourceFlags: SubtasksSourceFlags = {
         hasFile,
