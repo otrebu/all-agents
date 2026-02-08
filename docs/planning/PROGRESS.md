@@ -40,6 +40,11 @@
 - **Changes:** Added save-time queue normalization in `saveSubtasksFile()` to strip legacy `status` keys from each subtask entry while preserving other fields, kept `loadSubtasksFile()` backward-compatible for legacy files, and added regression tests for legacy-load tolerance, write normalization, and unchanged `aaa ralph status` progress output after normalization.
 - **Files:** `tools/src/commands/ralph/config.ts`, `tools/tests/lib/config.test.ts`, `tools/tests/lib/status.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-007
+- **Problem:** Headless and supervised build iteration flows assembled assignment context differently, creating drift risk in payload fields and completion guidance.
+- **Changes:** Added a shared `buildIterationContext()` builder in `build.ts`, routed both `buildIterationPrompt()` and supervised provider invocation through that same builder, and added unit coverage that checks canonical payload fields plus shared-builder usage at both call sites.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build.test.ts`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)

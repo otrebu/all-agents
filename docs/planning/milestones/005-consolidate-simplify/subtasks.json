@@ -153,7 +153,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Unify headless and supervised iteration context builder",
       "description": "Create a shared iteration-context builder function in build.ts that both headless (buildIterationPrompt) and supervised (inline context at ~line 839) paths consume. Guarantee same payload fields: subtask object, subtasks path, progress path, completion expectations. Remove inline supervised context string duplication. Addresses Inconsistency 3. Phase 3.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "One shared context builder function exists (e.g., buildIterationContext())",
         "Headless invocation calls the shared builder",
@@ -168,7 +168,10 @@
       ],
       "blockedBy": [
         "SUB-005"
-      ]
+      ],
+      "completedAt": "2026-02-08T18:58:21Z",
+      "commitHash": "1c0a57271913ac704dc5bf64e9b46753f360b48f",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-008",
