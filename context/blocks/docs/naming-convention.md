@@ -7,26 +7,25 @@ tags: [planning, naming]
 
 Single source of truth for planning file naming in the `docs/planning/` hierarchy.
 
-## Pattern: NNN-slug.md
+## Canonical Patterns
 
-All planning files (stories, tasks) follow this pattern:
+Planning artifacts use milestone-first placement with explicit artifact-type filenames.
 
-```
-{NNN}-{slug}.md
-```
+| Artifact | Pattern | Example |
+|----------|---------|---------|
+| Milestone directory | `<NNN>-<slug>/` | `005-consolidate-simplify/` |
+| Story file | `<NNN>-STORY-<slug>.md` | `001-STORY-build-loop-consolidation.md` |
+| Task file | `<NNN>-TASK-<slug>.md` | `001-TASK-queue-api-surface.md` |
 
 **Components:**
 - `NNN`: Zero-padded 3-digit number (001, 002, ..., 999)
-- `-`: Hyphen separator
+- `STORY` / `TASK`: Required uppercase type segment for artifact files
 - `slug`: Kebab-case descriptive name
-- `.md`: Markdown extension
+- `.md`: Markdown extension (files only)
 
-**Examples:**
-```
-001-user-authentication.md
-002-parallel-code-review.md
-015-cli-ergonomics-fixes.md
-```
+Default placement is milestone-scoped:
+- `docs/planning/milestones/<NNN>-<slug>/stories/`
+- `docs/planning/milestones/<NNN>-<slug>/tasks/`
 
 ---
 
@@ -67,23 +66,16 @@ Slugs use **kebab-case**:
 
 ---
 
-## Folder-Based Type Inference
+## Type Segment Requirement
 
-The **folder** determines the artifact type, not a prefix in the filename:
-
-| Path | Type |
-|------|------|
-| `stories/001-feature.md` | Story |
-| `tasks/001-feature.md` | Task |
-
-**Do NOT include type prefixes:**
+The folder still indicates purpose, but filenames must also include the explicit type segment.
 
 | Correct | Incorrect |
 |---------|-----------|
-| `stories/001-user-auth.md` | `stories/STORY-001-user-auth.md` |
-| `tasks/015-fix-bug.md` | `tasks/TASK-015-fix-bug.md` |
+| `stories/001-STORY-user-auth.md` | `stories/001-user-auth.md` |
+| `tasks/015-TASK-fix-bug.md` | `tasks/015-fix-bug.md` |
 
-The folder already conveys the type. Prefixes are redundant.
+Use `STORY` only for story files and `TASK` only for task files.
 
 ---
 
@@ -93,16 +85,16 @@ In JSON files (like `subtasks.json`), references use the **filename without exte
 
 ```json
 {
-  "taskRef": "015-cli-ergonomics-fixes",
-  "storyRef": "001-parallel-code-review"
+  "taskRef": "001-TASK-queue-api-surface",
+  "storyRef": "001-STORY-build-loop-consolidation"
 }
 ```
 
 **Not:**
 ```json
 {
-  "taskRef": "TASK-015",
-  "taskRef": "015-cli-ergonomics-fixes.md"
+  "taskRef": "TASK-001",
+  "taskRef": "001-queue-api-surface.md"
 }
 ```
 
@@ -115,11 +107,20 @@ Benefits:
 
 ## Migration Note
 
-Legacy files may use `TASK-NNN` or `STORY-NNN` prefixes. These are being migrated to the NNN-slug pattern. When updating old refs:
+Legacy files may use one of these older formats:
+- `NNN-<slug>.md` (no type segment)
+- `TASK-NNN` / `STORY-NNN` shorthand refs
+
+When migrating, normalize to the canonical patterns above:
 
 | Old Format | New Format |
 |------------|------------|
-| `TASK-015` | `015-cli-ergonomics-fixes` |
-| `STORY-001` | `001-parallel-code-review` |
+| `stories/001-user-auth.md` | `stories/001-STORY-user-auth.md` |
+| `tasks/015-fix-bug.md` | `tasks/015-TASK-fix-bug.md` |
+| `TASK-015` | `015-TASK-fix-bug` |
+| `STORY-001` | `001-STORY-user-auth` |
 
-The numeric portion maps directly; the slug is derived from the original file's title.
+Migration rule of thumb:
+- Keep the numeric portion.
+- Add the required `STORY` or `TASK` segment.
+- Keep or derive a kebab-case slug from the artifact title.
