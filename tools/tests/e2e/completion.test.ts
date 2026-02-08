@@ -232,5 +232,29 @@ describe("completion E2E", () => {
       expect(stdout).toContain("--processor");
       expect(stdout).toContain("base pro");
     });
+
+    test("bash includes subtasks output-dir and file value completion", async () => {
+      const { stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "bash"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(stdout).toContain("--output-dir)");
+      expect(stdout).toContain("local output_dirs=$(aaa __complete milestone");
+      expect(stdout).toContain("--file)");
+      expect(stdout).toContain('COMPREPLY=($(compgen -f -- "$cur"))');
+    });
+
+    test("zsh and fish include subtasks --output-dir option", async () => {
+      const [zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      expect(zshResult.stdout).toContain("--output-dir");
+      expect(zshResult.stdout).toContain("_aaa_milestone_or_dir");
+      expect(fishResult.stdout).toContain("-l output-dir");
+      expect(fishResult.stdout).toContain("__fish_complete_directories");
+    });
   });
 });

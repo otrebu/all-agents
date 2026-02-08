@@ -349,11 +349,14 @@ _aaa_ralph_plan() {
                         '--task[Task file (legacy)]:task:_aaa_task_or_file' \\
                         '--story[Link subtasks to parent story]:story:_aaa_story_or_file' \\
                         '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--output-dir[Output directory (path or milestone name)]:path:_aaa_milestone_or_dir' \\
                         '--size[Slice thickness]:size:(small medium large)' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--calibrate-every[Run calibration every N iterations]:number:' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
                         '--file[Source file path]:file:_files' \\
                         '--text[Source text description]:text:'
                     ;;

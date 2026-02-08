@@ -248,12 +248,15 @@ complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l review-diary -d 'Parse logs
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l from -d 'Resume cascade from this level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l story -d 'Link subtasks to parent story' -xa '(aaa __complete story 2>/dev/null; __fish_complete_suffix .md)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l milestone -d 'Target milestone' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l output-dir -d 'Output directory (path or milestone name)' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l size -d 'Slice thickness' -xa 'small medium large'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s s -l supervised -d 'Supervised mode (default)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l calibrate-every -d 'Run calibration every N iterations' -r
-complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l file -d 'Source file path' -ra '(__fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l file -d 'Source file path' -ra '(__fish_complete_path)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l text -d 'Source text description' -r
 # Enable file completion for positional [source] argument
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -F

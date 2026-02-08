@@ -37,6 +37,13 @@ _aaa_completions() {
             COMPREPLY+=($(compgen -d -- "$cur"))
             return
             ;;
+        --output-dir)
+            # Milestone names or directories
+            local output_dirs=$(aaa __complete milestone 2>/dev/null)
+            COMPREPLY=($(compgen -W "$output_dirs" -- "$cur"))
+            COMPREPLY+=($(compgen -d -- "$cur"))
+            return
+            ;;
         --story)
             # Dynamic story names + file completion fallback
             local stories=$(aaa __complete story 2>/dev/null)
@@ -51,6 +58,11 @@ _aaa_completions() {
             COMPREPLY=($(compgen -W "$tasks" -- "$cur"))
             # Also add .md file completion
             COMPREPLY+=($(compgen -f -X '!*.md' -- "$cur"))
+            return
+            ;;
+        --file)
+            # Generic file path completion
+            COMPREPLY=($(compgen -f -- "$cur"))
             return
             ;;
         --subtasks)
@@ -138,7 +150,7 @@ _aaa_completions() {
             continue
         fi
         case "$word" in
-            --mode|--processor|--milestone|--story|--task|--subtasks|--size|--cascade|--calibrate-every|--provider|--model|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations|--objective|--queries|--stories-directory)
+            --mode|--processor|--milestone|--output-dir|--story|--task|--file|--text|--from|--subtasks|--size|--cascade|--calibrate-every|--provider|--model|--objective|--queries|--stories-directory|--priority|--quiet-enabled|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations)
                 # Flag that takes a value - skip next word
                 skip_next=true
                 ;;
@@ -206,11 +218,11 @@ _aaa_completions() {
                                 return
                                 ;;
                             tasks)
-                                COMPREPLY=($(compgen -W "--story --milestone -a --auto -s --supervised -H --headless --cascade" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--story --milestone --file --text -s --supervised -H --headless --force --review --from --provider --model --cascade" -- "$cur"))
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--force --review --review-diary --from --task --story --milestone --size -s --supervised -H --headless --cascade --calibrate-every --file --text" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--force --review --review-diary --from --task --story --milestone --output-dir --size -s --supervised -H --headless --cascade --calibrate-every --provider --model --file --text" -- "$cur"))
                                 return
                                 ;;
                         esac
