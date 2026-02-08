@@ -10,7 +10,7 @@
       "taskRef": "consolidate-simplify",
       "title": "Delete legacy story/task creation skills",
       "description": "Delete the two legacy planning-create skill directories under `.claude/skills/` and remove all references to them from README, docs, eval scripts, and skill listing tables. Phase 1 (Surface Cleanup), decision 5.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Both legacy planning-create skill directories under `.claude/skills/` do not exist",
         "No legacy planning-create skill directory remains under `.claude/skills/`",
@@ -22,7 +22,10 @@
         ".claude/skills/",
         "README.md",
         "docs/planning/consolidating.md"
-      ]
+      ],
+      "completedAt": "2026-02-08T18:05:03Z",
+      "commitHash": "7b5076c7dbc9eef5a4cbf62d5816172626ebc572",
+      "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
     },
     {
       "id": "SUB-002",
@@ -62,7 +65,9 @@
         "context/blocks/docs/naming-convention.md",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-002"]
+      "blockedBy": [
+        "SUB-002"
+      ]
     },
     {
       "id": "SUB-004",
@@ -81,7 +86,9 @@
         "tools/src/commands/ralph/build-invariant.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-002"]
+      "blockedBy": [
+        "SUB-002"
+      ]
     },
     {
       "id": "SUB-005",
@@ -103,7 +110,9 @@
         "tools/src/commands/ralph/build.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-004"]
+      "blockedBy": [
+        "SUB-004"
+      ]
     },
     {
       "id": "SUB-006",
@@ -142,7 +151,9 @@
         "tools/src/commands/ralph/build.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-005"]
+      "blockedBy": [
+        "SUB-005"
+      ]
     },
     {
       "id": "SUB-008",
@@ -162,7 +173,9 @@
         "tools/src/commands/ralph/build.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-005"]
+      "blockedBy": [
+        "SUB-005"
+      ]
     },
     {
       "id": "SUB-009",
@@ -183,7 +196,9 @@
         "tools/src/commands/ralph/config.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-007"]
+      "blockedBy": [
+        "SUB-007"
+      ]
     },
     {
       "id": "SUB-010",
@@ -205,7 +220,9 @@
         "tools/src/commands/ralph/index.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-005"]
+      "blockedBy": [
+        "SUB-005"
+      ]
     },
     {
       "id": "SUB-011",
@@ -246,7 +263,9 @@
         "context/blocks/docs/naming-convention.md",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-003"]
+      "blockedBy": [
+        "SUB-003"
+      ]
     },
     {
       "id": "SUB-013",
@@ -269,7 +288,9 @@
         ".claude/skills/ralph-plan/SKILL.md",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-012"]
+      "blockedBy": [
+        "SUB-012"
+      ]
     },
     {
       "id": "SUB-014",
@@ -293,7 +314,10 @@
         "tools/src/commands/ralph/config.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-007", "SUB-009"]
+      "blockedBy": [
+        "SUB-007",
+        "SUB-009"
+      ]
     },
     {
       "id": "SUB-015",
@@ -317,7 +341,9 @@
         "context/blocks/docs/naming-convention.md",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-003"]
+      "blockedBy": [
+        "SUB-003"
+      ]
     },
     {
       "id": "SUB-016",
@@ -341,7 +367,9 @@
         "tools/src/commands/ralph/config.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": ["SUB-002"]
+      "blockedBy": [
+        "SUB-002"
+      ]
     }
   ]
 }

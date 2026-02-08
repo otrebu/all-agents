@@ -8,6 +8,13 @@
 
 ## Session Notes
 
+## 2026-02-08
+
+### SUB-001
+- **Problem:** Legacy planning-create skills still existed under `.claude/skills/` and stale references remained in README/docs/eval surfaces, conflicting with consolidation decision 5.
+- **Changes:** Deleted the two legacy skill directories, removed legacy skill-table/help-text references from README, removed related eval script coverage from `.claude/scripts/eval.sh`, and cleaned remaining docs references to the removed skills.
+- **Files:** `.claude/skills/story-create/SKILL.md`, `.claude/skills/task-create/SKILL.md`, `.claude/scripts/eval.sh`, `README.md`, `docs/planning/consolidating.md`, `docs/planning/claude-setup-review.md`, `docs/planning/milestones/002-ralph-💪/subtasks.json`, `docs/planning/milestones/002-ralph-💪/PROGRESS.md`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`
+
 ## 2026-02-07
 
 ### SUB-413 (tracking sync)
