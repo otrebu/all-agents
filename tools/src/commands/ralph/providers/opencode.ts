@@ -123,6 +123,15 @@ const OPENCODE_FAILURE_REASON_RULES: Array<{
   },
   {
     patterns: [
+      "runtimeerror: access to a null reference",
+      "access to a null reference",
+      "@opentui/core",
+      "index-h3dbfsf6",
+    ],
+    reason: "transport",
+  },
+  {
+    patterns: [
       "api key",
       "unauthorized",
       "authentication",

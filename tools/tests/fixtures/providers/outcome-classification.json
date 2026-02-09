@@ -35,6 +35,13 @@
     "reason": "transport"
   },
   {
+    "name": "runtime-null-reference",
+    "provider": "opencode",
+    "message": "OpenCode exited with code 1: RuntimeError: access to a null reference (evaluating 'a6.shift()(h2)')",
+    "status": "retryable",
+    "reason": "transport"
+  },
+  {
     "name": "claude-timeout",
     "provider": "claude",
     "message": "Claude invocation timed out after 120000ms",
