@@ -39,6 +39,7 @@ describe("session E2E - help and basic CLI", () => {
 
     expect(exitCode).toBe(0);
     expect(stdout).toContain("Get session file path by ID or from commit");
+    expect(stdout).toContain("--id");
     expect(stdout).toContain("--commit");
     expect(stdout).toContain("session-id");
   });
@@ -66,7 +67,7 @@ describe("session E2E - path subcommand errors", () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("Must provide session ID or --commit");
+    expect(stderr).toContain("Must provide session ID");
   });
 
   test("session path with non-existent session ID shows error", async () => {
@@ -78,6 +79,35 @@ describe("session E2E - path subcommand errors", () => {
 
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Session not found");
+  });
+
+  test("session path --id with non-existent session ID shows error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "session",
+        "path",
+        "--id",
+        "non-existent-session-id-12345",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Session not found");
+  });
+
+  test("session path rejects combining positional session-id with --id", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "session", "path", "abc", "--id", "def"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("either as positional argument or --id");
   });
 
   test("session path --commit with invalid commit shows error", async () => {
@@ -177,6 +207,7 @@ describe("session E2E - cat subcommand", () => {
 
     expect(exitCode).toBe(0);
     expect(stdout).toContain("Output session JSONL content to stdout");
+    expect(stdout).toContain("--id");
     expect(stdout).toContain("--commit");
     expect(stdout).toContain("session-id");
   });
@@ -189,13 +220,24 @@ describe("session E2E - cat subcommand", () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("Must provide session ID or --commit");
+    expect(stderr).toContain("Must provide session ID");
   });
 
   test("session cat with non-existent session ID shows error", async () => {
     const { exitCode, stderr } = await execa(
       "bun",
       ["run", "dev", "session", "cat", "non-existent-session-id-12345"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Session not found");
+  });
+
+  test("session cat --id with non-existent session ID shows error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "session", "cat", "--id", "non-existent-session-id-12345"],
       { cwd: TOOLS_DIR, reject: false },
     );
 
@@ -222,7 +264,7 @@ describe("session E2E - list subcommand", () => {
 
   test("session list outputs session IDs (machine-parseable)", async () => {
     // This test verifies the command runs without error
-    // In a real environment with sessions, it would output session IDs
+    // In a real environment with sessions, it outputs TSV: session-id<TAB>title
     const { exitCode, stderr, stdout } = await execa(
       "bun",
       ["run", "dev", "session", "list", "--limit", "5"],
@@ -231,13 +273,21 @@ describe("session E2E - list subcommand", () => {
 
     // Either succeeds with output or fails with "No sessions found"
     if (exitCode === 0) {
-      // Outputs should be UUIDs (session IDs), one per line
+      // Outputs should be one TSV record per line
       const lines = stdout
         .trim()
         .split("\n")
         .filter((l: string) => l !== "");
       expect(lines.length).toBeGreaterThan(0);
       expect(lines.length).toBeLessThanOrEqual(5);
+
+      for (const line of lines) {
+        const [sessionId = "", title = ""] = line.split("\t");
+        expect(sessionId).toBeDefined();
+        expect(sessionId.length).toBeGreaterThan(0);
+        expect(title).toBeDefined();
+        expect(title.length).toBeGreaterThan(0);
+      }
     } else {
       expect(stderr).toContain("No sessions found");
     }
@@ -255,6 +305,7 @@ describe("session E2E - list subcommand", () => {
       expect(stdout).toContain("SESSION ID");
       expect(stdout).toContain("MODIFIED");
       expect(stdout).toContain("SIZE");
+      expect(stdout).toContain("TITLE");
     } else {
       expect(stderr).toContain("No sessions found");
     }

@@ -246,7 +246,9 @@ _aaa_ralph() {
         'plan:Planning tools for vision, roadmap, stories, tasks'
         'review:Review planning artifacts for quality and gaps'
         'milestones:List available milestones'
+        'models:List available model names'
         'status:Display build status and progress'
+        'subtasks:Subtask queue operations'
         'calibrate:Run calibration checks'
         'archive:Archive completed subtasks and old sessions'
     )
@@ -284,8 +286,16 @@ _aaa_ralph() {
                 milestones)
                     _arguments '--json[Output as JSON]'
                     ;;
+                models)
+                    _arguments \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--json[Output as JSON]'
+                    ;;
                 status)
                     _arguments '--subtasks[Subtasks file path]:file:_files -g "*.json"'
+                    ;;
+                subtasks)
+                    _aaa_ralph_subtasks
                     ;;
                 calibrate)
                     _arguments \\
@@ -359,6 +369,49 @@ _aaa_ralph_plan() {
                         '--model[Model to use]:model:_aaa_model' \\
                         '--file[Source file path]:file:_files' \\
                         '--text[Source text description]:text:'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_aaa_ralph_subtasks() {
+    local -a subcommands
+    subcommands=(
+        'next:Get next runnable subtask'
+        'list:List subtasks for a milestone queue'
+        'complete:Mark a subtask complete'
+    )
+
+    _arguments -C \\
+        '1: :->subcmd' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                next)
+                    _arguments \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
+                        '--json[Output as JSON]'
+                    ;;
+                list)
+                    _arguments \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
+                        '--pending[Only show pending subtasks]' \\
+                        '--limit[Maximum subtasks to show]:number:' \\
+                        '--json[Output as JSON]'
+                    ;;
+                complete)
+                    _arguments \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
+                        '--id[Subtask ID]:subtask-id:' \\
+                        '--commit[Commit hash]:commit-hash:' \\
+                        '--session[Session ID]:session-id:' \\
+                        '--at[Completion timestamp (ISO 8601)]:timestamp:'
                     ;;
             esac
             ;;
@@ -569,6 +622,15 @@ _aaa_model() {
     fi
 }
 
+# Helper: complete session IDs
+_aaa_session_id() {
+    local -a session_ids
+    session_ids=(\${(f)"$(aaa __complete session-id 2>/dev/null)"})
+    if (( \${#session_ids} )); then
+        _describe 'session-id' session_ids
+    fi
+}
+
 _aaa_session() {
     local -a subcommands
     subcommands=(
@@ -591,7 +653,8 @@ _aaa_session() {
                 path|cat)
                     _arguments \\
                         '--commit[Extract session ID from commit trailer]:commit:' \\
-                        '1:session-id:'
+                        '--id[Session ID to look up]:session-id:_aaa_session_id' \\
+                        '1:session-id:_aaa_session_id'
                     ;;
                 list)
                     _arguments \\

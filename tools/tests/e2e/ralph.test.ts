@@ -19,6 +19,22 @@ const CONTEXT_ROOT = getContextRoot();
 describe("ralph E2E", () => {
   let temporaryDirectory = "";
 
+  function sortSlugs(slugs: Array<string>): Array<string> {
+    return [...slugs].sort((a, b) => {
+      const normalizedA = a.toLowerCase();
+      const normalizedB = b.toLowerCase();
+
+      if (normalizedA < normalizedB) {
+        return -1;
+      }
+      if (normalizedA > normalizedB) {
+        return 1;
+      }
+
+      return 0;
+    });
+  }
+
   beforeEach(() => {
     temporaryDirectory = join(
       tmpdir(),
@@ -1037,6 +1053,16 @@ kill -s INT $$
     expect(exitCode).toBe(0);
     expect(stdout).toContain("Available milestones:");
     expect(stdout).toContain("ralph");
+
+    const slugs = stdout
+      .split("\n")
+      .map((line) => {
+        const match = /^\s*(?<slug>\S+)\s+-/.exec(line);
+        return match?.groups?.slug;
+      })
+      .filter((slug): slug is string => slug !== undefined);
+
+    expect(slugs).toEqual(sortSlugs(slugs));
   });
 
   test("ralph milestones --json outputs valid JSON", async () => {
@@ -1053,6 +1079,9 @@ kill -s INT $$
     expect(Array.isArray(parsed.milestones)).toBe(true);
     // Check for any milestone with "ralph" in the slug
     expect(parsed.milestones.some((m) => m.slug.includes("ralph"))).toBe(true);
+
+    const slugs = parsed.milestones.map((m) => m.slug);
+    expect(slugs).toEqual(sortSlugs(slugs));
   });
 
   test("ralph plan stories --milestone nonexistent shows not found error", async () => {

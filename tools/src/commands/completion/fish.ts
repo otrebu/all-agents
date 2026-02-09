@@ -186,7 +186,9 @@ complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a build -d 'Run subtask 
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a plan -d 'Planning tools'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a review -d 'Review planning artifacts'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a milestones -d 'List available milestones'
+complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a models -d 'List available model names'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a status -d 'Display build status'
+complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a subtasks -d 'Subtask queue operations'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a calibrate -d 'Run calibration checks'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a archive -d 'Archive subtasks and sessions'
 
@@ -263,6 +265,44 @@ complete -c aaa -n __fish_aaa_ralph_plan_subtasks -F
 
 # ralph milestones options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph milestones' -l json -d 'Output as JSON'
+
+# ralph models options
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph models' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph models' -l json -d 'Output as JSON'
+
+# ralph subtasks subcommands
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a next -d 'Get next runnable subtask'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a list -d 'List subtasks for a milestone queue'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a complete -d 'Mark a subtask complete'
+
+# ralph subtasks next options
+function __fish_aaa_ralph_subtasks_next
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = subtasks -a "$cmd[4]" = next
+end
+complete -c aaa -n __fish_aaa_ralph_subtasks_next -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_next -l json -d 'Output as JSON'
+
+# ralph subtasks list options
+function __fish_aaa_ralph_subtasks_list
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = subtasks -a "$cmd[4]" = list
+end
+complete -c aaa -n __fish_aaa_ralph_subtasks_list -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_list -l pending -d 'Only show pending subtasks'
+complete -c aaa -n __fish_aaa_ralph_subtasks_list -l limit -d 'Maximum subtasks to show' -r
+complete -c aaa -n __fish_aaa_ralph_subtasks_list -l json -d 'Output as JSON'
+
+# ralph subtasks complete options
+function __fish_aaa_ralph_subtasks_complete
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = subtasks -a "$cmd[4]" = complete
+end
+complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l id -d 'Subtask ID' -r
+complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l commit -d 'Commit hash' -r
+complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l session -d 'Session ID' -r
+complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l at -d 'Completion timestamp (ISO 8601)' -r
 
 # ralph calibrate options and subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a intention -d 'Check for intention drift'
@@ -350,6 +390,7 @@ function __fish_aaa_session_path_or_cat
     test (count $cmd) -ge 3 -a "$cmd[2]" = session -a \\( "$cmd[3]" = path -o "$cmd[3]" = cat \\)
 end
 complete -c aaa -n __fish_aaa_session_path_or_cat -l commit -d 'Extract session ID from commit trailer' -r
+complete -c aaa -n __fish_aaa_session_path_or_cat -l id -d 'Session ID to look up' -xa '(aaa __complete session-id 2>/dev/null)'
 
 # session list options
 function __fish_aaa_session_list

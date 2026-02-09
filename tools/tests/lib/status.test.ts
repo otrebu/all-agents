@@ -185,6 +185,86 @@ describe("readIterationDiary timing compatibility", () => {
   });
 });
 
+describe("readIterationDiary mixed-log filtering", () => {
+  const temporaryDirectory = join(
+    import.meta.dirname,
+    "../../tmp/status-mixed-log-filtering",
+  );
+
+  beforeEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("ignores planning and subtask-review records", () => {
+    const iterationEntry = {
+      sessionId: "iteration-session",
+      status: "completed",
+      subtaskId: "SUB-ITER",
+      summary: "Iteration entry",
+      timestamp: "2026-02-08T10:00:00Z",
+      type: "iteration",
+    };
+    const planningEntry = {
+      result: "Generated roadmap",
+      sessionId: "planning-session",
+      sessionName: "roadmap",
+      timestamp: "2026-02-08T10:01:00Z",
+      type: "planning",
+    };
+    const reviewEntry = {
+      finding: "Subtask is too large",
+      sessionId: "review-session",
+      timestamp: "2026-02-08T10:02:00Z",
+      type: "subtask-review",
+    };
+
+    writeFileSync(
+      join(temporaryDirectory, "2026-02-08.jsonl"),
+      `${[
+        JSON.stringify(iterationEntry),
+        JSON.stringify(planningEntry),
+        JSON.stringify(reviewEntry),
+      ].join("\n")}\n`,
+    );
+
+    const entries = readIterationDiary(temporaryDirectory);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.subtaskId).toBe("SUB-ITER");
+    expect(entries[0]?.status).toBe("completed");
+  });
+
+  test("keeps legacy iteration entries that omit type", () => {
+    const legacyEntry = {
+      sessionId: "legacy-session",
+      status: "success",
+      subtaskId: "SUB-LEGACY",
+      summary: "Legacy entry",
+      timestamp: "2026-02-08T11:00:00Z",
+    };
+
+    writeFileSync(
+      join(temporaryDirectory, "2026-02-08.jsonl"),
+      `${JSON.stringify(legacyEntry)}\n`,
+    );
+
+    const entries = readIterationDiary(temporaryDirectory);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.subtaskId).toBe("SUB-LEGACY");
+    expect(entries[0]?.status).toBe("completed");
+  });
+});
+
 describe("runStatus progress compatibility", () => {
   const temporaryDirectory = join(
     import.meta.dirname,
@@ -271,5 +351,62 @@ describe("runStatus progress compatibility", () => {
 
     expect(progressBefore).not.toBe("");
     expect(progressAfter).toBe(progressBefore);
+  });
+
+  test("iteration stats only count iteration diary entries", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    const logsDirectory = join(temporaryDirectory, "logs");
+
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "status-iterations", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Done item"],
+              description: "completed by done",
+              done: true,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "TASK-001",
+              title: "Done",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    mkdirSync(logsDirectory, { recursive: true });
+    writeFileSync(
+      join(logsDirectory, "2026-02-08.jsonl"),
+      `${[
+        JSON.stringify({
+          sessionId: "iteration-session",
+          status: "completed",
+          subtaskId: "SUB-001",
+          summary: "Completed subtask",
+          timestamp: "2026-02-08T12:00:00Z",
+          type: "iteration",
+        }),
+        JSON.stringify({
+          result: "Planning output",
+          sessionId: "planning-session",
+          timestamp: "2026-02-08T12:05:00Z",
+          type: "planning",
+        }),
+      ].join("\n")}\n`,
+    );
+
+    const output = captureRunStatusOutput(subtasksPath);
+    const iterationsLine =
+      output.find((line) => line.includes("Iterations:")) ?? "";
+    const successRateLine =
+      output.find((line) => line.includes("Success rate:")) ?? "";
+
+    expect(iterationsLine).toContain("Iterations: 1");
+    expect(successRateLine).toContain("Success rate: 100.0%");
   });
 });

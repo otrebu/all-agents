@@ -8,6 +8,7 @@ import {
   getModelCompletionsForProvider,
 } from "@tools/commands/ralph/providers/models";
 import { REGISTRY } from "@tools/commands/ralph/providers/registry";
+import { listRecentSessions } from "@tools/commands/session";
 import { findProjectRoot } from "@tools/utils/paths";
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -182,6 +183,11 @@ function getFilteredModelCompletions(
   return [];
 }
 
+/** Get recent session IDs for dynamic completion */
+function getSessionIdCompletions(limit = 200): Array<string> {
+  return listRecentSessions(limit).map((session) => session.sessionId);
+}
+
 /**
  * Handle __complete command for dynamic completions
  * Called by shell completion scripts to get dynamic values
@@ -251,6 +257,11 @@ function handleCompletion(): void {
         console.log(providers.join("\n"));
         break;
       }
+      case "session-id": {
+        const sessionIds = getSessionIdCompletions();
+        console.log(sessionIds.join("\n"));
+        break;
+      }
       case "story": {
         const stories = findStories();
         console.log(stories.join("\n"));
@@ -302,7 +313,10 @@ const completionCommand = new Command("completion")
  */
 const completeCommand = new Command("__complete")
   .description("(internal) Generate dynamic completions")
-  .argument("<type>", "Completion type: milestone, story, task, command")
+  .argument(
+    "<type>",
+    "Completion type: milestone, story, task, command, session-id",
+  )
   .action(() => {
     handleCompletion();
   });

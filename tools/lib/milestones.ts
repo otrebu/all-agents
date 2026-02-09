@@ -36,7 +36,7 @@ function discoverMilestones(): Array<Milestone> {
     bySlug.set(m.slug, m);
   }
 
-  return [...bySlug.values()];
+  return sortMilestonesBySlug([...bySlug.values()]);
 }
 
 /**
@@ -132,6 +132,22 @@ function parseMilestoneTitle(title: string): Milestone {
   }
 
   return { name: title, slug: toMilestoneSlug(title) };
+}
+
+function sortMilestonesBySlug(milestones: Array<Milestone>): Array<Milestone> {
+  return [...milestones].sort((a, b) => {
+    const normalizedA = a.slug.toLowerCase();
+    const normalizedB = b.slug.toLowerCase();
+
+    if (normalizedA < normalizedB) {
+      return -1;
+    }
+    if (normalizedA > normalizedB) {
+      return 1;
+    }
+
+    return 0;
+  });
 }
 
 /**

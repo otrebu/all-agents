@@ -125,6 +125,35 @@ function getMilestoneLogsDirectory(subtasksPath: string): string {
 }
 
 /**
+ * Narrow parsed JSON payloads to iteration diary entries.
+ *
+ * Daily log files can contain multiple record types (iteration, planning,
+ * subtask-review). Status metrics must only include iteration records.
+ */
+function isIterationDiaryEntry(value: unknown): value is IterationDiaryEntry {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const entry = value as {
+    type?: "iteration" | "planning" | "subtask-review";
+  } & Partial<IterationDiaryEntry>;
+
+  // Ignore non-iteration records in mixed daily logs.
+  if (entry.type !== undefined && entry.type !== "iteration") {
+    return false;
+  }
+
+  return (
+    typeof entry.sessionId === "string" &&
+    typeof entry.status === "string" &&
+    typeof entry.subtaskId === "string" &&
+    typeof entry.summary === "string" &&
+    typeof entry.timestamp === "string"
+  );
+}
+
+/**
  * Read and parse iteration diary from a logs directory
  *
  * Globs all *.jsonl files in the logs directory and aggregates entries.
@@ -183,8 +212,11 @@ function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
     return lines
       .map((line) => {
         try {
-          const entry = JSON.parse(line) as IterationDiaryEntry;
-          return normalizeIterationDiaryEntry(entry);
+          const parsed = JSON.parse(line) as unknown;
+          if (!isIterationDiaryEntry(parsed)) {
+            return null;
+          }
+          return normalizeIterationDiaryEntry(parsed);
         } catch {
           return null;
         }

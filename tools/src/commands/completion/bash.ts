@@ -86,6 +86,12 @@ _aaa_completions() {
             COMPREPLY=($(compgen -W "$providers" -- "$cur"))
             return
             ;;
+        --id)
+            # Dynamic session IDs
+            local session_ids=$(aaa __complete session-id 2>/dev/null)
+            COMPREPLY=($(compgen -W "$session_ids" -- "$cur"))
+            return
+            ;;
         --model)
             # Dynamic model names, filtered by --provider if present
             local model_args="model"
@@ -150,7 +156,7 @@ _aaa_completions() {
             continue
         fi
         case "$word" in
-            --mode|--processor|--milestone|--output-dir|--story|--task|--file|--text|--from|--subtasks|--size|--cascade|--calibrate-every|--provider|--model|--objective|--queries|--stories-directory|--priority|--quiet-enabled|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations)
+            --mode|--processor|--milestone|--output-dir|--story|--task|--file|--text|--from|--subtasks|--size|--cascade|--calibrate-every|--provider|--model|--id|--commit|--session|--at|--objective|--queries|--stories-directory|--priority|--quiet-enabled|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations)
                 # Flag that takes a value - skip next word
                 skip_next=true
                 ;;
@@ -231,8 +237,29 @@ _aaa_completions() {
                         COMPREPLY=($(compgen -W "--json" -- "$cur"))
                         return
                         ;;
+                    models)
+                        COMPREPLY=($(compgen -W "--provider --json" -- "$cur"))
+                        return
+                        ;;
                     status)
                         COMPREPLY=($(compgen -W "--subtasks" -- "$cur"))
+                        return
+                        ;;
+                    subtasks)
+                        case "$subsubcmd" in
+                            next)
+                                COMPREPLY=($(compgen -W "--milestone --json" -- "$cur"))
+                                ;;
+                            list)
+                                COMPREPLY=($(compgen -W "--milestone --pending --limit --json" -- "$cur"))
+                                ;;
+                            complete)
+                                COMPREPLY=($(compgen -W "--milestone --id --commit --session --at" -- "$cur"))
+                                ;;
+                            *)
+                                COMPREPLY=($(compgen -W "next list complete" -- "$cur"))
+                                ;;
+                        esac
                         return
                         ;;
                     calibrate)
@@ -261,7 +288,7 @@ _aaa_completions() {
             session)
                 case "$subcmd" in
                     path|cat)
-                        COMPREPLY=($(compgen -W "--commit" -- "$cur"))
+                        COMPREPLY=($(compgen -W "--commit --id" -- "$cur"))
                         ;;
                     list)
                         COMPREPLY=($(compgen -W "--limit --verbose" -- "$cur"))
@@ -311,7 +338,7 @@ _aaa_completions() {
             ;;
         ralph)
             if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "build plan review milestones status calibrate archive" -- "$cur"))
+                COMPREPLY=($(compgen -W "build plan review milestones models status subtasks calibrate archive" -- "$cur"))
             elif [[ "$subcmd" == "plan" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "vision roadmap stories tasks subtasks" -- "$cur"))
             elif [[ "$subcmd" == "review" && -z "$subsubcmd" ]]; then
@@ -319,6 +346,8 @@ _aaa_completions() {
             elif [[ "$subcmd" == "review" && "$subsubcmd" == "gap" ]]; then
                 # ralph review gap subcommands
                 COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
+            elif [[ "$subcmd" == "subtasks" && -z "$subsubcmd" ]]; then
+                COMPREPLY=($(compgen -W "next list complete" -- "$cur"))
             elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "intention technical improve all" -- "$cur"))
             elif [[ "$subcmd" == "archive" && -z "$subsubcmd" ]]; then

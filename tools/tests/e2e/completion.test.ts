@@ -107,6 +107,25 @@ describe("completion E2E", () => {
       expect(stdout).toContain("completion");
     });
 
+    test("__complete session-id returns zero or more session IDs", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "__complete", "session-id"],
+        { cwd: TOOLS_DIR },
+      );
+      expect(exitCode).toBe(0);
+
+      const lines = stdout
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line !== "");
+
+      for (const line of lines) {
+        expect(line).not.toContain("\t");
+        expect(line.length).toBeGreaterThan(0);
+      }
+    });
+
     test("__complete unknown type returns empty", async () => {
       const { exitCode, stdout } = await execa(
         "bun",
@@ -185,8 +204,38 @@ describe("completion E2E", () => {
       expect(stdout).toContain("build");
       expect(stdout).toContain("plan");
       expect(stdout).toContain("milestones");
+      expect(stdout).toContain("models");
       expect(stdout).toContain("status");
+      expect(stdout).toContain("subtasks");
       expect(stdout).toContain("calibrate");
+    });
+
+    test("completion scripts include ralph models and subtasks options", async () => {
+      const [bashResult, zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      expect(bashResult.stdout).toContain("models)");
+      expect(bashResult.stdout).toContain("subtasks)");
+      expect(bashResult.stdout).toContain(
+        "--milestone --pending --limit --json",
+      );
+
+      expect(zshResult.stdout).toContain("models:List available model names");
+      expect(zshResult.stdout).toContain("_aaa_ralph_subtasks");
+      expect(zshResult.stdout).toContain("--milestone[Milestone path]");
+
+      expect(fishResult.stdout).toContain(
+        "-a models -d 'List available model names'",
+      );
+      expect(fishResult.stdout).toContain(
+        "-a subtasks -d 'Subtask queue operations'",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_subtasks_list -l milestone",
+      );
     });
 
     test("bash includes ralph plan subcommands", async () => {
@@ -255,6 +304,27 @@ describe("completion E2E", () => {
       expect(zshResult.stdout).toContain("_aaa_milestone_or_dir");
       expect(fishResult.stdout).toContain("-l output-dir");
       expect(fishResult.stdout).toContain("__fish_complete_directories");
+    });
+
+    test("session path/cat completion includes --id and dynamic session IDs", async () => {
+      const [bashResult, zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      expect(bashResult.stdout).toContain("--id)");
+      expect(bashResult.stdout).toContain("aaa __complete session-id");
+      expect(bashResult.stdout).toContain("--commit --id");
+
+      expect(zshResult.stdout).toContain("_aaa_session_id");
+      expect(zshResult.stdout).toContain("aaa __complete session-id");
+      expect(zshResult.stdout).toContain("--id[Session ID to look up]");
+
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_session_path_or_cat -l id",
+      );
+      expect(fishResult.stdout).toContain("aaa __complete session-id");
     });
   });
 });
