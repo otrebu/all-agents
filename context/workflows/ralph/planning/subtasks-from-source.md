@@ -13,34 +13,36 @@ This workflow supports three input types:
 
 ### 1. File Path
 ```
-subtasks-from-source.md ./review-findings.md
-subtasks-from-source.md ./plan.md
+aaa ralph plan subtasks --file ./review-findings.md
+aaa ralph plan subtasks --file ./plan.md
 ```
-If the argument is a path to an existing file, read and parse that file.
+If `--file` is provided, read and parse that file.
 
 ### 2. Text Description
 ```
-subtasks-from-source.md "Fix array bounds check in review command"
-subtasks-from-source.md "Add error logging to diary functions"
+aaa ralph plan subtasks --text "Fix array bounds check in review command"
+aaa ralph plan subtasks --text "Add error logging to diary functions"
 ```
-If the argument doesn't point to a file, treat it as a direct description.
+If `--text` is provided, treat it as a direct description.
 
 ### 3. Review Diary
 ```
-subtasks-from-source.md --review
+aaa ralph plan subtasks --review-diary
 ```
-If `--review` flag is set, parse `logs/reviews.jsonl` for findings.
+If `--review-diary` flag is set, parse `logs/reviews.jsonl` for findings.
 
 ## Parameters
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `<source>` | Yes* | File path or text description |
-| `--review` | Yes* | Parse review diary instead of source |
-| `--milestone <name>` | No | Target milestone for output location |
-| `--story <ref>` | No | Link subtasks to parent story |
+| `--file <path>` | Yes* | File path as source |
+| `--text <string>` | Yes* | Text description as source |
+| `--review-diary` | Yes* | Parse review diary instead of file/text |
+| `--output-dir <path|milestone>` | No | Output directory (path or milestone name) |
+| `--size <small\|medium\|large>` | No | Slice thickness for generated subtasks |
 
-*One of `<source>` or `--review` is required.
+*One of `--file`, `--text`, or `--review-diary` is required.
+Do not combine these source flags with `--milestone`, `--story`, or `--task`.
 
 ## Workflow
 
@@ -92,7 +94,6 @@ For each actionable item, create a subtask following the schema in subtask-spec.
 **taskRef handling (specific to this workflow):**
 - If input references a specific TASK, use that
 - If generating from review findings or text, use a placeholder like `review-findings`
-- If `--story` provided, also set `storyRef`
 
 ### Phase 4: Validate Subtasks
 
@@ -103,7 +104,7 @@ Run the Validation Checklist and AC Quality Gate in @context/workflows/ralph/pla
 After validation, write final subtasks to the destination directly:
 
 **Output location:**
-- If `--milestone` provided: `docs/planning/milestones/<milestone>/subtasks.json`
+- If `--output-dir` is provided: `<output-dir>/subtasks.json`
 - Otherwise: `docs/planning/subtasks.json`
 
 **IMPORTANT: Use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`**
@@ -134,9 +135,9 @@ Created N subtasks from [source type]:
 2. SUB-041: <title>
 ...
 
-File: docs/planning/milestones/<milestone>/subtasks.json
+File: <resolved-output-dir>/subtasks.json
 
-Ready for: ralph build --subtasks <path>
+Ready for: aaa ralph build --subtasks <path>
 ```
 
 Then stop immediately. Do not continue with any additional review or follow-up phases.
@@ -174,11 +175,11 @@ For simple text input:
 
 ```bash
 # From file
-aaa ralph plan subtasks ./review-findings.md --milestone 002-ralph
+aaa ralph plan subtasks --file ./review-findings.md --output-dir 002-ralph
 
 # From text
-aaa ralph plan subtasks "Fix null safety in parsing" --story STORY-001
+aaa ralph plan subtasks --text "Fix null safety in parsing" --output-dir docs/planning/milestones/002-ralph
 
 # From review diary
-aaa ralph plan subtasks --review --milestone 002-ralph
+aaa ralph plan subtasks --review-diary --output-dir 002-ralph
 ```

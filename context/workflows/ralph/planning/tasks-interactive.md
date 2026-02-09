@@ -363,7 +363,7 @@ When exiting:
 1. Summarize the tasks created or refined
 2. Offer to save any unsaved tasks
 3. Note areas that weren't fully explored
-4. Provide next steps: **"Next, run `aaa ralph build` to start the autonomous build loop."**
+4. Provide next steps: **"Next, run `aaa ralph plan subtasks --story <story-id>` to create a runnable queue, then run `aaa ralph build --subtasks <path>` to start the autonomous build loop."**
 
 ## CLI Invocation
 

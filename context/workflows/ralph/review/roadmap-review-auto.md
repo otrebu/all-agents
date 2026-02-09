@@ -154,8 +154,8 @@ For EACH milestone, assess:
 ## CLI Invocation
 
 ```bash
-# CLI command (supervised mode)
-aaa ralph review roadmap --supervised
+# CLI command (interactive mode)
+aaa ralph review roadmap
 
 # CLI command (headless mode)
 aaa ralph review roadmap --headless

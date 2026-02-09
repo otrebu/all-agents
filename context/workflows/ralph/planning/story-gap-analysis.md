@@ -10,8 +10,8 @@ The review/ version supports both supervised and headless modes and is the canon
 
 ```bash
 # Supervised mode (interactive)
-aaa ralph review gap stories <milestone>
+aaa ralph review gap stories --milestone <path>
 
 # Headless mode (automated)
-aaa ralph review gap stories <milestone> --headless
+aaa ralph review gap stories --milestone <path> --headless
 ```

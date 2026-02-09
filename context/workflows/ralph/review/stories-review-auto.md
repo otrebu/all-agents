@@ -171,9 +171,9 @@ For EACH story, analyze:
 ## CLI Invocation
 
 ```bash
-# CLI command (supervised mode)
-aaa ralph review stories <milestone> --supervised
+# CLI command (interactive mode)
+aaa ralph review stories --milestone <path>
 
 # CLI command (headless mode)
-aaa ralph review stories <milestone> --headless
+aaa ralph review stories --milestone <path> --headless
 ```

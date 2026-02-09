@@ -233,9 +233,9 @@ Does this story map to milestone deliverables?
 ## CLI Invocation
 
 ```bash
-# CLI command (supervised mode)
-aaa ralph review gap stories <milestone> --supervised
+# CLI command (interactive mode)
+aaa ralph review gap stories --milestone <path>
 
 # CLI command (headless mode)
-aaa ralph review gap stories <milestone> --headless
+aaa ralph review gap stories --milestone <path> --headless
 ```

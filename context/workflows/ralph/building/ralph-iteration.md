@@ -26,7 +26,7 @@ aaa ralph subtasks list --milestone <name-or-path>
 aaa ralph subtasks next --milestone <name-or-path>
 
 # Mark assigned subtask complete after implementation
-aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id>
+aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id> --commit <hash> --session <id>
 ```
 
 ### Pre-flight Checks (Start of Every Iteration)
@@ -356,7 +356,7 @@ Use this completion flow:
 aaa ralph subtasks next --milestone <name-or-path>
 
 # 2) Mark the assigned subtask complete (writes done/completedAt/commitHash/sessionId)
-aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id>
+aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id> --commit <hash> --session <id>
 
 # 3) Verify queue state after completion
 aaa ralph subtasks list --milestone <name-or-path>

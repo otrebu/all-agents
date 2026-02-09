@@ -235,5 +235,5 @@ Created N subtasks for task '<task-id>':
 
 File created: docs/planning/milestones/<milestone>/subtasks.json
 
-Ready for: ralph build --subtasks <path>
+Ready for: aaa ralph build --subtasks <path>
 ```

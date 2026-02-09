@@ -199,8 +199,8 @@ Can users actually accomplish their jobs with this sequence?
 ## CLI Invocation
 
 ```bash
-# CLI command (supervised mode)
-aaa ralph review gap roadmap --supervised
+# CLI command (interactive mode)
+aaa ralph review gap roadmap
 
 # CLI command (headless mode)
 aaa ralph review gap roadmap --headless

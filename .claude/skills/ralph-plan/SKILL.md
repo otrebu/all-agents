@@ -376,9 +376,9 @@ Start an interactive Socratic dialogue to help create user stories for a specifi
 
 ## Tasks Planning
 
-Create technical tasks from stories. Two modes available:
+Create technical tasks from stories. Three modes available:
 
-### Single Story Mode (Interactive or Auto)
+### Single Story Mode (Interactive, Supervised, or Headless)
 
 ```
 /ralph-plan tasks <story-id>
@@ -387,13 +387,13 @@ Create technical tasks from stories. Two modes available:
 **What Happens:**
 1. Reads the specified story file to understand user outcomes
 2. Explores the codebase to understand existing patterns relevant to the story
-3. Begins a multi-turn conversation using Socratic method (or auto-generates in auto mode)
+3. Begins a multi-turn conversation using Socratic method (or auto-generates in supervised/headless mode)
 4. Creates task files in `docs/planning/tasks/`
 
-### Milestone Mode (Auto Only)
+### Milestone Mode (Supervised or Headless)
 
 ```
-aaa ralph plan tasks --milestone <name> --auto
+aaa ralph plan tasks --milestone <name> --headless
 ```
 
 **What Happens:**
@@ -411,7 +411,7 @@ aaa ralph plan tasks --milestone <name> --auto
 ### Important Notes
 
 - **Single story mode**: Requires `--story <id>`
-- **Milestone mode**: Requires `--milestone <name>` AND `--auto`
+- **Milestone mode**: Requires `--milestone <name>` and one of `--supervised` or `--headless`
 - Cannot combine `--story` and `--milestone`
 - Tasks are linked to their parent story for traceability
 - Focus is on technical implementation, not user outcomes
@@ -490,7 +490,7 @@ aaa ralph plan roadmap
 aaa ralph plan stories --milestone <name>
 # Tasks from hierarchy
 aaa ralph plan tasks --story <story-id>           # Story → tasks
-aaa ralph plan tasks --milestone <name> --auto    # All stories in milestone → tasks
+aaa ralph plan tasks --milestone <name> --headless # All stories in milestone → tasks
 # Tasks from alternative sources
 aaa ralph plan tasks --file ./spec.md             # File → tasks
 aaa ralph plan tasks --text "Add auth"            # Text → tasks

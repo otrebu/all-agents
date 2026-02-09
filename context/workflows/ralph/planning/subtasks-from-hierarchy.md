@@ -122,7 +122,7 @@ By Task:
 
 Output: docs/planning/milestones/<milestone>/subtasks.json
 
-Ready for: aaa ralph build --headless
+Ready for: aaa ralph build --subtasks docs/planning/milestones/<milestone>/subtasks.json --headless
 ```
 
 ## Error Handling
