@@ -403,7 +403,10 @@ describe("runLevel", () => {
     // but we're testing that the options are accepted
     const error = await runLevel("calibrate", options);
     // Should fail due to missing file, not due to options validation
-    expect(error).not.toContain("Invalid level");
+    // error is null on success or a string on failure
+    if (error !== null) {
+      expect(error).not.toContain("Invalid level");
+    }
   });
 
   test("accepts approval/provider passthrough fields in run options", async () => {
@@ -416,7 +419,10 @@ describe("runLevel", () => {
       subtasksPath: "/nonexistent/subtasks.json",
     });
 
-    expect(error).not.toContain("Invalid level");
+    // error is null on success or a string on failure
+    if (error !== null) {
+      expect(error).not.toContain("Invalid level");
+    }
   });
 });
 

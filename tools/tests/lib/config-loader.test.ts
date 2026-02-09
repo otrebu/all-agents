@@ -338,16 +338,20 @@ describe("approvals config merge", () => {
 
     const loaded = loadAaaConfig(configPath);
 
-    // User-specified values
+    // User-specified values override defaults
     expect(loaded.ralph?.approvals?.createSubtasks).toBe("always");
     expect(loaded.ralph?.approvals?.suggestWaitSeconds).toBe(300);
 
-    // Unspecified gates remain undefined
-    expect(loaded.ralph?.approvals?.createStories).toBeUndefined();
+    // Gates with defaults preserve their default values
+    expect(loaded.ralph?.approvals?.createStories).toBe("always");
+    expect(loaded.ralph?.approvals?.createTasks).toBe("suggest");
+    expect(loaded.ralph?.approvals?.onDriftDetected).toBe("always");
+
+    // Gates without defaults remain undefined
     expect(loaded.ralph?.approvals?.createRoadmap).toBeUndefined();
   });
 
-  test("unspecified gates remain undefined after merge", () => {
+  test("unspecified gates get defaults, others remain undefined", () => {
     const configPath = join(temporaryDirectory, CONFIG_FILENAME);
     const customConfig: Partial<AaaConfig> = {
       ralph: {
@@ -364,13 +368,15 @@ describe("approvals config merge", () => {
     // suggestWaitSeconds from user
     expect(loaded.ralph?.approvals?.suggestWaitSeconds).toBe(120);
 
-    // All gates should remain undefined (sparse defaults)
+    // Gates with defaults get their default values
+    expect(loaded.ralph?.approvals?.createStories).toBe("always");
+    expect(loaded.ralph?.approvals?.createTasks).toBe("suggest");
+    expect(loaded.ralph?.approvals?.createSubtasks).toBe("auto");
+    expect(loaded.ralph?.approvals?.onDriftDetected).toBe("always");
+
+    // Gates without defaults remain undefined
     expect(loaded.ralph?.approvals?.createRoadmap).toBeUndefined();
-    expect(loaded.ralph?.approvals?.createStories).toBeUndefined();
-    expect(loaded.ralph?.approvals?.createTasks).toBeUndefined();
-    expect(loaded.ralph?.approvals?.createSubtasks).toBeUndefined();
     expect(loaded.ralph?.approvals?.createAtomicDocs).toBeUndefined();
-    expect(loaded.ralph?.approvals?.onDriftDetected).toBeUndefined();
     expect(loaded.ralph?.approvals?.correctionTasks).toBeUndefined();
     expect(loaded.ralph?.approvals?.promptChanges).toBeUndefined();
   });

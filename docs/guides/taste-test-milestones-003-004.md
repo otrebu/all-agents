@@ -166,16 +166,6 @@ aaa ralph plan subtasks --text "build the login form component"
 
 **Expect:** Generates subtask entries in `subtasks.json`. Includes duplicate pre-check -- skips already-existing task references.
 
-### 2f. Print mode (see prompt without executing)
-
-```bash
-aaa ralph plan stories --milestone 003-ralph-workflow -p
-aaa ralph plan tasks --story STORY-001.md -p
-aaa ralph plan subtasks --milestone 003-ralph-workflow -p
-```
-
-**Expect:** Prints the fully-resolved prompt that would be sent to the provider. No API call, no cost. Useful for debugging or reviewing what Ralph sends.
-
 ---
 
 ## Part 3: Approval System (Milestone 003)
@@ -272,14 +262,6 @@ aaa ralph build --subtasks docs/planning/milestones/003-ralph-workflow/subtasks.
 ```
 
 **Expect:** Uses a specific subtask file instead of the default `subtasks.json`.
-
-### 4g. Print iteration prompt
-
-```bash
-aaa ralph build -p
-```
-
-**Expect:** Prints the prompt that would be sent for the next subtask. No execution, no cost.
 
 ---
 
@@ -639,8 +621,6 @@ aaa ralph plan subtasks --milestone my-milestone --cascade build --review
 # Interactive build with a different provider
 aaa ralph build -i --provider opencode
 
-# See what the build prompt looks like without running anything
-aaa ralph build -p
 ```
 
 ---

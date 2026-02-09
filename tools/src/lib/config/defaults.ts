@@ -34,10 +34,23 @@ export const DEFAULT_NOTIFY: NotifySection = {
 
 /**
  * Default approvals configuration
- * Gate fields are intentionally omitted - they default to undefined
- * and runtime applies "suggest" fallback via ?? operator
+ *
+ * Gate defaults provide sensible safety for new users:
+ * - createStories: "always" - stories define scope, require explicit approval
+ * - createTasks: "suggest" - tasks are reviewed but auto-proceed after timeout
+ * - createSubtasks: "auto" - subtasks are low-risk, write immediately
+ * - onDriftDetected: "always" - drift is important, require explicit approval
+ *
+ * Gates not listed here default to undefined at runtime and fall back to
+ * "suggest" via the ?? operator in approval-checking code.
  */
-export const DEFAULT_APPROVALS: ApprovalsConfig = { suggestWaitSeconds: 180 };
+export const DEFAULT_APPROVALS: ApprovalsConfig = {
+  createStories: "always",
+  createSubtasks: "auto",
+  createTasks: "suggest",
+  onDriftDetected: "always",
+  suggestWaitSeconds: 180,
+};
 
 /**
  * Default timeout configuration for Ralph build processes

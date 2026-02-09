@@ -12,6 +12,12 @@
     "title": "aaa notify"
   },
   "ralph": {
+    "approvals": {
+      "createStories": "always",
+      "createTasks": "suggest",
+      "createSubtasks": "auto",
+      "onDriftDetected": "always"
+    },
     "hooks": {
       "onIterationComplete": [
         "log"

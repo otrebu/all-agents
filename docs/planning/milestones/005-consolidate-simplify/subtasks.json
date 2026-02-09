@@ -532,6 +532,25 @@
       "completedAt": "2026-02-08T20:22:02Z",
       "commitHash": "28faf35c7e87a019faba71857abd98ab7f6793ce",
       "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
+    },
+    {
+      "id": "SUB-022",
+      "taskRef": "consolidate-simplify",
+      "title": "Add ASCII artwork when ralph starts work",
+      "description": "Create and display a great ASCII artwork banner when `aaa ralph build` or any ralph command starts doing work. The artwork should be playful, memorable, and appear at the beginning of the build loop output. Should be stored in a dedicated ASCII art module or constant and called from the build start location.",
+      "done": false,
+      "acceptanceCriteria": [
+        "ASCII artwork displays when `aaa ralph build` starts execution",
+        "Artwork is stored in a dedicated location (e.g., tools/src/commands/ralph/ascii.ts or similar)",
+        "Artwork is creative and visually appealing in terminal output",
+        "Artwork does not break terminal formatting or overflow standard width (80 chars)",
+        "Unit test exists to verify ASCII art renders without error"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/display.ts"
+      ]
     }
   ]
 }
