@@ -332,6 +332,13 @@ aaa ralph plan subtasks --milestone 003-ralph-workflow --cascade calibrate --fro
 
 **Expect:** Skips to build level, then cascades to calibrate.
 
+**Gotcha:** `--from` must be *before* `--cascade` in the level order. `--from build --cascade build` errors with "Cannot cascade backward" because same-level is treated as backward. If you only need to run build (planning already done), skip cascade entirely and call build directly:
+
+```bash
+# Planning done? Just build directly.
+aaa ralph build --subtasks docs/planning/milestones/003-ralph-workflow/subtasks.json
+```
+
 ---
 
 ## Part 7: Auto-Calibration During Build (Milestone 003)

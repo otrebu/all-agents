@@ -463,6 +463,23 @@ function getLatestCommitHash(projectRoot: string): null | string {
   return proc.stdout.toString("utf8").trim();
 }
 
+function getNextRunnableSubtask(
+  subtasks: Array<Subtask>,
+  skippedSubtaskIds: null | Set<string>,
+): null | Subtask {
+  if (skippedSubtaskIds === null || skippedSubtaskIds.size === 0) {
+    return getNextSubtask(subtasks);
+  }
+
+  // Exclude validation-skipped subtasks from selection while preserving
+  // dependency semantics for downstream subtasks.
+  const runnableSubtasks = subtasks.filter(
+    (subtask) => !skippedSubtaskIds.has(subtask.id),
+  );
+
+  return getNextSubtask(runnableSubtasks);
+}
+
 /**
  * Summarize pending/completed totals for a subtask list.
  */
@@ -596,6 +613,65 @@ function handleModelValidation(
   process.exit(1);
 }
 
+async function handleNoRunnableSubtasks(options: {
+  milestone: string;
+  skippedSubtaskIds: null | Set<string>;
+  subtasks: Array<Subtask>;
+}): Promise<void> {
+  const { milestone, skippedSubtaskIds, subtasks } = options;
+
+  const pending = subtasks.filter((s) => !s.done);
+  const skippedPending = pending.filter(
+    (subtask) => skippedSubtaskIds?.has(subtask.id) === true,
+  );
+  const blockedPending = pending.filter(
+    (subtask) => skippedSubtaskIds?.has(subtask.id) !== true,
+  );
+  const blockedList = blockedPending
+    .map((s) => {
+      const blockedBy = s.blockedBy ?? [];
+      const deps =
+        blockedBy.length === 0 ? "(no blockedBy listed)" : blockedBy.join(", ");
+      return `- ${s.id}: blockedBy ${deps}`;
+    })
+    .join("\n");
+  const skippedList = skippedPending
+    .map((subtask) => `- ${subtask.id}: ${subtask.title}`)
+    .join("\n");
+
+  console.error("Error: No runnable subtasks found.");
+  if (skippedPending.length > 0) {
+    console.error(
+      `Pre-build validation skipped ${skippedPending.length} pending subtask(s).`,
+    );
+    if (skippedList !== "") {
+      console.error(`\nSkipped subtasks:\n${skippedList}`);
+    }
+  }
+  if (blockedPending.length > 0) {
+    console.error(
+      "All remaining non-skipped subtasks appear blocked by incomplete dependencies.",
+    );
+    if (blockedList !== "") {
+      console.error(`\nBlocked subtasks:\n${blockedList}`);
+    }
+  }
+
+  const noRunnableReason =
+    skippedPending.length > 0 && blockedPending.length === 0
+      ? `No runnable subtasks found for milestone ${milestone}. ${skippedPending.length} subtask(s) were skipped by pre-build validation.`
+      : `No runnable subtasks found for milestone ${milestone}. All remaining non-skipped subtasks appear blocked.`;
+
+  await executeHook("onValidationFail", {
+    message: noRunnableReason,
+    milestone,
+  });
+}
+
+// =============================================================================
+// Build Loop Implementation
+// =============================================================================
+
 /**
  * Log model selection based on whether the queue has runnable work.
  */
@@ -641,10 +717,6 @@ function logSubtasksSizeGuidance(options: {
   }
   console.log();
 }
-
-// =============================================================================
-// Build Loop Implementation
-// =============================================================================
 
 /**
  * Process a single headless iteration
@@ -1059,19 +1131,6 @@ async function resolveProviderOrExit(
   }
 }
 
-// eslint-disable-next-line perfectionist/sort-modules -- Helper is grouped with SUB-412 validation integration utilities
-function isValidatedSubtaskSkipped(
-  currentSubtask: Subtask,
-  skippedSubtaskIds: null | Set<string>,
-): boolean {
-  if (skippedSubtaskIds?.has(currentSubtask.id) === true) {
-    console.log(`Skipping ${currentSubtask.id} (failed validation)`);
-    return true;
-  }
-
-  return false;
-}
-
 async function resolveSkippedSubtaskIds(options: {
   contextRoot: string;
   mode: "headless" | "supervised";
@@ -1099,7 +1158,7 @@ async function resolveSkippedSubtaskIds(options: {
   console.log(
     renderEventLine({
       domain: "VALIDATE",
-      message: `Pre-build validation starting (${pendingSubtasks.length} pending subtasks)`,
+      message: `Pre-build validation starting before iteration phase (${pendingSubtasks.length} pending subtasks)`,
       state: "START",
     }),
   );
@@ -1160,6 +1219,43 @@ async function runBuild(
   const initialQueueStats = getSubtaskQueueStats(initialSubtasksFile.subtasks);
   const hasPendingSubtasks = initialQueueStats.pending > 0;
 
+  // Select provider (CLI flag > env var > default)
+  const provider = await resolveProviderOrExit(options.provider);
+
+  // Select model (CLI flag > config) and validate against provider registry.
+  // Skip strict validation when queue has no runnable work.
+  const model = resolveModel(modelOverride);
+
+  // Reset module-level state for cascade mode / multiple runBuild() calls
+  hasSummaryBeenGenerated = false;
+  summaryContext = null;
+
+  // Register signal handlers for graceful summary on interrupt
+  registerSignalHandlers();
+
+  // Fail fast on provider/mode support only when there is work to execute.
+  if (hasPendingSubtasks) {
+    await runProviderPreflightOrExit(provider, mode);
+  }
+
+  // Track retry attempts per subtask ID
+  const attempts = new Map<string, number>();
+
+  // Track subtasks completed during this build run
+  const completedThisRun: Array<{ attempts: number; id: string }> = [];
+
+  // Initialize summary context for signal handlers
+  summaryContext = { completedThisRun, quiet: isQuiet, subtasksPath };
+
+  // eslint-disable-next-line perfectionist/sort-union-types -- Keep declared order for SUB-412 acceptance criteria
+  let skippedSubtaskIds: Set<string> | null = null;
+  skippedSubtaskIds = await resolveSkippedSubtaskIds({
+    contextRoot,
+    mode,
+    shouldValidateFirst,
+    subtasksPath,
+  });
+
   console.log(
     renderPhaseCard({
       domain: "BUILD",
@@ -1188,8 +1284,6 @@ async function runBuild(
     );
   }
 
-  // Select provider (CLI flag > env var > default)
-  const provider = await resolveProviderOrExit(options.provider);
   console.log(
     renderEventLine({
       domain: "BUILD",
@@ -1198,46 +1292,13 @@ async function runBuild(
     }),
   );
 
-  // Select model (CLI flag > config) and validate against provider registry.
-  // Skip strict validation when queue has no runnable work.
-  const model = resolveModel(modelOverride);
   logModelSelection({ hasPendingSubtasks, model, provider });
-
-  // Reset module-level state for cascade mode / multiple runBuild() calls
-  hasSummaryBeenGenerated = false;
-  summaryContext = null;
-
-  // Register signal handlers for graceful summary on interrupt
-  registerSignalHandlers();
-
-  // Fail fast on provider/mode support only when there is work to execute.
-  if (hasPendingSubtasks) {
-    await runProviderPreflightOrExit(provider, mode);
-  }
 
   // Pre-build size check: warn if subtasks.json is getting large
   const sizeCheck = checkSubtasksSize(subtasksPath);
   logSubtasksSizeGuidance({
     queueStats: initialQueueStats,
     sizeCheck,
-    subtasksPath,
-  });
-
-  // Track retry attempts per subtask ID
-  const attempts = new Map<string, number>();
-
-  // Track subtasks completed during this build run
-  const completedThisRun: Array<{ attempts: number; id: string }> = [];
-
-  // Initialize summary context for signal handlers
-  summaryContext = { completedThisRun, quiet: isQuiet, subtasksPath };
-
-  // eslint-disable-next-line perfectionist/sort-union-types -- Keep declared order for SUB-412 acceptance criteria
-  let skippedSubtaskIds: Set<string> | null = null;
-  skippedSubtaskIds = await resolveSkippedSubtaskIds({
-    contextRoot,
-    mode,
-    shouldValidateFirst,
     subtasksPath,
   });
 
@@ -1293,176 +1354,156 @@ async function runBuild(
       process.exit(0);
     }
 
-    // Get the next pending subtask
-    const currentSubtask = getNextSubtask(subtasksFile.subtasks);
+    // Get the next pending subtask, excluding items skipped by pre-build validation
+    const currentSubtask = getNextRunnableSubtask(
+      subtasksFile.subtasks,
+      skippedSubtaskIds,
+    );
 
     if (currentSubtask === null) {
       const milestone = getMilestoneFromSubtasks(subtasksFile);
-      const pending = subtasksFile.subtasks.filter((s) => !s.done);
-      const blockedList = pending
-        .map((s) => {
-          const blockedBy = s.blockedBy ?? [];
-          const deps =
-            blockedBy.length === 0
-              ? "(no blockedBy listed)"
-              : blockedBy.join(", ");
-          return `- ${s.id}: blockedBy ${deps}`;
-        })
-        .join("\n");
-
-      console.error("Error: No runnable subtasks found.");
-      console.error(
-        "All remaining subtasks appear blocked by incomplete dependencies.",
-      );
-      if (blockedList !== "") {
-        console.error(`\nPending subtasks:\n${blockedList}`);
-      }
-
       // eslint-disable-next-line no-await-in-loop -- Must notify before exiting
-      await executeHook("onValidationFail", {
-        message: `No runnable subtasks found for milestone ${milestone}. All remaining subtasks appear blocked.`,
+      await handleNoRunnableSubtasks({
         milestone,
+        skippedSubtaskIds,
+        subtasks: subtasksFile.subtasks,
       });
 
       process.exit(1);
     }
 
-    if (!isValidatedSubtaskSkipped(currentSubtask, skippedSubtaskIds)) {
-      // Track attempts for this specific subtask
-      const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
+    // Track attempts for this specific subtask
+    const currentAttempts = (attempts.get(currentSubtask.id) ?? 0) + 1;
 
-      // Check if we've exceeded max iterations for this subtask
-      // eslint-disable-next-line no-await-in-loop -- Must check before continuing
-      const didExceedMaxIterations = await handleMaxIterationsExceeded({
-        currentAttempts,
-        maxIterations,
-        milestone: getMilestoneFromSubtasks(subtasksFile),
+    // Check if we've exceeded max iterations for this subtask
+    // eslint-disable-next-line no-await-in-loop -- Must check before continuing
+    const didExceedMaxIterations = await handleMaxIterationsExceeded({
+      currentAttempts,
+      maxIterations,
+      milestone: getMilestoneFromSubtasks(subtasksFile),
+      subtaskId: currentSubtask.id,
+    });
+    if (didExceedMaxIterations) {
+      process.exit(1);
+    }
+
+    // Display iteration start box
+    console.log("\n");
+    console.log(
+      renderIterationStart({
+        attempt: currentAttempts,
+        iteration,
+        maxAttempts: maxIterations,
+        remaining,
         subtaskId: currentSubtask.id,
-      });
-      if (didExceedMaxIterations) {
-        process.exit(1);
-      }
+        subtaskTitle: currentSubtask.title,
+      }),
+    );
 
-      // Display iteration start box
-      console.log("\n");
-      console.log(
-        renderIterationStart({
-          attempt: currentAttempts,
-          iteration,
-          maxAttempts: maxIterations,
-          remaining,
-          subtaskId: currentSubtask.id,
-          subtaskTitle: currentSubtask.title,
-        }),
-      );
+    // Build the prompt
+    const prompt = buildIterationPrompt(
+      contextRoot,
+      currentSubtask,
+      subtasksPath,
+    );
 
-      // Build the prompt
-      const prompt = buildIterationPrompt(
+    // Invoke selected provider based on mode
+    let didComplete = false;
+    let iterationHookResult: null | PostIterationResult = null;
+
+    if (mode === "headless") {
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      const headlessResult = await processHeadlessIteration({
         contextRoot,
+        currentAttempts,
         currentSubtask,
-        subtasksPath,
-      );
-
-      // Invoke selected provider based on mode
-      let didComplete = false;
-      let iterationHookResult: null | PostIterationResult = null;
-
-      if (mode === "headless") {
-        // eslint-disable-next-line no-await-in-loop -- Must await before continuing
-        const headlessResult = await processHeadlessIteration({
-          contextRoot,
-          currentAttempts,
-          currentSubtask,
-          iteration,
-          maxIterations,
-          model,
-          prompt,
-          provider,
-          remaining,
-          shouldSkipSummary,
-          subtasksPath,
-        });
-
-        if (headlessResult === null) {
-          // Retryable provider outcome: count the attempt and retry.
-          attempts.set(currentSubtask.id, currentAttempts);
-          console.log(
-            chalk.yellow(
-              `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
-            ),
-          );
-          didComplete = false;
-        } else {
-          attempts.set(currentSubtask.id, currentAttempts);
-          ({ didComplete, hookResult: iterationHookResult } = headlessResult);
-        }
-      } else {
-        // eslint-disable-next-line no-await-in-loop -- Must await before continuing
-        const supervisedResult = await processSupervisedIteration({
-          contextRoot,
-          currentAttempts,
-          currentSubtask,
-          iteration,
-          maxIterations,
-          model,
-          provider,
-          remaining,
-          subtasksPath,
-        });
-
-        if (supervisedResult === null) {
-          // Retryable provider outcome: count the attempt and retry.
-          attempts.set(currentSubtask.id, currentAttempts);
-          console.log(
-            chalk.yellow(
-              `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
-            ),
-          );
-          didComplete = false;
-        } else {
-          attempts.set(currentSubtask.id, currentAttempts);
-          ({ didComplete, hookResult: iterationHookResult } = supervisedResult);
-        }
-
-        if (didComplete) {
-          console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
-        }
-      }
-
-      didComplete = enforceSingleSubtaskInvariant({
-        assignedSubtaskId: currentSubtask.id,
-        preSubtasks: subtasksFile.subtasks,
+        iteration,
+        maxIterations,
+        model,
+        prompt,
+        provider,
+        remaining,
+        shouldSkipSummary,
         subtasksPath,
       });
 
-      // Handle completion tracking
-      if (didComplete) {
-        attempts.delete(currentSubtask.id);
-        completedThisRun.push({
-          attempts: currentAttempts,
-          id: currentSubtask.id,
-        });
+      if (headlessResult === null) {
+        // Retryable provider outcome: count the attempt and retry.
+        attempts.set(currentSubtask.id, currentAttempts);
+        console.log(
+          chalk.yellow(
+            `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
+          ),
+        );
+        didComplete = false;
+      } else {
+        attempts.set(currentSubtask.id, currentAttempts);
+        ({ didComplete, hookResult: iterationHookResult } = headlessResult);
+      }
+    } else {
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      const supervisedResult = await processSupervisedIteration({
+        contextRoot,
+        currentAttempts,
+        currentSubtask,
+        iteration,
+        maxIterations,
+        model,
+        provider,
+        remaining,
+        subtasksPath,
+      });
 
-        // Fire onSubtaskComplete hook with metrics from iteration result
-        // eslint-disable-next-line no-await-in-loop -- Must await before continuing
-        await fireSubtaskCompleteHook({
-          hookResult: iterationHookResult,
-          subtask: currentSubtask,
-        });
+      if (supervisedResult === null) {
+        // Retryable provider outcome: count the attempt and retry.
+        attempts.set(currentSubtask.id, currentAttempts);
+        console.log(
+          chalk.yellow(
+            `\n⚠ Retryable provider outcome. Will retry on next iteration.\n`,
+          ),
+        );
+        didComplete = false;
+      } else {
+        attempts.set(currentSubtask.id, currentAttempts);
+        ({ didComplete, hookResult: iterationHookResult } = supervisedResult);
       }
 
-      // Interactive mode: prompt for continuation
-      if (isInteractive) {
-        // eslint-disable-next-line no-await-in-loop -- Interactive prompt must block
-        const shouldContinue = await promptContinue();
-        if (!shouldContinue) {
-          console.log("\nBuild loop aborted by user");
-          return;
-        }
+      if (didComplete) {
+        console.log(`\nSubtask ${currentSubtask.id} completed successfully`);
       }
     }
 
-    iteration += 1;
+    didComplete = enforceSingleSubtaskInvariant({
+      assignedSubtaskId: currentSubtask.id,
+      preSubtasks: subtasksFile.subtasks,
+      subtasksPath,
+    });
+
+    // Handle completion tracking
+    if (didComplete) {
+      attempts.delete(currentSubtask.id);
+      completedThisRun.push({
+        attempts: currentAttempts,
+        id: currentSubtask.id,
+      });
+
+      // Fire onSubtaskComplete hook with metrics from iteration result
+      // eslint-disable-next-line no-await-in-loop -- Must await before continuing
+      await fireSubtaskCompleteHook({
+        hookResult: iterationHookResult,
+        subtask: currentSubtask,
+      });
+    }
+
+    // Interactive mode: prompt for continuation
+    if (isInteractive) {
+      // eslint-disable-next-line no-await-in-loop -- Interactive prompt must block
+      const shouldContinue = await promptContinue();
+      if (!shouldContinue) {
+        console.log("\nBuild loop aborted by user");
+        return;
+      }
+    }
 
     // Run calibration every N iterations (if enabled)
     // eslint-disable-next-line no-await-in-loop -- Must await calibration before next iteration
@@ -1472,6 +1513,8 @@ async function runBuild(
       iteration,
       subtasksPath,
     });
+
+    iteration += 1;
   }
 }
 

@@ -1463,7 +1463,9 @@ async function handleCascadeExecution(
 
   const handoffLines = [chalk.dim(`Subtasks queue: ${subtasksPath}`)];
   if (shouldValidateFirst === true) {
-    handoffLines.push(chalk.dim("Pre-build validation: enabled"));
+    handoffLines.push(
+      chalk.dim("Pre-build validation: runs before build iteration phase"),
+    );
   }
   if ((calibrateEvery ?? 0) > 0) {
     handoffLines.push(

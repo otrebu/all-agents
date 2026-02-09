@@ -62,6 +62,8 @@ const VALIDATION_TIMEOUT_MS = 60_000;
 const TIMEOUT_WARNING_THRESHOLD_MS = 1000;
 const STORY_REF_PATTERN =
   /\*\*Story:\*\*\s*\[(?<storyReference>[^\]]+)\]\([^)]+\)/;
+const MISSING_PARENT_TASK_REASON_PATTERN =
+  /(?:missing parent task|missing task file|unable to validate against parent task|parent task[^\n]*not found)/i;
 const VALIDATION_BOX_WIDTH = 64;
 const VALIDATION_BOX_INNER_WIDTH = VALIDATION_BOX_WIDTH - 2;
 const VALIDATION_CONTENT_WIDTH = 56;
@@ -262,6 +264,26 @@ async function handleSupervisedValidationFailure(
 
   console.log(lines.join("\n"));
   return promptSkipOrContinue(subtask.id);
+}
+
+function normalizeMissingParentTaskFailure(
+  result: ValidationResult,
+  options: { hasParentTask: boolean; subtaskId: string },
+): ValidationResult {
+  const { hasParentTask, subtaskId } = options;
+
+  if (result.aligned || hasParentTask) {
+    return result;
+  }
+
+  if (!MISSING_PARENT_TASK_REASON_PATTERN.test(result.reason ?? "")) {
+    return result;
+  }
+
+  console.warn(
+    `[Validation:${subtaskId}] Parent task missing; treating validation result as aligned`,
+  );
+  return { aligned: true };
 }
 
 function parseIssueType(value: unknown): undefined | ValidationIssueType {
@@ -539,6 +561,8 @@ async function validateSubtask(
   contextRoot: string,
 ): Promise<ValidationResult> {
   const { milestonePath, subtask } = context;
+  const { taskContent } = resolveParentTask(subtask.taskRef, milestonePath);
+  const hasParentTask = taskContent !== null;
 
   console.log(`[Validation] Validating ${subtask.id}: ${subtask.title}`);
 
@@ -565,7 +589,11 @@ async function validateSubtask(
     return { aligned: true };
   }
 
-  return parseValidationResponse(response, subtask.id);
+  const parsed = parseValidationResponse(response, subtask.id);
+  return normalizeMissingParentTaskFailure(parsed, {
+    hasParentTask,
+    subtaskId: subtask.id,
+  });
 }
 
 function wrapText(text: string, width: number): Array<string> {
@@ -605,6 +633,7 @@ export {
   getMilestoneFromPath,
   handleHeadlessValidationFailure,
   handleSupervisedValidationFailure,
+  normalizeMissingParentTaskFailure,
   parseIssueType,
   parseValidationResponse,
   printValidationSummary,

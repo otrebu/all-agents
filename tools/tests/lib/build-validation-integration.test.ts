@@ -35,11 +35,37 @@ describe("build validation integration", () => {
     expect(buildContent).toContain("(s) => s.subtaskId");
   });
 
-  test("skips validated-failed subtask IDs in iteration loop", () => {
-    expect(buildContent).toContain(
-      "if (!isValidatedSubtaskSkipped(currentSubtask, skippedSubtaskIds))",
+  test("runs validation gate before build start messaging", () => {
+    const validationCallIndex = buildContent.indexOf(
+      "skippedSubtaskIds = await resolveSkippedSubtaskIds(",
     );
-    expect(buildContent).toContain("Skipping ");
-    expect(buildContent).toContain("(failed validation)");
+    const buildStartMessageIndex = buildContent.indexOf(
+      'title: "Starting build loop"',
+    );
+
+    expect(validationCallIndex).toBeGreaterThan(-1);
+    expect(buildStartMessageIndex).toBeGreaterThan(-1);
+    expect(validationCallIndex).toBeLessThan(buildStartMessageIndex);
+  });
+
+  test("uses validation start messaging that clarifies ordering", () => {
+    expect(buildContent).toContain(
+      "Pre-build validation starting before iteration phase",
+    );
+  });
+
+  test("handles no-runnable queue with validation skip context", () => {
+    expect(buildContent).toContain("handleNoRunnableSubtasks({");
+    expect(buildContent).toContain("Pre-build validation skipped");
+    expect(buildContent).toContain(
+      "All remaining non-skipped subtasks appear blocked",
+    );
+  });
+
+  test("selects next subtask from validation-filtered queue", () => {
+    expect(buildContent).toContain("getNextRunnableSubtask(");
+    expect(buildContent).toContain(
+      "(subtask) => !skippedSubtaskIds.has(subtask.id)",
+    );
   });
 });

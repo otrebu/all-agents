@@ -23,7 +23,7 @@ These variables are substituted before the prompt is sent to the summary model.
 
 Notes:
 
-- Missing variables are left as literal `{{VAR}}` text and are not replaced.
+- Missing variables are left as literal `{{missing_variable}}` text and are not replaced.
 - `SESSION_CONTENT` is substituted last because it may be large and can contain `{{...}}` text.
 
 ## Task

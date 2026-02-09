@@ -167,4 +167,40 @@ describe("validateSubtask", () => {
       fixture.cleanup();
     }
   });
+
+  test("treats missing-parent-only failures as aligned", async () => {
+    const fixture = createValidationContextFixture();
+    const invokeSpy = spyOn(
+      summaryProvider,
+      "invokeProviderSummary",
+    ).mockResolvedValue(
+      JSON.stringify({
+        aligned: false,
+        issue_type: "unfaithful",
+        reason:
+          "Unable to validate against parent Task due to missing Task file. However, based on the available information, the subtask appears well-scoped and detailed.",
+        suggestion:
+          "Restore the parent task file and re-run validation for full chain coverage.",
+      }),
+    );
+    const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      const result = await validateSubtask(
+        fixture.context,
+        fixture.contextRoot,
+      );
+
+      expect(result).toEqual({ aligned: true });
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Parent task missing; treating validation result as aligned",
+        ),
+      );
+    } finally {
+      warnSpy.mockRestore();
+      invokeSpy.mockRestore();
+      fixture.cleanup();
+    }
+  });
 });
