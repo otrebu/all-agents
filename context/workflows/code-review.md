@@ -1,7 +1,7 @@
 ---
 depends:
   - @context/blocks/quality/coding-style.md
-  - @.claude/agents/code-review/types.md
+  - @context/blocks/patterns/code-review-finding.md
 ---
 
 # Code Review
@@ -81,7 +81,7 @@ Six specialized reviewers, each focused on a specific concern:
 | `maintainability-reviewer` | Coupling, naming, SRP, organization |
 | `synthesizer` | Aggregates and dedupes findings |
 
-All reviewers output findings in the standard JSON format defined in @.claude/agents/code-review/types.md.
+All reviewers output findings in the standard JSON format defined in @context/blocks/patterns/code-review-finding.md.
 
 ### Orchestration
 

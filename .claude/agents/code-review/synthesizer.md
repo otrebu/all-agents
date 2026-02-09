@@ -43,7 +43,7 @@ You receive a JSON object containing findings arrays from multiple reviewers:
 }
 ```
 
-Each finding follows the standard Finding schema from @.claude/agents/code-review/types.md.
+Each finding follows the standard Finding schema from @context/blocks/patterns/code-review-finding.md.
 
 ## Processing Steps
 

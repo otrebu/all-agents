@@ -1,6 +1,6 @@
 ---
 name: task-generator
-description: Single-story task generator subagent. Input: story path, starting task ID, optional milestone. Output: task files + summary. Used by tasks-milestone orchestrator for parallel task generation.
+description: "Single-story task generator subagent. Input: story path, starting task ID, optional milestone. Output: task files + summary."
 model: sonnet
 ---
 

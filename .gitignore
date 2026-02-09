@@ -34,6 +34,8 @@ bin/aaa
 .claude/paste-cache/
 .claude/cache/
 .claude/tasks/
+.claude/usage-data/
+
 docs/research/downloads/
 
 # Ralph build artifacts (auto-generated)

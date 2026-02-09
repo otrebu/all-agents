@@ -1,6 +1,6 @@
 ---
 name: subtask-reviewer
-description: Reviews ALL subtasks for sizing issues using the vertical slice test. Input: subtasks JSON + sizing mode. Output: structured findings with reasoning-based flags.
+description: "Reviews ALL subtasks for sizing issues using the vertical slice test. Input: subtasks JSON + sizing mode. Output: structured findings with reasoning-based flags."
 model: haiku
 ---
 
