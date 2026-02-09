@@ -22,7 +22,6 @@ import {
   createTimeoutPromise,
   DEFAULT_GRACE_PERIOD_MS,
   killProcessGracefully,
-  markTimerAsNonBlocking,
   readStderrWithActivityTracking,
 } from "./utils";
 
@@ -38,6 +37,12 @@ interface ClaudeChatOptions {
   model?: string;
 }
 
+interface ClaudeHeadlessWatchdog {
+  checkIntervalMs?: number;
+  reason?: string;
+  shouldTerminate: () => boolean;
+}
+
 /**
  * Result from invoking Claude in chat/supervised mode (UI-facing)
  */
@@ -49,6 +54,12 @@ interface ClaudeResult {
   /** Whether the session completed successfully (exit code 0) */
   success: boolean;
 }
+
+type HeadlessExitOutcome =
+  | "exited"
+  | "hard_timeout"
+  | "stall_timeout"
+  | "watchdog_terminate";
 
 type TerminationSignal = keyof typeof SIGNAL_EXIT_CODE;
 
@@ -180,6 +191,47 @@ function createClaudeNullOutcome(
   };
 }
 
+function createWatchdogDetector(
+  watchdog: ClaudeHeadlessWatchdog,
+): {
+  cleanup: () => void;
+  promise: Promise<HeadlessExitOutcome>;
+} {
+  const checkIntervalMs = Math.max(1000, watchdog.checkIntervalMs ?? 5000);
+  let isCancelled = false;
+
+  async function waitForWatchdog(): Promise<HeadlessExitOutcome> {
+    if (isCancelled) {
+      return "exited";
+    }
+
+    let shouldTerminate = false;
+    try {
+      shouldTerminate = watchdog.shouldTerminate();
+    } catch {
+      shouldTerminate = false;
+    }
+
+    if (shouldTerminate) {
+      return "watchdog_terminate";
+    }
+
+    // Wait before checking again without blocking process exit.
+    // createTimeoutPromise() already marks timers as non-blocking.
+    await createTimeoutPromise<null>(checkIntervalMs, null);
+    return waitForWatchdog();
+  }
+
+  const promise = waitForWatchdog();
+
+  return {
+    cleanup: () => {
+      isCancelled = true;
+    },
+    promise,
+  };
+}
+
 function exitCodeToSignal(
   exitCode: null | number | undefined,
 ): null | TerminationSignal {
@@ -201,6 +253,63 @@ function exitForSignal(signal: TerminationSignal): never {
   }
 
   process.exit(exitCode);
+}
+
+async function handleHeadlessExitOutcome(options: {
+  gracePeriodMs: number;
+  hardTimeoutMs: number;
+  isDebug: boolean;
+  outcome: HeadlessExitOutcome;
+  proc: ReturnType<typeof Bun.spawn>;
+  stallTimeoutMs: number;
+  stderrForwarder: Promise<void>;
+  watchdog?: ClaudeHeadlessWatchdog;
+}): Promise<boolean> {
+  const {
+    gracePeriodMs,
+    hardTimeoutMs,
+    isDebug,
+    outcome,
+    proc,
+    stallTimeoutMs,
+    stderrForwarder,
+    watchdog,
+  } = options;
+
+  if (outcome === "exited") {
+    return false;
+  }
+
+  if (outcome === "stall_timeout") {
+    console.warn(
+      `\n⚠ Process stalled - no output for ${stallTimeoutMs / 60_000} minutes`,
+    );
+    await killProcessGracefully(proc, gracePeriodMs);
+    await stderrForwarder;
+    if (isDebug) {
+      console.log(`Claude headless stalled after ${stallTimeoutMs}ms without output`);
+    }
+    return true;
+  }
+
+  if (outcome === "hard_timeout") {
+    console.warn(`\n⚠ Hard timeout reached after ${hardTimeoutMs / 60_000} minutes`);
+    await killProcessGracefully(proc, gracePeriodMs);
+    await stderrForwarder;
+    if (isDebug) {
+      console.log(`Claude headless hard timed out after ${hardTimeoutMs}ms`);
+    }
+    return true;
+  }
+
+  const reason = watchdog?.reason ?? "watchdog requested graceful termination";
+  console.warn(`\n⚠ ${reason}`);
+  await killProcessGracefully(proc, gracePeriodMs);
+  await stderrForwarder;
+  if (isDebug) {
+    console.log("Claude headless stopped by watchdog");
+  }
+  return true;
 }
 
 /**
@@ -370,13 +479,7 @@ async function invokeClaudeHaiku(options: {
     timeoutMs > 0
       ? await Promise.race([
           proc.exited.then(() => "exited" as const),
-          // eslint-disable-next-line promise/avoid-new -- setTimeout requires manual promise wrapping
-          new Promise<ExitOutcome>((resolve) => {
-            const timer = setTimeout(() => {
-              resolve("timeout");
-            }, timeoutMs);
-            markTimerAsNonBlocking(timer);
-          }),
+          createTimeoutPromise<ExitOutcome>(timeoutMs, "timeout"),
         ])
       : await proc.exited.then(() => "exited" as const);
 
@@ -448,6 +551,7 @@ async function invokeClaudeHeadlessAsync(options: {
   prompt: string;
   stallTimeoutMs?: number;
   timeout?: number;
+  watchdog?: ClaudeHeadlessWatchdog;
 }): Promise<AgentResult | null> {
   const {
     gracePeriodMs = DEFAULT_GRACE_PERIOD_MS,
@@ -456,6 +560,7 @@ async function invokeClaudeHeadlessAsync(options: {
     prompt,
     stallTimeoutMs = 0,
     timeout: hardTimeoutMs = 0,
+    watchdog,
   } = options;
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 
@@ -480,9 +585,6 @@ async function invokeClaudeHeadlessAsync(options: {
     onStderrActivity?.();
   });
 
-  // Build timeout promises
-  type ExitOutcome = "exited" | "hard_timeout" | "stall_timeout";
-
   // Create stall detection timer that resets on activity
   const stallDetector =
     stallTimeoutMs > 0
@@ -491,49 +593,43 @@ async function invokeClaudeHeadlessAsync(options: {
 
   const hardTimeoutPromise =
     hardTimeoutMs > 0
-      ? createTimeoutPromise<ExitOutcome>(hardTimeoutMs, "hard_timeout")
+      ? createTimeoutPromise<HeadlessExitOutcome>(hardTimeoutMs, "hard_timeout")
       : null;
 
+  let watchdogDetector: null | ReturnType<typeof createWatchdogDetector> = null;
+  if (watchdog !== undefined) {
+    watchdogDetector = createWatchdogDetector(watchdog);
+  }
+
   // Race: process exit vs stall timeout vs hard timeout
-  const exitPromise = (async (): Promise<ExitOutcome> => {
+  const exitPromise = (async (): Promise<HeadlessExitOutcome> => {
     await proc.exited;
     return "exited";
   })();
-  const racers: Array<Promise<ExitOutcome>> = [exitPromise];
-  if (stallDetector !== null) racers.push(stallDetector.promise);
-  if (hardTimeoutPromise !== null) racers.push(hardTimeoutPromise);
+  const racers: Array<Promise<HeadlessExitOutcome>> = [
+    exitPromise,
+    ...(stallDetector === null ? [] : [stallDetector.promise]),
+    ...(hardTimeoutPromise === null ? [] : [hardTimeoutPromise]),
+    ...(watchdogDetector === null ? [] : [watchdogDetector.promise]),
+  ];
 
-  const outcome: ExitOutcome = await Promise.race(racers);
+  const outcome: HeadlessExitOutcome = await Promise.race(racers);
 
   // Clean up timers
   stallDetector?.cleanup();
+  watchdogDetector?.cleanup();
 
-  // Handle timeouts
-  if (outcome === "stall_timeout") {
-    console.warn(
-      `\n⚠ Process stalled - no output for ${stallTimeoutMs / 60_000} minutes`,
-    );
-    await killProcessGracefully(proc, gracePeriodMs);
-    // Ensure stderr is fully drained
-    await stderrForwarder;
-    if (isDebug) {
-      console.log(
-        `Claude headless stalled after ${stallTimeoutMs}ms without output`,
-      );
-    }
-    return null;
-  }
-
-  if (outcome === "hard_timeout") {
-    console.warn(
-      `\n⚠ Hard timeout reached after ${hardTimeoutMs / 60_000} minutes`,
-    );
-    await killProcessGracefully(proc, gracePeriodMs);
-    // Ensure stderr is fully drained
-    await stderrForwarder;
-    if (isDebug) {
-      console.log(`Claude headless hard timed out after ${hardTimeoutMs}ms`);
-    }
+  const didTerminateEarly = await handleHeadlessExitOutcome({
+    gracePeriodMs,
+    hardTimeoutMs,
+    isDebug,
+    outcome,
+    proc,
+    stallTimeoutMs,
+    stderrForwarder,
+    watchdog,
+  });
+  if (didTerminateEarly) {
     return null;
   }
 

@@ -17,7 +17,13 @@ import {
   type TimeoutsConfig,
 } from "@tools/lib/config";
 import { findProjectRoot } from "@tools/utils/paths";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 
 import type { RalphConfig, Subtask, SubtasksFile } from "./types";
@@ -44,6 +50,9 @@ const DEFAULT_CONFIG: RalphConfig = {
   selfImprovement: { mode: "suggest" },
 };
 
+const SUBTASKS_SCHEMA_REFERENCE = "docs/planning/schemas/subtasks.schema.json";
+const SUBTASK_FRAGMENT_FILENAME_PATTERN = /^\.subtasks-task-.*\.json$/;
+
 /**
  * Count remaining (pending) subtasks
  *
@@ -62,25 +71,29 @@ function countRemaining(subtasks: Array<Subtask>): number {
  * Count subtasks in a subtasks file
  *
  * @param subtasksPath - Path to subtasks.json file
- * @returns Number of subtasks in the file, or 0 if file doesn't exist or has errors
+ * @returns Number of subtasks in the file, or 0 if file doesn't exist
+ * @throws Error if file exists but is invalid or uses unsupported format
  */
 function countSubtasksInFile(subtasksPath: string): number {
   if (!existsSync(subtasksPath)) {
     return 0;
   }
 
-  try {
-    const content = readFileSync(subtasksPath, "utf8");
-    const parsed = JSON.parse(content) as SubtasksFile;
+  const file = loadSubtasksFile(subtasksPath);
+  return file.subtasks.length;
+}
 
-    if (!Array.isArray(parsed.subtasks)) {
-      return 0;
-    }
-
-    return parsed.subtasks.length;
-  } catch {
-    return 0;
-  }
+function createCanonicalSubtasksFormatError(
+  subtasksPath: string,
+  foundDescription: string,
+): Error {
+  return new Error(
+    `Invalid subtasks file format at ${subtasksPath}\n` +
+      `Expected: JSON object with top-level "subtasks" array (canonical schema)\n` +
+      `Found: ${foundDescription}\n` +
+      `Schema: ${SUBTASKS_SCHEMA_REFERENCE}\n` +
+      `Fix: Wrap entries as { "subtasks": [ ... ] } (optionally include "$schema" and "metadata")`,
+  );
 }
 
 /**
@@ -131,7 +144,8 @@ function getCompletedSubtasks(subtasks: Array<Subtask>): Array<Subtask> {
  * already have subtasks before invoking Claude for generation.
  *
  * @param subtasksPath - Path to subtasks.json file
- * @returns Set of unique taskRef values from pending subtasks, or empty Set if file doesn't exist or has errors
+ * @returns Set of unique taskRef values from pending subtasks, or empty Set if file doesn't exist
+ * @throws Error if file exists but is invalid or uses unsupported format
  *
  * @example
  * const existing = getExistingTaskReferences('docs/planning/milestones/003-ralph-workflow/subtasks.json');
@@ -144,27 +158,17 @@ function getExistingTaskReferences(subtasksPath: string): Set<string> {
     return new Set<string>();
   }
 
-  try {
-    const content = readFileSync(subtasksPath, "utf8");
-    const parsed = JSON.parse(content) as SubtasksFile;
+  const file = loadSubtasksFile(subtasksPath);
 
-    if (!Array.isArray(parsed.subtasks)) {
-      return new Set<string>();
+  // Collect unique taskRefs from pending (not done) subtasks
+  const taskReferences = new Set<string>();
+  for (const subtask of file.subtasks) {
+    if (!subtask.done && subtask.taskRef) {
+      taskReferences.add(subtask.taskRef);
     }
-
-    // Collect unique taskRefs from pending (not done) subtasks
-    const taskReferences = new Set<string>();
-    for (const subtask of parsed.subtasks) {
-      if (!subtask.done && subtask.taskRef) {
-        taskReferences.add(subtask.taskRef);
-      }
-    }
-
-    return taskReferences;
-  } catch {
-    // Fail silently - return empty Set on parse errors
-    return new Set<string>();
   }
+
+  return taskReferences;
 }
 
 /**
@@ -326,15 +330,48 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
     );
   }
 
+  const content = readFileSync(subtasksPath, "utf8");
+
+  let parsed: unknown = null;
   try {
-    const content = readFileSync(subtasksPath, "utf8");
-    return JSON.parse(content) as SubtasksFile;
+    parsed = JSON.parse(content);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `Failed to parse subtasks file ${subtasksPath}: ${message}`,
+    throw new Error(`Failed to parse subtasks file ${subtasksPath}: ${message}`);
+  }
+
+  if (Array.isArray(parsed)) {
+    throw createCanonicalSubtasksFormatError(
+      subtasksPath,
+      "top-level array (legacy format)",
     );
   }
+
+  if (parsed === null || typeof parsed !== "object") {
+    const kind = parsed === null ? "null" : `top-level ${typeof parsed}`;
+    throw createCanonicalSubtasksFormatError(subtasksPath, kind);
+  }
+
+  const record = parsed as Record<string, unknown>;
+  if (!("subtasks" in record)) {
+    throw createCanonicalSubtasksFormatError(
+      subtasksPath,
+      'object without required "subtasks" key',
+    );
+  }
+
+  if (!Array.isArray(record.subtasks)) {
+    let valueType: string = typeof record.subtasks;
+    if (record.subtasks === null) {
+      valueType = "null";
+    }
+    throw createCanonicalSubtasksFormatError(
+      subtasksPath,
+      `object with non-array "subtasks" (${valueType})`,
+    );
+  }
+
+  return parsed as SubtasksFile;
 }
 
 /**
@@ -593,6 +630,90 @@ function getPlanningLogPath(milestonePath: string): string {
 }
 
 /**
+ * Merge per-task subtask fragment files into canonical subtasks.json.
+ *
+ * Fragment files are expected at:
+ *   {outputDirectory}/.subtasks-task-*.json
+ * and must each contain a top-level JSON array of subtask objects.
+ *
+ * On successful merge, fragment files are deleted.
+ * On failure, no fragment files are deleted to preserve debugging context.
+ *
+ * @param outputDirectory - Directory containing fragment files
+ * @param subtasksPath - Target canonical subtasks.json path
+ * @param metadata - Optional metadata when creating a new subtasks.json
+ * @returns Merge counts
+ * @throws Error when a fragment is malformed or file operations fail
+ */
+function mergeSubtaskFragments(
+  outputDirectory: string,
+  subtasksPath: string,
+  metadata?: SubtasksFile["metadata"],
+): { cleaned: number; fragments: number; merged: number } {
+  if (!existsSync(outputDirectory)) {
+    return { cleaned: 0, fragments: 0, merged: 0 };
+  }
+
+  const fragmentFiles = readdirSync(outputDirectory, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isFile() && SUBTASK_FRAGMENT_FILENAME_PATTERN.test(entry.name),
+    )
+    .map((entry) => join(outputDirectory, entry.name))
+    .sort();
+
+  if (fragmentFiles.length === 0) {
+    return { cleaned: 0, fragments: 0, merged: 0 };
+  }
+
+  const mergedSubtasks: Array<Subtask> = [];
+
+  for (const fragmentPath of fragmentFiles) {
+    const fragmentRaw = readFileSync(fragmentPath, "utf8");
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(fragmentRaw);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to parse subtask fragment ${fragmentPath}: ${message}`,
+      );
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new TypeError(
+        `Invalid subtask fragment format at ${fragmentPath}: expected top-level JSON array`,
+      );
+    }
+
+    for (const item of parsed) {
+      if (item === null || typeof item !== "object") {
+        throw new TypeError(
+          `Invalid subtask fragment entry in ${fragmentPath}: expected object`,
+        );
+      }
+      mergedSubtasks.push(item as Subtask);
+    }
+  }
+
+  const appendResult = appendSubtasksToFile(
+    subtasksPath,
+    mergedSubtasks,
+    metadata,
+  );
+
+  for (const fragmentPath of fragmentFiles) {
+    unlinkSync(fragmentPath);
+  }
+
+  return {
+    cleaned: fragmentFiles.length,
+    fragments: fragmentFiles.length,
+    merged: appendResult.added,
+  };
+}
+
+/**
  * Save subtasks file to disk
  *
  * @param subtasksPath - Path to subtasks.json file
@@ -639,6 +760,7 @@ export {
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
+  mergeSubtaskFragments,
   MILESTONES_RELATIVE_PATH,
   ORPHAN_MILESTONE_ROOT,
   resolveMilestonePath,

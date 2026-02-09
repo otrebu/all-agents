@@ -9,11 +9,18 @@ import {
   getMilestonesBasePath,
   listAvailableMilestones,
   loadRalphConfig,
+  mergeSubtaskFragments,
   resolveMilestonePath,
 } from "@tools/commands/ralph/config";
 import * as unifiedConfig from "@tools/lib/config/loader";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -314,20 +321,28 @@ describe("getExistingTaskReferences", () => {
     expect(result.size).toBe(0);
   });
 
-  test("returns empty Set on invalid JSON", () => {
+  test("throws on invalid JSON", () => {
     const invalidPath = join(temporaryDirectory, "invalid.json");
     writeFileSync(invalidPath, "not valid json {{{");
-    const result = getExistingTaskReferences(invalidPath);
-    expect(result).toBeInstanceOf(Set);
-    expect(result.size).toBe(0);
+    expect(() => getExistingTaskReferences(invalidPath)).toThrow(
+      "Failed to parse subtasks file",
+    );
   });
 
-  test("returns empty Set when subtasks is not an array", () => {
+  test("throws when subtasks is not an array", () => {
     const invalidPath = join(temporaryDirectory, "invalid-format.json");
     writeFileSync(invalidPath, JSON.stringify({ subtasks: "not an array" }));
-    const result = getExistingTaskReferences(invalidPath);
-    expect(result).toBeInstanceOf(Set);
-    expect(result.size).toBe(0);
+    expect(() => getExistingTaskReferences(invalidPath)).toThrow(
+      "Invalid subtasks file format",
+    );
+  });
+
+  test("throws explicit error for legacy top-level array format", () => {
+    const legacyPath = join(temporaryDirectory, "legacy-array.json");
+    writeFileSync(legacyPath, JSON.stringify([{ done: false, id: "SUB-001" }]));
+    expect(() => getExistingTaskReferences(legacyPath)).toThrow(
+      "top-level array (legacy format)",
+    );
   });
 
   test("returns Set of taskRefs from pending subtasks only", () => {
@@ -389,5 +404,108 @@ describe("getExistingTaskReferences", () => {
     const result = getExistingTaskReferences(subtasksPath);
     expect(result.size).toBe(1);
     expect(result.has("TASK-001")).toBe(true);
+  });
+});
+
+describe("mergeSubtaskFragments", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(tmpdir(), `merge-fragments-test-${Date.now()}`);
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("returns zero counts when no fragment files are present", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+
+    const result = mergeSubtaskFragments(temporaryDirectory, subtasksPath);
+
+    expect(result).toEqual({ cleaned: 0, fragments: 0, merged: 0 });
+    expect(existsSync(subtasksPath)).toBe(false);
+  });
+
+  test("merges fragment files into subtasks.json and cleans up fragments", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    const fragmentOnePath = join(temporaryDirectory, ".subtasks-task-001.json");
+    const fragmentTwoPath = join(temporaryDirectory, ".subtasks-task-002.json");
+
+    writeFileSync(
+      fragmentOnePath,
+      JSON.stringify([
+        {
+          acceptanceCriteria: ["schema exists"],
+          description: "Create schema",
+          done: false,
+          filesToRead: ["packages/data/prisma/schema.prisma"],
+          id: "SUB-001",
+          taskRef: "TASK-001",
+          title: "Create schema",
+        },
+        {
+          acceptanceCriteria: ["tests pass"],
+          description: "Add unit tests",
+          done: false,
+          filesToRead: ["packages/data/src/schemas/scheduled-report.ts"],
+          id: "SUB-002",
+          taskRef: "TASK-001",
+          title: "Add tests",
+        },
+      ]),
+    );
+
+    writeFileSync(
+      fragmentTwoPath,
+      JSON.stringify([
+        {
+          acceptanceCriteria: ["route returns data"],
+          description: "Implement endpoint",
+          done: false,
+          filesToRead: ["apps/api/src/procedures/reports/scheduled.ts"],
+          id: "SUB-003",
+          taskRef: "TASK-002",
+          title: "Implement endpoint",
+        },
+      ]),
+    );
+
+    const result = mergeSubtaskFragments(temporaryDirectory, subtasksPath, {
+      milestoneRef: "report-scheduling-email",
+      scope: "milestone",
+    });
+
+    expect(result).toEqual({ cleaned: 2, fragments: 2, merged: 3 });
+    expect(existsSync(fragmentOnePath)).toBe(false);
+    expect(existsSync(fragmentTwoPath)).toBe(false);
+
+    const subtasksFile = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      metadata?: { milestoneRef?: string; scope?: string };
+      subtasks: Array<{ id: string }>;
+    };
+    expect(subtasksFile.metadata?.scope).toBe("milestone");
+    expect(subtasksFile.metadata?.milestoneRef).toBe("report-scheduling-email");
+    expect(subtasksFile.subtasks.map((subtask) => subtask.id)).toEqual([
+      "SUB-001",
+      "SUB-002",
+      "SUB-003",
+    ]);
+  });
+
+  test("throws on malformed fragment JSON and keeps fragments for debugging", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    const fragmentPath = join(temporaryDirectory, ".subtasks-task-001.json");
+    writeFileSync(fragmentPath, "not-json");
+
+    expect(() =>
+      mergeSubtaskFragments(temporaryDirectory, subtasksPath),
+    ).toThrow("Failed to parse subtask fragment");
+
+    expect(existsSync(fragmentPath)).toBe(true);
+    expect(existsSync(subtasksPath)).toBe(false);
   });
 });

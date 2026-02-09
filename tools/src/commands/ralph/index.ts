@@ -8,6 +8,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  statSync,
 } from "node:fs";
 import path from "node:path";
 
@@ -26,13 +27,18 @@ import {
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
+  mergeSubtaskFragments,
   ORPHAN_MILESTONE_ROOT,
   saveSubtasksFile,
 } from "./config";
 import {
   formatDuration,
   type PlanSubtasksSummaryData,
+  renderCascadeSummary,
+  renderCommandBanner,
+  renderEventLine,
   renderInvocationHeader,
+  renderPhaseCard,
   renderPlanSubtasksSummary,
 } from "./display";
 import {
@@ -64,6 +70,10 @@ import { runStatus } from "./status";
  */
 function extractTaskReference(taskPath: string): string {
   return path.basename(taskPath, ".md");
+}
+
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function getMilestoneRootFromPath(candidatePath: string): string {
@@ -324,6 +334,9 @@ function resolveTaskPath(input: string): null | string {
 }
 
 const DEFAULT_SUBTASKS_PATH = "subtasks.json";
+const SUBTASK_FRAGMENT_FILENAME_PATTERN = /^\.subtasks-task-.*\.json$/;
+const SUBTASK_FRAGMENT_POLL_INTERVAL_MS = 15_000;
+const SUBTASK_FRAGMENT_STABLE_WINDOW_MS = 75_000;
 
 // =============================================================================
 // Three-Mode Execution System
@@ -341,8 +354,13 @@ interface HeadlessWithLoggingOptions {
   promptPath: string;
   provider?: string;
   sessionName: string;
+  shouldAllowNullResult?: boolean;
   /** Size mode for styled pre-execution display (e.g., 'small', 'medium', 'large') */
   sizeMode?: string;
+  stallTimeoutMinutes?: number;
+  watchdogCheckIntervalMs?: number;
+  watchdogReason?: string;
+  watchdogShouldTerminate?: () => boolean;
 }
 
 /**
@@ -429,11 +447,19 @@ function invokeClaudeChat(
 /**
  * Headless mode wrapper: Run Claude with JSON output and file logging
  * Reads prompt from file, invokes Claude headless, and logs results.
- * Exits process on failure.
+ * By default exits process on failure; optionally returns null when shouldAllowNullResult=true.
  */
 async function invokeClaudeHeadless(
+  options: { shouldAllowNullResult: true } & HeadlessWithLoggingOptions,
+): Promise<HeadlessWithLoggingResult | null>;
+async function invokeClaudeHeadless(
+  options:
+    & { shouldAllowNullResult?: false | undefined }
+    & HeadlessWithLoggingOptions,
+): Promise<HeadlessWithLoggingResult>;
+async function invokeClaudeHeadless(
   options: HeadlessWithLoggingOptions,
-): Promise<HeadlessWithLoggingResult> {
+): Promise<HeadlessWithLoggingResult | null> {
   const {
     extraContext,
     logFile,
@@ -441,7 +467,12 @@ async function invokeClaudeHeadless(
     promptPath,
     provider: providerOverride,
     sessionName,
+    shouldAllowNullResult = false,
     sizeMode,
+    stallTimeoutMinutes,
+    watchdogCheckIntervalMs,
+    watchdogReason,
+    watchdogShouldTerminate,
   } = options;
 
   if (!existsSync(promptPath)) {
@@ -468,6 +499,8 @@ async function invokeClaudeHeadless(
   console.log();
 
   const timeoutConfig = loadTimeoutConfig();
+  const resolvedStallTimeoutMinutes =
+    stallTimeoutMinutes ?? timeoutConfig.stallMinutes;
   const heartbeatStartedAt = Date.now();
   const HEARTBEAT_INTERVAL_MS = 30_000;
   const VERBOSE_INTERVAL_MS = 10 * 60 * 1000;
@@ -522,15 +555,23 @@ async function invokeClaudeHeadless(
             gracePeriodMs: timeoutConfig.graceSeconds * 1000,
             model,
             prompt: fullPrompt,
-            stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+            stallTimeoutMs: resolvedStallTimeoutMinutes * 60 * 1000,
             timeout: timeoutConfig.hardMinutes * 60 * 1000,
+            watchdog:
+              watchdogShouldTerminate === undefined
+                ? undefined
+                : {
+                    checkIntervalMs: watchdogCheckIntervalMs,
+                    reason: watchdogReason,
+                    shouldTerminate: watchdogShouldTerminate,
+                  },
           })
         : await invokeWithProvider(provider, {
             gracePeriodMs: timeoutConfig.graceSeconds * 1000,
             mode: "headless",
             model,
             prompt: fullPrompt,
-            stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+            stallTimeoutMs: resolvedStallTimeoutMinutes * 60 * 1000,
             timeout: timeoutConfig.hardMinutes * 60 * 1000,
           });
     } finally {
@@ -539,6 +580,9 @@ async function invokeClaudeHeadless(
   })();
 
   if (result === null) {
+    if (shouldAllowNullResult) {
+      return null;
+    }
     console.error(
       `${provider} headless invocation failed, was interrupted, or timed out`,
     );
@@ -676,23 +720,62 @@ function runModels(options: RalphModelsOptions): void {
     return;
   }
 
+  const bannerLines =
+    providerFilter === undefined
+      ? [chalk.dim("Registry-backed model table for Ralph providers")]
+      : [chalk.dim(`Provider filter: ${providerFilter}`)];
+  console.log();
+  console.log(
+    renderCommandBanner({
+      lines: bannerLines,
+      title: "RALPH MODELS",
+      tone: "info",
+    }),
+  );
+
   if (sorted.length === 0) {
     if (providerFilter === undefined) {
-      console.log("No models configured.");
+      console.log(
+        renderEventLine({
+          domain: "MODELS",
+          message: "No models configured.",
+          state: "SKIP",
+        }),
+      );
     } else {
-      console.log(`No models configured for provider '${providerFilter}'.`);
+      console.log(
+        renderEventLine({
+          domain: "MODELS",
+          message: `No models configured for provider '${providerFilter}'.`,
+          state: "SKIP",
+        }),
+      );
     }
     return;
   }
 
   if (providerFilter !== undefined) {
+    console.log(
+      renderEventLine({
+        domain: "MODELS",
+        message: `Loaded ${sorted.length} models for provider '${providerFilter}'`,
+        state: "DONE",
+      }),
+    );
     console.log(`Available models for provider '${providerFilter}':`);
     for (const model of sorted) {
-      console.log(`  ${formatModelRow(model)}`);
+      console.log(`  - ${formatModelRow(model)}`);
     }
     return;
   }
 
+  console.log(
+    renderEventLine({
+      domain: "MODELS",
+      message: `Loaded ${sorted.length} models across providers`,
+      state: "DONE",
+    }),
+  );
   console.log("Available models:");
   let currentProvider: null | string = null;
   for (const model of sorted) {
@@ -700,7 +783,7 @@ function runModels(options: RalphModelsOptions): void {
       currentProvider = model.provider;
       console.log(`\n${currentProvider}:`);
     }
-    console.log(`  ${formatModelRow(model)}`);
+    console.log(`  - ${formatModelRow(model)}`);
   }
 }
 
@@ -847,7 +930,16 @@ ralphCommand.addCommand(
 
       // Handle cascade if requested (after build completes successfully)
       if (options.cascade !== undefined) {
-        console.log(`\nCascading from build to ${options.cascade}...\n`);
+        console.log();
+        console.log(
+          renderPhaseCard({
+            domain: "CASCADE",
+            lines: [chalk.dim(`Subtasks queue: ${subtasksPath}`)],
+            state: "START",
+            title: `Handoff build -> ${options.cascade}`,
+          }),
+        );
+        console.log();
         const result = await runCascadeFrom("build", options.cascade, {
           contextRoot,
           forceFlag: options.force === true,
@@ -858,13 +950,35 @@ ralphCommand.addCommand(
           subtasksPath,
         });
 
+        console.log(renderCascadeSummary(result));
+
         if (!result.success) {
-          console.error(`Cascade failed: ${result.error}`);
+          console.error(
+            renderEventLine({
+              domain: "CASCADE",
+              message: `Cascade failed: ${result.error ?? "unknown error"}`,
+              state: "FAIL",
+            }),
+          );
           if (result.stoppedAt !== null) {
-            console.error(`Stopped at: ${result.stoppedAt}`);
+            console.error(
+              renderEventLine({
+                domain: "CASCADE",
+                message: `Stopped at: ${result.stoppedAt}`,
+                state: "FAIL",
+              }),
+            );
           }
           process.exit(1);
         }
+
+        console.log(
+          renderEventLine({
+            domain: "CASCADE",
+            message: `Reached ${options.cascade}`,
+            state: "DONE",
+          }),
+        );
       }
     }),
 );
@@ -893,11 +1007,14 @@ interface HandleCascadeOptions {
   reviewFlag?: boolean;
   /** Override subtasks path (used when different from milestone default) */
   subtasksPath?: string;
+  /** Run pre-build validation before cascading into build level */
+  validateFirst?: boolean;
 }
 
 /** Options for running subtasks in headless mode */
 interface RunSubtasksHeadlessOptions {
   beforeCount: number;
+  expectedFragmentCount?: number;
   extraContext: string;
   milestone: string | undefined;
   model?: string;
@@ -909,6 +1026,25 @@ interface RunSubtasksHeadlessOptions {
   skippedTasks: Array<string>;
   sourceInfo: PlanSubtasksSummaryData["source"];
   storyRef: string | undefined;
+}
+
+interface SubtaskFragmentMergeState {
+  fragmentMergeError: null | string;
+  fragmentMergeResult: {
+    cleaned: number;
+    fragments: number;
+    merged: number;
+  } | null;
+  fragmentSignature: string;
+  fragmentSignatureLastChangedAt: number;
+  hasFragmentSignatureInitialized: boolean;
+  shouldTerminateWatchdog: boolean;
+}
+
+interface SubtaskFragmentSnapshot {
+  count: number;
+  paths: Array<string>;
+  signature: string;
 }
 
 /** Result of subtasks pre-check for --milestone and --story modes */
@@ -970,6 +1106,39 @@ interface TasksStoryOptions {
   model?: string;
   provider?: string;
   story: string;
+}
+
+function buildSubtaskFragmentSnapshot(
+  outputDirectory: string,
+): SubtaskFragmentSnapshot {
+  const paths = listSubtaskFragmentFiles(outputDirectory);
+  const signatureParts: Array<string> = [];
+  for (const fragmentPath of paths) {
+    try {
+      const stats = statSync(fragmentPath);
+      signatureParts.push(
+        `${path.basename(fragmentPath)}:${stats.size}:${stats.mtimeMs}`,
+      );
+    } catch {
+      // Ignore transient races where a fragment is removed between list/stat.
+    }
+  }
+  const signature = signatureParts.join("|");
+
+  return { count: paths.length, paths, signature };
+}
+
+function buildSubtasksMergeMetadata(
+  resolvedMilestonePath: null | string | undefined,
+): { milestoneRef?: string; scope: "milestone" } | undefined {
+  if (resolvedMilestonePath === undefined || resolvedMilestonePath === null) {
+    return undefined;
+  }
+
+  return {
+    milestoneRef: path.basename(resolvedMilestonePath),
+    scope: "milestone",
+  };
 }
 
 // Helper to build subtasks context and source info
@@ -1097,6 +1266,66 @@ function checkTaskHasSubtasks(
   return existingTaskReferences.has(taskReference);
 }
 
+function exitWithSubtasksQueueOutcomeFailure(options: {
+  fragmentMergeError: null | string;
+  loadResult: {
+    error?: string;
+    subtasks: Array<{ id: string; title: string }>;
+  };
+  outputPath: string;
+  providerResult: HeadlessWithLoggingResult | null;
+}): never {
+  const { fragmentMergeError, loadResult, outputPath, providerResult } = options;
+  const message =
+    providerResult === null
+      ? "Headless subtasks generation failed: provider ended without result and no valid subtasks queue outcome was produced."
+      : "Headless subtasks generation failed: provider returned successfully but no valid subtasks queue outcome was produced.";
+  console.error(
+    renderEventLine({
+      domain: "PLAN",
+      message,
+      state: "FAIL",
+    }),
+  );
+  console.error(
+    renderEventLine({
+      domain: "PLAN",
+      message: `Expected updated queue at: ${outputPath}`,
+      state: "FAIL",
+    }),
+  );
+
+  if (loadResult.error === undefined) {
+    console.error(
+      renderEventLine({
+        domain: "PLAN",
+        message: "Queue file was unchanged after provider execution (no observable update).",
+        state: "FAIL",
+      }),
+    );
+  } else {
+    console.error(
+      renderEventLine({
+        domain: "PLAN",
+        message: `Queue load error: ${loadResult.error}`,
+        state: "FAIL",
+      }),
+    );
+  }
+
+  if (fragmentMergeError !== null) {
+    console.error(
+      renderEventLine({
+        domain: "PLAN",
+        message: `Fragment merge error: ${fragmentMergeError}`,
+        state: "FAIL",
+      }),
+    );
+  }
+
+  process.exit(1);
+}
+
 /**
  * Print error message for missing subtasks source and exit
  */
@@ -1158,6 +1387,23 @@ function getSubtasksCascadeFromLevel(fromOption: string | undefined): string {
   return fromOption ?? "subtasks";
 }
 
+function getSubtasksLoadResult(outputPath: string): {
+  error?: string;
+  subtasks: Array<{ id: string; title: string }>;
+} {
+  try {
+    const file = loadSubtasksFile(outputPath);
+    return {
+      subtasks: file.subtasks.map((subtask) => ({
+        id: subtask.id,
+        title: subtask.title,
+      })),
+    };
+  } catch (error) {
+    return { error: formatErrorMessage(error), subtasks: [] };
+  }
+}
+
 // Helper to determine subtasks prompt path based on source type
 function getSubtasksPromptPath(
   contextRoot: string,
@@ -1197,6 +1443,7 @@ async function handleCascadeExecution(
     resolvedMilestonePath,
     reviewFlag: isReviewFlag,
     subtasksPath: explicitSubtasksPath,
+    validateFirst: shouldValidateFirst,
   } = options;
 
   if (fromLevel === undefined) {
@@ -1212,12 +1459,32 @@ async function handleCascadeExecution(
   }
 
   // Determine subtasks path: use explicit path if provided, otherwise derive from milestone
-  console.log(`\nCascading from ${fromLevel} to ${cascadeTarget}...\n`);
   const subtasksPath =
     explicitSubtasksPath ??
     (resolvedMilestonePath === null
       ? path.join(contextRoot, "subtasks.json")
       : path.join(resolvedMilestonePath, "subtasks.json"));
+
+  const handoffLines = [chalk.dim(`Subtasks queue: ${subtasksPath}`)];
+  if (shouldValidateFirst === true) {
+    handoffLines.push(chalk.dim("Pre-build validation: enabled"));
+  }
+  if ((calibrateEvery ?? 0) > 0) {
+    handoffLines.push(
+      chalk.dim(`Periodic calibration: every ${calibrateEvery} iterations`),
+    );
+  }
+
+  console.log();
+  console.log(
+    renderPhaseCard({
+      domain: "CASCADE",
+      lines: handoffLines,
+      state: "START",
+      title: `Handoff ${fromLevel} -> ${cascadeTarget}`,
+    }),
+  );
+  console.log();
 
   const result = await runCascadeFrom(fromLevel, cascadeTarget, {
     calibrateEvery,
@@ -1229,15 +1496,38 @@ async function handleCascadeExecution(
     provider,
     reviewFlag: isReviewFlag,
     subtasksPath,
+    validateFirst: shouldValidateFirst,
   });
 
+  console.log(renderCascadeSummary(result));
+
   if (!result.success) {
-    console.error(`Cascade failed: ${result.error}`);
+    console.error(
+      renderEventLine({
+        domain: "CASCADE",
+        message: `Cascade failed: ${result.error ?? "unknown error"}`,
+        state: "FAIL",
+      }),
+    );
     if (result.stoppedAt !== null) {
-      console.error(`Stopped at: ${result.stoppedAt}`);
+      console.error(
+        renderEventLine({
+          domain: "CASCADE",
+          message: `Stopped at: ${result.stoppedAt}`,
+          state: "FAIL",
+        }),
+      );
     }
     process.exit(1);
   }
+
+  console.log(
+    renderEventLine({
+      domain: "CASCADE",
+      message: `Reached ${cascadeTarget}`,
+      state: "DONE",
+    }),
+  );
 }
 
 // Helper to invoke Claude with a prompt file for interactive session
@@ -1292,12 +1582,87 @@ function invokeClaude(
   });
 
   // Exit with non-zero exit code when process fails
-  // proc.exitCode: 0 = success, positive number = error, null = killed by signal
+  // proc.exitCode: 0 = success, positive number = error
   const { exitCode } = proc;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- exitCode can be 0, positive, or null
-  if (exitCode !== null && exitCode !== 0) {
+  if (exitCode !== 0) {
     process.exit(exitCode);
   }
+}
+
+function listSubtaskFragmentFiles(outputDirectory: string): Array<string> {
+  if (!existsSync(outputDirectory)) {
+    return [];
+  }
+
+  try {
+    return readdirSync(outputDirectory, { withFileTypes: true })
+      .filter(
+        (entry) =>
+          entry.isFile() && SUBTASK_FRAGMENT_FILENAME_PATTERN.test(entry.name),
+      )
+      .map((entry) => path.join(outputDirectory, entry.name))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+function readQueueStateBeforeSubtasksRun(
+  beforeCount: number,
+  outputPath: string,
+): { beforeQueueCount: number; beforeQueueRaw: null | string } {
+  const beforeQueueRaw = existsSync(outputPath)
+    ? readFileSync(outputPath, "utf8")
+    : null;
+  if (beforeQueueRaw === null) {
+    return { beforeQueueCount: beforeCount, beforeQueueRaw };
+  }
+
+  try {
+    return {
+      beforeQueueCount: loadSubtasksFile(outputPath).subtasks.length,
+      beforeQueueRaw,
+    };
+  } catch (error) {
+    console.error(formatErrorMessage(error));
+    process.exit(1);
+    throw new Error("unreachable");
+  }
+}
+
+function renderSubtasksHeadlessStartBanner(options: {
+  milestone: string | undefined;
+  outputPath: string;
+  provider: string | undefined;
+  sizeMode: "large" | "medium" | "small";
+}): void {
+  const { milestone, outputPath, provider, sizeMode } = options;
+  const bannerLines = [
+    chalk.dim(`Queue: ${outputPath}`),
+    chalk.dim(`Size: ${sizeMode}`),
+    chalk.dim(`Provider: ${provider ?? "claude"}`),
+  ];
+  if (milestone !== undefined) {
+    bannerLines.unshift(chalk.dim(`Milestone: ${milestone}`));
+  }
+
+  console.log();
+  console.log(
+    renderCommandBanner({
+      lines: bannerLines,
+      title: "RALPH PLAN SUBTASKS (HEADLESS)",
+      tone: "info",
+    }),
+  );
+  console.log();
+  console.log(
+    renderPhaseCard({
+      domain: "PLAN",
+      lines: [chalk.dim(`Queue path: ${outputPath}`)],
+      state: "START",
+      title: "Phase 1/4: starting generation",
+    }),
+  );
 }
 
 /**
@@ -1338,6 +1703,7 @@ async function runSubtasksHeadless(
 ): Promise<void> {
   const {
     beforeCount,
+    expectedFragmentCount,
     extraContext,
     milestone,
     model,
@@ -1358,79 +1724,57 @@ async function runSubtasksHeadless(
   );
   const outputPath = path.join(resolvedOutputDirectory, "subtasks.json");
 
-  // Capture queue state before provider execution to enforce observable outcomes.
-  const beforeQueueRaw = existsSync(outputPath)
-    ? readFileSync(outputPath, "utf8")
-    : null;
-  const beforeQueueCount = (() => {
-    if (beforeQueueRaw === null) {
-      return 0;
-    }
-
-    try {
-      const parsed = JSON.parse(beforeQueueRaw) as {
-        subtasks?: Array<unknown>;
-      };
-      return Array.isArray(parsed.subtasks)
-        ? parsed.subtasks.length
-        : beforeCount;
-    } catch {
-      return beforeCount;
-    }
-  })();
-
-  const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
-  const result = await invokeClaudeHeadless({
-    extraContext,
-    logFile,
-    model,
-    promptPath,
+  renderSubtasksHeadlessStartBanner({
+    milestone,
+    outputPath,
     provider,
-    sessionName: "subtasks",
     sizeMode,
   });
 
-  // Try to load generated subtasks
-  const loadResult = ((): {
-    error?: string;
-    subtasks: Array<{ id: string; title: string }>;
-  } => {
-    try {
-      const file = loadSubtasksFile(outputPath);
-      return {
-        subtasks: file.subtasks.map((s) => ({ id: s.id, title: s.title })),
-      };
-    } catch {
-      return { error: "No subtasks file found", subtasks: [] };
-    }
-  })();
+  const { beforeQueueCount, beforeQueueRaw } = readQueueStateBeforeSubtasksRun(
+    beforeCount,
+    outputPath,
+  );
 
-  const afterQueueRaw = existsSync(outputPath)
-    ? readFileSync(outputPath, "utf8")
-    : null;
-  const hasObservableQueueOutcome =
-    loadResult.error === undefined &&
-    afterQueueRaw !== null &&
-    afterQueueRaw !== beforeQueueRaw;
+  const mergeMetadata = buildSubtasksMergeMetadata(resolvedMilestonePath);
+  const fragmentMergeState: SubtaskFragmentMergeState = {
+    fragmentMergeError: null,
+    fragmentMergeResult: null,
+    fragmentSignature: "",
+    fragmentSignatureLastChangedAt: Date.now(),
+    hasFragmentSignatureInitialized: false,
+    shouldTerminateWatchdog: false,
+  };
 
-  if (hasObservableQueueOutcome) {
-    // continue to summary rendering below
-  } else {
-    const message =
-      "Headless subtasks generation failed: provider returned successfully but no valid subtasks queue outcome was produced.";
-    console.error(message);
-    console.error(`Expected updated queue at: ${outputPath}`);
+  const result = await runSubtasksProviderPhase({
+    beforeQueueRaw,
+    expectedFragmentCount,
+    extraContext,
+    fragmentMergeState,
+    mergeMetadata,
+    model,
+    outputPath,
+    promptPath,
+    provider,
+    resolvedMilestonePath,
+    resolvedOutputDirectory,
+    sizeMode,
+  });
 
-    if (loadResult.error === undefined) {
-      console.error(
-        "Queue file was unchanged after provider execution (no observable update).",
-      );
-    } else {
-      console.error(`Queue load error: ${loadResult.error}`);
-    }
+  const loadResult = verifySubtasksQueueOutcome({
+    beforeQueueRaw,
+    fragmentMergeState,
+    outputPath,
+    providerResult: result,
+  });
 
-    process.exit(1);
-  }
+  console.log(
+    renderEventLine({
+      domain: "PLAN",
+      message: `Phase 3/4: queue verified at ${outputPath}`,
+      state: "DONE",
+    }),
+  );
 
   // Calculate counts for summary display (for --milestone and --story modes)
   const afterCount = loadResult.subtasks.length;
@@ -1441,12 +1785,12 @@ async function runSubtasksHeadless(
   console.log(
     renderPlanSubtasksSummary({
       addedCount,
-      costUsd: result.costUsd,
-      durationMs: result.durationMs,
+      costUsd: result?.costUsd ?? 0,
+      durationMs: result?.durationMs ?? 0,
       error: loadResult.error,
       milestone,
       outputPath,
-      sessionId: result.sessionId,
+      sessionId: result?.sessionId ?? "watchdog-fragment-merge",
       sizeMode,
       skippedTasks: skippedTasks.length > 0 ? skippedTasks : undefined,
       source: sourceInfo,
@@ -1455,6 +1799,105 @@ async function runSubtasksHeadless(
       totalCount,
     }),
   );
+  console.log(
+    renderEventLine({
+      domain: "PLAN",
+      message: "Phase 4/4: summary complete",
+      state: "DONE",
+    }),
+  );
+}
+
+async function runSubtasksProviderPhase(options: {
+  beforeQueueRaw: null | string;
+  expectedFragmentCount?: number;
+  extraContext: string;
+  fragmentMergeState: SubtaskFragmentMergeState;
+  mergeMetadata: { milestoneRef?: string; scope: "milestone" } | undefined;
+  model?: string;
+  outputPath: string;
+  promptPath: string;
+  provider?: string;
+  resolvedMilestonePath: null | string | undefined;
+  resolvedOutputDirectory: string;
+  sizeMode: "large" | "medium" | "small";
+}): Promise<HeadlessWithLoggingResult | null> {
+  const {
+    beforeQueueRaw,
+    expectedFragmentCount,
+    extraContext,
+    fragmentMergeState,
+    mergeMetadata,
+    model,
+    outputPath,
+    promptPath,
+    provider,
+    resolvedMilestonePath,
+    resolvedOutputDirectory,
+    sizeMode,
+  } = options;
+
+  const fragmentWatchdogTimer = setInterval(() => {
+    tryMergeSubtaskFragments({
+      beforeQueueRaw,
+      expectedFragmentCount,
+      mergeMetadata,
+      outputPath,
+      resolvedOutputDirectory,
+      shouldRequireStableWindow: true,
+      state: fragmentMergeState,
+      trigger: "watchdog",
+    });
+  }, SUBTASK_FRAGMENT_POLL_INTERVAL_MS);
+  stopWatchdogTimerIfPossible(fragmentWatchdogTimer);
+
+  const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
+  const result = await (async () => {
+    try {
+      return await invokeClaudeHeadless({
+        extraContext,
+        logFile,
+        model,
+        promptPath,
+        provider,
+        sessionName: "subtasks",
+        shouldAllowNullResult: true,
+        sizeMode,
+        stallTimeoutMinutes: 0,
+        watchdogCheckIntervalMs: SUBTASK_FRAGMENT_POLL_INTERVAL_MS,
+        watchdogReason:
+          "Subtasks watchdog detected complete fragment output; stopping provider and continuing with merged queue.",
+        watchdogShouldTerminate: () => fragmentMergeState.shouldTerminateWatchdog,
+      });
+    } finally {
+      clearInterval(fragmentWatchdogTimer);
+    }
+  })();
+
+  // Backstop merge after provider completion (or null payload) before verification.
+  tryMergeSubtaskFragments({
+    beforeQueueRaw,
+    expectedFragmentCount,
+    mergeMetadata,
+    outputPath,
+    resolvedOutputDirectory,
+    shouldRequireStableWindow: false,
+    state: fragmentMergeState,
+    trigger: "post-run-fallback",
+  });
+
+  console.log(
+    renderEventLine({
+      domain: "PLAN",
+      message:
+        result === null
+          ? "Phase 2/4: provider run ended without payload, verifying merged queue"
+          : "Phase 2/4: provider run complete, verifying queue",
+      state: "DONE",
+    }),
+  );
+
+  return result;
 }
 
 /**
@@ -1620,6 +2063,185 @@ async function runTasksStoryMode(
   }
 
   return resolvedMilestonePath;
+}
+
+function stopWatchdogTimerIfPossible(timer: ReturnType<typeof setInterval>): void {
+  const maybeWatchdogTimer = timer as unknown as { unref?: () => void };
+  if (typeof maybeWatchdogTimer.unref === "function") {
+    maybeWatchdogTimer.unref();
+  }
+}
+
+function tryMergeSubtaskFragments(
+  options: {
+    beforeQueueRaw: null | string;
+    expectedFragmentCount?: number;
+    mergeMetadata: { milestoneRef?: string; scope: "milestone" } | undefined;
+    outputPath: string;
+    resolvedOutputDirectory: string;
+    shouldRequireStableWindow: boolean;
+    state: SubtaskFragmentMergeState;
+    trigger: "post-run-fallback" | "watchdog";
+  },
+): void {
+  const {
+    beforeQueueRaw,
+    expectedFragmentCount,
+    mergeMetadata,
+    outputPath,
+    resolvedOutputDirectory,
+    shouldRequireStableWindow,
+    state,
+    trigger,
+  } = options;
+
+  if (state.fragmentMergeResult !== null) {
+    return;
+  }
+
+  const queueRawNow = existsSync(outputPath) ? readFileSync(outputPath, "utf8") : null;
+  if (queueRawNow !== null && queueRawNow !== beforeQueueRaw) {
+    try {
+      loadSubtasksFile(outputPath);
+      state.shouldTerminateWatchdog = true;
+    } catch {
+      // Ignore transient invalid states while writer is still flushing.
+    }
+    return;
+  }
+
+  const snapshot = buildSubtaskFragmentSnapshot(resolvedOutputDirectory);
+  if (snapshot.count === 0) {
+    return;
+  }
+
+  const now = Date.now();
+  if (!state.hasFragmentSignatureInitialized) {
+    state.fragmentSignature = snapshot.signature;
+    state.hasFragmentSignatureInitialized = true;
+    state.fragmentSignatureLastChangedAt = now;
+  } else if (snapshot.signature !== state.fragmentSignature) {
+    state.fragmentSignature = snapshot.signature;
+    state.fragmentSignatureLastChangedAt = now;
+  }
+
+  const hasExpectedFragments =
+    expectedFragmentCount === undefined ||
+    expectedFragmentCount <= 0 ||
+    snapshot.count >= expectedFragmentCount;
+
+  const stableForMs = now - state.fragmentSignatureLastChangedAt;
+  const isStable =
+    !shouldRequireStableWindow || stableForMs >= SUBTASK_FRAGMENT_STABLE_WINDOW_MS;
+
+  if (!hasExpectedFragments || !isStable) {
+    return;
+  }
+
+  try {
+    state.fragmentMergeResult = mergeSubtaskFragments(
+      resolvedOutputDirectory,
+      outputPath,
+      mergeMetadata,
+    );
+    if (state.fragmentMergeResult.fragments > 0) {
+      state.shouldTerminateWatchdog = true;
+      console.log(
+        renderEventLine({
+          domain: "PLAN",
+          message:
+            `Merged ${state.fragmentMergeResult.merged} subtasks from ` +
+            `${state.fragmentMergeResult.fragments} fragment files into ${outputPath} (${trigger})`,
+          state: "DONE",
+        }),
+      );
+    }
+  } catch (error) {
+    state.fragmentMergeError = formatErrorMessage(error);
+    console.error(
+      renderEventLine({
+        domain: "PLAN",
+        message: `Fragment merge failed (${trigger}): ${state.fragmentMergeError}`,
+        state: "FAIL",
+      }),
+    );
+  }
+}
+
+function validateSubtasksCascadeOption(
+  cascadeTarget: string | undefined,
+  fromLevel: string | undefined,
+): void {
+  if (cascadeTarget === undefined) {
+    return;
+  }
+
+  const cascadeStartLevel = getSubtasksCascadeFromLevel(fromLevel);
+  const validationError = validateCascadeTarget(cascadeStartLevel, cascadeTarget);
+  if (validationError !== null) {
+    console.error(`Error: ${validationError}`);
+    process.exit(1);
+  }
+}
+
+function validateSubtasksSourceSelection(options: {
+  hasMilestone: boolean;
+  hasOutputDirectory: boolean;
+  sourceCount: number;
+}): void {
+  const { hasMilestone, hasOutputDirectory, sourceCount } = options;
+  if (sourceCount === 0) {
+    exitWithSubtasksSourceError();
+  }
+  if (sourceCount > 1) {
+    console.error(
+      "Error: Cannot combine multiple sources. Provide exactly one of: --milestone, --story, --task, --file, --text, --review-diary",
+    );
+    process.exit(1);
+  }
+
+  if (hasMilestone && hasOutputDirectory) {
+    console.error("Error: --milestone and --output-dir are mutually exclusive.");
+    console.error(
+      "Use --milestone for both source and output, or use --file/--text with --output-dir",
+    );
+    process.exit(1);
+  }
+}
+
+function verifySubtasksQueueOutcome(options: {
+  beforeQueueRaw: null | string;
+  fragmentMergeState: SubtaskFragmentMergeState;
+  outputPath: string;
+  providerResult: HeadlessWithLoggingResult | null;
+}): {
+  error?: string;
+  subtasks: Array<{ id: string; title: string }>;
+} {
+  const { beforeQueueRaw, fragmentMergeState, outputPath, providerResult } =
+    options;
+  const loadResult = getSubtasksLoadResult(outputPath);
+
+  const afterQueueRaw = existsSync(outputPath)
+    ? readFileSync(outputPath, "utf8")
+    : null;
+  const didMergeFromFragments =
+    (fragmentMergeState.fragmentMergeResult?.fragments ?? 0) > 0;
+  const hasObservableQueueOutcome =
+    loadResult.error === undefined &&
+    afterQueueRaw !== null &&
+    (afterQueueRaw !== beforeQueueRaw || didMergeFromFragments);
+
+  if (!hasObservableQueueOutcome) {
+    exitWithSubtasksQueueOutcomeFailure({
+      fragmentMergeError: fragmentMergeState.fragmentMergeError,
+      loadResult,
+      outputPath,
+      providerResult,
+    });
+  }
+
+  return loadResult;
 }
 
 // ralph plan vision - interactive vision planning
@@ -1976,6 +2598,10 @@ planCommand.addCommand(
       "0",
     )
     .option(
+      "--validate-first",
+      "Run pre-build validation when cascading to build/calibrate",
+    )
+    .option(
       "--provider <name>",
       "AI provider to use for planning (default: claude)",
     )
@@ -2000,46 +2626,31 @@ planCommand.addCommand(
         hasStory,
         hasMilestone,
       ].filter(Boolean).length;
-      if (sourceCount === 0) {
-        exitWithSubtasksSourceError();
-      }
-      if (sourceCount > 1) {
-        console.error(
-          "Error: Cannot combine multiple sources. Provide exactly one of: --milestone, --story, --task, --file, --text, --review-diary",
-        );
-        process.exit(1);
-      }
 
-      // Validate: --milestone and --output-dir are mutually exclusive
-      if (hasMilestone && hasOutputDirectory) {
-        console.error(
-          "Error: --milestone and --output-dir are mutually exclusive.",
-        );
-        console.error(
-          "Use --milestone for both source and output, or use --file/--text with --output-dir",
-        );
-        process.exit(1);
-      }
-
-      // Validate cascade target early (before running Claude session)
-      if (options.cascade !== undefined) {
-        const cascadeStartLevel = getSubtasksCascadeFromLevel(options.from);
-        const validationError = validateCascadeTarget(
-          cascadeStartLevel,
-          options.cascade,
-        );
-        if (validationError !== null) {
-          console.error(`Error: ${validationError}`);
-          process.exit(1);
-        }
-      }
+      validateSubtasksSourceSelection({
+        hasMilestone,
+        hasOutputDirectory,
+        sourceCount,
+      });
+      validateSubtasksCascadeOption(options.cascade, options.from);
 
       const contextRoot = getContextRoot();
 
       // Pre-check for --task mode: skip if task already has subtasks
       if (hasTask && options.task !== undefined) {
         const taskPath = requireTask(options.task);
-        if (checkTaskHasSubtasks(taskPath, options.outputDir)) {
+        let hasExistingSubtasks = false;
+        try {
+          hasExistingSubtasks = checkTaskHasSubtasks(
+            taskPath,
+            options.outputDir,
+          );
+        } catch (error) {
+          console.error(formatErrorMessage(error));
+          process.exit(1);
+        }
+
+        if (hasExistingSubtasks) {
           const taskReference = extractTaskReference(taskPath);
           console.log(`Task ${taskReference} already has subtasks - skipping`);
           return;
@@ -2074,6 +2685,7 @@ planCommand.addCommand(
       // Track skipped tasks and counts for summary display
       let skippedTasks: Array<string> = [];
       let beforeCount = 0;
+      let expectedFragmentCount: null | number = null;
 
       if (
         (hasMilestone || hasStory) &&
@@ -2084,13 +2696,20 @@ planCommand.addCommand(
           options.outputDir,
           resolvedMilestonePath,
         );
-        const preCheckResult = checkSubtasksPreCheck(
-          resolvedMilestonePath,
-          outputDirectory,
-        );
+        const preCheckResult = (() => {
+          try {
+            return checkSubtasksPreCheck(resolvedMilestonePath, outputDirectory);
+          } catch (error) {
+            console.error(formatErrorMessage(error));
+            process.exit(1);
+            throw new Error("unreachable");
+          }
+        })();
 
         ({ beforeCount } = preCheckResult);
         ({ skippedTasks } = preCheckResult);
+        expectedFragmentCount =
+          preCheckResult.totalTasks - preCheckResult.skippedTasks.length;
 
         // If all tasks already have subtasks, exit cleanly
         if (preCheckResult.shouldSkip) {
@@ -2147,6 +2766,7 @@ planCommand.addCommand(
       await (options.headless === true
         ? runSubtasksHeadless({
             beforeCount,
+            expectedFragmentCount: expectedFragmentCount ?? undefined,
             extraContext,
             milestone: options.milestone,
             model: options.model,
@@ -2190,6 +2810,7 @@ planCommand.addCommand(
           resolvedMilestonePath: resolvedMilestonePath ?? null,
           reviewFlag: options.review === true,
           subtasksPath,
+          validateFirst: options.validateFirst === true,
         });
       }
     }),
@@ -2477,6 +3098,22 @@ ralphCommand.addCommand(
         return;
       }
 
+      console.log();
+      console.log(
+        renderCommandBanner({
+          lines: [chalk.dim("Discovered from docs/planning/roadmap.md")],
+          title: "RALPH MILESTONES",
+          tone: "info",
+        }),
+      );
+      console.log(
+        renderEventLine({
+          domain: "MILESTONES",
+          message: `Discovered ${milestones.length} milestone entries`,
+          state: milestones.length === 0 ? "SKIP" : "DONE",
+        }),
+      );
+
       console.log("Available milestones:");
       for (const m of milestones) {
         console.log(`  ${m.slug} - ${m.name}`);
@@ -2509,7 +3146,11 @@ function parseLimitOrExit(rawLimit: string): number {
   const parsed = Number.parseInt(rawLimit, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     console.error(
-      `Error: --limit must be a positive integer, got '${rawLimit}'`,
+      renderEventLine({
+        domain: "SUBTASKS",
+        message: `Error: --limit must be a positive integer, got '${rawLimit}'`,
+        state: "FAIL",
+      }),
     );
     process.exit(1);
   }
@@ -2521,9 +3162,19 @@ function requireMilestoneSubtasksPath(milestone: string): string {
   const subtasksPath = path.join(milestonePath, "subtasks.json");
 
   if (!existsSync(subtasksPath)) {
-    console.error(`Error: subtasks file not found: ${subtasksPath}`);
     console.error(
-      `Create one with: aaa ralph plan subtasks --milestone ${milestone}`,
+      renderEventLine({
+        domain: "SUBTASKS",
+        message: `Error: subtasks file not found: ${subtasksPath}`,
+        state: "FAIL",
+      }),
+    );
+    console.error(
+      renderEventLine({
+        domain: "SUBTASKS",
+        message: `Create one with: aaa ralph plan subtasks --milestone ${milestone}`,
+        state: "INFO",
+      }),
     );
     process.exit(1);
   }
@@ -2618,10 +3269,36 @@ subtasksCommand.addCommand(
         return;
       }
 
+      console.log();
+      console.log(
+        renderCommandBanner({
+          lines: [
+            chalk.dim(`Milestone: ${options.milestone}`),
+            chalk.dim(`Queue: ${subtasksPath}`),
+          ],
+          title: "RALPH SUBTASKS NEXT",
+          tone: "info",
+        }),
+      );
+
       if (subtask === null) {
-        console.log(`No pending subtasks in milestone '${options.milestone}'.`);
+        console.log(
+          renderEventLine({
+            domain: "SUBTASKS",
+            message: `No pending subtasks in milestone '${options.milestone}'.`,
+            state: "SKIP",
+          }),
+        );
         return;
       }
+
+      console.log(
+        renderEventLine({
+          domain: "SUBTASKS",
+          message: "Next runnable subtask resolved",
+          state: "DONE",
+        }),
+      );
 
       console.log(`${subtask.id}: ${subtask.title}`);
       console.log(`taskRef: ${subtask.taskRef}`);
@@ -2665,10 +3342,37 @@ subtasksCommand.addCommand(
         return;
       }
 
+      console.log();
+      console.log(
+        renderCommandBanner({
+          lines: [
+            chalk.dim(`Milestone: ${options.milestone}`),
+            chalk.dim(`Queue: ${subtasksPath}`),
+            chalk.dim(`Limit: ${limit}  Pending-only: ${options.pending === true ? "yes" : "no"}`),
+          ],
+          title: "RALPH SUBTASKS LIST",
+          tone: "info",
+        }),
+      );
+
       if (subtasks.length === 0) {
-        console.log("No subtasks found.");
+        console.log(
+          renderEventLine({
+            domain: "SUBTASKS",
+            message: "No subtasks found.",
+            state: "SKIP",
+          }),
+        );
         return;
       }
+
+      console.log(
+        renderEventLine({
+          domain: "SUBTASKS",
+          message: `Showing ${subtasks.length} of ${filtered.length} subtasks`,
+          state: "DONE",
+        }),
+      );
 
       for (const subtask of subtasks) {
         const status = subtask.done ? "done" : "pending";
@@ -2696,16 +3400,41 @@ subtasksCommand.addCommand(
           ? new Date().toISOString()
           : options.at;
 
+      console.log();
+      console.log(
+        renderCommandBanner({
+          lines: [
+            chalk.dim(`Milestone: ${options.milestone}`),
+            chalk.dim(`Queue: ${subtasksPath}`),
+            chalk.dim(`Subtask: ${options.id}`),
+          ],
+          title: "RALPH SUBTASKS COMPLETE",
+          tone: "info",
+        }),
+      );
+
       const subtask = subtasksFile.subtasks.find(
         (item) => item.id === options.id,
       );
       if (subtask === undefined) {
-        console.error(`Error: subtask not found: ${options.id}`);
+        console.error(
+          renderEventLine({
+            domain: "SUBTASKS",
+            message: `Error: subtask not found: ${options.id}`,
+            state: "FAIL",
+          }),
+        );
         process.exit(1);
       }
 
       if (subtask.done) {
-        console.error(`Error: subtask already completed: ${options.id}`);
+        console.error(
+          renderEventLine({
+            domain: "SUBTASKS",
+            message: `Error: subtask already completed: ${options.id}`,
+            state: "FAIL",
+          }),
+        );
         process.exit(1);
       }
 
@@ -2715,6 +3444,13 @@ subtasksCommand.addCommand(
       subtask.sessionId = options.session;
 
       saveSubtasksFile(subtasksPath, subtasksFile);
+      console.log(
+        renderEventLine({
+          domain: "SUBTASKS",
+          message: `Marked ${options.id} as done`,
+          state: "DONE",
+        }),
+      );
       console.log(`Marked ${options.id} as done in ${subtasksPath}`);
     }),
 );

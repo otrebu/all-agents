@@ -48,12 +48,8 @@ function createMockProcess(): {
   const stdoutCtrl = createMockStream();
   const stderrCtrl = createMockStream();
 
-  // eslint-disable-next-line @typescript-eslint/init-declarations -- assigned synchronously in Promise constructor
-  let resolveExited!: (value: number) => void;
-  // eslint-disable-next-line promise/avoid-new -- Controllable mock promise
-  const exitedPromise = new Promise<number>((resolve) => {
-    resolveExited = resolve;
-  });
+  const exitedControl = Promise.withResolvers<number>();
+  const exitedPromise = exitedControl.promise;
 
   const proc = {
     exitCode: null as null | number,
@@ -69,7 +65,7 @@ function createMockProcess(): {
     proc,
     resolveExited(code: number) {
       proc.exitCode = code;
-      resolveExited(code);
+      exitedControl.resolve(code);
     },
     stderr: stderrCtrl,
     stdout: stdoutCtrl,
@@ -89,8 +85,7 @@ function createMockStream(): {
   push: (data: string) => void;
   stream: ReadableStream<Uint8Array>;
 } {
-  // eslint-disable-next-line @typescript-eslint/init-declarations -- assigned synchronously in start()
-  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  let controller: null | ReadableStreamDefaultController<Uint8Array> = null;
   let isClosed = false;
   const encoder = new TextEncoder();
 
@@ -104,6 +99,9 @@ function createMockStream(): {
     close() {
       if (!isClosed) {
         isClosed = true;
+        if (controller === null) {
+          return;
+        }
         try {
           controller.close();
         } catch {
@@ -112,7 +110,7 @@ function createMockStream(): {
       }
     },
     push(data: string) {
-      if (!isClosed) {
+      if (!isClosed && controller !== null) {
         controller.enqueue(encoder.encode(data));
       }
     },
@@ -299,6 +297,45 @@ describe("stall detection", () => {
     });
 
     expect(activitySpy).toHaveBeenCalled();
+  });
+});
+
+// =============================================================================
+// Watchdog Termination
+// =============================================================================
+
+describe("watchdog termination", () => {
+  test("triggers SIGTERM when watchdog requests termination", async () => {
+    const { proc, resolveExited, stderr, stdout } = createMockProcess();
+    Object.assign(Bun, { spawn: mock(() => proc) });
+
+    const signals: Array<string> = [];
+    proc.kill = mock((signal?: number | string) => {
+      signals.push(signal as string);
+      if (signal === "SIGTERM") {
+        stderr.close();
+        stdout.close();
+        resolveExited(143);
+      }
+    });
+
+    const shouldTerminate = mock(() => true);
+
+    const result = await invokeClaudeHeadlessAsync({
+      gracePeriodMs: 50,
+      prompt: "test",
+      watchdog: {
+        checkIntervalMs: 10,
+        reason: "test watchdog",
+        shouldTerminate,
+      },
+    });
+
+    expect(result).toBeNull();
+    expect(shouldTerminate).toHaveBeenCalled();
+    expect(proc.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(signals).toContain("SIGTERM");
+    expect(signals).not.toContain("SIGKILL");
   });
 });
 
