@@ -1094,6 +1094,57 @@ kill -s INT $$
     expect(stderr).toContain("milestone not found: nonexistent");
   });
 
+  test("ralph plan stories accepts milestone path relative to project root", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        "docs/planning/milestones/003-ralph-workflow",
+        "--provider",
+        "nope",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Unknown provider: nope");
+    expect(stderr).not.toContain("milestone not found");
+  });
+
+  test("ralph plan stories accepts roadmap milestone path before directory exists", async () => {
+    mkdirSync(join(temporaryDirectory, ".git"), { recursive: true });
+    const planningDirectory = join(temporaryDirectory, "docs/planning");
+    mkdirSync(planningDirectory, { recursive: true });
+    writeFileSync(
+      join(planningDirectory, "roadmap.md"),
+      "# Roadmap\n\n### 1. Report Scheduling + Email\n",
+    );
+
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        join(TOOLS_DIR, "src/cli.ts"),
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        "docs/planning/milestones/report-scheduling-email",
+        "--provider",
+        "nope",
+      ],
+      { cwd: temporaryDirectory, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Unknown provider: nope");
+    expect(stderr).not.toContain("milestone not found");
+  });
+
   // Three-mode system tests
   describe("three-mode system", () => {
     test("ralph plan stories --help shows mode flags", async () => {

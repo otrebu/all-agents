@@ -66,6 +66,25 @@ function extractTaskReference(taskPath: string): string {
   return path.basename(taskPath, ".md");
 }
 
+function getMilestoneRootFromPath(candidatePath: string): string {
+  const normalizedPath = path.normalize(candidatePath);
+  const segments = normalizedPath.split(/[\\/]+/);
+  const milestonesIndex = segments.lastIndexOf("milestones");
+  const slug = segments[milestonesIndex + 1];
+
+  if (
+    milestonesIndex >= 2 &&
+    segments[milestonesIndex - 1] === "planning" &&
+    segments[milestonesIndex - 2] === "docs" &&
+    slug !== undefined &&
+    slug !== ""
+  ) {
+    return segments.slice(0, milestonesIndex + 2).join(path.sep);
+  }
+
+  return candidatePath;
+}
+
 /**
  * Resolve and validate milestone - exit with helpful error if not found
  */
@@ -111,14 +130,76 @@ function requireTask(input: string): string {
 /**
  * Resolve milestone path from slug or full path.
  * - If path exists as-is, return it
+ * - If path is relative to project root, resolve and return it
+ * - If path points inside a milestone tree, return the milestone root
  * - Otherwise try to resolve as milestone slug
  * - Returns null if not found
  */
 function resolveMilestonePath(input: string): null | string {
-  if (existsSync(input)) return input;
+  if (existsSync(input)) {
+    return getMilestoneRootFromPath(input);
+  }
+
+  const projectRoot = findProjectRoot();
+  const projectRelativePath =
+    projectRoot !== null && !path.isAbsolute(input)
+      ? path.resolve(projectRoot, input)
+      : null;
+
+  if (projectRelativePath !== null && existsSync(projectRelativePath)) {
+    return getMilestoneRootFromPath(projectRelativePath);
+  }
 
   const paths = getMilestonePaths(input);
-  return paths?.root ?? null;
+  if (paths?.root !== undefined) {
+    return paths.root;
+  }
+
+  if (projectRoot === null) {
+    return null;
+  }
+
+  const availableMilestones = new Set(discoverMilestones().map((m) => m.slug));
+  if (availableMilestones.has(input)) {
+    return path.join(projectRoot, "docs/planning/milestones", input);
+  }
+
+  const milestonePathPattern =
+    /(?:^|[\\/])docs[\\/]planning[\\/]milestones[\\/](?<slug>[^\\/]+)/;
+
+  const slugFromInputPath = milestonePathPattern.exec(path.normalize(input))
+    ?.groups?.slug;
+  if (
+    slugFromInputPath !== undefined &&
+    availableMilestones.has(slugFromInputPath)
+  ) {
+    if (path.isAbsolute(input)) {
+      return getMilestoneRootFromPath(input);
+    }
+    return path.join(
+      projectRoot,
+      "docs/planning/milestones",
+      slugFromInputPath,
+    );
+  }
+
+  if (projectRelativePath !== null) {
+    const slugFromRelativePath = milestonePathPattern.exec(
+      path.normalize(projectRelativePath),
+    )?.groups?.slug;
+    if (
+      slugFromRelativePath !== undefined &&
+      availableMilestones.has(slugFromRelativePath)
+    ) {
+      return path.join(
+        projectRoot,
+        "docs/planning/milestones",
+        slugFromRelativePath,
+      );
+    }
+  }
+
+  return null;
 }
 
 /**
