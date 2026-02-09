@@ -264,6 +264,22 @@ describe("completion E2E", () => {
       expect(stdout).toContain("calibrate");
     });
 
+    test("completion scripts include ralph build quiet flag", async () => {
+      const [bashResult, zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      expect(bashResult.stdout).toContain("-q --quiet");
+      expect(zshResult.stdout).toContain(
+        "'(-q --quiet)'{-q,--quiet}'[Suppress terminal summary output]'",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_using_subsubcommand ralph build' -s q -l quiet",
+      );
+    });
+
     test("completion scripts include ralph models and subtasks options", async () => {
       const [bashResult, zshResult, fishResult] = await Promise.all([
         execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
@@ -336,7 +352,7 @@ describe("completion E2E", () => {
       expect(stdout).toContain("base pro");
     });
 
-    test("bash includes subtasks output-dir and file value completion", async () => {
+    test("bash includes subtasks output-dir/file/validate-first completions", async () => {
       const { stdout } = await execa(
         "bun",
         ["run", "dev", "completion", "bash"],
@@ -346,9 +362,10 @@ describe("completion E2E", () => {
       expect(stdout).toContain("local output_dirs=$(aaa __complete milestone");
       expect(stdout).toContain("--file)");
       expect(stdout).toContain('COMPREPLY=($(compgen -f -- "$cur"))');
+      expect(stdout).toContain("--validate-first");
     });
 
-    test("zsh and fish include subtasks --output-dir option", async () => {
+    test("zsh and fish include subtasks output-dir and validate-first", async () => {
       const [zshResult, fishResult] = await Promise.all([
         execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
         execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
@@ -356,8 +373,10 @@ describe("completion E2E", () => {
 
       expect(zshResult.stdout).toContain("--output-dir");
       expect(zshResult.stdout).toContain("_aaa_milestone_or_dir");
+      expect(zshResult.stdout).toContain("--validate-first");
       expect(fishResult.stdout).toContain("-l output-dir");
       expect(fishResult.stdout).toContain("__fish_complete_directories");
+      expect(fishResult.stdout).toContain("-l validate-first");
     });
 
     test("session path/cat completion includes --id and dynamic session IDs", async () => {

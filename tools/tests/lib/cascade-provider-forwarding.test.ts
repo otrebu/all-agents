@@ -81,6 +81,7 @@ describe("cascade provider/model forwarding", () => {
       model: "openai/gpt-5.3-codex",
       provider: "opencode",
       subtasksPath: "/repo/subtasks.json",
+      validateFirst: true,
     });
 
     expect(error).toBeNull();
@@ -97,7 +98,33 @@ describe("cascade provider/model forwarding", () => {
       model: "openai/gpt-5.3-codex",
       provider: "opencode",
       subtasksPath: "/repo/subtasks.json",
+      validateFirst: true,
     });
+  });
+
+  test("runCascadeFrom forwards validateFirst to build level", async () => {
+    const result = await runCascadeFrom("subtasks", "build", {
+      contextRoot: "/repo",
+      headless: true,
+      subtasksPath: "/repo/subtasks.json",
+      validateFirst: true,
+    });
+
+    expect(result).toMatchObject({
+      completedLevels: ["build"],
+      error: null,
+      stoppedAt: null,
+      success: true,
+    });
+
+    expect(runBuildMock).toHaveBeenCalledTimes(1);
+    const buildCall = runBuildMock.mock.calls[0];
+    if (buildCall === undefined) {
+      throw new Error("Expected runBuild call");
+    }
+
+    const [buildOptions] = buildCall;
+    expect(buildOptions.validateFirst).toBe(true);
   });
 
   test("runLevel('calibrate') forwards provider/model to runCalibrate", async () => {

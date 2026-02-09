@@ -410,3 +410,55 @@ describe("runStatus progress compatibility", () => {
     expect(successRateLine).toContain("Success rate: 100.0%");
   });
 });
+
+describe("runStatus subtasks format validation", () => {
+  const temporaryDirectory = join(
+    import.meta.dirname,
+    "../../tmp/status-format-validation",
+  );
+
+  function captureRunStatusOutput(subtasksPath: string): Array<string> {
+    const output: Array<string> = [];
+    const originalLog = console.log;
+    console.log = (...args: Array<unknown>) => {
+      output.push(args.map(String).join(" "));
+    };
+
+    try {
+      runStatus(subtasksPath, temporaryDirectory);
+    } finally {
+      console.log = originalLog;
+    }
+
+    return output;
+  }
+
+  beforeEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { recursive: true });
+    }
+  });
+
+  test("shows explicit canonical format error for legacy array files", () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify([{ done: false, id: "SUB-001", title: "legacy" }]),
+    );
+
+    const output = captureRunStatusOutput(subtasksPath).join("\n");
+
+    expect(output).toContain("Invalid subtasks file format");
+    expect(output).toContain(
+      'Expected: JSON object with top-level "subtasks" array',
+    );
+    expect(output).toContain("top-level array (legacy format)");
+  });
+});

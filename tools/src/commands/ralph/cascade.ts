@@ -30,6 +30,11 @@ import {
 } from "./approvals";
 import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
+import {
+  renderCascadeProgress,
+  renderEventLine,
+  renderPhaseCard,
+} from "./display";
 
 // =============================================================================
 // Types
@@ -66,6 +71,8 @@ interface CascadeFromOptions {
   reviewFlag?: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
+  /** Run pre-build validation before cascading into build level */
+  validateFirst?: boolean;
 }
 
 /**
@@ -125,6 +132,8 @@ interface RunLevelOptions {
   reviewFlag?: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
+  /** Run pre-build validation before build level */
+  validateFirst?: boolean;
 }
 
 // =============================================================================
@@ -402,7 +411,11 @@ async function promptContinue(
   // Check if running in TTY mode
   if (!process.stdin.isTTY) {
     console.log(
-      `Non-interactive mode: continuing from ${completed} to ${next}...`,
+      renderEventLine({
+        domain: "CASCADE",
+        message: `Non-interactive mode: continuing from ${completed} to ${next}`,
+        state: "INFO",
+      }),
     );
     return true;
   }
@@ -489,6 +502,7 @@ async function runCascadeFrom(
     provider: options.provider,
     reviewFlag: options.reviewFlag,
     subtasksPath: options.subtasksPath,
+    validateFirst: options.validateFirst,
   };
 
   // Step 1: Validate cascade direction
@@ -568,7 +582,22 @@ async function runCascadeFrom(
       };
     }
 
-    console.log(`\n=== Running cascade level: ${currentLevel} ===\n`);
+    const remainingLevels = levelsToExecute.slice(completedLevels.length + 1);
+    console.log();
+    console.log(
+      renderCascadeProgress(currentLevel, completedLevels, remainingLevels),
+    );
+    console.log(
+      renderPhaseCard({
+        domain: "CASCADE",
+        lines: [
+          `Target: ${target}`,
+          `Completed so far: ${completedLevels.length}/${levelsToExecute.length}`,
+        ],
+        state: "START",
+        title: `Running level: ${currentLevel}`,
+      }),
+    );
 
     // Execute the level
     // eslint-disable-next-line no-await-in-loop -- Levels must execute sequentially
@@ -613,6 +642,13 @@ async function runCascadeFrom(
     // Track completion
     completedLevels.push(currentLevel);
     lastCompletedLevel = currentLevel;
+    console.log(
+      renderEventLine({
+        domain: "CASCADE",
+        message: `Completed level: ${currentLevel}`,
+        state: "DONE",
+      }),
+    );
   }
 
   // All levels completed successfully
@@ -651,6 +687,7 @@ async function runLevel(
     provider,
     reviewFlag: isReviewFlag,
     subtasksPath,
+    validateFirst: shouldValidateFirst = false,
   } = options;
 
   // Validate level name
@@ -671,7 +708,7 @@ async function runLevel(
         quiet: false,
         skipSummary: false,
         subtasksPath,
-        validateFirst: false,
+        validateFirst: shouldValidateFirst,
       };
 
       try {

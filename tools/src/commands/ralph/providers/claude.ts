@@ -191,9 +191,7 @@ function createClaudeNullOutcome(
   };
 }
 
-function createWatchdogDetector(
-  watchdog: ClaudeHeadlessWatchdog,
-): {
+function createWatchdogDetector(watchdog: ClaudeHeadlessWatchdog): {
   cleanup: () => void;
   promise: Promise<HeadlessExitOutcome>;
 } {
@@ -287,13 +285,17 @@ async function handleHeadlessExitOutcome(options: {
     await killProcessGracefully(proc, gracePeriodMs);
     await stderrForwarder;
     if (isDebug) {
-      console.log(`Claude headless stalled after ${stallTimeoutMs}ms without output`);
+      console.log(
+        `Claude headless stalled after ${stallTimeoutMs}ms without output`,
+      );
     }
     return true;
   }
 
   if (outcome === "hard_timeout") {
-    console.warn(`\n⚠ Hard timeout reached after ${hardTimeoutMs / 60_000} minutes`);
+    console.warn(
+      `\n⚠ Hard timeout reached after ${hardTimeoutMs / 60_000} minutes`,
+    );
     await killProcessGracefully(proc, gracePeriodMs);
     await stderrForwarder;
     if (isDebug) {

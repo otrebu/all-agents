@@ -230,6 +230,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("Require all approval prompts");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
+    expect(stdout).toContain("--validate-first");
   });
 
   test("ralph plan subtasks --help shows --review-diary source selector", async () => {
@@ -1836,6 +1837,12 @@ echo '[{"type":"result","result":"ok","duration_ms":12,"total_cost_usd":0.02,"se
       );
 
       expect(exitCode).toBe(0);
+      expect(stdout).toContain("Phase 1/4: starting generation");
+      expect(stdout).toContain(
+        "Phase 2/4: provider run complete, verifying queue",
+      );
+      expect(stdout).toContain("Phase 3/4: queue verified");
+      expect(stdout).toContain("Phase 4/4: summary complete");
       expect(stdout).toContain("Created");
       expect(stdout).toContain("(Total:");
       expect(stdout).toContain("Output:");

@@ -37,10 +37,12 @@ import {
 } from "./config";
 import {
   renderBuildPracticalSummary,
+  renderEventLine,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
   renderMarkdown,
+  renderPhaseCard,
   renderResponseHeader,
 } from "./display";
 import { executeHook } from "./hooks";
@@ -1084,8 +1086,23 @@ async function resolveSkippedSubtaskIds(options: {
   const initialSubtasksFile = loadSubtasksFile(subtasksPath);
   const pendingSubtasks = getPendingSubtasks(initialSubtasksFile.subtasks);
   if (pendingSubtasks.length === 0) {
+    console.log(
+      renderEventLine({
+        domain: "VALIDATE",
+        message: "Pre-build validation skipped (no pending subtasks)",
+        state: "SKIP",
+      }),
+    );
     return null;
   }
+
+  console.log(
+    renderEventLine({
+      domain: "VALIDATE",
+      message: `Pre-build validation starting (${pendingSubtasks.length} pending subtasks)`,
+      state: "START",
+    }),
+  );
 
   const milestonePath = path.dirname(subtasksPath);
   const validationResult = await validateAllSubtasks(
@@ -1093,6 +1110,14 @@ async function resolveSkippedSubtaskIds(options: {
     { mode, subtasksPath },
     milestonePath,
     contextRoot,
+  );
+
+  console.log(
+    renderEventLine({
+      domain: "VALIDATE",
+      message: `Pre-build validation complete (${validationResult.aligned} aligned, ${validationResult.skippedSubtasks.length} skipped)`,
+      state: "DONE",
+    }),
   );
 
   return new Set(validationResult.skippedSubtasks.map((s) => s.subtaskId));
@@ -1135,9 +1160,43 @@ async function runBuild(
   const initialQueueStats = getSubtaskQueueStats(initialSubtasksFile.subtasks);
   const hasPendingSubtasks = initialQueueStats.pending > 0;
 
+  console.log(
+    renderPhaseCard({
+      domain: "BUILD",
+      lines: [
+        `Queue: ${initialQueueStats.pending} pending / ${initialQueueStats.total} total (${initialQueueStats.completed} completed)`,
+      ],
+      state: "START",
+      title: "Starting build loop",
+    }),
+  );
+  if (maxIterations === 0) {
+    console.log(
+      renderEventLine({
+        domain: "BUILD",
+        message: "Max iterations per subtask: unlimited (0)",
+        state: "INFO",
+      }),
+    );
+  } else {
+    console.log(
+      renderEventLine({
+        domain: "BUILD",
+        message: `Max iterations per subtask: ${maxIterations}`,
+        state: "INFO",
+      }),
+    );
+  }
+
   // Select provider (CLI flag > env var > default)
   const provider = await resolveProviderOrExit(options.provider);
-  console.log(chalk.dim(`Using provider: ${provider}`));
+  console.log(
+    renderEventLine({
+      domain: "BUILD",
+      message: `Using provider: ${provider}`,
+      state: "INFO",
+    }),
+  );
 
   // Select model (CLI flag > config) and validate against provider registry.
   // Skip strict validation when queue has no runnable work.
@@ -1181,6 +1240,14 @@ async function runBuild(
     shouldValidateFirst,
     subtasksPath,
   });
+
+  console.log(
+    renderEventLine({
+      domain: "BUILD",
+      message: "Iteration phase starting",
+      state: "START",
+    }),
+  );
 
   let iteration = 1;
 
@@ -1421,8 +1488,16 @@ async function runPeriodicCalibration(
 ): Promise<void> {
   const { calibrateEvery, contextRoot, iteration, subtasksPath } = options;
   if (calibrateEvery > 0 && iteration % calibrateEvery === 0) {
+    console.log();
     console.log(
-      `\n=== Running calibration (every ${calibrateEvery} iterations) ===\n`,
+      renderPhaseCard({
+        domain: "CALIBRATE",
+        lines: [
+          `Triggered by periodic setting (every ${calibrateEvery} iterations)`,
+        ],
+        state: "START",
+        title: "Running calibration",
+      }),
     );
     await runCalibrate("all", { contextRoot, subtasksPath });
   }

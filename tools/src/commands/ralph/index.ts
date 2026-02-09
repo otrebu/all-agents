@@ -453,9 +453,9 @@ async function invokeClaudeHeadless(
   options: { shouldAllowNullResult: true } & HeadlessWithLoggingOptions,
 ): Promise<HeadlessWithLoggingResult | null>;
 async function invokeClaudeHeadless(
-  options:
-    & { shouldAllowNullResult?: false | undefined }
-    & HeadlessWithLoggingOptions,
+  options: {
+    shouldAllowNullResult?: false | undefined;
+  } & HeadlessWithLoggingOptions,
 ): Promise<HeadlessWithLoggingResult>;
 async function invokeClaudeHeadless(
   options: HeadlessWithLoggingOptions,
@@ -1275,18 +1275,13 @@ function exitWithSubtasksQueueOutcomeFailure(options: {
   outputPath: string;
   providerResult: HeadlessWithLoggingResult | null;
 }): never {
-  const { fragmentMergeError, loadResult, outputPath, providerResult } = options;
+  const { fragmentMergeError, loadResult, outputPath, providerResult } =
+    options;
   const message =
     providerResult === null
       ? "Headless subtasks generation failed: provider ended without result and no valid subtasks queue outcome was produced."
       : "Headless subtasks generation failed: provider returned successfully but no valid subtasks queue outcome was produced.";
-  console.error(
-    renderEventLine({
-      domain: "PLAN",
-      message,
-      state: "FAIL",
-    }),
-  );
+  console.error(renderEventLine({ domain: "PLAN", message, state: "FAIL" }));
   console.error(
     renderEventLine({
       domain: "PLAN",
@@ -1299,7 +1294,8 @@ function exitWithSubtasksQueueOutcomeFailure(options: {
     console.error(
       renderEventLine({
         domain: "PLAN",
-        message: "Queue file was unchanged after provider execution (no observable update).",
+        message:
+          "Queue file was unchanged after provider execution (no observable update).",
         state: "FAIL",
       }),
     );
@@ -1867,7 +1863,8 @@ async function runSubtasksProviderPhase(options: {
         watchdogCheckIntervalMs: SUBTASK_FRAGMENT_POLL_INTERVAL_MS,
         watchdogReason:
           "Subtasks watchdog detected complete fragment output; stopping provider and continuing with merged queue.",
-        watchdogShouldTerminate: () => fragmentMergeState.shouldTerminateWatchdog,
+        watchdogShouldTerminate: () =>
+          fragmentMergeState.shouldTerminateWatchdog,
       });
     } finally {
       clearInterval(fragmentWatchdogTimer);
@@ -2065,25 +2062,25 @@ async function runTasksStoryMode(
   return resolvedMilestonePath;
 }
 
-function stopWatchdogTimerIfPossible(timer: ReturnType<typeof setInterval>): void {
+function stopWatchdogTimerIfPossible(
+  timer: ReturnType<typeof setInterval>,
+): void {
   const maybeWatchdogTimer = timer as unknown as { unref?: () => void };
   if (typeof maybeWatchdogTimer.unref === "function") {
     maybeWatchdogTimer.unref();
   }
 }
 
-function tryMergeSubtaskFragments(
-  options: {
-    beforeQueueRaw: null | string;
-    expectedFragmentCount?: number;
-    mergeMetadata: { milestoneRef?: string; scope: "milestone" } | undefined;
-    outputPath: string;
-    resolvedOutputDirectory: string;
-    shouldRequireStableWindow: boolean;
-    state: SubtaskFragmentMergeState;
-    trigger: "post-run-fallback" | "watchdog";
-  },
-): void {
+function tryMergeSubtaskFragments(options: {
+  beforeQueueRaw: null | string;
+  expectedFragmentCount?: number;
+  mergeMetadata: { milestoneRef?: string; scope: "milestone" } | undefined;
+  outputPath: string;
+  resolvedOutputDirectory: string;
+  shouldRequireStableWindow: boolean;
+  state: SubtaskFragmentMergeState;
+  trigger: "post-run-fallback" | "watchdog";
+}): void {
   const {
     beforeQueueRaw,
     expectedFragmentCount,
@@ -2099,7 +2096,9 @@ function tryMergeSubtaskFragments(
     return;
   }
 
-  const queueRawNow = existsSync(outputPath) ? readFileSync(outputPath, "utf8") : null;
+  const queueRawNow = existsSync(outputPath)
+    ? readFileSync(outputPath, "utf8")
+    : null;
   if (queueRawNow !== null && queueRawNow !== beforeQueueRaw) {
     try {
       loadSubtasksFile(outputPath);
@@ -2132,7 +2131,8 @@ function tryMergeSubtaskFragments(
 
   const stableForMs = now - state.fragmentSignatureLastChangedAt;
   const isStable =
-    !shouldRequireStableWindow || stableForMs >= SUBTASK_FRAGMENT_STABLE_WINDOW_MS;
+    !shouldRequireStableWindow ||
+    stableForMs >= SUBTASK_FRAGMENT_STABLE_WINDOW_MS;
 
   if (!hasExpectedFragments || !isStable) {
     return;
@@ -2177,7 +2177,10 @@ function validateSubtasksCascadeOption(
   }
 
   const cascadeStartLevel = getSubtasksCascadeFromLevel(fromLevel);
-  const validationError = validateCascadeTarget(cascadeStartLevel, cascadeTarget);
+  const validationError = validateCascadeTarget(
+    cascadeStartLevel,
+    cascadeTarget,
+  );
   if (validationError !== null) {
     console.error(`Error: ${validationError}`);
     process.exit(1);
@@ -2201,7 +2204,9 @@ function validateSubtasksSourceSelection(options: {
   }
 
   if (hasMilestone && hasOutputDirectory) {
-    console.error("Error: --milestone and --output-dir are mutually exclusive.");
+    console.error(
+      "Error: --milestone and --output-dir are mutually exclusive.",
+    );
     console.error(
       "Use --milestone for both source and output, or use --file/--text with --output-dir",
     );
@@ -2214,10 +2219,7 @@ function verifySubtasksQueueOutcome(options: {
   fragmentMergeState: SubtaskFragmentMergeState;
   outputPath: string;
   providerResult: HeadlessWithLoggingResult | null;
-}): {
-  error?: string;
-  subtasks: Array<{ id: string; title: string }>;
-} {
+}): { error?: string; subtasks: Array<{ id: string; title: string }> } {
   const { beforeQueueRaw, fragmentMergeState, outputPath, providerResult } =
     options;
   const loadResult = getSubtasksLoadResult(outputPath);
@@ -2698,7 +2700,10 @@ planCommand.addCommand(
         );
         const preCheckResult = (() => {
           try {
-            return checkSubtasksPreCheck(resolvedMilestonePath, outputDirectory);
+            return checkSubtasksPreCheck(
+              resolvedMilestonePath,
+              outputDirectory,
+            );
           } catch (error) {
             console.error(formatErrorMessage(error));
             process.exit(1);
@@ -3348,7 +3353,9 @@ subtasksCommand.addCommand(
           lines: [
             chalk.dim(`Milestone: ${options.milestone}`),
             chalk.dim(`Queue: ${subtasksPath}`),
-            chalk.dim(`Limit: ${limit}  Pending-only: ${options.pending === true ? "yes" : "no"}`),
+            chalk.dim(
+              `Limit: ${limit}  Pending-only: ${options.pending === true ? "yes" : "no"}`,
+            ),
           ],
           title: "RALPH SUBTASKS LIST",
           tone: "info",

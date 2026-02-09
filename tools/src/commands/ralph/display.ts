@@ -30,15 +30,15 @@ const BOX_WIDTH = 68;
 const BOX_INNER_WIDTH = BOX_WIDTH - 4;
 
 // Configure marked with terminal renderer
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+const markedTerminalFactory = markedTerminal as unknown as (options: {
+  reflowText: boolean;
+  tab: number;
+  width: number;
+}) => MarkedExtension;
+
 marked.use(
-  markedTerminal({
-    reflowText: true,
-    tab: 2,
-    width: BOX_INNER_WIDTH,
-  }) as MarkedExtension,
+  markedTerminalFactory({ reflowText: true, tab: 2, width: BOX_INNER_WIDTH }),
 );
-/* eslint-enable @typescript-eslint/no-unsafe-call */
 
 // =============================================================================
 // Helper Functions
@@ -65,6 +65,31 @@ interface BuildSummaryData {
 // =============================================================================
 // Duration and Time Formatting
 // =============================================================================
+
+interface CommandBannerData {
+  lines: Array<string>;
+  title: string;
+  tone?: VisualTone;
+}
+
+type EventDomain =
+  | "BUILD"
+  | "CALIBRATE"
+  | "CASCADE"
+  | "MILESTONES"
+  | "MODELS"
+  | "PLAN"
+  | "STATUS"
+  | "SUBTASKS"
+  | "VALIDATE";
+
+interface EventLineData {
+  domain: EventDomain;
+  message: string;
+  state: EventState;
+}
+
+type EventState = "DONE" | "FAIL" | "INFO" | "SKIP" | "START" | "WAIT";
 
 /** Options for formatCreatedPart helper */
 interface FormatCreatedPartOptions {
@@ -116,6 +141,14 @@ interface IterationDisplayData {
   toolCalls?: number;
 }
 
+interface PhaseCardData {
+  domain: EventDomain;
+  lines?: Array<string>;
+  state: EventState;
+  title: string;
+  tone?: VisualTone;
+}
+
 /**
  * Data for plan subtasks summary box (headless mode output)
  */
@@ -156,6 +189,8 @@ interface PlanSubtasksSummaryData {
   /** Total subtasks now in file after this run (for pre-check display) */
   totalCount?: number;
 }
+
+type VisualTone = "default" | "error" | "info" | "success" | "warning";
 
 // =============================================================================
 // Status Coloring
@@ -347,10 +382,6 @@ function formatTimeOfDay(): string {
   return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
 }
 
-// =============================================================================
-// Markdown Rendering
-// =============================================================================
-
 /**
  * Format an ISO 8601 timestamp for display
  *
@@ -379,10 +410,6 @@ function formatTimestamp(isoTimestamp: string | undefined): string {
     return isoTimestamp;
   }
 }
-
-// =============================================================================
-// Plan Subtasks Summary Helpers
-// =============================================================================
 
 /**
  * Format a token count as a human-readable string
@@ -434,6 +461,32 @@ function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
   return `${ctxLabel} ${ctxValue}`;
 }
 
+function getColoredEventLabel(label: string, state: EventState): string {
+  switch (state) {
+    case "DONE": {
+      return chalk.green.bold(label);
+    }
+    case "FAIL": {
+      return chalk.red.bold(label);
+    }
+    case "INFO": {
+      return chalk.cyan(label);
+    }
+    case "SKIP": {
+      return chalk.yellow.bold(label);
+    }
+    case "START": {
+      return chalk.cyan.bold(label);
+    }
+    case "WAIT": {
+      return chalk.yellow(label);
+    }
+    default: {
+      return label;
+    }
+  }
+}
+
 /**
  * Apply color to status text based on iteration outcome
  *
@@ -460,6 +513,10 @@ function getColoredStatus(status: IterationStatus): string {
   }
 }
 
+// =============================================================================
+// Markdown Rendering
+// =============================================================================
+
 /**
  * Get display label for a provider key.
  */
@@ -476,7 +533,7 @@ function getProviderLabel(provider: ProviderType): string {
 }
 
 // =============================================================================
-// Status Box Rendering
+// Plan Subtasks Summary Helpers
 // =============================================================================
 
 /**
@@ -501,9 +558,25 @@ function getStatusBorderColor(
   }
 }
 
-// =============================================================================
-// Iteration Box Types
-// =============================================================================
+function getToneBorderColor(tone: VisualTone): BoxenOptions["borderColor"] {
+  switch (tone) {
+    case "error": {
+      return "red";
+    }
+    case "info": {
+      return "cyan";
+    }
+    case "success": {
+      return "green";
+    }
+    case "warning": {
+      return "yellow";
+    }
+    default: {
+      return "white";
+    }
+  }
+}
 
 /**
  * Create a clickable terminal path that opens in file manager/editor
@@ -650,6 +723,10 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
   });
 }
 
+// =============================================================================
+// Status Box Rendering
+// =============================================================================
+
 /**
  * Render build summary box (at end of all iterations)
  */
@@ -695,6 +772,10 @@ function renderBuildSummary(data: BuildSummaryData): string {
     width: BOX_WIDTH,
   });
 }
+
+// =============================================================================
+// Iteration Box Types
+// =============================================================================
 
 /**
  * Render cascade progress line showing level progression
@@ -798,6 +879,25 @@ function renderCascadeSummary(result: CascadeResult): string {
     titleAlignment: "center",
     width: BOX_WIDTH,
   });
+}
+
+function renderCommandBanner(data: CommandBannerData): string {
+  const { lines, title, tone = "info" } = data;
+  return renderSafeBox(lines.join("\n"), {
+    borderColor: getToneBorderColor(tone),
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: chalk.bold(title),
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+function renderEventLine(data: EventLineData): string {
+  const { domain, message, state } = data;
+  const label = `[${domain}] [${state}]`;
+  const coloredLabel = getColoredEventLabel(label, state);
+  return `${coloredLabel} ${message}`;
 }
 
 /**
@@ -966,10 +1066,6 @@ function renderIterationStart(data: IterationDisplayData): string {
   });
 }
 
-// =============================================================================
-// Text Formatting
-// =============================================================================
-
 /**
  * Render markdown content for terminal display
  *
@@ -980,6 +1076,46 @@ function renderIterationStart(data: IterationDisplayData): string {
  */
 function renderMarkdown(markdown: string): string {
   return marked(markdown) as string;
+}
+
+// =============================================================================
+// Text Formatting
+// =============================================================================
+
+function renderPhaseCard(data: PhaseCardData): string {
+  const { domain, lines = [], state, title, tone } = data;
+  let toneOrDefault: VisualTone = tone ?? "info";
+  if (tone === undefined) {
+    switch (state) {
+      case "DONE": {
+        toneOrDefault = "success";
+        break;
+      }
+      case "FAIL": {
+        toneOrDefault = "error";
+        break;
+      }
+      case "SKIP": {
+        toneOrDefault = "warning";
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
+
+  const content = [
+    renderEventLine({ domain, message: title, state }),
+    ...lines,
+  ];
+
+  return renderSafeBox(content.join("\n"), {
+    borderColor: getToneBorderColor(toneOrDefault),
+    borderStyle: "round",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    width: BOX_WIDTH,
+  });
 }
 
 // =============================================================================
@@ -1268,24 +1404,33 @@ export {
   BOX_WIDTH,
   type BuildSummaryData,
   colorStatus,
+  type CommandBannerData,
+  type EventDomain,
+  type EventLineData,
+  type EventState,
   formatDuration,
   formatTimestamp,
   formatTokenCount,
   getColoredStatus,
   type IterationDisplayData,
   makeClickablePath,
+  type PhaseCardData,
   type PlanSubtasksSummaryData,
   renderBuildPracticalSummary,
   renderBuildSummary,
   renderCascadeProgress,
   renderCascadeSummary,
+  renderCommandBanner,
+  renderEventLine,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
   renderMarkdown,
+  renderPhaseCard,
   renderPlanSubtasksSummary,
   renderProgressBar,
   renderResponseHeader,
   renderStatusBox,
   truncate,
+  type VisualTone,
 };

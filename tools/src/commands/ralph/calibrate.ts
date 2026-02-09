@@ -12,6 +12,7 @@
  * @see context/workflows/ralph/calibration/self-improvement.md
  */
 
+import chalk from "chalk";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -24,6 +25,11 @@ import {
   loadSubtasksFile,
   loadTimeoutConfig,
 } from "./config";
+import {
+  renderEventLine,
+  renderInvocationHeader,
+  renderPhaseCard,
+} from "./display";
 import { invokeWithProvider, resolveProvider } from "./providers/registry";
 
 // =============================================================================
@@ -153,9 +159,21 @@ async function runCalibrate(
   // Select provider (CLI flag > env var > config > auto-detect)
   const provider = await resolveProvider({ cliFlag: options.provider });
   const { model } = options;
-  console.log(`Using provider: ${provider}`);
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Using provider: ${provider}`,
+      state: "INFO",
+    }),
+  );
   if (model !== undefined && model !== "") {
-    console.log(`Using model: ${model}`);
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: `Using model: ${model}`,
+        state: "INFO",
+      }),
+    );
   }
 
   switch (subcommand) {
@@ -208,7 +226,15 @@ async function runImproveCheck(
   provider: ProviderType,
   model?: string,
 ): Promise<boolean> {
-  console.log("=== Running Self-Improvement Analysis ===");
+  console.log();
+  console.log(
+    renderPhaseCard({
+      domain: "CALIBRATE",
+      lines: [chalk.dim("Analyze completed sessions for inefficiencies")],
+      state: "START",
+      title: "Self-Improvement Analysis",
+    }),
+  );
 
   const { contextRoot, subtasksPath } = options;
 
@@ -236,7 +262,13 @@ async function runImproveCheck(
 
   // Check for "off" mode - skip analysis entirely
   if (selfImproveMode === "off") {
-    console.log("Self-improvement analysis is disabled in aaa.config.json");
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: "Self-improvement analysis is disabled in aaa.config.json",
+        state: "SKIP",
+      }),
+    );
     return true;
   }
 
@@ -244,13 +276,30 @@ async function runImproveCheck(
   const sessionIds = getCompletedSessionIds(subtasksFile);
   if (sessionIds === "") {
     console.log(
-      "No completed subtasks with sessionId found. Nothing to analyze.",
+      renderEventLine({
+        domain: "CALIBRATE",
+        message:
+          "No completed subtasks with sessionId found. Nothing to analyze.",
+        state: "SKIP",
+      }),
     );
     return true;
   }
 
-  console.log(`Found sessionIds: ${sessionIds}`);
-  console.log(`Self-improvement mode: ${selfImproveMode}`);
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Found sessionIds: ${sessionIds}`,
+      state: "INFO",
+    }),
+  );
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Self-improvement mode: ${selfImproveMode}`,
+      state: "INFO",
+    }),
+  );
 
   // Read the prompt file
   const promptContent = readFileSync(promptPath, "utf8");
@@ -298,7 +347,15 @@ Handle improvements based on the mode above.
 ${promptContent}`;
 
   // Run provider for analysis with timeout protection
-  console.log(`Invoking ${provider} for self-improvement analysis...`);
+  console.log(renderInvocationHeader("headless", provider));
+  console.log();
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Invoking ${provider} for self-improvement analysis...`,
+      state: "START",
+    }),
+  );
   const timeoutConfig = loadTimeoutConfig();
   try {
     const result = await invokeWithProvider(provider, {
@@ -322,8 +379,13 @@ ${promptContent}`;
     return false;
   }
 
-  console.log();
-  console.log("=== Self-Improvement Analysis Complete ===");
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: "Self-Improvement Analysis Complete",
+      state: "DONE",
+    }),
+  );
   return true;
 }
 
@@ -347,7 +409,15 @@ async function runIntentionCheck(
   provider: ProviderType,
   model?: string,
 ): Promise<boolean> {
-  console.log("=== Running Intention Drift Check ===");
+  console.log();
+  console.log(
+    renderPhaseCard({
+      domain: "CALIBRATE",
+      lines: [chalk.dim("Check code changes against planning intent")],
+      state: "START",
+      title: "Intention Drift Check",
+    }),
+  );
 
   const { contextRoot, subtasksPath } = options;
 
@@ -371,7 +441,12 @@ async function runIntentionCheck(
   const completed = getCompletedWithCommitHash(subtasksFile);
   if (completed.length === 0) {
     console.log(
-      "No completed subtasks with commitHash found. Nothing to analyze.",
+      renderEventLine({
+        domain: "CALIBRATE",
+        message:
+          "No completed subtasks with commitHash found. Nothing to analyze.",
+        state: "SKIP",
+      }),
     );
     return true;
   }
@@ -380,7 +455,13 @@ async function runIntentionCheck(
   // Uses unified config loader (no explicit path needed)
   const config = loadRalphConfig();
   const approvalMode = getApprovalMode(config, options);
-  console.log(`Approval mode: ${approvalMode}`);
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Approval mode: ${approvalMode}`,
+      state: "INFO",
+    }),
+  );
 
   // Read the prompt file
   const promptContent = readFileSync(promptPath, "utf8");
@@ -408,7 +489,15 @@ If drift is detected, create task files in docs/planning/tasks/ as specified in 
 ${promptContent}`;
 
   // Run provider for analysis with timeout protection
-  console.log(`Invoking ${provider} for intention drift analysis...`);
+  console.log(renderInvocationHeader("headless", provider));
+  console.log();
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Invoking ${provider} for intention drift analysis...`,
+      state: "START",
+    }),
+  );
   const timeoutConfig = loadTimeoutConfig();
   try {
     const result = await invokeWithProvider(provider, {
@@ -432,8 +521,13 @@ ${promptContent}`;
     return false;
   }
 
-  console.log();
-  console.log("=== Intention Drift Check Complete ===");
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: "Intention Drift Check Complete",
+      state: "DONE",
+    }),
+  );
   return true;
 }
 
@@ -457,7 +551,15 @@ async function runTechnicalCheck(
   provider: ProviderType,
   model?: string,
 ): Promise<boolean> {
-  console.log("=== Running Technical Drift Check ===");
+  console.log();
+  console.log(
+    renderPhaseCard({
+      domain: "CALIBRATE",
+      lines: [chalk.dim("Check completed subtasks for technical drift")],
+      state: "START",
+      title: "Technical Drift Check",
+    }),
+  );
 
   const { contextRoot, subtasksPath } = options;
 
@@ -467,8 +569,20 @@ async function runTechnicalCheck(
     "context/workflows/ralph/calibration/technical-drift.md",
   );
   if (!existsSync(promptPath)) {
-    console.log(`Note: Technical drift prompt not found: ${promptPath}`);
-    console.log("Technical drift checking is not yet implemented.");
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: `Technical drift prompt not found: ${promptPath}`,
+        state: "SKIP",
+      }),
+    );
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: "Technical drift checking is not yet implemented.",
+        state: "SKIP",
+      }),
+    );
     return true;
   }
 
@@ -482,7 +596,12 @@ async function runTechnicalCheck(
   const completed = getCompletedWithCommitHash(subtasksFile);
   if (completed.length === 0) {
     console.log(
-      "No completed subtasks with commitHash found. Nothing to analyze.",
+      renderEventLine({
+        domain: "CALIBRATE",
+        message:
+          "No completed subtasks with commitHash found. Nothing to analyze.",
+        state: "SKIP",
+      }),
     );
     return true;
   }
@@ -512,7 +631,15 @@ Analyze code quality issues in completed subtasks and output a summary to stdout
 ${promptContent}`;
 
   // Run provider for analysis with timeout protection
-  console.log(`Invoking ${provider} for technical drift analysis...`);
+  console.log(renderInvocationHeader("headless", provider));
+  console.log();
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Invoking ${provider} for technical drift analysis...`,
+      state: "START",
+    }),
+  );
   const timeoutConfig = loadTimeoutConfig();
   try {
     const result = await invokeWithProvider(provider, {
@@ -536,8 +663,13 @@ ${promptContent}`;
     return false;
   }
 
-  console.log();
-  console.log("=== Technical Drift Check Complete ===");
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: "Technical Drift Check Complete",
+      state: "DONE",
+    }),
+  );
   return true;
 }
 

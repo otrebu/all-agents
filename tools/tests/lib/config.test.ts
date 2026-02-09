@@ -322,7 +322,14 @@ describe("appendSubtasksToFile", () => {
     writeFileSync(testPath, JSON.stringify({ subtasks: "not an array" }));
     expect(() =>
       appendSubtasksToFile(testPath, [createSubtask("SUB-001")]),
-    ).toThrow(/must be an array/);
+    ).toThrow(/Invalid subtasks file format/);
+  });
+
+  test("loadSubtasksFile rejects legacy top-level array format", () => {
+    writeFileSync(testPath, JSON.stringify([createSubtask("SUB-001")]));
+    expect(() => loadSubtasksFile(testPath)).toThrow(
+      /top-level array \(legacy format\)/,
+    );
   });
 
   test("throws when newSubtasks is not an array", () => {

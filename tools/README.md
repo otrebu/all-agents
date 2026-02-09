@@ -287,6 +287,10 @@ Files are auto-numbered incrementally (001, 002, 003...).
 
 Autonomous development framework using the hierarchy: Vision → Roadmap → Milestone → Story → Task → Subtask.
 
+Output and progress message contract for contributors:
+
+- `tools/docs/ralph/cli-output-style-guide.md`
+
 **Execution Modes (Three-Mode System):**
 
 | Mode        | Flag      | Description                          |

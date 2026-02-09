@@ -337,7 +337,9 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
     parsed = JSON.parse(content);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to parse subtasks file ${subtasksPath}: ${message}`);
+    throw new Error(
+      `Failed to parse subtasks file ${subtasksPath}: ${message}`,
+    );
   }
 
   if (Array.isArray(parsed)) {

@@ -23,8 +23,8 @@ import {
   loadSubtasksFile,
 } from "./config";
 import {
-  BOX_WIDTH,
   formatTimestamp,
+  renderCommandBanner,
   renderProgressBar,
   truncate,
 } from "./display";
@@ -271,11 +271,13 @@ function renderDiaryStats(diaryPath: string): void {
  */
 function renderHeader(): void {
   console.log();
-  console.log(chalk.bold(`╔${"═".repeat(BOX_WIDTH - 2)}╗`));
   console.log(
-    chalk.bold(`║${"Ralph Build Status".padStart(43).padEnd(BOX_WIDTH - 2)}║`),
+    renderCommandBanner({
+      lines: [chalk.dim("Live queue + iteration snapshot")],
+      title: "RALPH STATUS",
+      tone: "info",
+    }),
   );
-  console.log(chalk.bold(`╚${"═".repeat(BOX_WIDTH - 2)}╝`));
   console.log();
 }
 

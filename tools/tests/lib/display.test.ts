@@ -12,7 +12,10 @@ import {
   renderBuildPracticalSummary,
   renderCascadeProgress,
   renderCascadeSummary,
+  renderCommandBanner,
+  renderEventLine,
   renderInvocationHeader,
+  renderPhaseCard,
   renderPlanSubtasksSummary,
   renderResponseHeader,
   truncate,
@@ -468,6 +471,45 @@ describe("display utilities", () => {
       const result = renderResponseHeader("opencode");
 
       expect(result).toContain("OpenCode Response");
+    });
+  });
+
+  describe("visual style primitives", () => {
+    test("renders command banner with title and lines", () => {
+      const result = renderCommandBanner({
+        lines: ["queue: docs/planning/milestones/demo/subtasks.json"],
+        title: "RALPH PLAN SUBTASKS (HEADLESS)",
+      });
+
+      expect(result).toContain("RALPH PLAN SUBTASKS (HEADLESS)");
+      expect(result).toContain(
+        "queue: docs/planning/milestones/demo/subtasks.json",
+      );
+    });
+
+    test("renders event line with domain and state", () => {
+      const result = renderEventLine({
+        domain: "PLAN",
+        message: "Phase 2/4 complete",
+        state: "DONE",
+      });
+
+      expect(result).toContain("[PLAN] [DONE]");
+      expect(result).toContain("Phase 2/4 complete");
+    });
+
+    test("renders phase card with event title and details", () => {
+      const result = renderPhaseCard({
+        domain: "CASCADE",
+        lines: ["from: subtasks", "to: build"],
+        state: "START",
+        title: "Handoff subtasks -> build",
+      });
+
+      expect(result).toContain("[CASCADE] [START]");
+      expect(result).toContain("Handoff subtasks -> build");
+      expect(result).toContain("from: subtasks");
+      expect(result).toContain("to: build");
     });
   });
 });

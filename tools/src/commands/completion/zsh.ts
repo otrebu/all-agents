@@ -276,6 +276,7 @@ _aaa_ralph() {
                         '(-i --interactive)'{-i,--interactive}'[Pause between iterations (legacy)]' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch each iteration]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '(-q --quiet)'{-q,--quiet}'[Suppress terminal summary output]' \\
                         '--max-iterations[Max retry attempts]:number:' \\
                         '--validate-first[Run pre-build validation]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
@@ -394,6 +395,7 @@ _aaa_ralph_plan() {
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--calibrate-every[Run calibration every N iterations]:number:' \\
+                        '--validate-first[Run pre-build validation before cascading build]' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model' \\
                         '--file[Source file path]:file:_files' \\

@@ -218,7 +218,7 @@ _aaa_completions() {
             ralph)
                 case "$subcmd" in
                     build)
-                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless --max-iterations --validate-first --cascade --calibrate-every --provider --model" -- "$cur"))
+                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless -q --quiet --max-iterations --validate-first --cascade --calibrate-every --provider --model" -- "$cur"))
                         return
                         ;;
                     plan)
@@ -240,7 +240,7 @@ _aaa_completions() {
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--force --review --review-diary --from --task --story --milestone --output-dir --size -s --supervised -H --headless --cascade --calibrate-every --provider --model --file --text" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--force --review --review-diary --from --task --story --milestone --output-dir --size -s --supervised -H --headless --cascade --calibrate-every --validate-first --provider --model --file --text" -- "$cur"))
                                 return
                                 ;;
                         esac
