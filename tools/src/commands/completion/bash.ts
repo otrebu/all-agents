@@ -142,6 +142,10 @@ _aaa_completions() {
             COMPREPLY=($(compgen -W "true false" -- "$cur"))
             return
             ;;
+        --format)
+            COMPREPLY=($(compgen -W "markdown json" -- "$cur"))
+            return
+            ;;
     esac
 
     # PHASE 2: Find subcommand chain (skip flags and their values)
@@ -156,7 +160,7 @@ _aaa_completions() {
             continue
         fi
         case "$word" in
-            --mode|--processor|--milestone|--output-dir|--story|--task|--file|--text|--from|--subtasks|--size|--cascade|--calibrate-every|--provider|--model|--id|--commit|--session|--at|--objective|--queries|--stories-directory|--priority|--quiet-enabled|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations)
+            --mode|--processor|--milestone|--output-dir|--story|--task|--file|--text|--from|--subtasks|--size|--cascade|--calibrate-every|--provider|--model|--id|--commit|--session|--at|--objective|--queries|--stories-directory|--priority|--quiet-enabled|--format|-o|--output|-d|--dir|-t|--target|-l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations)
                 # Flag that takes a value - skip next word
                 skip_next=true
                 ;;
@@ -219,8 +223,16 @@ _aaa_completions() {
                         ;;
                     plan)
                         case "$subsubcmd" in
+                            vision)
+                                COMPREPLY=($(compgen -W "--provider --model" -- "$cur"))
+                                return
+                                ;;
+                            roadmap)
+                                COMPREPLY=($(compgen -W "--force --review --from --cascade --provider --model" -- "$cur"))
+                                return
+                                ;;
                             stories)
-                                COMPREPLY=($(compgen -W "--milestone -a --auto -s --supervised -H --headless --cascade" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--milestone -s --supervised -H --headless --force --review --from --provider --model --cascade" -- "$cur"))
                                 return
                                 ;;
                             tasks)
@@ -368,7 +380,9 @@ _aaa_completions() {
             ;;
         completion)
             if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "bash zsh fish" -- "$cur"))
+                COMPREPLY=($(compgen -W "bash zsh fish table" -- "$cur"))
+            elif [[ "$subcmd" == "table" ]]; then
+                COMPREPLY=($(compgen -W "--format" -- "$cur"))
             fi
             ;;
         session)

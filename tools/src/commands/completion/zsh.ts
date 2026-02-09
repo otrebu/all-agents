@@ -106,11 +106,17 @@ _aaa() {
                     _aaa_session
                     ;;
                 completion)
-                    _arguments '1:shell:(bash zsh fish)'
+                    _aaa_completion
                     ;;
             esac
             ;;
     esac
+}
+
+_aaa_completion() {
+    _arguments \
+        '1:target:(bash zsh fish table)' \
+        '--format[Output format (table only)]:format:(markdown json)'
 }
 
 _aaa_task() {
@@ -331,22 +337,45 @@ _aaa_ralph_plan() {
             ;;
         args)
             case $words[1] in
-                vision|roadmap)
-                    # No additional arguments
+                vision)
+                    _arguments \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model'
+                    ;;
+                roadmap)
+                    _arguments \\
+                        '--force[Skip all approval prompts]' \\
+                        '--review[Require all approval prompts]' \\
+                        '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
+                        '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model'
                     ;;
                 stories)
                     _arguments \\
                         '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--force[Skip all approval prompts]' \\
+                        '--review[Require all approval prompts]' \\
+                        '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target'
                     ;;
                 tasks)
                     _arguments \\
                         '--story[Story path]:story:_aaa_story_or_file' \\
                         '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
+                        '--file[Source file path]:file:_files' \\
+                        '--text[Source text description]:text:' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch chat]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--force[Skip all approval prompts]' \\
+                        '--review[Require all approval prompts]' \\
+                        '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target'
                     ;;
                 subtasks)

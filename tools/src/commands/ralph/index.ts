@@ -562,7 +562,14 @@ async function resolvePlanningProvider(
     return "claude";
   }
 
-  return resolveProvider({ cliFlag: providerOverride });
+  try {
+    return await resolveProvider({ cliFlag: providerOverride });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exit(1);
+    throw new Error("unreachable");
+  }
 }
 
 function runModels(options: RalphModelsOptions): void {
@@ -1540,13 +1547,24 @@ planCommand.addCommand(
     .description(
       "Start interactive vision planning session using Socratic method",
     )
-    .action(() => {
+    .option(
+      "--provider <name>",
+      "AI provider to use for planning (default: claude)",
+    )
+    .option("--model <name>", "Model to use for planning invocation")
+    .action(async (options) => {
       const contextRoot = getContextRoot();
       const promptPath = path.join(
         contextRoot,
         "context/workflows/ralph/planning/vision-interactive.md",
       );
-      invokeClaude(promptPath, "vision");
+
+      await invokePlanningSupervised({
+        model: options.model,
+        promptPath,
+        provider: options.provider,
+        sessionName: "vision",
+      });
     }),
 );
 
@@ -1557,6 +1575,11 @@ planCommand.addCommand(
     .option("--force", "Skip all approval prompts")
     .option("--review", "Require all approval prompts")
     .option("--from <level>", "Resume cascade from this level")
+    .option(
+      "--provider <name>",
+      "AI provider to use for planning (default: claude)",
+    )
+    .option("--model <name>", "Model to use for planning invocation")
     .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
@@ -1580,7 +1603,15 @@ planCommand.addCommand(
         contextRoot,
         "context/workflows/ralph/planning/roadmap-interactive.md",
       );
-      invokeClaude(promptPath, "roadmap");
+      const planningModel = options.model;
+      const planningProvider = options.provider;
+
+      await invokePlanningSupervised({
+        model: planningModel,
+        promptPath,
+        provider: planningProvider,
+        sessionName: "roadmap",
+      });
 
       // Handle cascade if requested
       if (options.cascade !== undefined) {
@@ -1589,6 +1620,8 @@ planCommand.addCommand(
           contextRoot,
           forceFlag: options.force === true,
           fromLevel: options.from ?? "roadmap",
+          model: planningModel,
+          provider: planningProvider as ProviderType,
           resolvedMilestonePath: null,
           reviewFlag: options.review === true,
           subtasksPath: path.join(contextRoot, "subtasks.json"),

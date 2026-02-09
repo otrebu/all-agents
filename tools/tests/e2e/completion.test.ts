@@ -80,6 +80,59 @@ describe("completion E2E", () => {
       expect(exitCode).toBe(1);
       expect(stderr).toContain("missing required argument");
     });
+
+    test("completion table outputs command-option markdown", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "table"],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("| Command |");
+      expect(stdout).toContain("`aaa ralph plan tasks`");
+      expect(stdout).toContain("`--file <path>`");
+      expect(stdout).toContain("File path as source for task generation");
+      expect(stdout).not.toContain("aaa __complete");
+    });
+
+    test("completion table supports --format json", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "table", "--format", "json"],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+
+      const rows = JSON.parse(stdout) as Array<{
+        command: string;
+        option: string;
+      }>;
+
+      expect(Array.isArray(rows)).toBe(true);
+      expect(
+        rows.some(
+          (row) =>
+            row.command === "aaa ralph plan tasks" &&
+            row.option === "--file <path>",
+        ),
+      ).toBe(true);
+      expect(rows.some((row) => row.command.includes("__complete"))).toBe(
+        false,
+      );
+    });
+
+    test("completion table rejects unknown format", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        ["run", "dev", "completion", "table", "--format", "yaml"],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("Unknown table format");
+    });
   });
 
   // Dynamic completion tests
@@ -150,6 +203,7 @@ describe("completion E2E", () => {
       expect(stdout).toContain("bash");
       expect(stdout).toContain("zsh");
       expect(stdout).toContain("fish");
+      expect(stdout).toContain("table");
     });
 
     test("aaa --help shows completion command", async () => {

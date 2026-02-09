@@ -72,28 +72,28 @@ aaa story create "As a user, I want to login"
 
 ## Commands
 
-| Command                      | Description                                                                        | Output Location                             |
-| ---------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------- |
-| `sync-context`               | Sync context/ folder to target project (with --watch)                              | Target project's context/                   |
-| `download <urls...>`         | Fetch URLs, extract text, save as markdown                                         | `docs/research/downloads/`                  |
-| `extract-conversations`      | Extract Claude Code conversation history as markdown                               | stdout or file                              |
-| `gh-search <query>`          | GitHub code search with intent-based ranking                                       | `docs/research/github/`                     |
-| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)                            | `docs/research/google/`                     |
-| `parallel-search <query>`    | Multi-angle web research with configurable depth                                   | `docs/research/parallel/`                   |
-| `task create <description>`  | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)  | milestone `tasks/` (or legacy global dir)   |
-| `story create <description>` | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`) | milestone `stories/` (or legacy global dir) |
-| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                          | -                                           |
-| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                         | -                                           |
-| `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                             | `docs/planning/`                            |
-| `ralph build`                | Run subtask iteration loop (autonomous dev)                                        | `subtasks.json`                             |
-| `ralph subtasks <op>`        | Queue operations (`next`, `list`, `complete`) scoped to a milestone                | milestone `subtasks.json`                   |
-| `ralph status`               | Display build status and progress                                                  | -                                           |
-| `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                                   | -                                           |
-| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer                 | stdout                                      |
-| `session current`            | Get current session ID from .claude/current-session                                | stdout                                      |
-| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)                    | stdout                                      |
-| `session list`               | List recent sessions (--verbose for table, --limit N)                              | stdout                                      |
-| `completion <shell>`         | Generate shell completion script (bash, zsh, fish)                                 | stdout                                      |
+| Command                      | Description                                                                         | Output Location                             |
+| ---------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------- |
+| `sync-context`               | Sync context/ folder to target project (with --watch)                               | Target project's context/                   |
+| `download <urls...>`         | Fetch URLs, extract text, save as markdown                                          | `docs/research/downloads/`                  |
+| `extract-conversations`      | Extract Claude Code conversation history as markdown                                | stdout or file                              |
+| `gh-search <query>`          | GitHub code search with intent-based ranking                                        | `docs/research/github/`                     |
+| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)                             | `docs/research/google/`                     |
+| `parallel-search <query>`    | Multi-angle web research with configurable depth                                    | `docs/research/parallel/`                   |
+| `task create <description>`  | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)   | milestone `tasks/` (or legacy global dir)   |
+| `story create <description>` | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`)  | milestone `stories/` (or legacy global dir) |
+| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                           | -                                           |
+| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                          | -                                           |
+| `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                              | `docs/planning/`                            |
+| `ralph build`                | Run subtask iteration loop (autonomous dev)                                         | `subtasks.json`                             |
+| `ralph subtasks <op>`        | Queue operations (`next`, `list`, `complete`) scoped to a milestone                 | milestone `subtasks.json`                   |
+| `ralph status`               | Display build status and progress                                                   | -                                           |
+| `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                                    | -                                           |
+| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer                  | stdout                                      |
+| `session current`            | Get current session ID from .claude/current-session                                 | stdout                                      |
+| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)                     | stdout                                      |
+| `session list`               | List recent sessions (--verbose for table, --limit N)                               | stdout                                      |
+| `completion <shell>`         | Generate shell completion script (`bash`, `zsh`, `fish`) or command table (`table`) | stdout                                      |
 
 ### Command Examples
 
@@ -306,9 +306,11 @@ Note: Review commands are supervised-only (no `-H`). Rationale:
 ```bash
 # Vision planning - define what the app IS and WILL BECOME
 aaa ralph plan vision
+aaa ralph plan vision --provider opencode --model openai/gpt-5.3-codex
 
 # Roadmap planning - define milestones
 aaa ralph plan roadmap
+aaa ralph plan roadmap --provider opencode --model openai/gpt-5.3-codex
 
 # Story planning for a milestone
 aaa ralph plan stories --milestone docs/planning/milestones/mvp.md
@@ -604,6 +606,18 @@ aaa completion zsh > ~/.oh-my-zsh/completions/_aaa
 
 ```bash
 aaa completion fish > ~/.config/fish/completions/aaa.fish
+```
+
+### Command Option Matrix
+
+You can print a live command/option table derived directly from Commander metadata:
+
+```bash
+# Markdown table (default)
+aaa completion table
+
+# Machine-readable JSON
+aaa completion table --format json
 ```
 
 ### What's Completed

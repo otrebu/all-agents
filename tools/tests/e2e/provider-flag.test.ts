@@ -99,10 +99,43 @@ describe("--provider CLI flag", () => {
     expect(stdout).toContain("--model");
   });
 
+  test("ralph plan subtasks --help shows --provider and --model options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "subtasks", "--help"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--provider");
+    expect(stdout).toContain("--model");
+  });
+
   test("ralph plan tasks --help shows --provider and --model options", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
       ["run", "dev", "ralph", "plan", "tasks", "--help"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--provider");
+    expect(stdout).toContain("--model");
+  });
+
+  test("ralph plan vision --help shows --provider and --model options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "vision", "--help"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--provider");
+    expect(stdout).toContain("--model");
+  });
+
+  test("ralph plan roadmap --help shows --provider and --model options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "roadmap", "--help"],
       { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(0);
@@ -132,22 +165,29 @@ describe("--provider CLI flag", () => {
   });
 
   test("ralph build rejects invalid provider", async () => {
-    const { exitCode, stderr } = await execa(
-      "bun",
-      [
-        "run",
-        "dev",
-        "ralph",
-        "build",
-        "--provider",
-        "invalid-provider",
-        "--subtasks",
-        "/nonexistent/subtasks.json",
-      ],
-      { cwd: TOOLS_DIR, reject: false },
-    );
-    expect(exitCode).not.toBe(0);
-    expect(stderr).toContain("Unknown provider");
+    const fixture = createTemporarySubtasksFile();
+
+    try {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "build",
+          "--provider",
+          "invalid-provider",
+          "--headless",
+          "--subtasks",
+          fixture.path,
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).not.toBe(0);
+      expect(stderr).toContain("Unknown provider");
+    } finally {
+      fixture.cleanup();
+    }
   });
 
   test("ralph build accepts claude as provider", async () => {

@@ -1,6 +1,6 @@
 import type { ProviderType } from "@tools/commands/ralph/providers/types";
 
-import { Command } from "@commander-js/extra-typings";
+import { Command, type CommandUnknownOpts } from "@commander-js/extra-typings";
 import { discoverMilestones } from "@lib/milestones";
 import {
   getModelById,
@@ -15,10 +15,20 @@ import path from "node:path";
 
 import generateBashCompletion from "./bash";
 import generateFishCompletion from "./fish";
+import {
+  collectCommandOptionMatrix,
+  type CommandTableFormat,
+  renderCommandOptionMatrix,
+} from "./table";
 import generateZshCompletion from "./zsh";
 
 const VALID_SHELLS = ["bash", "zsh", "fish"] as const;
 type Shell = (typeof VALID_SHELLS)[number];
+const VALID_TABLE_FORMATS = ["markdown", "json"] as const;
+
+function isCommandTableFormat(value: string): value is CommandTableFormat {
+  return VALID_TABLE_FORMATS.includes(value as CommandTableFormat);
+}
 
 /** Task filename pattern */
 const TASK_PATTERN = /^(?:TASK-)?\d{3}-.*\.md$/;
@@ -183,6 +193,17 @@ function getFilteredModelCompletions(
   return [];
 }
 
+/** Get root command for full command tree introspection */
+function getRootCommand(command: CommandUnknownOpts): CommandUnknownOpts {
+  let current: CommandUnknownOpts = command;
+
+  while (current.parent !== null) {
+    current = current.parent;
+  }
+
+  return current;
+}
+
 /** Get recent session IDs for dynamic completion */
 function getSessionIdCompletions(limit = 200): Array<string> {
   return listRecentSessions(limit).map((session) => session.sessionId);
@@ -305,6 +326,24 @@ const completionCommand = new Command("completion")
     }
     console.log(generateCompletion(shell as Shell));
   });
+
+completionCommand.addCommand(
+  new Command("table")
+    .description("Print command and option matrix from Commander metadata")
+    .option("--format <type>", "Output format: markdown or json", "markdown")
+    .action((options, command) => {
+      const { format } = options;
+      if (!isCommandTableFormat(format)) {
+        console.error(`Unknown table format: ${format}`);
+        console.error(`Valid formats: ${VALID_TABLE_FORMATS.join(", ")}`);
+        process.exit(1);
+      }
+
+      const rootCommand = getRootCommand(command);
+      const rows = collectCommandOptionMatrix(rootCommand);
+      console.log(renderCommandOptionMatrix(rows, format));
+    }),
+);
 
 /**
  * Hidden __complete command for dynamic completions

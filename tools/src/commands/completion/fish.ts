@@ -215,15 +215,39 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph plan' -a stories -d 'St
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph plan' -a tasks -d 'Task planning for a story'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph plan' -a subtasks -d 'Generate subtasks for a task'
 
+# ralph plan vision options
+function __fish_aaa_ralph_plan_vision
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = vision
+end
+complete -c aaa -n __fish_aaa_ralph_plan_vision -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_vision -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+
+# ralph plan roadmap options
+function __fish_aaa_ralph_plan_roadmap
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = roadmap
+end
+complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l force -d 'Skip all approval prompts'
+complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l review -d 'Require all approval prompts'
+complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l from -d 'Resume cascade from this level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+
 # ralph plan stories options
 function __fish_aaa_ralph_plan_stories
     set -l cmd (commandline -opc)
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = plan -a "$cmd[4]" = stories
 end
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
-complete -c aaa -n __fish_aaa_ralph_plan_stories -s a -l auto -d 'Use auto mode (alias for --supervised)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -s s -l supervised -d 'Supervised mode: watch chat'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l force -d 'Skip all approval prompts'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l review -d 'Require all approval prompts'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l from -d 'Resume cascade from this level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 
 # ralph plan tasks options
@@ -233,9 +257,15 @@ function __fish_aaa_ralph_plan_tasks
 end
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l story -d 'Story file' -xa '(aaa __complete story 2>/dev/null; __fish_complete_suffix .md)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l milestone -d 'Milestone name' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
-complete -c aaa -n __fish_aaa_ralph_plan_tasks -s a -l auto -d 'Use auto mode (alias for --supervised)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l file -d 'Source file path' -ra '(__fish_complete_path)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l text -d 'Source text description' -r
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s s -l supervised -d 'Supervised mode: watch chat'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l force -d 'Skip all approval prompts'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l review -d 'Require all approval prompts'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l from -d 'Resume cascade from this level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 
 # ralph plan subtasks options
@@ -377,6 +407,14 @@ complete -c aaa -n '__fish_aaa_using_subcommand review' -a status -d 'Display re
 complete -c aaa -n '__fish_aaa_using_subcommand completion' -a bash -d 'Generate bash completion'
 complete -c aaa -n '__fish_aaa_using_subcommand completion' -a zsh -d 'Generate zsh completion'
 complete -c aaa -n '__fish_aaa_using_subcommand completion' -a fish -d 'Generate fish completion'
+complete -c aaa -n '__fish_aaa_using_subcommand completion' -a table -d 'Generate command-option table'
+
+# completion table options
+function __fish_aaa_completion_table
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 3 -a "$cmd[2]" = completion -a "$cmd[3]" = table
+end
+complete -c aaa -n __fish_aaa_completion_table -l format -d 'Output format' -xa 'markdown json'
 
 # session subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand session' -a path -d 'Get session file path'

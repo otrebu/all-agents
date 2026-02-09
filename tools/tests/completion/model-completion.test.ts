@@ -134,6 +134,13 @@ describe("shell scripts include --provider and --model", () => {
     expect(stdout).toContain("aaa __complete provider");
     // bash uses variable interpolation for model: aaa __complete $model_args
     expect(stdout).toContain("aaa __complete $model_args");
+    expect(stdout).toContain("vision)");
+    expect(stdout).toContain(
+      'COMPREPLY=($(compgen -W "--provider --model" -- "$cur"))',
+    );
+    expect(stdout).toContain(
+      "--force --review --from --cascade --provider --model",
+    );
   });
 
   test("zsh includes --provider and --model for ralph build", async () => {
@@ -144,6 +151,11 @@ describe("shell scripts include --provider and --model", () => {
     expect(stdout).toContain("--model");
     expect(stdout).toContain("_aaa_provider");
     expect(stdout).toContain("_aaa_model");
+    expect(stdout).toContain("vision)");
+    expect(stdout).toContain("roadmap)");
+    expect(stdout).toContain(
+      "--from[Resume cascade from this level]:level:_aaa_cascade_target",
+    );
   });
 
   test("fish includes --provider and --model for ralph build", async () => {
@@ -159,6 +171,11 @@ describe("shell scripts include --provider and --model", () => {
     expect(stdout).toContain("aaa __complete model");
     expect(stdout).toContain("aaa __complete model --provider");
     expect(stdout).toContain("__fish_aaa_model_completions");
+    expect(stdout).toContain("__fish_aaa_ralph_plan_vision");
+    expect(stdout).toContain("__fish_aaa_ralph_plan_roadmap");
+    expect(stdout).toContain(
+      "__fish_aaa_ralph_plan_roadmap -l provider -d 'AI provider'",
+    );
     expect(stdout).toContain(
       "__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'",
     );
