@@ -1694,13 +1694,13 @@ function renderSubtasksHeadlessStartBanner(options: {
 function resolveMilestoneFromOptions(
   milestoneOption: string | undefined,
   storyOption: string | undefined,
-  hasStory: boolean,
+  outputDirectory: string | undefined,
 ): null | string | undefined {
   if (milestoneOption !== undefined) {
     // Explicit milestone flag
     return resolveMilestonePath(milestoneOption);
   }
-  if (hasStory && storyOption !== undefined) {
+  if (storyOption !== undefined) {
     // Infer milestone from resolved story path
     const resolvedStory = resolveStoryPath(storyOption);
     if (resolvedStory !== null) {
@@ -1710,6 +1710,24 @@ function resolveMilestoneFromOptions(
       }
     }
   }
+
+  if (outputDirectory !== undefined) {
+    const milestoneRoot = getMilestoneRootFromPath(outputDirectory);
+    const slugFromOutputDirectory =
+      /(?:^|[\\/])docs[\\/]planning[\\/]milestones[\\/](?<slug>[^\\/]+)/.exec(
+        path.normalize(milestoneRoot),
+      )?.groups?.slug;
+
+    if (slugFromOutputDirectory !== undefined) {
+      const resolvedFromOutputDirectory = resolveMilestonePath(
+        slugFromOutputDirectory,
+      );
+      if (resolvedFromOutputDirectory !== null) {
+        return resolvedFromOutputDirectory;
+      }
+    }
+  }
+
   return undefined;
 }
 
@@ -2702,7 +2720,7 @@ planCommand.addCommand(
       const resolvedMilestonePath = resolveMilestoneFromOptions(
         options.milestone,
         options.story,
-        hasStory,
+        options.outputDir,
       );
 
       // Pre-check for --milestone and --story modes: filter tasks that already have subtasks
@@ -4190,5 +4208,5 @@ ralphCommand.addCommand(
     }),
 );
 
-export { validateApprovalFlags };
+export { resolveMilestoneFromOptions, validateApprovalFlags };
 export default ralphCommand;
