@@ -70,6 +70,11 @@
 - **Changes:** Extended Ralph log typings with `validation`, `calibration`, `queue-proposal`, and `queue-apply` discriminator values, exported typed log-entry interfaces for each new type, updated status filtering to continue accepting only iteration records for metrics, expanded the mixed-log regression test to include the new entry kinds, and updated the iteration diary JSON schema enum.
 - **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/status.ts`, `tools/tests/lib/status.test.ts`, `docs/planning/schemas/iteration-diary.schema.json`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-014
+- **Problem:** Validation and calibration flows generated queue proposals/applies and completion outcomes, but they were not persisted into milestone daily logs, leaving `ralph status` and log consumers without validation/calibration traceability.
+- **Changes:** Added milestone daily log emission in `validation.ts` and `calibrate.ts` using `getMilestoneLogPath()` for `validation`, `calibration`, `queue-proposal`, and `queue-apply` entries. Updated build-time validation proposal handling to pass full proposal context and append `queue-apply` records after apply decisions. Extended validation and calibration unit coverage to assert new daily-log entries and preserved status metrics behavior by running status regression tests against mixed daily logs.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/calibrate.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/validation-batch.test.ts`, `tools/tests/lib/validation-headless.test.ts`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

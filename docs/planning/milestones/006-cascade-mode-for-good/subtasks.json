@@ -295,7 +295,7 @@
       "taskRef": "WS-05-unified-logging",
       "title": "Emit daily log entries from validation and calibration runs",
       "description": "Add log entry emission to validation.ts and calibrate.ts. After validation completes, append a 'validation' entry to the milestone daily log. After calibration completes, append a 'calibration' entry. After queue proposals are generated, append 'queue-proposal'. After proposals are applied, append 'queue-apply'. Use the existing getMilestoneLogPath() for consistent file paths.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Validation runs produce validation log entries in docs/planning/milestones/<slug>/logs/YYYY-MM-DD.jsonl",
         "Calibration runs produce calibration log entries in the same daily log file",
@@ -309,7 +309,10 @@
         "tools/src/commands/ralph/calibrate.ts",
         "tools/src/commands/ralph/config.ts",
         "tools/src/commands/ralph/status.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T13:45:46Z",
+      "commitHash": "bcaef7e4fc1161a643b04c855247e345198c35e4",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-015",
