@@ -140,6 +140,11 @@
 - **Changes:** Exported `resolveApprovalForValidationProposal()` and `resolveSkippedSubtaskIds()` from `build.ts`, added unit tests for approval resolution across force/review/default supervised/default headless modes, and added an integration test that stubs validation output and verifies skipped subtask IDs are converted into remove operations that mutate `subtasks.json`.
 - **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build.test.ts`, `tools/tests/lib/build-skip-resolution.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-028
+- **Problem:** Subtask queue parsing and diff helpers were embedded in `ralph/index.ts`, keeping the command entrypoint oversized and harder to maintain.
+- **Changes:** Extracted subtask CLI helper types/functions into `subtask-helpers.ts` (`CliSubtaskDraft`, `QueueDiffSummary`, parsing, fingerprint mismatch, and queue diff helpers), rewired `index.ts` to import them, and added focused unit coverage for helper behavior/regression safety.
+- **Files:** `tools/src/commands/ralph/subtask-helpers.ts`, `tools/src/commands/ralph/index.ts`, `tools/tests/lib/subtask-helpers.test.ts`, `tools/CLAUDE.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

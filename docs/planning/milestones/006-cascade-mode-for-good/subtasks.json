@@ -598,7 +598,7 @@
       "taskRef": "tech-debt-maintainability",
       "title": "Extract subtask CLI helpers from index.ts to subtask-helpers.ts",
       "description": "Extract subtask-related types and helpers from index.ts (4,172 lines) into a new tools/src/commands/ralph/subtask-helpers.ts module. Move: CliSubtaskDraft interface, QueueDiffSummary interface, areStringArraysEqual(), areSubtasksEqual(), buildQueueDiffSummary(), hasFingerprintMismatch(), parseCliSubtaskDraft(), parseCliSubtaskDrafts(), parseStringArrayField(), readQueueProposalFromFile(). This is approximately 250-300 lines of extraction. Update imports in index.ts to re-import from the new module.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/ralph/subtask-helpers.ts exists with all extracted types and functions exported",
         "tools/src/commands/ralph/index.ts imports from subtask-helpers.ts instead of defining inline",
@@ -611,7 +611,10 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/types.ts",
         "tools/CLAUDE.md"
-      ]
+      ],
+      "completedAt": "2026-02-10T17:39:01Z",
+      "commitHash": "f3e3b75f8f00611a931041b79338098b7fbd0679",
+      "sessionId": "85682707-53d7-48a7-81e5-d02772646028"
     },
     {
       "id": "SUB-029",
