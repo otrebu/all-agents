@@ -26,7 +26,13 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 
-import type { RalphConfig, Subtask, SubtasksFile } from "./types";
+import {
+  computeFingerprint,
+  type LoadedSubtasksFile,
+  type RalphConfig,
+  type Subtask,
+  type SubtasksFile,
+} from "./types";
 
 // =============================================================================
 // Configuration Loading
@@ -322,7 +328,7 @@ function loadRalphConfigLegacy(configPath: string): RalphConfig {
  * @returns Parsed SubtasksFile object
  * @throws Error if file is missing or invalid
  */
-function loadSubtasksFile(subtasksPath: string): SubtasksFile {
+function loadSubtasksFile(subtasksPath: string): LoadedSubtasksFile {
   if (!existsSync(subtasksPath)) {
     throw new Error(
       `Subtasks file not found: ${subtasksPath}\n` +
@@ -373,7 +379,8 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
     );
   }
 
-  return parsed as SubtasksFile;
+  const loaded = parsed as SubtasksFile;
+  return { ...loaded, fingerprint: computeFingerprint(loaded.subtasks) };
 }
 
 /**
@@ -721,10 +728,16 @@ function mergeSubtaskFragments(
  * @param subtasksPath - Path to subtasks.json file
  * @param data - SubtasksFile object to write
  */
-function saveSubtasksFile(subtasksPath: string, data: SubtasksFile): void {
+function saveSubtasksFile(
+  subtasksPath: string,
+  data: LoadedSubtasksFile | SubtasksFile,
+): void {
+  const { fingerprint: _fingerprint, ...serializableData } =
+    data as LoadedSubtasksFile;
+
   const normalizedData: SubtasksFile = {
-    ...data,
-    subtasks: data.subtasks.map((subtask) => {
+    ...serializableData,
+    subtasks: serializableData.subtasks.map((subtask) => {
       const subtaskRecord = subtask as unknown as Record<string, unknown>;
       if (!("status" in subtaskRecord)) {
         return subtask;

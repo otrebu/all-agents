@@ -1,11 +1,23 @@
-import applyQueueOperations from "@tools/commands/ralph/queue-ops";
+import { loadSubtasksFile } from "@tools/commands/ralph/config";
+import applyQueueOperations, {
+  applyAndSaveProposal,
+} from "@tools/commands/ralph/queue-ops";
 import {
   computeFingerprint,
   type QueueProposal,
   type Subtask,
   type SubtasksFile,
 } from "@tools/commands/ralph/types";
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 function makeProposal(
   file: SubtasksFile,
@@ -208,5 +220,88 @@ describe("applyQueueOperations", () => {
     expect(() =>
       applyQueueOperations(missingTargetInput, missingTargetProposal),
     ).toThrow(/Cannot remove SUB-999: subtask not found/);
+  });
+});
+
+describe("applyAndSaveProposal", () => {
+  let testDirectory = "";
+  let subtasksPath = "";
+
+  beforeEach(() => {
+    testDirectory = join(tmpdir(), `queue-ops-test-${Date.now()}`);
+    mkdirSync(testDirectory, { recursive: true });
+    subtasksPath = join(testDirectory, "subtasks.json");
+  });
+
+  afterEach(() => {
+    if (existsSync(testDirectory)) {
+      rmSync(testDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("round-trip load -> propose -> apply -> save -> reload matches expected queue state", () => {
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "test-milestone", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["initial"],
+              description: "seed",
+              done: false,
+              filesToRead: ["tools/src/commands/ralph/queue-ops.ts"],
+              id: "SUB-001",
+              status: "pending",
+              taskRef: "TASK-001",
+              title: "Seed",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const loaded = loadSubtasksFile(subtasksPath);
+    expect(typeof loaded.fingerprint.hash).toBe("string");
+    expect(loaded.fingerprint.hash.length).toBeGreaterThan(0);
+
+    const proposal = makeProposal(loaded, [
+      { changes: { title: "Seed updated" }, id: "SUB-001", type: "update" },
+      {
+        atIndex: 0,
+        subtask: {
+          acceptanceCriteria: ["created"],
+          description: "created",
+          filesToRead: ["tools/src/commands/ralph/config.ts"],
+          taskRef: "TASK-001",
+          title: "Created",
+        },
+        type: "create",
+      },
+    ]);
+
+    const summary = applyAndSaveProposal(subtasksPath, proposal);
+    const reloaded = loadSubtasksFile(subtasksPath);
+    const savedRaw = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      subtasks: Array<Record<string, unknown>>;
+    };
+
+    expect(summary.applied).toBe(true);
+    expect(summary.operationsApplied).toBe(2);
+    expect(summary.subtasksBefore).toBe(1);
+    expect(summary.subtasksAfter).toBe(2);
+    expect(summary.fingerprintBefore).toBe(loaded.fingerprint.hash);
+    expect(summary.fingerprintAfter).toBe(reloaded.fingerprint.hash);
+
+    expect(reloaded.subtasks.map((subtask) => subtask.id)).toEqual([
+      "SUB-001",
+      "SUB-002",
+    ]);
+    expect(reloaded.subtasks[0]?.title).toBe("Seed updated");
+    expect(reloaded.subtasks[1]?.title).toBe("Created");
+    expect(savedRaw.subtasks[0]?.status).toBeUndefined();
   });
 });

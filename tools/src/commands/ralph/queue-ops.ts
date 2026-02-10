@@ -1,3 +1,4 @@
+import { loadSubtasksFile, saveSubtasksFile } from "./config";
 import {
   computeFingerprint,
   type QueueOperation,
@@ -8,6 +9,36 @@ import {
 } from "./types";
 
 const SUBTASK_ID_PATTERN = /^SUB-(?<num>\d+)$/;
+
+interface ApplyAndSaveProposalSummary {
+  applied: boolean;
+  fingerprintAfter: string;
+  fingerprintBefore: string;
+  operationsApplied: number;
+  subtasksAfter: number;
+  subtasksBefore: number;
+}
+
+function applyAndSaveProposal(
+  subtasksPath: string,
+  proposal: QueueProposal,
+): ApplyAndSaveProposalSummary {
+  const currentFile = loadSubtasksFile(subtasksPath);
+  const nextFile = applyQueueOperations(currentFile, proposal);
+  const isApplied = nextFile !== currentFile;
+  const fingerprintAfter = computeFingerprint(nextFile.subtasks).hash;
+
+  saveSubtasksFile(subtasksPath, nextFile);
+
+  return {
+    applied: isApplied,
+    fingerprintAfter,
+    fingerprintBefore: currentFile.fingerprint.hash,
+    operationsApplied: isApplied ? proposal.operations.length : 0,
+    subtasksAfter: nextFile.subtasks.length,
+    subtasksBefore: currentFile.subtasks.length,
+  };
+}
 
 function applyQueueOperations(
   subtasksFile: SubtasksFile,
@@ -164,5 +195,7 @@ function requirePendingSubtask(
 
   return { index, subtask };
 }
+
+export { applyAndSaveProposal, type ApplyAndSaveProposalSummary };
 
 export default applyQueueOperations;

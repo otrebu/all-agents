@@ -211,6 +211,14 @@ interface IterationTiming {
 }
 
 /**
+ * Subtasks payload loaded from disk with a computed replay fingerprint.
+ */
+interface LoadedSubtasksFile extends SubtasksFile {
+  /** Current queue replay fingerprint computed from id+done snapshot */
+  fingerprint: QueueFingerprint;
+}
+
+/**
  * Extended configuration for post-iteration hooks
  */
 interface PostIterationHookConfig extends HookConfig {
@@ -246,6 +254,10 @@ interface QueueFingerprint {
   hash: string;
 }
 
+// =============================================================================
+// Subtask Types (matches subtasks.schema.json)
+// =============================================================================
+
 /**
  * Union of deterministic queue mutation operations.
  */
@@ -255,10 +267,6 @@ type QueueOperation =
   | QueueReorderOperation
   | QueueSplitOperation
   | QueueUpdateOperation;
-
-// =============================================================================
-// Subtask Types (matches subtasks.schema.json)
-// =============================================================================
 
 /**
  * Queue mutation proposal emitted by validation/calibration.
@@ -274,15 +282,15 @@ interface QueueProposal {
   timestamp: string;
 }
 
+// =============================================================================
+// Queue Operation Types
+// =============================================================================
+
 /** Remove a pending subtask by ID. */
 interface QueueRemoveOperation {
   id: string;
   type: "remove";
 }
-
-// =============================================================================
-// Queue Operation Types
-// =============================================================================
 
 /** Move an existing subtask to an exact queue index. */
 interface QueueReorderOperation {
@@ -547,6 +555,7 @@ export {
   type IterationDiaryEntry,
   type IterationStatus,
   type IterationTiming,
+  type LoadedSubtasksFile,
   normalizeIterationDiaryEntry,
   normalizeIterationTiming,
   normalizeStatus,
