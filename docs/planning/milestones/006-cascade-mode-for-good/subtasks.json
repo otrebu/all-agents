@@ -621,7 +621,7 @@
       "taskRef": "tech-debt-maintainability",
       "title": "Cache parent task resolution in validation loop",
       "description": "Fix the N+1 file I/O issue in validation.ts where resolveParentTask() is called per subtask with readdirSync + readFileSync on every iteration. Add a cache (Map<taskRef, {taskContent, storyRef}>) before the validation loop in validateAllSubtasks(). Populate the cache by resolving unique taskRefs from the pending subtasks array once, then pass cached results to validateSubtask(). This eliminates redundant filesystem calls when multiple subtasks share the same taskRef.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "validateAllSubtasks() pre-computes a cache of parent task content and storyRef before the per-subtask loop",
         "resolveParentTask() or its equivalent is called at most once per unique taskRef value",
@@ -632,7 +632,10 @@
       "filesToRead": [
         "tools/src/commands/ralph/validation.ts",
         "tools/src/commands/ralph/config.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T17:53:24Z",
+      "commitHash": "535fbf0ab2201d968128f91d837c5335cd12c4d6",
+      "sessionId": "85682707-53d7-48a7-81e5-d02772646028"
     },
     {
       "id": "SUB-030",

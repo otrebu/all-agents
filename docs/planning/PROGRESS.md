@@ -145,6 +145,11 @@
 - **Changes:** Extracted subtask CLI helper types/functions into `subtask-helpers.ts` (`CliSubtaskDraft`, `QueueDiffSummary`, parsing, fingerprint mismatch, and queue diff helpers), rewired `index.ts` to import them, and added focused unit coverage for helper behavior/regression safety.
 - **Files:** `tools/src/commands/ralph/subtask-helpers.ts`, `tools/src/commands/ralph/index.ts`, `tools/tests/lib/subtask-helpers.test.ts`, `tools/CLAUDE.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-029
+- **Problem:** Validation repeatedly resolved the same parent task file per subtask, causing redundant task directory scans and file reads when multiple subtasks shared a `taskRef`.
+- **Changes:** Added parent-task caching in `validateAllSubtasks()` by precomputing `resolveParentTask()` once per unique `taskRef` and threading cached results into per-subtask validation/prompt assembly. Added regression coverage to ensure repeated subtasks keep parent-task context even after the task file is removed mid-run.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-batch.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001
