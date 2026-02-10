@@ -405,7 +405,7 @@
       "taskRef": "WS-06-remove-blockedby",
       "title": "Remove blockedBy from E2E tests",
       "description": "Update tools/tests/e2e/ralph.test.ts to remove any test fixtures or assertions that reference blockedBy. Update any test helpers that create subtask fixtures with blockedBy fields. Ensure all tests pass after removal.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/tests/e2e/ralph.test.ts contains no blockedBy references",
         "No test fixture files contain blockedBy fields",
@@ -413,7 +413,10 @@
       ],
       "filesToRead": [
         "tools/tests/e2e/ralph.test.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T14:15:56Z",
+      "commitHash": "2126b3f5c0ae6fa332385378b966b83226e81855",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-020",

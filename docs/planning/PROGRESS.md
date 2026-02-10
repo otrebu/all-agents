@@ -95,6 +95,11 @@
 - **Changes:** Removed `blockedBy` keys from all canonical milestone `subtasks.json` files under `docs/planning/milestones/` (including legacy milestone queues), confirmed no archived `archive/**/subtasks.json` files exist to migrate in this repo, and verified diff scope is limited to `blockedBy` removals.
 - **Files:** `docs/planning/milestones/002-ralph-💪/subtasks.json`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/milestones/004-MULTI-CLI/subtasks.json`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-019
+- **Problem:** Ralph E2E test fixtures still included legacy `blockedBy` fields, which no longer exist in the subtask contract and could mask regressions in queue-order-only behavior.
+- **Changes:** Removed all `blockedBy` fields from inline subtasks fixtures in `ralph.test.ts`, then re-ran the targeted Ralph E2E suite to confirm fixtures and command behavior still pass without dependency metadata.
+- **Files:** `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001
