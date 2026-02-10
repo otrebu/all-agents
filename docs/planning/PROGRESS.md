@@ -35,6 +35,11 @@
 - **Changes:** Added `aaa ralph subtasks diff` and `aaa ralph subtasks apply` with `--proposal` and `--subtasks` inputs. `diff` now renders a human-readable change summary plus machine-parseable JSON via `--json`, while `apply` persists changes through `applyAndSaveProposal()`. Both commands validate queue fingerprints first and emit actionable stale-proposal errors. Expanded `ralph-subtasks-cli` E2E coverage for readable diff output, JSON diff output, deterministic apply behavior, and fingerprint mismatch failures.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `tools/README.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-006
+- **Problem:** Shell completion scripts for `aaa ralph subtasks` did not include the new queue mutation subcommands and still used "next runnable" wording.
+- **Changes:** Updated zsh and fish completion generators to add `append`, `prepend`, `diff`, and `apply` subcommands with their command-specific flags (`--subtasks`, `--file`, `--dry-run`, `--proposal`, `--json`) and switched next-subtask descriptions to queue-order wording. Added completion E2E assertions covering the new subcommands, flags, and wording regression checks.
+- **Files:** `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `tools/tests/e2e/completion.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

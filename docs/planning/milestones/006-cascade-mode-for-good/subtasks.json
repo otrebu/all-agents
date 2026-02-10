@@ -118,7 +118,7 @@
       "taskRef": "WS-02-cli-expansion",
       "title": "Add shell completion for new subtasks subcommands",
       "description": "Update zsh and fish completion scripts to include the new subtasks subcommands (append, prepend, diff, apply) and their options (--subtasks, --file, --dry-run, --json, --proposal). Update completion descriptions to use queue-order wording instead of 'next runnable'.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "tools/src/commands/completion/zsh.ts includes completions for subtasks append, prepend, diff, apply",
         "tools/src/commands/completion/fish.ts includes completions for subtasks append, prepend, diff, apply",
@@ -129,7 +129,10 @@
         "tools/src/commands/completion/zsh.ts",
         "tools/src/commands/completion/fish.ts",
         "tools/src/commands/ralph/index.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T12:02:16Z",
+      "commitHash": "49306380e04e2f66970889080a89d27d42873b5a",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-007",
