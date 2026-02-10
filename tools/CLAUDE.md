@@ -40,6 +40,7 @@ tools/
 │   │   │   ├── claude.ts         # Claude invocation helpers
 │   │   │   ├── types.ts          # All type definitions
 │   │   │   ├── config.ts         # Config + subtasks loading
+│   │   │   ├── subtask-helpers.ts # Subtask queue parse/diff helpers
 │   │   │   ├── session.ts        # Session file utilities
 │   │   │   ├── display.ts        # Terminal output utilities
 │   │   │   ├── hooks.ts          # Hook execution (log, notify, pause)
