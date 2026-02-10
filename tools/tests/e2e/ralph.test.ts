@@ -637,7 +637,6 @@ JSON
       const subtasks = [
         {
           acceptanceCriteria: ["Blocked"],
-          blockedBy: ["SUB-999"],
           description: "Blocked first item",
           done: false,
           filesToRead: [],
@@ -836,7 +835,6 @@ JSON
             subtasks: [
               {
                 acceptanceCriteria: ["Blocked"],
-                blockedBy: ["SUB-999"],
                 description: "Blocked",
                 done: false,
                 filesToRead: [],
@@ -846,7 +844,6 @@ JSON
               },
               {
                 acceptanceCriteria: ["Blocked"],
-                blockedBy: ["SUB-998"],
                 description: "Blocked",
                 done: false,
                 filesToRead: [],
@@ -969,7 +966,6 @@ kill -s INT $$
             subtasks: [
               {
                 acceptanceCriteria: ["Blocked until SUB-002"],
-                blockedBy: ["SUB-002"],
                 description: "Blocked subtask",
                 done: false,
                 filesToRead: [],
