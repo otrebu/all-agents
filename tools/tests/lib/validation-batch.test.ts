@@ -29,6 +29,20 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import * as readline from "node:readline";
 
+function createParentTask(
+  milestonePath: string,
+  taskReference: string,
+  content?: string,
+): void {
+  const tasksDirectory = path.join(milestonePath, "tasks");
+  mkdirSync(tasksDirectory, { recursive: true });
+  writeFileSync(
+    path.join(tasksDirectory, `${taskReference}.md`),
+    content ?? "# Task\n\nTask body content",
+    "utf8",
+  );
+}
+
 function createSubtask(id: string): Subtask {
   return {
     acceptanceCriteria: ["AC-1"],
@@ -325,6 +339,68 @@ describe("validateAllSubtasks", () => {
         milestone: "003-ralph-workflow",
         subtaskId: "SUB-412",
       });
+    } finally {
+      logSpy.mockRestore();
+      hookSpy.mockRestore();
+      invokeSpy.mockRestore();
+      fixture.cleanup();
+    }
+  });
+
+  test("resolves parent task files once per unique taskRef", async () => {
+    const fixture = createValidationFixture();
+    createParentTask(fixture.milestonePath, "TASK-020-validation-batch");
+    createParentTask(fixture.milestonePath, "TASK-021-validation-batch");
+
+    let invocationCount = 0;
+    const invokeSpy = spyOn(
+      summaryProvider,
+      "invokeProviderSummary",
+    ).mockImplementation(async () => {
+      invocationCount += 1;
+      if (invocationCount === 1) {
+        rmSync(
+          path.join(
+            fixture.milestonePath,
+            "tasks",
+            "TASK-020-validation-batch.md",
+          ),
+          { force: true },
+        );
+      }
+      return await Promise.resolve('{"aligned": true}');
+    });
+    const hookSpy = spyOn(hooks, "executeHook");
+    const logSpy = spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await validateAllSubtasks(
+        [
+          createSubtask("SUB-501"),
+          createSubtask("SUB-502"),
+          { ...createSubtask("SUB-503"), taskRef: "TASK-021-validation-batch" },
+        ],
+        {
+          mode: "headless",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
+        fixture.milestonePath,
+        fixture.contextRoot,
+      );
+
+      const firstPrompt = invokeSpy.mock.calls[0]?.[0]?.prompt ?? "";
+      const secondPrompt = invokeSpy.mock.calls[1]?.[0]?.prompt ?? "";
+      const thirdPrompt = invokeSpy.mock.calls[2]?.[0]?.prompt ?? "";
+
+      expect(firstPrompt).toContain("Task body content");
+      expect(secondPrompt).toContain("Task body content");
+      expect(secondPrompt).not.toContain(
+        "*Not found: TASK-020-validation-batch*",
+      );
+      expect(thirdPrompt).toContain("Task body content");
+      expect(hookSpy).not.toHaveBeenCalled();
+      expect(invokeSpy).toHaveBeenCalledTimes(3);
     } finally {
       logSpy.mockRestore();
       hookSpy.mockRestore();

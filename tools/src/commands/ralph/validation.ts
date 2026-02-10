@@ -33,6 +33,11 @@ interface BatchValidationResult {
   total: number;
 }
 
+interface ParentTaskResolution {
+  storyRef: null | string;
+  taskContent: null | string;
+}
+
 type QueueUpdateChanges = Extract<
   QueueOperation,
   { type: "update" }
@@ -148,6 +153,23 @@ function buildValidationPrompt(
   milestonePath: string,
   contextRoot: string,
 ): string {
+  const parentTask = resolveParentTask(subtask.taskRef, milestonePath);
+  return buildValidationPromptWithParentTask(subtask, {
+    contextRoot,
+    milestonePath,
+    parentTask,
+  });
+}
+
+function buildValidationPromptWithParentTask(
+  subtask: Subtask,
+  options: {
+    contextRoot: string;
+    milestonePath: string;
+    parentTask: ParentTaskResolution;
+  },
+): string {
+  const { contextRoot, milestonePath, parentTask } = options;
   const promptPath = path.join(contextRoot, VALIDATION_PROMPT_PATH);
   if (!existsSync(promptPath)) {
     throw new Error(`Validation prompt not found: ${promptPath}`);
@@ -155,10 +177,7 @@ function buildValidationPrompt(
 
   const basePrompt = readFileSync(promptPath, "utf8");
   const taskReference = subtask.taskRef;
-  const { storyRef, taskContent } = resolveParentTask(
-    taskReference,
-    milestonePath,
-  );
+  const { storyRef, taskContent } = parentTask;
 
   const sections = [
     "## Subtask Definition",
@@ -762,7 +781,7 @@ function resolveParentStory(
 function resolveParentTask(
   taskReference: string,
   milestonePath: string,
-): { storyRef: null | string; taskContent: null | string } {
+): ParentTaskResolution {
   if (taskReference.trim() === "") {
     return { storyRef: null, taskContent: null };
   }
@@ -794,6 +813,19 @@ function resolveParentTask(
   }
 }
 
+function resolveParentTaskWithCache(
+  taskReference: string,
+  milestonePath: string,
+  parentTaskCache?: Map<string, ParentTaskResolution>,
+): ParentTaskResolution {
+  const cached = parentTaskCache?.get(taskReference);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  return resolveParentTask(taskReference, milestonePath);
+}
+
 // eslint-disable-next-line max-params -- Signature intentionally mirrors build-loop callsite and acceptance criteria
 async function validateAllSubtasks(
   pendingSubtasks: Array<Subtask>,
@@ -808,16 +840,27 @@ async function validateAllSubtasks(
 ): Promise<BatchValidationResult> {
   const skippedSubtasks: Array<SkippedSubtask> = [];
   const operations: Array<QueueOperation> = [];
+  const parentTaskCache = new Map<string, ParentTaskResolution>();
   let alignedCount = 0;
 
   console.log("=== Pre-build Validation ===");
+
+  const uniqueTaskReferences = [
+    ...new Set(pendingSubtasks.map((subtask) => subtask.taskRef)),
+  ];
+  for (const taskReference of uniqueTaskReferences) {
+    parentTaskCache.set(
+      taskReference,
+      resolveParentTask(taskReference, milestonePath),
+    );
+  }
 
   for (const subtask of pendingSubtasks) {
     // eslint-disable-next-line no-await-in-loop -- Validation runs sequentially for deterministic prompts and output
     const result = await validateSubtask(
       { milestonePath, subtask, subtasksPath: options.subtasksPath },
       contextRoot,
-      { model: options.model, provider: options.provider },
+      { model: options.model, parentTaskCache, provider: options.provider },
     );
 
     appendOperations(operations, result.operations);
@@ -892,16 +935,29 @@ async function validateAllSubtasks(
 async function validateSubtask(
   context: ValidationContext,
   contextRoot: string,
-  options: { model?: string; provider: ProviderType },
+  options: {
+    model?: string;
+    parentTaskCache?: Map<string, ParentTaskResolution>;
+    provider: ProviderType;
+  },
 ): Promise<ValidationResult> {
   const { milestonePath, subtask } = context;
-  const { model, provider } = options;
-  const { taskContent } = resolveParentTask(subtask.taskRef, milestonePath);
+  const { model, parentTaskCache, provider } = options;
+  const parentTask = resolveParentTaskWithCache(
+    subtask.taskRef,
+    milestonePath,
+    parentTaskCache,
+  );
+  const { taskContent } = parentTask;
   const hasParentTask = taskContent !== null;
 
   console.log(`[Validation] Validating ${subtask.id}: ${subtask.title}`);
 
-  const prompt = buildValidationPrompt(subtask, milestonePath, contextRoot);
+  const prompt = buildValidationPromptWithParentTask(subtask, {
+    contextRoot,
+    milestonePath,
+    parentTask,
+  });
   const startedAt = Date.now();
   const response = await invokeProviderSummary({
     configuredModel: model,
