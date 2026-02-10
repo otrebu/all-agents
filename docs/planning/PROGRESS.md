@@ -125,6 +125,11 @@
 - **Changes:** Verified the existing fixes commit (`d36edbf`) covers the review-fix categories across Ralph queue/build/validation/calibration modules, re-ran required typecheck and targeted regression suites (63/63 passing), and marked SUB-024 complete with commit/session metadata.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/approvals.ts`, `tools/src/commands/ralph/calibrate.ts`, `tools/src/commands/ralph/types.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-025
+- **Problem:** Queue helper regression coverage was missing for `appendSubtasksToFile()` guard clauses, fingerprint mismatch detection, and invalid queue-operation parsing.
+- **Changes:** Added targeted unit tests in `queue-ops.test.ts` for append behavior against new/existing files, duplicate ID skipping, and empty input. Added `queue-operations.test.ts` coverage for matching/mismatched/empty-queue fingerprint checks and invalid operation type handling. Exported `hasFingerprintMismatch` and `parseQueueOperation`, and hardened `parseQueueOperation` to throw for unsupported operation types while keeping `parseQueueOperations` fail-open behavior.
+- **Files:** `tools/tests/lib/queue-ops.test.ts`, `tools/tests/lib/queue-operations.test.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/validation.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

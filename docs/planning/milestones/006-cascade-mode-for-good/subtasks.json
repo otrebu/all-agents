@@ -533,7 +533,7 @@
       "taskRef": "tech-debt-test-coverage",
       "title": "Add unit tests for queue-ops and config helpers",
       "description": "Add unit tests for untested queue-ops and config.ts helper functions: appendSubtasksToFile() guard clauses (empty array, duplicate IDs, missing file creation), hasFingerprintMismatch() (matching fingerprint, mismatched fingerprint, empty queue), and parseQueueOperation() invalid type case. These are the 0.86, 0.79, and 0.81 confidence findings from the code review.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Unit test for appendSubtasksToFile() covers: appending to new file, appending to existing file, skipping duplicate IDs, empty array input",
         "Unit test for hasFingerprintMismatch() covers: matching fingerprint returns mismatched:false, different fingerprint returns mismatched:true",
@@ -546,7 +546,10 @@
         "tools/src/commands/ralph/index.ts",
         "tools/tests/lib/queue-ops.test.ts",
         "tools/tests/lib/queue-operations.test.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T17:10:23Z",
+      "commitHash": "9557f180355a061543f78b8542360326f27e6038",
+      "sessionId": "85682707-53d7-48a7-81e5-d02772646028"
     },
     {
       "id": "SUB-026",
