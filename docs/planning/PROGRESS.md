@@ -85,6 +85,11 @@
 - **Changes:** Simplified `getNextSubtask()` to return the first pending subtask in array order, updated build-time `getNextRunnableSubtask()` to select the first non-done non-skipped subtask directly, and removed blocked/dependency messaging from `handleNoRunnableSubtasks()` and status queue rendering. Updated build integration and Ralph E2E tests to assert queue-order-first selection behavior.
 - **Files:** `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/status.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-017
+- **Problem:** Prompt/docs surfaces still referenced `blockedBy`, which conflicted with the queue-order-only execution model.
+- **Changes:** Removed remaining `blockedBy` wording from the Ralph iteration workflow and subtask-reviewer agent prompt, and updated pre-build validation task-context wording to avoid dependency framing.
+- **Files:** `context/workflows/ralph/building/ralph-iteration.md`, `.claude/agents/subtask-reviewer.md`, `context/workflows/ralph/building/pre-build-validation.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

@@ -57,7 +57,7 @@ Confirm the subtask you must work on for this iteration.
 **Sanity checks (quick):**
 1. Verify the assigned subtask exists in the subtasks file and is `done: false`
 2. If it’s already `done: true`, stop and report (queue is stale)
-3. If it’s blocked by incomplete `blockedBy`, stop and report (dependency issue)
+3. If assigned-subtask selection is inconsistent with queue order, stop and report (assignment issue)
 4. Do not mark any other subtask `done`, and do not start or plan the next subtask in this iteration
 
 ### Phase 3: Investigate

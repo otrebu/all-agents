@@ -43,7 +43,7 @@ docs/planning/milestones/<milestone>/tasks/TASK-NNN.md
 The Task provides technical context:
 - Scope boundaries (what's in/out of scope)
 - Technical approach
-- Dependencies
+- Related implementation context
 - Related subtasks
 
 ### 3. Parent Story (via Task's storyRef)

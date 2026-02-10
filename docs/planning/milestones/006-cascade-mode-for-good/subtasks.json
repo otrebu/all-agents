@@ -362,7 +362,7 @@
       "taskRef": "WS-06-remove-blockedby",
       "title": "Remove blockedBy from prompts, docs, and iteration workflow",
       "description": "Remove all blockedBy references from the Ralph iteration prompt (ralph-iteration.md), the subtask-reviewer agent prompt, and any other prompt/doc files. Update the pre-build-validation prompt if it references dependencies. Ensure no blockedBy references remain in context/ or .claude/agents/ files.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "context/workflows/ralph/building/ralph-iteration.md contains no blockedBy references",
         ".claude/agents/subtask-reviewer.md contains no blockedBy references",
@@ -373,7 +373,10 @@
         "context/workflows/ralph/building/ralph-iteration.md",
         ".claude/agents/subtask-reviewer.md",
         "context/workflows/ralph/planning/subtask-spec.md"
-      ]
+      ],
+      "completedAt": "2026-02-10T14:05:22Z",
+      "commitHash": "c8ec8e8552099529ce9b5b49643108fb6929e87a",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-018",
