@@ -16,7 +16,6 @@ import type {
   QueueOperation,
   QueueProposal,
   QueueProposalLogEntry,
-  QueueSubtaskDraft,
   Subtask,
   ValidationLogEntry,
 } from "./types";
@@ -24,6 +23,7 @@ import type {
 import { getMilestoneLogPath } from "./config";
 import { executeHook } from "./hooks";
 import { invokeProviderSummary } from "./providers/summary";
+import { parseQueueOperations } from "./queue-ops";
 
 interface BatchValidationResult {
   aligned: number;
@@ -37,11 +37,6 @@ interface ParentTaskResolution {
   storyRef: null | string;
   taskContent: null | string;
 }
-
-type QueueUpdateChanges = Extract<
-  QueueOperation,
-  { type: "update" }
->["changes"];
 
 interface SkippedSubtask {
   feedbackPath: string;
@@ -370,16 +365,6 @@ async function handleSupervisedValidationFailure(
   return promptSkipOrContinue(subtask.id);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isStringArray(value: unknown): value is Array<string> {
-  return (
-    Array.isArray(value) && value.every((entry) => typeof entry === "string")
-  );
-}
-
 function normalizeMissingParentTaskFailure(
   result: ValidationResult,
   options: { hasParentTask: boolean; subtaskId: string },
@@ -400,20 +385,6 @@ function normalizeMissingParentTaskFailure(
   return { aligned: true };
 }
 
-function parseCreateOperation(
-  value: Record<string, unknown>,
-): Extract<QueueOperation, { type: "create" }> | null {
-  const { atIndex, subtask } = value;
-  if (typeof atIndex !== "number" || !Number.isInteger(atIndex)) {
-    return null;
-  }
-  const draft = parseQueueSubtaskDraft(subtask);
-  if (draft === null) {
-    return null;
-  }
-  return { atIndex, subtask: draft, type: "create" };
-}
-
 function parseIssueType(value: unknown): undefined | ValidationIssueType {
   if (
     typeof value === "string" &&
@@ -423,195 +394,6 @@ function parseIssueType(value: unknown): undefined | ValidationIssueType {
   }
 
   return undefined;
-}
-
-function parseQueueOperation(value: unknown): null | QueueOperation {
-  if (!isRecord(value) || typeof value.type !== "string") {
-    return null;
-  }
-
-  switch (value.type) {
-    case "create": {
-      return parseCreateOperation(value);
-    }
-    case "remove": {
-      return parseRemoveOperation(value);
-    }
-    case "reorder": {
-      return parseReorderOperation(value);
-    }
-    case "split": {
-      return parseSplitOperation(value);
-    }
-    case "update": {
-      return parseUpdateOperation(value);
-    }
-    default: {
-      throw new Error(`Unsupported queue operation type: ${value.type}`);
-    }
-  }
-}
-
-/**
- * Parse and validate queue operations from a validation response.
- *
- * @param value - Unknown value to parse (should be array of operations)
- * @param subtaskId - Subtask ID for logging context
- * @returns Array of validated operations, or undefined if empty/invalid
- */
-function parseQueueOperations(
-  value: unknown,
-  subtaskId: string,
-): Array<QueueOperation> | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (!Array.isArray(value)) {
-    console.warn(
-      `[Validation:${subtaskId}] Ignoring invalid operations payload (must be an array)`,
-    );
-    return undefined;
-  }
-
-  const operations: Array<QueueOperation> = [];
-  for (const [index, operation] of value.entries()) {
-    try {
-      const parsed = parseQueueOperation(operation);
-      if (parsed === null) {
-        console.warn(
-          `[Validation:${subtaskId}] Ignoring invalid queue operation at index ${index}`,
-        );
-      } else {
-        operations.push(parsed);
-      }
-    } catch {
-      console.warn(
-        `[Validation:${subtaskId}] Ignoring invalid queue operation at index ${index}`,
-      );
-    }
-  }
-
-  return operations.length === 0 ? undefined : operations;
-}
-
-function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  if (
-    !isStringArray(value.acceptanceCriteria) ||
-    typeof value.description !== "string" ||
-    !isStringArray(value.filesToRead) ||
-    typeof value.taskRef !== "string" ||
-    typeof value.title !== "string"
-  ) {
-    return null;
-  }
-
-  const draft: QueueSubtaskDraft = {
-    acceptanceCriteria: value.acceptanceCriteria,
-    description: value.description,
-    filesToRead: value.filesToRead,
-    taskRef: value.taskRef,
-    title: value.title,
-  };
-
-  if (typeof value.id === "string" && value.id.trim() !== "") {
-    draft.id = value.id;
-  }
-  if (
-    value.storyRef === null ||
-    (typeof value.storyRef === "string" && value.storyRef.trim() !== "")
-  ) {
-    draft.storyRef = value.storyRef;
-  }
-
-  return draft;
-}
-
-function parseQueueUpdateChanges(value: unknown): null | QueueUpdateChanges {
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  const changes: QueueUpdateChanges = {};
-  if (typeof value.title === "string") {
-    changes.title = value.title;
-  }
-  if (typeof value.description === "string") {
-    changes.description = value.description;
-  }
-  if (isStringArray(value.acceptanceCriteria)) {
-    changes.acceptanceCriteria = value.acceptanceCriteria;
-  }
-  if (isStringArray(value.filesToRead)) {
-    changes.filesToRead = value.filesToRead;
-  }
-  if (
-    value.storyRef === null ||
-    (typeof value.storyRef === "string" && value.storyRef.trim() !== "")
-  ) {
-    changes.storyRef = value.storyRef;
-  }
-
-  return changes;
-}
-
-function parseRemoveOperation(
-  value: Record<string, unknown>,
-): Extract<QueueOperation, { type: "remove" }> | null {
-  if (typeof value.id !== "string" || value.id.trim() === "") {
-    return null;
-  }
-  return { id: value.id, type: "remove" };
-}
-
-function parseReorderOperation(
-  value: Record<string, unknown>,
-): Extract<QueueOperation, { type: "reorder" }> | null {
-  const { id, toIndex } = value;
-  if (
-    typeof id !== "string" ||
-    id.trim() === "" ||
-    typeof toIndex !== "number" ||
-    !Number.isInteger(toIndex)
-  ) {
-    return null;
-  }
-  return { id, toIndex, type: "reorder" };
-}
-
-function parseSplitOperation(
-  value: Record<string, unknown>,
-): Extract<QueueOperation, { type: "split" }> | null {
-  if (typeof value.id !== "string" || value.id.trim() === "") {
-    return null;
-  }
-  if (!Array.isArray(value.subtasks)) {
-    return null;
-  }
-  const drafts = value.subtasks
-    .map((draft) => parseQueueSubtaskDraft(draft))
-    .filter((draft): draft is QueueSubtaskDraft => draft !== null);
-  if (drafts.length !== value.subtasks.length || drafts.length === 0) {
-    return null;
-  }
-  return { id: value.id, subtasks: drafts, type: "split" };
-}
-
-function parseUpdateOperation(
-  value: Record<string, unknown>,
-): Extract<QueueOperation, { type: "update" }> | null {
-  if (typeof value.id !== "string" || value.id.trim() === "") {
-    return null;
-  }
-  const changes = parseQueueUpdateChanges(value.changes);
-  if (changes === null) {
-    return null;
-  }
-  return { changes, id: value.id, type: "update" };
 }
 
 /**
@@ -1094,8 +876,6 @@ export {
   handleSupervisedValidationFailure,
   normalizeMissingParentTaskFailure,
   parseIssueType,
-  parseQueueOperation,
-  parseQueueOperations,
   parseValidationResponse,
   printValidationSummary,
   promptSkipOrContinue,

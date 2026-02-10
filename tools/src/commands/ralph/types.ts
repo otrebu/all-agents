@@ -20,17 +20,11 @@ import type { ProviderType } from "./providers/types";
 // =============================================================================
 
 /**
- * Options for the build loop
+ * Build options that control provider execution behavior.
  */
-interface BuildOptions {
-  /** Run calibration every N iterations (0 = disabled) */
-  calibrateEvery: number;
-  /** Skip validation proposal approval prompts and auto-apply proposals */
-  force: boolean;
+interface BuildExecutionOptions {
   /** Pause between iterations for user confirmation */
   interactive: boolean;
-  /** Maximum iterations per subtask (0 = unlimited) */
-  maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
   /** Model to use (validated against registry before provider invocation) */
@@ -39,6 +33,23 @@ interface BuildOptions {
   provider?: ProviderType;
   /** Suppress terminal summary output */
   quiet: boolean;
+}
+
+/**
+ * Options for the build loop.
+ */
+type BuildOptions = BuildExecutionOptions & BuildQueueOptions;
+
+/**
+ * Build options that control queue handling and orchestration.
+ */
+interface BuildQueueOptions {
+  /** Run calibration every N iterations (0 = disabled) */
+  calibrateEvery: number;
+  /** Skip validation proposal approval prompts and auto-apply proposals */
+  force: boolean;
+  /** Maximum iterations per subtask (0 = unlimited) */
+  maxIterations: number;
   /** Require explicit approval before applying validation proposals */
   review: boolean;
   /** Skip lightweight summary generation in headless mode to reduce latency and cost */
@@ -609,7 +620,9 @@ function normalizeStatus(raw: string): IterationStatus {
 // =============================================================================
 
 export {
+  type BuildExecutionOptions,
   type BuildOptions,
+  type BuildQueueOptions,
   type CalibrationLogEntry,
   type CascadeLevel,
   type CascadeOptions,

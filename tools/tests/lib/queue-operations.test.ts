@@ -1,11 +1,11 @@
 import { hasFingerprintMismatch } from "@tools/commands/ralph/index";
+import { parseQueueOperation } from "@tools/commands/ralph/queue-ops";
 import {
   computeFingerprint,
   type QueueOperation,
   type QueueProposal,
   type Subtask,
 } from "@tools/commands/ralph/types";
-import { parseQueueOperation } from "@tools/commands/ralph/validation";
 import { describe, expect, test } from "bun:test";
 
 function makeSubtask(id: string, isDone = false): Subtask {

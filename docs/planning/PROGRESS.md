@@ -150,6 +150,11 @@
 - **Changes:** Added parent-task caching in `validateAllSubtasks()` by precomputing `resolveParentTask()` once per unique `taskRef` and threading cached results into per-subtask validation/prompt assembly. Added regression coverage to ensure repeated subtasks keep parent-task context even after the task file is removed mid-run.
 - **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-batch.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-030
+- **Problem:** Ralph build/status internals had minor structural coupling: build options lived in one broad interface, status re-sorted merged diary entries on every read, and validation-owned queue parsing logic was embedded in `validation.ts` instead of shared queue utilities.
+- **Changes:** Split `BuildOptions` into `BuildExecutionOptions` and `BuildQueueOptions` then composed `BuildOptions` from both; updated status diary loading to sort filenames once and per-file entries in `readSingleDiaryFile()` while removing merged-array sorting from `readIterationDiary()`; moved queue operation parsing helpers into `queue-ops.ts` and imported `parseQueueOperations` directly in `validation.ts`. Updated queue-operations unit test imports accordingly.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/status.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/queue-operations.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

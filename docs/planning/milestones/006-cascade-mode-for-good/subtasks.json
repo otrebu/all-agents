@@ -642,7 +642,7 @@
       "taskRef": "tech-debt-maintainability",
       "title": "Minor structural cleanups in types.ts and status.ts",
       "description": "Apply three small structural improvements identified in code review: (1) In types.ts, split BuildOptions into two focused interfaces — BuildExecutionOptions (mode, model, provider, interactive, quiet) and BuildQueueOptions (subtasksPath, validateFirst, force, review, calibrateEvery, maxIterations, skipSummary) — then compose BuildOptions from them. (2) In status.ts, fix readIterationDiary() to avoid re-sorting entries on every call by sorting in readSingleDiaryFile() once (diary files are already date-scoped so cross-file sorting is unnecessary when files are read in filename order). (3) Move queue parsing functions that couple validation.ts to queue-ops out of validation.ts by importing queue-ops parsing utilities directly.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "BuildOptions in types.ts is composed from two smaller interfaces with clear responsibility boundaries",
         "readIterationDiary() in status.ts does not sort the full merged array; entries arrive pre-sorted from filename-ordered file reads",
@@ -654,7 +654,10 @@
         "tools/src/commands/ralph/status.ts",
         "tools/src/commands/ralph/validation.ts",
         "tools/src/commands/ralph/build.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T17:57:32Z",
+      "commitHash": "229858594be204ddc0b26d1da8952c592a1cf2e7",
+      "sessionId": "85682707-53d7-48a7-81e5-d02772646028"
     }
   ]
 }

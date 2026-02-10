@@ -171,6 +171,7 @@ function readIterationDiary(logsDirectory: string): Array<IterationDiaryEntry> {
     // Get all .jsonl files in the logs directory
     const files = readdirSync(logsDirectory)
       .filter((file) => file.endsWith(".jsonl"))
+      .sort((a, b) => a.localeCompare(b))
       .map((file) => join(logsDirectory, file));
 
     if (files.length === 0) {
@@ -183,13 +184,6 @@ function readIterationDiary(logsDirectory: string): Array<IterationDiaryEntry> {
       const entries = readSingleDiaryFile(file);
       allEntries.push(...entries);
     }
-
-    // Sort entries by timestamp for consistent stats
-    allEntries.sort((a, b) => {
-      const dateA = new Date(a.timestamp).getTime();
-      const dateB = new Date(b.timestamp).getTime();
-      return dateA - dateB;
-    });
 
     return allEntries;
   } catch {
@@ -209,7 +203,7 @@ function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
     const content = readFileSync(filePath, "utf8");
     const lines = content.trim().split("\n").filter(Boolean);
 
-    return lines
+    const entries = lines
       .map((line) => {
         try {
           const parsed = JSON.parse(line) as unknown;
@@ -222,6 +216,14 @@ function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
         }
       })
       .filter((entry): entry is IterationDiaryEntry => entry !== null);
+
+    entries.sort((a, b) => {
+      const dateA = new Date(a.timestamp).getTime();
+      const dateB = new Date(b.timestamp).getTime();
+      return dateA - dateB;
+    });
+
+    return entries;
   } catch {
     return [];
   }
