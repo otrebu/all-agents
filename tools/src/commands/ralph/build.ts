@@ -645,7 +645,12 @@ async function handleNoRunnableSubtasks(options: {
   );
   const blockedList = blockedPending
     .map((s) => {
-      const blockedBy = s.blockedBy ?? [];
+      const blockedByValue = (s as { blockedBy?: unknown }).blockedBy;
+      const blockedBy = Array.isArray(blockedByValue)
+        ? blockedByValue.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [];
       const deps =
         blockedBy.length === 0 ? "(no blockedBy listed)" : blockedBy.join(", ");
       return `- ${s.id}: blockedBy ${deps}`;

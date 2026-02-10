@@ -425,8 +425,6 @@ interface SelfImprovementConfig {
 interface Subtask {
   /** Plain English descriptions of how to verify the subtask is complete */
   acceptanceCriteria: Array<string>;
-  /** IDs of subtasks that must complete before this one */
-  blockedBy?: Array<string>;
   /** Git commit hash that completed this subtask */
   commitHash?: string;
   /** Git commit message - helps calibration trace intent */

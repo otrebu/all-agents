@@ -874,7 +874,13 @@ ralphCommand.addCommand(
             );
             console.log("Pending blocked subtasks:");
             for (const subtask of pending) {
-              const blockedBy = subtask.blockedBy ?? [];
+              const blockedByValue = (subtask as { blockedBy?: unknown })
+                .blockedBy;
+              const blockedBy = Array.isArray(blockedByValue)
+                ? blockedByValue.filter(
+                    (value): value is string => typeof value === "string",
+                  )
+                : [];
               const dependencies =
                 blockedBy.length === 0
                   ? "(no blockedBy listed)"

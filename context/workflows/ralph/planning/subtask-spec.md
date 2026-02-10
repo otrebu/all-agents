@@ -23,7 +23,6 @@ Each subtask MUST have these fields:
 | Field | Type | Description |
 |-------|------|-------------|
 | `storyRef` | string | Parent story reference if task has one |
-| `blockedBy` | string[] | IDs of subtasks that must complete first |
 
 ### Example Subtask
 

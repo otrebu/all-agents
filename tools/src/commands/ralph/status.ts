@@ -362,7 +362,12 @@ function renderSubtaskDetails(subtasksPath: string): void {
         `  Next up:   ${chalk.red("Blocked")} (${blockedCount} pending)`,
       );
       const preview = pending.slice(0, 3).map((s) => {
-        const deps = (s.blockedBy ?? []).join(", ");
+        const blockedByValue = (s as { blockedBy?: unknown }).blockedBy;
+        const deps = Array.isArray(blockedByValue)
+          ? blockedByValue
+              .filter((value): value is string => typeof value === "string")
+              .join(", ")
+          : "";
         return `${s.id}${deps === "" ? "" : ` (blockedBy: ${deps})`}`;
       });
       if (preview.length > 0) {

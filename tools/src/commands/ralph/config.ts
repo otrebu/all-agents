@@ -222,7 +222,12 @@ function getNextSubtask(subtasks: Array<Subtask>): null | Subtask {
 
   function isSubtaskReady(subtask: Subtask): boolean {
     if (subtask.done) return false;
-    const blockedBy = subtask.blockedBy ?? [];
+    const blockedByValue = (subtask as { blockedBy?: unknown }).blockedBy;
+    const blockedBy = Array.isArray(blockedByValue)
+      ? blockedByValue.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
     for (const dependencyId of blockedBy) {
       if (doneById.get(dependencyId) !== true) return false;
     }

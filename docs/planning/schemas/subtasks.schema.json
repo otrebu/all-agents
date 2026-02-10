@@ -110,14 +110,6 @@
         "sessionId": {
           "type": "string",
           "description": "Claude Code session ID that completed this subtask. Maps to ~/.claude/projects/<path>/<session-id>.jsonl"
-        },
-        "blockedBy": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^SUB-[0-9]{3,}$"
-          },
-          "description": "IDs of subtasks that must complete before this one"
         }
       },
       "if": {
