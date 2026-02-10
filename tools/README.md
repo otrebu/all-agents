@@ -72,28 +72,28 @@ aaa story create "As a user, I want to login"
 
 ## Commands
 
-| Command                      | Description                                                                         | Output Location                             |
-| ---------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------- |
-| `sync-context`               | Sync context/ folder to target project (with --watch)                               | Target project's context/                   |
-| `download <urls...>`         | Fetch URLs, extract text, save as markdown                                          | `docs/research/downloads/`                  |
-| `extract-conversations`      | Extract Claude Code conversation history as markdown                                | stdout or file                              |
-| `gh-search <query>`          | GitHub code search with intent-based ranking                                        | `docs/research/github/`                     |
-| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)                             | `docs/research/google/`                     |
-| `parallel-search <query>`    | Multi-angle web research with configurable depth                                    | `docs/research/parallel/`                   |
-| `task create <description>`  | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)   | milestone `tasks/` (or legacy global dir)   |
-| `story create <description>` | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`)  | milestone `stories/` (or legacy global dir) |
-| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                           | -                                           |
-| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                          | -                                           |
-| `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                              | `docs/planning/`                            |
-| `ralph build`                | Run subtask iteration loop (autonomous dev)                                         | `subtasks.json`                             |
-| `ralph subtasks <op>`        | Queue operations (`next`, `list`, `complete`) scoped to a milestone                 | milestone `subtasks.json`                   |
-| `ralph status`               | Display build status and progress                                                   | -                                           |
-| `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                                    | -                                           |
-| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer                  | stdout                                      |
-| `session current`            | Get current session ID from .claude/current-session                                 | stdout                                      |
-| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)                     | stdout                                      |
-| `session list`               | List recent sessions (--verbose for table, --limit N)                               | stdout                                      |
-| `completion <shell>`         | Generate shell completion script (`bash`, `zsh`, `fish`) or command table (`table`) | stdout                                      |
+| Command                      | Description                                                                                         | Output Location                             |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `sync-context`               | Sync context/ folder to target project (with --watch)                                               | Target project's context/                   |
+| `download <urls...>`         | Fetch URLs, extract text, save as markdown                                                          | `docs/research/downloads/`                  |
+| `extract-conversations`      | Extract Claude Code conversation history as markdown                                                | stdout or file                              |
+| `gh-search <query>`          | GitHub code search with intent-based ranking                                                        | `docs/research/github/`                     |
+| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)                                             | `docs/research/google/`                     |
+| `parallel-search <query>`    | Multi-angle web research with configurable depth                                                    | `docs/research/parallel/`                   |
+| `task create <description>`  | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)                   | milestone `tasks/` (or legacy global dir)   |
+| `story create <description>` | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`)                  | milestone `stories/` (or legacy global dir) |
+| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                                           | -                                           |
+| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                                          | -                                           |
+| `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                                              | `docs/planning/`                            |
+| `ralph build`                | Run subtask iteration loop (autonomous dev)                                                         | `subtasks.json`                             |
+| `ralph subtasks <op>`        | Queue operations (`next`, `list`, `complete`, `append`, `prepend`) scoped to milestones/queue files | milestone `subtasks.json`                   |
+| `ralph status`               | Display build status and progress                                                                   | -                                           |
+| `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                                                    | -                                           |
+| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer                                  | stdout                                      |
+| `session current`            | Get current session ID from .claude/current-session                                                 | stdout                                      |
+| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)                                     | stdout                                      |
+| `session list`               | List recent sessions (--verbose for table, --limit N)                                               | stdout                                      |
+| `completion <shell>`         | Generate shell completion script (`bash`, `zsh`, `fish`) or command table (`table`)                 | stdout                                      |
 
 ### Command Examples
 
@@ -423,6 +423,13 @@ aaa ralph subtasks list --milestone 005-consolidate-simplify --json
 
 # Mark a subtask complete with commit/session metadata
 aaa ralph subtasks complete --milestone 005-consolidate-simplify --id SUB-001 --commit abc1234 --session s1
+
+# Append subtasks from stdin or file (auto-allocates new SUB-NNN IDs)
+cat new-subtasks.json | aaa ralph subtasks append --subtasks docs/planning/milestones/005-consolidate-simplify/subtasks.json
+aaa ralph subtasks append --subtasks docs/planning/milestones/005-consolidate-simplify/subtasks.json --file ./new-subtasks.json --dry-run
+
+# Prepend subtasks to the front of queue order (auto-allocates new SUB-NNN IDs)
+cat urgent-subtask.json | aaa ralph subtasks prepend --subtasks docs/planning/milestones/005-consolidate-simplify/subtasks.json --dry-run
 ```
 
 **Status command:**

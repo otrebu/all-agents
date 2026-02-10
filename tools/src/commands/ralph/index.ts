@@ -19,6 +19,7 @@ import runBuild, { buildIterationPrompt } from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import { runCascadeFrom, validateCascadeTarget } from "./cascade";
 import {
+  appendSubtasksToFile,
   countSubtasksInFile,
   discoverTasksFromMilestone,
   getExistingTaskReferences,
@@ -56,6 +57,7 @@ import {
   resolveProvider,
   validateProvider,
 } from "./providers/registry";
+import applyQueueOperations from "./queue-ops";
 import { runRefreshModels } from "./refresh-models";
 import { runStatus } from "./status";
 
@@ -3254,8 +3256,165 @@ function validateApprovalFlags(
 }
 
 // ralph subtasks - queue operations scoped to a milestone
+const SUBTASK_ID_NUMBER_PATTERN = /^SUB-(?<num>\d+)$/;
+
+interface CliSubtaskDraft {
+  acceptanceCriteria: Array<string>;
+  blockedBy?: Array<string>;
+  description: string;
+  filesToRead: Array<string>;
+  storyRef?: null | string;
+  taskRef: string;
+  title: string;
+}
+
+function formatSubtaskId(idNumber: number): string {
+  return `SUB-${String(idNumber).padStart(3, "0")}`;
+}
+
+function getMaxSubtaskNumber(subtaskIds: Array<string>): number {
+  let max = 0;
+  for (const id of subtaskIds) {
+    const numberString = SUBTASK_ID_NUMBER_PATTERN.exec(id)?.groups?.num;
+    if (numberString !== undefined) {
+      const parsed = Number.parseInt(numberString, 10);
+      if (!Number.isNaN(parsed) && parsed > max) {
+        max = parsed;
+      }
+    }
+  }
+
+  return max;
+}
+
+function parseCliSubtaskDraft(candidate: unknown): CliSubtaskDraft {
+  if (candidate === null || typeof candidate !== "object") {
+    throw new Error("Subtask payload entries must be JSON objects");
+  }
+
+  const {
+    acceptanceCriteria,
+    blockedBy,
+    description,
+    filesToRead,
+    storyRef,
+    taskRef,
+    title,
+  } = candidate as Record<string, unknown>;
+
+  if (typeof title !== "string" || title.trim() === "") {
+    throw new Error("Subtask payload requires non-empty string field: title");
+  }
+
+  if (typeof description !== "string" || description.trim() === "") {
+    throw new Error(
+      "Subtask payload requires non-empty string field: description",
+    );
+  }
+
+  const parsedAcceptanceCriteria = parseStringArrayField(
+    "acceptanceCriteria",
+    acceptanceCriteria,
+  );
+  const parsedFilesToRead = parseStringArrayField("filesToRead", filesToRead);
+
+  if (
+    blockedBy !== undefined &&
+    (!Array.isArray(blockedBy) ||
+      blockedBy.some((item) => typeof item !== "string"))
+  ) {
+    throw new Error("Subtask payload field blockedBy must be array of strings");
+  }
+
+  if (typeof taskRef !== "string" || taskRef.trim() === "") {
+    throw new Error("Subtask payload requires non-empty string field: taskRef");
+  }
+
+  const taskReference = taskRef;
+
+  if (
+    storyRef !== undefined &&
+    storyRef !== null &&
+    typeof storyRef !== "string"
+  ) {
+    throw new Error("Subtask payload field storyRef must be string or null");
+  }
+
+  const storyReference = storyRef;
+
+  return {
+    acceptanceCriteria: parsedAcceptanceCriteria,
+    blockedBy: blockedBy as Array<string> | undefined,
+    description,
+    filesToRead: parsedFilesToRead,
+    storyRef: storyReference,
+    taskRef: taskReference,
+    title,
+  };
+}
+
+function parseCliSubtaskDrafts(input: string): Array<CliSubtaskDraft> {
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(input);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse subtask JSON: ${message}`);
+  }
+
+  const payload =
+    parsed !== null &&
+    typeof parsed === "object" &&
+    !Array.isArray(parsed) &&
+    Array.isArray((parsed as Record<string, unknown>).subtasks)
+      ? (parsed as { subtasks: unknown }).subtasks
+      : parsed;
+
+  const drafts = Array.isArray(payload) ? payload : [payload];
+  if (drafts.length === 0) {
+    throw new Error("Subtask payload must include at least one subtask entry");
+  }
+
+  return drafts.map((entry) => parseCliSubtaskDraft(entry));
+}
+
+function parseStringArrayField(
+  fieldName: string,
+  value: unknown,
+): Array<string> {
+  if (!Array.isArray(value)) {
+    throw new TypeError(
+      `Subtask payload requires ${fieldName} as array of strings`,
+    );
+  }
+
+  const strings: Array<string> = [];
+  for (const item of value) {
+    if (typeof item !== "string") {
+      throw new TypeError(
+        `Subtask payload requires ${fieldName} as array of strings`,
+      );
+    }
+    strings.push(item);
+  }
+
+  return strings;
+}
+
+function readCliSubtaskInput(filePath: string | undefined): string {
+  if (filePath !== undefined && filePath !== "") {
+    return readFileSync(filePath, "utf8");
+  }
+
+  if (process.stdin.isTTY) {
+    throw new Error("Provide subtask JSON via --file or stdin");
+  }
+
+  return readFileSync(0, "utf8");
+}
+
 const subtasksCommand = new Command("subtasks").description(
-  "Subtask queue operations (next/list/complete)",
+  "Subtask queue operations (next/list/complete/append/prepend)",
 );
 
 subtasksCommand.addCommand(
@@ -3387,6 +3546,129 @@ subtasksCommand.addCommand(
         const status = subtask.done ? "done" : "pending";
         console.log(`${subtask.id} [${status}] ${subtask.title}`);
       }
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("append")
+    .description("Append new subtasks to the end of a queue")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .option("--file <path>", "Read subtask JSON from file instead of stdin")
+    .option("--dry-run", "Show JSON preview without writing queue file")
+    .action((options) => {
+      const subtasksPath = path.resolve(options.subtasks);
+      const input = readCliSubtaskInput(options.file);
+      const drafts = parseCliSubtaskDrafts(input);
+      const subtasksFile = loadSubtasksFile(subtasksPath);
+
+      const startNumber =
+        getMaxSubtaskNumber(
+          subtasksFile.subtasks.map((subtask) => subtask.id),
+        ) + 1;
+      const subtasksToAppend = drafts.map((draft, index) => ({
+        acceptanceCriteria: [...draft.acceptanceCriteria],
+        blockedBy: draft.blockedBy,
+        description: draft.description,
+        done: false,
+        filesToRead: [...draft.filesToRead],
+        id: formatSubtaskId(startNumber + index),
+        storyRef: draft.storyRef,
+        taskRef: draft.taskRef,
+        title: draft.title,
+      }));
+
+      if (options.dryRun === true) {
+        console.log(
+          JSON.stringify(
+            {
+              added: subtasksToAppend.length,
+              afterCount:
+                subtasksFile.subtasks.length + subtasksToAppend.length,
+              allocatedIds: subtasksToAppend.map((subtask) => subtask.id),
+              beforeCount: subtasksFile.subtasks.length,
+              command: "append",
+              dryRun: true,
+              subtasksPath,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      const result = appendSubtasksToFile(
+        subtasksPath,
+        subtasksToAppend,
+        subtasksFile.metadata,
+      );
+      console.log(
+        `Appended ${result.added} subtask(s) to ${subtasksPath}${result.skipped > 0 ? ` (${result.skipped} skipped)` : ""}`,
+      );
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("prepend")
+    .description("Prepend new subtasks to the beginning of a queue")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .option("--file <path>", "Read subtask JSON from file instead of stdin")
+    .option("--dry-run", "Show JSON preview without writing queue file")
+    .action((options) => {
+      const subtasksPath = path.resolve(options.subtasks);
+      const input = readCliSubtaskInput(options.file);
+      const drafts = parseCliSubtaskDrafts(input);
+      const subtasksFile = loadSubtasksFile(subtasksPath);
+
+      const proposal = {
+        fingerprint: subtasksFile.fingerprint,
+        operations: drafts.map((draft) => ({
+          atIndex: subtasksFile.subtasks.length,
+          subtask: {
+            acceptanceCriteria: [...draft.acceptanceCriteria],
+            description: draft.description,
+            filesToRead: [...draft.filesToRead],
+            storyRef: draft.storyRef,
+            taskRef: draft.taskRef,
+            title: draft.title,
+          },
+          type: "create" as const,
+        })),
+        source: "cli:subtasks:prepend",
+        timestamp: new Date().toISOString(),
+      };
+
+      const createdAtTail = applyQueueOperations(subtasksFile, proposal);
+      const createdSubtasks = createdAtTail.subtasks.slice(-drafts.length);
+      const prependedQueue = [
+        ...createdSubtasks,
+        ...createdAtTail.subtasks.slice(0, -drafts.length),
+      ];
+
+      if (options.dryRun === true) {
+        console.log(
+          JSON.stringify(
+            {
+              added: drafts.length,
+              afterCount: prependedQueue.length,
+              allocatedIds: createdSubtasks.map((subtask) => subtask.id),
+              beforeCount: subtasksFile.subtasks.length,
+              command: "prepend",
+              dryRun: true,
+              subtasksPath,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      saveSubtasksFile(subtasksPath, {
+        ...createdAtTail,
+        subtasks: prependedQueue,
+      });
+      console.log(`Prepended ${drafts.length} subtask(s) to ${subtasksPath}`);
     }),
 );
 
