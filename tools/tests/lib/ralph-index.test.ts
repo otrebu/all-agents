@@ -44,11 +44,82 @@ describe("validateApprovalFlags", () => {
 });
 
 describe("resolveMilestoneFromOptions", () => {
-  test("resolves milestone from --output-dir when no --milestone/--story provided", () => {
+  test("--milestone takes priority over --output-dir", () => {
+    const resolvedMilestonePath = resolveMilestoneFromOptions(
+      "005-consolidate-simplify",
+      undefined,
+      "docs/planning/milestones/006-cascade-mode-for-good",
+    );
+
+    expect(resolvedMilestonePath).toBeDefined();
+    expect(resolvedMilestonePath).toContain(
+      path.join("docs", "planning", "milestones", "005-consolidate-simplify"),
+    );
+  });
+
+  test("--story takes priority over --output-dir", () => {
+    const resolvedMilestonePath = resolveMilestoneFromOptions(
+      undefined,
+      "001-provider-foundation",
+      "docs/planning/milestones/006-cascade-mode-for-good",
+    );
+
+    expect(resolvedMilestonePath).toBeDefined();
+    expect(resolvedMilestonePath).toContain(
+      path.join("docs", "planning", "milestones", "004-MULTI-CLI"),
+    );
+  });
+
+  test("extracts milestone root from --output-dir milestone path", () => {
     const resolvedMilestonePath = resolveMilestoneFromOptions(
       undefined,
       undefined,
-      "docs/planning/milestones/006-cascade-mode-for-good",
+      path.join(
+        "docs",
+        "planning",
+        "milestones",
+        "006-cascade-mode-for-good",
+        "feedback",
+      ),
+    );
+
+    expect(resolvedMilestonePath).toBeDefined();
+    expect(resolvedMilestonePath).toContain(
+      path.join("docs", "planning", "milestones", "006-cascade-mode-for-good"),
+    );
+  });
+
+  test("returns undefined when --output-dir is not a milestone path", () => {
+    const resolvedMilestonePath = resolveMilestoneFromOptions(
+      undefined,
+      undefined,
+      "docs/planning/feedback",
+    );
+
+    expect(resolvedMilestonePath).toBeUndefined();
+  });
+
+  test("returns undefined when --milestone, --story, and --output-dir are all undefined", () => {
+    const resolvedMilestonePath = resolveMilestoneFromOptions(
+      undefined,
+      undefined,
+      void 0,
+    );
+
+    expect(resolvedMilestonePath).toBeUndefined();
+  });
+
+  test("resolves planning log path from output-dir milestone instead of _orphan", () => {
+    const resolvedMilestonePath = resolveMilestoneFromOptions(
+      undefined,
+      undefined,
+      path.join(
+        "docs",
+        "planning",
+        "milestones",
+        "006-cascade-mode-for-good",
+        "feedback",
+      ),
     );
 
     expect(resolvedMilestonePath).toBeDefined();
@@ -66,41 +137,5 @@ describe("resolveMilestoneFromOptions", () => {
       path.join(resolvedMilestonePath, "logs", `${utcDate}.jsonl`),
     );
     expect(planningLogPath).not.toContain("_orphan");
-  });
-
-  test("keeps --milestone as highest priority over --output-dir", () => {
-    const resolvedMilestonePath = resolveMilestoneFromOptions(
-      "005-consolidate-simplify",
-      undefined,
-      "docs/planning/milestones/006-cascade-mode-for-good",
-    );
-
-    expect(resolvedMilestonePath).toBeDefined();
-    expect(resolvedMilestonePath).toContain(
-      path.join("docs", "planning", "milestones", "005-consolidate-simplify"),
-    );
-  });
-
-  test("keeps --story inference priority over --output-dir", () => {
-    const resolvedMilestonePath = resolveMilestoneFromOptions(
-      undefined,
-      "001-provider-foundation",
-      "docs/planning/milestones/006-cascade-mode-for-good",
-    );
-
-    expect(resolvedMilestonePath).toBeDefined();
-    expect(resolvedMilestonePath).toContain(
-      path.join("docs", "planning", "milestones", "004-MULTI-CLI"),
-    );
-  });
-
-  test("returns undefined when --output-dir is not a milestone path", () => {
-    const resolvedMilestonePath = resolveMilestoneFromOptions(
-      undefined,
-      undefined,
-      "docs/planning/feedback",
-    );
-
-    expect(resolvedMilestonePath).toBeUndefined();
   });
 });
