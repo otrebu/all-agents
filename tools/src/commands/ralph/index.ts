@@ -4167,6 +4167,9 @@ function validateApprovalFlags(
 
 export {
   hasFingerprintMismatch,
+  parseCliSubtaskDraft,
+  parseCliSubtaskDrafts,
+  readQueueProposalFromFile,
   resolveMilestoneFromOptions,
   validateApprovalFlags,
 };
