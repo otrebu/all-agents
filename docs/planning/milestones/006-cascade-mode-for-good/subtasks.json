@@ -139,7 +139,7 @@
       "taskRef": "WS-03-validation-first-refactor",
       "title": "Forward provider and model flags to validation invocation",
       "description": "Remove the hardcoded 'claude' provider in validateSubtask(). Accept provider and model from build options and forward them to invokeProviderSummary(). This enables --validate-first --provider opencode --model ... to use the opencode path for validation.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "validateSubtask() accepts provider and model parameters instead of hardcoding 'claude'",
         "validateAllSubtasks() forwards provider and model from the build options",
@@ -150,7 +150,10 @@
         "tools/src/commands/ralph/validation.ts",
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/providers/summary.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T12:11:01Z",
+      "commitHash": "00dc1aa9a526348223420429cb67535a9f7c8ec4",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-008",
