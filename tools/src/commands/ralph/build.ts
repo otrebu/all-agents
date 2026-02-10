@@ -128,7 +128,11 @@ interface MaxIterationsCheckOptions {
 interface PeriodicCalibrationOptions {
   calibrateEvery: number;
   contextRoot: string;
+  force: boolean;
   iteration: number;
+  model?: string;
+  provider: ProviderType;
+  review: boolean;
   subtasksPath: string;
 }
 
@@ -1663,7 +1667,11 @@ async function runBuild(
     await runPeriodicCalibration({
       calibrateEvery,
       contextRoot,
+      force: shouldForceProposalApply,
       iteration,
+      model,
+      provider,
+      review: shouldRequireProposalReview,
       subtasksPath,
     });
 
@@ -1682,7 +1690,16 @@ async function runBuild(
 async function runPeriodicCalibration(
   options: PeriodicCalibrationOptions,
 ): Promise<void> {
-  const { calibrateEvery, contextRoot, iteration, subtasksPath } = options;
+  const {
+    calibrateEvery,
+    contextRoot,
+    force: shouldForceProposalApply,
+    iteration,
+    model,
+    provider,
+    review: shouldRequireProposalReview,
+    subtasksPath,
+  } = options;
   if (calibrateEvery > 0 && iteration % calibrateEvery === 0) {
     console.log();
     console.log(
@@ -1695,7 +1712,14 @@ async function runPeriodicCalibration(
         title: "Running calibration",
       }),
     );
-    await runCalibrate("all", { contextRoot, subtasksPath });
+    await runCalibrate("all", {
+      contextRoot,
+      force: shouldForceProposalApply,
+      model,
+      provider,
+      review: shouldRequireProposalReview,
+      subtasksPath,
+    });
   }
 }
 

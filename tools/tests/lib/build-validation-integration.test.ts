@@ -57,6 +57,23 @@ describe("build validation integration", () => {
     expect(buildContent).toContain("provider: ProviderType;");
   });
 
+  test("forwards provider/model/force/review into periodic calibration", () => {
+    expect(buildContent).toContain("interface PeriodicCalibrationOptions {");
+    expect(buildContent).toContain("force: boolean;");
+    expect(buildContent).toContain("model?: string;");
+    expect(buildContent).toContain("provider: ProviderType;");
+    expect(buildContent).toContain("review: boolean;");
+    expect(buildContent).toContain("force: shouldForceProposalApply,");
+    expect(buildContent).toContain("model,");
+    expect(buildContent).toContain("provider,");
+    expect(buildContent).toContain("review: shouldRequireProposalReview,");
+    expect(buildContent).toContain('await runCalibrate("all", {');
+    expect(buildContent).toContain("force: shouldForceProposalApply,");
+    expect(buildContent).toContain("model,");
+    expect(buildContent).toContain("provider,");
+    expect(buildContent).toContain("review: shouldRequireProposalReview,");
+  });
+
   test("stages validation proposals before optional apply", () => {
     expect(buildContent).toContain("writeValidationProposalArtifact(");
     expect(buildContent).toContain("resolveApprovalForValidationProposal({");
