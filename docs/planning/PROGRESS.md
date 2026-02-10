@@ -75,6 +75,11 @@
 - **Changes:** Added milestone daily log emission in `validation.ts` and `calibrate.ts` using `getMilestoneLogPath()` for `validation`, `calibration`, `queue-proposal`, and `queue-apply` entries. Updated build-time validation proposal handling to pass full proposal context and append `queue-apply` records after apply decisions. Extended validation and calibration unit coverage to assert new daily-log entries and preserved status metrics behavior by running status regression tests against mixed daily logs.
 - **Files:** `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/calibrate.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/validation-batch.test.ts`, `tools/tests/lib/validation-headless.test.ts`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-015
+- **Problem:** `blockedBy` was still encoded in Ralph subtask type/schema/docs, preventing cleanup of dependency metadata from the canonical subtask contract.
+- **Changes:** Removed `blockedBy` from `Subtask` in `types.ts`, removed the `blockedBy` property from `subtasks.schema.json`, and removed the optional-field mention from `subtask-spec.md`. Updated blocked-subtask reporting call sites to read legacy `blockedBy` fields via safe runtime narrowing so TypeScript compiles while queue migration continues.
+- **Files:** `tools/src/commands/ralph/types.ts`, `docs/planning/schemas/subtasks.schema.json`, `context/workflows/ralph/planning/subtask-spec.md`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/status.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

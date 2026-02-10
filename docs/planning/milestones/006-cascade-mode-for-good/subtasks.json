@@ -319,7 +319,7 @@
       "taskRef": "WS-06-remove-blockedby",
       "title": "Remove blockedBy from type system and schema",
       "description": "Remove the blockedBy field from the Subtask interface in types.ts and from the subtask definition in subtasks.schema.json. Remove the blockedBy field from the subtask-spec.md documentation.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Subtask interface in tools/src/commands/ralph/types.ts has no blockedBy field",
         "docs/planning/schemas/subtasks.schema.json subtask definition has no blockedBy property",
@@ -330,7 +330,10 @@
         "tools/src/commands/ralph/types.ts",
         "docs/planning/schemas/subtasks.schema.json",
         "context/workflows/ralph/planning/subtask-spec.md"
-      ]
+      ],
+      "completedAt": "2026-02-10T13:54:10Z",
+      "commitHash": "142c7cd5457691b0b5e10471314fc1c4aa006bd1",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-016",
