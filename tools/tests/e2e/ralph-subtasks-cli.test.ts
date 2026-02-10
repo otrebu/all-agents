@@ -1,3 +1,4 @@
+import { computeFingerprint } from "@tools/commands/ralph/types";
 import { getContextRoot } from "@tools/utils/paths";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execa } from "execa";
@@ -13,7 +14,7 @@ import { join } from "node:path";
 
 const TOOLS_DIR = join(getContextRoot(), "tools");
 
-describe("ralph subtasks append/prepend CLI", () => {
+describe("ralph subtasks queue mutation CLI", () => {
   let temporaryDirectory = "";
 
   beforeEach(() => {
@@ -237,5 +238,287 @@ describe("ralph subtasks append/prepend CLI", () => {
       "SUB-009",
       "SUB-010",
     ]);
+  });
+
+  test("diff shows readable queue change summary", async () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    const baseQueue = {
+      subtasks: [
+        {
+          acceptanceCriteria: ["existing"],
+          description: "existing",
+          done: false,
+          filesToRead: [],
+          id: "SUB-001",
+          taskRef: "TASK-001",
+          title: "First",
+        },
+      ],
+    };
+    writeFileSync(subtasksPath, JSON.stringify(baseQueue, null, 2));
+
+    const proposalPath = join(temporaryDirectory, "proposal.json");
+    writeFileSync(
+      proposalPath,
+      JSON.stringify(
+        {
+          fingerprint: computeFingerprint(baseQueue.subtasks),
+          operations: [
+            {
+              changes: { title: "First updated" },
+              id: "SUB-001",
+              type: "update",
+            },
+            {
+              atIndex: 1,
+              subtask: {
+                acceptanceCriteria: ["new"],
+                description: "new",
+                filesToRead: ["tools/src/commands/ralph/index.ts"],
+                taskRef: "TASK-001",
+                title: "Second",
+              },
+              type: "create",
+            },
+          ],
+          source: "test",
+          timestamp: "2026-02-10T00:00:00Z",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "subtasks",
+        "diff",
+        "--proposal",
+        proposalPath,
+        "--subtasks",
+        subtasksPath,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Queue diff for");
+    expect(stdout).toContain("Added (1):");
+    expect(stdout).toContain("Updated (1):");
+    expect(stdout).toContain('"First" -> "First updated"');
+  });
+
+  test("diff --json returns machine-parseable output", async () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    const baseQueue = {
+      subtasks: [
+        {
+          acceptanceCriteria: ["existing"],
+          description: "existing",
+          done: false,
+          filesToRead: [],
+          id: "SUB-001",
+          taskRef: "TASK-001",
+          title: "First",
+        },
+      ],
+    };
+    writeFileSync(subtasksPath, JSON.stringify(baseQueue, null, 2));
+
+    const proposalPath = join(temporaryDirectory, "proposal.json");
+    writeFileSync(
+      proposalPath,
+      JSON.stringify(
+        {
+          fingerprint: computeFingerprint(baseQueue.subtasks),
+          operations: [
+            {
+              atIndex: 1,
+              subtask: {
+                acceptanceCriteria: ["new"],
+                description: "new",
+                filesToRead: [],
+                taskRef: "TASK-001",
+                title: "Second",
+              },
+              type: "create",
+            },
+          ],
+          source: "test",
+          timestamp: "2026-02-10T00:00:00Z",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "subtasks",
+        "diff",
+        "--proposal",
+        proposalPath,
+        "--subtasks",
+        subtasksPath,
+        "--json",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as {
+      added: Array<{ id: string }>;
+      changes: number;
+      command: string;
+      operations: number;
+      subtasksAfter: number;
+      subtasksBefore: number;
+    };
+
+    expect(parsed.command).toBe("diff");
+    expect(parsed.operations).toBe(1);
+    expect(parsed.subtasksBefore).toBe(1);
+    expect(parsed.subtasksAfter).toBe(2);
+    expect(parsed.changes).toBeGreaterThan(0);
+    expect(parsed.added.map((entry) => entry.id)).toEqual(["SUB-002"]);
+  });
+
+  test("apply writes proposal changes deterministically", async () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    const baseQueue = {
+      subtasks: [
+        {
+          acceptanceCriteria: ["existing"],
+          description: "existing",
+          done: false,
+          filesToRead: [],
+          id: "SUB-001",
+          taskRef: "TASK-001",
+          title: "First",
+        },
+      ],
+    };
+    writeFileSync(subtasksPath, JSON.stringify(baseQueue, null, 2));
+
+    const proposalPath = join(temporaryDirectory, "proposal.json");
+    writeFileSync(
+      proposalPath,
+      JSON.stringify(
+        {
+          fingerprint: computeFingerprint(baseQueue.subtasks),
+          operations: [
+            {
+              changes: { title: "First updated" },
+              id: "SUB-001",
+              type: "update",
+            },
+            {
+              atIndex: 1,
+              subtask: {
+                acceptanceCriteria: ["new"],
+                description: "new",
+                filesToRead: ["tools/src/commands/ralph/queue-ops.ts"],
+                taskRef: "TASK-001",
+                title: "Second",
+              },
+              type: "create",
+            },
+          ],
+          source: "test",
+          timestamp: "2026-02-10T00:00:00Z",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const { exitCode } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "subtasks",
+        "apply",
+        "--proposal",
+        proposalPath,
+        "--subtasks",
+        subtasksPath,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const queueAfter = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      subtasks: Array<{ id: string; title: string }>;
+    };
+    expect(queueAfter.subtasks).toHaveLength(2);
+    expect(queueAfter.subtasks.map((subtask) => subtask.id)).toEqual([
+      "SUB-001",
+      "SUB-002",
+    ]);
+    expect(queueAfter.subtasks[0]?.title).toBe("First updated");
+    expect(queueAfter.subtasks[1]?.title).toBe("Second");
+  });
+
+  test("apply fails with actionable error on fingerprint mismatch", async () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    const baseQueue = {
+      subtasks: [
+        {
+          acceptanceCriteria: ["existing"],
+          description: "existing",
+          done: false,
+          filesToRead: [],
+          id: "SUB-001",
+          taskRef: "TASK-001",
+          title: "First",
+        },
+      ],
+    };
+    writeFileSync(subtasksPath, JSON.stringify(baseQueue, null, 2));
+
+    const proposalPath = join(temporaryDirectory, "proposal.json");
+    writeFileSync(
+      proposalPath,
+      JSON.stringify(
+        {
+          fingerprint: { hash: "not-the-current-fingerprint" },
+          operations: [],
+          source: "test",
+          timestamp: "2026-02-10T00:00:00Z",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "subtasks",
+        "apply",
+        "--proposal",
+        proposalPath,
+        "--subtasks",
+        subtasksPath,
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("Fingerprint mismatch");
+    expect(stderr).toContain("Action: regenerate the proposal");
   });
 });

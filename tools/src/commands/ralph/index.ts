@@ -57,9 +57,10 @@ import {
   resolveProvider,
   validateProvider,
 } from "./providers/registry";
-import applyQueueOperations from "./queue-ops";
+import applyQueueOperations, { applyAndSaveProposal } from "./queue-ops";
 import { runRefreshModels } from "./refresh-models";
 import { runStatus } from "./status";
+import { computeFingerprint, type QueueProposal, type Subtask } from "./types";
 
 /**
  * Extract task reference from a task path
@@ -3268,6 +3269,78 @@ interface CliSubtaskDraft {
   title: string;
 }
 
+interface QueueDiffSummary {
+  added: Array<Subtask>;
+  removed: Array<Subtask>;
+  reordered: Array<{ id: string; to: number; was: number }>;
+  updated: Array<{ after: Subtask; before: Subtask }>;
+}
+
+function areStringArraysEqual(
+  left: Array<string>,
+  right: Array<string>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  for (const [index, item] of left.entries()) {
+    if (item !== right[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function areSubtasksEqual(left: Subtask, right: Subtask): boolean {
+  return (
+    left.title === right.title &&
+    left.description === right.description &&
+    left.taskRef === right.taskRef &&
+    left.storyRef === right.storyRef &&
+    left.done === right.done &&
+    areStringArraysEqual(left.acceptanceCriteria, right.acceptanceCriteria) &&
+    areStringArraysEqual(left.filesToRead, right.filesToRead)
+  );
+}
+
+function buildQueueDiffSummary(
+  before: Array<Subtask>,
+  after: Array<Subtask>,
+): QueueDiffSummary {
+  const beforeById = new Map(before.map((subtask) => [subtask.id, subtask]));
+  const afterById = new Map(after.map((subtask) => [subtask.id, subtask]));
+  const beforeIndexById = new Map(
+    before.map((subtask, index) => [subtask.id, index]),
+  );
+  const afterIndexById = new Map(
+    after.map((subtask, index) => [subtask.id, index]),
+  );
+
+  const added = after.filter((subtask) => !beforeById.has(subtask.id));
+  const removed = before.filter((subtask) => !afterById.has(subtask.id));
+
+  const updated: Array<{ after: Subtask; before: Subtask }> = [];
+  for (const subtask of after) {
+    const beforeSubtask = beforeById.get(subtask.id);
+    if (
+      beforeSubtask !== undefined &&
+      !areSubtasksEqual(beforeSubtask, subtask)
+    ) {
+      updated.push({ after: subtask, before: beforeSubtask });
+    }
+  }
+
+  const reordered: Array<{ id: string; to: number; was: number }> = [];
+  for (const [id, beforeIndex] of beforeIndexById) {
+    const afterIndex = afterIndexById.get(id);
+    if (afterIndex !== undefined && afterIndex !== beforeIndex) {
+      reordered.push({ id, to: afterIndex, was: beforeIndex });
+    }
+  }
+
+  return { added, removed, reordered, updated };
+}
+
 function formatSubtaskId(idNumber: number): string {
   return `SUB-${String(idNumber).padStart(3, "0")}`;
 }
@@ -3285,6 +3358,18 @@ function getMaxSubtaskNumber(subtaskIds: Array<string>): number {
   }
 
   return max;
+}
+
+function hasFingerprintMismatch(
+  proposal: QueueProposal,
+  currentSubtasks: Array<Subtask>,
+): { current: string; mismatched: boolean; proposal: string } {
+  const current = computeFingerprint(currentSubtasks).hash;
+  return {
+    current,
+    mismatched: current !== proposal.fingerprint.hash,
+    proposal: proposal.fingerprint.hash,
+  };
 }
 
 function parseCliSubtaskDraft(candidate: unknown): CliSubtaskDraft {
@@ -3413,8 +3498,74 @@ function readCliSubtaskInput(filePath: string | undefined): string {
   return readFileSync(0, "utf8");
 }
 
+function readQueueProposalFromFile(proposalPath: string): QueueProposal {
+  const raw = readFileSync(proposalPath, "utf8");
+
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse proposal JSON: ${message}`);
+  }
+
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new TypeError("Proposal must be a JSON object");
+  }
+
+  const candidate = parsed as Partial<QueueProposal>;
+  if (
+    candidate.fingerprint === undefined ||
+    typeof candidate.fingerprint !== "object" ||
+    typeof candidate.fingerprint.hash !== "string" ||
+    candidate.fingerprint.hash.trim() === ""
+  ) {
+    throw new TypeError("Proposal requires fingerprint.hash");
+  }
+  if (!Array.isArray(candidate.operations)) {
+    throw new TypeError("Proposal requires operations array");
+  }
+  if (typeof candidate.source !== "string" || candidate.source.trim() === "") {
+    throw new TypeError("Proposal requires source string");
+  }
+  if (
+    typeof candidate.timestamp !== "string" ||
+    candidate.timestamp.trim() === ""
+  ) {
+    throw new TypeError("Proposal requires timestamp string");
+  }
+
+  return {
+    fingerprint: { hash: candidate.fingerprint.hash },
+    operations: candidate.operations,
+    source: candidate.source,
+    timestamp: candidate.timestamp,
+  };
+}
+
+function renderFingerprintMismatchError(details: {
+  current: string;
+  proposal: string;
+  subtasksPath: string;
+}): void {
+  console.error(
+    renderEventLine({
+      domain: "SUBTASKS",
+      message:
+        "Fingerprint mismatch: proposal is stale for current queue state.",
+      state: "FAIL",
+    }),
+  );
+  console.error(`Queue:    ${details.subtasksPath}`);
+  console.error(`Current:  ${details.current}`);
+  console.error(`Proposal: ${details.proposal}`);
+  console.error(
+    "Action: regenerate the proposal from the latest queue, then retry diff/apply.",
+  );
+}
+
 const subtasksCommand = new Command("subtasks").description(
-  "Subtask queue operations (next/list/complete/append/prepend)",
+  "Subtask queue operations (next/list/complete/append/prepend/diff/apply)",
 );
 
 subtasksCommand.addCommand(
@@ -3669,6 +3820,160 @@ subtasksCommand.addCommand(
         subtasks: prependedQueue,
       });
       console.log(`Prepended ${drafts.length} subtask(s) to ${subtasksPath}`);
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("diff")
+    .description("Preview queue changes from a proposal without applying")
+    .requiredOption("--proposal <path>", "Queue proposal JSON file")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .option("--json", "Output machine-readable JSON summary")
+    .action((options) => {
+      const subtasksPath = path.resolve(options.subtasks);
+      const proposalPath = path.resolve(options.proposal);
+      const proposal = readQueueProposalFromFile(proposalPath);
+      const currentFile = loadSubtasksFile(subtasksPath);
+      const fingerprintState = hasFingerprintMismatch(
+        proposal,
+        currentFile.subtasks,
+      );
+
+      if (fingerprintState.mismatched) {
+        renderFingerprintMismatchError({
+          current: fingerprintState.current,
+          proposal: fingerprintState.proposal,
+          subtasksPath,
+        });
+        process.exit(1);
+      }
+
+      const nextFile = applyQueueOperations(currentFile, proposal);
+      const summary = buildQueueDiffSummary(
+        currentFile.subtasks,
+        nextFile.subtasks,
+      );
+      const totalChanges =
+        summary.added.length +
+        summary.removed.length +
+        summary.updated.length +
+        summary.reordered.length;
+
+      if (options.json === true) {
+        console.log(
+          JSON.stringify(
+            {
+              added: summary.added.map((subtask) => ({
+                id: subtask.id,
+                taskRef: subtask.taskRef,
+                title: subtask.title,
+              })),
+              changes: totalChanges,
+              command: "diff",
+              fingerprint: {
+                current: fingerprintState.current,
+                proposal: fingerprintState.proposal,
+              },
+              operations: proposal.operations.length,
+              removed: summary.removed.map((subtask) => ({
+                id: subtask.id,
+                taskRef: subtask.taskRef,
+                title: subtask.title,
+              })),
+              reordered: summary.reordered,
+              subtasksAfter: nextFile.subtasks.length,
+              subtasksBefore: currentFile.subtasks.length,
+              updated: summary.updated.map((entry) => ({
+                after: { id: entry.after.id, title: entry.after.title },
+                before: { id: entry.before.id, title: entry.before.title },
+              })),
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      console.log(`Queue diff for ${subtasksPath}`);
+      console.log(`Operations: ${proposal.operations.length}`);
+      console.log(
+        `Subtasks: ${currentFile.subtasks.length} -> ${nextFile.subtasks.length}`,
+      );
+
+      if (totalChanges === 0) {
+        console.log("No queue changes.");
+        return;
+      }
+
+      if (summary.added.length > 0) {
+        console.log(`\nAdded (${summary.added.length}):`);
+        for (const subtask of summary.added) {
+          console.log(`+ ${subtask.id} ${subtask.title}`);
+        }
+      }
+
+      if (summary.removed.length > 0) {
+        console.log(`\nRemoved (${summary.removed.length}):`);
+        for (const subtask of summary.removed) {
+          console.log(`- ${subtask.id} ${subtask.title}`);
+        }
+      }
+
+      if (summary.updated.length > 0) {
+        console.log(`\nUpdated (${summary.updated.length}):`);
+        for (const entry of summary.updated) {
+          const isTitleChanged = entry.before.title !== entry.after.title;
+          if (isTitleChanged) {
+            console.log(
+              `~ ${entry.after.id} title: "${entry.before.title}" -> "${entry.after.title}"`,
+            );
+          } else {
+            console.log(`~ ${entry.after.id} ${entry.after.title}`);
+          }
+        }
+      }
+
+      if (summary.reordered.length > 0) {
+        console.log(`\nReordered (${summary.reordered.length}):`);
+        for (const move of summary.reordered) {
+          console.log(`> ${move.id} ${move.was} -> ${move.to}`);
+        }
+      }
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("apply")
+    .description("Apply queue proposal to subtasks file")
+    .requiredOption("--proposal <path>", "Queue proposal JSON file")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .action((options) => {
+      const subtasksPath = path.resolve(options.subtasks);
+      const proposalPath = path.resolve(options.proposal);
+      const proposal = readQueueProposalFromFile(proposalPath);
+      const currentFile = loadSubtasksFile(subtasksPath);
+      const fingerprintState = hasFingerprintMismatch(
+        proposal,
+        currentFile.subtasks,
+      );
+
+      if (fingerprintState.mismatched) {
+        renderFingerprintMismatchError({
+          current: fingerprintState.current,
+          proposal: fingerprintState.proposal,
+          subtasksPath,
+        });
+        process.exit(1);
+      }
+
+      const summary = applyAndSaveProposal(subtasksPath, proposal);
+      console.log(
+        `Applied ${summary.operationsApplied} operation(s): ${summary.subtasksBefore} -> ${summary.subtasksAfter} subtasks`,
+      );
+      console.log(
+        `Fingerprint: ${summary.fingerprintBefore} -> ${summary.fingerprintAfter}`,
+      );
     }),
 );
 
