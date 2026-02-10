@@ -1,0 +1,437 @@
+{
+  "$schema": "../../schemas/subtasks.schema.json",
+  "metadata": {
+    "scope": "milestone",
+    "milestoneRef": "006-cascade-mode-for-good"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-001",
+      "taskRef": "WS-01-queue-operation-engine",
+      "title": "Define queue operation types and validation schema",
+      "description": "Add QueueOperation union type (create, update, remove, reorder, split) and QueueProposal type to types.ts. Each operation variant carries the minimum data needed for deterministic application. Add a QueueFingerprint type (hash of subtask IDs + done states) for replay protection.",
+      "done": false,
+      "acceptanceCriteria": [
+        "QueueOperation union type exported from tools/src/commands/ralph/types.ts with variants: create, update, remove, reorder, split",
+        "QueueProposal type exported with fields: operations array, fingerprint, timestamp, source",
+        "QueueFingerprint type exported with hash field and computeFingerprint() function",
+        "TypeScript compiles without errors: bun run typecheck exits 0",
+        "Unit test in tools/tests/lib/queue-operations.test.ts validates type structure and fingerprint computation"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/config.ts",
+        "docs/planning/milestones/006-cascade-mode-for-good/MILESTONE.md"
+      ]
+    },
+    {
+      "id": "SUB-002",
+      "taskRef": "WS-01-queue-operation-engine",
+      "title": "Implement queue operation apply pipeline",
+      "description": "Create tools/src/commands/ralph/queue-ops.ts with applyQueueOperations() function. Takes a SubtasksFile and QueueProposal, validates fingerprint match, applies operations deterministically (create appends with new SUB-NNN IDs, update modifies pending subtasks only, remove deletes pending subtasks, reorder changes array positions, split replaces one subtask with multiple). Returns modified SubtasksFile or throws on invalid operations. Completed subtasks (done:true) are immutable.",
+      "done": false,
+      "acceptanceCriteria": [
+        "applyQueueOperations() exported from tools/src/commands/ralph/queue-ops.ts",
+        "Applying the same proposal twice is no-op on second run (replay protection via fingerprint)",
+        "Invalid operations (mutating done:true subtasks, missing targets) fail with actionable error messages",
+        "New subtask IDs allocated as next canonical SUB-NNN within the queue",
+        "Unit test in tools/tests/lib/queue-ops.test.ts covers: create, update, remove, reorder, split, replay safety, immutability of completed subtasks"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/config.ts",
+        "docs/planning/milestones/006-cascade-mode-for-good/MILESTONE.md"
+      ]
+    },
+    {
+      "id": "SUB-003",
+      "taskRef": "WS-01-queue-operation-engine",
+      "title": "Integrate queue ops with canonical file write path",
+      "description": "Wire applyQueueOperations() into the existing saveSubtasksFile() flow. Add applyAndSaveProposal() convenience function that loads, applies, saves, and returns a summary. Ensure normalization (strip legacy status field) still happens. Add fingerprint computation to loadSubtasksFile() return value so callers can embed it in proposals.",
+      "done": false,
+      "acceptanceCriteria": [
+        "applyAndSaveProposal() exported from tools/src/commands/ralph/queue-ops.ts",
+        "loadSubtasksFile() return type includes a fingerprint field computed from current queue state",
+        "Normalization of legacy status field preserved in save path",
+        "Unit test verifies round-trip: load → propose → apply → save → reload matches expected state"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-004",
+      "taskRef": "WS-02-cli-expansion",
+      "title": "Add ralph subtasks append and prepend CLI commands",
+      "description": "Add 'aaa ralph subtasks append' and 'aaa ralph subtasks prepend' subcommands to index.ts. Each takes --subtasks path and reads subtask JSON from stdin or --file. Append adds to end of queue, prepend adds to beginning. Both allocate new SUB-NNN IDs and use appendSubtasksToFile/queue-ops under the hood. Support --dry-run to show what would change without writing.",
+      "done": false,
+      "acceptanceCriteria": [
+        "aaa ralph subtasks append --help shows usage with --subtasks, --file, and --dry-run options",
+        "aaa ralph subtasks prepend --help shows usage with --subtasks, --file, and --dry-run options",
+        "Both commands produce JSON output when --dry-run is used",
+        "E2E test in tools/tests/e2e/ralph-subtasks-cli.test.ts verifies append and prepend with --dry-run"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/queue-ops.ts"
+      ]
+    },
+    {
+      "id": "SUB-005",
+      "taskRef": "WS-02-cli-expansion",
+      "title": "Add ralph subtasks diff and apply CLI commands",
+      "description": "Add 'aaa ralph subtasks diff' and 'aaa ralph subtasks apply' subcommands. 'diff' takes a proposal file (JSON) and the current subtasks file, shows a human-readable diff of what would change plus JSON output with --json flag. 'apply' takes a proposal file and applies it to the subtasks file using applyAndSaveProposal(). Both validate queue fingerprints.",
+      "done": false,
+      "acceptanceCriteria": [
+        "aaa ralph subtasks diff --proposal <file> --subtasks <file> shows readable diff output",
+        "aaa ralph subtasks diff --json produces machine-parseable JSON output",
+        "aaa ralph subtasks apply --proposal <file> --subtasks <file> applies the proposal deterministically",
+        "Fingerprint mismatch produces actionable error message",
+        "E2E test in tools/tests/e2e/ralph-subtasks-cli.test.ts verifies diff and apply"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-006",
+      "taskRef": "WS-02-cli-expansion",
+      "title": "Add shell completion for new subtasks subcommands",
+      "description": "Update zsh and fish completion scripts to include the new subtasks subcommands (append, prepend, diff, apply) and their options (--subtasks, --file, --dry-run, --json, --proposal). Update completion descriptions to use queue-order wording instead of 'next runnable'.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/completion/zsh.ts includes completions for subtasks append, prepend, diff, apply",
+        "tools/src/commands/completion/fish.ts includes completions for subtasks append, prepend, diff, apply",
+        "Completion descriptions use 'queue order' wording, not 'next runnable' or 'dependency'",
+        "Existing tests still pass after changes"
+      ],
+      "filesToRead": [
+        "tools/src/commands/completion/zsh.ts",
+        "tools/src/commands/completion/fish.ts",
+        "tools/src/commands/ralph/index.ts"
+      ]
+    },
+    {
+      "id": "SUB-007",
+      "taskRef": "WS-03-validation-first-refactor",
+      "title": "Forward provider and model flags to validation invocation",
+      "description": "Remove the hardcoded 'claude' provider in validateSubtask(). Accept provider and model from build options and forward them to invokeProviderSummary(). This enables --validate-first --provider opencode --model ... to use the opencode path for validation.",
+      "done": false,
+      "acceptanceCriteria": [
+        "validateSubtask() accepts provider and model parameters instead of hardcoding 'claude'",
+        "validateAllSubtasks() forwards provider and model from the build options",
+        "resolveSkippedSubtaskIds() in build.ts passes provider and model through to validation",
+        "Unit test verifies validation uses the specified provider (not always claude)"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/providers/summary.ts"
+      ]
+    },
+    {
+      "id": "SUB-008",
+      "taskRef": "WS-03-validation-first-refactor",
+      "title": "Replace validation skip-only with queue operation proposals",
+      "description": "Refactor validation output from skip-only (SkippedSubtask list) to queue operation proposals (QueueProposal). Validation can now produce create/update/remove/reorder/split operations. The BatchValidationResult type gains an operations field. When --validate-first is used, proposals are generated and applied via the queue-ops pipeline.",
+      "done": false,
+      "acceptanceCriteria": [
+        "BatchValidationResult includes an optional operations: QueueOperation[] field",
+        "Validation prompt is updated to request structured queue operations in response",
+        "Validation responses are parsed into QueueOperation objects",
+        "Existing skip behavior is preserved as a 'remove' operation for backward compatibility",
+        "Unit test verifies validation can produce create and update operations"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/queue-ops.ts"
+      ]
+    },
+    {
+      "id": "SUB-009",
+      "taskRef": "WS-03-validation-first-refactor",
+      "title": "Implement --force and --review approval for validation proposals",
+      "description": "Wire --force and --review flags into the validation-first flow. With --force, proposals are applied immediately and build proceeds on the updated queue. With --review, proposals are written to milestone feedback/ folder as a staged artifact and build only proceeds after explicit approval. Persist validation feedback artifacts in milestone feedback folder always.",
+      "done": false,
+      "acceptanceCriteria": [
+        "--force applies validation proposals immediately and build continues on updated queue",
+        "--review writes proposal to milestone feedback/ folder and blocks until approval",
+        "Default behavior (no flag) stages proposals and asks interactively in supervised mode, auto-applies in headless mode",
+        "Validation feedback artifacts always written to docs/planning/milestones/<slug>/feedback/",
+        "E2E test verifies --validate-first --force mutates queue before build starts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/cascade.ts"
+      ]
+    },
+    {
+      "id": "SUB-010",
+      "taskRef": "WS-04-calibration-refactor",
+      "title": "Forward provider/model/force/review flags to periodic calibration",
+      "description": "Fix periodic calibration in build.ts runPeriodicCalibration() to forward provider, model, force, and review flags from build options to runCalibrate(). Currently only contextRoot and subtasksPath are passed. This ensures --calibrate-every uses the same provider/model flags as the build.",
+      "done": false,
+      "acceptanceCriteria": [
+        "runPeriodicCalibration() passes provider, model, force, and review from build options to runCalibrate()",
+        "PeriodicCalibrationOptions type includes provider, model, force, review fields",
+        "aaa ralph build --calibrate-every 5 --provider opencode --model ... forwards flags to calibration",
+        "Existing tests still pass"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-011",
+      "taskRef": "WS-04-calibration-refactor",
+      "title": "Replace calibration output with deterministic queue operations",
+      "description": "Refactor calibration to produce QueueProposal objects instead of creating task files. Corrective subtasks are enqueued via prepend (default) into the milestone queue. Keep self-improvement mode behavior while ensuring all outputs go to the milestone-scoped queue. Use shared approval evaluator from approvals.ts instead of local approval logic in calibrate.ts.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Calibration produces QueueProposal with corrective subtasks as create operations",
+        "Default insertion mode is prepend (corrective subtasks go to front of pending queue)",
+        "Shared approval evaluator from approvals.ts used for --force/--review instead of local logic",
+        "--review stages proposal artifacts in milestone feedback/ without mutating queue",
+        "--force applies corrective insertions to queue automatically",
+        "Self-improvement mode still functions but outputs to milestone queue"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/build.ts"
+      ]
+    },
+    {
+      "id": "SUB-012",
+      "taskRef": "WS-04-calibration-refactor",
+      "title": "Update calibration prompts for milestone-scoped queue output",
+      "description": "Update the intention-drift.md, technical-drift.md, and self-improvement.md calibration prompts to instruct the LLM to produce structured queue operations (JSON) instead of creating task files. The prompts should specify the QueueOperation schema and request deterministic corrective subtasks.",
+      "done": false,
+      "acceptanceCriteria": [
+        "context/workflows/ralph/calibration/intention-drift.md requests QueueOperation JSON output",
+        "context/workflows/ralph/calibration/technical-drift.md requests QueueOperation JSON output",
+        "context/workflows/ralph/calibration/self-improvement.md requests QueueOperation JSON output",
+        "Each prompt includes the QueueOperation schema definition for reference",
+        "Prompts specify that corrective subtasks should target the milestone queue"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/calibration/intention-drift.md",
+        "context/workflows/ralph/calibration/technical-drift.md",
+        "context/workflows/ralph/calibration/self-improvement.md",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-013",
+      "taskRef": "WS-05-unified-logging",
+      "title": "Extend daily log entry types for validation and calibration",
+      "description": "Add 'validation', 'calibration', 'queue-proposal', and 'queue-apply' to the IterationDiaryEntry type discriminator. Define typed entry shapes for each new type. Update isIterationDiaryEntry() in status.ts to continue filtering non-iteration entries for metrics. Update the iteration-diary.schema.json to include the new types.",
+      "done": false,
+      "acceptanceCriteria": [
+        "IterationDiaryEntry type field includes 'validation', 'calibration', 'queue-proposal', 'queue-apply'",
+        "New type interfaces exported: ValidationLogEntry, CalibrationLogEntry, QueueProposalLogEntry, QueueApplyLogEntry",
+        "isIterationDiaryEntry() in status.ts still correctly filters to iteration-only records for metrics",
+        "docs/planning/schemas/iteration-diary.schema.json updated with new type enum values",
+        "Unit test verifies mixed log parsing filters correctly"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/status.ts",
+        "docs/planning/schemas/iteration-diary.schema.json"
+      ]
+    },
+    {
+      "id": "SUB-014",
+      "taskRef": "WS-05-unified-logging",
+      "title": "Emit daily log entries from validation and calibration runs",
+      "description": "Add log entry emission to validation.ts and calibrate.ts. After validation completes, append a 'validation' entry to the milestone daily log. After calibration completes, append a 'calibration' entry. After queue proposals are generated, append 'queue-proposal'. After proposals are applied, append 'queue-apply'. Use the existing getMilestoneLogPath() for consistent file paths.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Validation runs produce validation log entries in docs/planning/milestones/<slug>/logs/YYYY-MM-DD.jsonl",
+        "Calibration runs produce calibration log entries in the same daily log file",
+        "Queue proposal generation produces queue-proposal log entries",
+        "Queue apply produces queue-apply log entries",
+        "aaa ralph status still computes iteration metrics correctly (no regression)",
+        "Log entries include timestamp, source, summary, and operation counts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/status.ts"
+      ]
+    },
+    {
+      "id": "SUB-015",
+      "taskRef": "WS-06-remove-blockedby",
+      "title": "Remove blockedBy from type system and schema",
+      "description": "Remove the blockedBy field from the Subtask interface in types.ts and from the subtask definition in subtasks.schema.json. Remove the blockedBy field from the subtask-spec.md documentation.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Subtask interface in tools/src/commands/ralph/types.ts has no blockedBy field",
+        "docs/planning/schemas/subtasks.schema.json subtask definition has no blockedBy property",
+        "context/workflows/ralph/planning/subtask-spec.md no longer mentions blockedBy as an optional field",
+        "TypeScript compiles without errors after removal: bun run typecheck exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "docs/planning/schemas/subtasks.schema.json",
+        "context/workflows/ralph/planning/subtask-spec.md"
+      ]
+    },
+    {
+      "id": "SUB-016",
+      "taskRef": "WS-06-remove-blockedby",
+      "title": "Simplify next-subtask selection to first pending in queue order",
+      "description": "Simplify getNextSubtask() in config.ts to return the first pending (done:false) subtask in array order, removing all blockedBy/dependency resolution logic. Update getNextRunnableSubtask() in build.ts to match. Remove the doneById map and isSubtaskReady() helper. Remove blocked/dependency messaging from handleNoRunnableSubtasks() and renderSubtaskDetails() in status.ts.",
+      "done": false,
+      "acceptanceCriteria": [
+        "getNextSubtask() returns first subtask where done===false without checking blockedBy",
+        "No blockedBy references remain in config.ts, build.ts, or status.ts runtime code",
+        "handleNoRunnableSubtasks() no longer mentions blocked dependencies",
+        "renderSubtaskDetails() in status.ts no longer shows blockedBy information",
+        "Existing tests updated to reflect simplified queue-order selection"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/status.ts"
+      ]
+    },
+    {
+      "id": "SUB-017",
+      "taskRef": "WS-06-remove-blockedby",
+      "title": "Remove blockedBy from prompts, docs, and iteration workflow",
+      "description": "Remove all blockedBy references from the Ralph iteration prompt (ralph-iteration.md), the subtask-reviewer agent prompt, and any other prompt/doc files. Update the pre-build-validation prompt if it references dependencies. Ensure no blockedBy references remain in context/ or .claude/agents/ files.",
+      "done": false,
+      "acceptanceCriteria": [
+        "context/workflows/ralph/building/ralph-iteration.md contains no blockedBy references",
+        ".claude/agents/subtask-reviewer.md contains no blockedBy references",
+        "grep -r 'blockedBy' context/ returns no matches (excluding MILESTONE.md for this milestone)",
+        "grep -r 'blockedBy' .claude/agents/ returns no matches"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/building/ralph-iteration.md",
+        ".claude/agents/subtask-reviewer.md",
+        "context/workflows/ralph/planning/subtask-spec.md"
+      ]
+    },
+    {
+      "id": "SUB-018",
+      "taskRef": "WS-06-remove-blockedby",
+      "title": "Migrate milestone subtasks.json files to strip blockedBy",
+      "description": "Write a migration that loads each milestone's subtasks.json, removes blockedBy keys from all subtask objects, and saves using saveSubtasksFile() for normalization. Apply to all active and archived milestone subtasks.json files. Validate that files still match schema after migration.",
+      "done": false,
+      "acceptanceCriteria": [
+        "All subtasks.json files under docs/planning/milestones/ have no blockedBy keys",
+        "Archived subtasks.json files (in archive/ folders) also have blockedBy removed",
+        "All migrated files validate against the updated subtasks.schema.json",
+        "git diff shows only blockedBy key removals (no other changes)"
+      ],
+      "filesToRead": [
+        "docs/planning/milestones/005-consolidate-simplify/subtasks.json",
+        "docs/planning/milestones/003-ralph-workflow/subtasks.json",
+        "docs/planning/milestones/004-MULTI-CLI/subtasks.json",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-019",
+      "taskRef": "WS-06-remove-blockedby",
+      "title": "Remove blockedBy from E2E tests",
+      "description": "Update tools/tests/e2e/ralph.test.ts to remove any test fixtures or assertions that reference blockedBy. Update any test helpers that create subtask fixtures with blockedBy fields. Ensure all tests pass after removal.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/tests/e2e/ralph.test.ts contains no blockedBy references",
+        "No test fixture files contain blockedBy fields",
+        "All existing E2E tests pass: bun test tools/tests/e2e/ralph.test.ts exits 0"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/ralph.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-020",
+      "taskRef": "WS-07-documentation-updates",
+      "title": "Update CLI help text and README for queue mutation behavior",
+      "description": "Update --validate-first help text in index.ts to explicitly state it can create, update, remove, reorder, and split pending subtasks. Update README behavior docs to describe the validation and calibration queue mutation parity. Update --calibrate-every help text to mention queue insertions. Document --force and --review approval modes.",
+      "done": false,
+      "acceptanceCriteria": [
+        "aaa ralph build --help shows --validate-first description mentioning queue mutations",
+        "aaa ralph build --help shows --force and --review options with approval mode descriptions",
+        "tools/README.md documents validation-first queue mutation behavior",
+        "tools/README.md documents calibration corrective queue insertion behavior",
+        "Completion descriptions in zsh.ts and fish.ts use queue-order terminology"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/README.md",
+        "tools/src/commands/completion/zsh.ts",
+        "tools/src/commands/completion/fish.ts"
+      ]
+    },
+    {
+      "id": "SUB-021",
+      "taskRef": "bugfix-output-dir-log-path",
+      "title": "Fix resolveMilestoneFromOptions to consider --output-dir",
+      "description": "In tools/src/commands/ralph/index.ts, resolveMilestoneFromOptions() only resolves milestones from --milestone and --story flags, ignoring --output-dir. When --text or --file source modes use --output-dir pointing to docs/planning/milestones/<slug>, the returned resolvedMilestonePath is undefined, causing headless logs to fall back to _orphan/logs. Fix: add an outputDir parameter to resolveMilestoneFromOptions(). When milestone and story are both undefined, extract the milestone slug from outputDir using getMilestoneRootFromPath() and return it if it resolves to a valid milestone path (contains docs/planning/milestones/<slug>). Update the call site at line ~2682 to pass options.outputDir. Also export resolveMilestoneFromOptions for testability.",
+      "done": false,
+      "acceptanceCriteria": [
+        "resolveMilestoneFromOptions() accepts an optional outputDir parameter",
+        "When --milestone and --story are undefined but --output-dir is docs/planning/milestones/006-cascade-mode-for-good, resolvedMilestonePath is that milestone path (not undefined)",
+        "getPlanningLogPath() receives the resolved milestone path and returns docs/planning/milestones/006-cascade-mode-for-good/logs/YYYY-MM-DD.jsonl (not _orphan)",
+        "Existing behavior unchanged when --milestone or --story flags are used (they still take priority)",
+        "TypeScript compiles without errors: bun run typecheck exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-022",
+      "taskRef": "bugfix-output-dir-log-path",
+      "title": "Add unit tests for milestone resolution from output-dir",
+      "description": "Add tests to tools/tests/lib/ralph-index.test.ts for the exported resolveMilestoneFromOptions() function covering: (1) --milestone takes priority over --output-dir, (2) --story takes priority over --output-dir, (3) --output-dir containing a valid milestone path extracts and returns milestone root, (4) --output-dir with a non-milestone path returns undefined, (5) all undefined returns undefined. Also add a test verifying the end-to-end log path resolution: given an output-dir pointing to a milestone, getPlanningLogPath receives the milestone path (not undefined).",
+      "done": false,
+      "acceptanceCriteria": [
+        "Unit test file tools/tests/lib/ralph-index.test.ts has a describe block for resolveMilestoneFromOptions",
+        "Test covers: milestone flag priority, story flag priority, output-dir milestone extraction, non-milestone output-dir fallback, all-undefined case",
+        "Tests pass: bun test tools/tests/lib/ralph-index.test.ts exits 0",
+        "At least 5 test cases covering the priority chain and edge cases"
+      ],
+      "filesToRead": [
+        "tools/tests/lib/ralph-index.test.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/tests/lib/config.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-023",
+      "taskRef": "bugfix-output-dir-log-path",
+      "title": "Update subtask-spec.md and workflow docs for output-dir log behavior",
+      "description": "Update context/workflows/ralph/planning/subtasks-from-source.md to document that --output-dir pointing to a milestone path also determines the headless log location (not just the subtasks.json destination). Add a note in the Parameters table for --output-dir clarifying that milestone-shaped paths also set the log directory. This ensures future users understand that --output-dir docs/planning/milestones/<slug> writes both subtasks and logs to that milestone.",
+      "done": false,
+      "acceptanceCriteria": [
+        "context/workflows/ralph/planning/subtasks-from-source.md --output-dir parameter description mentions log path resolution",
+        "Documentation clarifies that milestone-shaped --output-dir paths determine both subtask and log file locations",
+        "No mention of _orphan as a fallback when --output-dir points to a valid milestone"
+      ],
+      "filesToRead": [
+        "context/workflows/ralph/planning/subtasks-from-source.md",
+        "context/workflows/ralph/planning/subtask-spec.md"
+      ]
+    }
+  ]
+}
