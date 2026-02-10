@@ -75,7 +75,7 @@
       "taskRef": "WS-02-cli-expansion",
       "title": "Add ralph subtasks append and prepend CLI commands",
       "description": "Add 'aaa ralph subtasks append' and 'aaa ralph subtasks prepend' subcommands to index.ts. Each takes --subtasks path and reads subtask JSON from stdin or --file. Append adds to end of queue, prepend adds to beginning. Both allocate new SUB-NNN IDs and use appendSubtasksToFile/queue-ops under the hood. Support --dry-run to show what would change without writing.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "aaa ralph subtasks append --help shows usage with --subtasks, --file, and --dry-run options",
         "aaa ralph subtasks prepend --help shows usage with --subtasks, --file, and --dry-run options",
@@ -86,7 +86,10 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/config.ts",
         "tools/src/commands/ralph/queue-ops.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T11:43:03Z",
+      "commitHash": "bdbdb2933ad34f779b8a86abd1a968cc408aec58",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-005",

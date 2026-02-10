@@ -25,6 +25,11 @@
 - **Changes:** Added `applyAndSaveProposal()` in `queue-ops.ts` to load the queue, apply `applyQueueOperations()`, save through `saveSubtasksFile()`, and return an apply summary with before/after fingerprints and queue counts. Updated `loadSubtasksFile()` to return a computed fingerprint from current queue state and updated `saveSubtasksFile()` to strip transient fingerprint metadata while still removing legacy `status` fields. Added a round-trip unit test (`load -> propose -> apply -> save -> reload`) that verifies expected queue state and normalization behavior.
 - **Files:** `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-004
+- **Problem:** Ralph queue tooling lacked CLI commands to append/prepend subtasks from structured JSON input while preserving canonical ID allocation and safe dry-run previews.
+- **Changes:** Added `aaa ralph subtasks append` and `aaa ralph subtasks prepend` with `--subtasks`, `--file`, and `--dry-run` support. Both commands accept JSON from stdin or file, allocate new `SUB-NNN` IDs, and emit machine-readable JSON for dry-runs. `append` writes through `appendSubtasksToFile()`, while `prepend` uses `applyQueueOperations()` create ops then reorders to queue front before save. Added a dedicated E2E suite covering help output and dry-run behavior for both commands.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `tools/README.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001
