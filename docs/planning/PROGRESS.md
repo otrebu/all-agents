@@ -115,6 +115,11 @@
 - **Changes:** Expanded `ralph-index` unit coverage with explicit assertions for milestone/story priority over output-dir, milestone extraction from output-dir, non-milestone and all-undefined fallback behavior, and a log-path assertion that confirms `getPlanningLogPath` receives the resolved milestone path (not `undefined`).
 - **Files:** `tools/tests/lib/ralph-index.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-023
+- **Problem:** Planning docs did not clearly state that milestone-shaped `--output-dir` values affect planning log placement in addition to the generated `subtasks.json` destination.
+- **Changes:** Updated `subtasks-from-source.md` to clarify in both the parameters table and append phase that milestone-shaped output directories set both subtasks and planning log locations, and added matching shared-reference guidance in `subtask-spec.md`.
+- **Files:** `context/workflows/ralph/planning/subtasks-from-source.md`, `context/workflows/ralph/planning/subtask-spec.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

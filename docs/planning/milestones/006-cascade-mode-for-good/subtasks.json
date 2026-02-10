@@ -488,7 +488,7 @@
       "taskRef": "bugfix-output-dir-log-path",
       "title": "Update subtask-spec.md and workflow docs for output-dir log behavior",
       "description": "Update context/workflows/ralph/planning/subtasks-from-source.md to document that --output-dir pointing to a milestone path also determines the headless log location (not just the subtasks.json destination). Add a note in the Parameters table for --output-dir clarifying that milestone-shaped paths also set the log directory. This ensures future users understand that --output-dir docs/planning/milestones/<slug> writes both subtasks and logs to that milestone.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "context/workflows/ralph/planning/subtasks-from-source.md --output-dir parameter description mentions log path resolution",
         "Documentation clarifies that milestone-shaped --output-dir paths determine both subtask and log file locations",
@@ -497,7 +497,10 @@
       "filesToRead": [
         "context/workflows/ralph/planning/subtasks-from-source.md",
         "context/workflows/ralph/planning/subtask-spec.md"
-      ]
+      ],
+      "completedAt": "2026-02-10T15:37:53Z",
+      "commitHash": "14eb4c5e1cab984c43b4f2e0f1008c33327e05ca",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     }
   ]
 }
