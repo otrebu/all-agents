@@ -138,6 +138,24 @@ When the subtask passes all validation checks:
 {"aligned": true}
 ```
 
+If queue adjustments are useful even when aligned, include an `operations` array:
+
+```json
+{
+  "aligned": true,
+  "operations": [
+    {
+      "type": "update",
+      "id": "SUB-002",
+      "changes": {
+        "title": "Clarify AC wording",
+        "acceptanceCriteria": ["AC-1", "AC-2"]
+      }
+    }
+  ]
+}
+```
+
 ### Misaligned Subtask
 
 When any validation check fails:
@@ -147,7 +165,13 @@ When any validation check fails:
   "aligned": false,
   "reason": "<specific issue found>",
   "issue_type": "<scope_creep|too_broad|too_narrow|unfaithful>",
-  "suggestion": "<how to fix the issue>"
+  "suggestion": "<how to fix the issue>",
+  "operations": [
+    {
+      "type": "remove",
+      "id": "SUB-001"
+    }
+  ]
 }
 ```
 
@@ -156,6 +180,27 @@ When any validation check fails:
 - `issue_type`: One of: `scope_creep`, `too_broad`, `too_narrow`, `unfaithful`
   - For `too_broad`/`too_narrow`: cite specific rules from subtask-spec.md
 - `suggestion`: Actionable fix recommendation
+- `operations` (optional but preferred): deterministic queue operations to repair the queue
+
+### Queue Operation Schema (`operations`)
+
+Use one or more deterministic operations:
+
+- `{"type":"remove","id":"SUB-001"}`
+- `{"type":"update","id":"SUB-001","changes":{"title":"...","description":"...","acceptanceCriteria":["..."],"filesToRead":["..."],"storyRef":"STORY-001"}}`
+- `{"type":"create","atIndex":2,"subtask":{...QueueSubtaskDraft...}}`
+- `{"type":"reorder","id":"SUB-001","toIndex":0}`
+- `{"type":"split","id":"SUB-001","subtasks":[...QueueSubtaskDraft...]}`
+
+`QueueSubtaskDraft` requires:
+- `title` (string)
+- `description` (string)
+- `taskRef` (string)
+- `acceptanceCriteria` (string[])
+- `filesToRead` (string[])
+- optional: `id` (string), `storyRef` (string|null)
+
+Backward compatibility: if you recommend skipping/removing a subtask, prefer a `remove` operation.
 
 ## Examples
 

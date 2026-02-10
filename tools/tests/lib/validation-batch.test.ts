@@ -238,6 +238,7 @@ describe("validateAllSubtasks", () => {
 
       expect(result).toEqual({
         aligned: 0,
+        operations: [{ id: "SUB-415", type: "remove" }],
         skippedSubtasks: [
           {
             feedbackPath: "",
@@ -286,6 +287,7 @@ describe("validateAllSubtasks", () => {
       );
 
       expect(result.aligned).toBe(0);
+      expect(result.operations).toEqual([{ id: "SUB-412", type: "remove" }]);
       expect(result.success).toBe(false);
       expect(result.total).toBe(1);
       expect(result.skippedSubtasks).toHaveLength(1);

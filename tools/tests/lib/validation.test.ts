@@ -134,6 +134,59 @@ describe("parseValidationResponse", () => {
       suggestion: undefined,
     });
   });
+
+  test("parses create and update queue operations from response", () => {
+    const response = JSON.stringify({
+      aligned: false,
+      issue_type: "too_broad",
+      operations: [
+        {
+          atIndex: 1,
+          subtask: {
+            acceptanceCriteria: ["AC-1"],
+            description: "Create replacement",
+            filesToRead: ["tools/src/commands/ralph/validation.ts"],
+            taskRef: "TASK-008",
+            title: "Create subtask",
+          },
+          type: "create",
+        },
+        {
+          changes: {
+            acceptanceCriteria: ["AC-1", "AC-2"],
+            title: "Updated title",
+          },
+          id: "SUB-001",
+          type: "update",
+        },
+      ],
+      reason: "Needs refinement",
+    });
+
+    const parsed = parseValidationResponse(response, "SUB-001");
+    expect(parsed.aligned).toBe(false);
+    expect(parsed.operations).toEqual([
+      {
+        atIndex: 1,
+        subtask: {
+          acceptanceCriteria: ["AC-1"],
+          description: "Create replacement",
+          filesToRead: ["tools/src/commands/ralph/validation.ts"],
+          taskRef: "TASK-008",
+          title: "Create subtask",
+        },
+        type: "create",
+      },
+      {
+        changes: {
+          acceptanceCriteria: ["AC-1", "AC-2"],
+          title: "Updated title",
+        },
+        id: "SUB-001",
+        type: "update",
+      },
+    ]);
+  });
 });
 
 describe("formatIssueType", () => {

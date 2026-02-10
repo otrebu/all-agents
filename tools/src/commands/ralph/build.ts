@@ -18,7 +18,6 @@ import path from "node:path";
 import * as readline from "node:readline";
 
 import type { ProviderType } from "./providers/types";
-import type { BuildOptions, Subtask } from "./types";
 
 import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import {
@@ -59,9 +58,15 @@ import {
   validateProviderInvocationPreflight,
 } from "./providers/registry";
 import { discoverRecentSessionForProvider } from "./providers/session-adapter";
+import { applyAndSaveProposal } from "./queue-ops";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
-import { getProviderTimingMs } from "./types";
+import {
+  type BuildOptions,
+  getProviderTimingMs,
+  type QueueOperation,
+  type Subtask,
+} from "./types";
 import { validateAllSubtasks } from "./validation";
 
 // =============================================================================
@@ -1187,6 +1192,26 @@ async function resolveSkippedSubtaskIds(options: {
       state: "DONE",
     }),
   );
+
+  const defaultRemoveOperations = validationResult.skippedSubtasks.map(
+    (skipped): QueueOperation => ({ id: skipped.subtaskId, type: "remove" }),
+  );
+  const operations = validationResult.operations ?? defaultRemoveOperations;
+
+  if (operations.length > 0) {
+    const summary = applyAndSaveProposal(subtasksPath, {
+      fingerprint: initialSubtasksFile.fingerprint,
+      operations,
+      source: "validation",
+      timestamp: new Date().toISOString(),
+    });
+
+    const state = summary.applied ? "DONE" : "SKIP";
+    const message = summary.applied
+      ? `Validation proposal applied (${summary.operationsApplied} operation(s), queue ${summary.subtasksBefore} -> ${summary.subtasksAfter})`
+      : "Validation proposal skipped (queue changed before apply)";
+    console.log(renderEventLine({ domain: "VALIDATE", message, state }));
+  }
 
   return new Set(validationResult.skippedSubtasks.map((s) => s.subtaskId));
 }
