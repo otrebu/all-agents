@@ -343,82 +343,90 @@ export type { UserDTO } from './types';
 
 ## Output Format
 
-### 1. Summary to stdout
+Output ONLY valid JSON (markdown code fence optional). Do not create files in `docs/planning/tasks/`.
 
-```markdown
-# Technical Drift Analysis
+### QueueOperation schema reference
 
-## Subtask: <subtask-id>
-**Title:** <subtask title>
-**Commit:** <commitHash>
-**Date:** <analysis date>
+Use deterministic queue operations targeting the current milestone `subtasks.json` queue.
 
-## Project Standards Checked
-- Tests: <Yes/No/Not configured>
-- Linting: <Yes/No/Not configured>
-- TypeScript: <Yes/No/Not configured>
-- Documentation: <Yes/No/Not configured>
-
-## Analysis
-
-### Drift Detected: <Yes/No>
-
-<If no drift:>
-Code quality meets project standards. No corrective action needed.
-
-<If drift detected:>
-### Issues Found
-
-#### 1. <Issue Type>
-**Severity:** <High/Medium/Low>
-**Evidence:** <Specific code showing the issue>
-**Standard:** <What the project standard requires>
-**Recommendation:** <How to fix>
-
-## Summary
-- **Total issues:** <count>
-- **High severity:** <count>
-- **Medium severity:** <count>
-- **Low severity:** <count>
-
-## Recommendation
-<If drift:> See task file created in `docs/planning/tasks/`
-<If no drift:> No action required.
+```json
+{
+  "QueueOperation": [
+    {
+      "type": "create",
+      "atIndex": 0,
+      "subtask": {
+        "id": "optional-SUB-###",
+        "title": "string",
+        "description": "string",
+        "taskRef": "TASK-###",
+        "storyRef": "STORY-### or null (optional)",
+        "filesToRead": ["path"],
+        "acceptanceCriteria": ["criterion"]
+      }
+    },
+    {
+      "type": "update",
+      "id": "SUB-###",
+      "changes": {
+        "title": "optional string",
+        "description": "optional string",
+        "storyRef": "optional string or null",
+        "filesToRead": ["optional paths"],
+        "acceptanceCriteria": ["optional criteria"]
+      }
+    },
+    { "type": "remove", "id": "SUB-###" },
+    { "type": "reorder", "id": "SUB-###", "toIndex": 0 },
+    {
+      "type": "split",
+      "id": "SUB-###",
+      "subtasks": [
+        {
+          "title": "string",
+          "description": "string",
+          "taskRef": "TASK-###",
+          "filesToRead": ["path"],
+          "acceptanceCriteria": ["criterion"]
+        }
+      ]
+    }
+  ]
+}
 ```
 
-### 2. Task Files for Technical Issues
+### Required output JSON
 
-When technical drift is detected, create a task file:
-
-**File:** `docs/planning/tasks/tech-<subtask-id>-<date>.md`
-
-```markdown
-## Task: Address technical drift in <subtask-id>
-
-**Source:** Technical drift analysis
-**Created:** <date>
-**Commit:** <commitHash>
-
-### Problem
-<Description of the technical issues detected>
-
-### Issues
-
-#### 1. <Issue Type>
-**Severity:** <High/Medium/Low>
-**Files affected:** <list of files>
-**Evidence:**
+```json
+{
+  "summary": "short analysis summary",
+  "insertionMode": "prepend",
+  "findings": [
+    {
+      "subtaskId": "SUB-###",
+      "issues": [
+        {
+          "type": "missing-tests|inconsistent-pattern|missing-error-handling|documentation-gap|type-safety|security|atomic-doc-violation",
+          "severity": "high|medium|low",
+          "confidence": 0.0,
+          "file": "path/to/file.ts",
+          "line": 0,
+          "evidence": "specific code showing the issue",
+          "standard": "what project standard requires",
+          "recommendation": "how to fix"
+        }
+      ]
+    }
+  ],
+  "operations": []
+}
 ```
-<code snippet>
-```
-**Fix:** <specific change needed>
 
-### Acceptance Criteria
-- [ ] All high-severity issues addressed
-- [ ] Medium-severity issues addressed or documented as tech debt
-- [ ] Code passes lint checks
-- [ ] Tests added where missing
-```
+Rules:
+- `operations` must be `QueueOperation[]`.
+- If technical drift is detected, include deterministic corrective subtask operations for the milestone queue (prefer `create` with explicit `atIndex`).
+- If no technical drift is detected, return `"operations": []`.
+- Never instruct creation of standalone task files.
 
 ## Execution Instructions
 
@@ -545,15 +553,15 @@ Output synthesized summary:
 ...
 ```
 
-### Phase 4: Create Task Files
+### Phase 4: Emit Queue Operations
 
-For each high-severity issue or group of related issues, create a task file in `docs/planning/tasks/` following the format in the Output Format section above.
+For each high-severity issue or related issue cluster, emit deterministic `QueueOperation` entries that correct the current milestone queue.
+Prefer `create` operations for corrective subtasks and set explicit indexes so output is replay-stable.
 
 ## Configuration
 
-Check `ralph.config.json` for the `techDriftTasks` setting:
-- `"auto"` (default): Creates tech drift task files automatically
-- `"always"`: Requires user approval before creating task files
+Check `ralph.config.json` for the technical-drift proposal approval setting used by runtime.
+Your responsibility is to emit queue operations; runtime decides apply vs review.
 
 **CLI overrides:**
 - `--force`: Skip approval even if config says `"always"`
@@ -562,7 +570,7 @@ Check `ralph.config.json` for the `techDriftTasks` setting:
 ## Important Notes
 
 - **Quality, not intention:** This prompt checks code quality standards, not alignment with planning docs (that's intention drift)
-- **Propose only:** Don't modify code directly—only create task files
+- **Propose only:** Don't modify code directly—only emit queue operations for milestone queue mutation
 - **False positives:** When in doubt, don't flag. Some variations are acceptable engineering decisions
 - **Context matters:** Consider the project's actual patterns, not ideal patterns
 - **Severity matters:** Distinguish between critical issues (security, missing tests for critical code) and minor issues (style preferences)

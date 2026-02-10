@@ -223,88 +223,87 @@ Not all subtasks have complete chains. Validate what exists:
 
 ## Output Format
 
-### 1. Summary to stdout
+Output ONLY valid JSON (markdown code fence optional). Do not create files in `docs/planning/tasks/`.
 
-```markdown
-# Intention Drift Analysis
+### QueueOperation schema reference
 
-## Subtask: <subtask-id>
-**Title:** <subtask title>
-**Commit:** <commitHash>
-**Date:** <analysis date>
+Use deterministic queue operations targeting the current milestone `subtasks.json` queue.
 
-## Planning Chain
-- **Story:** <story-id and title or "N/A (orphan task)">
-- **Task:** <task-id and title>
-- **Subtask:** <subtask-id and title>
-
-## Analysis
-
-### Drift Detected: <Yes/No>
-
-<If no drift:>
-Implementation aligns with planning chain. No corrective action needed.
-
-<If drift detected:>
-### Type: <Scope Creep | Scope Shortfall | Direction Change | Missing Link>
-
-### Evidence
-<Specific code/diff that shows drift>
-
-### Intended Behavior
-<What the planning chain specified>
-
-### Actual Behavior
-<What the code actually does>
-
-### Impact
-<How this affects the project's direction>
-
-## Recommendation
-<If drift:> See task file created in `docs/planning/tasks/`
-<If no drift:> No action required.
+```json
+{
+  "QueueOperation": [
+    {
+      "type": "create",
+      "atIndex": 0,
+      "subtask": {
+        "id": "optional-SUB-###",
+        "title": "string",
+        "description": "string",
+        "taskRef": "TASK-###",
+        "storyRef": "STORY-### or null (optional)",
+        "filesToRead": ["path"],
+        "acceptanceCriteria": ["criterion"]
+      }
+    },
+    {
+      "type": "update",
+      "id": "SUB-###",
+      "changes": {
+        "title": "optional string",
+        "description": "optional string",
+        "storyRef": "optional string or null",
+        "filesToRead": ["optional paths"],
+        "acceptanceCriteria": ["optional criteria"]
+      }
+    },
+    { "type": "remove", "id": "SUB-###" },
+    { "type": "reorder", "id": "SUB-###", "toIndex": 0 },
+    {
+      "type": "split",
+      "id": "SUB-###",
+      "subtasks": [
+        {
+          "title": "string",
+          "description": "string",
+          "taskRef": "TASK-###",
+          "filesToRead": ["path"],
+          "acceptanceCriteria": ["criterion"]
+        }
+      ]
+    }
+  ]
+}
 ```
 
-### 2. Task Files for Divergence
+### Required output JSON
 
-When drift is detected, create a task file:
-
-**File:** `docs/planning/tasks/drift-<subtask-id>-<date>.md`
-
-```markdown
-## Task: Correct intention drift in <subtask-id>
-
-**Source:** Intention drift analysis
-**Created:** <date>
-**Commit:** <commitHash>
-
-### Problem
-<Description of the drift detected>
-
-### Planning Chain Reference
-- Subtask: <subtask-id> - <title>
-- Task: <task-id> - <title>
-- Story: <story-id> - <title> (if exists)
-
-### Drift Type
-<Scope Creep | Scope Shortfall | Direction Change | Missing Link>
-
-### Evidence
-<Code snippets showing drift>
-
-### Corrective Action
-<Specific changes needed to realign with intention>
-
-Options:
-1. **Modify code** - Change implementation to match plan
-2. **Update plan** - If drift is actually desirable, update Task/Story
-3. **Create new subtask** - If additional work needed
-
-### Acceptance Criteria
-- [ ] Implementation matches planning chain intention
-- [ ] Acceptance criteria from original subtask are met
-- [ ] No unplanned scope remains
+```json
+{
+  "summary": "short analysis summary",
+  "insertionMode": "prepend",
+  "findings": [
+    {
+      "subtaskId": "SUB-###",
+      "driftDetected": true,
+      "type": "scope-creep|scope-shortfall|direction-change|missing-link|none",
+      "severity": "high|medium|low",
+      "confidence": 0.0,
+      "evidence": "specific code/diff showing drift",
+      "intendedBehavior": "what planning chain specified",
+      "actualBehavior": "what code actually does",
+      "impact": "how this affects project direction",
+      "recommendation": "modify-code|update-plan|create-subtask|none"
+    }
+  ],
+  "operations": []
+}
 ```
+
+Rules:
+- `operations` must be `QueueOperation[]`.
+- If drift is detected, include deterministic corrective subtask operations for the milestone queue (prefer `create` with explicit `atIndex`).
+- If no drift is detected, return `"operations": []`.
+- Never instruct creation of standalone task files.
 
 ## Execution Instructions
 
@@ -408,15 +407,15 @@ Output synthesized summary:
 ### 2. ...
 ```
 
-### Phase 4: Create Task Files
+### Phase 4: Emit Queue Operations
 
-For each detected drift, create a task file in `docs/planning/tasks/` following the format in the Output Format section above.
+For each detected drift, emit deterministic `QueueOperation` entries that correct the current milestone queue.
+Prefer `create` operations for corrective subtasks and set explicit indexes so output is replay-stable.
 
 ## Configuration
 
-Check `ralph.config.json` for the `driftTasks` setting:
-- `"auto"` (default): Creates drift task files automatically
-- `"always"`: Requires user approval before creating task files
+Check `ralph.config.json` for the drift proposal approval setting used by runtime.
+Your responsibility is to emit queue operations; runtime decides apply vs review.
 
 **CLI overrides:**
 - `--force`: Skip approval even if config says `"always"`
@@ -425,7 +424,7 @@ Check `ralph.config.json` for the `driftTasks` setting:
 ## Important Notes
 
 - **Intention, not quality:** This prompt checks alignment with planning docs, not code quality (that's technical drift)
-- **Propose only:** Don't modify code directly—only create task files
+- **Propose only:** Don't modify code directly—only emit queue operations for milestone queue mutation
 - **False positives:** When in doubt, don't flag. Some variations are acceptable engineering decisions
 - **Context matters:** Consider the subtask's acceptance criteria and the broader project context
 - **Planning updates:** If drift is actually desirable, the fix may be updating the planning docs, not the code

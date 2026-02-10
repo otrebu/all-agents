@@ -126,72 +126,89 @@ If the log is too large to process completely:
 
 ## Output Format
 
-### 1. Summary to stdout
+Output ONLY valid JSON (markdown code fence optional). Do not create files in `docs/planning/tasks/`.
 
-```markdown
-# Self-Improvement Analysis
+### QueueOperation schema reference
 
-## Session: <sessionId>
-**Subtask:** <subtask title>
-**Date:** <analysis date>
+Use deterministic queue operations targeting the current milestone `subtasks.json` queue.
 
-## Findings
-
-### Tool Misuse (2 instances)
-- Line 45: Used `Bash` with `cat` instead of `Read` tool
-- Line 128: Used `Bash` with `echo >` instead of `Write` tool
-
-### Wasted Reads (1 instance)
-- Lines 67-72: Read 3 files in `/src/components/` but only used 1
-
-### Backtracking (0 instances)
-No backtracking detected.
-
-### Excessive Iterations (1 instance)
-- Lines 200-280: 4 attempts to fix the same TypeError without root cause analysis
-
-## Recommendations
-
-1. **Update CLAUDE.md:** Add reminder to use Read/Write/Edit for file operations
-2. **Update prompt:** Add guidance on root cause analysis before iterative fixes
-
-## Proposed Changes
-See task files created in `docs/planning/tasks/`
+```json
+{
+  "QueueOperation": [
+    {
+      "type": "create",
+      "atIndex": 0,
+      "subtask": {
+        "id": "optional-SUB-###",
+        "title": "string",
+        "description": "string",
+        "taskRef": "TASK-###",
+        "storyRef": "STORY-### or null (optional)",
+        "filesToRead": ["path"],
+        "acceptanceCriteria": ["criterion"]
+      }
+    },
+    {
+      "type": "update",
+      "id": "SUB-###",
+      "changes": {
+        "title": "optional string",
+        "description": "optional string",
+        "storyRef": "optional string or null",
+        "filesToRead": ["optional paths"],
+        "acceptanceCriteria": ["optional criteria"]
+      }
+    },
+    { "type": "remove", "id": "SUB-###" },
+    { "type": "reorder", "id": "SUB-###", "toIndex": 0 },
+    {
+      "type": "split",
+      "id": "SUB-###",
+      "subtasks": [
+        {
+          "title": "string",
+          "description": "string",
+          "taskRef": "TASK-###",
+          "filesToRead": ["path"],
+          "acceptanceCriteria": ["criterion"]
+        }
+      ]
+    }
+  ]
+}
 ```
 
-### 2. Task Files for Proposed Improvements
+### Required output JSON
 
-Create task files for each recommended change:
-
-**File:** `docs/planning/tasks/self-improve-<date>-<n>.md`
-
-```markdown
-## Task: <improvement title>
-
-**Source:** Self-improvement analysis of session <sessionId>
-**Created:** <date>
-
-### Problem
-<description of inefficiency pattern found>
-
-### Proposed Change
-<specific change to prompt/skill/CLAUDE.md>
-
-### Target File
-<path to file that should be modified>
-
-Valid targets include:
-- `CLAUDE.md` - For general agent behavior improvements
-- `context/workflows/ralph/**/*.md` - For Ralph-specific prompt improvements
-- `.claude/skills/**/*.md` - For skill-specific improvements
-- `docs/**/*.md` - For documentation improvements
-
-### Risk Level
-<low/medium/high - high if affects core prompts>
-
-### Acceptance Criteria
-- [ ] <verification step>
+```json
+{
+  "summary": "short analysis summary",
+  "insertionMode": "prepend",
+  "findings": [
+    {
+      "sessionId": "abc123",
+      "subtaskId": "SUB-001",
+      "type": "tool-misuse|wasted-reads|backtracking|excessive-iterations",
+      "severity": "high|medium|low",
+      "confidence": 0.0,
+      "messageRange": "lines 45-67",
+      "evidence": "specific tool calls showing the issue",
+      "impact": "tokens wasted, time lost, etc.",
+      "proposedFix": {
+        "targetFile": "CLAUDE.md or context/workflows/... or .claude/skills/...",
+        "change": "description of change to make"
+      }
+    }
+  ],
+  "operations": []
+}
 ```
+
+Rules:
+- `operations` must be `QueueOperation[]`.
+- If inefficiencies are detected, include deterministic corrective subtask operations for the milestone queue (prefer `create` with explicit `atIndex`).
+- If no action is needed, return `"operations": []`.
+- Never instruct creation of standalone task files.
 
 ## Escape Hatch: Approved Exceptions
 
@@ -308,18 +325,18 @@ Output synthesized summary:
 ### 2. ...
 ```
 
-### Phase 4: Apply or Propose Changes
+### Phase 4: Emit Queue Operations
 
 Based on `selfImprovement.mode`:
 
-- **"suggest"** (default): Create task files for proposed improvements in `docs/planning/tasks/` - do NOT apply changes directly, only propose
-- **"autofix"**: Apply changes directly to target files (CLAUDE.md, prompts, skills) without creating task files. Output what was changed in the summary.
+- **"suggest"** (default): Emit corrective queue operations for review; do not mutate files directly
+- **"autofix"**: Emit corrective queue operations that runtime can auto-apply to the milestone queue
 - **"off"**: Should not reach here (handled in Phase 1)
 
 ## Important Notes
 
 - **High risk operation:** This analysis can propose or apply changes to core prompts and skills
-- **Mode-dependent behavior:** In "always" mode, only create task files. In "auto" mode, apply changes directly.
+- **Mode-dependent behavior:** Always return queue operations; runtime handles review vs apply behavior by mode.
 - **False positives:** When in doubt, don't flag. Some patterns that look inefficient may be intentional or necessary
 - **Context matters:** Consider the subtask's goal when evaluating if an action was inefficient
 - **Auto mode caution:** When applying changes automatically, be conservative. Only apply clear improvements with low risk of breaking functionality.
