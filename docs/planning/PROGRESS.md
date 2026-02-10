@@ -100,6 +100,11 @@
 - **Changes:** Removed all `blockedBy` fields from inline subtasks fixtures in `ralph.test.ts`, then re-ran the targeted Ralph E2E suite to confirm fixtures and command behavior still pass without dependency metadata.
 - **Files:** `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-020
+- **Problem:** Build CLI help/completion and README text did not clearly state queue mutation behavior parity between `--validate-first` and periodic calibration, and did not describe build approval modes clearly.
+- **Changes:** Updated `ralph build` help text so `--validate-first` explicitly lists create/update/remove/reorder/split queue mutations, `--calibrate-every` mentions corrective queue insertions, and `--force`/`--review` describe approval modes for validation/calibration proposals. Updated README build docs with queue-mutation behavior and approval-mode parity, and aligned zsh/fish completion descriptions to queue-order wording.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/README.md`, `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

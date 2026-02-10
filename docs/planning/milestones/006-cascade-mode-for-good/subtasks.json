@@ -423,7 +423,7 @@
       "taskRef": "WS-07-documentation-updates",
       "title": "Update CLI help text and README for queue mutation behavior",
       "description": "Update --validate-first help text in index.ts to explicitly state it can create, update, remove, reorder, and split pending subtasks. Update README behavior docs to describe the validation and calibration queue mutation parity. Update --calibrate-every help text to mention queue insertions. Document --force and --review approval modes.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "aaa ralph build --help shows --validate-first description mentioning queue mutations",
         "aaa ralph build --help shows --force and --review options with approval mode descriptions",
@@ -436,7 +436,10 @@
         "tools/README.md",
         "tools/src/commands/completion/zsh.ts",
         "tools/src/commands/completion/fish.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T14:22:24Z",
+      "commitHash": "a7f63216e8d278f420c26f80c22643144899c733",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-021",
