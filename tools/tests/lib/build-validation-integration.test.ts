@@ -90,14 +90,14 @@ describe("build validation integration", () => {
     expect(buildContent).toContain("handleNoRunnableSubtasks({");
     expect(buildContent).toContain("Pre-build validation skipped");
     expect(buildContent).toContain(
-      "All remaining non-skipped subtasks appear blocked",
+      "Pending subtasks remain but none are runnable",
     );
   });
 
   test("selects next subtask from validation-filtered queue", () => {
     expect(buildContent).toContain("getNextRunnableSubtask(");
     expect(buildContent).toContain(
-      "(subtask) => !skippedSubtaskIds.has(subtask.id)",
+      "(subtask) => !subtask.done && !skippedSubtaskIds.has(subtask.id)",
     );
   });
 });

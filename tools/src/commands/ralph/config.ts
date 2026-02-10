@@ -214,27 +214,7 @@ function getMilestoneLogPath(milestoneRoot: string): string {
  * @returns First pending subtask, or null if none remain
  */
 function getNextSubtask(subtasks: Array<Subtask>): null | Subtask {
-  // Prefer subtasks that are ready to run (not done and not blocked by incomplete dependencies)
-  const doneById = new Map<string, boolean>();
-  for (const subtask of subtasks) {
-    doneById.set(subtask.id, subtask.done);
-  }
-
-  function isSubtaskReady(subtask: Subtask): boolean {
-    if (subtask.done) return false;
-    const blockedByValue = (subtask as { blockedBy?: unknown }).blockedBy;
-    const blockedBy = Array.isArray(blockedByValue)
-      ? blockedByValue.filter(
-          (value): value is string => typeof value === "string",
-        )
-      : [];
-    for (const dependencyId of blockedBy) {
-      if (doneById.get(dependencyId) !== true) return false;
-    }
-    return true;
-  }
-
-  return subtasks.find((s) => isSubtaskReady(s)) ?? null;
+  return subtasks.find((subtask) => !subtask.done) ?? null;
 }
 
 /**

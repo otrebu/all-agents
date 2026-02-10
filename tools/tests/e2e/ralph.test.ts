@@ -693,7 +693,7 @@ JSON
         ],
         { cwd: TOOLS_DIR },
       );
-      expect(nextResult.stdout).toContain("SUB-002: Ready");
+      expect(nextResult.stdout).toContain("SUB-001: Blocked");
 
       const nextMatch = /\b(?<subtaskId>SUB-\d{3})\b/.exec(nextResult.stdout);
       expect(nextMatch).not.toBeNull();
@@ -705,9 +705,11 @@ JSON
       );
 
       expect(printResult.exitCode).toBe(0);
-      expect(printResult.stdout).toContain("Selected subtask: SUB-002 (Ready)");
+      expect(printResult.stdout).toContain(
+        "Selected subtask: SUB-001 (Blocked)",
+      );
       expect(printResult.stdout).toContain("Assigned subtask:");
-      expect(printResult.stdout).toContain('"id": "SUB-002"');
+      expect(printResult.stdout).toContain('"id": "SUB-001"');
       const printMatch =
         /Selected subtask: (?<selectedSubtaskId>SUB-\d{3}) \(/.exec(
           printResult.stdout,
@@ -815,10 +817,10 @@ JSON
       expect(stdout.length).toBeLessThan(5000);
     });
 
-    test("prints clear blocked message when pending subtasks are blocked", async () => {
+    test("selects first pending subtask in queue order", async () => {
       const milestoneDirectory = join(
         temporaryDirectory,
-        "005-test-build-print-blocked",
+        "005-test-build-print-first-pending",
       );
       mkdirSync(milestoneDirectory, { recursive: true });
       const subtasksPath = join(milestoneDirectory, "subtasks.json");
@@ -828,7 +830,7 @@ JSON
         JSON.stringify(
           {
             metadata: {
-              milestoneRef: "005-test-build-print-blocked",
+              milestoneRef: "005-test-build-print-first-pending",
               scope: "milestone",
             },
             subtasks: [
@@ -866,11 +868,8 @@ JSON
       );
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain(
-        "No runnable subtask: all pending subtasks are blocked.",
-      );
-      expect(stdout).toContain("- SUB-001: blockedBy SUB-999");
-      expect(stdout).toContain("- SUB-002: blockedBy SUB-998");
+      expect(stdout).toContain("Selected subtask: SUB-001 (Blocked 1)");
+      expect(stdout).toContain('"id": "SUB-001"');
     });
   });
 
@@ -952,7 +951,7 @@ kill -s INT $$
   });
 
   describe("ralph subtasks queue commands", () => {
-    test("subtasks next returns next runnable pending subtask", async () => {
+    test("subtasks next returns first pending subtask in queue order", async () => {
       const milestoneDirectory = join(
         temporaryDirectory,
         "005-test-subtasks-next",
@@ -1009,7 +1008,7 @@ kill -s INT $$
       );
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("SUB-002: Ready");
+      expect(stdout).toContain("SUB-001: Blocked");
     });
 
     test("subtasks list --pending lists pending subtasks", async () => {

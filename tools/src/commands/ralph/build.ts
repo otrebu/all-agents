@@ -487,13 +487,11 @@ function getNextRunnableSubtask(
     return getNextSubtask(subtasks);
   }
 
-  // Exclude validation-skipped subtasks from selection while preserving
-  // dependency semantics for downstream subtasks.
-  const runnableSubtasks = subtasks.filter(
-    (subtask) => !skippedSubtaskIds.has(subtask.id),
+  return (
+    subtasks.find(
+      (subtask) => !subtask.done && !skippedSubtaskIds.has(subtask.id),
+    ) ?? null
   );
-
-  return getNextSubtask(runnableSubtasks);
 }
 
 /**
@@ -640,23 +638,13 @@ async function handleNoRunnableSubtasks(options: {
   const skippedPending = pending.filter(
     (subtask) => skippedSubtaskIds?.has(subtask.id) === true,
   );
-  const blockedPending = pending.filter(
+  const remainingPending = pending.filter(
     (subtask) => skippedSubtaskIds?.has(subtask.id) !== true,
   );
-  const blockedList = blockedPending
-    .map((s) => {
-      const blockedByValue = (s as { blockedBy?: unknown }).blockedBy;
-      const blockedBy = Array.isArray(blockedByValue)
-        ? blockedByValue.filter(
-            (value): value is string => typeof value === "string",
-          )
-        : [];
-      const deps =
-        blockedBy.length === 0 ? "(no blockedBy listed)" : blockedBy.join(", ");
-      return `- ${s.id}: blockedBy ${deps}`;
-    })
-    .join("\n");
   const skippedList = skippedPending
+    .map((subtask) => `- ${subtask.id}: ${subtask.title}`)
+    .join("\n");
+  const remainingList = remainingPending
     .map((subtask) => `- ${subtask.id}: ${subtask.title}`)
     .join("\n");
 
@@ -669,19 +657,19 @@ async function handleNoRunnableSubtasks(options: {
       console.error(`\nSkipped subtasks:\n${skippedList}`);
     }
   }
-  if (blockedPending.length > 0) {
+  if (remainingPending.length > 0) {
     console.error(
-      "All remaining non-skipped subtasks appear blocked by incomplete dependencies.",
+      "Pending subtasks remain, but none are runnable in the current selection.",
     );
-    if (blockedList !== "") {
-      console.error(`\nBlocked subtasks:\n${blockedList}`);
+    if (remainingList !== "") {
+      console.error(`\nPending subtasks:\n${remainingList}`);
     }
   }
 
   const noRunnableReason =
-    skippedPending.length > 0 && blockedPending.length === 0
+    skippedPending.length > 0 && remainingPending.length === 0
       ? `No runnable subtasks found for milestone ${milestone}. ${skippedPending.length} subtask(s) were skipped by pre-build validation.`
-      : `No runnable subtasks found for milestone ${milestone}. All remaining non-skipped subtasks appear blocked.`;
+      : `No runnable subtasks found for milestone ${milestone}. Pending subtasks remain but none are runnable.`;
 
   await executeHook("onValidationFail", {
     message: noRunnableReason,

@@ -357,19 +357,10 @@ function renderSubtaskDetails(subtasksPath: string): void {
       console.log(`  Next up:   ${chalk.green("All complete!")}`);
     } else {
       const pending = subtasks.filter((s) => !s.done);
-      const blockedCount = pending.length;
       console.log(
-        `  Next up:   ${chalk.red("Blocked")} (${blockedCount} pending)`,
+        `  Next up:   ${chalk.red("None selected")} (${pending.length} pending)`,
       );
-      const preview = pending.slice(0, 3).map((s) => {
-        const blockedByValue = (s as { blockedBy?: unknown }).blockedBy;
-        const deps = Array.isArray(blockedByValue)
-          ? blockedByValue
-              .filter((value): value is string => typeof value === "string")
-              .join(", ")
-          : "";
-        return `${s.id}${deps === "" ? "" : ` (blockedBy: ${deps})`}`;
-      });
+      const preview = pending.slice(0, 3).map((subtask) => subtask.id);
       if (preview.length > 0) {
         console.log(`             ${chalk.dim(preview.join("; "))}`);
       }
