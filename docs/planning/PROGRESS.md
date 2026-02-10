@@ -8,6 +8,13 @@
 
 ## Session Notes
 
+## 2026-02-10
+
+### SUB-001
+- **Problem:** Queue mutation primitives for milestone 006 were undefined, so validation/calibration could not express deterministic create/update/remove/reorder/split proposals with replay protection.
+- **Changes:** Added queue operation contracts (`QueueOperation`, `QueueProposal`, `QueueFingerprint`) and `computeFingerprint()` in Ralph shared types, then added focused unit tests covering all operation variants plus deterministic/delta fingerprint behavior.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/tests/lib/queue-operations.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

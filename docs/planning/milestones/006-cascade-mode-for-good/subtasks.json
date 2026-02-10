@@ -10,7 +10,7 @@
       "taskRef": "WS-01-queue-operation-engine",
       "title": "Define queue operation types and validation schema",
       "description": "Add QueueOperation union type (create, update, remove, reorder, split) and QueueProposal type to types.ts. Each operation variant carries the minimum data needed for deterministic application. Add a QueueFingerprint type (hash of subtask IDs + done states) for replay protection.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "QueueOperation union type exported from tools/src/commands/ralph/types.ts with variants: create, update, remove, reorder, split",
         "QueueProposal type exported with fields: operations array, fingerprint, timestamp, source",
@@ -22,7 +22,10 @@
         "tools/src/commands/ralph/types.ts",
         "tools/src/commands/ralph/config.ts",
         "docs/planning/milestones/006-cascade-mode-for-good/MILESTONE.md"
-      ]
+      ],
+      "completedAt": "2026-02-10T11:03:42Z",
+      "commitHash": "2ccdcbbef2e77d69eb23fc638ab87443e275acbc",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-002",
