@@ -50,8 +50,7 @@
         "tools/src/commands/ralph/config.ts",
         "tools/src/commands/notify/types.ts",
         ".claude/plans/hashed-wiggling-gem.md"
-      ],
-      "blockedBy": ["SUB-074"]
+      ]
     },
     {
       "id": "SUB-076",
@@ -75,8 +74,7 @@
         "tools/src/commands/parallel-search/parallel-client.ts",
         "tools/src/commands/notify/types.ts",
         ".claude/plans/hashed-wiggling-gem.md"
-      ],
-      "blockedBy": ["SUB-074"]
+      ]
     },
     {
       "id": "SUB-077",
@@ -109,8 +107,7 @@
         "tools/src/commands/notify/client.ts",
         "README.md",
         ".claude/plans/hashed-wiggling-gem.md"
-      ],
-      "blockedBy": ["SUB-075", "SUB-076"]
+      ]
     },
     {
       "id": "SUB-078",
@@ -134,8 +131,7 @@
         "tools/src/commands/notify/index.ts",
         "tools/src/commands/setup/index.ts",
         ".claude/plans/hashed-wiggling-gem.md"
-      ],
-      "blockedBy": ["SUB-077"]
+      ]
     },
     {
       "id": "SUB-079",
@@ -155,8 +151,7 @@
       "filesToRead": [
         "tools/src/commands/notify/index.ts",
         ".claude/plans/hashed-wiggling-gem.md"
-      ],
-      "blockedBy": ["SUB-077"]
+      ]
     },
     {
       "id": "SUB-080",
@@ -178,8 +173,7 @@
         "tools/src/commands/notify/index.ts",
         "README.md",
         ".claude/plans/hashed-wiggling-gem.md"
-      ],
-      "blockedBy": ["SUB-079"]
+      ]
     },
     {
       "id": "SUB-081",
@@ -228,8 +222,7 @@
         "tools/src/commands/ralph/display.ts",
         "tools/src/commands/ralph/session.ts",
         ".claude/plans/melodic-wobbling-hamster.md"
-      ],
-      "blockedBy": ["SUB-081"]
+      ]
     },
     {
       "id": "SUB-083",
@@ -276,8 +269,7 @@
         "tools/src/commands/ralph/summary.ts",
         "tools/src/commands/ralph/types.ts",
         ".claude/plans/indexed-toasting-ocean.md"
-      ],
-      "blockedBy": ["SUB-083"]
+      ]
     },
     {
       "id": "SUB-085",
@@ -322,8 +314,7 @@
         "tools/src/lib/config/types.ts",
         "context/foundations/security/secrets-env-typed.md",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-085"]
+      ]
     },
     {
       "id": "SUB-087",
@@ -349,8 +340,7 @@
         "tools/src/commands/ralph/config.ts",
         "tools/src/commands/notify/config.ts",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-086"]
+      ]
     },
     {
       "id": "SUB-088",
@@ -373,8 +363,7 @@
         "tools/src/lib/config/loader.ts",
         "README.md",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-087"]
+      ]
     },
     {
       "id": "SUB-089",
@@ -396,8 +385,7 @@
         "tools/src/commands/ralph/hooks.ts",
         "tools/src/commands/notify/index.ts",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-088"]
+      ]
     },
     {
       "id": "SUB-090",
@@ -419,8 +407,7 @@
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/hooks.ts",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-089"]
+      ]
     },
     {
       "id": "SUB-091",
@@ -442,8 +429,7 @@
         "tools/src/commands/ralph/config.ts",
         "tools/src/lib/config/loader.ts",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-087"]
+      ]
     },
     {
       "id": "SUB-092",
@@ -465,8 +451,7 @@
         "tools/src/commands/notify/config.ts",
         "tools/src/lib/config/loader.ts",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-087"]
+      ]
     },
     {
       "id": "SUB-093",
@@ -490,8 +475,7 @@
         "tools/src/commands/ralph/session.ts",
         "tools/src/commands/ralph/post-iteration.ts",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-089"]
+      ]
     },
     {
       "id": "SUB-094",
@@ -513,8 +497,7 @@
         "docs/planning/schemas/ralph-config.schema.json",
         "README.md",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-085"]
+      ]
     },
     {
       "id": "SUB-095",
@@ -536,8 +519,7 @@
         ".claude/settings.json",
         "README.md",
         ".claude/plans/linked-snuggling-locket.md"
-      ],
-      "blockedBy": ["SUB-088"]
+      ]
     },
     {
       "id": "SUB-096",
@@ -602,8 +584,7 @@
       "filesToRead": [
         "tools/src/commands/ralph/display.ts",
         "tools/src/commands/ralph/types.ts"
-      ],
-      "blockedBy": ["SUB-096"]
+      ]
     },
     {
       "id": "SUB-099",
@@ -803,8 +784,7 @@
       "filesToRead": [
         ".claude/agents/subtask-reviewer.md",
         "context/workflows/ralph/planning/subtask-spec.md"
-      ],
-      "blockedBy": ["SUB-104"]
+      ]
     },
     {
       "id": "SUB-108",
@@ -846,8 +826,7 @@
         ".claude/agents/code-review/data-integrity-reviewer.md",
         ".claude/agents/code-review/dependency-reviewer.md",
         ".claude/agents/code-review/over-engineering-reviewer.md"
-      ],
-      "blockedBy": ["SUB-105"]
+      ]
     },
     {
       "id": "SUB-110",
@@ -869,8 +848,7 @@
         ".claude/agents/code-review/performance-reviewer.md",
         ".claude/agents/code-review/security-reviewer.md",
         ".claude/agents/code-review/documentation-reviewer.md"
-      ],
-      "blockedBy": ["SUB-106"]
+      ]
     },
     {
       "id": "SUB-111",
@@ -951,8 +929,7 @@
       ],
       "filesToRead": [
         "docs/planning/VISION.md"
-      ],
-      "blockedBy": ["SUB-112", "SUB-113"]
+      ]
     },
     {
       "id": "SUB-115",
@@ -972,8 +949,7 @@
       ],
       "filesToRead": [
         "README.md"
-      ],
-      "blockedBy": ["SUB-099", "SUB-100", "SUB-104", "SUB-105", "SUB-106", "SUB-109", "SUB-110", "SUB-111"]
+      ]
     },
     {
       "id": "SUB-116",
@@ -1270,8 +1246,7 @@
         ".claude/agents/code-review/synthesizer.md",
         "context/blocks/patterns/triage.md",
         ".claude/agents/code-review/types.md"
-      ],
-      "blockedBy": ["SUB-125"]
+      ]
     },
     {
       "id": "SUB-127",
@@ -1291,8 +1266,7 @@
       "filesToRead": [
         ".claude/skills/code-review/SKILL.md",
         ".claude/agents/code-review/triage.md"
-      ],
-      "blockedBy": ["SUB-125", "SUB-126"]
+      ]
     },
     {
       "id": "SUB-128",
@@ -1313,8 +1287,7 @@
       "filesToRead": [
         "tools/src/commands/review/index.ts",
         "tools/src/commands/review/types.ts"
-      ],
-      "blockedBy": ["SUB-125"]
+      ]
     },
     {
       "id": "SUB-129",
@@ -1336,8 +1309,7 @@
       "filesToRead": [
         "tools/src/commands/review/index.ts",
         ".claude/skills/code-review/SKILL.md"
-      ],
-      "blockedBy": ["SUB-125"]
+      ]
     },
     {
       "id": "SUB-130",
@@ -1357,8 +1329,7 @@
       "filesToRead": [
         ".claude/skills/code-review/SKILL.md",
         "tools/src/commands/review/index.ts"
-      ],
-      "blockedBy": ["SUB-125", "SUB-129"]
+      ]
     },
     {
       "id": "SUB-131",
@@ -1399,8 +1370,7 @@
       "filesToRead": [
         "tools/src/commands/review/index.ts",
         "tools/src/commands/ralph/hooks.ts"
-      ],
-      "blockedBy": ["SUB-125", "SUB-131"]
+      ]
     },
     {
       "id": "SUB-133",
@@ -1562,8 +1532,7 @@
       ],
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": ["SUB-138", "SUB-139"]
+      ]
     },
     {
       "id": "SUB-141",
@@ -1601,8 +1570,7 @@
       ],
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": ["SUB-141"]
+      ]
     },
     {
       "id": "SUB-143",

@@ -90,6 +90,11 @@
 - **Changes:** Removed remaining `blockedBy` wording from the Ralph iteration workflow and subtask-reviewer agent prompt, and updated pre-build validation task-context wording to avoid dependency framing.
 - **Files:** `context/workflows/ralph/building/ralph-iteration.md`, `.claude/agents/subtask-reviewer.md`, `context/workflows/ralph/building/pre-build-validation.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-018
+- **Problem:** Milestone queue files still carried legacy `blockedBy` dependency metadata that no longer matches queue-order execution and needed migration across active/historical milestone subtasks files.
+- **Changes:** Removed `blockedBy` keys from all canonical milestone `subtasks.json` files under `docs/planning/milestones/` (including legacy milestone queues), confirmed no archived `archive/**/subtasks.json` files exist to migrate in this repo, and verified diff scope is limited to `blockedBy` removals.
+- **Files:** `docs/planning/milestones/002-ralph-💪/subtasks.json`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/milestones/004-MULTI-CLI/subtasks.json`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

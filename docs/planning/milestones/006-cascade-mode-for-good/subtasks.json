@@ -383,7 +383,7 @@
       "taskRef": "WS-06-remove-blockedby",
       "title": "Migrate milestone subtasks.json files to strip blockedBy",
       "description": "Write a migration that loads each milestone's subtasks.json, removes blockedBy keys from all subtask objects, and saves using saveSubtasksFile() for normalization. Apply to all active and archived milestone subtasks.json files. Validate that files still match schema after migration.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "All subtasks.json files under docs/planning/milestones/ have no blockedBy keys",
         "Archived subtasks.json files (in archive/ folders) also have blockedBy removed",
@@ -395,7 +395,10 @@
         "docs/planning/milestones/003-ralph-workflow/subtasks.json",
         "docs/planning/milestones/004-MULTI-CLI/subtasks.json",
         "tools/src/commands/ralph/config.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T14:09:42Z",
+      "commitHash": "470069de6ff841eadbbc4ef95f4c5061777adfa4",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-019",
