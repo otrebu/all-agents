@@ -55,6 +55,11 @@
 - **Changes:** Extended `PeriodicCalibrationOptions` with `provider`, `model`, `force`, and `review`, threaded those values from `runBuild()` into `runPeriodicCalibration()`, and forwarded them to `runCalibrate("all", ...)`. Added regression coverage in `build-validation-integration.test.ts` to assert periodic calibration receives and passes through all four flags.
 - **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-011
+- **Problem:** Calibration flows still relied on ad-hoc output/task-file contracts and local approval-mode logic, so corrective work was not emitted as deterministic queue proposals against the milestone queue.
+- **Changes:** Refactored calibration to parse structured corrective-subtask JSON, convert it into `QueueProposal` create operations, and route proposal handling through shared `evaluateApproval("correctionTasks", ...)` behavior with milestone `feedback/` artifact staging. `--review` now stages proposals without queue mutation, `--force` applies proposals automatically, self-improvement mode still supports suggest/autofix behavior, and queue create operations now honor `atIndex` so prepend insertions are deterministic.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/index.ts`, `tools/tests/lib/calibrate.test.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

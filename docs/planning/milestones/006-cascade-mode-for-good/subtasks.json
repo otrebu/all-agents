@@ -226,7 +226,7 @@
       "taskRef": "WS-04-calibration-refactor",
       "title": "Replace calibration output with deterministic queue operations",
       "description": "Refactor calibration to produce QueueProposal objects instead of creating task files. Corrective subtasks are enqueued via prepend (default) into the milestone queue. Keep self-improvement mode behavior while ensuring all outputs go to the milestone-scoped queue. Use shared approval evaluator from approvals.ts instead of local approval logic in calibrate.ts.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Calibration produces QueueProposal with corrective subtasks as create operations",
         "Default insertion mode is prepend (corrective subtasks go to front of pending queue)",
@@ -240,7 +240,10 @@
         "tools/src/commands/ralph/queue-ops.ts",
         "tools/src/commands/ralph/approvals.ts",
         "tools/src/commands/ralph/build.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T13:12:16Z",
+      "commitHash": "0ea1343ec400a0837adc37dc1e722f2c4c93cd5d",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-012",
