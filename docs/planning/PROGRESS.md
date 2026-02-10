@@ -40,6 +40,11 @@
 - **Changes:** Updated zsh and fish completion generators to add `append`, `prepend`, `diff`, and `apply` subcommands with their command-specific flags (`--subtasks`, `--file`, `--dry-run`, `--proposal`, `--json`) and switched next-subtask descriptions to queue-order wording. Added completion E2E assertions covering the new subcommands, flags, and wording regression checks.
 - **Files:** `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `tools/tests/e2e/completion.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-008
+- **Problem:** Pre-build validation only emitted skipped-subtask records, so `--validate-first` could not produce deterministic queue mutations like create/update proposals.
+- **Changes:** Refactored validation parsing and batch results to support queue operation proposals (`create/update/remove/reorder/split`), updated the pre-build validation prompt contract to request structured operations, mapped legacy skip decisions to `remove` operations for backward compatibility, and wired build-time `--validate-first` to apply proposals through `applyAndSaveProposal()` before iteration selection.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/build.ts`, `tools/tests/lib/validation.test.ts`, `tools/tests/lib/validation-batch.test.ts`, `context/workflows/ralph/building/pre-build-validation.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

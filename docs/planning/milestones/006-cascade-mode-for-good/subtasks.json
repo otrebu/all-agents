@@ -160,7 +160,7 @@
       "taskRef": "WS-03-validation-first-refactor",
       "title": "Replace validation skip-only with queue operation proposals",
       "description": "Refactor validation output from skip-only (SkippedSubtask list) to queue operation proposals (QueueProposal). Validation can now produce create/update/remove/reorder/split operations. The BatchValidationResult type gains an operations field. When --validate-first is used, proposals are generated and applied via the queue-ops pipeline.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "BatchValidationResult includes an optional operations: QueueOperation[] field",
         "Validation prompt is updated to request structured queue operations in response",
@@ -172,7 +172,10 @@
         "tools/src/commands/ralph/validation.ts",
         "tools/src/commands/ralph/types.ts",
         "tools/src/commands/ralph/queue-ops.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T12:27:30Z",
+      "commitHash": "a32c865eb0ee8286ec8792562c85c4eb75a37317",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-009",
