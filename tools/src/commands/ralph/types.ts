@@ -54,6 +54,19 @@ interface BuildOptions {
 // =============================================================================
 
 /**
+ * Calibration entry persisted to a milestone daily log file.
+ */
+interface CalibrationLogEntry {
+  milestone?: string;
+  mode?: "headless" | "supervised";
+  sessionId?: string;
+  summary: string;
+  taskRef?: string;
+  timestamp: string;
+  type: "calibration";
+}
+
+/**
  * Definition of a cascade level
  *
  * Represents a single level in the Ralph cascade hierarchy
@@ -83,6 +96,10 @@ interface CascadeOptions {
   milestone: string;
 }
 
+// =============================================================================
+// Ralph Configuration Types (matches ralph-config.schema.json)
+// =============================================================================
+
 /**
  * Result of a cascade execution
  *
@@ -99,9 +116,17 @@ interface CascadeResult {
   success: boolean;
 }
 
-// =============================================================================
-// Ralph Configuration Types (matches ralph-config.schema.json)
-// =============================================================================
+/**
+ * Entry type discriminator for milestone daily JSONL logs.
+ */
+type DailyLogEntryType =
+  | "calibration"
+  | "iteration"
+  | "planning"
+  | "queue-apply"
+  | "queue-proposal"
+  | "subtask-review"
+  | "validation";
 
 /** Hook action types */
 type HookAction = "log" | "notify" | "pause";
@@ -135,8 +160,11 @@ interface HooksConfig {
 }
 
 /**
- * Entry in the iteration diary (logs/iterations.jsonl)
- * Tracks Ralph iteration outcomes for status reporting and calibration
+ * Entry in the iteration diary
+ *
+ * Iteration records can coexist with planning/validation/calibration records in
+ * milestone-scoped daily JSONL files. Status metrics should only consume
+ * iteration records.
  */
 interface IterationDiaryEntry {
   /** Total cost in USD for this iteration */
@@ -179,14 +207,8 @@ interface IterationDiaryEntry {
   toolCalls?: number;
   /**
    * Entry type discriminator for daily log files.
-   * Allows iteration, planning, and subtask-review entries to coexist in the same
-   * milestone-scoped daily JSONL file while being distinguishable.
-   *
-   * - 'iteration': Build iteration diary entry (Ralph build)
-   * - 'planning': Planning session log (Ralph plan)
-   * - 'subtask-review': Subtask sizing review findings (subtask-reviewer agent)
    */
-  type?: "iteration" | "planning" | "subtask-review";
+  type?: DailyLogEntryType;
 }
 
 /**
@@ -240,6 +262,21 @@ interface PostIterationHookConfig extends HookConfig {
   pauseOnSuccess?: boolean;
 }
 
+/**
+ * Queue proposal apply event emitted after proposal handling.
+ */
+interface QueueApplyLogEntry {
+  afterFingerprint?: QueueFingerprint;
+  applied: boolean;
+  beforeFingerprint?: QueueFingerprint;
+  operationCount: number;
+  sessionId?: string;
+  source: string;
+  summary: string;
+  timestamp: string;
+  type: "queue-apply";
+}
+
 /** Insert a new subtask at an exact queue index. */
 interface QueueCreateOperation {
   atIndex: number;
@@ -257,10 +294,6 @@ interface QueueFingerprint {
   /** SHA-256 hex digest of queue id+done snapshot */
   hash: string;
 }
-
-// =============================================================================
-// Subtask Types (matches subtasks.schema.json)
-// =============================================================================
 
 /**
  * Union of deterministic queue mutation operations.
@@ -287,14 +320,31 @@ interface QueueProposal {
 }
 
 // =============================================================================
-// Queue Operation Types
+// Subtask Types (matches subtasks.schema.json)
 // =============================================================================
+
+/**
+ * Queue proposal event emitted from validation or calibration.
+ */
+interface QueueProposalLogEntry {
+  operationCount: number;
+  proposal: QueueProposal;
+  sessionId?: string;
+  source: string;
+  summary: string;
+  timestamp: string;
+  type: "queue-proposal";
+}
 
 /** Remove a pending subtask by ID. */
 interface QueueRemoveOperation {
   id: string;
   type: "remove";
 }
+
+// =============================================================================
+// Queue Operation Types
+// =============================================================================
 
 /** Move an existing subtask to an exact queue index. */
 interface QueueReorderOperation {
@@ -435,6 +485,22 @@ interface TokenUsage {
 }
 
 /**
+ * Validation entry persisted to a milestone daily log file.
+ */
+interface ValidationLogEntry {
+  aligned?: boolean;
+  issueType?: string;
+  milestone?: string;
+  sessionId?: string;
+  subtaskId?: string;
+  suggestion?: string;
+  summary: string;
+  taskRef?: string;
+  timestamp: string;
+  type: "validation";
+}
+
+/**
  * Compute replay-protection fingerprint from queue id+done state.
  */
 function computeFingerprint(
@@ -548,10 +614,12 @@ function normalizeStatus(raw: string): IterationStatus {
 
 export {
   type BuildOptions,
+  type CalibrationLogEntry,
   type CascadeLevel,
   type CascadeOptions,
   type CascadeResult,
   computeFingerprint,
+  type DailyLogEntryType,
   getProviderTimingMs,
   type HookAction,
   type HookConfig,
@@ -564,9 +632,11 @@ export {
   normalizeIterationTiming,
   normalizeStatus,
   type PostIterationHookConfig,
+  type QueueApplyLogEntry,
   type QueueFingerprint,
   type QueueOperation,
   type QueueProposal,
+  type QueueProposalLogEntry,
   type QueueSubtaskDraft,
   type RalphConfig,
   type SelfImprovementConfig,
@@ -574,4 +644,5 @@ export {
   type SubtaskMetadata,
   type SubtasksFile,
   type TokenUsage,
+  type ValidationLogEntry,
 };

@@ -204,7 +204,7 @@ describe("readIterationDiary mixed-log filtering", () => {
     }
   });
 
-  test("ignores planning and subtask-review records", () => {
+  test("ignores non-iteration records in mixed daily logs", () => {
     const iterationEntry = {
       sessionId: "iteration-session",
       status: "completed",
@@ -226,6 +226,35 @@ describe("readIterationDiary mixed-log filtering", () => {
       timestamp: "2026-02-08T10:02:00Z",
       type: "subtask-review",
     };
+    const validationEntry = {
+      aligned: false,
+      sessionId: "validation-session",
+      subtaskId: "SUB-ITER",
+      summary: "Validation found missing AC coverage",
+      timestamp: "2026-02-08T10:03:00Z",
+      type: "validation",
+    };
+    const calibrationEntry = {
+      sessionId: "calibration-session",
+      summary: "Calibration completed",
+      timestamp: "2026-02-08T10:04:00Z",
+      type: "calibration",
+    };
+    const queueProposalEntry = {
+      operationCount: 1,
+      source: "validation",
+      summary: "Proposed one queue mutation",
+      timestamp: "2026-02-08T10:05:00Z",
+      type: "queue-proposal",
+    };
+    const queueApplyEntry = {
+      applied: true,
+      operationCount: 1,
+      source: "validation",
+      summary: "Applied one queue mutation",
+      timestamp: "2026-02-08T10:06:00Z",
+      type: "queue-apply",
+    };
 
     writeFileSync(
       join(temporaryDirectory, "2026-02-08.jsonl"),
@@ -233,6 +262,10 @@ describe("readIterationDiary mixed-log filtering", () => {
         JSON.stringify(iterationEntry),
         JSON.stringify(planningEntry),
         JSON.stringify(reviewEntry),
+        JSON.stringify(validationEntry),
+        JSON.stringify(calibrationEntry),
+        JSON.stringify(queueProposalEntry),
+        JSON.stringify(queueApplyEntry),
       ].join("\n")}\n`,
     );
 

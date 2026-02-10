@@ -13,7 +13,7 @@ import chalk from "chalk";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import type { IterationDiaryEntry, Subtask } from "./types";
+import type { DailyLogEntryType, IterationDiaryEntry, Subtask } from "./types";
 
 import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import {
@@ -136,7 +136,7 @@ function isIterationDiaryEntry(value: unknown): value is IterationDiaryEntry {
   }
 
   const entry = value as {
-    type?: "iteration" | "planning" | "subtask-review";
+    type?: DailyLogEntryType;
   } & Partial<IterationDiaryEntry>;
 
   // Ignore non-iteration records in mixed daily logs.
