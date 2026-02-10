@@ -828,14 +828,23 @@ ralphCommand.addCommand(
     .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
     .option(
       "--calibrate-every <n>",
-      "Run calibration every N iterations (0 = disabled)",
+      "Run calibration every N iterations; may insert corrective subtasks into queue order (0 = disabled)",
       "0",
     )
-    .option("--validate-first", "Run pre-build validation before building")
+    .option(
+      "--validate-first",
+      "Run pre-build validation; can create/update/remove/reorder/split pending subtasks before build",
+    )
     .option("--provider <name>", "AI provider to use (default: claude)")
     .option("--model <name>", "Model to use (validated against model registry)")
-    .option("--force", "Skip all approval prompts")
-    .option("--review", "Require all approval prompts")
+    .option(
+      "--force",
+      "Approval mode: auto-apply validation/calibration queue proposals (skip prompts)",
+    )
+    .option(
+      "--review",
+      "Approval mode: stage validation/calibration queue proposals for explicit approval",
+    )
     .option("--from <level>", "Resume cascade from this level")
     .option(
       "--cascade <target>",

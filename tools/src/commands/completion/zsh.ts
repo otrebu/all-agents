@@ -278,9 +278,11 @@ _aaa_ralph() {
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
                         '(-q --quiet)'{-q,--quiet}'[Suppress terminal summary output]' \\
                         '--max-iterations[Max retry attempts]:number:' \\
-                        '--validate-first[Run pre-build validation]' \\
+                        '--validate-first[Validate first; may create/update/remove/reorder/split pending queue order]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
-                        '--calibrate-every[Run calibration every N iterations]:number:' \\
+                        '--calibrate-every[Run calibration every N iterations; may insert corrective queue-order subtasks]:number:' \\
+                        '--force[Approval mode: auto-apply validation/calibration queue proposals]' \\
+                        '--review[Approval mode: require explicit approval for validation/calibration queue proposals]' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model'
                     ;;

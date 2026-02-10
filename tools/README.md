@@ -359,16 +359,22 @@ aaa ralph build --subtasks ./my-subtasks.json
 # Max iterations per subtask (default: 3)
 aaa ralph build --max-iterations 5
 
-# Run pre-build validation first
+# Run pre-build validation first (can mutate pending queue order)
 aaa ralph build --validate-first
 
-# Validation proposal handling
-aaa ralph build --validate-first --force   # auto-apply queued validation proposal
-aaa ralph build --validate-first --review  # stage proposal in milestone feedback/ and require approval
+# Approval modes for validation/calibration queue proposals
+aaa ralph build --validate-first --force   # auto-apply queued proposals (skip prompts)
+aaa ralph build --validate-first --review  # stage proposals in milestone feedback/ and require explicit approval
 
 # Print prompt without executing
 aaa ralph build -p
 ```
+
+Queue mutation behavior in build mode:
+
+- `--validate-first` can apply queue proposals that create, update, remove, reorder, or split pending subtasks before iteration selection.
+- `--calibrate-every <n>` can insert corrective subtasks into pending queue order when calibration detects drift.
+- `--force` and `--review` set approval mode for both validation and calibration proposal handling.
 
 **Cascade mode** (chain levels together):
 

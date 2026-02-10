@@ -200,9 +200,11 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s s -l supervis
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s H -l headless -d 'Headless mode: JSON output + logging'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s q -l quiet -d 'Suppress terminal summary output'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l max-iterations -d 'Max retry attempts' -r
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Run pre-build validation'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Validate first; may create/update/remove/reorder/split pending queue order'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-every -d 'Run calibration every N iterations' -r
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-every -d 'Run calibration every N iterations; may insert corrective queue-order subtasks' -r
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l force -d 'Approval mode: auto-apply validation/calibration queue proposals'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l review -d 'Approval mode: require explicit approval for validation/calibration queue proposals'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 
