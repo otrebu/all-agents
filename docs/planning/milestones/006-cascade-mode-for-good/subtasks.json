@@ -556,7 +556,7 @@
       "taskRef": "tech-debt-test-coverage",
       "title": "Add unit tests for CLI subtask parsing functions",
       "description": "Add unit tests for the CLI subtask parsing functions in index.ts: parseCliSubtaskDraft() validation branches (missing title, missing description, invalid storyRef type, non-object input), parseCliSubtaskDrafts() JSON error paths (malformed JSON, empty array), and readQueueProposalFromFile() guard clauses (missing file, invalid JSON, missing operations field). These are the 0.85, 0.82, and 0.88 confidence findings.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Unit test for parseCliSubtaskDraft() covers: missing title throws, missing description throws, invalid storyRef type throws, null input throws, valid draft returns correctly",
         "Unit test for parseCliSubtaskDrafts() covers: malformed JSON throws with message, empty array throws, single object wraps to array, object with subtasks array unwraps",
@@ -567,7 +567,10 @@
         "tools/src/commands/ralph/index.ts",
         "tools/tests/lib/ralph-index.test.ts",
         "tools/tests/e2e/ralph-subtasks-cli.test.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T17:16:37Z",
+      "commitHash": "27d5e1270eecd2e7112bfc0a429b304efb9f020a",
+      "sessionId": "85682707-53d7-48a7-81e5-d02772646028"
     },
     {
       "id": "SUB-027",

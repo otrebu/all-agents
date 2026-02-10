@@ -130,6 +130,11 @@
 - **Changes:** Added targeted unit tests in `queue-ops.test.ts` for append behavior against new/existing files, duplicate ID skipping, and empty input. Added `queue-operations.test.ts` coverage for matching/mismatched/empty-queue fingerprint checks and invalid operation type handling. Exported `hasFingerprintMismatch` and `parseQueueOperation`, and hardened `parseQueueOperation` to throw for unsupported operation types while keeping `parseQueueOperations` fail-open behavior.
 - **Files:** `tools/tests/lib/queue-ops.test.ts`, `tools/tests/lib/queue-operations.test.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/validation.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-026
+- **Problem:** CLI subtask parsing helpers in `ralph/index.ts` lacked direct unit coverage for key validation/error branches and file-read guard clauses.
+- **Changes:** Exported `parseCliSubtaskDraft`, `parseCliSubtaskDrafts`, and `readQueueProposalFromFile` for focused unit testing, then added regression tests for required validation branches (missing title/description, invalid `storyRef`, null input), draft payload JSON error paths (malformed JSON, empty array, single-object wrapping, `subtasks` unwrapping), and proposal-file guards (missing file, invalid JSON, missing `operations`, valid proposal parse).
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/lib/ralph-index.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001
