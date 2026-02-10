@@ -250,7 +250,7 @@
       "taskRef": "WS-04-calibration-refactor",
       "title": "Update calibration prompts for milestone-scoped queue output",
       "description": "Update the intention-drift.md, technical-drift.md, and self-improvement.md calibration prompts to instruct the LLM to produce structured queue operations (JSON) instead of creating task files. The prompts should specify the QueueOperation schema and request deterministic corrective subtasks.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "context/workflows/ralph/calibration/intention-drift.md requests QueueOperation JSON output",
         "context/workflows/ralph/calibration/technical-drift.md requests QueueOperation JSON output",
@@ -263,7 +263,10 @@
         "context/workflows/ralph/calibration/technical-drift.md",
         "context/workflows/ralph/calibration/self-improvement.md",
         "tools/src/commands/ralph/types.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T13:16:44Z",
+      "commitHash": "59d3679e61ceec7448303e9c1e28850cdd870da6",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-013",

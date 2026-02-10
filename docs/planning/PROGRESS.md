@@ -60,6 +60,11 @@
 - **Changes:** Refactored calibration to parse structured corrective-subtask JSON, convert it into `QueueProposal` create operations, and route proposal handling through shared `evaluateApproval("correctionTasks", ...)` behavior with milestone `feedback/` artifact staging. `--review` now stages proposals without queue mutation, `--force` applies proposals automatically, self-improvement mode still supports suggest/autofix behavior, and queue create operations now honor `atIndex` so prepend insertions are deterministic.
 - **Files:** `tools/src/commands/ralph/calibrate.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/index.ts`, `tools/tests/lib/calibrate.test.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-012
+- **Problem:** Calibration prompt templates still instructed drift/self-improvement analyzers to create standalone task files, which conflicted with milestone-scoped queue mutation flow.
+- **Changes:** Updated intention drift, technical drift, and self-improvement calibration prompts to require JSON-only output with deterministic `QueueOperation[]` payloads, embedded the QueueOperation schema reference in each prompt, and added explicit guidance to target the current milestone `subtasks.json` queue with corrective subtask operations.
+- **Files:** `context/workflows/ralph/calibration/intention-drift.md`, `context/workflows/ralph/calibration/technical-drift.md`, `context/workflows/ralph/calibration/self-improvement.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001
