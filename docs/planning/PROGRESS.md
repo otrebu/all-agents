@@ -65,6 +65,11 @@
 - **Changes:** Updated intention drift, technical drift, and self-improvement calibration prompts to require JSON-only output with deterministic `QueueOperation[]` payloads, embedded the QueueOperation schema reference in each prompt, and added explicit guidance to target the current milestone `subtasks.json` queue with corrective subtask operations.
 - **Files:** `context/workflows/ralph/calibration/intention-drift.md`, `context/workflows/ralph/calibration/technical-drift.md`, `context/workflows/ralph/calibration/self-improvement.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-013
+- **Problem:** Daily milestone logs needed explicit type coverage for validation/calibration queue events without breaking iteration-only status metrics.
+- **Changes:** Extended Ralph log typings with `validation`, `calibration`, `queue-proposal`, and `queue-apply` discriminator values, exported typed log-entry interfaces for each new type, updated status filtering to continue accepting only iteration records for metrics, expanded the mixed-log regression test to include the new entry kinds, and updated the iteration diary JSON schema enum.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/status.ts`, `tools/tests/lib/status.test.ts`, `docs/planning/schemas/iteration-diary.schema.json`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

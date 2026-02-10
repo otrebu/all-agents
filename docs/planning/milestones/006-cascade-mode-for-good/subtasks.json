@@ -273,7 +273,7 @@
       "taskRef": "WS-05-unified-logging",
       "title": "Extend daily log entry types for validation and calibration",
       "description": "Add 'validation', 'calibration', 'queue-proposal', and 'queue-apply' to the IterationDiaryEntry type discriminator. Define typed entry shapes for each new type. Update isIterationDiaryEntry() in status.ts to continue filtering non-iteration entries for metrics. Update the iteration-diary.schema.json to include the new types.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "IterationDiaryEntry type field includes 'validation', 'calibration', 'queue-proposal', 'queue-apply'",
         "New type interfaces exported: ValidationLogEntry, CalibrationLogEntry, QueueProposalLogEntry, QueueApplyLogEntry",
@@ -285,7 +285,10 @@
         "tools/src/commands/ralph/types.ts",
         "tools/src/commands/ralph/status.ts",
         "docs/planning/schemas/iteration-diary.schema.json"
-      ]
+      ],
+      "completedAt": "2026-02-10T13:23:37Z",
+      "commitHash": "d28bbdb66ca37d8188c5a0b4703c9a6ad07664bf",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-014",
