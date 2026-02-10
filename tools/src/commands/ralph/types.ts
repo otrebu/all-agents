@@ -11,6 +11,8 @@
  * @see docs/planning/schemas/iteration-diary.schema.json
  */
 
+import { createHash } from "node:crypto";
+
 import type { ProviderType } from "./providers/types";
 
 // =============================================================================
@@ -226,6 +228,105 @@ interface PostIterationHookConfig extends HookConfig {
   pauseOnSuccess?: boolean;
 }
 
+/** Insert a new subtask at an exact queue index. */
+interface QueueCreateOperation {
+  atIndex: number;
+  subtask: QueueSubtaskDraft;
+  type: "create";
+}
+
+/**
+ * Fingerprint for replay protection when applying queue proposals.
+ *
+ * The hash is computed from queue order and done-state snapshots
+ * (`<subtask.id>:<0|1>` joined by `|`) using SHA-256.
+ */
+interface QueueFingerprint {
+  /** SHA-256 hex digest of queue id+done snapshot */
+  hash: string;
+}
+
+/**
+ * Union of deterministic queue mutation operations.
+ */
+type QueueOperation =
+  | QueueCreateOperation
+  | QueueRemoveOperation
+  | QueueReorderOperation
+  | QueueSplitOperation
+  | QueueUpdateOperation;
+
+// =============================================================================
+// Subtask Types (matches subtasks.schema.json)
+// =============================================================================
+
+/**
+ * Queue mutation proposal emitted by validation/calibration.
+ */
+interface QueueProposal {
+  /** Replay-protection snapshot captured before proposal generation */
+  fingerprint: QueueFingerprint;
+  /** Ordered deterministic operations to apply */
+  operations: Array<QueueOperation>;
+  /** Origin of proposal generation (for audit/debugging) */
+  source: string;
+  /** ISO 8601 timestamp for proposal generation */
+  timestamp: string;
+}
+
+/** Remove a pending subtask by ID. */
+interface QueueRemoveOperation {
+  id: string;
+  type: "remove";
+}
+
+// =============================================================================
+// Queue Operation Types
+// =============================================================================
+
+/** Move an existing subtask to an exact queue index. */
+interface QueueReorderOperation {
+  id: string;
+  toIndex: number;
+  type: "reorder";
+}
+
+/** Replace one subtask with multiple deterministic children. */
+interface QueueSplitOperation {
+  id: string;
+  subtasks: Array<QueueSubtaskDraft>;
+  type: "split";
+}
+
+/**
+ * Minimal payload needed to create deterministic new subtasks.
+ */
+type QueueSubtaskDraft = {
+  /** Optional explicit ID; when omitted, apply-time allocates canonical SUB-### */
+  id?: string;
+  /** Optional story linkage */
+  storyRef?: null | string;
+} & Pick<
+  Subtask,
+  "acceptanceCriteria" | "description" | "filesToRead" | "taskRef" | "title"
+>;
+
+/** Patch mutable fields on an existing pending subtask. */
+interface QueueUpdateOperation {
+  changes: Partial<
+    Pick<
+      Subtask,
+      | "acceptanceCriteria"
+      | "description"
+      | "filesToRead"
+      | "storyRef"
+      | "title"
+    >
+  >;
+  id: string;
+  type: "update";
+}
+
 /**
  * Root structure of ralph config section in aaa.config.json
  *
@@ -286,10 +387,6 @@ interface Subtask {
   title: string;
 }
 
-// =============================================================================
-// Subtask Types (matches subtasks.schema.json)
-// =============================================================================
-
 /**
  * Subtask metadata for queue-level information
  */
@@ -323,6 +420,19 @@ interface TokenUsage {
   contextTokens: number;
   /** Output tokens generated (summed across all API calls for cost tracking) */
   outputTokens: number;
+}
+
+/**
+ * Compute replay-protection fingerprint from queue id+done state.
+ */
+function computeFingerprint(
+  subtasks: Array<Pick<Subtask, "done" | "id">>,
+): QueueFingerprint {
+  const snapshot = subtasks
+    .map((subtask) => `${subtask.id}:${subtask.done ? "1" : "0"}`)
+    .join("|");
+
+  return { hash: createHash("sha256").update(snapshot).digest("hex") };
 }
 
 // =============================================================================
@@ -429,6 +539,7 @@ export {
   type CascadeLevel,
   type CascadeOptions,
   type CascadeResult,
+  computeFingerprint,
   getProviderTimingMs,
   type HookAction,
   type HookConfig,
@@ -440,6 +551,10 @@ export {
   normalizeIterationTiming,
   normalizeStatus,
   type PostIterationHookConfig,
+  type QueueFingerprint,
+  type QueueOperation,
+  type QueueProposal,
+  type QueueSubtaskDraft,
   type RalphConfig,
   type SelfImprovementConfig,
   type Subtask,
