@@ -467,7 +467,7 @@
       "taskRef": "bugfix-output-dir-log-path",
       "title": "Add unit tests for milestone resolution from output-dir",
       "description": "Add tests to tools/tests/lib/ralph-index.test.ts for the exported resolveMilestoneFromOptions() function covering: (1) --milestone takes priority over --output-dir, (2) --story takes priority over --output-dir, (3) --output-dir containing a valid milestone path extracts and returns milestone root, (4) --output-dir with a non-milestone path returns undefined, (5) all undefined returns undefined. Also add a test verifying the end-to-end log path resolution: given an output-dir pointing to a milestone, getPlanningLogPath receives the milestone path (not undefined).",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Unit test file tools/tests/lib/ralph-index.test.ts has a describe block for resolveMilestoneFromOptions",
         "Test covers: milestone flag priority, story flag priority, output-dir milestone extraction, non-milestone output-dir fallback, all-undefined case",
@@ -478,7 +478,10 @@
         "tools/tests/lib/ralph-index.test.ts",
         "tools/src/commands/ralph/index.ts",
         "tools/tests/lib/config.test.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T15:29:34Z",
+      "commitHash": "ba51b22e70ef60c6aef03efc0c294fd0408a7025",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-023",

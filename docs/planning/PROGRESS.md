@@ -110,6 +110,11 @@
 - **Changes:** Updated `resolveMilestoneFromOptions()` to accept `outputDirectory` and derive milestone context from `docs/planning/milestones/<slug>` paths when `--milestone`/`--story` are absent, then passed `options.outputDir` at the call site. Exported the resolver for tests and added regression coverage for output-dir inference, milestone/story precedence, and milestone log-path behavior.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/lib/ralph-index.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-022
+- **Problem:** Regression coverage for `resolveMilestoneFromOptions()` needed to explicitly lock the milestone-priority chain and verify log-path resolution keeps milestone context when only `--output-dir` is provided.
+- **Changes:** Expanded `ralph-index` unit coverage with explicit assertions for milestone/story priority over output-dir, milestone extraction from output-dir, non-milestone and all-undefined fallback behavior, and a log-path assertion that confirms `getPlanningLogPath` receives the resolved milestone path (not `undefined`).
+- **Files:** `tools/tests/lib/ralph-index.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

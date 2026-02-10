@@ -1,4 +1,4 @@
-import { getPlanningLogPath } from "@tools/commands/ralph/config";
+import * as ralphConfig from "@tools/commands/ralph/config";
 import {
   resolveMilestoneFromOptions,
   validateApprovalFlags,
@@ -110,6 +110,7 @@ describe("resolveMilestoneFromOptions", () => {
   });
 
   test("resolves planning log path from output-dir milestone instead of _orphan", () => {
+    const getPlanningLogPathSpy = spyOn(ralphConfig, "getPlanningLogPath");
     const resolvedMilestonePath = resolveMilestoneFromOptions(
       undefined,
       undefined,
@@ -131,7 +132,11 @@ describe("resolveMilestoneFromOptions", () => {
       throw new Error("Expected milestone path to resolve");
     }
 
-    const planningLogPath = getPlanningLogPath(resolvedMilestonePath);
+    const planningLogPath = ralphConfig.getPlanningLogPath(
+      resolvedMilestonePath,
+    );
+    expect(getPlanningLogPathSpy).toHaveBeenCalledWith(resolvedMilestonePath);
+    expect(getPlanningLogPathSpy).not.toHaveBeenCalledWith(undefined);
     const utcDate = new Date().toISOString().split("T")[0];
     expect(planningLogPath).toBe(
       path.join(resolvedMilestonePath, "logs", `${utcDate}.jsonl`),
