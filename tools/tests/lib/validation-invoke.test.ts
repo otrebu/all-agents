@@ -66,6 +66,7 @@ describe("validateSubtask", () => {
       const result = await validateSubtask(
         fixture.context,
         fixture.contextRoot,
+        { provider: "claude" },
       );
 
       expect(result).toEqual({ aligned: true });
@@ -102,6 +103,7 @@ describe("validateSubtask", () => {
       const result = await validateSubtask(
         fixture.context,
         fixture.contextRoot,
+        { provider: "claude" },
       );
 
       expect(result).toEqual({ aligned: true });
@@ -127,6 +129,7 @@ describe("validateSubtask", () => {
       const result = await validateSubtask(
         fixture.context,
         fixture.contextRoot,
+        { provider: "claude" },
       );
 
       expect(result).toEqual({ aligned: true });
@@ -154,6 +157,7 @@ describe("validateSubtask", () => {
       const result = await validateSubtask(
         fixture.context,
         fixture.contextRoot,
+        { provider: "claude" },
       );
 
       expect(result).toEqual({
@@ -189,6 +193,7 @@ describe("validateSubtask", () => {
       const result = await validateSubtask(
         fixture.context,
         fixture.contextRoot,
+        { provider: "claude" },
       );
 
       expect(result).toEqual({ aligned: true });
@@ -199,6 +204,33 @@ describe("validateSubtask", () => {
       );
     } finally {
       warnSpy.mockRestore();
+      invokeSpy.mockRestore();
+      fixture.cleanup();
+    }
+  });
+
+  test("forwards configured provider and model to validation invocation", async () => {
+    const fixture = createValidationContextFixture();
+    const invokeSpy = spyOn(
+      summaryProvider,
+      "invokeProviderSummary",
+    ).mockResolvedValue('{"aligned": true}');
+
+    try {
+      const result = await validateSubtask(
+        fixture.context,
+        fixture.contextRoot,
+        { model: "anthropic/claude-3-5-haiku-latest", provider: "opencode" },
+      );
+
+      expect(result).toEqual({ aligned: true });
+      expect(invokeSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          configuredModel: "anthropic/claude-3-5-haiku-latest",
+          provider: "opencode",
+        }),
+      );
+    } finally {
       invokeSpy.mockRestore();
       fixture.cleanup();
     }

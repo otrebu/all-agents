@@ -105,7 +105,11 @@ describe("validateAllSubtasks", () => {
     try {
       const result = await validateAllSubtasks(
         [createSubtask("SUB-413"), createSubtask("SUB-414")],
-        { mode: "headless", subtasksPath: fixture.subtasksPath },
+        {
+          mode: "headless",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
         fixture.milestonePath,
         fixture.contextRoot,
       );
@@ -162,7 +166,11 @@ describe("validateAllSubtasks", () => {
     try {
       const result = await validateAllSubtasks(
         [createSubtask("SUB-411")],
-        { mode: "supervised", subtasksPath: fixture.subtasksPath },
+        {
+          mode: "supervised",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
         fixture.milestonePath,
         fixture.contextRoot,
       );
@@ -219,7 +227,11 @@ describe("validateAllSubtasks", () => {
     try {
       const result = await validateAllSubtasks(
         [createSubtask("SUB-415")],
-        { mode: "supervised", subtasksPath: fixture.subtasksPath },
+        {
+          mode: "supervised",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
         fixture.milestonePath,
         fixture.contextRoot,
       );
@@ -264,7 +276,11 @@ describe("validateAllSubtasks", () => {
     try {
       const result = await validateAllSubtasks(
         [createSubtask("SUB-412")],
-        { mode: "headless", subtasksPath: fixture.subtasksPath },
+        {
+          mode: "headless",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
         fixture.milestonePath,
         fixture.contextRoot,
       );

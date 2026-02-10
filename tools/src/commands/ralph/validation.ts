@@ -9,6 +9,7 @@ import {
 import path from "node:path";
 import * as readline from "node:readline";
 
+import type { ProviderType } from "./providers/types";
 import type { Subtask } from "./types";
 
 import { executeHook } from "./hooks";
@@ -487,7 +488,12 @@ function resolveParentTask(
 // eslint-disable-next-line max-params -- Signature intentionally mirrors build-loop callsite and acceptance criteria
 async function validateAllSubtasks(
   pendingSubtasks: Array<Subtask>,
-  options: { mode: "headless" | "supervised"; subtasksPath: string },
+  options: {
+    mode: "headless" | "supervised";
+    model?: string;
+    provider: ProviderType;
+    subtasksPath: string;
+  },
   milestonePath: string,
   contextRoot: string,
 ): Promise<BatchValidationResult> {
@@ -501,6 +507,7 @@ async function validateAllSubtasks(
     const result = await validateSubtask(
       { milestonePath, subtask, subtasksPath: options.subtasksPath },
       contextRoot,
+      { model: options.model, provider: options.provider },
     );
 
     if (result.aligned) {
@@ -559,8 +566,10 @@ async function validateAllSubtasks(
 async function validateSubtask(
   context: ValidationContext,
   contextRoot: string,
+  options: { model?: string; provider: ProviderType },
 ): Promise<ValidationResult> {
   const { milestonePath, subtask } = context;
+  const { model, provider } = options;
   const { taskContent } = resolveParentTask(subtask.taskRef, milestonePath);
   const hasParentTask = taskContent !== null;
 
@@ -569,8 +578,9 @@ async function validateSubtask(
   const prompt = buildValidationPrompt(subtask, milestonePath, contextRoot);
   const startedAt = Date.now();
   const response = await invokeProviderSummary({
+    configuredModel: model,
     prompt,
-    provider: "claude",
+    provider,
     timeoutMs: VALIDATION_TIMEOUT_MS,
   });
   const elapsedMs = Date.now() - startedAt;

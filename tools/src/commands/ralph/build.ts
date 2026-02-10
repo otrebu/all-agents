@@ -1134,10 +1134,19 @@ async function resolveProviderOrExit(
 async function resolveSkippedSubtaskIds(options: {
   contextRoot: string;
   mode: "headless" | "supervised";
+  model?: string;
+  provider: ProviderType;
   shouldValidateFirst: boolean;
   subtasksPath: string;
 }): Promise<null | Set<string>> {
-  const { contextRoot, mode, shouldValidateFirst, subtasksPath } = options;
+  const {
+    contextRoot,
+    mode,
+    model,
+    provider,
+    shouldValidateFirst,
+    subtasksPath,
+  } = options;
   if (!shouldValidateFirst) {
     return null;
   }
@@ -1166,7 +1175,7 @@ async function resolveSkippedSubtaskIds(options: {
   const milestonePath = path.dirname(subtasksPath);
   const validationResult = await validateAllSubtasks(
     pendingSubtasks,
-    { mode, subtasksPath },
+    { mode, model, provider, subtasksPath },
     milestonePath,
     contextRoot,
   );
@@ -1252,6 +1261,8 @@ async function runBuild(
   skippedSubtaskIds = await resolveSkippedSubtaskIds({
     contextRoot,
     mode,
+    model,
+    provider,
     shouldValidateFirst,
     subtasksPath,
   });

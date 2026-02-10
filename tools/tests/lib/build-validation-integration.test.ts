@@ -25,7 +25,7 @@ describe("build validation integration", () => {
       "const pendingSubtasks = getPendingSubtasks(initialSubtasksFile.subtasks);",
     );
     expect(buildContent).toContain("await validateAllSubtasks(");
-    expect(buildContent).toContain("{ mode, subtasksPath }");
+    expect(buildContent).toContain("{ mode, model, provider, subtasksPath }");
     expect(buildContent).toContain("milestonePath");
     expect(buildContent).toContain("contextRoot");
   });
@@ -46,6 +46,13 @@ describe("build validation integration", () => {
     expect(validationCallIndex).toBeGreaterThan(-1);
     expect(buildStartMessageIndex).toBeGreaterThan(-1);
     expect(validationCallIndex).toBeLessThan(buildStartMessageIndex);
+  });
+
+  test("forwards provider and model into pre-build validation resolver", () => {
+    expect(buildContent).toContain("model,");
+    expect(buildContent).toContain("provider,");
+    expect(buildContent).toContain("model?: string;");
+    expect(buildContent).toContain("provider: ProviderType;");
   });
 
   test("uses validation start messaging that clarifies ordering", () => {
