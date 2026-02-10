@@ -256,12 +256,6 @@ interface PostIterationHookConfig extends HookConfig {
   enabled?: boolean;
   /** Model to use for summary generation */
   model?: string;
-  /** Pause after every iteration */
-  pauseAlways?: boolean;
-  /** Pause when iteration fails */
-  pauseOnFailure?: boolean;
-  /** Pause when iteration succeeds */
-  pauseOnSuccess?: boolean;
 }
 
 /**

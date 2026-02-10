@@ -501,6 +501,142 @@
       "completedAt": "2026-02-10T15:37:53Z",
       "commitHash": "14eb4c5e1cab984c43b4f2e0f1008c33327e05ca",
       "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
+    },
+    {
+      "id": "SUB-024",
+      "taskRef": "tech-debt-code-review-fixes",
+      "title": "Commit applied code review fixes",
+      "description": "Commit the 14 already-applied code review fixes from the cascade-mode-for-good branch. These include: blockedBy removal from CliSubtaskDraft, parseCliSubtaskDraft, and append command; queue-order messaging in --print; blockedBy stripping in saveSubtasksFile normalization; splice bounds check in queue-ops; JSDoc on exported functions in queue-ops and validation; rl.on(\"error\") handlers in build.ts and approvals.ts; try/catch around writeFeedbackFile and appendMilestoneLogEntry I/O; try/catch around approval/notification calls in calibrate; warning log for swallowed JSON parse in calibrate; deduplication of formatSubtaskId and getMaxSubtaskNumber; removal of unused PostIterationHookConfig fields.",
+      "done": false,
+      "acceptanceCriteria": [
+        "All 14 code review fixes are committed in a single conventional commit",
+        "Commit message references the code review plan and lists fix categories",
+        "bun run typecheck exits 0 after commit",
+        "bun test tools/tests/lib/queue-ops.test.ts tools/tests/lib/queue-operations.test.ts tools/tests/e2e/ralph-subtasks-cli.test.ts tools/tests/lib/validation.test.ts tools/tests/lib/build.test.ts tools/tests/lib/calibrate.test.ts — all 63 tests pass"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/types.ts"
+      ]
+    },
+    {
+      "id": "SUB-025",
+      "taskRef": "tech-debt-test-coverage",
+      "title": "Add unit tests for queue-ops and config helpers",
+      "description": "Add unit tests for untested queue-ops and config.ts helper functions: appendSubtasksToFile() guard clauses (empty array, duplicate IDs, missing file creation), hasFingerprintMismatch() (matching fingerprint, mismatched fingerprint, empty queue), and parseQueueOperation() invalid type case. These are the 0.86, 0.79, and 0.81 confidence findings from the code review.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Unit test for appendSubtasksToFile() covers: appending to new file, appending to existing file, skipping duplicate IDs, empty array input",
+        "Unit test for hasFingerprintMismatch() covers: matching fingerprint returns mismatched:false, different fingerprint returns mismatched:true",
+        "Unit test for parseQueueOperation() covers: invalid operation type throws Error",
+        "All new tests pass: bun test tools/tests/lib/queue-ops.test.ts tools/tests/lib/queue-operations.test.ts exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/tests/lib/queue-ops.test.ts",
+        "tools/tests/lib/queue-operations.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-026",
+      "taskRef": "tech-debt-test-coverage",
+      "title": "Add unit tests for CLI subtask parsing functions",
+      "description": "Add unit tests for the CLI subtask parsing functions in index.ts: parseCliSubtaskDraft() validation branches (missing title, missing description, invalid storyRef type, non-object input), parseCliSubtaskDrafts() JSON error paths (malformed JSON, empty array), and readQueueProposalFromFile() guard clauses (missing file, invalid JSON, missing operations field). These are the 0.85, 0.82, and 0.88 confidence findings.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Unit test for parseCliSubtaskDraft() covers: missing title throws, missing description throws, invalid storyRef type throws, null input throws, valid draft returns correctly",
+        "Unit test for parseCliSubtaskDrafts() covers: malformed JSON throws with message, empty array throws, single object wraps to array, object with subtasks array unwraps",
+        "Unit test for readQueueProposalFromFile() covers: missing file throws, invalid JSON throws, missing operations field throws, valid file returns proposal",
+        "All new tests pass: bun test tools/tests/lib/ralph-index.test.ts exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/tests/lib/ralph-index.test.ts",
+        "tools/tests/e2e/ralph-subtasks-cli.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-027",
+      "taskRef": "tech-debt-test-coverage",
+      "title": "Add unit tests for validation approval and skip resolution",
+      "description": "Add unit tests for resolveApprovalForValidationProposal() covering its 3 modes (force auto-applies, review stages, default prompts in supervised/auto-applies in headless), and resolveSkippedSubtaskIds() integration test verifying the end-to-end skip flow from validation result to queue removal. These are the 0.87 and 0.84 confidence findings.",
+      "done": false,
+      "acceptanceCriteria": [
+        "Unit test for resolveApprovalForValidationProposal() covers: force mode returns apply action, review mode returns stage action, default mode in supervised prompts, default mode in headless auto-applies",
+        "Unit test for resolveSkippedSubtaskIds() covers: validation result with skip IDs produces correct removal operations",
+        "All new tests pass: bun test tools/tests/lib/validation.test.ts exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/tests/lib/validation.test.ts",
+        "tools/tests/lib/build.test.ts"
+      ]
+    },
+    {
+      "id": "SUB-028",
+      "taskRef": "tech-debt-maintainability",
+      "title": "Extract subtask CLI helpers from index.ts to subtask-helpers.ts",
+      "description": "Extract subtask-related types and helpers from index.ts (4,172 lines) into a new tools/src/commands/ralph/subtask-helpers.ts module. Move: CliSubtaskDraft interface, QueueDiffSummary interface, areStringArraysEqual(), areSubtasksEqual(), buildQueueDiffSummary(), hasFingerprintMismatch(), parseCliSubtaskDraft(), parseCliSubtaskDrafts(), parseStringArrayField(), readQueueProposalFromFile(). This is approximately 250-300 lines of extraction. Update imports in index.ts to re-import from the new module.",
+      "done": false,
+      "acceptanceCriteria": [
+        "tools/src/commands/ralph/subtask-helpers.ts exists with all extracted types and functions exported",
+        "tools/src/commands/ralph/index.ts imports from subtask-helpers.ts instead of defining inline",
+        "index.ts line count reduced by approximately 250-300 lines",
+        "bun run typecheck exits 0",
+        "Existing tests still pass: bun test tools/tests/e2e/ralph-subtasks-cli.test.ts tools/tests/lib/ralph-index.test.ts exits 0",
+        "tools/CLAUDE.md directory structure updated to include subtask-helpers.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/CLAUDE.md"
+      ]
+    },
+    {
+      "id": "SUB-029",
+      "taskRef": "tech-debt-maintainability",
+      "title": "Cache parent task resolution in validation loop",
+      "description": "Fix the N+1 file I/O issue in validation.ts where resolveParentTask() is called per subtask with readdirSync + readFileSync on every iteration. Add a cache (Map<taskRef, {taskContent, storyRef}>) before the validation loop in validateAllSubtasks(). Populate the cache by resolving unique taskRefs from the pending subtasks array once, then pass cached results to validateSubtask(). This eliminates redundant filesystem calls when multiple subtasks share the same taskRef.",
+      "done": false,
+      "acceptanceCriteria": [
+        "validateAllSubtasks() pre-computes a cache of parent task content and storyRef before the per-subtask loop",
+        "resolveParentTask() or its equivalent is called at most once per unique taskRef value",
+        "No behavioral change: validation results identical before and after caching",
+        "bun run typecheck exits 0",
+        "Existing tests still pass: bun test tools/tests/lib/validation.test.ts exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/config.ts"
+      ]
+    },
+    {
+      "id": "SUB-030",
+      "taskRef": "tech-debt-maintainability",
+      "title": "Minor structural cleanups in types.ts and status.ts",
+      "description": "Apply three small structural improvements identified in code review: (1) In types.ts, split BuildOptions into two focused interfaces — BuildExecutionOptions (mode, model, provider, interactive, quiet) and BuildQueueOptions (subtasksPath, validateFirst, force, review, calibrateEvery, maxIterations, skipSummary) — then compose BuildOptions from them. (2) In status.ts, fix readIterationDiary() to avoid re-sorting entries on every call by sorting in readSingleDiaryFile() once (diary files are already date-scoped so cross-file sorting is unnecessary when files are read in filename order). (3) Move queue parsing functions that couple validation.ts to queue-ops out of validation.ts by importing queue-ops parsing utilities directly.",
+      "done": false,
+      "acceptanceCriteria": [
+        "BuildOptions in types.ts is composed from two smaller interfaces with clear responsibility boundaries",
+        "readIterationDiary() in status.ts does not sort the full merged array; entries arrive pre-sorted from filename-ordered file reads",
+        "bun run typecheck exits 0",
+        "Existing tests still pass: bun test tools/tests/lib/status.test.ts tools/tests/lib/build.test.ts exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/status.ts",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/build.ts"
+      ]
     }
   ]
 }

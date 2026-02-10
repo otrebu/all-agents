@@ -57,7 +57,11 @@ import {
   resolveProvider,
   validateProvider,
 } from "./providers/registry";
-import applyQueueOperations, { applyAndSaveProposal } from "./queue-ops";
+import applyQueueOperations, {
+  applyAndSaveProposal,
+  formatSubtaskId,
+  getMaxSubtaskNumber as getMaxSubtaskNumberFromSubtasks,
+} from "./queue-ops";
 import { runRefreshModels } from "./refresh-models";
 import { runStatus } from "./status";
 import { computeFingerprint, type QueueProposal, type Subtask } from "./types";
@@ -879,22 +883,11 @@ ralphCommand.addCommand(
             );
           } else {
             console.log(
-              "No runnable subtask: all pending subtasks are blocked.",
+              "No runnable subtask found despite pending items in queue.",
             );
-            console.log("Pending blocked subtasks:");
+            console.log("Pending subtasks (queue order):");
             for (const subtask of pending) {
-              const blockedByValue = (subtask as { blockedBy?: unknown })
-                .blockedBy;
-              const blockedBy = Array.isArray(blockedByValue)
-                ? blockedByValue.filter(
-                    (value): value is string => typeof value === "string",
-                  )
-                : [];
-              const dependencies =
-                blockedBy.length === 0
-                  ? "(no blockedBy listed)"
-                  : blockedBy.join(", ");
-              console.log(`- ${subtask.id}: blockedBy ${dependencies}`);
+              console.log(`- ${subtask.id}: ${subtask.title}`);
             }
           }
           console.log("\n=== End of Prompt ===");
@@ -3292,11 +3285,9 @@ function validateApprovalFlags(
 }
 
 // ralph subtasks - queue operations scoped to a milestone
-const SUBTASK_ID_NUMBER_PATTERN = /^SUB-(?<num>\d+)$/;
 
 interface CliSubtaskDraft {
   acceptanceCriteria: Array<string>;
-  blockedBy?: Array<string>;
   description: string;
   filesToRead: Array<string>;
   storyRef?: null | string;
@@ -3376,24 +3367,6 @@ function buildQueueDiffSummary(
   return { added, removed, reordered, updated };
 }
 
-function formatSubtaskId(idNumber: number): string {
-  return `SUB-${String(idNumber).padStart(3, "0")}`;
-}
-
-function getMaxSubtaskNumber(subtaskIds: Array<string>): number {
-  let max = 0;
-  for (const id of subtaskIds) {
-    const numberString = SUBTASK_ID_NUMBER_PATTERN.exec(id)?.groups?.num;
-    if (numberString !== undefined) {
-      const parsed = Number.parseInt(numberString, 10);
-      if (!Number.isNaN(parsed) && parsed > max) {
-        max = parsed;
-      }
-    }
-  }
-
-  return max;
-}
 
 function hasFingerprintMismatch(
   proposal: QueueProposal,
@@ -3414,7 +3387,6 @@ function parseCliSubtaskDraft(candidate: unknown): CliSubtaskDraft {
 
   const {
     acceptanceCriteria,
-    blockedBy,
     description,
     filesToRead,
     storyRef,
@@ -3438,14 +3410,6 @@ function parseCliSubtaskDraft(candidate: unknown): CliSubtaskDraft {
   );
   const parsedFilesToRead = parseStringArrayField("filesToRead", filesToRead);
 
-  if (
-    blockedBy !== undefined &&
-    (!Array.isArray(blockedBy) ||
-      blockedBy.some((item) => typeof item !== "string"))
-  ) {
-    throw new Error("Subtask payload field blockedBy must be array of strings");
-  }
-
   if (typeof taskRef !== "string" || taskRef.trim() === "") {
     throw new Error("Subtask payload requires non-empty string field: taskRef");
   }
@@ -3464,7 +3428,6 @@ function parseCliSubtaskDraft(candidate: unknown): CliSubtaskDraft {
 
   return {
     acceptanceCriteria: parsedAcceptanceCriteria,
-    blockedBy: blockedBy as Array<string> | undefined,
     description,
     filesToRead: parsedFilesToRead,
     storyRef: storyReference,
@@ -3748,12 +3711,9 @@ subtasksCommand.addCommand(
       const subtasksFile = loadSubtasksFile(subtasksPath);
 
       const startNumber =
-        getMaxSubtaskNumber(
-          subtasksFile.subtasks.map((subtask) => subtask.id),
-        ) + 1;
+        getMaxSubtaskNumberFromSubtasks(subtasksFile.subtasks) + 1;
       const subtasksToAppend = drafts.map((draft, index) => ({
         acceptanceCriteria: [...draft.acceptanceCriteria],
-        blockedBy: draft.blockedBy,
         description: draft.description,
         done: false,
         filesToRead: [...draft.filesToRead],

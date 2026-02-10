@@ -19,6 +19,13 @@ interface ApplyAndSaveProposalSummary {
   subtasksBefore: number;
 }
 
+/**
+ * Apply a queue proposal to a subtasks file and persist changes.
+ *
+ * @param subtasksPath - Path to subtasks.json file
+ * @param proposal - Queue proposal containing operations to apply
+ * @returns Summary of changes applied (counts, fingerprints, operation status)
+ */
 function applyAndSaveProposal(
   subtasksPath: string,
   proposal: QueueProposal,
@@ -97,7 +104,8 @@ function applyQueueOperations(
           );
         }
 
-        const [moved] = nextFile.subtasks.splice(target.index, 1);
+        const removed = nextFile.subtasks.splice(target.index, 1);
+        const moved = removed[0];
         if (moved === undefined) {
           throw new Error(`Cannot reorder ${operation.id}: target disappeared`);
         }
@@ -205,6 +213,22 @@ function requirePendingSubtask(
   return { index, subtask };
 }
 
-export { applyAndSaveProposal, type ApplyAndSaveProposalSummary };
+/**
+ * Format a numeric ID into the SUB-NNN pattern.
+ *
+ * @param idNumber - Numeric portion of the subtask ID
+ * @returns Formatted subtask ID string (e.g. "SUB-001")
+ */
+function formatSubtaskId(idNumber: number): string {
+  return `SUB-${String(idNumber).padStart(3, "0")}`;
+}
+
+export {
+  applyAndSaveProposal,
+  type ApplyAndSaveProposalSummary,
+  formatSubtaskId,
+  getMaxSubtaskNumber,
+  SUBTASK_ID_PATTERN,
+};
 
 export default applyQueueOperations;

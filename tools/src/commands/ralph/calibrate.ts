@@ -205,22 +205,28 @@ async function applyCalibrationProposal(
     return true;
   }
 
-  if (action === "notify-wait") {
-    await handleNotifyWait("correctionTasks", approvalConfig, summary);
-  }
-
-  if (action === "prompt") {
-    const didApprove = await promptApproval("correctionTasks", summary);
-    if (!didApprove) {
-      console.log(
-        renderEventLine({
-          domain: "CALIBRATE",
-          message: `${checkName}: corrective proposal declined`,
-          state: "SKIP",
-        }),
-      );
-      return true;
+  try {
+    if (action === "notify-wait") {
+      await handleNotifyWait("correctionTasks", approvalConfig, summary);
     }
+
+    if (action === "prompt") {
+      const didApprove = await promptApproval("correctionTasks", summary);
+      if (!didApprove) {
+        console.log(
+          renderEventLine({
+            domain: "CALIBRATE",
+            message: `${checkName}: corrective proposal declined`,
+            state: "SKIP",
+          }),
+        );
+        return true;
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[Calibration] Approval failed: ${message}`);
+    return false;
   }
 
   const applySummary = applyAndSaveProposal(options.subtasksPath, proposal);
@@ -339,7 +345,9 @@ function parseCalibrationResult(resultText: string): CalibrationParseResult {
   let parsed: unknown = {};
   try {
     parsed = parseCalibrationJson(resultText);
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[Calibration] Failed to parse JSON response: ${message}`);
     return { correctiveSubtasks: [], insertionMode: "prepend", summary: "" };
   }
 

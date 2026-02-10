@@ -724,11 +724,17 @@ function saveSubtasksFile(
     ...serializableData,
     subtasks: serializableData.subtasks.map((subtask) => {
       const subtaskRecord = subtask as unknown as Record<string, unknown>;
-      if (!("status" in subtaskRecord)) {
+      const hasLegacyFields =
+        "status" in subtaskRecord || "blockedBy" in subtaskRecord;
+      if (!hasLegacyFields) {
         return subtask;
       }
 
-      const { status: _legacyStatus, ...normalizedSubtask } = subtaskRecord;
+      const {
+        blockedBy: _legacyBlockedBy,
+        status: _legacyStatus,
+        ...normalizedSubtask
+      } = subtaskRecord;
       return normalizedSubtask as unknown as Subtask;
     }),
   };

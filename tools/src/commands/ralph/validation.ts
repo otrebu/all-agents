@@ -106,10 +106,15 @@ function appendMilestoneLogEntry(
   milestonePath: string,
   entry: QueueApplyLogEntry | QueueProposalLogEntry | ValidationLogEntry,
 ): void {
-  const logPath = getMilestoneLogPath(path.resolve(milestonePath));
-  const logDirectory = path.dirname(logPath);
-  mkdirSync(logDirectory, { recursive: true });
-  appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
+  try {
+    const logPath = getMilestoneLogPath(path.resolve(milestonePath));
+    const logDirectory = path.dirname(logPath);
+    mkdirSync(logDirectory, { recursive: true });
+    appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[Validation] Failed to write milestone log: ${message}`);
+  }
 }
 
 function appendOperations(
@@ -130,6 +135,14 @@ function buildValidationDivider(): string {
   return `${chalk.yellow("╠")}${chalk.yellow("═".repeat(VALIDATION_BOX_INNER_WIDTH))}${chalk.yellow("╣")}`;
 }
 
+/**
+ * Build a validation prompt for a subtask with parent context.
+ *
+ * @param subtask - Subtask to validate
+ * @param milestonePath - Path to milestone containing parent task/story files
+ * @param contextRoot - Root path for workflow file resolution
+ * @returns Complete prompt string ready for provider invocation
+ */
 function buildValidationPrompt(
   subtask: Subtask,
   milestonePath: string,
@@ -188,6 +201,13 @@ function formatIssueType(issueType: string): string {
   }
 }
 
+/**
+ * Generate markdown feedback for a validation failure.
+ *
+ * @param subtask - The subtask that failed validation
+ * @param result - Validation result with reason and suggestion
+ * @returns Formatted markdown feedback document
+ */
 function generateValidationFeedback(
   subtask: Subtask,
   result: ValidationResult,
@@ -257,6 +277,14 @@ function getValidationFeedbackDirectory(milestonePath: string): string {
   return feedbackDirectory;
 }
 
+/**
+ * Handle validation failure in headless mode by writing feedback to disk.
+ *
+ * @param subtask - The subtask that failed validation
+ * @param result - Validation result with reason and suggestion
+ * @param milestonePath - Path to milestone for feedback directory
+ * @returns Path to written feedback file
+ */
 function handleHeadlessValidationFailure(
   subtask: Subtask,
   result: ValidationResult,
@@ -405,6 +433,13 @@ function parseQueueOperation(value: unknown): null | QueueOperation {
   }
 }
 
+/**
+ * Parse and validate queue operations from a validation response.
+ *
+ * @param value - Unknown value to parse (should be array of operations)
+ * @param subtaskId - Subtask ID for logging context
+ * @returns Array of validated operations, or undefined if empty/invalid
+ */
 function parseQueueOperations(
   value: unknown,
   subtaskId: string,
@@ -554,6 +589,13 @@ function parseUpdateOperation(
   return { changes, id: value.id, type: "update" };
 }
 
+/**
+ * Parse a validation response from provider invocation.
+ *
+ * @param rawResponse - Raw text response from the provider
+ * @param subtaskId - Subtask ID for logging context
+ * @returns Parsed validation result with aligned status and optional operations
+ */
 function parseValidationResponse(
   rawResponse: string,
   subtaskId: string,

@@ -1129,6 +1129,11 @@ async function resolveApprovalForValidationProposal(options: {
       output: process.stdout,
     });
 
+    rl.on("error", () => {
+      rl.close();
+      resolve(false);
+    });
+
     rl.on("SIGINT", () => {
       rl.close();
       process.emit("SIGINT");
