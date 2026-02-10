@@ -135,6 +135,11 @@
 - **Changes:** Exported `parseCliSubtaskDraft`, `parseCliSubtaskDrafts`, and `readQueueProposalFromFile` for focused unit testing, then added regression tests for required validation branches (missing title/description, invalid `storyRef`, null input), draft payload JSON error paths (malformed JSON, empty array, single-object wrapping, `subtasks` unwrapping), and proposal-file guards (missing file, invalid JSON, missing `operations`, valid proposal parse).
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/lib/ralph-index.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-027
+- **Problem:** Coverage gaps remained for validation proposal approval behavior and skip-to-queue-removal resolution in the build loop.
+- **Changes:** Exported `resolveApprovalForValidationProposal()` and `resolveSkippedSubtaskIds()` from `build.ts`, added unit tests for approval resolution across force/review/default supervised/default headless modes, and added an integration test that stubs validation output and verifies skipped subtask IDs are converted into remove operations that mutate `subtasks.json`.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build.test.ts`, `tools/tests/lib/build-skip-resolution.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

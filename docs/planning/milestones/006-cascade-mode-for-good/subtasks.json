@@ -577,7 +577,7 @@
       "taskRef": "tech-debt-test-coverage",
       "title": "Add unit tests for validation approval and skip resolution",
       "description": "Add unit tests for resolveApprovalForValidationProposal() covering its 3 modes (force auto-applies, review stages, default prompts in supervised/auto-applies in headless), and resolveSkippedSubtaskIds() integration test verifying the end-to-end skip flow from validation result to queue removal. These are the 0.87 and 0.84 confidence findings.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "Unit test for resolveApprovalForValidationProposal() covers: force mode returns apply action, review mode returns stage action, default mode in supervised prompts, default mode in headless auto-applies",
         "Unit test for resolveSkippedSubtaskIds() covers: validation result with skip IDs produces correct removal operations",
@@ -588,7 +588,10 @@
         "tools/src/commands/ralph/build.ts",
         "tools/tests/lib/validation.test.ts",
         "tools/tests/lib/build.test.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T17:25:06Z",
+      "commitHash": "8e433af32801a39026e333b43adcac40c2de9a30",
+      "sessionId": "85682707-53d7-48a7-81e5-d02772646028"
     },
     {
       "id": "SUB-028",
