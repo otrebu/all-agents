@@ -45,6 +45,11 @@
 - **Changes:** Refactored validation parsing and batch results to support queue operation proposals (`create/update/remove/reorder/split`), updated the pre-build validation prompt contract to request structured operations, mapped legacy skip decisions to `remove` operations for backward compatibility, and wired build-time `--validate-first` to apply proposals through `applyAndSaveProposal()` before iteration selection.
 - **Files:** `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/build.ts`, `tools/tests/lib/validation.test.ts`, `tools/tests/lib/validation-batch.test.ts`, `context/workflows/ralph/building/pre-build-validation.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-009
+- **Problem:** `--validate-first` always auto-applied validation proposals, so build mode/flags could not control when proposals are staged, reviewed, or approved before queue mutation.
+- **Changes:** Added validation-proposal approval policy wiring for build (`--force`, `--review`, and default mode behavior), staged proposal artifacts into milestone `feedback/` before apply decisions, and blocked headless `--review` runs until explicit approval. Updated validation flow to always write misalignment feedback artifacts to milestone `feedback/` (including supervised mode), and added E2E coverage for force/default/review validation-first proposal handling plus unit coverage for proposal mode resolution and artifact writing.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/cascade.ts`, `tools/README.md`, `tools/tests/e2e/ralph.test.ts`, `tools/tests/lib/build.test.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `tools/tests/lib/validation-batch.test.ts`, `tools/tests/lib/validation-headless.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

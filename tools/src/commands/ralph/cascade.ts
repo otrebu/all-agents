@@ -700,12 +700,14 @@ async function runLevel(
       // Build default options for runBuild
       const buildOptions: BuildOptions = {
         calibrateEvery,
+        force: isForceFlag === true,
         interactive: false,
         maxIterations: 0,
         mode: "headless",
         model,
         provider,
         quiet: false,
+        review: isReviewFlag === true,
         skipSummary: false,
         subtasksPath,
         validateFirst: shouldValidateFirst,

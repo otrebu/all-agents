@@ -362,6 +362,10 @@ aaa ralph build --max-iterations 5
 # Run pre-build validation first
 aaa ralph build --validate-first
 
+# Validation proposal handling
+aaa ralph build --validate-first --force   # auto-apply queued validation proposal
+aaa ralph build --validate-first --review  # stage proposal in milestone feedback/ and require approval
+
 # Print prompt without executing
 aaa ralph build -p
 ```

@@ -182,7 +182,7 @@
       "taskRef": "WS-03-validation-first-refactor",
       "title": "Implement --force and --review approval for validation proposals",
       "description": "Wire --force and --review flags into the validation-first flow. With --force, proposals are applied immediately and build proceeds on the updated queue. With --review, proposals are written to milestone feedback/ folder as a staged artifact and build only proceeds after explicit approval. Persist validation feedback artifacts in milestone feedback folder always.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "--force applies validation proposals immediately and build continues on updated queue",
         "--review writes proposal to milestone feedback/ folder and blocks until approval",
@@ -195,7 +195,10 @@
         "tools/src/commands/ralph/validation.ts",
         "tools/src/commands/ralph/queue-ops.ts",
         "tools/src/commands/ralph/cascade.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T12:44:38Z",
+      "commitHash": "da64a5cd143190b3d81bd42c8db8bf7bfe555814",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-010",

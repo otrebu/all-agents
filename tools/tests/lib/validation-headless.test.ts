@@ -8,6 +8,7 @@ import type { Mock } from "bun:test";
 import {
   generateValidationFeedback,
   handleHeadlessValidationFailure,
+  writeValidationProposalArtifact,
 } from "@tools/commands/ralph/validation";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
@@ -211,5 +212,38 @@ describe("handleHeadlessValidationFailure", () => {
     expect(logSpy).toHaveBeenCalledWith(
       `[Validation:SUB-409] Wrote feedback: ${filePath}`,
     );
+  });
+});
+
+describe("writeValidationProposalArtifact", () => {
+  let milestoneDirectory = "";
+
+  beforeEach(() => {
+    milestoneDirectory = mkdtempSync(
+      path.join(tmpdir(), "validation-proposal-artifact-"),
+    );
+  });
+
+  afterEach(() => {
+    rmSync(milestoneDirectory, { force: true, recursive: true });
+  });
+
+  test("writes proposal artifact under milestone feedback directory", () => {
+    const artifactPath = writeValidationProposalArtifact(
+      milestoneDirectory,
+      [{ id: "SUB-001", type: "remove" }],
+      { aligned: 0, skipped: 1, total: 1 },
+    );
+
+    expect(path.isAbsolute(artifactPath)).toBe(true);
+    expect(artifactPath).toContain("feedback/");
+    expect(path.basename(artifactPath)).toMatch(/validation_proposal\.md$/);
+    expect(existsSync(artifactPath)).toBe(true);
+
+    const content = readFileSync(artifactPath, "utf8");
+    expect(content).toContain("# Validation Proposal");
+    expect(content).toContain("**Operations:** 1");
+    expect(content).toContain('"type": "remove"');
+    expect(content).toContain('"id": "SUB-001"');
   });
 });

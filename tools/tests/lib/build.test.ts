@@ -3,6 +3,7 @@ import {
   buildIterationContext,
   getSubtaskQueueStats,
   getSubtasksSizeGuidanceLines,
+  resolveValidationProposalMode,
 } from "@tools/commands/ralph/build";
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -157,5 +158,47 @@ describe("getSubtasksSizeGuidanceLines", () => {
         m.includes("Provider invocation may not be able to update this file"),
       ),
     ).toBe(false);
+  });
+});
+
+describe("resolveValidationProposalMode", () => {
+  test("uses force flag to auto-apply in supervised mode", () => {
+    const mode = resolveValidationProposalMode({
+      mode: "supervised",
+      shouldForceProposalApply: true,
+      shouldRequireProposalReview: false,
+    });
+
+    expect(mode).toBe("auto-apply");
+  });
+
+  test("uses review flag to require approval", () => {
+    const mode = resolveValidationProposalMode({
+      mode: "headless",
+      shouldForceProposalApply: false,
+      shouldRequireProposalReview: true,
+    });
+
+    expect(mode).toBe("review");
+  });
+
+  test("defaults to prompt in supervised mode", () => {
+    const mode = resolveValidationProposalMode({
+      mode: "supervised",
+      shouldForceProposalApply: false,
+      shouldRequireProposalReview: false,
+    });
+
+    expect(mode).toBe("prompt");
+  });
+
+  test("defaults to auto-apply in headless mode", () => {
+    const mode = resolveValidationProposalMode({
+      mode: "headless",
+      shouldForceProposalApply: false,
+      shouldRequireProposalReview: false,
+    });
+
+    expect(mode).toBe("auto-apply");
   });
 });

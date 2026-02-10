@@ -918,12 +918,14 @@ ralphCommand.addCommand(
       await runBuild(
         {
           calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+          force: options.force === true,
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
           model: options.model,
           provider: options.provider as ProviderType,
           quiet: options.quiet === true,
+          review: options.review === true,
           skipSummary: options.skipSummary === true,
           subtasksPath,
           validateFirst: options.validateFirst === true,

@@ -236,20 +236,18 @@ describe("validateAllSubtasks", () => {
         fixture.contextRoot,
       );
 
-      expect(result).toEqual({
-        aligned: 0,
-        operations: [{ id: "SUB-415", type: "remove" }],
-        skippedSubtasks: [
-          {
-            feedbackPath: "",
-            issueType: "scope_creep",
-            reason: "Expands beyond task",
-            subtaskId: "SUB-415",
-          },
-        ],
-        success: false,
-        total: 1,
-      });
+      expect(result.aligned).toBe(0);
+      expect(result.operations).toEqual([{ id: "SUB-415", type: "remove" }]);
+      expect(result.success).toBe(false);
+      expect(result.total).toBe(1);
+      expect(result.skippedSubtasks).toHaveLength(1);
+
+      const skippedSubtask = result.skippedSubtasks[0];
+      expect(skippedSubtask?.issueType).toBe("scope_creep");
+      expect(skippedSubtask?.reason).toBe("Expands beyond task");
+      expect(skippedSubtask?.subtaskId).toBe("SUB-415");
+      expect(skippedSubtask?.feedbackPath).toContain("feedback/");
+      expect(existsSync(skippedSubtask?.feedbackPath ?? "")).toBe(true);
       expect(hookSpy).not.toHaveBeenCalled();
     } finally {
       logSpy.mockRestore();

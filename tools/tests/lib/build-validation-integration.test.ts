@@ -9,9 +9,9 @@ const buildContent = readFileSync(BUILD_TS_PATH, "utf8");
 
 describe("build validation integration", () => {
   test("imports validateAllSubtasks", () => {
-    expect(buildContent).toContain(
-      'import { validateAllSubtasks } from "./validation"',
-    );
+    expect(buildContent).toContain('from "./validation"');
+    expect(buildContent).toContain("validateAllSubtasks");
+    expect(buildContent).toContain("writeValidationProposalArtifact");
   });
 
   test("declares skippedSubtaskIds before validate-first block", () => {
@@ -51,8 +51,16 @@ describe("build validation integration", () => {
   test("forwards provider and model into pre-build validation resolver", () => {
     expect(buildContent).toContain("model,");
     expect(buildContent).toContain("provider,");
+    expect(buildContent).toContain("shouldForceProposalApply,");
+    expect(buildContent).toContain("shouldRequireProposalReview,");
     expect(buildContent).toContain("model?: string;");
     expect(buildContent).toContain("provider: ProviderType;");
+  });
+
+  test("stages validation proposals before optional apply", () => {
+    expect(buildContent).toContain("writeValidationProposalArtifact(");
+    expect(buildContent).toContain("resolveApprovalForValidationProposal({");
+    expect(buildContent).toContain("resolveValidationProposalMode({");
   });
 
   test("uses validation start messaging that clarifies ordering", () => {

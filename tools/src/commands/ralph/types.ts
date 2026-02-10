@@ -25,6 +25,8 @@ import type { ProviderType } from "./providers/types";
 interface BuildOptions {
   /** Run calibration every N iterations (0 = disabled) */
   calibrateEvery: number;
+  /** Skip validation proposal approval prompts and auto-apply proposals */
+  force: boolean;
   /** Pause between iterations for user confirmation */
   interactive: boolean;
   /** Maximum iterations per subtask (0 = unlimited) */
@@ -37,6 +39,8 @@ interface BuildOptions {
   provider?: ProviderType;
   /** Suppress terminal summary output */
   quiet: boolean;
+  /** Require explicit approval before applying validation proposals */
+  review: boolean;
   /** Skip lightweight summary generation in headless mode to reduce latency and cost */
   skipSummary: boolean;
   /** Path to subtasks.json file */

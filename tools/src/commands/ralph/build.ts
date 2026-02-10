@@ -65,9 +65,13 @@ import {
   type BuildOptions,
   getProviderTimingMs,
   type QueueOperation,
+  type QueueProposal,
   type Subtask,
 } from "./types";
-import { validateAllSubtasks } from "./validation";
+import {
+  validateAllSubtasks,
+  writeValidationProposalArtifact,
+} from "./validation";
 
 // =============================================================================
 // Constants
@@ -197,6 +201,8 @@ interface SupervisedIterationResult {
   didComplete: boolean;
   hookResult: null | PostIterationResult;
 }
+
+type ValidationProposalMode = "auto-apply" | "prompt" | "review";
 
 // =============================================================================
 // Module-Level State for Signal Handling
@@ -1095,6 +1101,55 @@ function registerSignalHandlers(): void {
   });
 }
 
+async function resolveApprovalForValidationProposal(options: {
+  proposalMode: ValidationProposalMode;
+  proposalPath: string;
+}): Promise<boolean> {
+  const { proposalMode, proposalPath } = options;
+
+  if (proposalMode === "auto-apply") {
+    return true;
+  }
+
+  const isExplicitApprovalRequired = proposalMode === "review";
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.error(
+      "Validation proposal requires approval, but no TTY is available.",
+    );
+    console.error(`Review proposal artifact: ${proposalPath}`);
+    return false;
+  }
+
+  const question = isExplicitApprovalRequired
+    ? "Apply staged validation proposal after review? [y/N] "
+    : "Apply staged validation proposal before build starts? [Y/n] ";
+
+  // eslint-disable-next-line promise/avoid-new -- readline requires callback API
+  return new Promise<boolean>((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.on("SIGINT", () => {
+      rl.close();
+      process.emit("SIGINT");
+      resolve(false);
+    });
+
+    rl.question(question, (answer) => {
+      rl.close();
+      const normalized = answer.trim().toLowerCase();
+      if (isExplicitApprovalRequired) {
+        resolve(normalized === "y" || normalized === "yes");
+        return;
+      }
+
+      resolve(!(normalized === "n" || normalized === "no"));
+    });
+  });
+}
+
 /**
  * Resolve model selection with priority:
  * CLI flag > config file
@@ -1141,6 +1196,8 @@ async function resolveSkippedSubtaskIds(options: {
   mode: "headless" | "supervised";
   model?: string;
   provider: ProviderType;
+  shouldForceProposalApply: boolean;
+  shouldRequireProposalReview: boolean;
   shouldValidateFirst: boolean;
   subtasksPath: string;
 }): Promise<null | Set<string>> {
@@ -1149,6 +1206,8 @@ async function resolveSkippedSubtaskIds(options: {
     mode,
     model,
     provider,
+    shouldForceProposalApply,
+    shouldRequireProposalReview,
     shouldValidateFirst,
     subtasksPath,
   } = options;
@@ -1199,12 +1258,47 @@ async function resolveSkippedSubtaskIds(options: {
   const operations = validationResult.operations ?? defaultRemoveOperations;
 
   if (operations.length > 0) {
-    const summary = applyAndSaveProposal(subtasksPath, {
+    const proposalMode = resolveValidationProposalMode({
+      mode,
+      shouldForceProposalApply,
+      shouldRequireProposalReview,
+    });
+    const proposal: QueueProposal = {
       fingerprint: initialSubtasksFile.fingerprint,
       operations,
       source: "validation",
       timestamp: new Date().toISOString(),
+    };
+    const proposalPath = writeValidationProposalArtifact(
+      milestonePath,
+      operations,
+      {
+        aligned: validationResult.aligned,
+        skipped: validationResult.skippedSubtasks.length,
+        total: pendingSubtasks.length,
+      },
+    );
+
+    console.log(
+      renderEventLine({
+        domain: "VALIDATE",
+        message: `Validation proposal staged: ${proposalPath}`,
+        state: "INFO",
+      }),
+    );
+
+    const didApprove = await resolveApprovalForValidationProposal({
+      proposalMode,
+      proposalPath,
     });
+    if (!didApprove) {
+      console.error(
+        "Build paused: validation proposal not approved. Re-run with --force to auto-apply.",
+      );
+      process.exit(1);
+    }
+
+    const summary = applyAndSaveProposal(subtasksPath, proposal);
 
     const state = summary.applied ? "DONE" : "SKIP";
     const message = summary.applied
@@ -1214,6 +1308,25 @@ async function resolveSkippedSubtaskIds(options: {
   }
 
   return new Set(validationResult.skippedSubtasks.map((s) => s.subtaskId));
+}
+
+function resolveValidationProposalMode(options: {
+  mode: "headless" | "supervised";
+  shouldForceProposalApply: boolean;
+  shouldRequireProposalReview: boolean;
+}): ValidationProposalMode {
+  const { mode, shouldForceProposalApply, shouldRequireProposalReview } =
+    options;
+  if (shouldForceProposalApply) {
+    return "auto-apply";
+  }
+  if (shouldRequireProposalReview) {
+    return "review";
+  }
+  if (mode === "headless") {
+    return "auto-apply";
+  }
+  return "prompt";
 }
 
 /**
@@ -1232,11 +1345,13 @@ async function runBuild(
 ): Promise<void> {
   const {
     calibrateEvery,
+    force: shouldForceProposalApply,
     interactive: isInteractive,
     maxIterations,
     mode,
     model: modelOverride,
     quiet: isQuiet,
+    review: shouldRequireProposalReview,
     skipSummary: shouldSkipSummary,
     subtasksPath,
     validateFirst: shouldValidateFirst,
@@ -1288,6 +1403,8 @@ async function runBuild(
     mode,
     model,
     provider,
+    shouldForceProposalApply,
+    shouldRequireProposalReview,
     shouldValidateFirst,
     subtasksPath,
   });
@@ -1659,5 +1776,6 @@ export {
   buildIterationPrompt,
   getSubtaskQueueStats,
   getSubtasksSizeGuidanceLines,
+  resolveValidationProposalMode,
 };
 export default runBuild;

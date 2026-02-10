@@ -49,6 +49,12 @@ type ValidationIssueType =
   | "too_narrow"
   | "unfaithful";
 
+interface ValidationProposalArtifactOptions {
+  aligned: number;
+  skipped: number;
+  total: number;
+}
+
 interface ValidationResult {
   aligned: boolean;
   issueType?: ValidationIssueType;
@@ -215,14 +221,19 @@ function getMilestoneFromPath(milestonePath: string): string {
   return path.basename(milestonePath);
 }
 
+function getValidationFeedbackDirectory(milestonePath: string): string {
+  const absoluteMilestonePath = path.resolve(milestonePath);
+  const feedbackDirectory = path.join(absoluteMilestonePath, "feedback");
+  mkdirSync(feedbackDirectory, { recursive: true });
+  return feedbackDirectory;
+}
+
 function handleHeadlessValidationFailure(
   subtask: Subtask,
   result: ValidationResult,
   milestonePath: string,
 ): string {
-  const absoluteMilestonePath = path.resolve(milestonePath);
-  const feedbackDirectory = path.join(absoluteMilestonePath, "feedback");
-  mkdirSync(feedbackDirectory, { recursive: true });
+  const feedbackDirectory = getValidationFeedbackDirectory(milestonePath);
 
   const date = new Date().toISOString().split("T")[0];
   const filePath = path.join(
@@ -739,6 +750,11 @@ async function validateAllSubtasks(
       console.log(`  ${subtask.id}: ${chalk.green("aligned")}`);
     } else {
       const reason = result.reason ?? "Unknown alignment issue";
+      const feedbackPath = handleHeadlessValidationFailure(
+        subtask,
+        result,
+        milestonePath,
+      );
       console.log(`  ${subtask.id}: ${chalk.red("misaligned")} - ${reason}`);
 
       if (options.mode === "supervised") {
@@ -749,7 +765,7 @@ async function validateAllSubtasks(
         } else {
           operations.push({ id: subtask.id, type: "remove" });
           skippedSubtasks.push({
-            feedbackPath: "",
+            feedbackPath,
             issueType: result.issueType,
             reason,
             subtaskId: subtask.id,
@@ -757,11 +773,6 @@ async function validateAllSubtasks(
         }
       } else {
         operations.push({ id: subtask.id, type: "remove" });
-        const feedbackPath = handleHeadlessValidationFailure(
-          subtask,
-          result,
-          milestonePath,
-        );
         skippedSubtasks.push({
           feedbackPath,
           issueType: result.issueType,
@@ -862,12 +873,46 @@ function wrapText(text: string, width: number): Array<string> {
   return lines.length === 0 ? [""] : lines;
 }
 
+function writeValidationProposalArtifact(
+  milestonePath: string,
+  operations: Array<QueueOperation>,
+  options: ValidationProposalArtifactOptions,
+): string {
+  const feedbackDirectory = getValidationFeedbackDirectory(milestonePath);
+  const timestamp = new Date().toISOString();
+  const fileTimestamp = timestamp.replaceAll(":", "-").replaceAll(".", "-");
+  const filePath = path.join(
+    feedbackDirectory,
+    `${fileTimestamp}_validation_proposal.md`,
+  );
+  const content = [
+    "# Validation Proposal",
+    "",
+    `**Generated:** ${timestamp}`,
+    `**Milestone:** ${getMilestoneFromPath(milestonePath)}`,
+    `**Validation Summary:** ${options.aligned}/${options.total} aligned, ${options.skipped} skipped`,
+    `**Operations:** ${operations.length}`,
+    "",
+    "## Queue Operations",
+    "",
+    "```json",
+    JSON.stringify(operations, null, 2),
+    "```",
+    "",
+  ].join("\n");
+
+  writeFileSync(filePath, content, "utf8");
+  console.log(`[Validation] Wrote proposal artifact: ${filePath}`);
+  return filePath;
+}
+
 export {
   type BatchValidationResult,
   buildValidationPrompt,
   formatIssueType,
   generateValidationFeedback,
   getMilestoneFromPath,
+  getValidationFeedbackDirectory,
   handleHeadlessValidationFailure,
   handleSupervisedValidationFailure,
   normalizeMissingParentTaskFailure,
@@ -885,6 +930,8 @@ export {
   VALIDATION_TIMEOUT_MS,
   type ValidationContext,
   type ValidationIssueType,
+  type ValidationProposalArtifactOptions,
   type ValidationResult,
   wrapText,
+  writeValidationProposalArtifact,
 };
