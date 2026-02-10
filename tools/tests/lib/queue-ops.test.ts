@@ -52,7 +52,7 @@ describe("applyQueueOperations", () => {
     expect(typeof applyQueueOperations).toBe("function");
   });
 
-  test("create appends and allocates next canonical SUB id", () => {
+  test("create inserts at target index and allocates next canonical SUB id", () => {
     const input = makeSubtasksFile([
       makeSubtask("SUB-001"),
       makeSubtask("SUB-002"),
@@ -74,12 +74,52 @@ describe("applyQueueOperations", () => {
     const result = applyQueueOperations(input, proposal);
 
     expect(result.subtasks.map((subtask) => subtask.id)).toEqual([
+      "SUB-003",
       "SUB-001",
       "SUB-002",
-      "SUB-003",
     ]);
-    expect(result.subtasks[2]?.done).toBe(false);
-    expect(result.subtasks[2]?.title).toBe("Created");
+    expect(result.subtasks[0]?.done).toBe(false);
+    expect(result.subtasks[0]?.title).toBe("Created");
+  });
+
+  test("prepend create operations preserve draft order at queue front", () => {
+    const input = makeSubtasksFile([
+      makeSubtask("SUB-001"),
+      makeSubtask("SUB-002"),
+    ]);
+    const proposal = makeProposal(input, [
+      {
+        atIndex: 0,
+        subtask: {
+          acceptanceCriteria: ["first AC"],
+          description: "first description",
+          filesToRead: ["first"],
+          taskRef: "TASK-001",
+          title: "First corrective",
+        },
+        type: "create",
+      },
+      {
+        atIndex: 1,
+        subtask: {
+          acceptanceCriteria: ["second AC"],
+          description: "second description",
+          filesToRead: ["second"],
+          taskRef: "TASK-001",
+          title: "Second corrective",
+        },
+        type: "create",
+      },
+    ]);
+
+    const result = applyQueueOperations(input, proposal);
+
+    expect(result.subtasks.map((subtask) => subtask.title)).toEqual([
+      "First corrective",
+      "Second corrective",
+      "SUB-001",
+      "SUB-002",
+    ]);
   });
 
   test("update modifies pending subtasks", () => {
@@ -195,12 +235,12 @@ describe("applyQueueOperations", () => {
     const second = applyQueueOperations(first, proposal);
 
     expect(first.subtasks.map((subtask) => subtask.id)).toEqual([
-      "SUB-001",
       "SUB-002",
+      "SUB-001",
     ]);
     expect(second.subtasks.map((subtask) => subtask.id)).toEqual([
-      "SUB-001",
       "SUB-002",
+      "SUB-001",
     ]);
   });
 
@@ -220,6 +260,24 @@ describe("applyQueueOperations", () => {
     expect(() =>
       applyQueueOperations(missingTargetInput, missingTargetProposal),
     ).toThrow(/Cannot remove SUB-999: subtask not found/);
+
+    const invalidCreateProposal = makeProposal(missingTargetInput, [
+      {
+        atIndex: -1,
+        subtask: {
+          acceptanceCriteria: ["invalid"],
+          description: "invalid",
+          filesToRead: ["x"],
+          taskRef: "TASK-001",
+          title: "Invalid",
+        },
+        type: "create",
+      },
+    ]);
+
+    expect(() =>
+      applyQueueOperations(missingTargetInput, invalidCreateProposal),
+    ).toThrow(/Cannot create subtask: atIndex -1 is out of range/);
   });
 });
 
@@ -297,11 +355,11 @@ describe("applyAndSaveProposal", () => {
     expect(summary.fingerprintAfter).toBe(reloaded.fingerprint.hash);
 
     expect(reloaded.subtasks.map((subtask) => subtask.id)).toEqual([
-      "SUB-001",
       "SUB-002",
+      "SUB-001",
     ]);
-    expect(reloaded.subtasks[0]?.title).toBe("Seed updated");
-    expect(reloaded.subtasks[1]?.title).toBe("Created");
+    expect(reloaded.subtasks[0]?.title).toBe("Created");
+    expect(reloaded.subtasks[1]?.title).toBe("Seed updated");
     expect(savedRaw.subtasks[0]?.status).toBeUndefined();
   });
 });

@@ -55,12 +55,21 @@ function applyQueueOperations(
   for (const operation of proposal.operations) {
     switch (operation.type) {
       case "create": {
+        if (
+          operation.atIndex < 0 ||
+          operation.atIndex > nextFile.subtasks.length ||
+          !Number.isInteger(operation.atIndex)
+        ) {
+          throw new Error(
+            `Cannot create subtask: atIndex ${operation.atIndex} is out of range`,
+          );
+        }
         const createdSubtask = buildSubtaskFromDraft(
           operation.subtask,
           nextIdNumber,
         );
         nextIdNumber += 1;
-        nextFile.subtasks.push(createdSubtask);
+        nextFile.subtasks.splice(operation.atIndex, 0, createdSubtask);
         break;
       }
       case "remove": {

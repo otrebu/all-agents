@@ -3775,8 +3775,8 @@ subtasksCommand.addCommand(
 
       const proposal = {
         fingerprint: subtasksFile.fingerprint,
-        operations: drafts.map((draft) => ({
-          atIndex: subtasksFile.subtasks.length,
+        operations: drafts.map((draft, index) => ({
+          atIndex: subtasksFile.subtasks.length + index,
           subtask: {
             acceptanceCriteria: [...draft.acceptanceCriteria],
             description: draft.description,

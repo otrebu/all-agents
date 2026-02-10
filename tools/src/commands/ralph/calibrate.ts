@@ -12,13 +12,27 @@
  * @see context/workflows/ralph/calibration/self-improvement.md
  */
 
+import { loadAaaConfig } from "@tools/lib/config";
 import chalk from "chalk";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { ProviderType } from "./providers/types";
-import type { RalphConfig, Subtask, SubtasksFile } from "./types";
+import type {
+  LoadedSubtasksFile,
+  QueueOperation,
+  QueueProposal,
+  QueueSubtaskDraft,
+  Subtask,
+  SubtasksFile,
+} from "./types";
 
+import {
+  type ApprovalAction,
+  evaluateApproval,
+  handleNotifyWait,
+  promptApproval,
+} from "./approvals";
 import {
   getCompletedSubtasks,
   loadRalphConfig,
@@ -31,6 +45,7 @@ import {
   renderPhaseCard,
 } from "./display";
 import { invokeWithProvider, resolveProvider } from "./providers/registry";
+import { applyAndSaveProposal } from "./queue-ops";
 
 // =============================================================================
 // Types
@@ -63,34 +78,141 @@ type CalibrateSubcommand = "all" | "improve" | "intention" | "technical";
 // Approval Mode Logic
 // =============================================================================
 
-/**
- * Determine approval mode based on config and CLI flags
- *
- * CLI overrides:
- * - --force → "force" (skip approval)
- * - --review → "review" (require approval)
- *
- * @param config - Ralph configuration
- * @param options - CLI options with force/review flags
- * @returns Approval mode string
- */
-function getApprovalMode(
-  config: RalphConfig,
-  options: CalibrateOptions,
-): string {
-  if (options.force === true) {
-    return "force";
-  }
-  if (options.review === true) {
-    return "review";
-  }
-  // Default to "auto" if not specified in config
-  return "auto";
+interface CalibrationParseResult {
+  correctiveSubtasks: Array<QueueSubtaskDraft>;
+  insertionMode: "append" | "prepend";
+  summary: string;
 }
 
-// =============================================================================
-// Subtask Helpers
-// =============================================================================
+interface CalibrationProposalArtifactOptions {
+  action: ApprovalAction;
+  checkName: string;
+  milestonePath: string;
+  proposal: QueueProposal;
+  summary: string;
+}
+
+interface CalibrationProposalContext {
+  checkName: string;
+  options: CalibrateOptions;
+  resultText: string;
+  selfImproveMode?: "autofix" | "suggest";
+}
+
+async function applyCalibrationProposal(
+  context: CalibrationProposalContext,
+): Promise<boolean> {
+  const { checkName, options, resultText, selfImproveMode } = context;
+  const subtasksFile = loadSubtasksFileOrNull(options.subtasksPath);
+  if (subtasksFile === null) {
+    return false;
+  }
+
+  const parsed = parseCalibrationResult(resultText);
+  if (parsed.correctiveSubtasks.length === 0) {
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: `${checkName}: no corrective subtasks proposed`,
+        state: "INFO",
+      }),
+    );
+    return true;
+  }
+
+  const operations = buildCalibrationCreateOperations(
+    parsed.correctiveSubtasks,
+    parsed.insertionMode,
+    subtasksFile,
+  );
+  const proposal: QueueProposal = {
+    fingerprint: subtasksFile.fingerprint,
+    operations,
+    source: `calibration:${checkName.toLowerCase().replaceAll(/\s+/g, "-")}`,
+    timestamp: new Date().toISOString(),
+  };
+  const milestonePath = getMilestonePath(options.subtasksPath);
+  const approvalConfig = loadAaaConfig().ralph?.approvals;
+
+  const action = evaluateApproval("correctionTasks", approvalConfig, {
+    forceFlag: options.force === true,
+    isTTY: Boolean(process.stdin.isTTY) && Boolean(process.stdout.isTTY),
+    reviewFlag:
+      options.review === true ||
+      (selfImproveMode === "suggest" && options.force !== true),
+  });
+  const summary =
+    parsed.summary === ""
+      ? `Create ${parsed.correctiveSubtasks.length} corrective subtask(s) from ${checkName}.`
+      : parsed.summary;
+  const artifactPath = writeCalibrationProposalArtifact({
+    action,
+    checkName,
+    milestonePath,
+    proposal,
+    summary,
+  });
+
+  const shouldStageOnly = options.review === true || action === "exit-unstaged";
+  if (shouldStageOnly) {
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: `${checkName}: proposal staged for review at ${artifactPath}`,
+        state: "DONE",
+      }),
+    );
+    return true;
+  }
+
+  if (action === "notify-wait") {
+    await handleNotifyWait("correctionTasks", approvalConfig, summary);
+  }
+
+  if (action === "prompt") {
+    const didApprove = await promptApproval("correctionTasks", summary);
+    if (!didApprove) {
+      console.log(
+        renderEventLine({
+          domain: "CALIBRATE",
+          message: `${checkName}: corrective proposal declined`,
+          state: "SKIP",
+        }),
+      );
+      return true;
+    }
+  }
+
+  const applySummary = applyAndSaveProposal(options.subtasksPath, proposal);
+  const state = applySummary.applied ? "DONE" : "SKIP";
+  const message = applySummary.applied
+    ? `${checkName}: applied ${applySummary.operationsApplied} operation(s), queue ${applySummary.subtasksBefore} -> ${applySummary.subtasksAfter}`
+    : `${checkName}: proposal stale, queue changed before apply (artifact: ${artifactPath})`;
+  console.log(renderEventLine({ domain: "CALIBRATE", message, state }));
+
+  return true;
+}
+
+function buildCalibrationCreateOperations(
+  drafts: Array<QueueSubtaskDraft>,
+  insertionMode: "append" | "prepend",
+  subtasksFile: SubtasksFile,
+): Array<QueueOperation> {
+  const baseIndex =
+    insertionMode === "prepend" ? 0 : subtasksFile.subtasks.length;
+  return drafts.map((draft, index) => ({
+    atIndex: baseIndex + index,
+    subtask: {
+      acceptanceCriteria: [...draft.acceptanceCriteria],
+      description: draft.description,
+      filesToRead: [...draft.filesToRead],
+      storyRef: draft.storyRef,
+      taskRef: draft.taskRef,
+      title: draft.title,
+    },
+    type: "create",
+  }));
+}
 
 /**
  * Get session IDs from completed subtasks
@@ -119,13 +241,29 @@ function getCompletedWithCommitHash(
   );
 }
 
+function getMilestonePath(subtasksPath: string): string {
+  return path.dirname(path.resolve(subtasksPath));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is Array<string> {
+  return (
+    Array.isArray(value) && value.every((entry) => typeof entry === "string")
+  );
+}
+
 /**
  * Load subtasks file, returning null on error (logs error message)
  *
  * @param subtasksPath - Path to subtasks file
  * @returns SubtasksFile or null on error
  */
-function loadSubtasksFileOrNull(subtasksPath: string): null | SubtasksFile {
+function loadSubtasksFileOrNull(
+  subtasksPath: string,
+): LoadedSubtasksFile | null {
   try {
     return loadSubtasksFile(subtasksPath);
   } catch (error) {
@@ -135,9 +273,80 @@ function loadSubtasksFileOrNull(subtasksPath: string): null | SubtasksFile {
   }
 }
 
+function parseCalibrationJson(resultText: string): unknown {
+  const trimmed = resultText.trim();
+  if (trimmed === "") {
+    return {};
+  }
+
+  const fencedMatch = /```json\s*(?<json>[\s\S]*?)\s*```/i.exec(trimmed);
+  const candidate = fencedMatch?.groups?.json ?? trimmed;
+  return JSON.parse(candidate);
+}
+
 // =============================================================================
-// Intention Drift Check
+// Subtask Helpers
 // =============================================================================
+
+function parseCalibrationResult(resultText: string): CalibrationParseResult {
+  let parsed: unknown = {};
+  try {
+    parsed = parseCalibrationJson(resultText);
+  } catch {
+    return { correctiveSubtasks: [], insertionMode: "prepend", summary: "" };
+  }
+
+  if (!isRecord(parsed)) {
+    return { correctiveSubtasks: [], insertionMode: "prepend", summary: "" };
+  }
+
+  const insertionMode =
+    parsed.insertionMode === "append" ? "append" : "prepend";
+  const summary = typeof parsed.summary === "string" ? parsed.summary : "";
+  const draftsRaw = parsed.correctiveSubtasks;
+  if (!Array.isArray(draftsRaw)) {
+    return { correctiveSubtasks: [], insertionMode, summary };
+  }
+
+  const correctiveSubtasks = draftsRaw
+    .map((entry) => parseQueueSubtaskDraft(entry))
+    .filter((draft): draft is QueueSubtaskDraft => draft !== null);
+
+  return { correctiveSubtasks, insertionMode, summary };
+}
+
+function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (
+    !isStringArray(value.acceptanceCriteria) ||
+    typeof value.description !== "string" ||
+    !isStringArray(value.filesToRead) ||
+    typeof value.taskRef !== "string" ||
+    typeof value.title !== "string"
+  ) {
+    return null;
+  }
+
+  const draft: QueueSubtaskDraft = {
+    acceptanceCriteria: value.acceptanceCriteria,
+    description: value.description,
+    filesToRead: value.filesToRead,
+    taskRef: value.taskRef,
+    title: value.title,
+  };
+
+  if (typeof value.storyRef === "string" && value.storyRef.trim() !== "") {
+    draft.storyRef = value.storyRef;
+  }
+  if (value.storyRef === null) {
+    draft.storyRef = null;
+  }
+
+  return draft;
+}
 
 /**
  * Run calibration check(s) based on subcommand
@@ -207,7 +416,7 @@ async function runCalibrate(
 }
 
 // =============================================================================
-// Technical Drift Check
+// Intention Drift Check
 // =============================================================================
 
 /**
@@ -258,7 +467,7 @@ async function runImproveCheck(
   // Uses unified config loader (no explicit path needed)
   const config = loadRalphConfig();
   // Mode is "suggest", "autofix", or "off"
-  const selfImproveMode = (config.selfImprovement?.mode ?? "suggest") as string;
+  const selfImproveMode = config.selfImprovement?.mode ?? "suggest";
 
   // Check for "off" mode - skip analysis entirely
   if (selfImproveMode === "off") {
@@ -317,29 +526,32 @@ Config file: @${unifiedConfigPath}
 Session IDs to analyze: ${sessionIds}
 
 Self-improvement mode: ${selfImproveMode}
-- If 'suggest': Create task files only, require user approval before applying changes
-- If 'autofix': Apply changes directly to target files (CLAUDE.md, prompts, skills) without creating task files
+- If 'suggest': Stage proposal artifacts for review (no queue mutation)
+- If 'autofix': Apply corrective queue insertions automatically
 
 IMPORTANT: You MUST output a readable markdown summary to stdout following the format in the self-improvement.md prompt.
 The summary should include:
 - Session ID and subtask title
 - Findings organized by inefficiency type (Tool Misuse, Wasted Reads, Backtracking, Excessive Iterations)
 - Recommendations for improvements
-- Reference to any task files created (in 'suggest' mode) or changes applied (in 'autofix' mode)
+- Reference to corrective subtasks proposed or applied
 
-TASK FILE CREATION (when mode is 'suggest' and inefficiencies are found):
-When you find inefficiencies that warrant improvement, create task files at:
-  docs/planning/tasks/self-improve-YYYY-MM-DD-N.md
-where YYYY-MM-DD is today's date and N is a sequential number (01, 02, etc).
-
-Each task file should follow the format in self-improvement.md:
-- Task title describing the improvement
-- Source (session ID that revealed the inefficiency)
-- Problem description
-- Proposed change (specific change to make)
-- Target file (CLAUDE.md, prompts, skills)
-- Risk level (low/medium/high)
-- Acceptance criteria
+Queue proposal output contract (JSON only):
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
 
 Analyze session logs from completed subtasks for inefficiencies.
 Handle improvements based on the mode above.
@@ -373,6 +585,16 @@ ${promptContent}`;
       );
       return false;
     }
+
+    const isApplied = await applyCalibrationProposal({
+      checkName: "Self-Improvement",
+      options,
+      resultText: result.result,
+      selfImproveMode,
+    });
+    if (!isApplied) {
+      return false;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Self-improvement analysis error: ${message}`);
@@ -390,7 +612,7 @@ ${promptContent}`;
 }
 
 // =============================================================================
-// Self-Improvement Check
+// Technical Drift Check
 // =============================================================================
 
 /**
@@ -451,18 +673,6 @@ async function runIntentionCheck(
     return true;
   }
 
-  // Load config and determine approval mode
-  // Uses unified config loader (no explicit path needed)
-  const config = loadRalphConfig();
-  const approvalMode = getApprovalMode(config, options);
-  console.log(
-    renderEventLine({
-      domain: "CALIBRATE",
-      message: `Approval mode: ${approvalMode}`,
-      state: "INFO",
-    }),
-  );
-
   // Read the prompt file
   const promptContent = readFileSync(promptPath, "utf8");
 
@@ -478,13 +688,30 @@ Context files:
 @${path.join(contextRoot, "docs/planning/PROGRESS.md")}
 @${path.join(contextRoot, "docs/planning/VISION.md")}
 
-Approval mode: ${approvalMode}
-- If 'autofix': Create drift task files automatically
-- If 'suggest' or 'review': Show findings and ask for approval before creating task files
-- If 'force': Create drift task files without asking
+Output contract:
+- Return JSON only (optionally in a \`\`\`json code fence)
+- Provide corrective subtasks, not standalone task files
+- Default insertion mode should be "prepend" so corrective work runs first
+
+JSON schema:
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
 
 Analyze all completed subtasks with commitHash and output a summary to stdout.
-If drift is detected, create task files in docs/planning/tasks/ as specified in the prompt.
+If drift is detected, propose corrective subtasks in the JSON output.
 
 ${promptContent}`;
 
@@ -515,6 +742,15 @@ ${promptContent}`;
       );
       return false;
     }
+
+    const isApplied = await applyCalibrationProposal({
+      checkName: "Intention Drift",
+      options,
+      resultText: result.result,
+    });
+    if (!isApplied) {
+      return false;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Intention drift analysis error: ${message}`);
@@ -532,7 +768,7 @@ ${promptContent}`;
 }
 
 // =============================================================================
-// Main Entry Point
+// Self-Improvement Check
 // =============================================================================
 
 /**
@@ -606,11 +842,6 @@ async function runTechnicalCheck(
     return true;
   }
 
-  // Load config and determine approval mode
-  // Uses unified config loader (no explicit path needed)
-  const config = loadRalphConfig();
-  const approvalMode = getApprovalMode(config, options);
-
   // Read the prompt file
   const promptContent = readFileSync(promptPath, "utf8");
 
@@ -624,7 +855,27 @@ Subtasks file: @${subtasksPath}
 Context files:
 @${path.join(contextRoot, "CLAUDE.md")}
 
-Approval mode: ${approvalMode}
+Output contract:
+- Return JSON only (optionally in a \`\`\`json code fence)
+- Provide corrective subtasks, not standalone task files
+- Default insertion mode should be "prepend" so corrective work runs first
+
+JSON schema:
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
 
 Analyze code quality issues in completed subtasks and output a summary to stdout.
 
@@ -657,6 +908,15 @@ ${promptContent}`;
       );
       return false;
     }
+
+    const isApplied = await applyCalibrationProposal({
+      checkName: "Technical Drift",
+      options,
+      resultText: result.result,
+    });
+    if (!isApplied) {
+      return false;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Technical drift analysis error: ${message}`);
@@ -674,12 +934,58 @@ ${promptContent}`;
 }
 
 // =============================================================================
+// Main Entry Point
+// =============================================================================
+
+function writeCalibrationProposalArtifact(
+  options: CalibrationProposalArtifactOptions,
+): string {
+  const { action, checkName, milestonePath, proposal, summary } = options;
+  const feedbackDirectory = path.join(milestonePath, "feedback");
+  mkdirSync(feedbackDirectory, { recursive: true });
+
+  const timestamp = new Date().toISOString();
+  const safeTimestamp = timestamp.replaceAll(":", "-").replaceAll(".", "-");
+  const safeCheckName = checkName.toLowerCase().replaceAll(/\s+/g, "-");
+  const filePath = path.join(
+    feedbackDirectory,
+    `${safeTimestamp}_calibration_${safeCheckName}_proposal.md`,
+  );
+
+  const content = [
+    "# Calibration Proposal",
+    "",
+    `**Generated:** ${timestamp}`,
+    `**Check:** ${checkName}`,
+    `**Milestone:** ${path.basename(milestonePath)}`,
+    `**Approval action:** ${action}`,
+    `**Operations:** ${proposal.operations.length}`,
+    "",
+    "## Summary",
+    "",
+    summary === "" ? "(No summary provided)" : summary,
+    "",
+    "## Queue Proposal",
+    "",
+    "```json",
+    JSON.stringify(proposal, null, 2),
+    "```",
+    "",
+  ].join("\n");
+
+  writeFileSync(filePath, content, "utf8");
+  return filePath;
+}
+
+// =============================================================================
 // Exports
 // =============================================================================
 
 export {
+  buildCalibrationCreateOperations,
   type CalibrateOptions,
   type CalibrateSubcommand,
+  parseCalibrationResult,
   runCalibrate,
   runImproveCheck,
   runIntentionCheck,
