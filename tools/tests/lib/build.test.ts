@@ -3,11 +3,13 @@ import {
   buildIterationContext,
   getSubtaskQueueStats,
   getSubtasksSizeGuidanceLines,
+  resolveApprovalForValidationProposal,
   resolveValidationProposalMode,
 } from "@tools/commands/ralph/build";
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import * as readline from "node:readline";
 
 describe("getSubtaskQueueStats", () => {
   test("returns pending/completed totals", () => {
@@ -200,5 +202,151 @@ describe("resolveValidationProposalMode", () => {
     });
 
     expect(mode).toBe("auto-apply");
+  });
+});
+
+describe("resolveApprovalForValidationProposal", () => {
+  const stdinTtyDescriptor = Object.getOwnPropertyDescriptor(
+    process.stdin,
+    "isTTY",
+  );
+  const stdoutTtyDescriptor = Object.getOwnPropertyDescriptor(
+    process.stdout,
+    "isTTY",
+  );
+
+  afterEach(() => {
+    if (stdinTtyDescriptor !== undefined) {
+      Object.defineProperty(process.stdin, "isTTY", stdinTtyDescriptor);
+    }
+    if (stdoutTtyDescriptor !== undefined) {
+      Object.defineProperty(process.stdout, "isTTY", stdoutTtyDescriptor);
+    }
+  });
+
+  test("force mode auto-applies without prompting", async () => {
+    const proposalMode = resolveValidationProposalMode({
+      mode: "supervised",
+      shouldForceProposalApply: true,
+      shouldRequireProposalReview: false,
+    });
+    const createInterfaceSpy = spyOn(readline, "createInterface");
+
+    const isApproved = await resolveApprovalForValidationProposal({
+      proposalMode,
+      proposalPath: "/tmp/force-proposal.json",
+    });
+
+    expect(isApproved).toBe(true);
+    expect(createInterfaceSpy).not.toHaveBeenCalled();
+    createInterfaceSpy.mockRestore();
+  });
+
+  test("review mode stages proposal for explicit approval", async () => {
+    const proposalMode = resolveValidationProposalMode({
+      mode: "headless",
+      shouldForceProposalApply: false,
+      shouldRequireProposalReview: true,
+    });
+    Object.defineProperty(process.stdin, "isTTY", {
+      configurable: true,
+      value: true,
+    });
+    Object.defineProperty(process.stdout, "isTTY", {
+      configurable: true,
+      value: true,
+    });
+
+    let prompt = "";
+    /* eslint-disable promise/prefer-await-to-callbacks -- readline mock intentionally uses callbacks */
+    const createInterfaceSpy = spyOn(
+      readline,
+      "createInterface",
+    ).mockReturnValue({
+      close: mock(() => {}),
+      on: mock(() => undefined as unknown as readline.Interface),
+      question: (
+        value: string,
+        callback: (answer: string) => void,
+      ): readline.Interface => {
+        prompt = value;
+        callback("yes");
+        return undefined as unknown as readline.Interface;
+      },
+    } as unknown as readline.Interface);
+    /* eslint-enable promise/prefer-await-to-callbacks */
+
+    const isApproved = await resolveApprovalForValidationProposal({
+      proposalMode,
+      proposalPath: "/tmp/review-proposal.json",
+    });
+
+    expect(prompt).toContain("after review");
+    expect(isApproved).toBe(true);
+    expect(createInterfaceSpy).toHaveBeenCalledTimes(1);
+    createInterfaceSpy.mockRestore();
+  });
+
+  test("default supervised mode prompts before applying", async () => {
+    const proposalMode = resolveValidationProposalMode({
+      mode: "supervised",
+      shouldForceProposalApply: false,
+      shouldRequireProposalReview: false,
+    });
+    Object.defineProperty(process.stdin, "isTTY", {
+      configurable: true,
+      value: true,
+    });
+    Object.defineProperty(process.stdout, "isTTY", {
+      configurable: true,
+      value: true,
+    });
+
+    let prompt = "";
+    /* eslint-disable promise/prefer-await-to-callbacks -- readline mock intentionally uses callbacks */
+    const createInterfaceSpy = spyOn(
+      readline,
+      "createInterface",
+    ).mockReturnValue({
+      close: mock(() => {}),
+      on: mock(() => undefined as unknown as readline.Interface),
+      question: (
+        value: string,
+        callback: (answer: string) => void,
+      ): readline.Interface => {
+        prompt = value;
+        callback("n");
+        return undefined as unknown as readline.Interface;
+      },
+    } as unknown as readline.Interface);
+    /* eslint-enable promise/prefer-await-to-callbacks */
+
+    const isApproved = await resolveApprovalForValidationProposal({
+      proposalMode,
+      proposalPath: "/tmp/default-supervised-proposal.json",
+    });
+
+    expect(prompt).toContain("before build starts");
+    expect(isApproved).toBe(false);
+    expect(createInterfaceSpy).toHaveBeenCalledTimes(1);
+    createInterfaceSpy.mockRestore();
+  });
+
+  test("default headless mode auto-applies", async () => {
+    const proposalMode = resolveValidationProposalMode({
+      mode: "headless",
+      shouldForceProposalApply: false,
+      shouldRequireProposalReview: false,
+    });
+    const createInterfaceSpy = spyOn(readline, "createInterface");
+
+    const isApproved = await resolveApprovalForValidationProposal({
+      proposalMode,
+      proposalPath: "/tmp/default-headless-proposal.json",
+    });
+
+    expect(isApproved).toBe(true);
+    expect(createInterfaceSpy).not.toHaveBeenCalled();
+    createInterfaceSpy.mockRestore();
   });
 });

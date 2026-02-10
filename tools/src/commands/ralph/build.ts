@@ -1809,6 +1809,8 @@ export {
   buildIterationPrompt,
   getSubtaskQueueStats,
   getSubtasksSizeGuidanceLines,
+  resolveApprovalForValidationProposal,
+  resolveSkippedSubtaskIds,
   resolveValidationProposalMode,
 };
 export default runBuild;
