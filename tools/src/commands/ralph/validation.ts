@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -10,8 +11,17 @@ import path from "node:path";
 import * as readline from "node:readline";
 
 import type { ProviderType } from "./providers/types";
-import type { QueueOperation, QueueSubtaskDraft, Subtask } from "./types";
+import type {
+  QueueApplyLogEntry,
+  QueueOperation,
+  QueueProposal,
+  QueueProposalLogEntry,
+  QueueSubtaskDraft,
+  Subtask,
+  ValidationLogEntry,
+} from "./types";
 
+import { getMilestoneLogPath } from "./config";
 import { executeHook } from "./hooks";
 import { invokeProviderSummary } from "./providers/summary";
 
@@ -63,6 +73,15 @@ interface ValidationResult {
   suggestion?: string;
 }
 
+interface WriteValidationQueueApplyLogOptions {
+  applied: boolean;
+  fingerprints?: { after?: string; before?: string };
+  operationCount: number;
+  sessionId?: string;
+  source: string;
+  summary: string;
+}
+
 const VALID_ISSUE_TYPES = new Set<ValidationIssueType>([
   "scope_creep",
   "too_broad",
@@ -82,6 +101,16 @@ const VALIDATION_BOX_WIDTH = 64;
 const VALIDATION_BOX_INNER_WIDTH = VALIDATION_BOX_WIDTH - 2;
 const VALIDATION_CONTENT_WIDTH = 56;
 const VALIDATION_LINE_CONTENT_WIDTH = VALIDATION_BOX_WIDTH - 4;
+
+function appendMilestoneLogEntry(
+  milestonePath: string,
+  entry: QueueApplyLogEntry | QueueProposalLogEntry | ValidationLogEntry,
+): void {
+  const logPath = getMilestoneLogPath(path.resolve(milestonePath));
+  const logDirectory = path.dirname(logPath);
+  mkdirSync(logDirectory, { recursive: true });
+  appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
+}
 
 function appendOperations(
   destination: Array<QueueOperation>,
@@ -791,6 +820,17 @@ async function validateAllSubtasks(
   }
 
   printValidationSummary(pendingSubtasks.length, alignedCount, skippedSubtasks);
+  appendMilestoneLogEntry(milestonePath, {
+    aligned: skippedSubtasks.length === 0,
+    milestone: getMilestoneFromPath(milestonePath),
+    operationCount: operations.length,
+    source: "validation",
+    summary:
+      `Validated ${alignedCount}/${pendingSubtasks.length} subtasks; ` +
+      `${skippedSubtasks.length} misaligned`,
+    timestamp: new Date().toISOString(),
+    type: "validation",
+  });
 
   return {
     aligned: alignedCount,
@@ -875,7 +915,7 @@ function wrapText(text: string, width: number): Array<string> {
 
 function writeValidationProposalArtifact(
   milestonePath: string,
-  operations: Array<QueueOperation>,
+  proposal: QueueProposal,
   options: ValidationProposalArtifactOptions,
 ): string {
   const feedbackDirectory = getValidationFeedbackDirectory(milestonePath);
@@ -891,19 +931,52 @@ function writeValidationProposalArtifact(
     `**Generated:** ${timestamp}`,
     `**Milestone:** ${getMilestoneFromPath(milestonePath)}`,
     `**Validation Summary:** ${options.aligned}/${options.total} aligned, ${options.skipped} skipped`,
-    `**Operations:** ${operations.length}`,
+    `**Operations:** ${proposal.operations.length}`,
     "",
     "## Queue Operations",
     "",
     "```json",
-    JSON.stringify(operations, null, 2),
+    JSON.stringify(proposal.operations, null, 2),
     "```",
     "",
   ].join("\n");
 
   writeFileSync(filePath, content, "utf8");
+  appendMilestoneLogEntry(milestonePath, {
+    operationCount: proposal.operations.length,
+    proposal,
+    source: proposal.source,
+    summary:
+      `Validation proposal generated (${options.aligned}/${options.total} aligned, ` +
+      `${options.skipped} skipped)`,
+    timestamp,
+    type: "queue-proposal",
+  });
   console.log(`[Validation] Wrote proposal artifact: ${filePath}`);
   return filePath;
+}
+
+function writeValidationQueueApplyLogEntry(
+  milestonePath: string,
+  options: WriteValidationQueueApplyLogOptions,
+): void {
+  appendMilestoneLogEntry(milestonePath, {
+    afterFingerprint:
+      options.fingerprints?.after === undefined
+        ? undefined
+        : { hash: options.fingerprints.after },
+    applied: options.applied,
+    beforeFingerprint:
+      options.fingerprints?.before === undefined
+        ? undefined
+        : { hash: options.fingerprints.before },
+    operationCount: options.operationCount,
+    sessionId: options.sessionId,
+    source: options.source,
+    summary: options.summary,
+    timestamp: new Date().toISOString(),
+    type: "queue-apply",
+  });
 }
 
 export {
@@ -934,4 +1007,5 @@ export {
   type ValidationResult,
   wrapText,
   writeValidationProposalArtifact,
+  writeValidationQueueApplyLogEntry,
 };

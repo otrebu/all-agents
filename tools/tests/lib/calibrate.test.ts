@@ -1,14 +1,19 @@
 import {
   buildCalibrationCreateOperations,
   parseCalibrationResult,
+  writeCalibrationLogEntry,
+  writeCalibrationQueueApplyLogEntry,
+  writeCalibrationQueueProposalLogEntry,
 } from "@tools/commands/ralph/calibrate";
+import { getMilestoneLogPath } from "@tools/commands/ralph/config";
 import applyQueueOperations from "@tools/commands/ralph/queue-ops";
 import {
   computeFingerprint,
   type QueueProposal,
 } from "@tools/commands/ralph/types";
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 describe("parseCalibrationResult", () => {
@@ -137,5 +142,73 @@ describe("calibrate approval wiring", () => {
 
     expect(source).toContain('evaluateApproval("correctionTasks"');
     expect(source).not.toContain("function getApprovalMode(");
+  });
+});
+
+describe("calibration daily log entries", () => {
+  test("writes calibration, queue-proposal, and queue-apply entries", () => {
+    const rootDirectory = mkdtempSync(path.join(tmpdir(), "calibrate-log-"));
+    const milestonePath = path.join(rootDirectory, "006-cascade-mode");
+    mkdirSync(milestonePath, { recursive: true });
+
+    try {
+      const proposal: QueueProposal = {
+        fingerprint: computeFingerprint([]),
+        operations: [{ id: "SUB-001", type: "remove" }],
+        source: "calibration:intention-drift",
+        timestamp: "2026-02-10T00:00:00Z",
+      };
+
+      writeCalibrationLogEntry({
+        milestonePath,
+        operationCount: 0,
+        source: "calibration",
+        summary: "Calibration intention completed",
+      });
+      writeCalibrationQueueProposalLogEntry(
+        milestonePath,
+        proposal,
+        "Intention Drift: corrective proposal generated",
+      );
+      writeCalibrationQueueApplyLogEntry({
+        applied: true,
+        milestonePath,
+        operationCount: 1,
+        source: proposal.source,
+        summary: "Intention Drift: applied 1 operation",
+      });
+
+      const logPath = getMilestoneLogPath(milestonePath);
+      const parsedEntries = readFileSync(logPath, "utf8")
+        .trim()
+        .split("\n")
+        .map(
+          (line) =>
+            JSON.parse(line) as { type?: string } & Record<string, unknown>,
+        );
+
+      expect(
+        parsedEntries.find((entry) => entry.type === "calibration"),
+      ).toMatchObject({
+        operationCount: 0,
+        source: "calibration",
+        summary: "Calibration intention completed",
+      });
+      expect(
+        parsedEntries.find((entry) => entry.type === "queue-proposal"),
+      ).toMatchObject({
+        operationCount: 1,
+        source: "calibration:intention-drift",
+      });
+      expect(
+        parsedEntries.find((entry) => entry.type === "queue-apply"),
+      ).toMatchObject({
+        applied: true,
+        operationCount: 1,
+        source: "calibration:intention-drift",
+      });
+    } finally {
+      rmSync(rootDirectory, { force: true, recursive: true });
+    }
   });
 });

@@ -1,13 +1,15 @@
-import type { Subtask } from "@tools/commands/ralph/types";
-import type {
-  SkippedSubtask,
-  ValidationResult,
-} from "@tools/commands/ralph/validation";
 import type { Mock } from "bun:test";
 
 import {
+  computeFingerprint,
+  type QueueProposal,
+  type Subtask,
+} from "@tools/commands/ralph/types";
+import {
   generateValidationFeedback,
   handleHeadlessValidationFailure,
+  type SkippedSubtask,
+  type ValidationResult,
   writeValidationProposalArtifact,
 } from "@tools/commands/ralph/validation";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
@@ -229,9 +231,15 @@ describe("writeValidationProposalArtifact", () => {
   });
 
   test("writes proposal artifact under milestone feedback directory", () => {
+    const proposal: QueueProposal = {
+      fingerprint: computeFingerprint([]),
+      operations: [{ id: "SUB-001", type: "remove" }],
+      source: "validation",
+      timestamp: "2026-02-10T00:00:00Z",
+    };
     const artifactPath = writeValidationProposalArtifact(
       milestoneDirectory,
-      [{ id: "SUB-001", type: "remove" }],
+      proposal,
       { aligned: 0, skipped: 1, total: 1 },
     );
 

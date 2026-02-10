@@ -14,14 +14,23 @@
 
 import { loadAaaConfig } from "@tools/lib/config";
 import chalk from "chalk";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 
 import type { ProviderType } from "./providers/types";
 import type {
+  CalibrationLogEntry,
   LoadedSubtasksFile,
+  QueueApplyLogEntry,
   QueueOperation,
   QueueProposal,
+  QueueProposalLogEntry,
   QueueSubtaskDraft,
   Subtask,
   SubtasksFile,
@@ -35,6 +44,7 @@ import {
 } from "./approvals";
 import {
   getCompletedSubtasks,
+  getMilestoneLogPath,
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
@@ -99,6 +109,31 @@ interface CalibrationProposalContext {
   selfImproveMode?: "autofix" | "suggest";
 }
 
+interface WriteCalibrationLogOptions {
+  milestonePath: string;
+  operationCount: number;
+  source: string;
+  summary: string;
+}
+
+interface WriteQueueApplyLogOptions {
+  applied: boolean;
+  milestonePath: string;
+  operationCount: number;
+  source: string;
+  summary: string;
+}
+
+function appendMilestoneLogEntry(
+  milestonePath: string,
+  entry: CalibrationLogEntry | QueueApplyLogEntry | QueueProposalLogEntry,
+): void {
+  const logPath = getMilestoneLogPath(path.resolve(milestonePath));
+  const logDirectory = path.dirname(logPath);
+  mkdirSync(logDirectory, { recursive: true });
+  appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
+}
+
 async function applyCalibrationProposal(
   context: CalibrationProposalContext,
 ): Promise<boolean> {
@@ -152,6 +187,11 @@ async function applyCalibrationProposal(
     proposal,
     summary,
   });
+  writeCalibrationQueueProposalLogEntry(
+    milestonePath,
+    proposal,
+    `${checkName}: ${summary}`,
+  );
 
   const shouldStageOnly = options.review === true || action === "exit-unstaged";
   if (shouldStageOnly) {
@@ -189,6 +229,13 @@ async function applyCalibrationProposal(
     ? `${checkName}: applied ${applySummary.operationsApplied} operation(s), queue ${applySummary.subtasksBefore} -> ${applySummary.subtasksAfter}`
     : `${checkName}: proposal stale, queue changed before apply (artifact: ${artifactPath})`;
   console.log(renderEventLine({ domain: "CALIBRATE", message, state }));
+  writeCalibrationQueueApplyLogEntry({
+    applied: applySummary.applied,
+    milestonePath,
+    operationCount: applySummary.operationsApplied,
+    source: proposal.source,
+    summary: message,
+  });
 
   return true;
 }
@@ -367,7 +414,7 @@ async function runCalibrate(
 ): Promise<boolean> {
   // Select provider (CLI flag > env var > config > auto-detect)
   const provider = await resolveProvider({ cliFlag: options.provider });
-  const { model } = options;
+  const { model, subtasksPath } = options;
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
@@ -385,6 +432,7 @@ async function runCalibrate(
     );
   }
 
+  let didSucceed = false;
   switch (subcommand) {
     case "all": {
       const isIntentionOk = await runIntentionCheck(options, provider, model);
@@ -395,24 +443,40 @@ async function runCalibrate(
 
       const isImproveOk = await runImproveCheck(options, provider, model);
 
-      return isIntentionOk && isTechnicalOk && isImproveOk;
+      didSucceed = isIntentionOk && isTechnicalOk && isImproveOk;
+      break;
     }
     case "improve": {
-      return runImproveCheck(options, provider, model);
+      didSucceed = await runImproveCheck(options, provider, model);
+      break;
     }
     case "intention": {
-      return runIntentionCheck(options, provider, model);
+      didSucceed = await runIntentionCheck(options, provider, model);
+      break;
     }
     case "technical": {
-      return runTechnicalCheck(options, provider, model);
+      didSucceed = await runTechnicalCheck(options, provider, model);
+      break;
     }
     default: {
       // This should not happen due to validation in index.ts
       // Cast to string to handle the never type in template literal
       console.error(`Error: Unknown subcommand: ${subcommand as string}`);
-      return false;
+      didSucceed = false;
+      break;
     }
   }
+
+  writeCalibrationLogEntry({
+    milestonePath: getMilestonePath(subtasksPath),
+    operationCount: 0,
+    source: "calibration",
+    summary: didSucceed
+      ? `Calibration ${subcommand} completed`
+      : `Calibration ${subcommand} failed`,
+  });
+
+  return didSucceed;
 }
 
 // =============================================================================
@@ -937,6 +1001,17 @@ ${promptContent}`;
 // Main Entry Point
 // =============================================================================
 
+function writeCalibrationLogEntry(options: WriteCalibrationLogOptions): void {
+  appendMilestoneLogEntry(options.milestonePath, {
+    milestone: path.basename(options.milestonePath),
+    operationCount: options.operationCount,
+    source: options.source,
+    summary: options.summary,
+    timestamp: new Date().toISOString(),
+    type: "calibration",
+  });
+}
+
 function writeCalibrationProposalArtifact(
   options: CalibrationProposalArtifactOptions,
 ): string {
@@ -977,6 +1052,34 @@ function writeCalibrationProposalArtifact(
   return filePath;
 }
 
+function writeCalibrationQueueApplyLogEntry(
+  options: WriteQueueApplyLogOptions,
+): void {
+  appendMilestoneLogEntry(options.milestonePath, {
+    applied: options.applied,
+    operationCount: options.operationCount,
+    source: options.source,
+    summary: options.summary,
+    timestamp: new Date().toISOString(),
+    type: "queue-apply",
+  });
+}
+
+function writeCalibrationQueueProposalLogEntry(
+  milestonePath: string,
+  proposal: QueueProposal,
+  summary: string,
+): void {
+  appendMilestoneLogEntry(milestonePath, {
+    operationCount: proposal.operations.length,
+    proposal,
+    source: proposal.source,
+    summary,
+    timestamp: new Date().toISOString(),
+    type: "queue-proposal",
+  });
+}
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -990,4 +1093,7 @@ export {
   runImproveCheck,
   runIntentionCheck,
   runTechnicalCheck,
+  writeCalibrationLogEntry,
+  writeCalibrationQueueApplyLogEntry,
+  writeCalibrationQueueProposalLogEntry,
 };

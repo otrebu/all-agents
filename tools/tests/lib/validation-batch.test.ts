@@ -1,19 +1,27 @@
-import type { Subtask } from "@tools/commands/ralph/types";
 import type { BatchValidationResult } from "@tools/commands/ralph/validation";
 import type { Mock } from "bun:test";
 
+import { getMilestoneLogPath } from "@tools/commands/ralph/config";
 import * as hooks from "@tools/commands/ralph/hooks";
 import * as summaryProvider from "@tools/commands/ralph/providers/summary";
+import {
+  computeFingerprint,
+  type QueueProposal,
+  type Subtask,
+} from "@tools/commands/ralph/types";
 import {
   getMilestoneFromPath,
   printValidationSummary,
   validateAllSubtasks,
+  writeValidationProposalArtifact,
+  writeValidationQueueApplyLogEntry,
 } from "@tools/commands/ralph/validation";
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -119,6 +127,21 @@ describe("validateAllSubtasks", () => {
         skippedSubtasks: [],
         success: true,
         total: 2,
+      });
+      const logPath = getMilestoneLogPath(fixture.milestonePath);
+      const logLines = readFileSync(logPath, "utf8").trim().split("\n");
+      const parsedEntries = logLines.map(
+        (line) =>
+          JSON.parse(line) as { type?: string } & Record<string, unknown>,
+      );
+      const validationEntry = parsedEntries.find(
+        (entry) => entry.type === "validation",
+      );
+
+      expect(validationEntry).toMatchObject({
+        aligned: true,
+        operationCount: 0,
+        source: "validation",
       });
       expect(hookSpy).not.toHaveBeenCalled();
     } finally {
@@ -368,5 +391,66 @@ describe("getMilestoneFromPath", () => {
     expect(getMilestoneFromPath("/path/to/003-ralph-workflow")).toBe(
       "003-ralph-workflow",
     );
+  });
+});
+
+describe("validation queue event logging", () => {
+  test("writes queue-proposal and queue-apply entries to milestone daily log", () => {
+    const fixture = createValidationFixture();
+
+    try {
+      const proposal: QueueProposal = {
+        fingerprint: computeFingerprint([]),
+        operations: [{ id: "SUB-001", type: "remove" }],
+        source: "validation",
+        timestamp: "2026-02-10T00:00:00Z",
+      };
+      writeValidationProposalArtifact(fixture.milestonePath, proposal, {
+        aligned: 0,
+        skipped: 1,
+        total: 1,
+      });
+      writeValidationQueueApplyLogEntry(fixture.milestonePath, {
+        applied: true,
+        fingerprints: { after: "after-hash", before: "before-hash" },
+        operationCount: 1,
+        source: "validation",
+        summary: "Validation proposal applied",
+      });
+
+      const logPath = getMilestoneLogPath(fixture.milestonePath);
+      const parsedEntries = readFileSync(logPath, "utf8")
+        .trim()
+        .split("\n")
+        .map(
+          (line) =>
+            JSON.parse(line) as { type?: string } & Record<string, unknown>,
+        );
+
+      const queueProposal = parsedEntries.find(
+        (entry) => entry.type === "queue-proposal",
+      );
+      const queueApply = parsedEntries.find(
+        (entry) => entry.type === "queue-apply",
+      );
+
+      expect(queueProposal).toMatchObject({
+        operationCount: 1,
+        source: "validation",
+      });
+      expect(typeof queueProposal?.summary).toBe("string");
+      expect(String(queueProposal?.summary)).toContain(
+        "Validation proposal generated",
+      );
+      expect(queueApply).toMatchObject({
+        afterFingerprint: { hash: "after-hash" },
+        applied: true,
+        beforeFingerprint: { hash: "before-hash" },
+        operationCount: 1,
+        source: "validation",
+      });
+    } finally {
+      fixture.cleanup();
+    }
   });
 });

@@ -59,7 +59,9 @@ interface BuildOptions {
 interface CalibrationLogEntry {
   milestone?: string;
   mode?: "headless" | "supervised";
+  operationCount?: number;
   sessionId?: string;
+  source?: string;
   summary: string;
   taskRef?: string;
   timestamp: string;
@@ -491,7 +493,9 @@ interface ValidationLogEntry {
   aligned?: boolean;
   issueType?: string;
   milestone?: string;
+  operationCount?: number;
   sessionId?: string;
+  source?: string;
   subtaskId?: string;
   suggestion?: string;
   summary: string;

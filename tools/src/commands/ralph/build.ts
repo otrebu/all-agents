@@ -71,6 +71,7 @@ import {
 import {
   validateAllSubtasks,
   writeValidationProposalArtifact,
+  writeValidationQueueApplyLogEntry,
 } from "./validation";
 
 // =============================================================================
@@ -1275,7 +1276,7 @@ async function resolveSkippedSubtaskIds(options: {
     };
     const proposalPath = writeValidationProposalArtifact(
       milestonePath,
-      operations,
+      proposal,
       {
         aligned: validationResult.aligned,
         skipped: validationResult.skippedSubtasks.length,
@@ -1309,6 +1310,16 @@ async function resolveSkippedSubtaskIds(options: {
       ? `Validation proposal applied (${summary.operationsApplied} operation(s), queue ${summary.subtasksBefore} -> ${summary.subtasksAfter})`
       : "Validation proposal skipped (queue changed before apply)";
     console.log(renderEventLine({ domain: "VALIDATE", message, state }));
+    writeValidationQueueApplyLogEntry(milestonePath, {
+      applied: summary.applied,
+      fingerprints: {
+        after: summary.fingerprintAfter,
+        before: summary.fingerprintBefore,
+      },
+      operationCount: summary.operationsApplied,
+      source: proposal.source,
+      summary: message,
+    });
   }
 
   return new Set(validationResult.skippedSubtasks.map((s) => s.subtaskId));
