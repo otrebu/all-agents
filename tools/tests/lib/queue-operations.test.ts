@@ -1,9 +1,24 @@
+import { hasFingerprintMismatch } from "@tools/commands/ralph/index";
 import {
   computeFingerprint,
   type QueueOperation,
   type QueueProposal,
+  type Subtask,
 } from "@tools/commands/ralph/types";
+import { parseQueueOperation } from "@tools/commands/ralph/validation";
 import { describe, expect, test } from "bun:test";
+
+function makeSubtask(id: string, isDone = false): Subtask {
+  return {
+    acceptanceCriteria: ["AC"],
+    description: `${id} description`,
+    done: isDone,
+    filesToRead: ["tools/src/commands/ralph/index.ts"],
+    id,
+    taskRef: "TASK-001",
+    title: id,
+  };
+}
 
 describe("queue operation types", () => {
   test("supports create, update, remove, reorder, and split variants", () => {
@@ -88,5 +103,72 @@ describe("computeFingerprint", () => {
     ]);
 
     expect(mutated.hash).not.toBe(baseline.hash);
+  });
+});
+
+describe("hasFingerprintMismatch", () => {
+  test("returns mismatched false when proposal fingerprint matches queue", () => {
+    const queue = [makeSubtask("SUB-001"), makeSubtask("SUB-002", true)];
+    const fingerprint = computeFingerprint(queue).hash;
+
+    const result = hasFingerprintMismatch(
+      {
+        fingerprint: { hash: fingerprint },
+        operations: [],
+        source: "unit-test",
+        timestamp: "2026-02-10T12:00:00Z",
+      },
+      queue,
+    );
+
+    expect(result).toEqual({
+      current: fingerprint,
+      mismatched: false,
+      proposal: fingerprint,
+    });
+  });
+
+  test("returns mismatched true when proposal fingerprint differs", () => {
+    const queue = [makeSubtask("SUB-001")];
+
+    const result = hasFingerprintMismatch(
+      {
+        fingerprint: { hash: "stale-hash" },
+        operations: [],
+        source: "unit-test",
+        timestamp: "2026-02-10T12:00:00Z",
+      },
+      queue,
+    );
+
+    expect(result.mismatched).toBe(true);
+    expect(result.current).toBe(computeFingerprint(queue).hash);
+    expect(result.proposal).toBe("stale-hash");
+  });
+
+  test("supports empty queue fingerprint comparison", () => {
+    const queue: Array<Subtask> = [];
+    const fingerprint = computeFingerprint(queue).hash;
+
+    const result = hasFingerprintMismatch(
+      {
+        fingerprint: { hash: fingerprint },
+        operations: [],
+        source: "unit-test",
+        timestamp: "2026-02-10T12:00:00Z",
+      },
+      queue,
+    );
+
+    expect(result.mismatched).toBe(false);
+    expect(result.current).toBe(fingerprint);
+  });
+});
+
+describe("parseQueueOperation", () => {
+  test("throws error for unsupported operation type", () => {
+    expect(() => parseQueueOperation({ type: "invalid-op" })).toThrow(
+      /Unsupported queue operation type: invalid-op/,
+    );
   });
 });

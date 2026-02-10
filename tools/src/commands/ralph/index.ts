@@ -1001,6 +1001,15 @@ const planCommand = new Command("plan").description(
   "Planning tools for vision, roadmap, stories, tasks, and subtasks",
 );
 
+interface CliSubtaskDraft {
+  acceptanceCriteria: Array<string>;
+  description: string;
+  filesToRead: Array<string>;
+  storyRef?: null | string;
+  taskRef: string;
+  title: string;
+}
+
 /** Options for cascade execution helper */
 interface HandleCascadeOptions {
   /** Run calibration every N build iterations during cascade (0 = disabled) */
@@ -1022,6 +1031,13 @@ interface HandleCascadeOptions {
   subtasksPath?: string;
   /** Run pre-build validation before cascading into build level */
   validateFirst?: boolean;
+}
+
+interface QueueDiffSummary {
+  added: Array<Subtask>;
+  removed: Array<Subtask>;
+  reordered: Array<{ id: string; to: number; was: number }>;
+  updated: Array<{ after: Subtask; before: Subtask }>;
 }
 
 /** Options for running subtasks in headless mode */
@@ -3180,128 +3196,6 @@ const calibrateCommand = new Command("calibrate").description(
   "Run calibration checks on completed subtasks",
 );
 
-function parseLimitOrExit(rawLimit: string): number {
-  const parsed = Number.parseInt(rawLimit, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    console.error(
-      renderEventLine({
-        domain: "SUBTASKS",
-        message: `Error: --limit must be a positive integer, got '${rawLimit}'`,
-        state: "FAIL",
-      }),
-    );
-    process.exit(1);
-  }
-  return parsed;
-}
-
-function requireMilestoneSubtasksPath(milestone: string): string {
-  const milestonePath = requireMilestone(milestone);
-  const subtasksPath = path.join(milestonePath, "subtasks.json");
-
-  if (!existsSync(subtasksPath)) {
-    console.error(
-      renderEventLine({
-        domain: "SUBTASKS",
-        message: `Error: subtasks file not found: ${subtasksPath}`,
-        state: "FAIL",
-      }),
-    );
-    console.error(
-      renderEventLine({
-        domain: "SUBTASKS",
-        message: `Create one with: aaa ralph plan subtasks --milestone ${milestone}`,
-        state: "INFO",
-      }),
-    );
-    process.exit(1);
-  }
-
-  return subtasksPath;
-}
-
-/**
- * Helper to resolve subtasks path relative to context root if not found at cwd
- */
-function resolveCalibrateSubtasksPath(
-  subtasksPath: string,
-  contextRoot: string,
-): string {
-  if (!path.isAbsolute(subtasksPath) && !existsSync(subtasksPath)) {
-    const rootRelativePath = path.join(contextRoot, subtasksPath);
-    if (existsSync(rootRelativePath)) {
-      return rootRelativePath;
-    }
-  }
-  return subtasksPath;
-}
-
-/**
- * Helper to run calibrate subcommand and exit on failure
- */
-async function runCalibrateSubcommand(
-  subcommand: CalibrateSubcommand,
-  options: {
-    force?: boolean;
-    model?: string;
-    provider?: string;
-    review?: boolean;
-    subtasks: string;
-  },
-): Promise<void> {
-  const contextRoot = getContextRoot();
-  const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
-    options.subtasks,
-    contextRoot,
-  );
-
-  validateApprovalFlags(options.force, options.review);
-
-  const didSucceed = await runCalibrate(subcommand, {
-    contextRoot,
-    force: options.force,
-    model: options.model,
-    provider: options.provider,
-    review: options.review,
-    subtasksPath: resolvedSubtasksPath,
-  });
-
-  if (!didSucceed) {
-    process.exit(1);
-  }
-}
-
-/**
- * Validate mutual exclusion for approval override flags.
- */
-function validateApprovalFlags(
-  isForce: boolean | undefined,
-  isReview: boolean | undefined,
-): void {
-  if (isForce === true && isReview === true) {
-    console.error("Cannot use --force and --review together");
-    process.exit(1);
-  }
-}
-
-// ralph subtasks - queue operations scoped to a milestone
-
-interface CliSubtaskDraft {
-  acceptanceCriteria: Array<string>;
-  description: string;
-  filesToRead: Array<string>;
-  storyRef?: null | string;
-  taskRef: string;
-  title: string;
-}
-
-interface QueueDiffSummary {
-  added: Array<Subtask>;
-  removed: Array<Subtask>;
-  reordered: Array<{ id: string; to: number; was: number }>;
-  updated: Array<{ after: Subtask; before: Subtask }>;
-}
-
 function areStringArraysEqual(
   left: Array<string>,
   right: Array<string>,
@@ -3366,7 +3260,6 @@ function buildQueueDiffSummary(
 
   return { added, removed, reordered, updated };
 }
-
 
 function hasFingerprintMismatch(
   proposal: QueueProposal,
@@ -3459,6 +3352,21 @@ function parseCliSubtaskDrafts(input: string): Array<CliSubtaskDraft> {
   }
 
   return drafts.map((entry) => parseCliSubtaskDraft(entry));
+}
+
+function parseLimitOrExit(rawLimit: string): number {
+  const parsed = Number.parseInt(rawLimit, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    console.error(
+      renderEventLine({
+        domain: "SUBTASKS",
+        message: `Error: --limit must be a positive integer, got '${rawLimit}'`,
+        state: "FAIL",
+      }),
+    );
+    process.exit(1);
+  }
+  return parsed;
 }
 
 function parseStringArrayField(
@@ -3560,6 +3468,82 @@ function renderFingerprintMismatchError(details: {
   console.error(
     "Action: regenerate the proposal from the latest queue, then retry diff/apply.",
   );
+}
+
+function requireMilestoneSubtasksPath(milestone: string): string {
+  const milestonePath = requireMilestone(milestone);
+  const subtasksPath = path.join(milestonePath, "subtasks.json");
+
+  if (!existsSync(subtasksPath)) {
+    console.error(
+      renderEventLine({
+        domain: "SUBTASKS",
+        message: `Error: subtasks file not found: ${subtasksPath}`,
+        state: "FAIL",
+      }),
+    );
+    console.error(
+      renderEventLine({
+        domain: "SUBTASKS",
+        message: `Create one with: aaa ralph plan subtasks --milestone ${milestone}`,
+        state: "INFO",
+      }),
+    );
+    process.exit(1);
+  }
+
+  return subtasksPath;
+}
+
+/**
+ * Helper to resolve subtasks path relative to context root if not found at cwd
+ */
+function resolveCalibrateSubtasksPath(
+  subtasksPath: string,
+  contextRoot: string,
+): string {
+  if (!path.isAbsolute(subtasksPath) && !existsSync(subtasksPath)) {
+    const rootRelativePath = path.join(contextRoot, subtasksPath);
+    if (existsSync(rootRelativePath)) {
+      return rootRelativePath;
+    }
+  }
+  return subtasksPath;
+}
+
+/**
+ * Helper to run calibrate subcommand and exit on failure
+ */
+async function runCalibrateSubcommand(
+  subcommand: CalibrateSubcommand,
+  options: {
+    force?: boolean;
+    model?: string;
+    provider?: string;
+    review?: boolean;
+    subtasks: string;
+  },
+): Promise<void> {
+  const contextRoot = getContextRoot();
+  const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
+    options.subtasks,
+    contextRoot,
+  );
+
+  validateApprovalFlags(options.force, options.review);
+
+  const didSucceed = await runCalibrate(subcommand, {
+    contextRoot,
+    force: options.force,
+    model: options.model,
+    provider: options.provider,
+    review: options.review,
+    subtasksPath: resolvedSubtasksPath,
+  });
+
+  if (!didSucceed) {
+    process.exit(1);
+  }
 }
 
 const subtasksCommand = new Command("subtasks").description(
@@ -4168,5 +4152,22 @@ ralphCommand.addCommand(
     }),
 );
 
-export { resolveMilestoneFromOptions, validateApprovalFlags };
+/**
+ * Validate mutual exclusion for approval override flags.
+ */
+function validateApprovalFlags(
+  isForce: boolean | undefined,
+  isReview: boolean | undefined,
+): void {
+  if (isForce === true && isReview === true) {
+    console.error("Cannot use --force and --review together");
+    process.exit(1);
+  }
+}
+
+export {
+  hasFingerprintMismatch,
+  resolveMilestoneFromOptions,
+  validateApprovalFlags,
+};
 export default ralphCommand;

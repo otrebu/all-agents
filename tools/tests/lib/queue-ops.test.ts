@@ -1,4 +1,7 @@
-import { loadSubtasksFile } from "@tools/commands/ralph/config";
+import {
+  appendSubtasksToFile,
+  loadSubtasksFile,
+} from "@tools/commands/ralph/config";
 import applyQueueOperations, {
   applyAndSaveProposal,
 } from "@tools/commands/ralph/queue-ops";
@@ -278,6 +281,68 @@ describe("applyQueueOperations", () => {
     expect(() =>
       applyQueueOperations(missingTargetInput, invalidCreateProposal),
     ).toThrow(/Cannot create subtask: atIndex -1 is out of range/);
+  });
+});
+
+describe("appendSubtasksToFile", () => {
+  let testDirectory = "";
+  let subtasksPath = "";
+
+  beforeEach(() => {
+    testDirectory = join(tmpdir(), `queue-append-test-${Date.now()}`);
+    mkdirSync(testDirectory, { recursive: true });
+    subtasksPath = join(testDirectory, "subtasks.json");
+  });
+
+  afterEach(() => {
+    if (existsSync(testDirectory)) {
+      rmSync(testDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("appends to new file when queue does not exist", () => {
+    const result = appendSubtasksToFile(subtasksPath, [makeSubtask("SUB-001")]);
+
+    expect(result).toEqual({ added: 1, skipped: 0 });
+    expect(existsSync(subtasksPath)).toBe(true);
+    expect(
+      loadSubtasksFile(subtasksPath).subtasks.map((subtask) => subtask.id),
+    ).toEqual(["SUB-001"]);
+  });
+
+  test("appends to existing file", () => {
+    appendSubtasksToFile(subtasksPath, [makeSubtask("SUB-001")]);
+
+    const result = appendSubtasksToFile(subtasksPath, [
+      makeSubtask("SUB-002"),
+      makeSubtask("SUB-003"),
+    ]);
+
+    expect(result).toEqual({ added: 2, skipped: 0 });
+    expect(
+      loadSubtasksFile(subtasksPath).subtasks.map((subtask) => subtask.id),
+    ).toEqual(["SUB-001", "SUB-002", "SUB-003"]);
+  });
+
+  test("skips duplicate IDs already present in queue", () => {
+    appendSubtasksToFile(subtasksPath, [makeSubtask("SUB-001")]);
+
+    const result = appendSubtasksToFile(subtasksPath, [
+      makeSubtask("SUB-001"),
+      makeSubtask("SUB-002"),
+    ]);
+
+    expect(result).toEqual({ added: 1, skipped: 1 });
+    expect(
+      loadSubtasksFile(subtasksPath).subtasks.map((subtask) => subtask.id),
+    ).toEqual(["SUB-001", "SUB-002"]);
+  });
+
+  test("returns zero counts for empty incoming array", () => {
+    const result = appendSubtasksToFile(subtasksPath, []);
+
+    expect(result).toEqual({ added: 0, skipped: 0 });
+    expect(loadSubtasksFile(subtasksPath).subtasks).toEqual([]);
   });
 });
 

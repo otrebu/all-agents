@@ -428,7 +428,7 @@ function parseQueueOperation(value: unknown): null | QueueOperation {
       return parseUpdateOperation(value);
     }
     default: {
-      return null;
+      throw new Error(`Unsupported queue operation type: ${value.type}`);
     }
   }
 }
@@ -457,13 +457,19 @@ function parseQueueOperations(
 
   const operations: Array<QueueOperation> = [];
   for (const [index, operation] of value.entries()) {
-    const parsed = parseQueueOperation(operation);
-    if (parsed === null) {
+    try {
+      const parsed = parseQueueOperation(operation);
+      if (parsed === null) {
+        console.warn(
+          `[Validation:${subtaskId}] Ignoring invalid queue operation at index ${index}`,
+        );
+      } else {
+        operations.push(parsed);
+      }
+    } catch {
       console.warn(
         `[Validation:${subtaskId}] Ignoring invalid queue operation at index ${index}`,
       );
-    } else {
-      operations.push(parsed);
     }
   }
 
@@ -1032,6 +1038,7 @@ export {
   handleSupervisedValidationFailure,
   normalizeMissingParentTaskFailure,
   parseIssueType,
+  parseQueueOperation,
   parseQueueOperations,
   parseValidationResponse,
   printValidationSummary,

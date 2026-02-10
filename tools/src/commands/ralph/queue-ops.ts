@@ -173,6 +173,16 @@ function buildSubtaskFromDraft(
   };
 }
 
+/**
+ * Format a numeric ID into the SUB-NNN pattern.
+ *
+ * @param idNumber - Numeric portion of the subtask ID
+ * @returns Formatted subtask ID string (e.g. "SUB-001")
+ */
+function formatSubtaskId(idNumber: number): string {
+  return `SUB-${String(idNumber).padStart(3, "0")}`;
+}
+
 function getMaxSubtaskNumber(subtasks: Array<Subtask>): number {
   let max = 0;
   for (const subtask of subtasks) {
@@ -188,7 +198,6 @@ function getMaxSubtaskNumber(subtasks: Array<Subtask>): number {
 
   return max;
 }
-
 function requirePendingSubtask(
   subtasks: Array<Subtask>,
   id: string,
@@ -211,16 +220,6 @@ function requirePendingSubtask(
   }
 
   return { index, subtask };
-}
-
-/**
- * Format a numeric ID into the SUB-NNN pattern.
- *
- * @param idNumber - Numeric portion of the subtask ID
- * @returns Formatted subtask ID string (e.g. "SUB-001")
- */
-function formatSubtaskId(idNumber: number): string {
-  return `SUB-${String(idNumber).padStart(3, "0")}`;
 }
 
 export {
