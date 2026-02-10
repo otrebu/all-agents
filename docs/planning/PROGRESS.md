@@ -50,6 +50,11 @@
 - **Changes:** Added validation-proposal approval policy wiring for build (`--force`, `--review`, and default mode behavior), staged proposal artifacts into milestone `feedback/` before apply decisions, and blocked headless `--review` runs until explicit approval. Updated validation flow to always write misalignment feedback artifacts to milestone `feedback/` (including supervised mode), and added E2E coverage for force/default/review validation-first proposal handling plus unit coverage for proposal mode resolution and artifact writing.
 - **Files:** `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/cascade.ts`, `tools/README.md`, `tools/tests/e2e/ralph.test.ts`, `tools/tests/lib/build.test.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `tools/tests/lib/validation-batch.test.ts`, `tools/tests/lib/validation-headless.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-010
+- **Problem:** Periodic calibration in `runPeriodicCalibration()` did not forward build-level provider/model/force/review flags, so `--calibrate-every` could drift from the active build invocation context.
+- **Changes:** Extended `PeriodicCalibrationOptions` with `provider`, `model`, `force`, and `review`, threaded those values from `runBuild()` into `runPeriodicCalibration()`, and forwarded them to `runCalibrate("all", ...)`. Added regression coverage in `build-validation-integration.test.ts` to assert periodic calibration receives and passes through all four flags.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

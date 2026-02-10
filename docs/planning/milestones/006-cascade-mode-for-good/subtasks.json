@@ -205,7 +205,7 @@
       "taskRef": "WS-04-calibration-refactor",
       "title": "Forward provider/model/force/review flags to periodic calibration",
       "description": "Fix periodic calibration in build.ts runPeriodicCalibration() to forward provider, model, force, and review flags from build options to runCalibrate(). Currently only contextRoot and subtasksPath are passed. This ensures --calibrate-every uses the same provider/model flags as the build.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "runPeriodicCalibration() passes provider, model, force, and review from build options to runCalibrate()",
         "PeriodicCalibrationOptions type includes provider, model, force, review fields",
@@ -216,7 +216,10 @@
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/calibrate.ts",
         "tools/src/commands/ralph/types.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T12:57:17Z",
+      "commitHash": "d5221445841dbf530b9cd815d5825184c86f4e4d",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-011",
