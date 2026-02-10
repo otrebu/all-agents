@@ -30,6 +30,11 @@
 - **Changes:** Added `aaa ralph subtasks append` and `aaa ralph subtasks prepend` with `--subtasks`, `--file`, and `--dry-run` support. Both commands accept JSON from stdin or file, allocate new `SUB-NNN` IDs, and emit machine-readable JSON for dry-runs. `append` writes through `appendSubtasksToFile()`, while `prepend` uses `applyQueueOperations()` create ops then reorders to queue front before save. Added a dedicated E2E suite covering help output and dry-run behavior for both commands.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `tools/README.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-005
+- **Problem:** Ralph could generate queue proposals but had no CLI surface to preview proposal deltas or apply them safely against a specific subtasks file.
+- **Changes:** Added `aaa ralph subtasks diff` and `aaa ralph subtasks apply` with `--proposal` and `--subtasks` inputs. `diff` now renders a human-readable change summary plus machine-parseable JSON via `--json`, while `apply` persists changes through `applyAndSaveProposal()`. Both commands validate queue fingerprints first and emit actionable stale-proposal errors. Expanded `ralph-subtasks-cli` E2E coverage for readable diff output, JSON diff output, deterministic apply behavior, and fingerprint mismatch failures.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `tools/README.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

@@ -96,7 +96,7 @@
       "taskRef": "WS-02-cli-expansion",
       "title": "Add ralph subtasks diff and apply CLI commands",
       "description": "Add 'aaa ralph subtasks diff' and 'aaa ralph subtasks apply' subcommands. 'diff' takes a proposal file (JSON) and the current subtasks file, shows a human-readable diff of what would change plus JSON output with --json flag. 'apply' takes a proposal file and applies it to the subtasks file using applyAndSaveProposal(). Both validate queue fingerprints.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "aaa ralph subtasks diff --proposal <file> --subtasks <file> shows readable diff output",
         "aaa ralph subtasks diff --json produces machine-parseable JSON output",
@@ -108,7 +108,10 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/queue-ops.ts",
         "tools/src/commands/ralph/types.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T11:54:28Z",
+      "commitHash": "0a871616835abe204b5ec243c434aa469dac31a7",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-006",
