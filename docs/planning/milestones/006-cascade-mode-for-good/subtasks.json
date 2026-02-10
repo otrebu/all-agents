@@ -446,7 +446,7 @@
       "taskRef": "bugfix-output-dir-log-path",
       "title": "Fix resolveMilestoneFromOptions to consider --output-dir",
       "description": "In tools/src/commands/ralph/index.ts, resolveMilestoneFromOptions() only resolves milestones from --milestone and --story flags, ignoring --output-dir. When --text or --file source modes use --output-dir pointing to docs/planning/milestones/<slug>, the returned resolvedMilestonePath is undefined, causing headless logs to fall back to _orphan/logs. Fix: add an outputDir parameter to resolveMilestoneFromOptions(). When milestone and story are both undefined, extract the milestone slug from outputDir using getMilestoneRootFromPath() and return it if it resolves to a valid milestone path (contains docs/planning/milestones/<slug>). Update the call site at line ~2682 to pass options.outputDir. Also export resolveMilestoneFromOptions for testability.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "resolveMilestoneFromOptions() accepts an optional outputDir parameter",
         "When --milestone and --story are undefined but --output-dir is docs/planning/milestones/006-cascade-mode-for-good, resolvedMilestonePath is that milestone path (not undefined)",
@@ -457,7 +457,10 @@
       "filesToRead": [
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/config.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T14:34:00Z",
+      "commitHash": "5be8c4f81a567e7ff9d23bf531186a7cb310a890",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-022",
