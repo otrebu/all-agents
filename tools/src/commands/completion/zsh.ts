@@ -409,9 +409,13 @@ _aaa_ralph_plan() {
 _aaa_ralph_subtasks() {
     local -a subcommands
     subcommands=(
-        'next:Get next runnable subtask'
+        'next:Get next subtask in queue order'
         'list:List subtasks for a milestone queue'
         'complete:Mark a subtask complete'
+        'append:Append subtasks to the end of queue order'
+        'prepend:Prepend subtasks to the front of queue order'
+        'diff:Preview queue-order changes from a proposal'
+        'apply:Apply queue-order changes from a proposal'
     )
 
     _arguments -C \\
@@ -443,6 +447,29 @@ _aaa_ralph_subtasks() {
                         '--commit[Commit hash]:commit-hash:' \\
                         '--session[Session ID]:session-id:' \\
                         '--at[Completion timestamp (ISO 8601)]:timestamp:'
+                    ;;
+                append)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--file[Read subtask JSON from file]:file:_files' \\
+                        '--dry-run[Show JSON preview without writing queue file]'
+                    ;;
+                prepend)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--file[Read subtask JSON from file]:file:_files' \\
+                        '--dry-run[Show JSON preview without writing queue file]'
+                    ;;
+                diff)
+                    _arguments \\
+                        '--proposal[Queue proposal JSON file]:file:_files -g "*.json"' \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--json[Output machine-readable JSON summary]'
+                    ;;
+                apply)
+                    _arguments \\
+                        '--proposal[Queue proposal JSON file]:file:_files -g "*.json"' \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"'
                     ;;
             esac
             ;;
