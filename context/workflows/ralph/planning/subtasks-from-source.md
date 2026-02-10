@@ -38,7 +38,7 @@ If `--review-diary` flag is set, parse `logs/reviews.jsonl` for findings.
 | `--file <path>` | Yes* | File path as source |
 | `--text <string>` | Yes* | Text description as source |
 | `--review-diary` | Yes* | Parse review diary instead of file/text |
-| `--output-dir <path|milestone>` | No | Output directory (path or milestone name) |
+| `--output-dir <path|milestone>` | No | Output directory for `subtasks.json`; milestone-shaped paths (`docs/planning/milestones/<slug>`) also set the planning log directory |
 | `--size <small\|medium\|large>` | No | Slice thickness for generated subtasks |
 
 *One of `--file`, `--text`, or `--review-diary` is required.
@@ -106,6 +106,8 @@ After validation, write final subtasks to the destination directly:
 **Output location:**
 - If `--output-dir` is provided: `<output-dir>/subtasks.json`
 - Otherwise: `docs/planning/subtasks.json`
+
+When `--output-dir` points to a milestone-shaped path (`docs/planning/milestones/<slug>`), both generated subtasks and planning logs resolve to that same milestone context.
 
 **IMPORTANT: Use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`**
 

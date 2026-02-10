@@ -4,6 +4,8 @@ Shared conventions and guidelines for all subtask generation workflows. Referenc
 - `subtasks-auto.md` - Auto generation from TASK files
 - `subtasks-from-source.md` - Generation from arbitrary sources
 
+For source-driven planning runs, `--output-dir` milestone-shaped paths (`docs/planning/milestones/<slug>`) set both the subtasks destination and the planning log directory. See `subtasks-from-source.md` for parameter details.
+
 ## Subtask Schema
 
 Each subtask MUST have these fields:
