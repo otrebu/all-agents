@@ -54,7 +54,7 @@
       "taskRef": "WS-01-queue-operation-engine",
       "title": "Integrate queue ops with canonical file write path",
       "description": "Wire applyQueueOperations() into the existing saveSubtasksFile() flow. Add applyAndSaveProposal() convenience function that loads, applies, saves, and returns a summary. Ensure normalization (strip legacy status field) still happens. Add fingerprint computation to loadSubtasksFile() return value so callers can embed it in proposals.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "applyAndSaveProposal() exported from tools/src/commands/ralph/queue-ops.ts",
         "loadSubtasksFile() return type includes a fingerprint field computed from current queue state",
@@ -65,7 +65,10 @@
         "tools/src/commands/ralph/queue-ops.ts",
         "tools/src/commands/ralph/config.ts",
         "tools/src/commands/ralph/types.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T11:24:38Z",
+      "commitHash": "6149bc9abad496cd9ea41f373ff5adfcadcfa821",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-004",

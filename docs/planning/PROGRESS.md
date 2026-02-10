@@ -20,6 +20,11 @@
 - **Changes:** Added `applyQueueOperations()` in a new `queue-ops.ts` module with fingerprint replay protection, canonical `SUB-###` allocation for create/split drafts, pending-target guards with actionable errors, and deterministic operation handling (create append, update, remove, reorder, split). Added focused unit coverage for all operation kinds, replay safety, missing-target failures, and immutable `done:true` subtask protection.
 - **Files:** `tools/src/commands/ralph/queue-ops.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-003
+- **Problem:** Queue operations were not wired into the canonical queue file read/write path, so proposals could not be applied and persisted through one deterministic helper while preserving save-time normalization.
+- **Changes:** Added `applyAndSaveProposal()` in `queue-ops.ts` to load the queue, apply `applyQueueOperations()`, save through `saveSubtasksFile()`, and return an apply summary with before/after fingerprints and queue counts. Updated `loadSubtasksFile()` to return a computed fingerprint from current queue state and updated `saveSubtasksFile()` to strip transient fingerprint metadata while still removing legacy `status` fields. Added a round-trip unit test (`load -> propose -> apply -> save -> reload`) that verifies expected queue state and normalization behavior.
+- **Files:** `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001
