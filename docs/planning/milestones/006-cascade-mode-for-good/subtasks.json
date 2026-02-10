@@ -507,7 +507,7 @@
       "taskRef": "tech-debt-code-review-fixes",
       "title": "Commit applied code review fixes",
       "description": "Commit the 14 already-applied code review fixes from the cascade-mode-for-good branch. These include: blockedBy removal from CliSubtaskDraft, parseCliSubtaskDraft, and append command; queue-order messaging in --print; blockedBy stripping in saveSubtasksFile normalization; splice bounds check in queue-ops; JSDoc on exported functions in queue-ops and validation; rl.on(\"error\") handlers in build.ts and approvals.ts; try/catch around writeFeedbackFile and appendMilestoneLogEntry I/O; try/catch around approval/notification calls in calibrate; warning log for swallowed JSON parse in calibrate; deduplication of formatSubtaskId and getMaxSubtaskNumber; removal of unused PostIterationHookConfig fields.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "All 14 code review fixes are committed in a single conventional commit",
         "Commit message references the code review plan and lists fix categories",
@@ -523,7 +523,10 @@
         "tools/src/commands/ralph/approvals.ts",
         "tools/src/commands/ralph/calibrate.ts",
         "tools/src/commands/ralph/types.ts"
-      ]
+      ],
+      "completedAt": "2026-02-10T16:48:42Z",
+      "commitHash": "d36edbf9dd3694c6d8e26c5c6d99c13ff2932cf0",
+      "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
     },
     {
       "id": "SUB-025",
