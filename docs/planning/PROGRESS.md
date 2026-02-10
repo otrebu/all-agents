@@ -15,6 +15,11 @@
 - **Changes:** Added queue operation contracts (`QueueOperation`, `QueueProposal`, `QueueFingerprint`) and `computeFingerprint()` in Ralph shared types, then added focused unit tests covering all operation variants plus deterministic/delta fingerprint behavior.
 - **Files:** `tools/src/commands/ralph/types.ts`, `tools/tests/lib/queue-operations.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-002
+- **Problem:** Ralph had queue-operation type definitions but no deterministic apply engine to validate/apply create/update/remove/reorder/split proposals safely against pending-only queue state.
+- **Changes:** Added `applyQueueOperations()` in a new `queue-ops.ts` module with fingerprint replay protection, canonical `SUB-###` allocation for create/split drafts, pending-target guards with actionable errors, and deterministic operation handling (create append, update, remove, reorder, split). Added focused unit coverage for all operation kinds, replay safety, missing-target failures, and immutable `done:true` subtask protection.
+- **Files:** `tools/src/commands/ralph/queue-ops.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001

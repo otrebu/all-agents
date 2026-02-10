@@ -32,7 +32,7 @@
       "taskRef": "WS-01-queue-operation-engine",
       "title": "Implement queue operation apply pipeline",
       "description": "Create tools/src/commands/ralph/queue-ops.ts with applyQueueOperations() function. Takes a SubtasksFile and QueueProposal, validates fingerprint match, applies operations deterministically (create appends with new SUB-NNN IDs, update modifies pending subtasks only, remove deletes pending subtasks, reorder changes array positions, split replaces one subtask with multiple). Returns modified SubtasksFile or throws on invalid operations. Completed subtasks (done:true) are immutable.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "applyQueueOperations() exported from tools/src/commands/ralph/queue-ops.ts",
         "Applying the same proposal twice is no-op on second run (replay protection via fingerprint)",
@@ -44,7 +44,10 @@
         "tools/src/commands/ralph/types.ts",
         "tools/src/commands/ralph/config.ts",
         "docs/planning/milestones/006-cascade-mode-for-good/MILESTONE.md"
-      ]
+      ],
+      "completedAt": "2026-02-10T11:12:53Z",
+      "commitHash": "cf95c223bd82337352bd01b3257625b87fdafe6b",
+      "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
       "id": "SUB-003",
