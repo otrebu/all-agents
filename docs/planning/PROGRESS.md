@@ -35,6 +35,11 @@
 - **Changes:** Refactored `runTechnicalCheck()` in `calibrate.ts` to process completed subtasks in batches of five, pre-resolve each subtask's full diff via `extractDiffSummary()` and all `filesToRead` content via `resolveFilesToRead()`, build inline batch payloads with new `buildTechnicalBatchPrompt()`, parse per-batch responses with `parseCalibrationResult()`, merge findings through `mergeCalibrationResults()`, and apply once with `applyCalibrationProposal()`. Rewrote `technical-drift.md` as a single-batch prompt, removed Phase 2 parallel analyzer orchestration guidance, preserved technical drift checks (tests/patterns/error handling/docs/types/security/atomic docs), added consistency-checker framework references (Code vs Prose 6-13, Code-to-Code 14-19), and added explicit "DO NOT read additional files beyond what is provided." guidance.
 - **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/technical-drift.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-036
+- **Problem:** Self-improvement calibration still ran one monolithic invocation across all session logs, causing context pressure and not using per-session signal triage.
+- **Changes:** Refactored `runImproveCheck()` in `calibrate.ts` to dedupe `preflight.available` by `sessionId`, call `extractSignals()` per unique session, skip sessions with `offTrackScore < 0.1`, build session-scoped prompts with `buildSessionAnalysisPrompt()`, invoke the provider once per unique session with fresh context, merge findings via `mergeCalibrationResults()`, and apply once while preserving suggest/autofix/off behavior and missing-log fallback. Rewrote `self-improvement.md` for signal-based analysis with a `<session-signals>` template, added targeted Grep guidance for heavy backtracking cases (5+), removed raw `<session-log>` template usage, and removed chunking guidance.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/self-improvement.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-10
 
 ### SUB-001

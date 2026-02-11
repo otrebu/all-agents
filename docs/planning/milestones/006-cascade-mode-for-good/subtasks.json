@@ -790,7 +790,7 @@
       "taskRef": "fix-calibration-context-explosion",
       "title": "Refactor runImproveCheck() to per-session signal iterations + rewrite self-improvement.md",
       "description": "Refactor runImproveCheck() in calibrate.ts to iterate once per unique session (deduplicated by sessionId from preflight.available) instead of one massive invocation. Per unique session: (1) Call extractSignals(sessionLogPath) from session-analysis.ts to get OffTrackReport (~2-5K tokens instead of 500K+ raw JSONL). (2) If offTrackScore < 0.1, skip session (no findings worth analyzing). (3) Build prompt with buildSessionAnalysisPrompt() using rewritten self-improvement.md + pre-extracted signals. (4) invokeWithProvider() with fresh context per session. (5) Accumulate findings. After all sessions: merge and apply. Rewrite self-improvement.md: rewrite Phase 2 for signal-based analysis (subagent receives <session-signals> JSON, not raw JSONL). Add targeted verification: 'If signals indicate potential backtracking (file edited 5+ times), you MAY use Grep to spot-check specific patterns in the session log at <session-log-path>.' Remove raw <session-log> template, replace with <session-signals> template. Remove 'Large Log Handling (Chunking)' section (signals make it unnecessary).",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "[Behavioral] runImproveCheck() invokes provider once per unique session (deduplicated by sessionId)",
         "[Behavioral] Each invocation receives pre-extracted OffTrackReport signals (~2-5K tokens, not raw JSONL)",
@@ -806,7 +806,10 @@
         "context/workflows/ralph/calibration/self-improvement.md",
         "tools/src/commands/ralph/session-analysis.ts",
         ".claude/plans/mellow-imagining-spark.md"
-      ]
+      ],
+      "completedAt": "2026-02-11T16:47:50Z",
+      "commitHash": "67eba48e24b3565dbd8da19de8d6f25d8d4baed4",
+      "sessionId": "01e0eb0f-aa64-4e30-bff0-56366c1caf9f"
     },
     {
       "id": "SUB-037",
