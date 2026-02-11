@@ -690,7 +690,7 @@
       "taskRef": "fix-calibration-context-explosion",
       "title": "Create session-analysis.ts — types and first 4 signal detectors",
       "description": "Create new tools/src/commands/ralph/session-analysis.ts module with the OffTrackReport type, streaming line-by-line infrastructure, and the first 4 signal detectors: (1) FilesTooBigDetector — regex for 'exceeds maximum allowed tokens' on tool_result lines, captures file path and token count. (2) FileNotFoundDetector — is_error: true + 'File does not exist' pattern, captures file path and tool name. (3) StuckLoopDetector — sliding window size 3 over (tool_name, input_hash) tuples, detects when the same 3-tool sequence repeats 2+ times, captures pattern/repetitions/line range. (4) BacktrackDetector — tracks Edit old_string/new_string per file, detects reversals (exact and partial), captures file/firstEditLine/reversalLine/type. Each detector is a stateful processor that maintains minimal state and processes lines incrementally. Reuse existing session.ts patterns (countToolCalls, getFilesFromSession, calculateDurationMs, getTokenUsageFromSession) — extend, don't duplicate.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "[Behavioral] FilesTooBigDetector correctly identifies tool_result lines containing 'exceeds maximum allowed tokens' pattern",
         "[Behavioral] FileNotFoundDetector captures is_error:true with 'File does not exist' message and records file path",
@@ -705,7 +705,10 @@
         "tools/src/commands/ralph/types.ts",
         "tools/CLAUDE.md",
         ".claude/plans/mellow-imagining-spark.md"
-      ]
+      ],
+      "completedAt": "2026-02-11T15:53:59Z",
+      "commitHash": "d29afa48f1885957f21342df9b609df2fb788247",
+      "sessionId": "01e0eb0f-aa64-4e30-bff0-56366c1caf9f"
     },
     {
       "id": "SUB-033",

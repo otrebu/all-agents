@@ -15,6 +15,11 @@
 - **Changes:** Added `extractDiffSummary()`, `resolvePlanningChain()`, `resolveFilesToRead()`, and `mergeCalibrationResults()` to `calibrate.ts` with new `DiffSummary` / `PlanningChainContext` / `ResolvedFile` contracts; added focused unit coverage in `calibrate-utils.test.ts` for diff behavior, section-based planning resolution (`WS-01-*`), `@context/` file resolution with token estimates, and title-similarity deduping. Also updated tools ESLint ignores to exclude one-off `tools/scripts/**` from project-service linting.
 - **Files:** `tools/src/commands/ralph/calibrate.ts`, `tools/tests/lib/calibrate-utils.test.ts`, `tools/eslint.config.js`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-032
+- **Problem:** Calibration self-improvement needed a dedicated streaming analyzer to extract high-signal failure patterns from session JSONL logs without loading full logs into prompt context.
+- **Changes:** Added `session-analysis.ts` with `OffTrackReport`, incremental line-by-line parsing, and stateful detectors for oversized-file errors, file-not-found errors, repeated 3-step tool loops, and Edit backtracking reversals (exact + partial). Reused shared session metrics from `session.ts` (`countToolCalls`, `getFilesFromSession`, `calculateDurationMs`, `getTokenUsageFromSession`) and added focused unit tests for all four detector behaviors.
+- **Files:** `tools/src/commands/ralph/session-analysis.ts`, `tools/tests/lib/session-analysis.test.ts`, `tools/CLAUDE.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-10
 
 ### SUB-001
