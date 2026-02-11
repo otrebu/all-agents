@@ -122,6 +122,12 @@ interface DiffSummary {
   subtaskId: string;
 }
 
+interface IntentionBatchEntry {
+  diff: DiffSummary;
+  planningChain: PlanningChainContext;
+  subtask: Subtask;
+}
+
 interface PlanningChainContext {
   milestoneSection?: string;
   storyContent?: string;
@@ -149,17 +155,16 @@ interface SessionLogMissing {
   subtaskId: string;
 }
 
-// eslint-disable-next-line perfectionist/sort-modules -- grouped with related batch prompt contract types
-interface IntentionBatchEntry {
-  diff: DiffSummary;
-  planningChain: PlanningChainContext;
-  subtask: Subtask;
-}
-
 interface SessionLogPreflight {
   available: Array<SessionLogLocation>;
   maxAttempts: number;
   missing: Array<SessionLogMissing>;
+}
+
+interface TechnicalBatchEntry {
+  diff: DiffSummary;
+  referencedFiles: Array<ResolvedFile>;
+  subtask: Subtask;
 }
 
 interface WriteCalibrationLogOptions {
@@ -677,6 +682,59 @@ function buildIntentionBatchPrompt(
 
 You are given ${batchEntries.length} completed subtasks with pre-gathered diffs and planning chain context.
 DO NOT read additional files. All required context is provided below.
+
+Output contract:
+- Return JSON only (optionally in a \`\`\`json code fence)
+- Provide corrective subtasks, not standalone task files
+- Default insertion mode should be "prepend" so corrective work runs first
+
+JSON schema:
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
+
+Batch data:
+\`\`\`json
+${JSON.stringify(batchPayload, null, 2)}
+\`\`\`
+
+${promptContent}`;
+}
+
+function buildTechnicalBatchPrompt(
+  batchEntries: Array<TechnicalBatchEntry>,
+  promptContent: string,
+): string {
+  const batchPayload = batchEntries.map((entry) => ({
+    diff: entry.diff,
+    referencedFiles: entry.referencedFiles,
+    subtask: {
+      acceptanceCriteria: entry.subtask.acceptanceCriteria,
+      description: entry.subtask.description,
+      done: entry.subtask.done,
+      filesToRead: entry.subtask.filesToRead,
+      id: entry.subtask.id,
+      taskRef: entry.subtask.taskRef,
+      title: entry.subtask.title,
+    },
+  }));
+
+  return `Execute technical drift analysis for a single batch.
+
+You are given ${batchEntries.length} completed subtasks with pre-gathered commit diffs and all files referenced in each subtask's filesToRead list.
+DO NOT read additional files beyond what is provided.
 
 Output contract:
 - Return JSON only (optionally in a \`\`\`json code fence)
@@ -1526,77 +1584,56 @@ async function runTechnicalCheck(
     return true;
   }
 
-  // Read the prompt file
   const promptContent = readFileSync(promptPath, "utf8");
+  const BATCH_SIZE = 5;
+  const allFindings: Array<CalibrationParseResult> = [];
 
-  // Build the prompt with context
-  const prompt = `Execute technical drift analysis.
-
-Follow the instructions in @${promptPath}
-
-Subtasks file: @${subtasksPath}
-
-Context files:
-@${path.join(contextRoot, "CLAUDE.md")}
-
-Output contract:
-- Return JSON only (optionally in a \`\`\`json code fence)
-- Provide corrective subtasks, not standalone task files
-- Default insertion mode should be "prepend" so corrective work runs first
-
-JSON schema:
-\`\`\`json
-{
-  "summary": "short summary",
-  "insertionMode": "prepend",
-  "correctiveSubtasks": [
-    {
-      "title": "string",
-      "description": "string",
-      "taskRef": "string",
-      "filesToRead": ["path"],
-      "acceptanceCriteria": ["criterion"]
-    }
-  ]
-}
-\`\`\`
-
-Analyze code quality issues in completed subtasks and output a summary to stdout.
-
-${promptContent}`;
-
-  // Run provider for analysis with timeout protection
   console.log(renderInvocationHeader("headless", provider));
   console.log();
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
-      message: `Invoking ${provider} for technical drift analysis...`,
+      message: `Invoking ${provider} for technical drift analysis in batches of ${BATCH_SIZE}...`,
       state: "START",
     }),
   );
   const timeoutConfig = loadTimeoutConfig();
-  try {
-    const result = await invokeWithProvider(provider, {
-      gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-      mode: "headless",
-      model,
-      prompt,
-      stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-      timeout: timeoutConfig.hardMinutes * 60 * 1000,
-    });
 
-    if (result === null) {
-      console.error(
-        "Technical drift analysis failed, was interrupted, or timed out",
-      );
-      return false;
+  try {
+    for (let index = 0; index < completed.length; index += BATCH_SIZE) {
+      const batch = completed.slice(index, index + BATCH_SIZE);
+      const batchEntries: Array<TechnicalBatchEntry> = batch.map((subtask) => ({
+        diff: extractDiffSummary(subtask.commitHash ?? "", subtask.id),
+        referencedFiles: resolveFilesToRead(subtask.filesToRead),
+        subtask,
+      }));
+
+      const prompt = buildTechnicalBatchPrompt(batchEntries, promptContent);
+      // eslint-disable-next-line no-await-in-loop -- each batch must use a fresh provider context window
+      const result = await invokeWithProvider(provider, {
+        gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+        mode: "headless",
+        model,
+        prompt,
+        stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+        timeout: timeoutConfig.hardMinutes * 60 * 1000,
+      });
+
+      if (result === null) {
+        console.error(
+          "Technical drift analysis failed, was interrupted, or timed out",
+        );
+        return false;
+      }
+
+      allFindings.push(parseCalibrationResult(result.result));
     }
 
+    const mergedResult = mergeCalibrationResults(allFindings);
     const isApplied = await applyCalibrationProposal({
       checkName: "Technical Drift",
       options,
-      resultText: result.result,
+      resultText: JSON.stringify(mergedResult),
     });
     if (!isApplied) {
       return false;
@@ -1709,6 +1746,7 @@ export {
   buildIntentionBatchPrompt,
   buildSelfImproveFallbackResult,
   buildSessionLogPreflight,
+  buildTechnicalBatchPrompt,
   type CalibrateOptions,
   type CalibrateSubcommand,
   type DiffSummary,

@@ -3,6 +3,7 @@ import {
   buildIntentionBatchPrompt,
   buildSelfImproveFallbackResult,
   buildSessionLogPreflight,
+  buildTechnicalBatchPrompt,
   parseCalibrationResult,
   writeCalibrationLogEntry,
   writeCalibrationQueueApplyLogEntry,
@@ -262,6 +263,22 @@ describe("calibrate approval wiring", () => {
     expect(source).not.toContain("docs/planning/PROGRESS.md");
     expect(source).not.toContain("docs/planning/VISION.md");
   });
+
+  test("technical check uses batch loop with inline filesToRead context", () => {
+    const source = readFileSync(
+      path.join(import.meta.dir, "../../src/commands/ralph/calibrate.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("const BATCH_SIZE = 5");
+    expect(source).toContain("buildTechnicalBatchPrompt(batchEntries");
+    expect(source).toContain(
+      "referencedFiles: resolveFilesToRead(subtask.filesToRead)",
+    );
+    expect(source).toContain("mergeCalibrationResults(allFindings)");
+    expect(source).toContain("resultText: JSON.stringify(mergedResult)");
+    expect(source).not.toContain("resolvePlanningChain(subtask");
+  });
 });
 
 describe("buildIntentionBatchPrompt", () => {
@@ -298,6 +315,50 @@ describe("buildIntentionBatchPrompt", () => {
     expect(prompt).toContain('"subtask"');
     expect(prompt).toContain('"planningChain"');
     expect(prompt).toContain('"diff"');
+  });
+});
+
+describe("buildTechnicalBatchPrompt", () => {
+  test("includes inline diffs and referenced files without additional reads", () => {
+    const prompt = buildTechnicalBatchPrompt(
+      [
+        {
+          diff: {
+            commitHash: "def456",
+            filesChanged: ["tools/src/commands/ralph/calibrate.ts"],
+            patch: "diff --git a/x b/x",
+            statSummary: "1 file changed",
+            subtaskId: "SUB-035",
+          },
+          referencedFiles: [
+            {
+              content: "# technical guidance",
+              path: "/tmp/context/workflows/ralph/calibration/technical-drift.md",
+              tokenEstimate: 6,
+            },
+          ],
+          subtask: {
+            acceptanceCriteria: ["batch of 5"],
+            description: "Refactor technical check",
+            done: true,
+            filesToRead: [
+              "context/workflows/ralph/calibration/technical-drift.md",
+            ],
+            id: "SUB-035",
+            taskRef: "TASK-035",
+            title: "Batch technical drift",
+          },
+        },
+      ],
+      "# Technical prompt body",
+    );
+
+    expect(prompt).toContain(
+      "DO NOT read additional files beyond what is provided",
+    );
+    expect(prompt).toContain('"referencedFiles"');
+    expect(prompt).toContain('"diff"');
+    expect(prompt).toContain('"subtask"');
   });
 });
 
