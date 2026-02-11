@@ -1,6 +1,7 @@
 ---
 depends:
   - "@context/blocks/test/playwright.md"
+  - "@context/blocks/test/agent-browser.md"
 ---
 
 # E2E Testing for Web Apps with Playwright
@@ -10,6 +11,37 @@ Test user flows, auth, navigation in real browsers.
 ## References
 
 @context/blocks/test/playwright.md
+@context/blocks/test/agent-browser.md
+
+---
+
+## AC-Driven Authoring with Agent Browser Selector Discovery
+
+Write Playwright tests from acceptance criteria first, then use Agent Browser to discover stable selectors before coding.
+
+### Workflow
+
+1. Map each acceptance criterion to one observable assertion.
+2. Use Agent Browser (`snapshot -i`, targeted interactions, screenshots) to confirm real UI controls and text.
+3. Convert discovered targets into semantic Playwright locators.
+4. Author Playwright tests that validate behavior end-to-end.
+
+BDD wording (Given/When/Then) is optional. A plain AC checklist is sufficient.
+
+### Selector Handoff Example
+
+| AC Outcome | Agent Browser Evidence | Playwright Assertion |
+|------------|------------------------|----------------------|
+| User can submit login form | `textbox "Email"`, `textbox "Password"`, `button "Sign in"` from `snapshot -i` | `await page.getByLabel("Email").fill(...)` and `await expect(page).toHaveURL("/dashboard")` |
+| Error is visible on invalid credentials | screenshot + snapshot with alert text | `await expect(page.getByRole("alert")).toHaveText(/invalid/i)` |
+
+Use Agent Browser refs (`@e1`, `@e2`) only during discovery. In Playwright code, use semantic locators (`getByRole`, `getByLabel`, `getByText`, `getByTestId`).
+
+### Ralph Policy Alignment
+
+- User-visible UI verification requires Agent Browser evidence.
+- Behavioral flow verification requires Playwright (or project-standard automated E2E).
+- No BDD framework requirement for acceptance criteria.
 
 ---
 

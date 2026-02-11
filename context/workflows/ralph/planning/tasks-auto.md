@@ -177,7 +177,7 @@ Each task should:
 When breaking down a story into tasks, consider:
 
 1. **Vertical slices** - Each task delivers a thin slice of functionality
-2. **Test-first tasks** - Consider a task for test setup if complex
+2. **Mixed TDD intent** - Outside-in for user flows, unit-first for logic-heavy internals
 3. **Implementation order** - Tasks should be in logical execution order
 4. **Dependencies** - Earlier tasks enable later ones
 
@@ -185,7 +185,7 @@ When breaking down a story into tasks, consider:
 
 - Goal is one clear sentence
 - Plan has concrete, actionable steps with **technical how descriptions**
-- Acceptance criteria are testable
+- Acceptance criteria are testable and include verification tool/profile when relevant
 - Scope explicitly excludes adjacent work
 - Context links back to parent story
 
@@ -225,6 +225,16 @@ Technical details to include:
 
 @context/workflows/ralph/planning/components/testing-guidance.md
 
+Use profile-driven testing requirements (do not assume one default test style):
+
+- Map each task AC and Test Plan item to an explicit verification profile/tool
+- Keep AC language tool-qualified where needed (for example: unit/integration, Playwright E2E, agent-browser visual, CLI E2E)
+- For web/UI tasks, enforce both:
+  - user-visible AC -> requires agent-browser verification
+  - behavioral flow AC -> requires automated Playwright E2E coverage
+- For CLI tasks, require CLI E2E coverage and choose runtime-aligned profile (bun/node)
+- Do not require BDD/Cucumber unless explicitly requested by story constraints
+
 ## Codebase Integration
 
 Use information from codebase analysis to:
@@ -256,6 +266,8 @@ Before finalizing tasks, verify:
 - [ ] Goals are one sentence and outcome-focused
 - [ ] Plans have numbered, concrete steps
 - [ ] Acceptance criteria are testable
+- [ ] Acceptance criteria and Test Plan use explicit verification profiles/tools where relevant
+- [ ] Web/UI tasks include agent-browser AC for user-visible outcomes and Playwright E2E AC for behavioral flows
 - [ ] File names follow `<NNN>-TASK-<slug>.md` convention
 - [ ] All tasks reference the parent story
 

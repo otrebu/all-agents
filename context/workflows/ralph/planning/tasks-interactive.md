@@ -125,6 +125,7 @@ Testing probes:
 - "Do we need unit tests, integration tests, or both?"
 - "What manual verification is needed?"
 - "What edge cases should tests cover?"
+- "Which testing profile applies here: logic, integration/API, CLI E2E, web visual, or web flow E2E?"
 
 **Use the testing decision matrix:**
 
@@ -133,7 +134,16 @@ Testing probes:
 **Interactive probes based on task type:**
 - "Looking at the matrix, this is a [type] task - does that match your expectation?"
 - "The guidance suggests [approach] - any concerns with that?"
-- "Should we add visual verification to the acceptance criteria?"
+- "For user-visible UI outcomes, let's include agent-browser verification AC - anything specific to check visually?"
+- "For behavioral flows, let's include automated Playwright E2E AC - which path should be covered end-to-end?"
+
+**Testing requirements to enforce while drafting task AC/Test Plan:**
+- Keep verification profile-driven and tool-qualified (unit/integration, CLI E2E, Playwright E2E, agent-browser visual)
+- For web/UI tasks, include both:
+  - user-visible AC -> agent-browser verification
+  - behavioral flow AC -> Playwright E2E automation
+- Use mixed TDD intent: outside-in for flows, unit-first for isolated logic
+- Do not require BDD/Cucumber unless the user explicitly requests it
 
 ### Phase 6: Implementation Plan
 
@@ -217,7 +227,7 @@ Tasks must follow this format:
 | Goal | Yes | One sentence outcome - "what's true when done?" |
 | Context | Yes | The why: problem, trigger, constraints, links |
 | Plan | Yes | Numbered steps - concrete actions with technical details |
-| Acceptance Criteria | Yes | Checkboxes - how we verify success |
+| Acceptance Criteria | Yes | Checkboxes - how we verify success (tool-qualified when applicable) |
 | Test Plan | Yes | What tests to add/update/run |
 | Scope | Yes | Explicit boundaries - prevents creep |
 | Notes | No | Catch-all for extras (risks, edge cases, etc.) |

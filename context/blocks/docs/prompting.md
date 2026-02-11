@@ -2,96 +2,80 @@
 depends: []
 ---
 
-# 🎯 PROMPT ENGINEERING STANDARDS
+# Prompting Standards (Canonical)
 
-## Core Principles
+Single source of prompting policy for this repository. Use this doc for both GPT-5.x Codex and Claude Opus 4.6.
 
-This document defines the standards for creating effective prompts and context documentation for AI, based on Anthropic's context engineering principles.
+## Policy Tiers
 
-## Key Principles
+### MUST
 
-### 1. Context is a Finite Resource
+- Treat context as finite: include only information that changes output quality.
+- Maximize signal-to-noise: remove redundancy, repetition, and decorative boilerplate.
+- Use progressive discovery: reference docs with `@context/...` instead of duplicating details.
+- State non-negotiables explicitly: constraints, expected output, and acceptance checks.
+- Include "how" steps when omission risks unsafe behavior, failed verification, or hidden/non-obvious execution details.
 
-- LLMs have a limited "attention budget"
-- As context length increases, model performance degrades
-- Every token depletes attention capacity
-- Treat context as precious and finite
+### SHOULD
 
-### 2. Optimize for Signal-to-Noise Ratio
+- Be concise by default; prefer short, direct instructions over long prose.
+- Use structured sections (context, workflow, output, constraints) for scanability.
+- Keep procedural detail proportional to risk and complexity.
+- Prefer references to canonical docs over re-explaining standards.
+- Keep language readable and grammatical; optimize clarity, not shorthand tricks.
 
-- Prefer clear, direct language over verbose explanations
-- Remove redundant or overlapping information
-- Focus on high-value tokens that drive desired outcomes
+### MAY
 
-### 3. Progressive Information Discovery
+- Add one short example when format or intent is ambiguous.
+- Add brief rationale when it improves compliance with constraints.
+- Tune wording for model tendencies (see tuning knobs) without creating separate rule systems.
 
-- Use lightweight identifiers rather than full data dumps
-- Load detailed information dynamically when needed
-- Allow agents to discover information just-in-time
-- Document files must be lightweight pointers.
-  - ❌ **BAD**: Duplicating tool flags/options in the prompt.
-  - ✅ **GOOD**: `3. Execute search per @context/blocks/construct/parallel-search.md`
-
-## Prompt template
+## Shared Prompt Template
 
 ```markdown
-# [Topic]
+# [Task Title]
+
+## Objective
+- [Desired outcome in 1-2 lines]
 
 ## Context
-
-[Brief context/goal]
+- [Essential facts only]
+- References: @context/[path].md, @context/[path].md
 
 ## Workflow
-
-1. [Step 1] - Use `tool_name`
-2. [Step 2]
+1. [Actionable step]
+2. [Actionable step]
 
 ## Output
-
-- [Description of expected output/artifact]
-
-## Examples
-
-- [Example 1]
+- [Required artifact or response format]
 
 ## Constraints
+- [Hard limits, forbidden actions, safety rules]
 
-- [Constraint 1]
+## Verification
+- [How to validate result]
 ```
 
-## Writing Standards
+## Compact Checklist
 
-### Style
+- [ ] Uses only required context (finite budget respected)
+- [ ] Duplicates removed; references used for detail
+- [ ] MUST constraints and acceptance checks are explicit
+- [ ] "How" included only where safety/verification/non-obviousness requires it
+- [ ] Output format is concrete and testable
 
-- **Be Direct**: Use imperatives ("Validate input") not suggestions ("You should validate").
-- **Structure**: Use lists for constraints/requirements. Avoid paragraphs.
-- **No Fluff**: Remove "Why", "How", history, and verbose explanations.
-- **Be Brief**: Be extremely brief, sacrifise language and grammar. Be so concise to have to use some emojis to cut things short. You must still be able to read the prompt and understand the intent.
+## Model Tuning Knobs (Same Policy, Different Emphasis)
 
-### Examples
+### GPT-5.x Codex tendencies
 
-✅ **Good**:
+- Strong at literal instruction following; explicit acceptance criteria improves first-pass success.
+- Can over-compress when asked to be brief; keep critical verification steps explicit.
+- Responds well to deterministic ordering and clear tool/file constraints.
 
-```markdown
-## Constraints
+### Claude Opus 4.6 tendencies
 
-- Max response: 500 tokens
-- Required fields: name, email
-```
+- Often provides richer narrative by default; tighten output boundaries for concise tasks.
+- Benefits from explicit "do not expand" constraints when brevity matters.
+- Strong synthesis across references; still enforce reference-over-duplication discipline.
 
-❌ **Bad**:
-
-```markdown
-The response should not exceed 500 tokens and must include name and email.
-```
-
-## Best Practices Checklist
-
-- [ ] Markdown headers for organization
-- [ ] Clear, direct, minimal, brief language
-- [ ] No redundant info, no fluff
-- [ ] Actionable instructions
-- [ ] Constraints defined in list
-- [ ] References (`@../...`) used instead of duplication
-- [ ] No "historical context" or "evolution"
-- [ ] No overlapping tool definitions
+Use these as tuning knobs only. Core MUST/SHOULD/MAY policy remains shared.
