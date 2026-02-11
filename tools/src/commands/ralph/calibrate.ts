@@ -60,6 +60,7 @@ import {
 import { invokeWithProvider, resolveProvider } from "./providers/registry";
 import { applyAndSaveProposal } from "./queue-ops";
 import { getSessionJsonlPath } from "./session";
+import { extractSignals, type OffTrackReport } from "./session-analysis";
 import { validateDoneSubtaskCommitEvidence } from "./validation";
 
 // =============================================================================
@@ -159,6 +160,12 @@ interface SessionLogPreflight {
   available: Array<SessionLogLocation>;
   maxAttempts: number;
   missing: Array<SessionLogMissing>;
+}
+
+interface SessionSignalAnalysisTarget {
+  sessionId: string;
+  sessionLogPath: string;
+  subtaskIds: Array<string>;
 }
 
 interface TechnicalBatchEntry {
@@ -611,6 +618,32 @@ function mergeCalibrationResults(
   };
 }
 
+function mergeSessionAnalysisTargets(
+  available: Array<SessionLogLocation>,
+): Array<SessionSignalAnalysisTarget> {
+  const bySession = new Map<string, SessionSignalAnalysisTarget>();
+
+  for (const entry of available) {
+    const existing = bySession.get(entry.sessionId);
+    if (existing === undefined) {
+      bySession.set(entry.sessionId, {
+        sessionId: entry.sessionId,
+        sessionLogPath: entry.sessionLogPath,
+        subtaskIds: [entry.subtaskId],
+      });
+    } else {
+      const isKnownSubtask = existing.subtaskIds.includes(entry.subtaskId);
+      if (isKnownSubtask) {
+        // already tracked for this unique session id
+      } else {
+        existing.subtaskIds.push(entry.subtaskId);
+      }
+    }
+  }
+
+  return [...bySession.values()];
+}
+
 function normalizeTitle(title: string): string {
   return title
     .toLowerCase()
@@ -762,6 +795,61 @@ Batch data:
 \`\`\`json
 ${JSON.stringify(batchPayload, null, 2)}
 \`\`\`
+
+${promptContent}`;
+}
+
+// eslint-disable-next-line perfectionist/sort-modules -- grouped with calibration prompt builders
+function buildSessionAnalysisPrompt(
+  target: SessionSignalAnalysisTarget,
+  signals: OffTrackReport,
+  promptContent: string,
+): string {
+  return `Execute self-improvement analysis for a single session.
+
+You are given pre-extracted session signals for one unique session.
+DO NOT read the raw session log unless targeted verification is required by the workflow prompt.
+
+Output contract:
+- Return JSON only (optionally in a \`\`\`json code fence)
+- Provide corrective subtasks, not standalone task files
+- Default insertion mode should be "prepend" so corrective work runs first
+
+JSON schema:
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
+
+Session context:
+\`\`\`json
+${JSON.stringify(
+  {
+    sessionId: target.sessionId,
+    sessionLogPath: target.sessionLogPath,
+    subtaskIds: target.subtaskIds,
+  },
+  null,
+  2,
+)}
+\`\`\`
+
+<session-signals>
+\`\`\`json
+${JSON.stringify(signals, null, 2)}
+\`\`\`
+</session-signals>
 
 ${promptContent}`;
 }
@@ -1168,7 +1256,8 @@ async function runImproveCheck(
 
   const completedWithSession = getCompletedWithSessionId(subtasksFile);
   const preflight = buildSessionLogPreflight(completedWithSession, contextRoot);
-  const analyzableSessionIds = preflight.available
+  const uniqueSessions = mergeSessionAnalysisTargets(preflight.available);
+  const analyzableSessionIds = uniqueSessions
     .map((entry) => entry.sessionId)
     .join(",");
 
@@ -1182,7 +1271,7 @@ async function runImproveCheck(
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
-      message: `Session log preflight: ${preflight.available.length} available, ${preflight.missing.length} missing`,
+      message: `Session log preflight: ${preflight.available.length} available entries, ${uniqueSessions.length} unique sessions, ${preflight.missing.length} missing`,
       state: "INFO",
     }),
   );
@@ -1231,86 +1320,65 @@ async function runImproveCheck(
   // Read the prompt file
   const promptContent = readFileSync(promptPath, "utf8");
 
-  // Build the prompt with context
-  const unifiedConfigPath = path.join(contextRoot, "aaa.config.json");
-  const prompt = `Execute self-improvement analysis.
-
-Follow the instructions in @${promptPath}
-
-Subtasks file: @${subtasksPath}
-
-Config file: @${unifiedConfigPath}
-
-Session IDs to analyze: ${analyzableSessionIds}
-
-Session log preflight (available vs missing):
-${JSON.stringify(preflight, null, 2)}
-
-Self-improvement mode: ${selfImproveMode}
-- If 'suggest': Stage proposal artifacts for review (no queue mutation)
-- If 'autofix': Apply corrective queue insertions automatically
-
-IMPORTANT: You MUST output a readable markdown summary to stdout following the format in the self-improvement.md prompt.
-The summary should include:
-- Session ID and subtask title
-- Findings organized by inefficiency type (Tool Misuse, Wasted Reads, Backtracking, Excessive Iterations)
-- Recommendations for improvements
-- Reference to corrective subtasks proposed or applied
-
-Queue proposal output contract (JSON only):
-\`\`\`json
-{
-  "summary": "short summary",
-  "insertionMode": "prepend",
-  "correctiveSubtasks": [
-    {
-      "title": "string",
-      "description": "string",
-      "taskRef": "string",
-      "filesToRead": ["path"],
-      "acceptanceCriteria": ["criterion"]
-    }
-  ]
-}
-\`\`\`
-
-Analyze session logs from completed subtasks for inefficiencies.
-Handle improvements based on the mode above.
-
-${promptContent}`;
-
   // Run provider for analysis with timeout protection
   console.log(renderInvocationHeader("headless", provider));
   console.log();
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
-      message: `Invoking ${provider} for self-improvement analysis...`,
+      message: `Invoking ${provider} for self-improvement analysis across ${uniqueSessions.length} unique session(s)...`,
       state: "START",
     }),
   );
   const timeoutConfig = loadTimeoutConfig();
+  const allFindings: Array<CalibrationParseResult> = [];
   try {
-    const result = await invokeWithProvider(provider, {
-      gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-      mode: "headless",
-      model,
-      prompt,
-      stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-      timeout: timeoutConfig.hardMinutes * 60 * 1000,
-    });
-
-    if (result === null) {
-      console.error(
-        "Self-improvement analysis failed, was interrupted, or timed out",
+    for (const session of uniqueSessions) {
+      // eslint-disable-next-line no-await-in-loop -- each unique session must use a fresh provider context window
+      const signals = await extractSignals(
+        session.sessionLogPath,
+        session.sessionId,
       );
-      return false;
+      if (signals.offTrackScore < 0.1) {
+        console.log(
+          renderEventLine({
+            domain: "CALIBRATE",
+            message: `Skipping session ${session.sessionId}: offTrackScore=${signals.offTrackScore.toFixed(3)} < 0.1`,
+            state: "SKIP",
+          }),
+        );
+      } else {
+        const prompt = buildSessionAnalysisPrompt(
+          session,
+          signals,
+          promptContent,
+        );
+        // eslint-disable-next-line no-await-in-loop -- each unique session must use a fresh provider context window
+        const result = await invokeWithProvider(provider, {
+          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+          mode: "headless",
+          model,
+          prompt,
+          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+          timeout: timeoutConfig.hardMinutes * 60 * 1000,
+        });
+
+        if (result === null) {
+          console.error(
+            `Self-improvement analysis failed, was interrupted, or timed out for session ${session.sessionId}`,
+          );
+          return false;
+        }
+
+        allFindings.push(parseCalibrationResult(result.result));
+      }
     }
 
+    const mergedResult = mergeCalibrationResults(allFindings);
     const isApplied = await applyCalibrationProposal({
       checkName: "Self-Improvement",
       options,
-      resultText: result.result,
+      resultText: JSON.stringify(mergedResult),
       selfImproveMode,
     });
     if (!isApplied) {
@@ -1322,6 +1390,13 @@ ${promptContent}`;
     return false;
   }
 
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Self-improvement analyzed ${allFindings.length} session(s) with actionable signals`,
+      state: "INFO",
+    }),
+  );
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
@@ -1745,6 +1820,7 @@ export {
   buildCalibrationCreateOperations,
   buildIntentionBatchPrompt,
   buildSelfImproveFallbackResult,
+  buildSessionAnalysisPrompt,
   buildSessionLogPreflight,
   buildTechnicalBatchPrompt,
   type CalibrateOptions,

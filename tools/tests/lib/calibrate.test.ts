@@ -2,6 +2,7 @@ import {
   buildCalibrationCreateOperations,
   buildIntentionBatchPrompt,
   buildSelfImproveFallbackResult,
+  buildSessionAnalysisPrompt,
   buildSessionLogPreflight,
   buildTechnicalBatchPrompt,
   parseCalibrationResult,
@@ -279,6 +280,25 @@ describe("calibrate approval wiring", () => {
     expect(source).toContain("resultText: JSON.stringify(mergedResult)");
     expect(source).not.toContain("resolvePlanningChain(subtask");
   });
+
+  test("self-improvement check uses per-session signal loop", () => {
+    const source = readFileSync(
+      path.join(import.meta.dir, "../../src/commands/ralph/calibrate.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain(
+      "mergeSessionAnalysisTargets(preflight.available)",
+    );
+    expect(source).toContain("const signals = await extractSignals(");
+    expect(source).toContain("session.sessionLogPath");
+    expect(source).toContain("session.sessionId");
+    expect(source).toContain("if (signals.offTrackScore < 0.1)");
+    expect(source).toContain("buildSessionAnalysisPrompt(");
+    expect(source).toContain("signals,");
+    expect(source).toContain("mergeCalibrationResults(allFindings)");
+    expect(source).toContain("resultText: JSON.stringify(mergedResult)");
+  });
 });
 
 describe("buildIntentionBatchPrompt", () => {
@@ -359,6 +379,47 @@ describe("buildTechnicalBatchPrompt", () => {
     expect(prompt).toContain('"referencedFiles"');
     expect(prompt).toContain('"diff"');
     expect(prompt).toContain('"subtask"');
+  });
+});
+
+describe("buildSessionAnalysisPrompt", () => {
+  test("includes session-signals payload and session log path", () => {
+    const prompt = buildSessionAnalysisPrompt(
+      {
+        sessionId: "session-123",
+        sessionLogPath: "/tmp/session-123.jsonl",
+        subtaskIds: ["SUB-036", "SUB-040"],
+      },
+      {
+        durationMs: 1200,
+        filesRead: ["tools/src/commands/ralph/calibrate.ts"],
+        filesWritten: [
+          "context/workflows/ralph/calibration/self-improvement.md",
+        ],
+        offTrackScore: 0.42,
+        sessionId: "session-123",
+        signals: {
+          editBacktracking: [],
+          explorationWithoutProduction: [],
+          filesNotFound: [],
+          filesTooBig: [],
+          selfCorrections: [],
+          stuckLoops: [],
+          testFixLoops: [],
+          tokenAcceleration: null,
+        },
+        tokenUsage: { contextTokens: 1, outputTokens: 2 },
+        toolUseCounts: { Read: 3 },
+        totalMessages: 10,
+        totalToolCalls: 4,
+      },
+      "# self-improvement prompt body",
+    );
+
+    expect(prompt).toContain("<session-signals>");
+    expect(prompt).toContain("session-123");
+    expect(prompt).toContain("/tmp/session-123.jsonl");
+    expect(prompt).toContain("# self-improvement prompt body");
   });
 });
 

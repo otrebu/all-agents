@@ -1,401 +1,96 @@
 # Self-Improvement Analysis
 
-You are an LLM-as-judge analyzing Ralph agent session logs for inefficiencies. Your goal is to identify patterns that waste tokens, time, or cause unnecessary iterations, then propose improvements to prompts, skills, and documentation.
+You are an LLM-as-judge analyzing Ralph calibration signals for one session at a time. Your goal is to identify real inefficiency patterns, then propose deterministic corrective subtasks for the active milestone queue.
 
-## Input Sources
+## Scope
 
-### 1. Session Logs
-Read session logs from the completed subtasks in `subtasks.json`. Each completed subtask has a `sessionId` field:
+- Analyze only the provided session payload.
+- Treat `<session-signals>` as the primary source of truth.
+- Do not request or expect raw full-session JSONL context.
+- If no meaningful inefficiency is present, return an empty corrective list.
 
-```json
+## Input Contract
+
+Each invocation receives one unique session in this form:
+
+```xml
+<session-context>
 {
-  "id": "subtask-001",
-  "done": true,
-  "sessionId": "abc123...",
-  "commitHash": "def456..."
+  "sessionId": "...",
+  "sessionLogPath": "...",
+  "subtaskIds": ["SUB-..."]
 }
-```
+</session-context>
 
-Session logs are stored at:
-```
-~/.claude/projects/<encoded-path>/<sessionId>.jsonl
-```
-
-Where `<encoded-path>` is the URL-encoded project path. The JSONL file contains one message per line with the full conversation including tool calls and responses.
-
-### 2. Configuration
-Check `ralph.config.json` for the `selfImprovement` setting:
-- `"always"` (default): Requires user approval before applying changes
-- `"auto"`: Apply changes automatically (high risk - not recommended)
-- `"never"`: Skip self-improvement analysis entirely
-
-If `selfImprovement` is set to `"never"`, output a message explaining that self-improvement analysis is disabled and exit without analysis.
-
-## Inefficiency Patterns to Detect
-
-Analyze session logs for these patterns:
-
-### 1. Tool Misuse
-Using Bash for file operations instead of dedicated tools.
-
-**Inefficiency Example:**
-```json
-{"type": "tool_use", "name": "Bash", "input": {"command": "cat src/utils.ts"}}
-{"type": "tool_use", "name": "Bash", "input": {"command": "echo 'new content' > src/utils.ts"}}
-```
-
-**Why inefficient:** The Read and Write tools exist specifically for file operations. They provide better error handling, preserve permissions, and integrate with Claude Code's file tracking.
-
-**Acceptable Variation:**
-```json
-{"type": "tool_use", "name": "Bash", "input": {"command": "cat package.json | jq '.scripts'"}}
-```
-Using Bash with pipes for data transformation is acceptable since this isn't a simple file read.
-
-#### Workflow Artifact JSON Policy (Queue/Planning Files)
-
-When handling JSON workflow artifacts (`subtasks.json`, planning queues, calibration output JSON), distinguish between read-only transforms and state mutation:
-
-- **Allowed with Bash + jq (read-only):** filtering, selecting, validating, and summarizing JSON for investigation or verification.
-- **Preferred for mutation (deterministic updates):** Read + structured Edit/Write flow so the change is explicit, reviewable, and scoped to the intended fields.
-
-**Preferred structured-edit examples (queue/planning files):**
-
-```text
-1) Read docs/planning/milestones/<milestone>/subtasks.json
-2) Edit only the assigned subtask object by `id`
-3) Update deterministic fields only (`done`, `completedAt`, `commitHash`, `sessionId`)
-4) Re-read or validate the same id to confirm the final state
-```
-
-```text
-1) Read docs/planning/PROGRESS.md
-2) Append one dated section for the assigned subtask
-3) Keep entry format stable (Problem/Changes/Files)
-```
-
-**Low-risk shell mutation exception (Bash + jq) is allowed only when all are true:**
-
-1. Mutation target is a single known object selected by stable key (for example `id == "SUB-072"`)
-2. Operation is idempotent and field-limited (no broad rewrites, no schema reshaping)
-3. Command writes to a temporary file then atomically replaces the original
-4. The same selector is re-run after mutation to verify expected state
-5. Structured Edit/Write is unavailable or a runtime instruction explicitly requires the jq command sequence
-
-### 2. Wasted Reads
-Files read but never used in subsequent actions or reasoning.
-
-**Inefficiency Example:**
-```json
-{"type": "tool_use", "name": "Read", "input": {"file_path": "/src/auth.ts"}}
-{"type": "tool_use", "name": "Read", "input": {"file_path": "/src/database.ts"}}
-{"type": "tool_use", "name": "Read", "input": {"file_path": "/src/utils.ts"}}
-// ... agent only uses content from auth.ts, ignores others
-{"type": "tool_use", "name": "Edit", "input": {"file_path": "/src/auth.ts", ...}}
-```
-
-**Why inefficient:** Reading files consumes tokens. If a file is read but its content is never referenced in reasoning or edits, those tokens were wasted.
-
-**Acceptable Variation:**
-- Reading multiple files to understand architecture before deciding which to modify
-- Reading a file to verify it exists/check its format, even if no changes are made
-- Exploratory reads during investigation phases
-
-### 3. Backtracking
-Edits that cancel each other out within the same session.
-
-**Inefficiency Example:**
-```json
-{"type": "tool_use", "name": "Edit", "input": {"file_path": "/src/api.ts", "old_string": "function foo", "new_string": "function bar"}}
-// ... later in same session ...
-{"type": "tool_use", "name": "Edit", "input": {"file_path": "/src/api.ts", "old_string": "function bar", "new_string": "function foo"}}
-```
-
-**Why inefficient:** The agent made a change then reversed it, wasting edit operations and tokens on reasoning about both changes.
-
-**Acceptable Variation:**
-- Reverting a change after discovering it breaks tests (learning from failure)
-- Iterative refinement that builds on previous changes (not exact reversal)
-
-### 4. Excessive Iterations on Same Error
-Repeatedly attempting the same fix for an error without changing approach.
-
-**Inefficiency Example:**
-```json
-// Attempt 1
-{"type": "tool_use", "name": "Bash", "input": {"command": "bun test"}}
-{"type": "tool_result", "content": "TypeError: Cannot read property 'x' of undefined"}
-{"type": "tool_use", "name": "Edit", "input": {"file_path": "/src/test.ts", "old_string": "obj.x", "new_string": "obj?.x"}}
-// Attempt 2 - same error, same fix pattern
-{"type": "tool_use", "name": "Bash", "input": {"command": "bun test"}}
-{"type": "tool_result", "content": "TypeError: Cannot read property 'y' of undefined"}
-{"type": "tool_use", "name": "Edit", "input": {"file_path": "/src/test.ts", "old_string": "obj.y", "new_string": "obj?.y"}}
-// Attempt 3, 4, 5... same pattern
-```
-
-**Why inefficient:** The agent is treating symptoms instead of root cause. After 2-3 similar errors, it should step back and analyze the underlying issue.
-
-**Acceptable Variation:**
-- Different errors requiring different fixes
-- Progressive debugging that narrows down the issue
-- Test-driven development cycles with genuinely new information each iteration
-
-## Large Log Handling (Chunking)
-
-Session logs can be large (100KB+). Process them incrementally:
-
-1. **First pass:** Read the log in chunks of ~50 messages at a time
-2. **Track state:** Maintain a running list of potential inefficiencies as you scan
-3. **Second pass:** If needed, re-read specific sections to verify patterns
-4. **Summarize:** Aggregate findings across all chunks
-
-If the log is too large to process completely:
-- Prioritize the most recent messages (likely where issues occurred)
-- Sample from different phases (start, middle, end)
-- Note that analysis is partial in the output
-
-## Output Format
-
-Output ONLY valid JSON (markdown code fence optional). Do not create files in `docs/planning/tasks/`.
-
-### QueueOperation schema reference
-
-Use deterministic queue operations targeting the current milestone `subtasks.json` queue.
-
-```json
+<session-signals>
 {
-  "QueueOperation": [
-    {
-      "type": "create",
-      "atIndex": 0,
-      "subtask": {
-        "id": "optional-SUB-###",
-        "title": "string",
-        "description": "string",
-        "taskRef": "TASK-###",
-        "storyRef": "STORY-### or null (optional)",
-        "filesToRead": ["path"],
-        "acceptanceCriteria": ["criterion"]
-      }
-    },
-    {
-      "type": "update",
-      "id": "SUB-###",
-      "changes": {
-        "title": "optional string",
-        "description": "optional string",
-        "storyRef": "optional string or null",
-        "filesToRead": ["optional paths"],
-        "acceptanceCriteria": ["optional criteria"]
-      }
-    },
-    { "type": "remove", "id": "SUB-###" },
-    { "type": "reorder", "id": "SUB-###", "toIndex": 0 },
-    {
-      "type": "split",
-      "id": "SUB-###",
-      "subtasks": [
-        {
-          "title": "string",
-          "description": "string",
-          "taskRef": "TASK-###",
-          "filesToRead": ["path"],
-          "acceptanceCriteria": ["criterion"]
-        }
-      ]
-    }
-  ]
+  "sessionId": "...",
+  "offTrackScore": 0.0,
+  "durationMs": 0,
+  "totalToolCalls": 0,
+  "totalMessages": 0,
+  "tokenUsage": { "contextTokens": 0, "outputTokens": 0 },
+  "toolUseCounts": {},
+  "filesRead": [],
+  "filesWritten": [],
+  "signals": {
+    "filesTooBig": [],
+    "filesNotFound": [],
+    "stuckLoops": [],
+    "editBacktracking": [],
+    "explorationWithoutProduction": [],
+    "selfCorrections": [],
+    "tokenAcceleration": null,
+    "testFixLoops": []
+  }
 }
+</session-signals>
 ```
 
-### Required output JSON
+## Analysis Guidance
+
+Prioritize high-confidence inefficiency patterns:
+
+1. Tool misuse (wrong tool for file operations)
+2. Wasted reads (high read volume with little production)
+3. Backtracking (reversals/churn)
+4. Stuck loops / repeated failed cycles
+5. Token snowballing (acceleration without progress)
+
+Use confidence thresholds:
+
+- High confidence: multiple concrete signals and clear impact
+- Medium confidence: one strong signal or two weak corroborating signals
+- Low confidence: weak/ambiguous pattern (avoid creating corrective work)
+
+### Targeted Verification (Allowed)
+
+If signals indicate potential backtracking (for example, the same file appears in many `editBacktracking` entries, especially 5+), you MAY use `Grep` to spot-check specific patterns in the session log at `<session-log-path>`. Keep this narrow and evidence-driven.
+
+## Output Contract
+
+Return JSON only (markdown code fence optional):
 
 ```json
 {
   "summary": "short analysis summary",
   "insertionMode": "prepend",
-  "findings": [
+  "correctiveSubtasks": [
     {
-      "sessionId": "abc123",
-      "subtaskId": "SUB-001",
-      "type": "tool-misuse|wasted-reads|backtracking|excessive-iterations",
-      "severity": "high|medium|low",
-      "confidence": 0.0,
-      "messageRange": "lines 45-67",
-      "evidence": "specific tool calls showing the issue",
-      "impact": "tokens wasted, time lost, etc.",
-      "proposedFix": {
-        "targetFile": "CLAUDE.md or context/workflows/... or .claude/skills/...",
-        "change": "description of change to make"
-      }
+      "title": "string",
+      "description": "string",
+      "taskRef": "TASK-###",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
     }
-  ],
-  "operations": []
+  ]
 }
 ```
 
 Rules:
-- `operations` must be `QueueOperation[]`.
-- If inefficiencies are detected, include deterministic corrective subtask operations for the milestone queue (prefer `create` with explicit `atIndex`).
-- If no action is needed, return `"operations": []`.
+
+- Output must be valid JSON.
+- `insertionMode` should default to `prepend`.
+- Corrective subtasks must be deterministic and milestone-safe.
+- If no action is needed, return `"correctiveSubtasks": []`.
 - Never instruct creation of standalone task files.
-
-## Escape Hatch: Approved Exceptions
-
-Some patterns may look like inefficiencies but are intentional. Check for:
-
-1. **Comments in prompts:** `<!-- APPROVED: reason -->`
-2. **Config overrides:** `selfImprovement.exceptions` in ralph.config.json
-3. **Inline markers:** `// @self-improve-ignore` in code being analyzed
-
-If you find a marked exception, skip it and note it in the summary.
-
-## Execution Instructions
-
-### Phase 1: Gather Session Data
-
-1. Use targeted extraction from `subtasks.json` to find completed subtasks with `sessionId` before any broad reads:
-   - First query only the fields you need (`id`, `done`, `sessionId`) for matching entries
-   - Resolve specific `subtaskId`/`sessionId` pairs first, then read additional fields only for those matches
-2. Use a size-aware read strategy for planning JSON files (`subtasks.json`, task queues, similar documents):
-   - Check file size before large reads
-   - For large files, prefer targeted selectors and offset/windowed reads over full-document reads
-   - Only attempt broader reads when targeted extraction is insufficient
-3. If a broad read or query hits token/context overflow, follow retry/fallback handling:
-   - Retry with narrower selectors (single subtask/session) and smaller offset windows
-   - Perform at most 3 narrowing retries for the same source
-   - If still too large, record partial-analysis scope and continue with available data instead of blocking
-4. Check `ralph.config.json` for `selfImprovement.mode` setting
-   - If `"never"`, output message and exit without analysis
-5. For each completed subtask with `sessionId`:
-   - Locate session log at `~/.claude/projects/<encoded-path>/<sessionId>.jsonl`
-   - Note: Large logs may need chunked processing (see Large Log Handling section)
-
-### Phase 1.5: Bounded Path Discovery + Fallback
-
-When locating session logs, do not repeat the same path-discovery pattern indefinitely.
-
-1. Attempt at most **3** path-resolution tries per missing session log (for example: canonical encoded path, one normalized-path variant, one shell-expanded absolute check)
-2. If all 3 attempts fail, **pivot immediately**:
-   - Mark that session as unavailable
-   - Continue analysis using remaining available sessions
-   - Do not block the full run waiting on one missing log
-3. If **all** expected session logs are unavailable:
-   - Return a valid output JSON with empty findings and `"operations": []`
-   - Set `summary` to clearly state that analysis was skipped due to unavailable logs
-4. Track fallback metadata during execution so the final summary includes concise unavailability reporting
-
-### Phase 2: Spawn Parallel Analyzers
-
-**CRITICAL:** All Task calls must be in a single message for parallel execution.
-
-For each completed subtask with `sessionId`, spawn an analyzer subagent:
-
-```
-Launch ALL these Task tool calls in a SINGLE message:
-
-Task 1: general-purpose agent (for session abc123)
-  - subagent_type: "general-purpose"
-  - model: "opus"
-  - prompt: |
-      Analyze this session log for inefficiencies. Output JSON findings.
-
-      <subtask>
-      {subtask JSON including id, title, sessionId}
-      </subtask>
-
-      <session-log>
-      {session JSONL content - may be chunked for large logs}
-      </session-log>
-
-      Detect these inefficiency patterns:
-      1. Tool Misuse - Bash for file ops instead of Read/Write/Edit
-      2. Wasted Reads - files read but never used
-      3. Backtracking - edits that cancel each other out
-      4. Excessive Iterations - repeatedly attempting same fix without changing approach
-
-      Apply escape hatch: Skip items marked with "// @self-improve-ignore" or in config exceptions.
-
-      Output format:
-      ```json
-      {
-        "sessionId": "abc123",
-        "subtaskId": "SUB-001",
-        "findings": [
-          {
-            "type": "tool-misuse|wasted-reads|backtracking|excessive-iterations",
-            "severity": "high|medium|low",
-            "confidence": 0.0-1.0,
-            "messageRange": "lines 45-67",
-            "evidence": "specific tool calls showing the issue",
-            "impact": "tokens wasted, time lost, etc.",
-            "proposedFix": {
-              "targetFile": "CLAUDE.md or context/workflows/... or .claude/skills/...",
-              "change": "description of change to make"
-            }
-          }
-        ]
-      }
-      ```
-
-Task 2: general-purpose agent (for session def456)
-  - subagent_type: "general-purpose"
-  - model: "opus"
-  - prompt: |
-      [same structure for next session]
-
-... one Task call per completed subtask with sessionId
-```
-
-### Phase 3: Synthesize Findings
-
-After all analyzers complete, synthesize the results:
-
-1. **Aggregate** - Collect all findings from parallel analyzers
-2. **Dedupe** - Remove duplicate improvement proposals (same target file + similar change)
-   - Merge evidence from multiple sessions showing same pattern
-3. **Score** - Calculate priority: `severity_weight × confidence × session_count`
-   - Patterns appearing in multiple sessions are more valuable
-4. **Group** - Organize by target file and type
-
-Output synthesized summary:
-
-```markdown
-# Self-Improvement Analysis Summary
-
-## Statistics
-- Sessions analyzed: N
-- Total findings: N
-- By type: tool-misuse (N), wasted-reads (N), backtracking (N), excessive-iterations (N)
-- Fallbacks: M sessions skipped (missing logs)
-
-## Top Recommendations (sorted by priority)
-
-### 1. [target file] - [change type]
-**Priority:** X.XX
-**Sessions affected:** N
-**Evidence:** ...
-**Proposed change:** ...
-
-### 2. ...
-
-## Fallback Notes
-- Missing logs: SUB-041 (`sessionId` abc123), SUB-044 (`sessionId` def456)
-- Action: Continued with remaining sessions; no blocking retries after 3 path attempts per missing log
-```
-
-### Phase 4: Emit Queue Operations
-
-Based on `selfImprovement.mode`:
-
-- **"suggest"** (default): Emit corrective queue operations for review; do not mutate files directly
-- **"autofix"**: Emit corrective queue operations that runtime can auto-apply to the milestone queue
-- **"off"**: Should not reach here (handled in Phase 1)
-
-## Important Notes
-
-- **High risk operation:** This analysis can propose or apply changes to core prompts and skills
-- **Mode-dependent behavior:** Always return queue operations; runtime handles review vs apply behavior by mode.
-- **False positives:** When in doubt, don't flag. Some patterns that look inefficient may be intentional or necessary
-- **Context matters:** Consider the subtask's goal when evaluating if an action was inefficient
-- **Auto mode caution:** When applying changes automatically, be conservative. Only apply clear improvements with low risk of breaking functionality.
