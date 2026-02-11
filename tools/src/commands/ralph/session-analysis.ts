@@ -18,6 +18,13 @@ interface EditBacktrackingSignal {
   type: "exact" | "partial";
 }
 
+interface ExplorationSignal {
+  endLine: number;
+  readCount: number;
+  readFiles: Array<string>;
+  startLine: number;
+}
+
 interface FileNotFoundSignal {
   file: string;
   line: number;
@@ -43,9 +50,13 @@ interface OffTrackReport {
   sessionId: string;
   signals: {
     editBacktracking: Array<EditBacktrackingSignal>;
+    explorationWithoutProduction: Array<ExplorationSignal>;
     filesNotFound: Array<FileNotFoundSignal>;
     filesTooBig: Array<FilesTooBigSignal>;
+    selfCorrections: Array<SelfCorrectionSignal>;
     stuckLoops: Array<StuckLoopSignal>;
+    testFixLoops: Array<TestFixLoopSignal>;
+    tokenAcceleration: null | TokenAccelerationSignal;
   };
   tokenUsage: TokenUsage;
   toolUseCounts: Record<string, number>;
@@ -59,8 +70,15 @@ interface ProcessLineContext {
   toolNameById: Map<string, string>;
 }
 
+interface SelfCorrectionSignal {
+  line: number;
+  matchedPhrases: Array<string>;
+  snippet: string;
+}
+
 interface SignalDetector {
   buildSignals: () => void;
+  processLine: (parsedLine: unknown, context: ProcessLineContext) => void;
   processToolResult: (
     event: ToolResultEvent,
     context: ProcessLineContext,
@@ -73,6 +91,19 @@ interface StuckLoopSignal {
   pattern: string;
   repetitions: number;
   startLine: number;
+}
+
+interface TestFixLoopSignal {
+  cycles: number;
+  endLine: number;
+  errorSignature: string;
+  startLine: number;
+}
+
+interface TokenAccelerationSignal {
+  endTokens: number;
+  multiplier: number;
+  startTokens: number;
 }
 
 interface ToolResultEvent {
@@ -99,6 +130,8 @@ class BacktrackDetector implements SignalDetector {
   >();
 
   buildSignals(): void {}
+
+  processLine(): void {}
 
   processToolResult(): void {}
 
@@ -153,10 +186,69 @@ class BacktrackDetector implements SignalDetector {
   }
 }
 
+class ExplorationDetector implements SignalDetector {
+  readonly matches: Array<ExplorationSignal> = [];
+
+  private currentWindow: {
+    endLine: number;
+    readCount: number;
+    readFiles: Set<string>;
+    startLine: number;
+  } | null = null;
+
+  buildSignals(): void {
+    this.recordWindowSignal();
+  }
+
+  processLine(): void {}
+
+  processToolResult(): void {}
+
+  processToolUse(event: ToolUseEvent): void {
+    if (isReadOnlyTool(event.name)) {
+      const path = extractInputPath(event.input);
+      if (this.currentWindow === null) {
+        this.currentWindow = {
+          endLine: event.line,
+          readCount: 1,
+          readFiles: new Set(path === null ? [] : [path]),
+          startLine: event.line,
+        };
+      } else {
+        this.currentWindow.endLine = event.line;
+        this.currentWindow.readCount += 1;
+        if (path !== null) {
+          this.currentWindow.readFiles.add(path);
+        }
+      }
+      return;
+    }
+
+    this.recordWindowSignal();
+  }
+
+  private recordWindowSignal(): void {
+    if (this.currentWindow === null || this.currentWindow.readCount < 10) {
+      this.currentWindow = null;
+      return;
+    }
+
+    this.matches.push({
+      endLine: this.currentWindow.endLine,
+      readCount: this.currentWindow.readCount,
+      readFiles: [...this.currentWindow.readFiles],
+      startLine: this.currentWindow.startLine,
+    });
+    this.currentWindow = null;
+  }
+}
+
 class FileNotFoundDetector implements SignalDetector {
   readonly matches: Array<FileNotFoundSignal> = [];
 
   buildSignals(): void {}
+
+  processLine(): void {}
 
   processToolResult(event: ToolResultEvent, context: ProcessLineContext): void {
     if (!event.isError) {
@@ -188,6 +280,8 @@ class FilesTooBigDetector implements SignalDetector {
 
   buildSignals(): void {}
 
+  processLine(): void {}
+
   processToolResult(event: ToolResultEvent): void {
     const searchable = `${event.content}\n${event.raw}`;
     if (!/exceeds maximum allowed tokens/i.test(searchable)) {
@@ -216,6 +310,34 @@ class FilesTooBigDetector implements SignalDetector {
   processToolUse(): void {}
 }
 
+class SelfCorrectionDetector implements SignalDetector {
+  readonly matches: Array<SelfCorrectionSignal> = [];
+
+  buildSignals(): void {}
+
+  processLine(parsedLine: unknown, context: ProcessLineContext): void {
+    const assistantText = extractAssistantText(parsedLine);
+    if (assistantText === "") {
+      return;
+    }
+
+    const matchedPhrases = matchSelfCorrectionPhrases(assistantText);
+    if (matchedPhrases.length === 0) {
+      return;
+    }
+
+    this.matches.push({
+      line: context.line,
+      matchedPhrases,
+      snippet: buildSnippet(assistantText),
+    });
+  }
+
+  processToolResult(): void {}
+
+  processToolUse(): void {}
+}
+
 class StuckLoopDetector implements SignalDetector {
   readonly matches: Array<StuckLoopSignal> = [];
 
@@ -235,6 +357,8 @@ class StuckLoopDetector implements SignalDetector {
   buildSignals(): void {
     this.recordPatternState();
   }
+
+  processLine(): void {}
 
   processToolResult(): void {}
 
@@ -287,6 +411,146 @@ class StuckLoopDetector implements SignalDetector {
   }
 }
 
+class TestFixLoopDetector implements SignalDetector {
+  readonly matches: Array<TestFixLoopSignal> = [];
+
+  private activeLoop: {
+    cycles: number;
+    endLine: number;
+    errorSignature: string;
+    startLine: number;
+  } | null = null;
+
+  private baseline: { line: number; signature: string } | null = null;
+
+  private hasEditSinceBaseline = false;
+
+  private readonly testBashUseLines = new Map<string, number>();
+
+  buildSignals(): void {
+    if (this.activeLoop !== null) {
+      this.matches.push(this.activeLoop);
+      this.activeLoop = null;
+    }
+  }
+
+  processLine(): void {}
+
+  processToolResult(event: ToolResultEvent): void {
+    if (event.toolUseId === undefined) {
+      return;
+    }
+    const firstTestLine = this.testBashUseLines.get(event.toolUseId);
+    if (firstTestLine === undefined) {
+      return;
+    }
+
+    const signature = normalizeErrorSignature(event.content);
+    if (signature === "") {
+      this.baseline = { line: event.line, signature: "" };
+      this.hasEditSinceBaseline = false;
+      this.recordActiveLoop();
+      return;
+    }
+
+    if (
+      this.baseline !== null &&
+      this.hasEditSinceBaseline &&
+      this.baseline.signature !== "" &&
+      this.baseline.signature === signature
+    ) {
+      if (this.activeLoop?.errorSignature === signature) {
+        this.activeLoop.cycles += 1;
+        this.activeLoop.endLine = event.line;
+      } else {
+        this.recordActiveLoop();
+        this.activeLoop = {
+          cycles: 1,
+          endLine: event.line,
+          errorSignature: signature,
+          startLine: this.baseline.line,
+        };
+      }
+    } else {
+      this.recordActiveLoop();
+    }
+
+    this.baseline = { line: event.line, signature };
+    this.hasEditSinceBaseline = false;
+    this.testBashUseLines.delete(event.toolUseId);
+    if (firstTestLine > event.line) {
+      this.recordActiveLoop();
+    }
+  }
+
+  processToolUse(event: ToolUseEvent): void {
+    if (event.name === "Edit") {
+      if (this.baseline !== null) {
+        this.hasEditSinceBaseline = true;
+      }
+      return;
+    }
+
+    if (event.name !== "Bash" || !isTestCommand(event.input)) {
+      return;
+    }
+
+    if (event.id !== undefined && event.id !== "") {
+      this.testBashUseLines.set(event.id, event.line);
+    }
+  }
+
+  private recordActiveLoop(): void {
+    if (this.activeLoop === null) {
+      return;
+    }
+    this.matches.push(this.activeLoop);
+    this.activeLoop = null;
+  }
+}
+
+class TokenAccelerationDetector implements SignalDetector {
+  match: null | TokenAccelerationSignal = null;
+
+  private endTokens = 0;
+
+  private startTokens: null | number = null;
+
+  buildSignals(): void {
+    if (
+      this.startTokens === null ||
+      this.startTokens <= 0 ||
+      this.endTokens <= this.startTokens
+    ) {
+      return;
+    }
+
+    const multiplier = this.endTokens / this.startTokens;
+    if (multiplier <= 3) {
+      return;
+    }
+
+    this.match = {
+      endTokens: this.endTokens,
+      multiplier,
+      startTokens: this.startTokens,
+    };
+  }
+
+  processLine(parsedLine: unknown): void {
+    const inputTokens = extractInputTokens(parsedLine);
+    if (inputTokens === null) {
+      return;
+    }
+    this.startTokens ??= inputTokens;
+    this.endTokens = inputTokens;
+  }
+
+  processToolResult(): void {}
+
+  processToolUse(): void {}
+}
+
 function buildTupleKey(tuple: InputTuple): string {
   return `${tuple.toolName}:${tuple.hash}`;
 }
@@ -296,6 +560,17 @@ function createInputHash(input: unknown): string {
     .update(stringifyStable(input))
     .digest("hex")
     .slice(0, 12);
+}
+
+function extractAssistantText(parsedLine: unknown): string {
+  if (!isRecord(parsedLine) || !isRecord(parsedLine.message)) {
+    return "";
+  }
+  if (parsedLine.message.role !== "assistant") {
+    return "";
+  }
+
+  return extractTextFromContent(parsedLine.message.content);
 }
 
 function extractFilePath(value: string): string {
@@ -339,6 +614,21 @@ function extractInputPath(input: unknown): null | string {
   return null;
 }
 
+function extractInputTokens(parsedLine: unknown): null | number {
+  if (!isRecord(parsedLine) || !isRecord(parsedLine.message)) {
+    return null;
+  }
+  const { usage } = parsedLine.message;
+  if (!isRecord(usage) || typeof usage.input_tokens !== "number") {
+    return null;
+  }
+  if (!Number.isFinite(usage.input_tokens) || usage.input_tokens < 0) {
+    return null;
+  }
+
+  return usage.input_tokens;
+}
+
 async function extractSignals(
   sessionPath: string,
   sessionId = "unknown",
@@ -352,9 +642,13 @@ async function extractSignals(
     sessionId,
     signals: {
       editBacktracking: [],
+      explorationWithoutProduction: [],
       filesNotFound: [],
       filesTooBig: [],
+      selfCorrections: [],
       stuckLoops: [],
+      testFixLoops: [],
+      tokenAcceleration: null,
     },
     tokenUsage: getTokenUsageFromSession(sessionPath),
     toolUseCounts: {},
@@ -374,12 +668,20 @@ async function extractSignals(
   const fileNotFoundDetector = new FileNotFoundDetector();
   const stuckLoopDetector = new StuckLoopDetector();
   const backtrackDetector = new BacktrackDetector();
+  const explorationDetector = new ExplorationDetector();
+  const selfCorrectionDetector = new SelfCorrectionDetector();
+  const tokenAccelerationDetector = new TokenAccelerationDetector();
+  const testFixLoopDetector = new TestFixLoopDetector();
 
   const detectors: Array<SignalDetector> = [
     filesTooBigDetector,
     fileNotFoundDetector,
     stuckLoopDetector,
     backtrackDetector,
+    explorationDetector,
+    selfCorrectionDetector,
+    tokenAccelerationDetector,
+    testFixLoopDetector,
   ];
 
   const stream = createReadStream(sessionPath, { encoding: "utf8" });
@@ -401,6 +703,10 @@ async function extractSignals(
         raw: trimmed,
         toolNameById,
       };
+
+      for (const detector of detectors) {
+        detector.processLine(parsedLine, context);
+      }
 
       const toolUseEvents = extractToolUseEvents(parsedLine, lineNumber);
       for (const event of toolUseEvents) {
@@ -440,6 +746,11 @@ async function extractSignals(
   report.signals.filesNotFound = fileNotFoundDetector.matches;
   report.signals.stuckLoops = stuckLoopDetector.matches;
   report.signals.editBacktracking = backtrackDetector.matches;
+  report.signals.explorationWithoutProduction = explorationDetector.matches;
+  report.signals.selfCorrections = selfCorrectionDetector.matches;
+  report.signals.tokenAcceleration = tokenAccelerationDetector.match;
+  report.signals.testFixLoops = testFixLoopDetector.matches;
+  report.offTrackScore = computeOffTrackScore(report);
   return report;
 }
 
@@ -528,6 +839,113 @@ function getMessageContent(value: unknown): Array<unknown> | null {
   return Array.isArray(content) ? content : null;
 }
 
+function isReadOnlyTool(toolName: string): boolean {
+  return toolName === "Read" || toolName === "Glob" || toolName === "Grep";
+}
+
+function isTestCommand(input: unknown): boolean {
+  if (!isRecord(input) || typeof input.command !== "string") {
+    return false;
+  }
+
+  return /(?:\b(?:bun|pnpm|npm|yarn|vitest|jest|pytest|phpunit|rspec|ctest|deno)\b.*\btest\b|\bgo\s+test\b|\bcargo\s+test\b|\bmvn\s+test\b|\bgradle\s+test\b|\bmix\s+test\b)/i.test(
+    input.command,
+  );
+}
+
+function normalizeErrorSignature(rawOutput: string): string {
+  const trimmed = rawOutput.trim();
+  if (trimmed === "") {
+    return "";
+  }
+
+  const normalized = trimmed
+    .toLowerCase()
+    .replaceAll(/[0-9]{4}-[0-9]{2}-[0-9]{2}/g, "<date>")
+    .replaceAll(/[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?/g, "<time>")
+    .replaceAll(/\/home\/[\w-/.]+/g, "<path>")
+    .replaceAll(/[A-Za-z]:\\[^\s]+/g, "<path>")
+    .replaceAll(/\bline\s+\d+\b/g, "line <n>")
+    .replaceAll(/\b\d+\b/g, "<n>")
+    .replaceAll(/\s+/g, " ")
+    .trim();
+
+  return normalized.length > 240 ? normalized.slice(0, 240) : normalized;
+}
+
+const SELF_CORRECTION_PATTERNS: Array<[string, RegExp]> = [
+  ["actually", /\bactually\b/i],
+  ["let me reconsider", /\blet me reconsider\b/i],
+  ["i was wrong", /\bi was wrong\b/i],
+  ["wait", /\bwait\b/i],
+  ["oops", /\boops\b/i],
+  ["sorry", /\bsorry\b/i],
+  ["correction", /\bcorrection\b/i],
+  ["on second thought", /\bon second thought\b/i],
+  ["i should correct", /\bi should correct\b/i],
+  ["i need to correct", /\bi need to correct\b/i],
+  ["hold on", /\bhold on\b/i],
+  ["let me backtrack", /\blet me backtrack\b/i],
+];
+
+function buildSnippet(text: string): string {
+  const compact = text.replaceAll(/\s+/g, " ").trim();
+  if (compact.length <= 180) {
+    return compact;
+  }
+  return `${compact.slice(0, 177)}...`;
+}
+
+function clampZeroToOne(value: number): number {
+  if (value <= 0) {
+    return 0;
+  }
+  if (value >= 1) {
+    return 1;
+  }
+  return value;
+}
+
+function computeOffTrackScore(report: OffTrackReport): number {
+  const sessionNormalizer = Math.max(1, report.totalMessages / 50);
+  const exactReversals = report.signals.editBacktracking.filter(
+    (signal) => signal.type === "exact",
+  ).length;
+  const partialReversals = report.signals.editBacktracking.filter(
+    (signal) => signal.type === "partial",
+  ).length;
+  const fileErrors =
+    report.signals.filesNotFound.length + report.signals.filesTooBig.length;
+
+  const weighted =
+    0.25 *
+      normalizeSignalCount(
+        report.signals.stuckLoops.length,
+        sessionNormalizer,
+      ) +
+    0.2 * normalizeSignalCount(partialReversals, sessionNormalizer) +
+    0.15 *
+      normalizeSignalCount(
+        report.signals.selfCorrections.length,
+        sessionNormalizer,
+      ) +
+    0.1 *
+      normalizeSignalCount(
+        report.signals.testFixLoops.length,
+        sessionNormalizer,
+      ) +
+    0.1 *
+      normalizeSignalCount(
+        report.signals.explorationWithoutProduction.length,
+        sessionNormalizer,
+      ) +
+    0.07 * normalizeTokenAcceleration(report.signals.tokenAcceleration) +
+    0.08 * normalizeSignalCount(fileErrors, sessionNormalizer) +
+    0.05 * normalizeSignalCount(exactReversals, sessionNormalizer);
+
+  return clampZeroToOne(weighted);
+}
+
 function hasSubstringOverlap(left: string, right: string): boolean {
   const normalizedLeft = left.trim();
   const normalizedRight = right.trim();
@@ -590,6 +1008,35 @@ function isPartialReversal(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function matchSelfCorrectionPhrases(text: string): Array<string> {
+  const matches: Array<string> = [];
+  for (const [label, pattern] of SELF_CORRECTION_PATTERNS) {
+    if (pattern.test(text)) {
+      matches.push(label);
+    }
+  }
+  return matches;
+}
+
+function normalizeSignalCount(
+  count: number,
+  sessionNormalizer: number,
+): number {
+  if (count <= 0) {
+    return 0;
+  }
+  return clampZeroToOne(count / sessionNormalizer);
+}
+
+function normalizeTokenAcceleration(
+  acceleration: null | TokenAccelerationSignal,
+): number {
+  if (acceleration === null) {
+    return 0;
+  }
+  return clampZeroToOne((acceleration.multiplier - 3) / 3);
 }
 
 function parseEditInput(
@@ -709,15 +1156,23 @@ function updateFileSets(
 
 export {
   BacktrackDetector,
+  ExplorationDetector,
   extractSignals,
   FileNotFoundDetector,
   FilesTooBigDetector,
+  SelfCorrectionDetector,
   StuckLoopDetector,
+  TestFixLoopDetector,
+  TokenAccelerationDetector,
 };
 export type {
   EditBacktrackingSignal,
+  ExplorationSignal,
   FileNotFoundSignal,
   FilesTooBigSignal,
   OffTrackReport,
+  SelfCorrectionSignal,
   StuckLoopSignal,
+  TestFixLoopSignal,
+  TokenAccelerationSignal,
 };
