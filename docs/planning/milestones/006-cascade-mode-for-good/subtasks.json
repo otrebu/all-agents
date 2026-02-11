@@ -739,7 +739,7 @@
       "taskRef": "fix-calibration-context-explosion",
       "title": "Refactor runIntentionCheck() to batch loop + rewrite intention-drift.md",
       "description": "Refactor runIntentionCheck() in calibrate.ts from a single massive invokeWithProvider() call to a TypeScript-controlled batch loop. For each batch of 5 completed subtasks: (1) Pre-resolve via extractDiffSummary() for full diff and resolvePlanningChain() for task/story content. (2) Filter out subtasks where resolvePlanningChain() returns null (intention drift requires knowing the intended scope). (3) Build a scoped prompt using buildIntentionBatchPrompt() with the rewritten intention-drift.md template + batch data inline. (4) invokeWithProvider() — fresh context window per batch. (5) Parse JSON findings via parseCalibrationResult() and accumulate. After all batches: merge via mergeCalibrationResults() and call applyCalibrationProposal() once. Remove @PROGRESS.md (34K tokens) and @VISION.md (15K tokens) from the prompt — planning chain (subtask→task→story) is sufficient. Rewrite intention-drift.md: remove Phase 2 'spawn parallel analyzers', rewrite as single-batch analysis prompt ('You are given N subtasks with their diffs and planning chain. Analyze each for intention drift.'), add 'DO NOT read additional files. All required context is provided below.' Keep output format and drift patterns unchanged.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "[Behavioral] runIntentionCheck() processes completed subtasks in batches of 5 with one invokeWithProvider() per batch",
         "[Behavioral] Subtasks where resolvePlanningChain() returns null are filtered out (not sent to LLM)",
@@ -755,7 +755,10 @@
         "tools/src/commands/ralph/calibrate.ts",
         "context/workflows/ralph/calibration/intention-drift.md",
         ".claude/plans/mellow-imagining-spark.md"
-      ]
+      ],
+      "completedAt": "2026-02-11T16:16:29Z",
+      "commitHash": "b736c780d7f8922f589705018093afb119e3f0e4",
+      "sessionId": "01e0eb0f-aa64-4e30-bff0-56366c1caf9f"
     },
     {
       "id": "SUB-035",

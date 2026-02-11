@@ -25,6 +25,11 @@
 - **Changes:** Completed `session-analysis.ts` with `ExplorationDetector`, `SelfCorrectionDetector`, `TokenAccelerationDetector`, and `TestFixLoopDetector`; added weighted composite `offTrackScore` normalized by session length; and expanded unit coverage to validate all 8 detectors, composite scoring normalization, and the full `extractSignals()` report contract.
 - **Files:** `tools/src/commands/ralph/session-analysis.ts`, `tools/tests/lib/session-analysis.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-034
+- **Problem:** Intention calibration still used one large provider invocation with global planning docs, causing context pressure and lacking per-batch planning-chain filtering.
+- **Changes:** Refactored `runIntentionCheck()` in `calibrate.ts` to process completed subtasks in TypeScript-controlled batches of five, pre-resolve each subtask via `extractDiffSummary()` and `resolvePlanningChain()`, filter out entries with null planning context, build inline scoped prompts through `buildIntentionBatchPrompt()`, parse each batch with `parseCalibrationResult()`, merge all findings with `mergeCalibrationResults()`, and call `applyCalibrationProposal()` once with the merged result. Rewrote `intention-drift.md` as a single-batch analysis template with an explicit "DO NOT read additional files" instruction and removed parallel-analyzer orchestration guidance.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/intention-drift.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-10
 
 ### SUB-001
