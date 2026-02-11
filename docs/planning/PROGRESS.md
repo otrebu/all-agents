@@ -30,6 +30,11 @@
 - **Changes:** Refactored `runIntentionCheck()` in `calibrate.ts` to process completed subtasks in TypeScript-controlled batches of five, pre-resolve each subtask via `extractDiffSummary()` and `resolvePlanningChain()`, filter out entries with null planning context, build inline scoped prompts through `buildIntentionBatchPrompt()`, parse each batch with `parseCalibrationResult()`, merge all findings with `mergeCalibrationResults()`, and call `applyCalibrationProposal()` once with the merged result. Rewrote `intention-drift.md` as a single-batch analysis template with an explicit "DO NOT read additional files" instruction and removed parallel-analyzer orchestration guidance.
 - **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/intention-drift.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-035
+- **Problem:** Technical calibration still used one monolithic provider invocation and prompt-side orchestration instructions, which caused context pressure and prevented deterministic batch preprocessing of diffs plus referenced files.
+- **Changes:** Refactored `runTechnicalCheck()` in `calibrate.ts` to process completed subtasks in batches of five, pre-resolve each subtask's full diff via `extractDiffSummary()` and all `filesToRead` content via `resolveFilesToRead()`, build inline batch payloads with new `buildTechnicalBatchPrompt()`, parse per-batch responses with `parseCalibrationResult()`, merge findings through `mergeCalibrationResults()`, and apply once with `applyCalibrationProposal()`. Rewrote `technical-drift.md` as a single-batch prompt, removed Phase 2 parallel analyzer orchestration guidance, preserved technical drift checks (tests/patterns/error handling/docs/types/security/atomic docs), added consistency-checker framework references (Code vs Prose 6-13, Code-to-Code 14-19), and added explicit "DO NOT read additional files beyond what is provided." guidance.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/technical-drift.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-10
 
 ### SUB-001

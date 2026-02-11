@@ -765,7 +765,7 @@
       "taskRef": "fix-calibration-context-explosion",
       "title": "Refactor runTechnicalCheck() to batch loop + rewrite technical-drift.md",
       "description": "Refactor runTechnicalCheck() in calibrate.ts to use the same batch loop architecture as intention check. Per batch of 5 completed subtasks: (1) extractDiffSummary() for full diff. (2) resolveFilesToRead(subtask.filesToRead) to inline ALL referenced files (atomic docs, source files, configs). (3) No resolvePlanningChain() needed — technical drift checks code quality against documented standards, not intent alignment. All completed subtasks eligible. (4) Build prompt with buildTechnicalBatchPrompt() using rewritten technical-drift.md + batch data. (5) Invoke, parse, accumulate. After all batches: merge and apply once. Rewrite technical-drift.md: remove Phase 2 parallel subagent spawning, keep all existing drift pattern checks (missing tests, inconsistent patterns, type safety, etc.), keep atomic doc checking patterns, add reference to @context/workflows/consistency-checker.md 'Code vs Prose' (categories 6-13) and 'Code-to-Code' (categories 14-19) as structured analysis framework. Add 'DO NOT read additional files beyond what is provided.' Remove model recommendation.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "[Behavioral] runTechnicalCheck() processes completed subtasks in batches of 5 with one invokeWithProvider() per batch",
         "[Behavioral] All filesToRead content is resolved and included inline in the prompt (LLM does not need to read files)",
@@ -780,7 +780,10 @@
         "tools/src/commands/ralph/calibrate.ts",
         "context/workflows/ralph/calibration/technical-drift.md",
         ".claude/plans/mellow-imagining-spark.md"
-      ]
+      ],
+      "completedAt": "2026-02-11T16:28:09Z",
+      "commitHash": "159e3b99aff8c9ad22769fd1763bc34e8dfb1444",
+      "sessionId": "01e0eb0f-aa64-4e30-bff0-56366c1caf9f"
     },
     {
       "id": "SUB-036",
