@@ -1293,7 +1293,12 @@ function runCompletedCommitEvidenceValidation(
     const commitLabel =
       issue.commitHash === undefined ? "" : ` commit=${issue.commitHash}`;
     const state = issue.severity === "error" ? "FAIL" : "INFO";
-    const prefix = issue.severity === "warning" ? "LOW-CONFIDENCE" : "INVALID";
+    let prefix = "LOW-CONFIDENCE";
+    if (issue.severity === "error") {
+      prefix = "INVALID";
+    } else if (issue.commitHash === undefined) {
+      prefix = "MISSING-HASH";
+    }
     console.log(
       renderEventLine({
         domain: "CALIBRATE",
@@ -1306,10 +1311,18 @@ function runCompletedCommitEvidenceValidation(
   }
 
   if (warnings.length > 0) {
+    const missingHash = warnings.filter(
+      (w) => w.commitHash === undefined,
+    ).length;
+    const lowConfidence = warnings.length - missingHash;
+    const parts: Array<string> = [];
+    if (missingHash > 0)
+      parts.push(`${missingHash} missing-hash (will be skipped)`);
+    if (lowConfidence > 0) parts.push(`${lowConfidence} low-confidence`);
     console.log(
       renderEventLine({
         domain: "CALIBRATE",
-        message: `Proceeding with ${warnings.length} low-confidence traceability warning(s).`,
+        message: `Proceeding with ${warnings.length} traceability warning(s): ${parts.join(", ")}.`,
         state: "SKIP",
       }),
     );

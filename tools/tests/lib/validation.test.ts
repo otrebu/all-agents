@@ -542,7 +542,7 @@ describe("validateDoneSubtaskCommitEvidence", () => {
       const missingIssue = result.issues.find(
         (issue) => issue.subtaskId === "SUB-100",
       );
-      expect(missingIssue?.severity).toBe("error");
+      expect(missingIssue?.severity).toBe("warning");
       expect(missingIssue?.remediation.toLowerCase()).toContain("relink");
 
       const invalidIssue = result.issues.find(

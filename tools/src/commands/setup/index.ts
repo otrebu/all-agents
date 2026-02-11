@@ -325,6 +325,26 @@ async function setupUser(): Promise<void> {
   execSync(`chmod +x "${statuslineDestination}"`);
   log.success("Copied statusline.sh to ~/.claude/");
 
+  // Step 8: Setup ~/.agents/skills symlink (universal agent skills)
+  const agentsSkillsDirectory = resolve(homedir(), ".agents/skills");
+  const skillsSource = resolve(root, ".claude/skills");
+
+  if (!existsSync(resolve(homedir(), ".agents"))) {
+    mkdirSync(resolve(homedir(), ".agents"), { recursive: true });
+    log.info("Created ~/.agents");
+  }
+
+  const existingSkillsTarget = getSymlinkTarget(agentsSkillsDirectory);
+  if (existingSkillsTarget === skillsSource) {
+    log.info("~/.agents/skills symlink already exists");
+  } else if (existsSync(agentsSkillsDirectory)) {
+    log.warn("~/.agents/skills already exists (not a symlink to this repo)");
+    log.info("To fix: rm -rf ~/.agents/skills && aaa setup --user");
+  } else {
+    symlinkSync(skillsSource, agentsSkillsDirectory);
+    log.success(`Symlink: ~/.agents/skills -> ${skillsSource}`);
+  }
+
   p.outro("User setup complete");
 }
 

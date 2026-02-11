@@ -791,7 +791,7 @@ function validateDoneSubtaskCommitEvidence(
           "Completed subtask has no commitHash, so traceability evidence is missing.",
         remediation:
           "Relink commitHash to a reachable implementation commit for this subtask.",
-        severity: "error",
+        severity: "warning",
         subtaskId: subtask.id,
       });
       // eslint-disable-next-line no-continue -- cannot inspect files without a hash
