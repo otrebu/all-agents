@@ -658,6 +658,180 @@
       "completedAt": "2026-02-10T18:04:59Z",
       "commitHash": "4a59f3fbfa8b36724f240f4dc45dec4d68b17a64",
       "sessionId": "85682707-53d7-48a7-81e5-d02772646028"
+    },
+    {
+      "id": "SUB-031",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Create calibration pre-processing utility functions",
+      "description": "Add 4 new pre-processing utility functions to calibrate.ts that enable the batch loop architecture: (1) extractDiffSummary(commitHash, subtaskId) — runs git show --stat + git show to get full diff + stats, returns DiffSummary interface with commitHash, filesChanged, patch (full, no truncation), statSummary, subtaskId. (2) resolvePlanningChain(subtask, milestonePath) — resolves subtask→task→story chain via 3 resolution paths: file-based (milestones 003/004 via tasks/TASK-NNN.md), section-based (milestones 005/006 via WS-01-* from MILESTONE.md), or null for unresolvable. Returns PlanningChainContext or null. (3) resolveFilesToRead(filesToRead) — reads ALL files from subtask's filesToRead array, resolves @context/ prefixes to absolute paths, skips missing files with warning, returns ResolvedFile[] with path/content/tokenEstimate. (4) mergeCalibrationResults(findings[]) — pure TypeScript merge of batch CalibrationParseResult arrays: concatenates correctiveSubtasks, deduplicates by title similarity, merges summaries, returns unified CalibrationParseResult.",
+      "done": false,
+      "acceptanceCriteria": [
+        "[Behavioral] extractDiffSummary() returns DiffSummary with patch, filesChanged, and statSummary for a known commit hash",
+        "[Behavioral] resolvePlanningChain() returns null for subtasks without resolvable task/story references",
+        "[Behavioral] resolvePlanningChain() resolves section-based taskRefs (WS-01-*) by extracting workstream section from MILESTONE.md",
+        "[Behavioral] resolveFilesToRead() resolves @context/ prefixes to absolute paths and reads file content with token estimates",
+        "[Behavioral] mergeCalibrationResults() concatenates correctiveSubtasks from multiple batches and deduplicates by title similarity",
+        "[Evidence] Unit tests in tools/tests/lib/calibrate-utils.test.ts pass via bun test tools/tests/lib/calibrate-utils.test.ts",
+        "TypeScript compiles without errors: bun run typecheck exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/config.ts",
+        "docs/planning/milestones/006-cascade-mode-for-good/MILESTONE.md",
+        ".claude/plans/mellow-imagining-spark.md"
+      ]
+    },
+    {
+      "id": "SUB-032",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Create session-analysis.ts — types and first 4 signal detectors",
+      "description": "Create new tools/src/commands/ralph/session-analysis.ts module with the OffTrackReport type, streaming line-by-line infrastructure, and the first 4 signal detectors: (1) FilesTooBigDetector — regex for 'exceeds maximum allowed tokens' on tool_result lines, captures file path and token count. (2) FileNotFoundDetector — is_error: true + 'File does not exist' pattern, captures file path and tool name. (3) StuckLoopDetector — sliding window size 3 over (tool_name, input_hash) tuples, detects when the same 3-tool sequence repeats 2+ times, captures pattern/repetitions/line range. (4) BacktrackDetector — tracks Edit old_string/new_string per file, detects reversals (exact and partial), captures file/firstEditLine/reversalLine/type. Each detector is a stateful processor that maintains minimal state and processes lines incrementally. Reuse existing session.ts patterns (countToolCalls, getFilesFromSession, calculateDurationMs, getTokenUsageFromSession) — extend, don't duplicate.",
+      "done": false,
+      "acceptanceCriteria": [
+        "[Behavioral] FilesTooBigDetector correctly identifies tool_result lines containing 'exceeds maximum allowed tokens' pattern",
+        "[Behavioral] FileNotFoundDetector captures is_error:true with 'File does not exist' message and records file path",
+        "[Behavioral] StuckLoopDetector detects when the same (tool_name, input_hash) 3-tuple repeats 2+ times consecutively",
+        "[Behavioral] BacktrackDetector detects when an Edit reverses a previous Edit on the same file (exact and partial matches)",
+        "[Evidence] Unit tests in tools/tests/lib/session-analysis.test.ts pass via bun test tools/tests/lib/session-analysis.test.ts",
+        "TypeScript compiles without errors: bun run typecheck exits 0",
+        "tools/CLAUDE.md directory structure updated to include session-analysis.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/session.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/CLAUDE.md",
+        ".claude/plans/mellow-imagining-spark.md"
+      ]
+    },
+    {
+      "id": "SUB-033",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Complete session-analysis.ts — detectors 5-8, composite scorer, extractSignals()",
+      "description": "Add remaining 4 signal detectors to session-analysis.ts and the composite scoring/streaming infrastructure: (5) ExplorationDetector — flags windows of 10+ consecutive Read/Glob/Grep tool calls with 0 Edit/Write calls, captures startLine/endLine/readCount/readFiles. (6) SelfCorrectionDetector — regex on assistant text blocks for ~12 hedging/correction phrases ('actually', 'let me reconsider', 'I was wrong', 'wait', 'oops', etc.), captures line/matchedPhrases/snippet. (7) TokenAccelerationDetector — tracks input_tokens growth across API calls, flags when end/start multiplier exceeds 3x, captures startTokens/endTokens/multiplier or null. (8) TestFixLoopDetector — detects Bash(test)->Edit->Bash(test) cycles where error signature (normalized test output) repeats, captures cycles/errorSignature/line range. Add composite scorer: weighted sum (stuck loops 0.25, approach abandonment 0.20, self-corrections 0.15, test-fix loops 0.10, exploration 0.10, token acceleration 0.07, file errors 0.08, contradictions 0.05), normalized by session length. Implement main extractSignals(jsonlPath): Promise<OffTrackReport> that streams through JSONL via readline, runs all 8 detectors, and computes composite offTrackScore (0-1).",
+      "done": false,
+      "acceptanceCriteria": [
+        "[Behavioral] ExplorationDetector flags windows of 10+ read-only tool calls with no production writes",
+        "[Behavioral] SelfCorrectionDetector matches at least 8 hedging phrases in assistant text blocks",
+        "[Behavioral] TokenAccelerationDetector flags sessions where input_tokens grow >3x from first to last API call",
+        "[Behavioral] TestFixLoopDetector detects repeated test-edit-test cycles with same normalized error signature",
+        "[Behavioral] extractSignals() returns OffTrackReport with offTrackScore between 0.0 and 1.0",
+        "[Behavioral] Composite scorer applies documented weights and normalizes by session length (longer sessions tolerate more signals)",
+        "[Evidence] Unit tests in tools/tests/lib/session-analysis.test.ts cover all 8 detectors individually + composite scoring + extractSignals()"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/session-analysis.ts",
+        "tools/src/commands/ralph/session.ts",
+        ".claude/plans/mellow-imagining-spark.md"
+      ]
+    },
+    {
+      "id": "SUB-034",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Refactor runIntentionCheck() to batch loop + rewrite intention-drift.md",
+      "description": "Refactor runIntentionCheck() in calibrate.ts from a single massive invokeWithProvider() call to a TypeScript-controlled batch loop. For each batch of 5 completed subtasks: (1) Pre-resolve via extractDiffSummary() for full diff and resolvePlanningChain() for task/story content. (2) Filter out subtasks where resolvePlanningChain() returns null (intention drift requires knowing the intended scope). (3) Build a scoped prompt using buildIntentionBatchPrompt() with the rewritten intention-drift.md template + batch data inline. (4) invokeWithProvider() — fresh context window per batch. (5) Parse JSON findings via parseCalibrationResult() and accumulate. After all batches: merge via mergeCalibrationResults() and call applyCalibrationProposal() once. Remove @PROGRESS.md (34K tokens) and @VISION.md (15K tokens) from the prompt — planning chain (subtask→task→story) is sufficient. Rewrite intention-drift.md: remove Phase 2 'spawn parallel analyzers', rewrite as single-batch analysis prompt ('You are given N subtasks with their diffs and planning chain. Analyze each for intention drift.'), add 'DO NOT read additional files. All required context is provided below.' Keep output format and drift patterns unchanged.",
+      "done": false,
+      "acceptanceCriteria": [
+        "[Behavioral] runIntentionCheck() processes completed subtasks in batches of 5 with one invokeWithProvider() per batch",
+        "[Behavioral] Subtasks where resolvePlanningChain() returns null are filtered out (not sent to LLM)",
+        "[Behavioral] Prompt no longer includes @PROGRESS.md or @VISION.md file references",
+        "[Behavioral] Each batch prompt includes pre-gathered diffs and task/story content inline",
+        "[Regression] applyCalibrationProposal() still runs once after all batches with merged results",
+        "[Regression] CalibrationParseResult JSON output format unchanged (correctiveSubtasks, insertionMode, summary)",
+        "[Evidence] intention-drift.md does not contain 'spawn parallel analyzers' or Phase 2 subagent instructions",
+        "[Evidence] intention-drift.md contains 'DO NOT read additional files' instruction",
+        "[Evidence] bun run typecheck exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/calibrate.ts",
+        "context/workflows/ralph/calibration/intention-drift.md",
+        ".claude/plans/mellow-imagining-spark.md"
+      ]
+    },
+    {
+      "id": "SUB-035",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Refactor runTechnicalCheck() to batch loop + rewrite technical-drift.md",
+      "description": "Refactor runTechnicalCheck() in calibrate.ts to use the same batch loop architecture as intention check. Per batch of 5 completed subtasks: (1) extractDiffSummary() for full diff. (2) resolveFilesToRead(subtask.filesToRead) to inline ALL referenced files (atomic docs, source files, configs). (3) No resolvePlanningChain() needed — technical drift checks code quality against documented standards, not intent alignment. All completed subtasks eligible. (4) Build prompt with buildTechnicalBatchPrompt() using rewritten technical-drift.md + batch data. (5) Invoke, parse, accumulate. After all batches: merge and apply once. Rewrite technical-drift.md: remove Phase 2 parallel subagent spawning, keep all existing drift pattern checks (missing tests, inconsistent patterns, type safety, etc.), keep atomic doc checking patterns, add reference to @context/workflows/consistency-checker.md 'Code vs Prose' (categories 6-13) and 'Code-to-Code' (categories 14-19) as structured analysis framework. Add 'DO NOT read additional files beyond what is provided.' Remove model recommendation.",
+      "done": false,
+      "acceptanceCriteria": [
+        "[Behavioral] runTechnicalCheck() processes completed subtasks in batches of 5 with one invokeWithProvider() per batch",
+        "[Behavioral] All filesToRead content is resolved and included inline in the prompt (LLM does not need to read files)",
+        "[Behavioral] Prompt includes full git diffs from extractDiffSummary() per subtask",
+        "[Regression] All completed subtasks are eligible for technical drift (no planning chain filtering)",
+        "[Regression] Existing drift pattern checks preserved (missing tests, type safety, security, etc.)",
+        "[Evidence] technical-drift.md does not contain 'spawn parallel analyzers' or Phase 2 subagent instructions",
+        "[Evidence] technical-drift.md contains 'DO NOT read additional files' instruction",
+        "[Evidence] bun run typecheck exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/calibrate.ts",
+        "context/workflows/ralph/calibration/technical-drift.md",
+        ".claude/plans/mellow-imagining-spark.md"
+      ]
+    },
+    {
+      "id": "SUB-036",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Refactor runImproveCheck() to per-session signal iterations + rewrite self-improvement.md",
+      "description": "Refactor runImproveCheck() in calibrate.ts to iterate once per unique session (deduplicated by sessionId from preflight.available) instead of one massive invocation. Per unique session: (1) Call extractSignals(sessionLogPath) from session-analysis.ts to get OffTrackReport (~2-5K tokens instead of 500K+ raw JSONL). (2) If offTrackScore < 0.1, skip session (no findings worth analyzing). (3) Build prompt with buildSessionAnalysisPrompt() using rewritten self-improvement.md + pre-extracted signals. (4) invokeWithProvider() with fresh context per session. (5) Accumulate findings. After all sessions: merge and apply. Rewrite self-improvement.md: rewrite Phase 2 for signal-based analysis (subagent receives <session-signals> JSON, not raw JSONL). Add targeted verification: 'If signals indicate potential backtracking (file edited 5+ times), you MAY use Grep to spot-check specific patterns in the session log at <session-log-path>.' Remove raw <session-log> template, replace with <session-signals> template. Remove 'Large Log Handling (Chunking)' section (signals make it unnecessary).",
+      "done": false,
+      "acceptanceCriteria": [
+        "[Behavioral] runImproveCheck() invokes provider once per unique session (deduplicated by sessionId)",
+        "[Behavioral] Each invocation receives pre-extracted OffTrackReport signals (~2-5K tokens, not raw JSONL)",
+        "[Behavioral] Sessions with offTrackScore < 0.1 are skipped without LLM invocation",
+        "[Regression] Self-improvement mode (suggest/autofix/off) behavior is preserved",
+        "[Regression] Self-improve fallback for missing session logs still works",
+        "[Evidence] self-improvement.md contains <session-signals> template (not <session-log>)",
+        "[Evidence] self-improvement.md does not contain 'Large Log Handling (Chunking)' section",
+        "[Evidence] bun run typecheck exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/calibrate.ts",
+        "context/workflows/ralph/calibration/self-improvement.md",
+        "tools/src/commands/ralph/session-analysis.ts",
+        ".claude/plans/mellow-imagining-spark.md"
+      ]
+    },
+    {
+      "id": "SUB-037",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Rewrite SKILL.md as thin CLI wrapper",
+      "description": "Replace the current SKILL.md (219 lines of duplicated orchestration) with a thin CLI wrapper that delegates to 'aaa ralph calibrate'. Move OUT of skill: all prerequisite checks (CLI does these with clear error messages), sequential execution logic for 'all' (CLI handles), selfImprovement config reading (CLI handles), direct references to workflow .md files (CLI uses them internally). Keep IN skill: argument parsing (which check to run), CLI invocation via Bash tool, output presentation to user, usage documentation. New execution flow: when invoked with argument <check>, resolve subtasks.json path, build CLI command 'aaa ralph calibrate <check> [--review|--force]', run via Bash tool, display output to user. When invoked with no argument, show usage help.",
+      "done": false,
+      "acceptanceCriteria": [
+        "[Behavioral] /ralph-calibrate intention runs 'aaa ralph calibrate intention' via Bash tool and displays output",
+        "[Behavioral] /ralph-calibrate all --force runs 'aaa ralph calibrate all --force' via Bash tool",
+        "[Behavioral] /ralph-calibrate with no argument shows usage help with subcommands and options",
+        "[Evidence] SKILL.md does not reference @context/workflows/ralph/calibration/*.md files directly",
+        "[Evidence] SKILL.md does not contain prerequisite check logic (subtasks.json existence checks, completed subtask checks)",
+        "[Evidence] SKILL.md line count is under 80 lines (down from 219)"
+      ],
+      "filesToRead": [
+        ".claude/skills/ralph-calibrate/SKILL.md",
+        "tools/src/commands/ralph/calibrate.ts",
+        ".claude/plans/mellow-imagining-spark.md"
+      ]
+    },
+    {
+      "id": "SUB-038",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Integration verification — dry run all 3 calibration checks",
+      "description": "Verify the refactored calibration system works end-to-end without context window explosions. Run the following dry runs: (1) aaa ralph calibrate intention --review on milestone 006 (30 completed subtasks → 6 batch iterations at size 5). Verify batching works and each iteration stays within context limits. (2) aaa ralph calibrate technical --review on milestone 006. Verify filesToRead inline resolution and batch processing. (3) aaa ralph calibrate improve --review on milestone 006 (3 unique sessions → up to 3 signal-based iterations). Verify extractSignals provides usable pre-processed data. (4) aaa ralph calibrate all --review — full suite completes without crashes. (5) Cross-milestone: test on milestone 003 (file-based tasks/stories) to verify file-based resolvePlanningChain() path works (tasks/TASK-NNN.md → stories/STORY-NNN.md). (6) Build loop: verify aaa ralph build --calibrate-every 3 still triggers periodic calibration correctly.",
+      "done": false,
+      "acceptanceCriteria": [
+        "[Behavioral] aaa ralph calibrate intention --review completes without context window errors on 30 completed subtasks",
+        "[Behavioral] aaa ralph calibrate technical --review completes without context window errors",
+        "[Behavioral] aaa ralph calibrate improve --review completes with signal-based per-session analysis (not raw JSONL)",
+        "[Behavioral] aaa ralph calibrate all --review runs all 3 checks sequentially without crashes or timeouts",
+        "[Evidence] CLI output shows batch iteration progress for intention and technical checks (e.g., 'Batch 1/6')"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/session-analysis.ts",
+        ".claude/plans/mellow-imagining-spark.md"
+      ]
     }
   ]
 }
