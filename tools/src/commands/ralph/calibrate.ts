@@ -57,6 +57,7 @@ import {
 import { invokeWithProvider, resolveProvider } from "./providers/registry";
 import { applyAndSaveProposal } from "./queue-ops";
 import { getSessionJsonlPath } from "./session";
+import { validateDoneSubtaskCommitEvidence } from "./validation";
 
 // =============================================================================
 // Types
@@ -453,10 +454,6 @@ function parseCalibrationJson(resultText: string): unknown {
   return JSON.parse(candidate);
 }
 
-// =============================================================================
-// Subtask Helpers
-// =============================================================================
-
 function parseCalibrationResult(resultText: string): CalibrationParseResult {
   let parsed: unknown = {};
   try {
@@ -485,6 +482,10 @@ function parseCalibrationResult(resultText: string): CalibrationParseResult {
 
   return { correctiveSubtasks, insertionMode, summary };
 }
+
+// =============================================================================
+// Subtask Helpers
+// =============================================================================
 
 function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
   if (!isRecord(value)) {
@@ -601,6 +602,62 @@ async function runCalibrate(
   });
 
   return didSucceed;
+}
+
+function runCompletedCommitEvidenceValidation(
+  completedSubtasks: Array<Subtask>,
+  contextRoot: string,
+): boolean {
+  const evidence = validateDoneSubtaskCommitEvidence(completedSubtasks, {
+    repoRoot: contextRoot,
+  });
+  if (evidence.issues.length === 0) {
+    return true;
+  }
+
+  const warnings = evidence.issues.filter(
+    (issue) => issue.severity === "warning",
+  );
+  const errors = evidence.issues.filter((issue) => issue.severity === "error");
+
+  for (const issue of evidence.issues) {
+    const commitLabel =
+      issue.commitHash === undefined ? "" : ` commit=${issue.commitHash}`;
+    const state = issue.severity === "error" ? "FAIL" : "INFO";
+    const prefix = issue.severity === "warning" ? "LOW-CONFIDENCE" : "INVALID";
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message:
+          `${prefix} traceability for ${issue.subtaskId}${commitLabel}: ` +
+          `${issue.reason} Remediation: ${issue.remediation}`,
+        state,
+      }),
+    );
+  }
+
+  if (warnings.length > 0) {
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: `Proceeding with ${warnings.length} low-confidence traceability warning(s).`,
+        state: "SKIP",
+      }),
+    );
+  }
+
+  if (errors.length > 0) {
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: `Aborting drift analysis due to ${errors.length} commit evidence error(s).`,
+        state: "FAIL",
+      }),
+    );
+    return false;
+  }
+
+  return true;
 }
 
 // =============================================================================
@@ -897,7 +954,22 @@ async function runIntentionCheck(
     return false;
   }
 
-  // Check for completed subtasks with commitHash
+  const completedSubtasks = getCompletedSubtasks(subtasksFile.subtasks);
+  if (completedSubtasks.length === 0) {
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: "No completed subtasks found. Nothing to analyze.",
+        state: "SKIP",
+      }),
+    );
+    return true;
+  }
+
+  if (!runCompletedCommitEvidenceValidation(completedSubtasks, contextRoot)) {
+    return false;
+  }
+
   const completed = getCompletedWithCommitHash(subtasksFile);
   if (completed.length === 0) {
     console.log(
@@ -1066,7 +1138,22 @@ async function runTechnicalCheck(
     return false;
   }
 
-  // Check for completed subtasks with commitHash
+  const completedSubtasks = getCompletedSubtasks(subtasksFile.subtasks);
+  if (completedSubtasks.length === 0) {
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: "No completed subtasks found. Nothing to analyze.",
+        state: "SKIP",
+      }),
+    );
+    return true;
+  }
+
+  if (!runCompletedCommitEvidenceValidation(completedSubtasks, contextRoot)) {
+    return false;
+  }
+
   const completed = getCompletedWithCommitHash(subtasksFile);
   if (completed.length === 0) {
     console.log(
@@ -1266,6 +1353,7 @@ export {
   type CalibrateSubcommand,
   parseCalibrationResult,
   runCalibrate,
+  runCompletedCommitEvidenceValidation,
   runImproveCheck,
   runIntentionCheck,
   runTechnicalCheck,

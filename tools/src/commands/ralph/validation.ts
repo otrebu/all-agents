@@ -33,6 +33,21 @@ interface BatchValidationResult {
   total: number;
 }
 
+interface CommitEvidenceIssue {
+  commitHash?: string;
+  reason: string;
+  remediation: string;
+  severity: CommitEvidenceSeverity;
+  subtaskId: string;
+}
+
+type CommitEvidenceSeverity = "error" | "warning";
+
+interface CommitEvidenceValidationResult {
+  hasBlockingErrors: boolean;
+  issues: Array<CommitEvidenceIssue>;
+}
+
 interface ParentTaskResolution {
   storyRef: null | string;
   taskContent: null | string;
@@ -101,6 +116,7 @@ const VALIDATION_BOX_WIDTH = 64;
 const VALIDATION_BOX_INNER_WIDTH = VALIDATION_BOX_WIDTH - 2;
 const VALIDATION_CONTENT_WIDTH = 56;
 const VALIDATION_LINE_CONTENT_WIDTH = VALIDATION_BOX_WIDTH - 4;
+const TRACKING_METADATA_PREFIXES = ["docs/planning/", ".claude/"];
 
 function appendMilestoneLogEntry(
   milestonePath: string,
@@ -363,6 +379,43 @@ async function handleSupervisedValidationFailure(
 
   console.log(lines.join("\n"));
   return promptSkipOrContinue(subtask.id);
+}
+
+function isReachableCommit(
+  commitHash: string,
+  repoRoot: string,
+): { reachable: boolean; stderr: string } {
+  const proc = Bun.spawnSync(
+    ["git", "cat-file", "-e", `${commitHash}^{commit}`],
+    { cwd: repoRoot, stderr: "pipe", stdout: "ignore" },
+  );
+  return {
+    reachable: proc.exitCode === 0,
+    stderr: Buffer.from(proc.stderr).toString("utf8").trim(),
+  };
+}
+
+function isTrackingMetadataPath(filePath: string): boolean {
+  const normalized = filePath.replaceAll("\\", "/").trim();
+  return TRACKING_METADATA_PREFIXES.some((prefix) =>
+    normalized.startsWith(prefix),
+  );
+}
+
+function listCommitFiles(commitHash: string, repoRoot: string): Array<string> {
+  const proc = Bun.spawnSync(
+    ["git", "show", "--pretty=format:", "--name-only", commitHash],
+    { cwd: repoRoot, stderr: "ignore", stdout: "pipe" },
+  );
+  if (proc.exitCode !== 0) {
+    return [];
+  }
+
+  return Buffer.from(proc.stdout)
+    .toString("utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
 }
 
 function normalizeMissingParentTaskFailure(
@@ -714,6 +767,78 @@ async function validateAllSubtasks(
   };
 }
 
+function validateDoneSubtaskCommitEvidence(
+  doneSubtasks: Array<Subtask>,
+  options?: { repoRoot?: string },
+): CommitEvidenceValidationResult {
+  const repoRoot =
+    typeof options?.repoRoot === "string" && options.repoRoot.trim() !== ""
+      ? options.repoRoot
+      : process.cwd();
+  const issues: Array<CommitEvidenceIssue> = [];
+
+  for (const subtask of doneSubtasks) {
+    if (!subtask.done) {
+      // eslint-disable-next-line no-continue -- caller may pass broader subtask arrays
+      continue;
+    }
+
+    const commitHash =
+      typeof subtask.commitHash === "string" ? subtask.commitHash.trim() : "";
+    if (commitHash === "") {
+      issues.push({
+        reason:
+          "Completed subtask has no commitHash, so traceability evidence is missing.",
+        remediation:
+          "Relink commitHash to a reachable implementation commit for this subtask.",
+        severity: "error",
+        subtaskId: subtask.id,
+      });
+      // eslint-disable-next-line no-continue -- cannot inspect files without a hash
+      continue;
+    }
+
+    const reachable = isReachableCommit(commitHash, repoRoot);
+    if (!reachable.reachable) {
+      const detail =
+        reachable.stderr === ""
+          ? "commit is missing or not reachable"
+          : reachable.stderr;
+      issues.push({
+        commitHash,
+        reason: `Commit evidence is invalid (${detail}).`,
+        remediation:
+          "Relink commitHash to a reachable implementation commit before running drift analysis.",
+        severity: "error",
+        subtaskId: subtask.id,
+      });
+      // eslint-disable-next-line no-continue -- only inspect changed files when hash resolves
+      continue;
+    }
+
+    const changedFiles = listCommitFiles(commitHash, repoRoot);
+    if (
+      changedFiles.length > 0 &&
+      changedFiles.every((entry) => isTrackingMetadataPath(entry))
+    ) {
+      issues.push({
+        commitHash,
+        reason:
+          "Commit touches only planning/tracking metadata files; traceability confidence is low.",
+        remediation:
+          "Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.",
+        severity: "warning",
+        subtaskId: subtask.id,
+      });
+    }
+  }
+
+  return {
+    hasBlockingErrors: issues.some((issue) => issue.severity === "error"),
+    issues,
+  };
+}
+
 async function validateSubtask(
   context: ValidationContext,
   contextRoot: string,
@@ -868,6 +993,8 @@ function writeValidationQueueApplyLogEntry(
 export {
   type BatchValidationResult,
   buildValidationPrompt,
+  type CommitEvidenceIssue,
+  type CommitEvidenceValidationResult,
   formatIssueType,
   generateValidationFeedback,
   getMilestoneFromPath,
@@ -884,6 +1011,7 @@ export {
   type SkippedSubtask,
   type SupervisedValidationAction,
   validateAllSubtasks,
+  validateDoneSubtaskCommitEvidence,
   validateSubtask,
   VALIDATION_TIMEOUT_MS,
   type ValidationContext,

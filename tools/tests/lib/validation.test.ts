@@ -12,9 +12,13 @@ import {
   parseIssueType,
   parseValidationResponse,
   promptSkipOrContinue,
+  validateDoneSubtaskCommitEvidence,
   wrapText,
 } from "@tools/commands/ralph/validation";
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import * as readline from "node:readline";
 
 describe("parseIssueType", () => {
@@ -438,5 +442,126 @@ describe("handleSupervisedValidationFailure", () => {
     expect(output).toContain("Narrow the scope");
 
     logSpy.mockRestore();
+  });
+});
+
+describe("validateDoneSubtaskCommitEvidence", () => {
+  function runGitCommand(cwd: string, args: Array<string>): string {
+    const proc = Bun.spawnSync(["git", ...args], {
+      cwd,
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+    if (proc.exitCode !== 0) {
+      throw new Error(Buffer.from(proc.stderr).toString("utf8"));
+    }
+    return Buffer.from(proc.stdout).toString("utf8").trim();
+  }
+
+  test("detects invalid commit hashes and metadata-only evidence with remediation", () => {
+    const rootDirectory = mkdtempSync(
+      path.join(tmpdir(), "validation-commit-"),
+    );
+    mkdirSync(path.join(rootDirectory, "src"), { recursive: true });
+    mkdirSync(path.join(rootDirectory, "docs/planning"), { recursive: true });
+
+    try {
+      runGitCommand(rootDirectory, ["init"]);
+      runGitCommand(rootDirectory, ["config", "user.name", "Ralph Tester"]);
+      runGitCommand(rootDirectory, [
+        "config",
+        "user.email",
+        "ralph@example.com",
+      ]);
+
+      writeFileSync(
+        path.join(rootDirectory, "src", "feature.ts"),
+        "export const value = 1;\n",
+        "utf8",
+      );
+      runGitCommand(rootDirectory, ["add", "."]);
+      runGitCommand(rootDirectory, [
+        "commit",
+        "-m",
+        "feat: implementation commit",
+      ]);
+
+      writeFileSync(
+        path.join(rootDirectory, "docs/planning", "PROGRESS.md"),
+        "# Progress\n",
+        "utf8",
+      );
+      runGitCommand(rootDirectory, ["add", "."]);
+      runGitCommand(rootDirectory, [
+        "commit",
+        "-m",
+        "chore: planning metadata update",
+      ]);
+      const metadataCommit = runGitCommand(rootDirectory, [
+        "rev-parse",
+        "HEAD",
+      ]);
+
+      const result = validateDoneSubtaskCommitEvidence(
+        [
+          {
+            acceptanceCriteria: ["done"],
+            description: "missing hash",
+            done: true,
+            filesToRead: [],
+            id: "SUB-100",
+            taskRef: "TASK-100",
+            title: "Missing commit hash",
+          },
+          {
+            acceptanceCriteria: ["done"],
+            commitHash: "0000000000000000000000000000000000000000",
+            description: "unreachable hash",
+            done: true,
+            filesToRead: [],
+            id: "SUB-101",
+            taskRef: "TASK-101",
+            title: "Unreachable hash",
+          },
+          {
+            acceptanceCriteria: ["done"],
+            commitHash: metadataCommit,
+            description: "metadata-only commit",
+            done: true,
+            filesToRead: [],
+            id: "SUB-102",
+            taskRef: "TASK-102",
+            title: "Metadata only",
+          },
+        ],
+        { repoRoot: rootDirectory },
+      );
+
+      expect(result.hasBlockingErrors).toBe(true);
+
+      const missingIssue = result.issues.find(
+        (issue) => issue.subtaskId === "SUB-100",
+      );
+      expect(missingIssue?.severity).toBe("error");
+      expect(missingIssue?.remediation.toLowerCase()).toContain("relink");
+
+      const invalidIssue = result.issues.find(
+        (issue) => issue.subtaskId === "SUB-101",
+      );
+      expect(invalidIssue?.severity).toBe("error");
+      expect(invalidIssue?.reason.toLowerCase()).toContain("invalid");
+      expect(invalidIssue?.remediation.toLowerCase()).toContain("relink");
+
+      const lowConfidenceIssue = result.issues.find(
+        (issue) => issue.subtaskId === "SUB-102",
+      );
+      expect(lowConfidenceIssue?.severity).toBe("warning");
+      expect(lowConfidenceIssue?.reason.toLowerCase()).toContain(
+        "traceability confidence is low",
+      );
+      expect(lowConfidenceIssue?.remediation.toLowerCase()).toContain("split");
+    } finally {
+      rmSync(rootDirectory, { force: true, recursive: true });
+    }
   });
 });

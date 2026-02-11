@@ -234,6 +234,18 @@ describe("calibrate approval wiring", () => {
     expect(source).toContain('evaluateApproval("correctionTasks"');
     expect(source).not.toContain("function getApprovalMode(");
   });
+
+  test("runs commit evidence validation before drift analysis", () => {
+    const source = readFileSync(
+      path.join(import.meta.dir, "../../src/commands/ralph/calibrate.ts"),
+      "utf8",
+    );
+
+    const matches = source.match(
+      /runCompletedCommitEvidenceValidation\(completedSubtasks, contextRoot\)/g,
+    );
+    expect(matches?.length).toBe(2);
+  });
 });
 
 describe("calibration daily log entries", () => {
