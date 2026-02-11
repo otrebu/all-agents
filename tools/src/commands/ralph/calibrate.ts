@@ -149,6 +149,13 @@ interface SessionLogMissing {
   subtaskId: string;
 }
 
+// eslint-disable-next-line perfectionist/sort-modules -- grouped with related batch prompt contract types
+interface IntentionBatchEntry {
+  diff: DiffSummary;
+  planningChain: PlanningChainContext;
+  subtask: Subtask;
+}
+
 interface SessionLogPreflight {
   available: Array<SessionLogLocation>;
   maxAttempts: number;
@@ -645,6 +652,60 @@ function parseCalibrationResult(resultText: string): CalibrationParseResult {
     .filter((draft): draft is QueueSubtaskDraft => draft !== null);
 
   return { correctiveSubtasks, insertionMode, summary };
+}
+
+// eslint-disable-next-line perfectionist/sort-modules -- colocated near parse/format calibration prompt helpers
+function buildIntentionBatchPrompt(
+  batchEntries: Array<IntentionBatchEntry>,
+  promptContent: string,
+): string {
+  const batchPayload = batchEntries.map((entry) => ({
+    diff: entry.diff,
+    planningChain: entry.planningChain,
+    subtask: {
+      acceptanceCriteria: entry.subtask.acceptanceCriteria,
+      description: entry.subtask.description,
+      done: entry.subtask.done,
+      filesToRead: entry.subtask.filesToRead,
+      id: entry.subtask.id,
+      taskRef: entry.subtask.taskRef,
+      title: entry.subtask.title,
+    },
+  }));
+
+  return `Execute intention drift analysis for a single batch.
+
+You are given ${batchEntries.length} completed subtasks with pre-gathered diffs and planning chain context.
+DO NOT read additional files. All required context is provided below.
+
+Output contract:
+- Return JSON only (optionally in a \`\`\`json code fence)
+- Provide corrective subtasks, not standalone task files
+- Default insertion mode should be "prepend" so corrective work runs first
+
+JSON schema:
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
+
+Batch data:
+\`\`\`json
+${JSON.stringify(batchPayload, null, 2)}
+\`\`\`
+
+${promptContent}`;
 }
 
 function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
@@ -1290,80 +1351,71 @@ async function runIntentionCheck(
     return true;
   }
 
-  // Read the prompt file
   const promptContent = readFileSync(promptPath, "utf8");
+  const milestonePath = getMilestonePath(subtasksPath);
+  const BATCH_SIZE = 5;
+  const allFindings: Array<CalibrationParseResult> = [];
 
-  // Build the prompt with context
-  const prompt = `Execute intention drift analysis.
-
-Follow the instructions in @${promptPath}
-
-Subtasks file: @${subtasksPath}
-
-Context files:
-@${path.join(contextRoot, "CLAUDE.md")}
-@${path.join(contextRoot, "docs/planning/PROGRESS.md")}
-@${path.join(contextRoot, "docs/planning/VISION.md")}
-
-Output contract:
-- Return JSON only (optionally in a \`\`\`json code fence)
-- Provide corrective subtasks, not standalone task files
-- Default insertion mode should be "prepend" so corrective work runs first
-
-JSON schema:
-\`\`\`json
-{
-  "summary": "short summary",
-  "insertionMode": "prepend",
-  "correctiveSubtasks": [
-    {
-      "title": "string",
-      "description": "string",
-      "taskRef": "string",
-      "filesToRead": ["path"],
-      "acceptanceCriteria": ["criterion"]
-    }
-  ]
-}
-\`\`\`
-
-Analyze all completed subtasks with commitHash and output a summary to stdout.
-If drift is detected, propose corrective subtasks in the JSON output.
-
-${promptContent}`;
-
-  // Run provider for analysis with timeout protection
   console.log(renderInvocationHeader("headless", provider));
   console.log();
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
-      message: `Invoking ${provider} for intention drift analysis...`,
+      message: `Invoking ${provider} for intention drift analysis in batches of ${BATCH_SIZE}...`,
       state: "START",
     }),
   );
   const timeoutConfig = loadTimeoutConfig();
-  try {
-    const result = await invokeWithProvider(provider, {
-      gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-      mode: "headless",
-      model,
-      prompt,
-      stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-      timeout: timeoutConfig.hardMinutes * 60 * 1000,
-    });
 
-    if (result === null) {
-      console.error(
-        "Intention drift analysis failed, was interrupted, or timed out",
-      );
-      return false;
+  try {
+    for (let index = 0; index < completed.length; index += BATCH_SIZE) {
+      const batch = completed.slice(index, index + BATCH_SIZE);
+      const batchEntries = batch
+        .map((subtask) => {
+          const planningChain = resolvePlanningChain(
+            { id: subtask.id, taskRef: subtask.taskRef },
+            milestonePath,
+          );
+          if (planningChain === null) {
+            return null;
+          }
+
+          return {
+            diff: extractDiffSummary(subtask.commitHash ?? "", subtask.id),
+            planningChain,
+            subtask,
+          };
+        })
+        .filter((entry): entry is IntentionBatchEntry => entry !== null);
+
+      if (batchEntries.length > 0) {
+        const prompt = buildIntentionBatchPrompt(batchEntries, promptContent);
+        // eslint-disable-next-line no-await-in-loop -- each batch must use a fresh provider context window
+        const result = await invokeWithProvider(provider, {
+          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+          mode: "headless",
+          model,
+          prompt,
+          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+          timeout: timeoutConfig.hardMinutes * 60 * 1000,
+        });
+
+        if (result === null) {
+          console.error(
+            "Intention drift analysis failed, was interrupted, or timed out",
+          );
+          return false;
+        }
+
+        allFindings.push(parseCalibrationResult(result.result));
+      }
     }
 
+    const mergedResult = mergeCalibrationResults(allFindings);
     const isApplied = await applyCalibrationProposal({
       checkName: "Intention Drift",
       options,
-      resultText: result.result,
+      resultText: JSON.stringify(mergedResult),
     });
     if (!isApplied) {
       return false;
@@ -1654,6 +1706,7 @@ function writeCalibrationQueueProposalLogEntry(
 
 export {
   buildCalibrationCreateOperations,
+  buildIntentionBatchPrompt,
   buildSelfImproveFallbackResult,
   buildSessionLogPreflight,
   type CalibrateOptions,

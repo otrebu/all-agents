@@ -1,5 +1,6 @@
 import {
   buildCalibrationCreateOperations,
+  buildIntentionBatchPrompt,
   buildSelfImproveFallbackResult,
   buildSessionLogPreflight,
   parseCalibrationResult,
@@ -245,6 +246,58 @@ describe("calibrate approval wiring", () => {
       /runCompletedCommitEvidenceValidation\(completedSubtasks, contextRoot\)/g,
     );
     expect(matches?.length).toBe(2);
+  });
+
+  test("intention check uses batch loop with merged apply", () => {
+    const source = readFileSync(
+      path.join(import.meta.dir, "../../src/commands/ralph/calibrate.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("const BATCH_SIZE = 5");
+    expect(source).toContain("resolvePlanningChain(");
+    expect(source).toContain("buildIntentionBatchPrompt(batchEntries");
+    expect(source).toContain("mergeCalibrationResults(allFindings)");
+    expect(source).toContain("resultText: JSON.stringify(mergedResult)");
+    expect(source).not.toContain("docs/planning/PROGRESS.md");
+    expect(source).not.toContain("docs/planning/VISION.md");
+  });
+});
+
+describe("buildIntentionBatchPrompt", () => {
+  test("includes inline batch data and no extra file reads", () => {
+    const prompt = buildIntentionBatchPrompt(
+      [
+        {
+          diff: {
+            commitHash: "abc123",
+            filesChanged: ["tools/src/commands/ralph/calibrate.ts"],
+            patch: "diff --git a/x b/x",
+            statSummary: "1 file changed",
+            subtaskId: "SUB-034",
+          },
+          planningChain: {
+            subtaskJson: '{"id":"SUB-034"}',
+            taskContent: "# TASK-034",
+          },
+          subtask: {
+            acceptanceCriteria: ["batch of 5"],
+            description: "Refactor intention check",
+            done: true,
+            filesToRead: ["tools/src/commands/ralph/calibrate.ts"],
+            id: "SUB-034",
+            taskRef: "TASK-034",
+            title: "Batch intention drift",
+          },
+        },
+      ],
+      "# Prompt body",
+    );
+
+    expect(prompt).toContain("DO NOT read additional files");
+    expect(prompt).toContain('"subtask"');
+    expect(prompt).toContain('"planningChain"');
+    expect(prompt).toContain('"diff"');
   });
 });
 
