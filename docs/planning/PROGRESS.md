@@ -20,6 +20,11 @@
 - **Changes:** Added `session-analysis.ts` with `OffTrackReport`, incremental line-by-line parsing, and stateful detectors for oversized-file errors, file-not-found errors, repeated 3-step tool loops, and Edit backtracking reversals (exact + partial). Reused shared session metrics from `session.ts` (`countToolCalls`, `getFilesFromSession`, `calculateDurationMs`, `getTokenUsageFromSession`) and added focused unit tests for all four detector behaviors.
 - **Files:** `tools/src/commands/ralph/session-analysis.ts`, `tools/tests/lib/session-analysis.test.ts`, `tools/CLAUDE.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-033
+- **Problem:** Session analysis lacked detectors 5-8 plus composite scoring, so self-improvement calibration could not flag exploration-only runs, correction churn, token snowballing, or repeated test-fix loops.
+- **Changes:** Completed `session-analysis.ts` with `ExplorationDetector`, `SelfCorrectionDetector`, `TokenAccelerationDetector`, and `TestFixLoopDetector`; added weighted composite `offTrackScore` normalized by session length; and expanded unit coverage to validate all 8 detectors, composite scoring normalization, and the full `extractSignals()` report contract.
+- **Files:** `tools/src/commands/ralph/session-analysis.ts`, `tools/tests/lib/session-analysis.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-10
 
 ### SUB-001

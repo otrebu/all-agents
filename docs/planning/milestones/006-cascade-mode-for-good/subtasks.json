@@ -715,7 +715,7 @@
       "taskRef": "fix-calibration-context-explosion",
       "title": "Complete session-analysis.ts — detectors 5-8, composite scorer, extractSignals()",
       "description": "Add remaining 4 signal detectors to session-analysis.ts and the composite scoring/streaming infrastructure: (5) ExplorationDetector — flags windows of 10+ consecutive Read/Glob/Grep tool calls with 0 Edit/Write calls, captures startLine/endLine/readCount/readFiles. (6) SelfCorrectionDetector — regex on assistant text blocks for ~12 hedging/correction phrases ('actually', 'let me reconsider', 'I was wrong', 'wait', 'oops', etc.), captures line/matchedPhrases/snippet. (7) TokenAccelerationDetector — tracks input_tokens growth across API calls, flags when end/start multiplier exceeds 3x, captures startTokens/endTokens/multiplier or null. (8) TestFixLoopDetector — detects Bash(test)->Edit->Bash(test) cycles where error signature (normalized test output) repeats, captures cycles/errorSignature/line range. Add composite scorer: weighted sum (stuck loops 0.25, approach abandonment 0.20, self-corrections 0.15, test-fix loops 0.10, exploration 0.10, token acceleration 0.07, file errors 0.08, contradictions 0.05), normalized by session length. Implement main extractSignals(jsonlPath): Promise<OffTrackReport> that streams through JSONL via readline, runs all 8 detectors, and computes composite offTrackScore (0-1).",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "[Behavioral] ExplorationDetector flags windows of 10+ read-only tool calls with no production writes",
         "[Behavioral] SelfCorrectionDetector matches at least 8 hedging phrases in assistant text blocks",
@@ -729,7 +729,10 @@
         "tools/src/commands/ralph/session-analysis.ts",
         "tools/src/commands/ralph/session.ts",
         ".claude/plans/mellow-imagining-spark.md"
-      ]
+      ],
+      "completedAt": "2026-02-11T16:05:53Z",
+      "commitHash": "ea137b40fd26d6663074be2c5704fcf69841fa58",
+      "sessionId": "01e0eb0f-aa64-4e30-bff0-56366c1caf9f"
     },
     {
       "id": "SUB-034",
