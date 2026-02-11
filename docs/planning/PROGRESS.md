@@ -40,6 +40,11 @@
 - **Changes:** Refactored `runImproveCheck()` in `calibrate.ts` to dedupe `preflight.available` by `sessionId`, call `extractSignals()` per unique session, skip sessions with `offTrackScore < 0.1`, build session-scoped prompts with `buildSessionAnalysisPrompt()`, invoke the provider once per unique session with fresh context, merge findings via `mergeCalibrationResults()`, and apply once while preserving suggest/autofix/off behavior and missing-log fallback. Rewrote `self-improvement.md` for signal-based analysis with a `<session-signals>` template, added targeted Grep guidance for heavy backtracking cases (5+), removed raw `<session-log>` template usage, and removed chunking guidance.
 - **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/self-improvement.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-037
+- **Problem:** `.claude/skills/ralph-calibrate/SKILL.md` duplicated calibration orchestration and prompt references that now belong exclusively in the CLI runtime.
+- **Changes:** Rewrote the skill into a thin wrapper that parses the check argument, resolves `subtasks.json` context, delegates execution to `aaa ralph calibrate <check> [--review] [--force]` via Bash, and shows usage help when no check is provided.
+- **Files:** `.claude/skills/ralph-calibrate/SKILL.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-10
 
 ### SUB-001

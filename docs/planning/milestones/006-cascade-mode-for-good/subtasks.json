@@ -816,7 +816,7 @@
       "taskRef": "fix-calibration-context-explosion",
       "title": "Rewrite SKILL.md as thin CLI wrapper",
       "description": "Replace the current SKILL.md (219 lines of duplicated orchestration) with a thin CLI wrapper that delegates to 'aaa ralph calibrate'. Move OUT of skill: all prerequisite checks (CLI does these with clear error messages), sequential execution logic for 'all' (CLI handles), selfImprovement config reading (CLI handles), direct references to workflow .md files (CLI uses them internally). Keep IN skill: argument parsing (which check to run), CLI invocation via Bash tool, output presentation to user, usage documentation. New execution flow: when invoked with argument <check>, resolve subtasks.json path, build CLI command 'aaa ralph calibrate <check> [--review|--force]', run via Bash tool, display output to user. When invoked with no argument, show usage help.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "[Behavioral] /ralph-calibrate intention runs 'aaa ralph calibrate intention' via Bash tool and displays output",
         "[Behavioral] /ralph-calibrate all --force runs 'aaa ralph calibrate all --force' via Bash tool",
@@ -829,7 +829,10 @@
         ".claude/skills/ralph-calibrate/SKILL.md",
         "tools/src/commands/ralph/calibrate.ts",
         ".claude/plans/mellow-imagining-spark.md"
-      ]
+      ],
+      "completedAt": "2026-02-11T16:51:03Z",
+      "commitHash": "b6b3f8e50f6f226713a55fd712a342fd91da3b83",
+      "sessionId": "01e0eb0f-aa64-4e30-bff0-56366c1caf9f"
     },
     {
       "id": "SUB-038",
