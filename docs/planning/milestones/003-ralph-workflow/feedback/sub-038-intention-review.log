@@ -1,0 +1,13 @@
+[CALIBRATE] [INFO] Using provider: claude
+╭──────────────────────────────────────────────────────────────────╮
+│ [CALIBRATE] [START] Intention Drift Check                        │
+│ Check code changes against planning intent                       │
+╰──────────────────────────────────────────────────────────────────╯
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-145 commit=9476720f2e9036e46178240a9953ae45f2b26731: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-148 commit=910b669: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [FAIL] INVALID traceability for SUB-155 commit=66a6e928b6b8c5e83983b98e8e8c51acb0c4e8a3: Commit evidence is invalid (fatal: Not a valid object name 66a6e928b6b8c5e83983b98e8e8c51acb0c4e8a3^{commit}). Remediation: Relink commitHash to a reachable implementation commit before running drift analysis.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-388 commit=e020556d5a940c4e76454fd9ccc119e009811b92: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-398 commit=a9e90e26946dc0d1f0c9324ce9d9561b18480364: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-383 commit=5bc206a35f549135b24eadbe97c39244e6b57f36: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [SKIP] Proceeding with 5 low-confidence traceability warning(s).
+[CALIBRATE] [FAIL] Aborting drift analysis due to 1 commit evidence error(s).

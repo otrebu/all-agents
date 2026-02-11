@@ -839,7 +839,7 @@
       "taskRef": "fix-calibration-context-explosion",
       "title": "Integration verification — dry run all 3 calibration checks",
       "description": "Verify the refactored calibration system works end-to-end without context window explosions. Run the following dry runs: (1) aaa ralph calibrate intention --review on milestone 006 (30 completed subtasks → 6 batch iterations at size 5). Verify batching works and each iteration stays within context limits. (2) aaa ralph calibrate technical --review on milestone 006. Verify filesToRead inline resolution and batch processing. (3) aaa ralph calibrate improve --review on milestone 006 (3 unique sessions → up to 3 signal-based iterations). Verify extractSignals provides usable pre-processed data. (4) aaa ralph calibrate all --review — full suite completes without crashes. (5) Cross-milestone: test on milestone 003 (file-based tasks/stories) to verify file-based resolvePlanningChain() path works (tasks/TASK-NNN.md → stories/STORY-NNN.md). (6) Build loop: verify aaa ralph build --calibrate-every 3 still triggers periodic calibration correctly.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "[Behavioral] aaa ralph calibrate intention --review completes without context window errors on 30 completed subtasks",
         "[Behavioral] aaa ralph calibrate technical --review completes without context window errors",
@@ -852,7 +852,10 @@
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/session-analysis.ts",
         ".claude/plans/mellow-imagining-spark.md"
-      ]
+      ],
+      "completedAt": "2026-02-11T18:16:00Z",
+      "commitHash": "87ceb17f3907ab20253cb2eec3bfb2bc23b0e1c7",
+      "sessionId": "f0552605-5b91-4b4e-9ee7-48cf0eaa77a6"
     }
   ]
 }
