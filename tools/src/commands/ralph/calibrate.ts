@@ -13,11 +13,14 @@
  */
 
 import { loadAaaConfig } from "@tools/lib/config";
+import { findProjectRoot } from "@tools/utils/paths";
 import chalk from "chalk";
+import { execSync } from "node:child_process";
 import {
   appendFileSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
@@ -109,6 +112,27 @@ interface CalibrationProposalContext {
   options: CalibrateOptions;
   resultText: string;
   selfImproveMode?: "autofix" | "suggest";
+}
+
+interface DiffSummary {
+  commitHash: string;
+  filesChanged: Array<string>;
+  patch: string;
+  statSummary: string;
+  subtaskId: string;
+}
+
+interface PlanningChainContext {
+  milestoneSection?: string;
+  storyContent?: string;
+  subtaskJson: string;
+  taskContent?: string;
+}
+
+interface ResolvedFile {
+  content: string;
+  path: string;
+  tokenEstimate: number;
 }
 
 interface SessionLogLocation {
@@ -268,6 +292,26 @@ async function applyCalibrationProposal(
   return true;
 }
 
+function areTitlesSimilar(leftTitle: string, rightTitle: string): boolean {
+  const left = normalizeTitle(leftTitle);
+  const right = normalizeTitle(rightTitle);
+  if (left === "" || right === "") {
+    return false;
+  }
+  if (left === right || left.includes(right) || right.includes(left)) {
+    return true;
+  }
+
+  const leftTokens = new Set(left.split(" "));
+  const rightTokens = new Set(right.split(" "));
+  const intersection = [...leftTokens].filter((token) =>
+    rightTokens.has(token),
+  );
+  const unionSize = new Set([...leftTokens, ...rightTokens]).size;
+  const similarity = unionSize === 0 ? 0 : intersection.length / unionSize;
+  return similarity >= 0.8;
+}
+
 function buildCalibrationCreateOperations(
   drafts: Array<QueueSubtaskDraft>,
   insertionMode: "append" | "prepend",
@@ -373,6 +417,86 @@ function buildSessionLogPreflight(
   return { available, maxAttempts, missing };
 }
 
+function calculateTokenEstimate(content: string): number {
+  return Math.ceil(content.length / 4);
+}
+
+function extractDiffSummary(
+  commitHash: string,
+  subtaskId: string,
+): DiffSummary {
+  const safeHash = commitHash.trim();
+  if (safeHash === "") {
+    return {
+      commitHash,
+      filesChanged: [],
+      patch: "",
+      statSummary: "",
+      subtaskId,
+    };
+  }
+
+  const statSummary = execSync(`git show --stat --format=fuller ${safeHash}`, {
+    encoding: "utf8",
+  });
+  const patch = execSync(`git show --format=fuller ${safeHash}`, {
+    encoding: "utf8",
+    maxBuffer: 32 * 1024 * 1024,
+  });
+
+  const filesChanged = statSummary
+    .split("\n")
+    .map((line) => /^\s*(?<file>.+?)\s+\|\s+\d+/.exec(line)?.groups?.file)
+    .filter((file): file is string => typeof file === "string" && file !== "");
+
+  return { commitHash, filesChanged, patch, statSummary, subtaskId };
+}
+
+function extractStoryReference(taskContent: string): null | string {
+  const markdownLinkMatch =
+    /\*\*Story:\*\*\s*\[(?<storyReference>[^\]]+)\]\([^)]+\)/.exec(taskContent);
+  if (markdownLinkMatch?.groups?.storyReference !== undefined) {
+    return markdownLinkMatch.groups.storyReference;
+  }
+
+  const plainStoryMatch = /\b(?<storyReference>STORY-\d{3})\b/.exec(
+    taskContent,
+  );
+  return plainStoryMatch?.groups?.storyReference ?? null;
+}
+
+function extractWorkstreamSection(
+  milestoneContent: string,
+  taskReference: string,
+): null | string {
+  const workstreamReferenceMatch = /(?<workstreamReference>WS-\d{2})/.exec(
+    taskReference,
+  );
+  if (workstreamReferenceMatch === null) {
+    return null;
+  }
+  const workstreamReference =
+    workstreamReferenceMatch.groups?.workstreamReference;
+  if (workstreamReference === undefined) {
+    return null;
+  }
+
+  const sectionHeader = new RegExp(
+    `^###\\s+${workstreamReference}\\b.*$`,
+    "m",
+  ).exec(milestoneContent);
+  if (sectionHeader?.index === undefined) {
+    return null;
+  }
+
+  const sectionStart = sectionHeader.index;
+  const nextHeaderPattern = /^###\s+WS-\d{2}\b.*$/gm;
+  nextHeaderPattern.lastIndex = sectionStart + sectionHeader[0].length;
+  const nextHeaderMatch = nextHeaderPattern.exec(milestoneContent);
+  const sectionEnd = nextHeaderMatch?.index ?? milestoneContent.length;
+  return milestoneContent.slice(sectionStart, sectionEnd).trim();
+}
+
 /**
  * Get session IDs from completed subtasks
  *
@@ -443,6 +567,46 @@ function loadSubtasksFileOrNull(
   }
 }
 
+function mergeCalibrationResults(
+  findings: Array<CalibrationParseResult>,
+): CalibrationParseResult {
+  const mergedSummaryParts: Array<string> = [];
+  const mergedSubtasks: Array<QueueSubtaskDraft> = [];
+
+  for (const finding of findings) {
+    if (finding.summary.trim() !== "") {
+      mergedSummaryParts.push(finding.summary.trim());
+    }
+    mergedSubtasks.push(...finding.correctiveSubtasks);
+  }
+
+  const dedupedSubtasks: Array<QueueSubtaskDraft> = [];
+  for (const candidate of mergedSubtasks) {
+    const hasSimilarTitle = dedupedSubtasks.some((existing) =>
+      areTitlesSimilar(existing.title, candidate.title),
+    );
+    if (!hasSimilarTitle) {
+      dedupedSubtasks.push(candidate);
+    }
+  }
+
+  const uniqueSummaries = [...new Set(mergedSummaryParts)];
+
+  return {
+    correctiveSubtasks: dedupedSubtasks,
+    insertionMode: "prepend",
+    summary: uniqueSummaries.join("\n"),
+  };
+}
+
+function normalizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9\s]/g, " ")
+    .replaceAll(/\s+/g, " ")
+    .trim();
+}
+
 function parseCalibrationJson(resultText: string): unknown {
   const trimmed = resultText.trim();
   if (trimmed === "") {
@@ -483,10 +647,6 @@ function parseCalibrationResult(resultText: string): CalibrationParseResult {
   return { correctiveSubtasks, insertionMode, summary };
 }
 
-// =============================================================================
-// Subtask Helpers
-// =============================================================================
-
 function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
   if (!isRecord(value)) {
     return null;
@@ -518,6 +678,153 @@ function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
   }
 
   return draft;
+}
+
+function resolveFilesToRead(filesToRead: Array<string>): Array<ResolvedFile> {
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const resolvedFiles: Array<ResolvedFile> = [];
+
+  for (const filePath of filesToRead) {
+    const resolvedPath = resolveReadPath(filePath, projectRoot);
+    if (existsSync(resolvedPath)) {
+      const content = readFileSync(resolvedPath, "utf8");
+      resolvedFiles.push({
+        content,
+        path: resolvedPath,
+        tokenEstimate: calculateTokenEstimate(content),
+      });
+    } else {
+      console.warn(
+        `[Calibration] filesToRead missing, skipping: ${resolvedPath}`,
+      );
+    }
+  }
+
+  return resolvedFiles;
+}
+
+function resolvePlanningChain(
+  subtask: Pick<Subtask, "id" | "taskRef">,
+  milestonePath: string,
+): null | PlanningChainContext {
+  const taskReference = subtask.taskRef.trim();
+  if (taskReference === "") {
+    return null;
+  }
+
+  const subtaskJson = JSON.stringify(subtask, null, 2);
+  const resolvedByTaskFile = resolvePlanningFromTaskFile(
+    taskReference,
+    milestonePath,
+    subtaskJson,
+  );
+  if (resolvedByTaskFile !== null) {
+    return resolvedByTaskFile;
+  }
+
+  const resolvedBySection = resolvePlanningFromMilestoneSection(
+    taskReference,
+    milestonePath,
+    subtaskJson,
+  );
+  if (resolvedBySection !== null) {
+    return resolvedBySection;
+  }
+
+  return null;
+}
+
+function resolvePlanningFromMilestoneSection(
+  taskReference: string,
+  milestonePath: string,
+  subtaskJson: string,
+): null | PlanningChainContext {
+  const milestoneDocumentPath = path.join(milestonePath, "MILESTONE.md");
+  if (!existsSync(milestoneDocumentPath)) {
+    return null;
+  }
+
+  const milestoneContent = readFileSync(milestoneDocumentPath, "utf8");
+  const milestoneSection = extractWorkstreamSection(
+    milestoneContent,
+    taskReference,
+  );
+  if (milestoneSection === null) {
+    return null;
+  }
+
+  return { milestoneSection, subtaskJson };
+}
+
+function resolvePlanningFromTaskFile(
+  taskReference: string,
+  milestonePath: string,
+  subtaskJson: string,
+): null | PlanningChainContext {
+  const tasksDirectory = path.join(milestonePath, "tasks");
+  if (!existsSync(tasksDirectory)) {
+    return null;
+  }
+
+  const taskFileName = readdirSync(tasksDirectory).find(
+    (entry) =>
+      entry.startsWith(taskReference) ||
+      entry.includes(`-${taskReference}-`) ||
+      entry.includes(`${taskReference}.`),
+  );
+  if (taskFileName === undefined) {
+    return null;
+  }
+
+  const taskPath = path.join(tasksDirectory, taskFileName);
+  const taskContent = readFileSync(taskPath, "utf8");
+  const storyReference = extractStoryReference(taskContent);
+  const storyContent =
+    storyReference === null
+      ? undefined
+      : resolveStoryContent(storyReference, milestonePath);
+
+  return { storyContent, subtaskJson, taskContent };
+}
+
+function resolveReadPath(filePath: string, projectRoot: string): string {
+  if (path.isAbsolute(filePath)) {
+    return filePath;
+  }
+  if (filePath.startsWith("@context/")) {
+    return path.resolve(projectRoot, filePath.slice(1));
+  }
+  if (filePath.startsWith("@")) {
+    return path.resolve(projectRoot, filePath.slice(1));
+  }
+  return path.resolve(projectRoot, filePath);
+}
+
+// =============================================================================
+// Subtask Helpers
+// =============================================================================
+
+function resolveStoryContent(
+  storyReference: string,
+  milestonePath: string,
+): string | undefined {
+  const storiesDirectory = path.join(milestonePath, "stories");
+  if (!existsSync(storiesDirectory)) {
+    return undefined;
+  }
+
+  const storyFileName = readdirSync(storiesDirectory).find(
+    (entry) =>
+      entry.startsWith(storyReference) ||
+      entry.includes(`-${storyReference}-`) ||
+      entry.includes(`${storyReference}.`),
+  );
+  if (storyFileName === undefined) {
+    return undefined;
+  }
+
+  const storyPath = path.join(storiesDirectory, storyFileName);
+  return readFileSync(storyPath, "utf8");
 }
 
 /**
@@ -1351,7 +1658,14 @@ export {
   buildSessionLogPreflight,
   type CalibrateOptions,
   type CalibrateSubcommand,
+  type DiffSummary,
+  extractDiffSummary,
+  mergeCalibrationResults,
   parseCalibrationResult,
+  type PlanningChainContext,
+  type ResolvedFile,
+  resolveFilesToRead,
+  resolvePlanningChain,
   runCalibrate,
   runCompletedCommitEvidenceValidation,
   runImproveCheck,
