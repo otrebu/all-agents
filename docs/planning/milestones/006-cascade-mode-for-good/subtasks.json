@@ -664,7 +664,7 @@
       "taskRef": "fix-calibration-context-explosion",
       "title": "Create calibration pre-processing utility functions",
       "description": "Add 4 new pre-processing utility functions to calibrate.ts that enable the batch loop architecture: (1) extractDiffSummary(commitHash, subtaskId) — runs git show --stat + git show to get full diff + stats, returns DiffSummary interface with commitHash, filesChanged, patch (full, no truncation), statSummary, subtaskId. (2) resolvePlanningChain(subtask, milestonePath) — resolves subtask→task→story chain via 3 resolution paths: file-based (milestones 003/004 via tasks/TASK-NNN.md), section-based (milestones 005/006 via WS-01-* from MILESTONE.md), or null for unresolvable. Returns PlanningChainContext or null. (3) resolveFilesToRead(filesToRead) — reads ALL files from subtask's filesToRead array, resolves @context/ prefixes to absolute paths, skips missing files with warning, returns ResolvedFile[] with path/content/tokenEstimate. (4) mergeCalibrationResults(findings[]) — pure TypeScript merge of batch CalibrationParseResult arrays: concatenates correctiveSubtasks, deduplicates by title similarity, merges summaries, returns unified CalibrationParseResult.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "[Behavioral] extractDiffSummary() returns DiffSummary with patch, filesChanged, and statSummary for a known commit hash",
         "[Behavioral] resolvePlanningChain() returns null for subtasks without resolvable task/story references",
@@ -680,7 +680,10 @@
         "tools/src/commands/ralph/config.ts",
         "docs/planning/milestones/006-cascade-mode-for-good/MILESTONE.md",
         ".claude/plans/mellow-imagining-spark.md"
-      ]
+      ],
+      "completedAt": "2026-02-11T15:37:22Z",
+      "commitHash": "9482f463b3dad2f7edb0989eb1c753fc684e6b8d",
+      "sessionId": "01e0eb0f-aa64-4e30-bff0-56366c1caf9f"
     },
     {
       "id": "SUB-032",

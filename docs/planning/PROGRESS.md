@@ -8,6 +8,13 @@
 
 ## Session Notes
 
+## 2026-02-11
+
+### SUB-031
+- **Problem:** Calibration needed reusable pre-processing helpers for batch-loop context assembly (diff extraction, planning-chain resolution, files-to-read hydration, and result merging/deduplication).
+- **Changes:** Added `extractDiffSummary()`, `resolvePlanningChain()`, `resolveFilesToRead()`, and `mergeCalibrationResults()` to `calibrate.ts` with new `DiffSummary` / `PlanningChainContext` / `ResolvedFile` contracts; added focused unit coverage in `calibrate-utils.test.ts` for diff behavior, section-based planning resolution (`WS-01-*`), `@context/` file resolution with token estimates, and title-similarity deduping. Also updated tools ESLint ignores to exclude one-off `tools/scripts/**` from project-service linting.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `tools/tests/lib/calibrate-utils.test.ts`, `tools/eslint.config.js`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-10
 
 ### SUB-001
