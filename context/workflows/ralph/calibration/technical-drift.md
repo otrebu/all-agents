@@ -21,12 +21,19 @@ Read `subtasks.json` to find completed subtasks with `commitHash`:
 ```
 
 ### 2. Git Diffs
-For each completed subtask, read the git diff using the `commitHash`:
+Collect git metadata using batched or explicit parallel commands keyed by `commitHash` values. Avoid one-by-one serial loops for homogeneous lookups.
 
 ```bash
-git show <commitHash> --stat
-git diff <commitHash>^..<commitHash>
+# commit-hashes.txt contains one commit hash per line
+
+# Batched stats lookup (fewer git invocations)
+xargs -a commit-hashes.txt -n 40 git show --stat --no-patch
+
+# Parallel patch extraction (bounded concurrency)
+xargs -a commit-hashes.txt -n 1 -P 6 -I{} sh -c 'git diff {}^..{}'
 ```
+
+Do not use long serial patterns like `for commit in ...; do git show ...; git diff ...; done` when the operation is the same for many commits.
 
 ### 3. Subtask Context Files
 Read the `filesToRead` array from the subtask if present:
@@ -432,15 +439,27 @@ Rules:
 
 ### Phase 1: Gather Context
 
-1. Read `subtasks.json` to find completed subtasks with `commitHash`
-2. Read project standards:
+1. Use targeted extraction from `subtasks.json` to find completed subtasks with `commitHash` before any broad reads:
+   - First query only the fields you need (`id`, `done`, `commitHash`, `filesToRead`)
+   - Resolve specific `subtaskId`/`commitHash` pairs first, then read additional fields only for those matches
+2. Use a size-aware read strategy for planning JSON files (`subtasks.json`, task queues, similar documents):
+   - Check file size before large reads
+   - For large files, prefer targeted selectors and offset/windowed reads over full-document reads
+   - Only attempt broader reads when targeted extraction is insufficient
+3. If a broad read or query hits token/context overflow, follow retry/fallback handling:
+   - Retry with narrower selectors (single subtask/commit) and smaller offset windows
+   - Perform at most 3 narrowing retries for the same source
+   - If still too large, record partial-analysis scope and continue with available data instead of blocking
+4. Read project standards:
    - `CLAUDE.md` - Project conventions and coding standards
    - `.eslintrc.*` / `eslint.config.*` - Linting rules
    - `tsconfig.json` - TypeScript strictness
-3. For each completed subtask, gather:
-   - The git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
+5. Gather per-commit git metadata using batched/parallel command patterns (not long serial loops):
+   - Batched stats: `xargs -a commit-hashes.txt -n 40 git show --stat --no-patch`
+   - Parallel diffs: `xargs -a commit-hashes.txt -n 1 -P 6 -I{} sh -c 'git diff {}^..{}'`
    - The `filesToRead` array contents (context files and atomic docs)
    - Any atomic docs referenced (`@context/` paths)
+   - Keep the same downstream analyzer payload and final JSON output schema; batching only changes collection strategy
 
 ### Phase 2: Spawn Parallel Analyzers
 

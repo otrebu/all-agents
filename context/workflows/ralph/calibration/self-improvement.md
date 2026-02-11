@@ -52,6 +52,36 @@ Using Bash for file operations instead of dedicated tools.
 ```
 Using Bash with pipes for data transformation is acceptable since this isn't a simple file read.
 
+#### Workflow Artifact JSON Policy (Queue/Planning Files)
+
+When handling JSON workflow artifacts (`subtasks.json`, planning queues, calibration output JSON), distinguish between read-only transforms and state mutation:
+
+- **Allowed with Bash + jq (read-only):** filtering, selecting, validating, and summarizing JSON for investigation or verification.
+- **Preferred for mutation (deterministic updates):** Read + structured Edit/Write flow so the change is explicit, reviewable, and scoped to the intended fields.
+
+**Preferred structured-edit examples (queue/planning files):**
+
+```text
+1) Read docs/planning/milestones/<milestone>/subtasks.json
+2) Edit only the assigned subtask object by `id`
+3) Update deterministic fields only (`done`, `completedAt`, `commitHash`, `sessionId`)
+4) Re-read or validate the same id to confirm the final state
+```
+
+```text
+1) Read docs/planning/PROGRESS.md
+2) Append one dated section for the assigned subtask
+3) Keep entry format stable (Problem/Changes/Files)
+```
+
+**Low-risk shell mutation exception (Bash + jq) is allowed only when all are true:**
+
+1. Mutation target is a single known object selected by stable key (for example `id == "SUB-072"`)
+2. Operation is idempotent and field-limited (no broad rewrites, no schema reshaping)
+3. Command writes to a temporary file then atomically replaces the original
+4. The same selector is re-run after mutation to verify expected state
+5. Structured Edit/Write is unavailable or a runtime instruction explicitly requires the jq command sequence
+
 ### 2. Wasted Reads
 Files read but never used in subsequent actions or reasoning.
 
@@ -224,12 +254,36 @@ If you find a marked exception, skip it and note it in the summary.
 
 ### Phase 1: Gather Session Data
 
-1. Read `subtasks.json` to find completed subtasks with `sessionId`
-2. Check `ralph.config.json` for `selfImprovement.mode` setting
+1. Use targeted extraction from `subtasks.json` to find completed subtasks with `sessionId` before any broad reads:
+   - First query only the fields you need (`id`, `done`, `sessionId`) for matching entries
+   - Resolve specific `subtaskId`/`sessionId` pairs first, then read additional fields only for those matches
+2. Use a size-aware read strategy for planning JSON files (`subtasks.json`, task queues, similar documents):
+   - Check file size before large reads
+   - For large files, prefer targeted selectors and offset/windowed reads over full-document reads
+   - Only attempt broader reads when targeted extraction is insufficient
+3. If a broad read or query hits token/context overflow, follow retry/fallback handling:
+   - Retry with narrower selectors (single subtask/session) and smaller offset windows
+   - Perform at most 3 narrowing retries for the same source
+   - If still too large, record partial-analysis scope and continue with available data instead of blocking
+4. Check `ralph.config.json` for `selfImprovement.mode` setting
    - If `"never"`, output message and exit without analysis
-3. For each completed subtask with `sessionId`:
+5. For each completed subtask with `sessionId`:
    - Locate session log at `~/.claude/projects/<encoded-path>/<sessionId>.jsonl`
    - Note: Large logs may need chunked processing (see Large Log Handling section)
+
+### Phase 1.5: Bounded Path Discovery + Fallback
+
+When locating session logs, do not repeat the same path-discovery pattern indefinitely.
+
+1. Attempt at most **3** path-resolution tries per missing session log (for example: canonical encoded path, one normalized-path variant, one shell-expanded absolute check)
+2. If all 3 attempts fail, **pivot immediately**:
+   - Mark that session as unavailable
+   - Continue analysis using remaining available sessions
+   - Do not block the full run waiting on one missing log
+3. If **all** expected session logs are unavailable:
+   - Return a valid output JSON with empty findings and `"operations": []`
+   - Set `summary` to clearly state that analysis was skipped due to unavailable logs
+4. Track fallback metadata during execution so the final summary includes concise unavailability reporting
 
 ### Phase 2: Spawn Parallel Analyzers
 
@@ -313,6 +367,7 @@ Output synthesized summary:
 - Sessions analyzed: N
 - Total findings: N
 - By type: tool-misuse (N), wasted-reads (N), backtracking (N), excessive-iterations (N)
+- Fallbacks: M sessions skipped (missing logs)
 
 ## Top Recommendations (sorted by priority)
 
@@ -323,6 +378,10 @@ Output synthesized summary:
 **Proposed change:** ...
 
 ### 2. ...
+
+## Fallback Notes
+- Missing logs: SUB-041 (`sessionId` abc123), SUB-044 (`sessionId` def456)
+- Action: Continued with remaining sessions; no blocking retries after 3 path attempts per missing log
 ```
 
 ### Phase 4: Emit Queue Operations
