@@ -16,7 +16,8 @@ const newSubtasks = [
   {
     id: "SUB-031",
     taskRef: "WS-04-calibration-refactor",
-    title: "Add extractDiffSummary and resolvePlanningChain pre-processing utilities",
+    title:
+      "Add extractDiffSummary and resolvePlanningChain pre-processing utilities",
     description:
       "Add two new utility functions to calibrate.ts: (1) extractDiffSummary(commitHash, subtaskId) — runs git show --stat and git show to get the full diff patch and file list for a given commit, returning a DiffSummary object. (2) resolvePlanningChain(subtask, milestonePath) — resolves the subtask→task→story chain by reading task/story files or extracting workstream sections from MILESTONE.md. Returns null when no planning context is resolvable (e.g. subtasks from arbitrary file/text input). Both functions are pure TypeScript with no LLM calls.",
     done: false,

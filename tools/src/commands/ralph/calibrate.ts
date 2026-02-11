@@ -22,6 +22,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  renameSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -48,6 +49,7 @@ import {
 import {
   getCompletedSubtasks,
   getMilestoneLogPath,
+  getPendingSubtasks,
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
@@ -189,6 +191,9 @@ interface WriteQueueApplyLogOptions {
   summary: string;
 }
 
+const MAX_TECHNICAL_DIFF_CHARS = 30_000;
+const MAX_TECHNICAL_FILE_CHARS = 12_000;
+
 function appendMilestoneLogEntry(
   milestonePath: string,
   entry: CalibrationLogEntry | QueueApplyLogEntry | QueueProposalLogEntry,
@@ -307,6 +312,59 @@ async function applyCalibrationProposal(
     source: proposal.source,
     summary: message,
   });
+
+  return true;
+}
+
+/**
+ * Apply a previously staged proposal from feedback/ directory.
+ *
+ * Used when --force is combined with an existing staged proposal to skip
+ * re-running LLM analysis and directly apply the reviewed proposal.
+ *
+ * @param options - Calibrate options
+ * @param checkName - Check name for logging
+ * @param staged - The staged proposal and artifact path from findStagedProposal()
+ * @returns true if apply succeeded
+ */
+function applyStagedProposal(
+  options: CalibrateOptions,
+  checkName: string,
+  staged: { artifactPath: string; proposal: QueueProposal },
+): boolean {
+  const { artifactPath, proposal } = staged;
+  const milestonePath = getMilestonePath(options.subtasksPath);
+
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `${checkName}: applying staged proposal from ${path.basename(artifactPath)}`,
+      state: "INFO",
+    }),
+  );
+
+  const applySummary = applyAndSaveProposal(options.subtasksPath, proposal);
+  const state = applySummary.applied ? "DONE" : "SKIP";
+  const message = applySummary.applied
+    ? `${checkName}: applied ${applySummary.operationsApplied} staged operation(s), queue ${applySummary.subtasksBefore} -> ${applySummary.subtasksAfter}`
+    : `${checkName}: staged proposal stale, queue changed since proposal was generated`;
+  console.log(renderEventLine({ domain: "CALIBRATE", message, state }));
+
+  writeCalibrationQueueApplyLogEntry({
+    applied: applySummary.applied,
+    milestonePath,
+    operationCount: applySummary.operationsApplied,
+    source: proposal.source,
+    summary: message,
+  });
+
+  // Mark the artifact as applied by renaming it
+  const appliedPath = artifactPath.replace(/\.md$/, ".applied.md");
+  try {
+    renameSync(artifactPath, appliedPath);
+  } catch {
+    // Best-effort cleanup; apply already succeeded
+  }
 
   return true;
 }
@@ -440,6 +498,20 @@ function calculateTokenEstimate(content: string): number {
   return Math.ceil(content.length / 4);
 }
 
+function clipDiffPatchForTechnicalPrompt(diff: DiffSummary): DiffSummary {
+  if (diff.patch.length <= MAX_TECHNICAL_DIFF_CHARS) {
+    return diff;
+  }
+
+  const omittedChars = diff.patch.length - MAX_TECHNICAL_DIFF_CHARS;
+  return {
+    ...diff,
+    patch:
+      `${diff.patch.slice(0, MAX_TECHNICAL_DIFF_CHARS)}\n\n` +
+      `[TRUNCATED: omitted ${omittedChars} character(s) to keep technical batch prompts within provider limits]`,
+  };
+}
+
 function extractDiffSummary(
   commitHash: string,
   subtaskId: string,
@@ -514,6 +586,75 @@ function extractWorkstreamSection(
   const nextHeaderMatch = nextHeaderPattern.exec(milestoneContent);
   const sectionEnd = nextHeaderMatch?.index ?? milestoneContent.length;
   return milestoneContent.slice(sectionStart, sectionEnd).trim();
+}
+
+/**
+ * Find the most recent staged proposal in feedback/ for a given check type.
+ *
+ * Scans the feedback directory for files matching the pattern
+ * `*_calibration_{checkName}_proposal.md` and parses the QueueProposal JSON
+ * from the markdown code fence.
+ *
+ * @param milestonePath - Path to the milestone directory
+ * @param checkName - Check name (e.g. "Intention Drift", "Technical Drift", "Self-Improvement")
+ * @returns The parsed QueueProposal and artifact path, or null if none found
+ */
+function findStagedProposal(
+  milestonePath: string,
+  checkName: string,
+): { artifactPath: string; proposal: QueueProposal } | null {
+  const feedbackDirectory = path.join(milestonePath, "feedback");
+  if (!existsSync(feedbackDirectory)) {
+    return null;
+  }
+
+  const safeCheckName = checkName.toLowerCase().replaceAll(/\s+/g, "-");
+  const suffix = `_calibration_${safeCheckName}_proposal.md`;
+
+  const candidates = readdirSync(feedbackDirectory)
+    .filter((entry) => entry.endsWith(suffix) && !entry.endsWith(".applied.md"))
+    .sort();
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  // Take the most recent (last when sorted lexicographically by timestamp prefix)
+  const mostRecent = candidates.at(-1);
+  if (mostRecent === undefined) {
+    return null;
+  }
+
+  const artifactPath = path.join(feedbackDirectory, mostRecent);
+  const content = readFileSync(artifactPath, "utf8");
+
+  // Extract JSON from the ```json code fence in the "## Queue Proposal" section
+  const fencedMatch = /```json\s*(?<json>\{[\s\S]*?\})\s*```/i.exec(content);
+  if (fencedMatch?.groups?.json === undefined) {
+    return null;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(fencedMatch.groups.json);
+    if (!isRecord(parsed)) {
+      return null;
+    }
+
+    // Validate it has the expected QueueProposal shape
+    if (
+      !isRecord(parsed.fingerprint) ||
+      typeof parsed.fingerprint.hash !== "string" ||
+      !Array.isArray(parsed.operations) ||
+      typeof parsed.source !== "string" ||
+      typeof parsed.timestamp !== "string"
+    ) {
+      return null;
+    }
+
+    return { artifactPath, proposal: parsed as unknown as QueueProposal };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -696,6 +837,7 @@ function parseCalibrationResult(resultText: string): CalibrationParseResult {
 function buildIntentionBatchPrompt(
   batchEntries: Array<IntentionBatchEntry>,
   promptContent: string,
+  pendingSubtaskTitles: Array<{ id: string; title: string }> = [],
 ): string {
   const batchPayload = batchEntries.map((entry) => ({
     diff: entry.diff,
@@ -710,6 +852,15 @@ function buildIntentionBatchPrompt(
       title: entry.subtask.title,
     },
   }));
+
+  const pendingQueueSection =
+    pendingSubtaskTitles.length > 0
+      ? `\nPending subtask queue (use this to verify deferred-work claims):
+\`\`\`json
+${JSON.stringify(pendingSubtaskTitles, null, 2)}
+\`\`\`
+`
+      : "\nPending subtask queue: (empty — no pending subtasks in queue)\n";
 
   return `Execute intention drift analysis for a single batch.
 
@@ -737,7 +888,7 @@ JSON schema:
   ]
 }
 \`\`\`
-
+${pendingQueueSection}
 Batch data:
 \`\`\`json
 ${JSON.stringify(batchPayload, null, 2)}
@@ -895,10 +1046,14 @@ function resolveFilesToRead(filesToRead: Array<string>): Array<ResolvedFile> {
     const resolvedPath = resolveReadPath(filePath, projectRoot);
     if (existsSync(resolvedPath)) {
       const content = readFileSync(resolvedPath, "utf8");
+      const contentForPrompt =
+        content.length <= MAX_TECHNICAL_FILE_CHARS
+          ? content
+          : `${content.slice(0, MAX_TECHNICAL_FILE_CHARS)}\n\n[TRUNCATED: omitted ${content.length - MAX_TECHNICAL_FILE_CHARS} character(s) to keep technical batch prompts within provider limits]`;
       resolvedFiles.push({
-        content,
+        content: contentForPrompt,
         path: resolvedPath,
-        tokenEstimate: calculateTokenEstimate(content),
+        tokenEstimate: calculateTokenEstimate(contentForPrompt),
       });
     } else {
       console.warn(
@@ -1204,6 +1359,24 @@ async function runImproveCheck(
     }),
   );
 
+  // Short-circuit: if --force and a staged proposal exists, apply it directly
+  if (options.force === true) {
+    const milestonePath = getMilestonePath(options.subtasksPath);
+    const staged = findStagedProposal(milestonePath, "Self-Improvement");
+    if (staged !== null) {
+      const didApply = applyStagedProposal(options, "Self-Improvement", staged);
+      console.log(
+        renderEventLine({
+          domain: "CALIBRATE",
+          message:
+            "Self-Improvement Analysis Complete (staged proposal applied)",
+          state: "DONE",
+        }),
+      );
+      return didApply;
+    }
+  }
+
   const { contextRoot, subtasksPath } = options;
 
   // Verify prompt exists
@@ -1437,6 +1610,23 @@ async function runIntentionCheck(
     }),
   );
 
+  // Short-circuit: if --force and a staged proposal exists, apply it directly
+  if (options.force === true) {
+    const milestonePath = getMilestonePath(options.subtasksPath);
+    const staged = findStagedProposal(milestonePath, "Intention Drift");
+    if (staged !== null) {
+      const didApply = applyStagedProposal(options, "Intention Drift", staged);
+      console.log(
+        renderEventLine({
+          domain: "CALIBRATE",
+          message: "Intention Drift Check Complete (staged proposal applied)",
+          state: "DONE",
+        }),
+      );
+      return didApply;
+    }
+  }
+
   const { contextRoot, subtasksPath } = options;
 
   // Verify prompt exists
@@ -1489,6 +1679,11 @@ async function runIntentionCheck(
   const BATCH_SIZE = 5;
   const allFindings: Array<CalibrationParseResult> = [];
 
+  // Build pending subtask titles for the "Do Not Jump Ahead Guard"
+  const pendingSubtaskTitles = getPendingSubtasks(subtasksFile.subtasks).map(
+    (subtask) => ({ id: subtask.id, title: subtask.title }),
+  );
+
   console.log(renderInvocationHeader("headless", provider));
   console.log();
   console.log(
@@ -1501,8 +1696,10 @@ async function runIntentionCheck(
   const timeoutConfig = loadTimeoutConfig();
 
   try {
+    const totalBatches = Math.ceil(completed.length / BATCH_SIZE);
     for (let index = 0; index < completed.length; index += BATCH_SIZE) {
       const batch = completed.slice(index, index + BATCH_SIZE);
+      const batchNumber = Math.floor(index / BATCH_SIZE) + 1;
       const batchEntries = batch
         .map((subtask) => {
           const planningChain = resolvePlanningChain(
@@ -1522,7 +1719,18 @@ async function runIntentionCheck(
         .filter((entry): entry is IntentionBatchEntry => entry !== null);
 
       if (batchEntries.length > 0) {
-        const prompt = buildIntentionBatchPrompt(batchEntries, promptContent);
+        console.log(
+          renderEventLine({
+            domain: "CALIBRATE",
+            message: `Batch ${batchNumber}/${totalBatches}: analyzing ${batchEntries.length} subtask(s) for intention drift`,
+            state: "INFO",
+          }),
+        );
+        const prompt = buildIntentionBatchPrompt(
+          batchEntries,
+          promptContent,
+          pendingSubtaskTitles,
+        );
         // eslint-disable-next-line no-await-in-loop -- each batch must use a fresh provider context window
         const result = await invokeWithProvider(provider, {
           gracePeriodMs: timeoutConfig.graceSeconds * 1000,
@@ -1541,6 +1749,14 @@ async function runIntentionCheck(
         }
 
         allFindings.push(parseCalibrationResult(result.result));
+      } else {
+        console.log(
+          renderEventLine({
+            domain: "CALIBRATE",
+            message: `Batch ${batchNumber}/${totalBatches}: no resolvable planning context, skipped`,
+            state: "SKIP",
+          }),
+        );
       }
     }
 
@@ -1598,6 +1814,23 @@ async function runTechnicalCheck(
       title: "Technical Drift Check",
     }),
   );
+
+  // Short-circuit: if --force and a staged proposal exists, apply it directly
+  if (options.force === true) {
+    const milestonePath = getMilestonePath(options.subtasksPath);
+    const staged = findStagedProposal(milestonePath, "Technical Drift");
+    if (staged !== null) {
+      const didApply = applyStagedProposal(options, "Technical Drift", staged);
+      console.log(
+        renderEventLine({
+          domain: "CALIBRATE",
+          message: "Technical Drift Check Complete (staged proposal applied)",
+          state: "DONE",
+        }),
+      );
+      return didApply;
+    }
+  }
 
   const { contextRoot, subtasksPath } = options;
 
@@ -1660,7 +1893,9 @@ async function runTechnicalCheck(
   }
 
   const promptContent = readFileSync(promptPath, "utf8");
-  const BATCH_SIZE = 5;
+  // Technical prompts inline both full diffs and resolved filesToRead content.
+  // Keep batches smaller to avoid provider CLI argument-size limits (E2BIG).
+  const BATCH_SIZE = 1;
   const allFindings: Array<CalibrationParseResult> = [];
 
   console.log(renderInvocationHeader("headless", provider));
@@ -1675,24 +1910,53 @@ async function runTechnicalCheck(
   const timeoutConfig = loadTimeoutConfig();
 
   try {
+    const totalBatches = Math.ceil(completed.length / BATCH_SIZE);
     for (let index = 0; index < completed.length; index += BATCH_SIZE) {
       const batch = completed.slice(index, index + BATCH_SIZE);
+      const batchNumber = Math.floor(index / BATCH_SIZE) + 1;
       const batchEntries: Array<TechnicalBatchEntry> = batch.map((subtask) => ({
-        diff: extractDiffSummary(subtask.commitHash ?? "", subtask.id),
+        diff: clipDiffPatchForTechnicalPrompt(
+          extractDiffSummary(subtask.commitHash ?? "", subtask.id),
+        ),
         referencedFiles: resolveFilesToRead(subtask.filesToRead),
         subtask,
       }));
 
+      console.log(
+        renderEventLine({
+          domain: "CALIBRATE",
+          message: `Batch ${batchNumber}/${totalBatches}: analyzing ${batchEntries.length} subtask(s) for technical drift`,
+          state: "INFO",
+        }),
+      );
+
       const prompt = buildTechnicalBatchPrompt(batchEntries, promptContent);
-      // eslint-disable-next-line no-await-in-loop -- each batch must use a fresh provider context window
-      const result = await invokeWithProvider(provider, {
-        gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-        mode: "headless",
-        model,
-        prompt,
-        stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
-        timeout: timeoutConfig.hardMinutes * 60 * 1000,
-      });
+      let result: Awaited<ReturnType<typeof invokeWithProvider>> = null;
+      try {
+        // eslint-disable-next-line no-await-in-loop -- each batch must use a fresh provider context window
+        result = await invokeWithProvider(provider, {
+          gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+          mode: "headless",
+          model,
+          prompt,
+          stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
+          timeout: timeoutConfig.hardMinutes * 60 * 1000,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("E2BIG")) {
+          console.log(
+            renderEventLine({
+              domain: "CALIBRATE",
+              message: `Batch ${batchNumber}/${totalBatches}: skipped due to provider argument-size limit (E2BIG)`,
+              state: "SKIP",
+            }),
+          );
+          // eslint-disable-next-line no-continue -- skip oversized single-batch payloads and continue analysis
+          continue;
+        }
+        throw error;
+      }
 
       if (result === null) {
         console.error(
@@ -1817,6 +2081,7 @@ function writeCalibrationQueueProposalLogEntry(
 // =============================================================================
 
 export {
+  applyStagedProposal,
   buildCalibrationCreateOperations,
   buildIntentionBatchPrompt,
   buildSelfImproveFallbackResult,
@@ -1827,6 +2092,7 @@ export {
   type CalibrateSubcommand,
   type DiffSummary,
   extractDiffSummary,
+  findStagedProposal,
   mergeCalibrationResults,
   parseCalibrationResult,
   type PlanningChainContext,

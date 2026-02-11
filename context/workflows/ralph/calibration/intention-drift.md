@@ -36,14 +36,19 @@ Only subtasks with resolvable planning context are included in this batch.
 - Minor refactoring while touching the same code path
 - Defensive error handling implied by acceptance criteria
 - Following established project patterns
-- Work explicitly deferred to future queued subtasks
+- Work explicitly deferred to a **specific pending subtask you can cite by ID and title** from the pending queue context below
 
 ## Do Not Jump Ahead Guard
 
+A reference list of pending (not-yet-done) subtask IDs and titles is provided in the batch data under `pendingSubtaskQueue`. Use it to verify deferred-work claims.
+
 Do NOT flag drift when:
-- Missing work is explicitly queued for a future subtask
-- Scope is intentionally deferred in planning
-- A wider roadmap item exists but is not part of this subtask
+- Missing work is covered by a **specific pending subtask** whose ID and title you can cite from `pendingSubtaskQueue`
+- Scope is intentionally deferred in planning **and** a matching pending subtask exists in the queue
+
+**You MUST cite the matching pending subtask ID and title** when dismissing missing work as "queued for later." If no matching pending subtask can be found in `pendingSubtaskQueue`, treat the gap as a potential scope shortfall and propose a corrective subtask.
+
+Do NOT assume deferred work is queued. Do NOT use phrases like "expected to be handled by a future subtask" without citing a specific entry from `pendingSubtaskQueue`.
 
 ## Graceful Degradation
 

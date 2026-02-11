@@ -258,7 +258,8 @@ describe("calibrate approval wiring", () => {
 
     expect(source).toContain("const BATCH_SIZE = 5");
     expect(source).toContain("resolvePlanningChain(");
-    expect(source).toContain("buildIntentionBatchPrompt(batchEntries");
+    expect(source).toContain("buildIntentionBatchPrompt(");
+    expect(source).toContain("pendingSubtaskTitles,");
     expect(source).toContain("mergeCalibrationResults(allFindings)");
     expect(source).toContain("resultText: JSON.stringify(mergedResult)");
     expect(source).not.toContain("docs/planning/PROGRESS.md");
