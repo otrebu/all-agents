@@ -446,6 +446,10 @@ interface Subtask {
   id: string;
   /** Provider session ID that completed this subtask */
   sessionId?: string;
+  /** Absolute canonical path to session JSONL when known at completion time */
+  sessionLogPath?: string;
+  /** Repository root used to deterministically resolve session logs for this subtask */
+  sessionRepoRoot?: string;
   /** Reference to grandparent story if task has one */
   storyRef?: null | string;
   /** Reference to parent task (e.g., 'TASK-001') */

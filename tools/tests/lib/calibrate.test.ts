@@ -1,5 +1,7 @@
 import {
   buildCalibrationCreateOperations,
+  buildSelfImproveFallbackResult,
+  buildSessionLogPreflight,
   parseCalibrationResult,
   writeCalibrationLogEntry,
   writeCalibrationQueueApplyLogEntry,
@@ -12,7 +14,13 @@ import {
   type QueueProposal,
 } from "@tools/commands/ralph/types";
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -130,6 +138,89 @@ describe("buildCalibrationCreateOperations", () => {
       "Second corrective",
       "Old pending",
     ]);
+  });
+});
+
+describe("buildSessionLogPreflight", () => {
+  test("reports available and missing session logs with bounded attempts", () => {
+    const rootDirectory = mkdtempSync(
+      path.join(tmpdir(), "calibrate-preflight-"),
+    );
+    const availableLogPath = path.join(rootDirectory, "available.jsonl");
+    mkdirSync(rootDirectory, { recursive: true });
+    writeFileSync(availableLogPath, '{"type":"user"}\n', "utf8");
+
+    try {
+      const preflight = buildSessionLogPreflight(
+        [
+          {
+            acceptanceCriteria: ["done"],
+            commitHash: "abc1234",
+            completedAt: "2026-02-11T00:00:00Z",
+            description: "has canonical path",
+            done: true,
+            filesToRead: [],
+            id: "SUB-900",
+            sessionId: "s-available",
+            sessionLogPath: availableLogPath,
+            sessionRepoRoot: rootDirectory,
+            taskRef: "TASK-900",
+            title: "Available",
+          },
+          {
+            acceptanceCriteria: ["done"],
+            commitHash: "def5678",
+            completedAt: "2026-02-11T00:00:00Z",
+            description: "missing log",
+            done: true,
+            filesToRead: [],
+            id: "SUB-901",
+            sessionId: "s-missing",
+            sessionRepoRoot: rootDirectory,
+            taskRef: "TASK-901",
+            title: "Missing",
+          },
+        ],
+        rootDirectory,
+      );
+
+      expect(preflight.available).toHaveLength(1);
+      expect(preflight.available[0]).toMatchObject({
+        sessionId: "s-available",
+        sessionLogPath: availableLogPath,
+        subtaskId: "SUB-900",
+      });
+      expect(preflight.missing).toHaveLength(1);
+      expect(preflight.missing[0]?.subtaskId).toBe("SUB-901");
+      expect(preflight.missing[0]?.attempts).toBeLessThanOrEqual(
+        preflight.maxAttempts,
+      );
+    } finally {
+      rmSync(rootDirectory, { force: true, recursive: true });
+    }
+  });
+});
+
+describe("buildSelfImproveFallbackResult", () => {
+  test("returns valid fallback payload with concise diagnostics", () => {
+    const fallback = buildSelfImproveFallbackResult({
+      available: [],
+      maxAttempts: 3,
+      missing: [
+        {
+          attemptedRepoRoots: ["/repo"],
+          attempts: 2,
+          sessionId: "session-1",
+          sessionRepoRoot: "/repo",
+          subtaskId: "SUB-001",
+        },
+      ],
+    });
+
+    expect(fallback.correctiveSubtasks).toEqual([]);
+    expect(fallback.insertionMode).toBe("prepend");
+    expect(fallback.summary).toContain("no available session logs");
+    expect(fallback.summary).toContain("SUB-001:session-1");
   });
 });
 

@@ -63,6 +63,7 @@ import applyQueueOperations, {
   getMaxSubtaskNumber as getMaxSubtaskNumberFromSubtasks,
 } from "./queue-ops";
 import { runRefreshModels } from "./refresh-models";
+import { getSessionJsonlPath } from "./session";
 import { runStatus } from "./status";
 import {
   buildQueueDiffSummary,
@@ -3780,6 +3781,17 @@ subtasksCommand.addCommand(
       subtask.commitHash = options.commit;
       subtask.completedAt = completedAt;
       subtask.sessionId = options.session;
+      const sessionRepoRoot = findProjectRoot() ?? process.cwd();
+      subtask.sessionRepoRoot = sessionRepoRoot;
+      const sessionLogPath = getSessionJsonlPath(
+        options.session,
+        sessionRepoRoot,
+      );
+      if (sessionLogPath === null) {
+        delete subtask.sessionLogPath;
+      } else {
+        subtask.sessionLogPath = sessionLogPath;
+      }
 
       saveSubtasksFile(subtasksPath, subtasksFile);
       console.log(

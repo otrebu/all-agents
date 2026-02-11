@@ -56,6 +56,7 @@ import {
 } from "./display";
 import { invokeWithProvider, resolveProvider } from "./providers/registry";
 import { applyAndSaveProposal } from "./queue-ops";
+import { getSessionJsonlPath } from "./session";
 
 // =============================================================================
 // Types
@@ -107,6 +108,26 @@ interface CalibrationProposalContext {
   options: CalibrateOptions;
   resultText: string;
   selfImproveMode?: "autofix" | "suggest";
+}
+
+interface SessionLogLocation {
+  sessionId: string;
+  sessionLogPath: string;
+  subtaskId: string;
+}
+
+interface SessionLogMissing {
+  attemptedRepoRoots: Array<string>;
+  attempts: number;
+  sessionId: string;
+  sessionRepoRoot: string;
+  subtaskId: string;
+}
+
+interface SessionLogPreflight {
+  available: Array<SessionLogLocation>;
+  maxAttempts: number;
+  missing: Array<SessionLogMissing>;
 }
 
 interface WriteCalibrationLogOptions {
@@ -267,6 +288,90 @@ function buildCalibrationCreateOperations(
   }));
 }
 
+function buildSelfImproveFallbackResult(preflight: SessionLogPreflight): {
+  correctiveSubtasks: Array<QueueSubtaskDraft>;
+  insertionMode: "prepend";
+  preflight: SessionLogPreflight;
+  summary: string;
+} {
+  const diagnostics = preflight.missing
+    .map((entry) => `${entry.subtaskId}:${entry.sessionId}`)
+    .join(", ");
+  return {
+    correctiveSubtasks: [],
+    insertionMode: "prepend",
+    preflight,
+    summary:
+      diagnostics === ""
+        ? "Skipped self-improvement analysis: no available session logs."
+        : `Skipped self-improvement analysis: no available session logs (${diagnostics}).`,
+  };
+}
+
+function buildSessionLogPreflight(
+  completedSubtasks: Array<Subtask>,
+  contextRoot: string,
+  maxAttempts = 3,
+): SessionLogPreflight {
+  const available: Array<SessionLogLocation> = [];
+  const missing: Array<SessionLogMissing> = [];
+
+  for (const subtask of completedSubtasks) {
+    const {
+      id: subtaskId,
+      sessionId,
+      sessionLogPath,
+      sessionRepoRoot,
+    } = subtask;
+    if (sessionId === undefined || sessionId === "") {
+      // eslint-disable-next-line no-continue -- completedSubtasks may come from broader callers
+      continue;
+    }
+
+    const metadataPath =
+      typeof sessionLogPath === "string" ? sessionLogPath : "";
+    if (metadataPath !== "" && existsSync(metadataPath)) {
+      available.push({ sessionId, sessionLogPath: metadataPath, subtaskId });
+      // eslint-disable-next-line no-continue -- canonical path already available
+      continue;
+    }
+
+    const locatorRepoRoot =
+      typeof sessionRepoRoot === "string" && sessionRepoRoot !== ""
+        ? sessionRepoRoot
+        : contextRoot;
+    const candidateRepoRoots = getUniqueStrings([locatorRepoRoot, contextRoot]);
+    const boundedRepoRoots = candidateRepoRoots.slice(0, maxAttempts);
+    const attemptedRepoRoots: Array<string> = [];
+    let resolvedPath: null | string = null;
+
+    for (const repoRoot of boundedRepoRoots) {
+      attemptedRepoRoots.push(repoRoot);
+      const candidatePath = getSessionJsonlPath(sessionId, repoRoot);
+      if (candidatePath !== null) {
+        resolvedPath = candidatePath;
+        break;
+      }
+    }
+
+    if (resolvedPath !== null) {
+      available.push({ sessionId, sessionLogPath: resolvedPath, subtaskId });
+      // eslint-disable-next-line no-continue -- session resolved successfully
+      continue;
+    }
+
+    missing.push({
+      attemptedRepoRoots,
+      attempts: attemptedRepoRoots.length,
+      sessionId,
+      sessionRepoRoot: locatorRepoRoot,
+      subtaskId,
+    });
+  }
+
+  return { available, maxAttempts, missing };
+}
+
 /**
  * Get session IDs from completed subtasks
  *
@@ -294,8 +399,19 @@ function getCompletedWithCommitHash(
   );
 }
 
+function getCompletedWithSessionId(subtasksFile: SubtasksFile): Array<Subtask> {
+  return getCompletedSubtasks(subtasksFile.subtasks).filter(
+    (subtask) =>
+      typeof subtask.sessionId === "string" && subtask.sessionId !== "",
+  );
+}
+
 function getMilestonePath(subtasksPath: string): string {
   return path.dirname(path.resolve(subtasksPath));
+}
+
+function getUniqueStrings(values: Array<string>): Array<string> {
+  return [...new Set(values.filter((value) => value !== ""))];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -567,6 +683,12 @@ async function runImproveCheck(
     return true;
   }
 
+  const completedWithSession = getCompletedWithSessionId(subtasksFile);
+  const preflight = buildSessionLogPreflight(completedWithSession, contextRoot);
+  const analyzableSessionIds = preflight.available
+    .map((entry) => entry.sessionId)
+    .join(",");
+
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
@@ -574,6 +696,47 @@ async function runImproveCheck(
       state: "INFO",
     }),
   );
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Session log preflight: ${preflight.available.length} available, ${preflight.missing.length} missing`,
+      state: "INFO",
+    }),
+  );
+  if (preflight.missing.length > 0) {
+    const conciseMissing = preflight.missing
+      .slice(0, 5)
+      .map((entry) => `${entry.subtaskId}:${entry.sessionId}`)
+      .join(", ");
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: `Missing session logs: ${conciseMissing}`,
+        state: "INFO",
+      }),
+    );
+  }
+
+  if (analyzableSessionIds === "") {
+    const fallbackResult = buildSelfImproveFallbackResult(preflight);
+    const didApplyFallback = await applyCalibrationProposal({
+      checkName: "Self-Improvement",
+      options,
+      resultText: JSON.stringify(fallbackResult),
+      selfImproveMode,
+    });
+    if (!didApplyFallback) {
+      return false;
+    }
+    console.log(
+      renderEventLine({
+        domain: "CALIBRATE",
+        message: fallbackResult.summary,
+        state: "SKIP",
+      }),
+    );
+    return true;
+  }
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
@@ -595,7 +758,10 @@ Subtasks file: @${subtasksPath}
 
 Config file: @${unifiedConfigPath}
 
-Session IDs to analyze: ${sessionIds}
+Session IDs to analyze: ${analyzableSessionIds}
+
+Session log preflight (available vs missing):
+${JSON.stringify(preflight, null, 2)}
 
 Self-improvement mode: ${selfImproveMode}
 - If 'suggest': Stage proposal artifacts for review (no queue mutation)
@@ -1094,6 +1260,8 @@ function writeCalibrationQueueProposalLogEntry(
 
 export {
   buildCalibrationCreateOperations,
+  buildSelfImproveFallbackResult,
+  buildSessionLogPreflight,
   type CalibrateOptions,
   type CalibrateSubcommand,
   parseCalibrationResult,

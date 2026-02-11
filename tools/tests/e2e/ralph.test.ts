@@ -1133,6 +1133,8 @@ kill -s INT $$
           done: boolean;
           id: string;
           sessionId?: string;
+          sessionLogPath?: string;
+          sessionRepoRoot?: string;
         }>;
       };
       const updatedSubtask = updated.subtasks.find(
@@ -1144,6 +1146,8 @@ kill -s INT $$
       expect(updatedSubtask?.commitHash).toBe("abc1234");
       expect(updatedSubtask?.sessionId).toBe("s1");
       expect(updatedSubtask?.completedAt).toBe(completionTimestamp);
+      expect(typeof updatedSubtask?.sessionRepoRoot).toBe("string");
+      expect((updatedSubtask?.sessionRepoRoot ?? "").length).toBeGreaterThan(0);
     });
 
     test("subtasks next/list/complete fail when --milestone is missing", async () => {
