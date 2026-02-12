@@ -322,36 +322,9 @@ cc-session-id: 93025345-eb7a-4f43-819f-3fe206639718
 
 Update tracking files to reflect the completed work.
 
-#### 1. Update subtasks.json
+**Note:** The build loop automatically marks the subtask as done in subtasks.json when it detects a new commit. Do NOT modify subtasks.json manually.
 
-**IMPORTANT:** Use Ralph CLI queue commands as the primary completion path.
-
-**Required fields to add/update:**
-- `done`: Set to `true`
-- `completedAt`: ISO 8601 timestamp of completion
-- `commitHash`: Git commit hash from the commit phase
-- `sessionId`: The current Claude session ID (for self-improvement analysis)
-
-**Single-subtask invariant (TypeScript runtime):**
-- Runtime enforces that only the assigned subtask can transition from `done: false` to `done: true` in an iteration.
-- Runtime exits non-zero when unexpected completions occur.
-
-Use this completion flow:
-
-```bash
-# 1) Confirm assignment before mutation
-aaa ralph subtasks next --milestone <name-or-path>
-
-# 2) Mark the assigned subtask complete (writes done/completedAt/commitHash/sessionId)
-aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id> --commit <hash> --session <id>
-
-# 3) Verify queue state after completion
-aaa ralph subtasks list --milestone <name-or-path>
-```
-
-If queue mutation fails, use the break-glass troubleshooting commands in the Error Handling section.
-
-#### 2. Append to PROGRESS.md
+#### 1. Append to PROGRESS.md
 
 Add an entry to PROGRESS.md documenting what was done:
 
@@ -369,7 +342,7 @@ Add an entry to PROGRESS.md documenting what was done:
 - Subtask ID as subsection header (### subtask-id)
 - Include: problem addressed, changes made, files affected
 
-#### 3. Commit tracking changes
+#### 2. Commit tracking changes
 
 **IMPORTANT:** Since the code was already validated and committed in Phase 6,
 use `--no-verify` for tracking-only commits to skip redundant validation:

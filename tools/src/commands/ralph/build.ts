@@ -33,6 +33,7 @@ import {
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
+  saveSubtasksFile,
 } from "./config";
 import {
   renderBuildPracticalSummary,
@@ -59,6 +60,7 @@ import {
 } from "./providers/registry";
 import { discoverRecentSessionForProvider } from "./providers/session-adapter";
 import { applyAndSaveProposal } from "./queue-ops";
+import { getSessionJsonlPath } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
 import {
@@ -230,33 +232,6 @@ let summaryContext: null | SummaryContext = null;
 // =============================================================================
 
 /**
- * Build jq command guidance with concrete subtask ID and file path.
- *
- * This minimizes model mistakes when updating large subtasks files by ensuring
- * commands always target `.subtasks[]` and the assigned subtask only.
- */
-function buildAssignedSubtaskJqSnippet(
-  subtaskId: string,
-  subtasksPath: string,
-): string {
-  const quotedId = escapeShellArgument(subtaskId);
-  const quotedSubtasksPath = escapeShellArgument(subtasksPath);
-  const quotedTemporaryPath = escapeShellArgument(`${subtasksPath}.tmp`);
-
-  return `Use these exact jq commands for this assigned subtask:
-\`\`\`bash
-jq -e --arg id ${quotedId} '.subtasks[] | select(.id==$id and .done==false)' ${quotedSubtasksPath} > /dev/null
-jq --arg id ${quotedId} \\
-   --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \\
-   --arg commit "$(git rev-parse HEAD)" \\
-   --arg session "$(cat .claude/current-session 2>/dev/null || echo '')" \\
-   '(.subtasks[] | select(.id==$id)) |= . + {done:true, completedAt:$ts, commitHash:$commit, sessionId:$session}' \\
-   ${quotedSubtasksPath} > ${quotedTemporaryPath} && mv ${quotedTemporaryPath} ${quotedSubtasksPath}
-jq -e --arg id ${quotedId} '.subtasks[] | select(.id==$id and .done==true)' ${quotedSubtasksPath} > /dev/null
-\`\`\``;
-}
-
-/**
  * Build shared assignment context consumed by both headless and supervised modes.
  */
 function buildIterationContext(
@@ -265,11 +240,6 @@ function buildIterationContext(
   progressPath: string,
 ): string {
   const subtaskJson = JSON.stringify(currentSubtask, null, 2);
-  const jqCommands = buildAssignedSubtaskJqSnippet(
-    currentSubtask.id,
-    subtasksPath,
-  );
-
   return `Execute one iteration of the Ralph build loop.
 
 Work ONLY on the assigned subtask below. Do not pick a different subtask.
@@ -282,15 +252,12 @@ ${subtaskJson}
 Subtasks file path: ${subtasksPath}
 Progress log path: ${progressPath}
 
-If you need to inspect the queue, do not read the entire subtasks file; use jq to view only pending items.
-
-${jqCommands}
-
 After completing the assigned subtask (${currentSubtask.id}):
-1. Update subtasks.json for ${currentSubtask.id} with done: true, completedAt, commitHash, sessionId
-2. Append to PROGRESS.md
-3. Create the commit
-4. STOP - do not continue to the next subtask`;
+1. Append to PROGRESS.md
+2. Create the commit
+3. STOP - do not continue to the next subtask
+
+Do NOT modify subtasks.json — the build loop handles completion tracking.`;
 }
 
 /**
@@ -348,13 +315,6 @@ function enforceSingleSubtaskInvariant(
   }
 
   return completionInvariant.completedIds.includes(assignedSubtaskId);
-}
-
-/**
- * Escape an argument for POSIX shells.
- */
-function escapeShellArgument(value: string): string {
-  return `'${value.replaceAll("'", `'"'"'`)}'`;
 }
 
 /**
@@ -728,6 +688,40 @@ function logSubtasksSizeGuidance(options: {
 }
 
 /**
+ * Mark a subtask as complete in subtasks.json with full metadata.
+ *
+ * Mirrors the logic in `ralph subtasks complete` (index.ts) so that
+ * the build loop owns completion tracking instead of the sub-agent.
+ */
+function markSubtaskComplete(options: {
+  commitHash: string;
+  contextRoot: string;
+  sessionId: string;
+  subtaskId: string;
+  subtasksPath: string;
+}): void {
+  const { commitHash, contextRoot, sessionId, subtaskId, subtasksPath } =
+    options;
+  const subtasksFile = loadSubtasksFile(subtasksPath);
+  const target = subtasksFile.subtasks.find((s) => s.id === subtaskId);
+  if (target === undefined || target.done) return;
+
+  target.done = true;
+  target.completedAt = new Date().toISOString();
+  target.commitHash = commitHash;
+  target.sessionId = sessionId;
+  const repoRoot = findProjectRoot() ?? contextRoot;
+  target.sessionRepoRoot = repoRoot;
+  const logPath = getSessionJsonlPath(sessionId, repoRoot);
+  if (logPath === null) {
+    delete target.sessionLogPath;
+  } else {
+    target.sessionLogPath = logPath;
+  }
+  saveSubtasksFile(subtasksPath, subtasksFile);
+}
+
+/**
  * Process a single headless iteration
  *
  * @returns Result with cost, duration, diary entry, and completion status
@@ -805,6 +799,17 @@ async function processHeadlessIteration(
   console.log(`\n${renderResponseHeader(provider)}`);
   console.log(renderMarkdown(result.result));
   console.log();
+
+  // Build loop owns completion: mark subtask done if a new commit was made
+  if (commitBefore !== commitAfter && commitAfter !== null) {
+    markSubtaskComplete({
+      commitHash: commitAfter,
+      contextRoot,
+      sessionId: result.sessionId,
+      subtaskId: currentSubtask.id,
+      subtasksPath,
+    });
+  }
 
   // Reload subtasks to check if current one was completed
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
@@ -964,6 +969,17 @@ async function processSupervisedIteration(
   console.log(
     `\n${provider} interactive supervised session completed${sessionSuffix}`,
   );
+
+  // Build loop owns completion: mark subtask done if a new commit was made
+  if (commitBefore !== commitAfter && commitAfter !== null) {
+    markSubtaskComplete({
+      commitHash: commitAfter,
+      contextRoot,
+      sessionId,
+      subtaskId: currentSubtask.id,
+      subtasksPath,
+    });
+  }
 
   // Reload subtasks to check completion status
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
@@ -1804,7 +1820,6 @@ function startHeartbeat(label: string, intervalMs = 30_000): () => void {
 // =============================================================================
 
 export {
-  buildAssignedSubtaskJqSnippet,
   buildIterationContext,
   buildIterationPrompt,
   getSubtaskQueueStats,

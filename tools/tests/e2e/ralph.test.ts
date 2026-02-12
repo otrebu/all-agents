@@ -105,9 +105,9 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("--headless");
     expect(stdout).toContain("--skip-summary");
     expect(stdout).toContain("--force");
-    expect(stdout).toContain("Skip all approval prompts");
+    expect(stdout).toContain("Approval mode: auto-apply");
     expect(stdout).toContain("--review");
-    expect(stdout).toContain("Require all approval prompts");
+    expect(stdout).toContain("Approval mode: stage");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
   });

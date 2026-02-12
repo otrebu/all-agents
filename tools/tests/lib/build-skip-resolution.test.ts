@@ -1,5 +1,6 @@
 import type * as BuildModule from "@tools/commands/ralph/build";
 
+import * as realValidation from "@tools/commands/ralph/validation";
 import { beforeAll, describe, expect, mock, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,10 +23,8 @@ const validateAllSubtasksMock = mock(async () => {
 });
 
 void mock.module("@tools/commands/ralph/validation", () => ({
+  ...realValidation,
   validateAllSubtasks: validateAllSubtasksMock,
-  writeValidationProposalArtifact: mock((milestonePath: string) =>
-    path.join(milestonePath, "feedback", "validation-proposal.json"),
-  ),
   writeValidationQueueApplyLogEntry: mock(() => {}),
 }));
 

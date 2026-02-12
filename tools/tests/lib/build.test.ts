@@ -1,5 +1,4 @@
 import {
-  buildAssignedSubtaskJqSnippet,
   buildIterationContext,
   getSubtaskQueueStats,
   getSubtasksSizeGuidanceLines,
@@ -35,22 +34,6 @@ describe("getSubtaskQueueStats", () => {
     ]);
 
     expect(stats).toEqual({ completed: 1, pending: 1, total: 2 });
-  });
-});
-
-describe("buildAssignedSubtaskJqSnippet", () => {
-  test("generates concrete commands with subtasks object path", () => {
-    const snippet = buildAssignedSubtaskJqSnippet(
-      "SUB-200",
-      "/tmp/my queue/subtasks.json",
-    );
-
-    expect(snippet).toContain("--arg id 'SUB-200'");
-    expect(snippet).toContain(
-      ".subtasks[] | select(.id==$id and .done==false)",
-    );
-    expect(snippet).toContain(".subtasks[] | select(.id==$id and .done==true)");
-    expect(snippet).toContain("mv '/tmp/my queue/subtasks.json.tmp'");
   });
 });
 
