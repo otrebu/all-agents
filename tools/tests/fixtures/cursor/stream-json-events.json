@@ -1,0 +1,138 @@
+{
+  "meta": {
+    "capturedAt": "2026-02-12",
+    "format": "agent -p --output-format stream-json",
+    "notes": "session_id/request_id/timestamp fields are sanitized for fixture stability"
+  },
+  "scenarios": [
+    {
+      "name": "simple-ok",
+      "expectedContains": "ok",
+      "events": [
+        {
+          "type": "system",
+          "subtype": "init",
+          "apiKeySource": "login",
+          "cwd": "/repo",
+          "session_id": "session-simple",
+          "model": "Auto",
+          "permissionMode": "default"
+        },
+        {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": [{ "type": "text", "text": "Return exactly: ok" }]
+          },
+          "session_id": "session-simple"
+        },
+        {
+          "type": "assistant",
+          "message": {
+            "role": "assistant",
+            "content": [{ "type": "text", "text": "\nok" }]
+          },
+          "session_id": "session-simple"
+        },
+        {
+          "type": "result",
+          "subtype": "success",
+          "duration_ms": 6790,
+          "duration_api_ms": 6790,
+          "is_error": false,
+          "result": "\nok",
+          "session_id": "session-simple",
+          "request_id": "request-simple"
+        }
+      ]
+    },
+    {
+      "name": "read-tool-call",
+      "expectedContains": "Done.",
+      "events": [
+        {
+          "type": "system",
+          "subtype": "init",
+          "apiKeySource": "login",
+          "cwd": "/repo",
+          "session_id": "session-read",
+          "model": "Auto",
+          "permissionMode": "default"
+        },
+        {
+          "type": "user",
+          "message": {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Read AGENTS.md and return one line: done"
+              }
+            ]
+          },
+          "session_id": "session-read"
+        },
+        {
+          "type": "assistant",
+          "message": {
+            "role": "assistant",
+            "content": [{ "type": "text", "text": "\n\n" }]
+          },
+          "session_id": "session-read",
+          "model_call_id": "call-read"
+        },
+        {
+          "type": "tool_call",
+          "subtype": "started",
+          "call_id": "tool-read",
+          "tool_call": {
+            "readToolCall": { "args": { "path": "/repo/AGENTS.md" } }
+          },
+          "model_call_id": "call-read",
+          "session_id": "session-read"
+        },
+        {
+          "type": "tool_call",
+          "subtype": "completed",
+          "call_id": "tool-read",
+          "tool_call": {
+            "readToolCall": {
+              "args": { "path": "/repo/AGENTS.md" },
+              "result": {
+                "success": {
+                  "content": "@CLAUDE.md\n",
+                  "isEmpty": false,
+                  "exceededLimit": false,
+                  "totalLines": 2,
+                  "fileSize": 11,
+                  "path": "/repo/AGENTS.md",
+                  "readRange": { "startLine": 1, "endLine": 2 }
+                }
+              }
+            }
+          },
+          "model_call_id": "call-read",
+          "session_id": "session-read"
+        },
+        {
+          "type": "assistant",
+          "message": {
+            "role": "assistant",
+            "content": [{ "type": "text", "text": "\nDone." }]
+          },
+          "session_id": "session-read"
+        },
+        {
+          "type": "result",
+          "subtype": "success",
+          "duration_ms": 12073,
+          "duration_api_ms": 12073,
+          "is_error": false,
+          "result": "\n\n\nDone.",
+          "session_id": "session-read",
+          "request_id": "request-read"
+        }
+      ]
+    }
+  ]
+}
