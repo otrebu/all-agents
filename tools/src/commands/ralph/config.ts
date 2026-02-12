@@ -18,7 +18,9 @@ import {
 } from "@tools/lib/config";
 import { findProjectRoot } from "@tools/utils/paths";
 import {
+  appendFileSync,
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   unlinkSync,
@@ -27,11 +29,15 @@ import {
 import { dirname, isAbsolute, join } from "node:path";
 
 import {
+  type CalibrationLogEntry,
   computeFingerprint,
   type LoadedSubtasksFile,
+  type QueueApplyLogEntry,
+  type QueueProposalLogEntry,
   type RalphConfig,
   type Subtask,
   type SubtasksFile,
+  type ValidationLogEntry,
 } from "./types";
 
 // =============================================================================
@@ -59,6 +65,29 @@ const DEFAULT_CONFIG: RalphConfig = {
 const SUBTASKS_SCHEMA_REFERENCE = "docs/planning/schemas/subtasks.schema.json";
 const SUBTASK_FRAGMENT_FILENAME_PATTERN = /^\.subtasks-task-.*\.json$/;
 
+function appendMilestoneLogEntry(
+  milestoneRoot: string,
+  entry:
+    | CalibrationLogEntry
+    | QueueApplyLogEntry
+    | QueueProposalLogEntry
+    | ValidationLogEntry,
+): void {
+  try {
+    const logPath = getMilestoneLogPath(milestoneRoot);
+    const logDirectory = dirname(logPath);
+    mkdirSync(logDirectory, { recursive: true });
+    appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[Ralph] Failed to write milestone log: ${message}`);
+  }
+}
+
+// =============================================================================
+// Subtasks File Management
+// =============================================================================
+
 /**
  * Count remaining (pending) subtasks
  *
@@ -68,10 +97,6 @@ const SUBTASK_FRAGMENT_FILENAME_PATTERN = /^\.subtasks-task-.*\.json$/;
 function countRemaining(subtasks: Array<Subtask>): number {
   return subtasks.filter((s) => !s.done).length;
 }
-
-// =============================================================================
-// Subtasks File Management
-// =============================================================================
 
 /**
  * Count subtasks in a subtasks file
@@ -177,6 +202,10 @@ function getExistingTaskReferences(subtasksPath: string): Set<string> {
   return taskReferences;
 }
 
+// =============================================================================
+// Query Helpers
+// =============================================================================
+
 /**
  * Extract milestone reference from subtasks file metadata
  *
@@ -186,10 +215,6 @@ function getExistingTaskReferences(subtasksPath: string): Set<string> {
 function getMilestoneFromSubtasks(subtasksFile: SubtasksFile): string {
   return subtasksFile.metadata?.milestoneRef ?? "unknown";
 }
-
-// =============================================================================
-// Query Helpers
-// =============================================================================
 
 /**
  * Get the path to the daily log file for a milestone
@@ -748,6 +773,7 @@ function saveSubtasksFile(
 // =============================================================================
 
 export {
+  appendMilestoneLogEntry,
   appendSubtasksToFile,
   countRemaining,
   countSubtasksInFile,

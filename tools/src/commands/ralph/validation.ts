@@ -1,6 +1,5 @@
 import chalk from "chalk";
 import {
-  appendFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -11,16 +10,9 @@ import path from "node:path";
 import * as readline from "node:readline";
 
 import type { ProviderType } from "./providers/types";
-import type {
-  QueueApplyLogEntry,
-  QueueOperation,
-  QueueProposal,
-  QueueProposalLogEntry,
-  Subtask,
-  ValidationLogEntry,
-} from "./types";
+import type { QueueOperation, QueueProposal, Subtask } from "./types";
 
-import { getMilestoneLogPath } from "./config";
+import { appendMilestoneLogEntry } from "./config";
 import { executeHook } from "./hooks";
 import { invokeProviderSummary } from "./providers/summary";
 import { parseQueueOperations } from "./queue-ops";
@@ -117,21 +109,6 @@ const VALIDATION_BOX_INNER_WIDTH = VALIDATION_BOX_WIDTH - 2;
 const VALIDATION_CONTENT_WIDTH = 56;
 const VALIDATION_LINE_CONTENT_WIDTH = VALIDATION_BOX_WIDTH - 4;
 const TRACKING_METADATA_PREFIXES = ["docs/planning/", ".claude/"];
-
-function appendMilestoneLogEntry(
-  milestonePath: string,
-  entry: QueueApplyLogEntry | QueueProposalLogEntry | ValidationLogEntry,
-): void {
-  try {
-    const logPath = getMilestoneLogPath(path.resolve(milestonePath));
-    const logDirectory = path.dirname(logPath);
-    mkdirSync(logDirectory, { recursive: true });
-    appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`[Validation] Failed to write milestone log: ${message}`);
-  }
-}
 
 function appendOperations(
   destination: Array<QueueOperation>,

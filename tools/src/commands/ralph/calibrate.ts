@@ -17,7 +17,6 @@ import { findProjectRoot } from "@tools/utils/paths";
 import chalk from "chalk";
 import { execSync } from "node:child_process";
 import {
-  appendFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -29,12 +28,9 @@ import path from "node:path";
 
 import type { ProviderType } from "./providers/types";
 import type {
-  CalibrationLogEntry,
   LoadedSubtasksFile,
-  QueueApplyLogEntry,
   QueueOperation,
   QueueProposal,
-  QueueProposalLogEntry,
   QueueSubtaskDraft,
   Subtask,
   SubtasksFile,
@@ -47,8 +43,8 @@ import {
   promptApproval,
 } from "./approvals";
 import {
+  appendMilestoneLogEntry,
   getCompletedSubtasks,
-  getMilestoneLogPath,
   getPendingSubtasks,
   loadRalphConfig,
   loadSubtasksFile,
@@ -193,16 +189,6 @@ interface WriteQueueApplyLogOptions {
 
 const MAX_TECHNICAL_DIFF_CHARS = 30_000;
 const MAX_TECHNICAL_FILE_CHARS = 12_000;
-
-function appendMilestoneLogEntry(
-  milestonePath: string,
-  entry: CalibrationLogEntry | QueueApplyLogEntry | QueueProposalLogEntry,
-): void {
-  const logPath = getMilestoneLogPath(path.resolve(milestonePath));
-  const logDirectory = path.dirname(logPath);
-  mkdirSync(logDirectory, { recursive: true });
-  appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
-}
 
 async function applyCalibrationProposal(
   context: CalibrationProposalContext,
