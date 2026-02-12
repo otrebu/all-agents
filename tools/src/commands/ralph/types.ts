@@ -619,23 +619,6 @@ function normalizeStatus(raw: string): IterationStatus {
   }
 }
 
-/**
- * Legacy migration shim for reading historical `blockedBy` arrays from queue files.
- *
- * Remove this helper once all milestone `subtasks.json` files no longer contain
- * `blockedBy` metadata.
- */
-function readLegacyBlockedBy(subtask: Subtask): Array<string> {
-  const blockedByValue = (subtask as { blockedBy?: unknown }).blockedBy;
-  if (!Array.isArray(blockedByValue)) {
-    return [];
-  }
-
-  return blockedByValue.filter(
-    (value): value is string => typeof value === "string",
-  );
-}
-
 // =============================================================================
 // Exports
 // =============================================================================
@@ -669,7 +652,6 @@ export {
   type QueueProposalLogEntry,
   type QueueSubtaskDraft,
   type RalphConfig,
-  readLegacyBlockedBy,
   type SelfImprovementConfig,
   type Subtask,
   type SubtaskMetadata,
