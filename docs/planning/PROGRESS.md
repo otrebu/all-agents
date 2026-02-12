@@ -15,6 +15,11 @@
 - **Changes:** Confirmed `applyQueueOperations()` already honors `atIndex` via `splice(atIndex, 0, createdSubtask)` in `queue-ops.ts`, then added focused unit coverage for middle-index insertion (`atIndex: 1`) and upper-bound out-of-range create errors to complement existing prepend and negative-index checks.
 - **Files:** `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-042
+- **Problem:** `ralph subtasks append` still duplicated subtask ID allocation and build logic in `index.ts`, and wrote via `appendSubtasksToFile()` instead of the shared queue-ops pipeline used by `prepend`.
+- **Changes:** Refactored `append` to build `create` operations with queue fingerprint metadata and run them through `applyQueueOperations()` at tail indices, reused the resulting queue for dry-run ID previews, and saved the mutated queue directly. Removed now-unused append-specific ID helper imports from `index.ts`.
+- **Files:** `tools/src/commands/ralph/index.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-11
 
 ### SUB-031

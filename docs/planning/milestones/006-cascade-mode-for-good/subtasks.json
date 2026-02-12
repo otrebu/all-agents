@@ -33,7 +33,7 @@
         "Existing E2E tests for append --dry-run still pass"
       ],
       "description": "The append command in index.ts duplicates formatSubtaskId, getMaxSubtaskNumber, and subtask-building logic that already exists in queue-ops.ts. The prepend command correctly delegates to applyQueueOperations, but append manually builds subtasks and calls appendSubtasksToFile directly, bypassing fingerprint-based concurrency guards. Refactor append to use the same applyQueueOperations path as prepend (with atIndex set to the end of the queue) so both commands share the same ID allocation, validation, and concurrency behavior.",
-      "done": false,
+      "done": true,
       "filesToRead": [
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/queue-ops.ts",
@@ -41,7 +41,10 @@
       ],
       "id": "SUB-042",
       "taskRef": "WS-02-cli-expansion",
-      "title": "Refactor append command to use queue-ops for ID allocation and subtask creation"
+      "title": "Refactor append command to use queue-ops for ID allocation and subtask creation",
+      "completedAt": "2026-02-12T07:52:05Z",
+      "commitHash": "c3ddcf86aae1c425fe0de4288de4a9432896762f",
+      "sessionId": "3bbe47ae-6f18-47c4-b6ae-c62e65c1f279"
     },
     {
       "acceptanceCriteria": [
