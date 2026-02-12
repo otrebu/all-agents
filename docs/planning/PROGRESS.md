@@ -10,6 +10,11 @@
 
 ## 2026-02-12
 
+### SUB-001
+- **Problem:** Pipeline dry-run preview lacked a shared execution-plan data layer, so there was no typed way to compute per-level reads/steps/writes, cascade-expanded phases, or approval-gate actions without running commands.
+- **Changes:** Added `plan-preview.ts` with foundational dry-run types (`ExecutionPlan`, `ExecutionPhase`, `PhaseStep`, `FlagEffect`), an 8-command `LEVEL_FLOWS` template map, and `computeExecutionPlan()` that expands cascade phases via `getLevelsInRange()`, resolves gate actions with `evaluateApproval()`, and returns JSON-serializable summary metadata. Added focused unit coverage for single-level build plans, cascade expansion (`build` and `calibrate`), `--from` override behavior, force/review approval resolution, map completeness, and JSON serialization.
+- **Files:** `tools/src/commands/ralph/plan-preview.ts`, `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-041
 - **Problem:** Queue create operations expose `atIndex` for positional insertion, but this subtask required explicit verification that create-at-index behavior (prepend and middle insert) is covered and that out-of-range index errors are actionable.
 - **Changes:** Confirmed `applyQueueOperations()` already honors `atIndex` via `splice(atIndex, 0, createdSubtask)` in `queue-ops.ts`, then added focused unit coverage for middle-index insertion (`atIndex: 1`) and upper-bound out-of-range create errors to complement existing prepend and negative-index checks.
