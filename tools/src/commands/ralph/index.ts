@@ -19,7 +19,6 @@ import runBuild, { buildIterationPrompt } from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import { runCascadeFrom, validateCascadeTarget } from "./cascade";
 import {
-  appendSubtasksToFile,
   countSubtasksInFile,
   discoverTasksFromMilestone,
   getExistingTaskReferences,
@@ -57,11 +56,7 @@ import {
   resolveProvider,
   validateProvider,
 } from "./providers/registry";
-import applyQueueOperations, {
-  applyAndSaveProposal,
-  formatSubtaskId,
-  getMaxSubtaskNumber as getMaxSubtaskNumberFromSubtasks,
-} from "./queue-ops";
+import applyQueueOperations, { applyAndSaveProposal } from "./queue-ops";
 import { runRefreshModels } from "./refresh-models";
 import { getSessionJsonlPath } from "./session";
 import { runStatus } from "./status";
@@ -3458,27 +3453,34 @@ subtasksCommand.addCommand(
       const drafts = parseCliSubtaskDrafts(input);
       const subtasksFile = loadSubtasksFile(subtasksPath);
 
-      const startNumber =
-        getMaxSubtaskNumberFromSubtasks(subtasksFile.subtasks) + 1;
-      const subtasksToAppend = drafts.map((draft, index) => ({
-        acceptanceCriteria: [...draft.acceptanceCriteria],
-        description: draft.description,
-        done: false,
-        filesToRead: [...draft.filesToRead],
-        id: formatSubtaskId(startNumber + index),
-        storyRef: draft.storyRef,
-        taskRef: draft.taskRef,
-        title: draft.title,
-      }));
+      const proposal = {
+        fingerprint: subtasksFile.fingerprint,
+        operations: drafts.map((draft, index) => ({
+          atIndex: subtasksFile.subtasks.length + index,
+          subtask: {
+            acceptanceCriteria: [...draft.acceptanceCriteria],
+            description: draft.description,
+            filesToRead: [...draft.filesToRead],
+            storyRef: draft.storyRef,
+            taskRef: draft.taskRef,
+            title: draft.title,
+          },
+          type: "create" as const,
+        })),
+        source: "cli:subtasks:append",
+        timestamp: new Date().toISOString(),
+      };
+
+      const appendedQueue = applyQueueOperations(subtasksFile, proposal);
+      const createdSubtasks = appendedQueue.subtasks.slice(-drafts.length);
 
       if (options.dryRun === true) {
         console.log(
           JSON.stringify(
             {
-              added: subtasksToAppend.length,
-              afterCount:
-                subtasksFile.subtasks.length + subtasksToAppend.length,
-              allocatedIds: subtasksToAppend.map((subtask) => subtask.id),
+              added: drafts.length,
+              afterCount: appendedQueue.subtasks.length,
+              allocatedIds: createdSubtasks.map((subtask) => subtask.id),
               beforeCount: subtasksFile.subtasks.length,
               command: "append",
               dryRun: true,
@@ -3491,14 +3493,8 @@ subtasksCommand.addCommand(
         return;
       }
 
-      const result = appendSubtasksToFile(
-        subtasksPath,
-        subtasksToAppend,
-        subtasksFile.metadata,
-      );
-      console.log(
-        `Appended ${result.added} subtask(s) to ${subtasksPath}${result.skipped > 0 ? ` (${result.skipped} skipped)` : ""}`,
-      );
+      saveSubtasksFile(subtasksPath, appendedQueue);
+      console.log(`Appended ${drafts.length} subtask(s) to ${subtasksPath}`);
     }),
 );
 
