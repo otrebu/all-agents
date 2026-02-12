@@ -1,7 +1,12 @@
 import {
   collectRuntimeContext,
   computeExecutionPlan,
+  type ExecutionPhase,
+  type ExecutionPlan,
+  type FlagEffect,
   LEVEL_FLOWS,
+  type PhaseStep,
+  type RuntimeContext,
 } from "@tools/commands/ralph/plan-preview";
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -39,6 +44,71 @@ function createMilestoneFixture(): {
           { description: "b", done: false, id: "SUB-002", title: "two" },
           { description: "c", done: false, id: "SUB-003", title: "three" },
         ],
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+
+  return {
+    cleanup: () => {
+      rmSync(root, { force: true, recursive: true });
+    },
+    milestonePath,
+    subtasksPath,
+  };
+}
+
+function createRealisticMilestoneFixture(): {
+  cleanup: () => void;
+  milestonePath: string;
+  subtasksPath: string;
+} {
+  const root = mkdtempSync(join(tmpdir(), "plan-preview-integration-"));
+  const milestonePath = join(root, "007-pipeline-preview");
+  const storiesPath = join(milestonePath, "stories");
+  const tasksPath = join(milestonePath, "tasks");
+  const subtasksPath = join(milestonePath, "subtasks.json");
+
+  mkdirSync(storiesPath, { recursive: true });
+  mkdirSync(tasksPath, { recursive: true });
+
+  for (const storyFileName of [
+    "001-STORY-alpha.md",
+    "002-STORY-beta.md",
+    "003-STORY-gamma.md",
+  ]) {
+    writeFileSync(join(storiesPath, storyFileName), "# story\n", "utf8");
+  }
+
+  for (const taskFileName of [
+    "001-TASK-one.md",
+    "002-TASK-two.md",
+    "003-TASK-three.md",
+    "004-TASK-four.md",
+    "005-TASK-five.md",
+  ]) {
+    writeFileSync(join(tasksPath, taskFileName), "# task\n", "utf8");
+  }
+
+  const subtasks = Array.from({ length: 12 }, (_, index) => {
+    const id = String(index + 1).padStart(3, "0");
+    return {
+      description: `Subtask ${id}`,
+      done: index < 4,
+      id: `SUB-${id}`,
+      title: `Fixture subtask ${id}`,
+    };
+  });
+
+  writeFileSync(
+    subtasksPath,
+    JSON.stringify(
+      {
+        $schema: "../../schemas/subtasks.schema.json",
+        metadata: { milestoneRef: "007-pipeline-preview", scope: "milestone" },
+        subtasks,
       },
       null,
       2,
@@ -259,5 +329,89 @@ describe("computeExecutionPlan", () => {
       plan.phases.every((phase) => phase.estimatedTime.startsWith("~")),
     ).toBe(true);
     expect(plan.summary.totalEstimatedTime.startsWith("~")).toBe(true);
+  });
+
+  test("integration fixture plan reflects realistic counts, cascade levels, gates, flags, and JSON shape", () => {
+    const fixture = createRealisticMilestoneFixture();
+
+    try {
+      const plan = computeExecutionPlan({
+        cascadeTarget: "calibrate",
+        command: "plan-subtasks",
+        flags: { calibrateEvery: 2, validateFirst: true },
+        milestonePath: fixture.milestonePath,
+        subtasksPath: fixture.subtasksPath,
+      });
+
+      expect(plan.runtime.storiesCount).toBe(3);
+      expect(plan.runtime.tasksCount).toBe(5);
+      expect(plan.runtime.queue).toEqual({
+        completed: 4,
+        pending: 8,
+        total: 12,
+      });
+
+      expect(plan.phases.map((phase) => phase.level)).toEqual([
+        "build",
+        "calibrate",
+      ]);
+      expect(plan.phases.map((phase) => phase.approvalGate)).toEqual([
+        null,
+        null,
+      ]);
+      expect(plan.phases.map((phase) => phase.approvalAction)).toEqual([
+        "write",
+        "write",
+      ]);
+
+      const buildPhase = plan.phases.find((phase) => phase.level === "build");
+      const buildEffects =
+        buildPhase?.steps.flatMap((step) =>
+          step.flagEffects.map((effect) => `${effect.flag}:${effect.type}`),
+        ) ?? [];
+
+      expect(buildEffects).toContain("--validate-first:added");
+      expect(buildEffects).toContain("--calibrate-every:added");
+
+      expect(
+        buildPhase?.reads.some((read) =>
+          read.includes("12 total / 8 pending / 4 completed"),
+        ),
+      ).toBe(true);
+
+      const serialized = JSON.stringify(plan);
+      const parsed: unknown = JSON.parse(serialized);
+      expect(parsed).toEqual(plan);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("plan-preview exports public types for downstream imports", () => {
+    const fixture = createRealisticMilestoneFixture();
+
+    try {
+      const plan: ExecutionPlan = computeExecutionPlan({
+        command: "plan-subtasks",
+        milestonePath: fixture.milestonePath,
+        subtasksPath: fixture.subtasksPath,
+      });
+      const { phases }: { phases: Array<ExecutionPhase> } = plan;
+      const firstStep: PhaseStep | undefined = phases[0]?.steps[0];
+      const [firstEffect]: Array<FlagEffect | undefined> =
+        firstStep?.flagEffects ?? [];
+      const runtime: RuntimeContext = collectRuntimeContext({
+        milestonePath: fixture.milestonePath,
+        subtasksPath: fixture.subtasksPath,
+      });
+
+      expect(Array.isArray(phases)).toBe(true);
+      expect(runtime.queue.total).toBe(12);
+      expect(
+        firstEffect === undefined || typeof firstEffect.flag === "string",
+      ).toBe(true);
+    } finally {
+      fixture.cleanup();
+    }
   });
 });

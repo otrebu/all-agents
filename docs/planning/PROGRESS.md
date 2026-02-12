@@ -20,6 +20,11 @@
 - **Changes:** Extended `plan-preview.ts` with declarative `FLOW_MODS` rules for `--validate-first` (added), `--headless` (replaced), `--force` (struck), and `--calibrate-every` (added), wired rule application into `computeExecutionPlan()`, added `RuntimeContext` plus `collectRuntimeContext()` to read `stories/` and `tasks/` file counts and queue stats from `subtasks.json` via `loadSubtasksFile()`, enriched read/write lines with runtime metadata, and added per-level `~N min` estimates plus aggregate `summary.totalEstimatedTime`. Expanded `plan-preview.test.ts` to cover each required flag effect, multi-flag composition, runtime file-count/queue enrichment from fixture directories, and estimate-format assertions while preserving prior SUB-001 behavior.
 - **Files:** `tools/src/commands/ralph/plan-preview.ts`, `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-003
+- **Problem:** The execution-plan layer lacked an end-to-end fixture test proving realistic milestone counts, queue stats, cascade phase resolution, and external module importability for downstream dry-run rendering/CLI consumers.
+- **Changes:** Added a realistic integration fixture (3 stories, 5 tasks, 12 subtasks with 8 pending/4 done) and new `computeExecutionPlan()` assertions for cascade `subtasks -> calibrate`, runtime enrichment counts, approval action/gate resolution, flag-effect composition (`--validate-first`, `--calibrate-every`), and JSON round-trip stability. Added a type-import smoke test that imports and uses `ExecutionPlan`, `ExecutionPhase`, `RuntimeContext`, `FlagEffect`, and `PhaseStep` from `plan-preview.ts` to lock module export compatibility.
+- **Files:** `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-041
 - **Problem:** Queue create operations expose `atIndex` for positional insertion, but this subtask required explicit verification that create-at-index behavior (prepend and middle insert) is covered and that out-of-range index errors are actionable.
 - **Changes:** Confirmed `applyQueueOperations()` already honors `atIndex` via `splice(atIndex, 0, createdSubtask)` in `queue-ops.ts`, then added focused unit coverage for middle-index insertion (`atIndex: 1`) and upper-bound out-of-range create errors to complement existing prepend and negative-index checks.
