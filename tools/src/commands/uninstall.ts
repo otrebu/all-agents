@@ -1,5 +1,6 @@
 import * as p from "@clack/prompts";
 import { unlinkSync } from "node:fs";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 
 import {
@@ -77,6 +78,14 @@ function removeUserInstallation(): void {
 
   unlinkSync(AAA_SYMLINK);
   p.log.success(`Removed ${AAA_SYMLINK}`);
+
+  // Remove ~/.agents/skills symlink if it points to our repo
+  const agentsSkillsDirectory = resolve(homedir(), ".agents/skills");
+  const skillsTarget = getSymlinkTarget(agentsSkillsDirectory);
+  if (skillsTarget?.includes("all-agents") === true) {
+    unlinkSync(agentsSkillsDirectory);
+    p.log.success("Removed ~/.agents/skills symlink");
+  }
 
   // Warn about CLAUDE_CONFIG_DIR if set
   const { current, status } = getClaudeConfigStatus();

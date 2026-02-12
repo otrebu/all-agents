@@ -327,6 +327,7 @@ describe("promptApproval", () => {
 
     createInterfaceSpy = spyOn(readline, "createInterface").mockReturnValue({
       close: closeMock,
+      on: mock(() => undefined as unknown as readline.Interface),
       // eslint-disable-next-line promise/prefer-await-to-callbacks -- readline question API is callback-based
       question: (questionPrompt: string, callback: (value: string) => void) => {
         prompt = questionPrompt;

@@ -56,8 +56,16 @@ import {
   resolveProvider,
   validateProvider,
 } from "./providers/registry";
+import applyQueueOperations, { applyAndSaveProposal } from "./queue-ops";
 import { runRefreshModels } from "./refresh-models";
+import { getSessionJsonlPath } from "./session";
 import { runStatus } from "./status";
+import {
+  buildQueueDiffSummary,
+  hasFingerprintMismatch,
+  parseCliSubtaskDrafts,
+  readQueueProposalFromFile,
+} from "./subtask-helpers";
 
 /**
  * Extract task reference from a task path
@@ -825,14 +833,23 @@ ralphCommand.addCommand(
     .option("--max-iterations <n>", "Max iterations (0 = unlimited)", "0")
     .option(
       "--calibrate-every <n>",
-      "Run calibration every N iterations (0 = disabled)",
+      "Run calibration every N iterations; may insert corrective subtasks into queue order (0 = disabled)",
       "0",
     )
-    .option("--validate-first", "Run pre-build validation before building")
+    .option(
+      "--validate-first",
+      "Run pre-build validation; can create/update/remove/reorder/split pending subtasks before build",
+    )
     .option("--provider <name>", "AI provider to use (default: claude)")
     .option("--model <name>", "Model to use (validated against model registry)")
-    .option("--force", "Skip all approval prompts")
-    .option("--review", "Require all approval prompts")
+    .option(
+      "--force",
+      "Approval mode: auto-apply validation/calibration queue proposals (skip prompts)",
+    )
+    .option(
+      "--review",
+      "Approval mode: stage validation/calibration queue proposals for explicit approval",
+    )
     .option("--from <level>", "Resume cascade from this level")
     .option(
       "--cascade <target>",
@@ -867,16 +884,11 @@ ralphCommand.addCommand(
             );
           } else {
             console.log(
-              "No runnable subtask: all pending subtasks are blocked.",
+              "No runnable subtask found despite pending items in queue.",
             );
-            console.log("Pending blocked subtasks:");
+            console.log("Pending subtasks (queue order):");
             for (const subtask of pending) {
-              const blockedBy = subtask.blockedBy ?? [];
-              const dependencies =
-                blockedBy.length === 0
-                  ? "(no blockedBy listed)"
-                  : blockedBy.join(", ");
-              console.log(`- ${subtask.id}: blockedBy ${dependencies}`);
+              console.log(`- ${subtask.id}: ${subtask.title}`);
             }
           }
           console.log("\n=== End of Prompt ===");
@@ -915,12 +927,14 @@ ralphCommand.addCommand(
       await runBuild(
         {
           calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+          force: options.force === true,
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
           mode,
           model: options.model,
           provider: options.provider as ProviderType,
           quiet: options.quiet === true,
+          review: options.review === true,
           skipSummary: options.skipSummary === true,
           subtasksPath,
           validateFirst: options.validateFirst === true,
@@ -1674,13 +1688,13 @@ function renderSubtasksHeadlessStartBanner(options: {
 function resolveMilestoneFromOptions(
   milestoneOption: string | undefined,
   storyOption: string | undefined,
-  hasStory: boolean,
+  outputDirectory: string | undefined,
 ): null | string | undefined {
   if (milestoneOption !== undefined) {
     // Explicit milestone flag
     return resolveMilestonePath(milestoneOption);
   }
-  if (hasStory && storyOption !== undefined) {
+  if (storyOption !== undefined) {
     // Infer milestone from resolved story path
     const resolvedStory = resolveStoryPath(storyOption);
     if (resolvedStory !== null) {
@@ -1690,6 +1704,24 @@ function resolveMilestoneFromOptions(
       }
     }
   }
+
+  if (outputDirectory !== undefined) {
+    const milestoneRoot = getMilestoneRootFromPath(outputDirectory);
+    const slugFromOutputDirectory =
+      /(?:^|[\\/])docs[\\/]planning[\\/]milestones[\\/](?<slug>[^\\/]+)/.exec(
+        path.normalize(milestoneRoot),
+      )?.groups?.slug;
+
+    if (slugFromOutputDirectory !== undefined) {
+      const resolvedFromOutputDirectory = resolveMilestonePath(
+        slugFromOutputDirectory,
+      );
+      if (resolvedFromOutputDirectory !== null) {
+        return resolvedFromOutputDirectory;
+      }
+    }
+  }
+
   return undefined;
 }
 
@@ -2682,7 +2714,7 @@ planCommand.addCommand(
       const resolvedMilestonePath = resolveMilestoneFromOptions(
         options.milestone,
         options.story,
-        hasStory,
+        options.outputDir,
       );
 
       // Pre-check for --milestone and --story modes: filter tasks that already have subtasks
@@ -3164,6 +3196,39 @@ function parseLimitOrExit(rawLimit: string): number {
   return parsed;
 }
 
+function readCliSubtaskInput(filePath: string | undefined): string {
+  if (filePath !== undefined && filePath !== "") {
+    return readFileSync(filePath, "utf8");
+  }
+
+  if (process.stdin.isTTY) {
+    throw new Error("Provide subtask JSON via --file or stdin");
+  }
+
+  return readFileSync(0, "utf8");
+}
+
+function renderFingerprintMismatchError(details: {
+  current: string;
+  proposal: string;
+  subtasksPath: string;
+}): void {
+  console.error(
+    renderEventLine({
+      domain: "SUBTASKS",
+      message:
+        "Fingerprint mismatch: proposal is stale for current queue state.",
+      state: "FAIL",
+    }),
+  );
+  console.error(`Queue:    ${details.subtasksPath}`);
+  console.error(`Current:  ${details.current}`);
+  console.error(`Proposal: ${details.proposal}`);
+  console.error(
+    "Action: regenerate the proposal from the latest queue, then retry diff/apply.",
+  );
+}
+
 function requireMilestoneSubtasksPath(milestone: string): string {
   const milestonePath = requireMilestone(milestone);
   const subtasksPath = path.join(milestonePath, "subtasks.json");
@@ -3240,22 +3305,8 @@ async function runCalibrateSubcommand(
   }
 }
 
-/**
- * Validate mutual exclusion for approval override flags.
- */
-function validateApprovalFlags(
-  isForce: boolean | undefined,
-  isReview: boolean | undefined,
-): void {
-  if (isForce === true && isReview === true) {
-    console.error("Cannot use --force and --review together");
-    process.exit(1);
-  }
-}
-
-// ralph subtasks - queue operations scoped to a milestone
 const subtasksCommand = new Command("subtasks").description(
-  "Subtask queue operations (next/list/complete)",
+  "Subtask queue operations (next/list/complete/append/prepend/diff/apply)",
 );
 
 subtasksCommand.addCommand(
@@ -3391,6 +3442,281 @@ subtasksCommand.addCommand(
 );
 
 subtasksCommand.addCommand(
+  new Command("append")
+    .description("Append new subtasks to the end of a queue")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .option("--file <path>", "Read subtask JSON from file instead of stdin")
+    .option("--dry-run", "Show JSON preview without writing queue file")
+    .action((options) => {
+      const subtasksPath = path.resolve(options.subtasks);
+      const input = readCliSubtaskInput(options.file);
+      const drafts = parseCliSubtaskDrafts(input);
+      const subtasksFile = loadSubtasksFile(subtasksPath);
+
+      const proposal = {
+        fingerprint: subtasksFile.fingerprint,
+        operations: drafts.map((draft, index) => ({
+          atIndex: subtasksFile.subtasks.length + index,
+          subtask: {
+            acceptanceCriteria: [...draft.acceptanceCriteria],
+            description: draft.description,
+            filesToRead: [...draft.filesToRead],
+            storyRef: draft.storyRef,
+            taskRef: draft.taskRef,
+            title: draft.title,
+          },
+          type: "create" as const,
+        })),
+        source: "cli:subtasks:append",
+        timestamp: new Date().toISOString(),
+      };
+
+      const appendedQueue = applyQueueOperations(subtasksFile, proposal);
+      const createdSubtasks = appendedQueue.subtasks.slice(-drafts.length);
+
+      if (options.dryRun === true) {
+        console.log(
+          JSON.stringify(
+            {
+              added: drafts.length,
+              afterCount: appendedQueue.subtasks.length,
+              allocatedIds: createdSubtasks.map((subtask) => subtask.id),
+              beforeCount: subtasksFile.subtasks.length,
+              command: "append",
+              dryRun: true,
+              subtasksPath,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      saveSubtasksFile(subtasksPath, appendedQueue);
+      console.log(`Appended ${drafts.length} subtask(s) to ${subtasksPath}`);
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("prepend")
+    .description("Prepend new subtasks to the beginning of a queue")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .option("--file <path>", "Read subtask JSON from file instead of stdin")
+    .option("--dry-run", "Show JSON preview without writing queue file")
+    .action((options) => {
+      const subtasksPath = path.resolve(options.subtasks);
+      const input = readCliSubtaskInput(options.file);
+      const drafts = parseCliSubtaskDrafts(input);
+      const subtasksFile = loadSubtasksFile(subtasksPath);
+
+      const proposal = {
+        fingerprint: subtasksFile.fingerprint,
+        operations: drafts.map((draft, index) => ({
+          atIndex: subtasksFile.subtasks.length + index,
+          subtask: {
+            acceptanceCriteria: [...draft.acceptanceCriteria],
+            description: draft.description,
+            filesToRead: [...draft.filesToRead],
+            storyRef: draft.storyRef,
+            taskRef: draft.taskRef,
+            title: draft.title,
+          },
+          type: "create" as const,
+        })),
+        source: "cli:subtasks:prepend",
+        timestamp: new Date().toISOString(),
+      };
+
+      const createdAtTail = applyQueueOperations(subtasksFile, proposal);
+      const createdSubtasks = createdAtTail.subtasks.slice(-drafts.length);
+      const prependedQueue = [
+        ...createdSubtasks,
+        ...createdAtTail.subtasks.slice(0, -drafts.length),
+      ];
+
+      if (options.dryRun === true) {
+        console.log(
+          JSON.stringify(
+            {
+              added: drafts.length,
+              afterCount: prependedQueue.length,
+              allocatedIds: createdSubtasks.map((subtask) => subtask.id),
+              beforeCount: subtasksFile.subtasks.length,
+              command: "prepend",
+              dryRun: true,
+              subtasksPath,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      saveSubtasksFile(subtasksPath, {
+        ...createdAtTail,
+        subtasks: prependedQueue,
+      });
+      console.log(`Prepended ${drafts.length} subtask(s) to ${subtasksPath}`);
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("diff")
+    .description("Preview queue changes from a proposal without applying")
+    .requiredOption("--proposal <path>", "Queue proposal JSON file")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .option("--json", "Output machine-readable JSON summary")
+    .action((options) => {
+      const subtasksPath = path.resolve(options.subtasks);
+      const proposalPath = path.resolve(options.proposal);
+      const proposal = readQueueProposalFromFile(proposalPath);
+      const currentFile = loadSubtasksFile(subtasksPath);
+      const fingerprintState = hasFingerprintMismatch(
+        proposal,
+        currentFile.subtasks,
+      );
+
+      if (fingerprintState.mismatched) {
+        renderFingerprintMismatchError({
+          current: fingerprintState.current,
+          proposal: fingerprintState.proposal,
+          subtasksPath,
+        });
+        process.exit(1);
+      }
+
+      const nextFile = applyQueueOperations(currentFile, proposal);
+      const summary = buildQueueDiffSummary(
+        currentFile.subtasks,
+        nextFile.subtasks,
+      );
+      const totalChanges =
+        summary.added.length +
+        summary.removed.length +
+        summary.updated.length +
+        summary.reordered.length;
+
+      if (options.json === true) {
+        console.log(
+          JSON.stringify(
+            {
+              added: summary.added.map((subtask) => ({
+                id: subtask.id,
+                taskRef: subtask.taskRef,
+                title: subtask.title,
+              })),
+              changes: totalChanges,
+              command: "diff",
+              fingerprint: {
+                current: fingerprintState.current,
+                proposal: fingerprintState.proposal,
+              },
+              operations: proposal.operations.length,
+              removed: summary.removed.map((subtask) => ({
+                id: subtask.id,
+                taskRef: subtask.taskRef,
+                title: subtask.title,
+              })),
+              reordered: summary.reordered,
+              subtasksAfter: nextFile.subtasks.length,
+              subtasksBefore: currentFile.subtasks.length,
+              updated: summary.updated.map((entry) => ({
+                after: { id: entry.after.id, title: entry.after.title },
+                before: { id: entry.before.id, title: entry.before.title },
+              })),
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      console.log(`Queue diff for ${subtasksPath}`);
+      console.log(`Operations: ${proposal.operations.length}`);
+      console.log(
+        `Subtasks: ${currentFile.subtasks.length} -> ${nextFile.subtasks.length}`,
+      );
+
+      if (totalChanges === 0) {
+        console.log("No queue changes.");
+        return;
+      }
+
+      if (summary.added.length > 0) {
+        console.log(`\nAdded (${summary.added.length}):`);
+        for (const subtask of summary.added) {
+          console.log(`+ ${subtask.id} ${subtask.title}`);
+        }
+      }
+
+      if (summary.removed.length > 0) {
+        console.log(`\nRemoved (${summary.removed.length}):`);
+        for (const subtask of summary.removed) {
+          console.log(`- ${subtask.id} ${subtask.title}`);
+        }
+      }
+
+      if (summary.updated.length > 0) {
+        console.log(`\nUpdated (${summary.updated.length}):`);
+        for (const entry of summary.updated) {
+          const isTitleChanged = entry.before.title !== entry.after.title;
+          if (isTitleChanged) {
+            console.log(
+              `~ ${entry.after.id} title: "${entry.before.title}" -> "${entry.after.title}"`,
+            );
+          } else {
+            console.log(`~ ${entry.after.id} ${entry.after.title}`);
+          }
+        }
+      }
+
+      if (summary.reordered.length > 0) {
+        console.log(`\nReordered (${summary.reordered.length}):`);
+        for (const move of summary.reordered) {
+          console.log(`> ${move.id} ${move.was} -> ${move.to}`);
+        }
+      }
+    }),
+);
+
+subtasksCommand.addCommand(
+  new Command("apply")
+    .description("Apply queue proposal to subtasks file")
+    .requiredOption("--proposal <path>", "Queue proposal JSON file")
+    .requiredOption("--subtasks <path>", "Subtasks file path")
+    .action((options) => {
+      const subtasksPath = path.resolve(options.subtasks);
+      const proposalPath = path.resolve(options.proposal);
+      const proposal = readQueueProposalFromFile(proposalPath);
+      const currentFile = loadSubtasksFile(subtasksPath);
+      const fingerprintState = hasFingerprintMismatch(
+        proposal,
+        currentFile.subtasks,
+      );
+
+      if (fingerprintState.mismatched) {
+        renderFingerprintMismatchError({
+          current: fingerprintState.current,
+          proposal: fingerprintState.proposal,
+          subtasksPath,
+        });
+        process.exit(1);
+      }
+
+      const summary = applyAndSaveProposal(subtasksPath, proposal);
+      console.log(
+        `Applied ${summary.operationsApplied} operation(s): ${summary.subtasksBefore} -> ${summary.subtasksAfter} subtasks`,
+      );
+      console.log(
+        `Fingerprint: ${summary.fingerprintBefore} -> ${summary.fingerprintAfter}`,
+      );
+    }),
+);
+
+subtasksCommand.addCommand(
   new Command("complete")
     .description("Mark a subtask complete in a milestone queue")
     .requiredOption(
@@ -3451,6 +3777,17 @@ subtasksCommand.addCommand(
       subtask.commitHash = options.commit;
       subtask.completedAt = completedAt;
       subtask.sessionId = options.session;
+      const sessionRepoRoot = findProjectRoot() ?? process.cwd();
+      subtask.sessionRepoRoot = sessionRepoRoot;
+      const sessionLogPath = getSessionJsonlPath(
+        options.session,
+        sessionRepoRoot,
+      );
+      if (sessionLogPath === null) {
+        delete subtask.sessionLogPath;
+      } else {
+        subtask.sessionLogPath = sessionLogPath;
+      }
 
       saveSubtasksFile(subtasksPath, subtasksFile);
       console.log(
@@ -3586,5 +3923,24 @@ ralphCommand.addCommand(
     }),
 );
 
-export { validateApprovalFlags };
+/**
+ * Validate mutual exclusion for approval override flags.
+ */
+function validateApprovalFlags(
+  isForce: boolean | undefined,
+  isReview: boolean | undefined,
+): void {
+  if (isForce === true && isReview === true) {
+    console.error("Cannot use --force and --review together");
+    process.exit(1);
+  }
+}
+
+export { resolveMilestoneFromOptions, validateApprovalFlags };
+export {
+  hasFingerprintMismatch,
+  parseCliSubtaskDraft,
+  parseCliSubtaskDrafts,
+  readQueueProposalFromFile,
+} from "./subtask-helpers";
 export default ralphCommand;

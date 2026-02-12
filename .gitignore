@@ -51,5 +51,8 @@ aaa-manpage.html
 .claude/skills/eval-test-*
 .claude/agents/eval-test-*
 .claude/commands/eval-test-*
+.claude/current-session
 .cursor/rules/eval-test-*
 context/blocks/*/eval-test-*
+
+

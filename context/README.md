@@ -211,6 +211,8 @@ Testing strategies.
 - test-component-vitest-rtl.md - Component testing with Vitest + RTL
 - test-e2e-cli-bun.md - CLI E2E testing with Bun
 - test-e2e-cli-node.md - CLI E2E testing with Node
+- test-e2e-web-playwright.md - Web E2E testing with Playwright
+- test-visual-web-agent-browser.md - Visual UI verification with Agent Browser
 - test-integration-api.md - API integration testing
 - test-integration-db.md - Database integration testing (ORM-agnostic)
 
@@ -304,6 +306,8 @@ Development processes.
 - consistency-checker.md - Consistency validation
 - manage-atomic-doc.md - Create/update atomic documentation
 - review-atomic-doc.md - Quality gate for atomic docs
+- ralph/planning/components/testing-guidance.md - Testing decision guidance for Ralph planning
+- ralph/planning/components/testing-profile-contract.md - Shared AC/test profile contract for Ralph planning/building
 
 ---
 

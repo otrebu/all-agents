@@ -9,6 +9,8 @@ depends:
 
 Review atomic documentation files against standards defined in dependencies.
 
+Prompting standards are centralized in @context/blocks/docs/prompting.md (single canonical source).
+
 ## Review Checklist
 
 Verify against @context/blocks/docs/atomic-documentation.md:
@@ -59,6 +61,11 @@ Verify against @context/blocks/docs/atomic-documentation.md:
 - [ ] Foundations reference blocks
 - [ ] Stacks compose foundations
 - [ ] Platform foundations execution-agnostic
+
+### 9. Prompting Policy Alignment
+
+- [ ] Writing aligns with shared prompting.md MUST/SHOULD/MAY policy
+- [ ] No local/duplicated prompting rule system introduced
 
 ## Output Format
 

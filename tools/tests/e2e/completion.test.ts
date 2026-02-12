@@ -308,6 +308,76 @@ describe("completion E2E", () => {
       );
     });
 
+    test("zsh and fish include new ralph subtasks queue-order subcommands and flags", async () => {
+      const [zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      expect(zshResult.stdout).toContain(
+        "append:Append subtasks to the end of queue order",
+      );
+      expect(zshResult.stdout).toContain(
+        "prepend:Prepend subtasks to the front of queue order",
+      );
+      expect(zshResult.stdout).toContain(
+        "diff:Preview queue-order changes from a proposal",
+      );
+      expect(zshResult.stdout).toContain(
+        "apply:Apply queue-order changes from a proposal",
+      );
+      expect(zshResult.stdout).toContain("--subtasks[Subtasks file path]");
+      expect(zshResult.stdout).toContain("--file[Read subtask JSON from file]");
+      expect(zshResult.stdout).toContain("--dry-run[Show JSON preview");
+      expect(zshResult.stdout).toContain(
+        "--proposal[Queue proposal JSON file]",
+      );
+      expect(zshResult.stdout).toContain(
+        "--json[Output machine-readable JSON summary]",
+      );
+      expect(zshResult.stdout).toContain(
+        "next:Get next subtask in queue order",
+      );
+      expect(zshResult.stdout).not.toContain("next:Get next runnable subtask");
+
+      expect(fishResult.stdout).toContain(
+        "-a append -d 'Append subtasks to the end of queue order'",
+      );
+      expect(fishResult.stdout).toContain(
+        "-a prepend -d 'Prepend subtasks to the front of queue order'",
+      );
+      expect(fishResult.stdout).toContain(
+        "-a diff -d 'Preview queue-order changes from a proposal'",
+      );
+      expect(fishResult.stdout).toContain(
+        "-a apply -d 'Apply queue-order changes from a proposal'",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_subtasks_append -l subtasks",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_subtasks_append -l file",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_subtasks_append -l dry-run",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_subtasks_diff -l proposal",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_subtasks_diff -l json",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_subtasks_apply -l subtasks",
+      );
+      expect(fishResult.stdout).toContain(
+        "-a next -d 'Get next subtask in queue order'",
+      );
+      expect(fishResult.stdout).not.toContain(
+        "-a next -d 'Get next runnable subtask'",
+      );
+    });
+
     test("bash includes ralph plan subcommands", async () => {
       const { stdout } = await execa(
         "bun",

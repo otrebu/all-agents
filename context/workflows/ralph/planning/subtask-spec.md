@@ -4,6 +4,8 @@ Shared conventions and guidelines for all subtask generation workflows. Referenc
 - `subtasks-auto.md` - Auto generation from TASK files
 - `subtasks-from-source.md` - Generation from arbitrary sources
 
+For source-driven planning runs, `--output-dir` milestone-shaped paths (`docs/planning/milestones/<slug>`) set both the subtasks destination and the planning log directory. See `subtasks-from-source.md` for parameter details.
+
 ## Subtask Schema
 
 Each subtask MUST have these fields:
@@ -23,7 +25,6 @@ Each subtask MUST have these fields:
 | Field | Type | Description |
 |-------|------|-------------|
 | `storyRef` | string | Parent story reference if task has one |
-| `blockedBy` | string[] | IDs of subtasks that must complete first |
 
 ### Example Subtask
 
@@ -39,7 +40,7 @@ Each subtask MUST have these fields:
     "Zod schema exists in src/schemas/user.ts",
     "Email format is validated",
     "Password strength rules are enforced",
-    "Unit test in tools/tests/lib/user-schema.test.ts passes"
+    "Unit test in tests/unit/user-schema.test.ts passes"
   ],
   "filesToRead": [
     "src/schemas/auth.ts",
@@ -197,37 +198,51 @@ When you see these terms, **add specificity** (don't just rewrite mechanically):
 | "follows format" | What specific elements? | "Has: title, description, flags table" |
 | "single responsibility" | What's the measurable proxy? | "Each function under 50 lines and has one verb in name" |
 
-### BDD-Style AC (Encouraged for User-Facing Features)
+### Scenario Style (No BDD Framework Required)
 
-For commands and user interactions, Given/When/Then is clearer:
+Given/When/Then wording is encouraged when it clarifies behavior, but BDD framework adoption (for example Cucumber) is deferred and not required.
 
 ```
-Given: User runs `aaa review` without flags
-When: Command executes
-Then: Prompt appears asking for mode selection
+Given: A user submits invalid profile data
+When: The save action runs
+Then: Validation errors are shown and no write is committed
 
-Verification: aaa review 2>&1 | grep -q "supervised.*headless"
+Verification: automated test asserts error state and no persistence call
 ```
 
-### Test-Related AC Requirements
+### Test-Related AC Requirements (Profile-Based)
 
-Every subtask that creates executable code MUST include test-related acceptance criteria:
+Every subtask that creates executable code MUST assign a testing profile and satisfy that profile's AC lanes.
 
-| Subtask Type | Required AC |
-|--------------|-------------|
-| New CLI command | "E2E test in tools/tests/e2e/<cmd>.test.ts passes" |
-| New CLI flag | "Test for --<flag> added to existing E2E test" |
-| New module | "Unit test in tools/tests/lib/<module>.test.ts passes" |
-| Refactor | "Existing tests still pass" AND "New test for extracted code" |
-| Bug fix | "Regression test added that would have caught the bug" |
+Canonical profile contract:
+- @context/workflows/ralph/planning/components/testing-profile-contract.md
 
-**Example AC with test requirement:**
+Required profiles:
+- `cli_command`, `cli_flag`, `web_ui_visual`, `web_user_flow`, `api_endpoint`, `module`, `refactor`, `bug_fix`
+
+Required AC lane prefixes (planner output):
+- `[Behavioral]` automated test AC
+- `[Visual]` visual/interaction verification AC (only for user-visible UI)
+- `[Regression]` regression AC when profile/conditions require it
+- `[Evidence]` proof expectations (test command, file, and verification artifact)
+
+Mixed TDD policy:
+- Outside-in for `cli_command`, `cli_flag`, and `web_user_flow`
+- Unit/component-first for `web_ui_visual`, `module`, and `api_endpoint`
+- Characterization-first for `refactor`
+- Failing regression first for `bug_fix`
+
+Agent Browser policy:
+- Required for user-visible web UI verification
+- Optional for non-visual web logic
+
+**Example AC with profile lanes:**
 ```json
 {
   "acceptanceCriteria": [
-    "diary.ts exports readDiary and writeDiaryEntry",
-    "Unit test tools/tests/lib/diary.test.ts exists and passes",
-    "Test covers: read empty file, read valid entries, write new entry"
+    "[Behavioral] Automated endpoint test covers 200 + validation error responses",
+    "[Regression] Existing update-profile response shape remains unchanged for legacy clients",
+    "[Evidence] tests/api/profile.update.spec.ts passes via pnpm test --filter profile.update"
   ]
 }
 ```

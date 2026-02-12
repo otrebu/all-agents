@@ -705,10 +705,16 @@ describe("supervised lifecycle", () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
 
+    // Use process.cwd() so the directory-match tier in resolveSupervisedSessionId
+    // always selects the correct session regardless of which CWD the test runner uses.
+    // Previously hardcoded to "/home/otrebu/dev/all-agents/tools", which only matched
+    // when tests ran from that exact directory — causing flaky session ID resolution.
+    const expectedDirectory = process.cwd();
+
     installSpawnMock(mockProc, {
       sessionListJson: JSON.stringify([
         {
-          directory: "/home/otrebu/dev/all-agents/tools",
+          directory: expectedDirectory,
           id: "ses_supervised_001",
           updated: Date.now() + 1000,
         },

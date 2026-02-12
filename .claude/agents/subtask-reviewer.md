@@ -58,7 +58,7 @@ Output JSON with type `"subtask-review"` containing:
 Two subtasks are merge candidates if:
 - Same `taskRef` AND same `storyRef`
 - Overlapping `filesToRead` arrays
-- One `blockedBy` the other (sequential)
+- Sequential in queue order and tightly coupled
 - Descriptions indicate related work
 - Both too small to justify separate iterations
 

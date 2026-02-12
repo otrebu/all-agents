@@ -13,7 +13,7 @@ import chalk from "chalk";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import type { IterationDiaryEntry, Subtask } from "./types";
+import type { DailyLogEntryType, IterationDiaryEntry, Subtask } from "./types";
 
 import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import {
@@ -136,7 +136,7 @@ function isIterationDiaryEntry(value: unknown): value is IterationDiaryEntry {
   }
 
   const entry = value as {
-    type?: "iteration" | "planning" | "subtask-review";
+    type?: DailyLogEntryType;
   } & Partial<IterationDiaryEntry>;
 
   // Ignore non-iteration records in mixed daily logs.
@@ -171,6 +171,7 @@ function readIterationDiary(logsDirectory: string): Array<IterationDiaryEntry> {
     // Get all .jsonl files in the logs directory
     const files = readdirSync(logsDirectory)
       .filter((file) => file.endsWith(".jsonl"))
+      .sort((a, b) => a.localeCompare(b))
       .map((file) => join(logsDirectory, file));
 
     if (files.length === 0) {
@@ -183,13 +184,6 @@ function readIterationDiary(logsDirectory: string): Array<IterationDiaryEntry> {
       const entries = readSingleDiaryFile(file);
       allEntries.push(...entries);
     }
-
-    // Sort entries by timestamp for consistent stats
-    allEntries.sort((a, b) => {
-      const dateA = new Date(a.timestamp).getTime();
-      const dateB = new Date(b.timestamp).getTime();
-      return dateA - dateB;
-    });
 
     return allEntries;
   } catch {
@@ -209,7 +203,7 @@ function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
     const content = readFileSync(filePath, "utf8");
     const lines = content.trim().split("\n").filter(Boolean);
 
-    return lines
+    const entries = lines
       .map((line) => {
         try {
           const parsed = JSON.parse(line) as unknown;
@@ -222,6 +216,14 @@ function readSingleDiaryFile(filePath: string): Array<IterationDiaryEntry> {
         }
       })
       .filter((entry): entry is IterationDiaryEntry => entry !== null);
+
+    entries.sort((a, b) => {
+      const dateA = new Date(a.timestamp).getTime();
+      const dateB = new Date(b.timestamp).getTime();
+      return dateA - dateB;
+    });
+
+    return entries;
   } catch {
     return [];
   }
@@ -357,14 +359,10 @@ function renderSubtaskDetails(subtasksPath: string): void {
       console.log(`  Next up:   ${chalk.green("All complete!")}`);
     } else {
       const pending = subtasks.filter((s) => !s.done);
-      const blockedCount = pending.length;
       console.log(
-        `  Next up:   ${chalk.red("Blocked")} (${blockedCount} pending)`,
+        `  Next up:   ${chalk.red("None selected")} (${pending.length} pending)`,
       );
-      const preview = pending.slice(0, 3).map((s) => {
-        const deps = (s.blockedBy ?? []).join(", ");
-        return `${s.id}${deps === "" ? "" : ` (blockedBy: ${deps})`}`;
-      });
+      const preview = pending.slice(0, 3).map((subtask) => subtask.id);
       if (preview.length > 0) {
         console.log(`             ${chalk.dim(preview.join("; "))}`);
       }

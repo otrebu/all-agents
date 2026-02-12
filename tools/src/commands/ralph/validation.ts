@@ -9,16 +9,40 @@ import {
 import path from "node:path";
 import * as readline from "node:readline";
 
-import type { Subtask } from "./types";
+import type { ProviderType } from "./providers/types";
+import type { QueueOperation, QueueProposal, Subtask } from "./types";
 
+import { appendMilestoneLogEntry } from "./config";
 import { executeHook } from "./hooks";
 import { invokeProviderSummary } from "./providers/summary";
+import { parseQueueOperations } from "./queue-ops";
 
 interface BatchValidationResult {
   aligned: number;
+  operations?: Array<QueueOperation>;
   skippedSubtasks: Array<SkippedSubtask>;
   success: boolean;
   total: number;
+}
+
+interface CommitEvidenceIssue {
+  commitHash?: string;
+  reason: string;
+  remediation: string;
+  severity: CommitEvidenceSeverity;
+  subtaskId: string;
+}
+
+type CommitEvidenceSeverity = "error" | "warning";
+
+interface CommitEvidenceValidationResult {
+  hasBlockingErrors: boolean;
+  issues: Array<CommitEvidenceIssue>;
+}
+
+interface ParentTaskResolution {
+  storyRef: null | string;
+  taskContent: null | string;
 }
 
 interface SkippedSubtask {
@@ -42,11 +66,27 @@ type ValidationIssueType =
   | "too_narrow"
   | "unfaithful";
 
+interface ValidationProposalArtifactOptions {
+  aligned: number;
+  skipped: number;
+  total: number;
+}
+
 interface ValidationResult {
   aligned: boolean;
   issueType?: ValidationIssueType;
+  operations?: Array<QueueOperation>;
   reason?: string;
   suggestion?: string;
+}
+
+interface WriteValidationQueueApplyLogOptions {
+  applied: boolean;
+  fingerprints?: { after?: string; before?: string };
+  operationCount: number;
+  sessionId?: string;
+  source: string;
+  summary: string;
 }
 
 const VALID_ISSUE_TYPES = new Set<ValidationIssueType>([
@@ -68,6 +108,16 @@ const VALIDATION_BOX_WIDTH = 64;
 const VALIDATION_BOX_INNER_WIDTH = VALIDATION_BOX_WIDTH - 2;
 const VALIDATION_CONTENT_WIDTH = 56;
 const VALIDATION_LINE_CONTENT_WIDTH = VALIDATION_BOX_WIDTH - 4;
+const TRACKING_METADATA_PREFIXES = ["docs/planning/", ".claude/"];
+
+function appendOperations(
+  destination: Array<QueueOperation>,
+  source: Array<QueueOperation> | undefined,
+): void {
+  if (source !== undefined) {
+    destination.push(...source);
+  }
+}
 
 function buildValidationBoxLine(content: string): string {
   const normalized = content.slice(0, VALIDATION_LINE_CONTENT_WIDTH);
@@ -78,11 +128,36 @@ function buildValidationDivider(): string {
   return `${chalk.yellow("╠")}${chalk.yellow("═".repeat(VALIDATION_BOX_INNER_WIDTH))}${chalk.yellow("╣")}`;
 }
 
+/**
+ * Build a validation prompt for a subtask with parent context.
+ *
+ * @param subtask - Subtask to validate
+ * @param milestonePath - Path to milestone containing parent task/story files
+ * @param contextRoot - Root path for workflow file resolution
+ * @returns Complete prompt string ready for provider invocation
+ */
 function buildValidationPrompt(
   subtask: Subtask,
   milestonePath: string,
   contextRoot: string,
 ): string {
+  const parentTask = resolveParentTask(subtask.taskRef, milestonePath);
+  return buildValidationPromptWithParentTask(subtask, {
+    contextRoot,
+    milestonePath,
+    parentTask,
+  });
+}
+
+function buildValidationPromptWithParentTask(
+  subtask: Subtask,
+  options: {
+    contextRoot: string;
+    milestonePath: string;
+    parentTask: ParentTaskResolution;
+  },
+): string {
+  const { contextRoot, milestonePath, parentTask } = options;
   const promptPath = path.join(contextRoot, VALIDATION_PROMPT_PATH);
   if (!existsSync(promptPath)) {
     throw new Error(`Validation prompt not found: ${promptPath}`);
@@ -90,10 +165,7 @@ function buildValidationPrompt(
 
   const basePrompt = readFileSync(promptPath, "utf8");
   const taskReference = subtask.taskRef;
-  const { storyRef, taskContent } = resolveParentTask(
-    taskReference,
-    milestonePath,
-  );
+  const { storyRef, taskContent } = parentTask;
 
   const sections = [
     "## Subtask Definition",
@@ -136,6 +208,13 @@ function formatIssueType(issueType: string): string {
   }
 }
 
+/**
+ * Generate markdown feedback for a validation failure.
+ *
+ * @param subtask - The subtask that failed validation
+ * @param result - Validation result with reason and suggestion
+ * @returns Formatted markdown feedback document
+ */
 function generateValidationFeedback(
   subtask: Subtask,
   result: ValidationResult,
@@ -198,14 +277,27 @@ function getMilestoneFromPath(milestonePath: string): string {
   return path.basename(milestonePath);
 }
 
+function getValidationFeedbackDirectory(milestonePath: string): string {
+  const absoluteMilestonePath = path.resolve(milestonePath);
+  const feedbackDirectory = path.join(absoluteMilestonePath, "feedback");
+  mkdirSync(feedbackDirectory, { recursive: true });
+  return feedbackDirectory;
+}
+
+/**
+ * Handle validation failure in headless mode by writing feedback to disk.
+ *
+ * @param subtask - The subtask that failed validation
+ * @param result - Validation result with reason and suggestion
+ * @param milestonePath - Path to milestone for feedback directory
+ * @returns Path to written feedback file
+ */
 function handleHeadlessValidationFailure(
   subtask: Subtask,
   result: ValidationResult,
   milestonePath: string,
 ): string {
-  const absoluteMilestonePath = path.resolve(milestonePath);
-  const feedbackDirectory = path.join(absoluteMilestonePath, "feedback");
-  mkdirSync(feedbackDirectory, { recursive: true });
+  const feedbackDirectory = getValidationFeedbackDirectory(milestonePath);
 
   const date = new Date().toISOString().split("T")[0];
   const filePath = path.join(
@@ -266,6 +358,43 @@ async function handleSupervisedValidationFailure(
   return promptSkipOrContinue(subtask.id);
 }
 
+function isReachableCommit(
+  commitHash: string,
+  repoRoot: string,
+): { reachable: boolean; stderr: string } {
+  const proc = Bun.spawnSync(
+    ["git", "cat-file", "-e", `${commitHash}^{commit}`],
+    { cwd: repoRoot, stderr: "pipe", stdout: "ignore" },
+  );
+  return {
+    reachable: proc.exitCode === 0,
+    stderr: Buffer.from(proc.stderr).toString("utf8").trim(),
+  };
+}
+
+function isTrackingMetadataPath(filePath: string): boolean {
+  const normalized = filePath.replaceAll("\\", "/").trim();
+  return TRACKING_METADATA_PREFIXES.some((prefix) =>
+    normalized.startsWith(prefix),
+  );
+}
+
+function listCommitFiles(commitHash: string, repoRoot: string): Array<string> {
+  const proc = Bun.spawnSync(
+    ["git", "show", "--pretty=format:", "--name-only", commitHash],
+    { cwd: repoRoot, stderr: "ignore", stdout: "pipe" },
+  );
+  if (proc.exitCode !== 0) {
+    return [];
+  }
+
+  return Buffer.from(proc.stdout)
+    .toString("utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+}
+
 function normalizeMissingParentTaskFailure(
   result: ValidationResult,
   options: { hasParentTask: boolean; subtaskId: string },
@@ -297,6 +426,13 @@ function parseIssueType(value: unknown): undefined | ValidationIssueType {
   return undefined;
 }
 
+/**
+ * Parse a validation response from provider invocation.
+ *
+ * @param rawResponse - Raw text response from the provider
+ * @param subtaskId - Subtask ID for logging context
+ * @returns Parsed validation result with aligned status and optional operations
+ */
 function parseValidationResponse(
   rawResponse: string,
   subtaskId: string,
@@ -318,9 +454,11 @@ function parseValidationResponse(
     const parsed = JSON.parse(jsonMatch[0]) as {
       aligned?: unknown;
       issue_type?: unknown;
+      operations?: unknown;
       reason?: unknown;
       suggestion?: unknown;
     };
+    const parsedOperations = parseQueueOperations(parsed.operations, subtaskId);
 
     if (typeof parsed.aligned !== "boolean") {
       console.warn(
@@ -330,12 +468,15 @@ function parseValidationResponse(
     }
 
     if (parsed.aligned) {
-      return { aligned: true };
+      return parsedOperations === undefined
+        ? { aligned: true }
+        : { aligned: true, operations: parsedOperations };
     }
 
     return {
       aligned: false,
       issueType: parseIssueType(parsed.issue_type),
+      operations: parsedOperations,
       reason:
         typeof parsed.reason === "string" && parsed.reason.trim() !== ""
           ? parsed.reason
@@ -452,7 +593,7 @@ function resolveParentStory(
 function resolveParentTask(
   taskReference: string,
   milestonePath: string,
-): { storyRef: null | string; taskContent: null | string } {
+): ParentTaskResolution {
   if (taskReference.trim() === "") {
     return { storyRef: null, taskContent: null };
   }
@@ -484,30 +625,68 @@ function resolveParentTask(
   }
 }
 
+function resolveParentTaskWithCache(
+  taskReference: string,
+  milestonePath: string,
+  parentTaskCache?: Map<string, ParentTaskResolution>,
+): ParentTaskResolution {
+  const cached = parentTaskCache?.get(taskReference);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  return resolveParentTask(taskReference, milestonePath);
+}
+
 // eslint-disable-next-line max-params -- Signature intentionally mirrors build-loop callsite and acceptance criteria
 async function validateAllSubtasks(
   pendingSubtasks: Array<Subtask>,
-  options: { mode: "headless" | "supervised"; subtasksPath: string },
+  options: {
+    mode: "headless" | "supervised";
+    model?: string;
+    provider: ProviderType;
+    subtasksPath: string;
+  },
   milestonePath: string,
   contextRoot: string,
 ): Promise<BatchValidationResult> {
   const skippedSubtasks: Array<SkippedSubtask> = [];
+  const operations: Array<QueueOperation> = [];
+  const parentTaskCache = new Map<string, ParentTaskResolution>();
   let alignedCount = 0;
 
   console.log("=== Pre-build Validation ===");
+
+  const uniqueTaskReferences = [
+    ...new Set(pendingSubtasks.map((subtask) => subtask.taskRef)),
+  ];
+  for (const taskReference of uniqueTaskReferences) {
+    parentTaskCache.set(
+      taskReference,
+      resolveParentTask(taskReference, milestonePath),
+    );
+  }
 
   for (const subtask of pendingSubtasks) {
     // eslint-disable-next-line no-await-in-loop -- Validation runs sequentially for deterministic prompts and output
     const result = await validateSubtask(
       { milestonePath, subtask, subtasksPath: options.subtasksPath },
       contextRoot,
+      { model: options.model, parentTaskCache, provider: options.provider },
     );
+
+    appendOperations(operations, result.operations);
 
     if (result.aligned) {
       alignedCount += 1;
       console.log(`  ${subtask.id}: ${chalk.green("aligned")}`);
     } else {
       const reason = result.reason ?? "Unknown alignment issue";
+      const feedbackPath = handleHeadlessValidationFailure(
+        subtask,
+        result,
+        milestonePath,
+      );
       console.log(`  ${subtask.id}: ${chalk.red("misaligned")} - ${reason}`);
 
       if (options.mode === "supervised") {
@@ -516,19 +695,16 @@ async function validateAllSubtasks(
         if (action === "continue") {
           alignedCount += 1;
         } else {
+          operations.push({ id: subtask.id, type: "remove" });
           skippedSubtasks.push({
-            feedbackPath: "",
+            feedbackPath,
             issueType: result.issueType,
             reason,
             subtaskId: subtask.id,
           });
         }
       } else {
-        const feedbackPath = handleHeadlessValidationFailure(
-          subtask,
-          result,
-          milestonePath,
-        );
+        operations.push({ id: subtask.id, type: "remove" });
         skippedSubtasks.push({
           feedbackPath,
           issueType: result.issueType,
@@ -547,30 +723,130 @@ async function validateAllSubtasks(
   }
 
   printValidationSummary(pendingSubtasks.length, alignedCount, skippedSubtasks);
+  appendMilestoneLogEntry(milestonePath, {
+    aligned: skippedSubtasks.length === 0,
+    milestone: getMilestoneFromPath(milestonePath),
+    operationCount: operations.length,
+    source: "validation",
+    summary:
+      `Validated ${alignedCount}/${pendingSubtasks.length} subtasks; ` +
+      `${skippedSubtasks.length} misaligned`,
+    timestamp: new Date().toISOString(),
+    type: "validation",
+  });
 
   return {
     aligned: alignedCount,
+    operations: operations.length === 0 ? undefined : operations,
     skippedSubtasks,
     success: skippedSubtasks.length === 0,
     total: pendingSubtasks.length,
   };
 }
 
+function validateDoneSubtaskCommitEvidence(
+  doneSubtasks: Array<Subtask>,
+  options?: { repoRoot?: string },
+): CommitEvidenceValidationResult {
+  const repoRoot =
+    typeof options?.repoRoot === "string" && options.repoRoot.trim() !== ""
+      ? options.repoRoot
+      : process.cwd();
+  const issues: Array<CommitEvidenceIssue> = [];
+
+  for (const subtask of doneSubtasks) {
+    if (!subtask.done) {
+      // eslint-disable-next-line no-continue -- caller may pass broader subtask arrays
+      continue;
+    }
+
+    const commitHash =
+      typeof subtask.commitHash === "string" ? subtask.commitHash.trim() : "";
+    if (commitHash === "") {
+      issues.push({
+        reason:
+          "Completed subtask has no commitHash, so traceability evidence is missing.",
+        remediation:
+          "Relink commitHash to a reachable implementation commit for this subtask.",
+        severity: "warning",
+        subtaskId: subtask.id,
+      });
+      // eslint-disable-next-line no-continue -- cannot inspect files without a hash
+      continue;
+    }
+
+    const reachable = isReachableCommit(commitHash, repoRoot);
+    if (!reachable.reachable) {
+      const detail =
+        reachable.stderr === ""
+          ? "commit is missing or not reachable"
+          : reachable.stderr;
+      issues.push({
+        commitHash,
+        reason: `Commit evidence is invalid (${detail}).`,
+        remediation:
+          "Relink commitHash to a reachable implementation commit before running drift analysis.",
+        severity: "error",
+        subtaskId: subtask.id,
+      });
+      // eslint-disable-next-line no-continue -- only inspect changed files when hash resolves
+      continue;
+    }
+
+    const changedFiles = listCommitFiles(commitHash, repoRoot);
+    if (
+      changedFiles.length > 0 &&
+      changedFiles.every((entry) => isTrackingMetadataPath(entry))
+    ) {
+      issues.push({
+        commitHash,
+        reason:
+          "Commit touches only planning/tracking metadata files; traceability confidence is low.",
+        remediation:
+          "Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.",
+        severity: "warning",
+        subtaskId: subtask.id,
+      });
+    }
+  }
+
+  return {
+    hasBlockingErrors: issues.some((issue) => issue.severity === "error"),
+    issues,
+  };
+}
+
 async function validateSubtask(
   context: ValidationContext,
   contextRoot: string,
+  options: {
+    model?: string;
+    parentTaskCache?: Map<string, ParentTaskResolution>;
+    provider: ProviderType;
+  },
 ): Promise<ValidationResult> {
   const { milestonePath, subtask } = context;
-  const { taskContent } = resolveParentTask(subtask.taskRef, milestonePath);
+  const { model, parentTaskCache, provider } = options;
+  const parentTask = resolveParentTaskWithCache(
+    subtask.taskRef,
+    milestonePath,
+    parentTaskCache,
+  );
+  const { taskContent } = parentTask;
   const hasParentTask = taskContent !== null;
 
   console.log(`[Validation] Validating ${subtask.id}: ${subtask.title}`);
 
-  const prompt = buildValidationPrompt(subtask, milestonePath, contextRoot);
+  const prompt = buildValidationPromptWithParentTask(subtask, {
+    contextRoot,
+    milestonePath,
+    parentTask,
+  });
   const startedAt = Date.now();
   const response = await invokeProviderSummary({
+    configuredModel: model,
     prompt,
-    provider: "claude",
+    provider,
     timeoutMs: VALIDATION_TIMEOUT_MS,
   });
   const elapsedMs = Date.now() - startedAt;
@@ -625,12 +901,81 @@ function wrapText(text: string, width: number): Array<string> {
   return lines.length === 0 ? [""] : lines;
 }
 
+function writeValidationProposalArtifact(
+  milestonePath: string,
+  proposal: QueueProposal,
+  options: ValidationProposalArtifactOptions,
+): string {
+  const feedbackDirectory = getValidationFeedbackDirectory(milestonePath);
+  const timestamp = new Date().toISOString();
+  const fileTimestamp = timestamp.replaceAll(":", "-").replaceAll(".", "-");
+  const filePath = path.join(
+    feedbackDirectory,
+    `${fileTimestamp}_validation_proposal.md`,
+  );
+  const content = [
+    "# Validation Proposal",
+    "",
+    `**Generated:** ${timestamp}`,
+    `**Milestone:** ${getMilestoneFromPath(milestonePath)}`,
+    `**Validation Summary:** ${options.aligned}/${options.total} aligned, ${options.skipped} skipped`,
+    `**Operations:** ${proposal.operations.length}`,
+    "",
+    "## Queue Operations",
+    "",
+    "```json",
+    JSON.stringify(proposal.operations, null, 2),
+    "```",
+    "",
+  ].join("\n");
+
+  writeFileSync(filePath, content, "utf8");
+  appendMilestoneLogEntry(milestonePath, {
+    operationCount: proposal.operations.length,
+    proposal,
+    source: proposal.source,
+    summary:
+      `Validation proposal generated (${options.aligned}/${options.total} aligned, ` +
+      `${options.skipped} skipped)`,
+    timestamp,
+    type: "queue-proposal",
+  });
+  console.log(`[Validation] Wrote proposal artifact: ${filePath}`);
+  return filePath;
+}
+
+function writeValidationQueueApplyLogEntry(
+  milestonePath: string,
+  options: WriteValidationQueueApplyLogOptions,
+): void {
+  appendMilestoneLogEntry(milestonePath, {
+    afterFingerprint:
+      options.fingerprints?.after === undefined
+        ? undefined
+        : { hash: options.fingerprints.after },
+    applied: options.applied,
+    beforeFingerprint:
+      options.fingerprints?.before === undefined
+        ? undefined
+        : { hash: options.fingerprints.before },
+    operationCount: options.operationCount,
+    sessionId: options.sessionId,
+    source: options.source,
+    summary: options.summary,
+    timestamp: new Date().toISOString(),
+    type: "queue-apply",
+  });
+}
+
 export {
   type BatchValidationResult,
   buildValidationPrompt,
+  type CommitEvidenceIssue,
+  type CommitEvidenceValidationResult,
   formatIssueType,
   generateValidationFeedback,
   getMilestoneFromPath,
+  getValidationFeedbackDirectory,
   handleHeadlessValidationFailure,
   handleSupervisedValidationFailure,
   normalizeMissingParentTaskFailure,
@@ -643,10 +988,14 @@ export {
   type SkippedSubtask,
   type SupervisedValidationAction,
   validateAllSubtasks,
+  validateDoneSubtaskCommitEvidence,
   validateSubtask,
   VALIDATION_TIMEOUT_MS,
   type ValidationContext,
   type ValidationIssueType,
+  type ValidationProposalArtifactOptions,
   type ValidationResult,
   wrapText,
+  writeValidationProposalArtifact,
+  writeValidationQueueApplyLogEntry,
 };

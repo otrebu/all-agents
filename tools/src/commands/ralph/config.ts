@@ -18,7 +18,9 @@ import {
 } from "@tools/lib/config";
 import { findProjectRoot } from "@tools/utils/paths";
 import {
+  appendFileSync,
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   unlinkSync,
@@ -26,7 +28,17 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 
-import type { RalphConfig, Subtask, SubtasksFile } from "./types";
+import {
+  type CalibrationLogEntry,
+  computeFingerprint,
+  type LoadedSubtasksFile,
+  type QueueApplyLogEntry,
+  type QueueProposalLogEntry,
+  type RalphConfig,
+  type Subtask,
+  type SubtasksFile,
+  type ValidationLogEntry,
+} from "./types";
 
 // =============================================================================
 // Configuration Loading
@@ -53,6 +65,29 @@ const DEFAULT_CONFIG: RalphConfig = {
 const SUBTASKS_SCHEMA_REFERENCE = "docs/planning/schemas/subtasks.schema.json";
 const SUBTASK_FRAGMENT_FILENAME_PATTERN = /^\.subtasks-task-.*\.json$/;
 
+function appendMilestoneLogEntry(
+  milestoneRoot: string,
+  entry:
+    | CalibrationLogEntry
+    | QueueApplyLogEntry
+    | QueueProposalLogEntry
+    | ValidationLogEntry,
+): void {
+  try {
+    const logPath = getMilestoneLogPath(milestoneRoot);
+    const logDirectory = dirname(logPath);
+    mkdirSync(logDirectory, { recursive: true });
+    appendFileSync(logPath, `${JSON.stringify(entry)}\n`, "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[Ralph] Failed to write milestone log: ${message}`);
+  }
+}
+
+// =============================================================================
+// Subtasks File Management
+// =============================================================================
+
 /**
  * Count remaining (pending) subtasks
  *
@@ -62,10 +97,6 @@ const SUBTASK_FRAGMENT_FILENAME_PATTERN = /^\.subtasks-task-.*\.json$/;
 function countRemaining(subtasks: Array<Subtask>): number {
   return subtasks.filter((s) => !s.done).length;
 }
-
-// =============================================================================
-// Subtasks File Management
-// =============================================================================
 
 /**
  * Count subtasks in a subtasks file
@@ -171,6 +202,10 @@ function getExistingTaskReferences(subtasksPath: string): Set<string> {
   return taskReferences;
 }
 
+// =============================================================================
+// Query Helpers
+// =============================================================================
+
 /**
  * Extract milestone reference from subtasks file metadata
  *
@@ -180,10 +215,6 @@ function getExistingTaskReferences(subtasksPath: string): Set<string> {
 function getMilestoneFromSubtasks(subtasksFile: SubtasksFile): string {
   return subtasksFile.metadata?.milestoneRef ?? "unknown";
 }
-
-// =============================================================================
-// Query Helpers
-// =============================================================================
 
 /**
  * Get the path to the daily log file for a milestone
@@ -208,22 +239,7 @@ function getMilestoneLogPath(milestoneRoot: string): string {
  * @returns First pending subtask, or null if none remain
  */
 function getNextSubtask(subtasks: Array<Subtask>): null | Subtask {
-  // Prefer subtasks that are ready to run (not done and not blocked by incomplete dependencies)
-  const doneById = new Map<string, boolean>();
-  for (const subtask of subtasks) {
-    doneById.set(subtask.id, subtask.done);
-  }
-
-  function isSubtaskReady(subtask: Subtask): boolean {
-    if (subtask.done) return false;
-    const blockedBy = subtask.blockedBy ?? [];
-    for (const dependencyId of blockedBy) {
-      if (doneById.get(dependencyId) !== true) return false;
-    }
-    return true;
-  }
-
-  return subtasks.find((s) => isSubtaskReady(s)) ?? null;
+  return subtasks.find((subtask) => !subtask.done) ?? null;
 }
 
 /**
@@ -322,7 +338,7 @@ function loadRalphConfigLegacy(configPath: string): RalphConfig {
  * @returns Parsed SubtasksFile object
  * @throws Error if file is missing or invalid
  */
-function loadSubtasksFile(subtasksPath: string): SubtasksFile {
+function loadSubtasksFile(subtasksPath: string): LoadedSubtasksFile {
   if (!existsSync(subtasksPath)) {
     throw new Error(
       `Subtasks file not found: ${subtasksPath}\n` +
@@ -373,7 +389,8 @@ function loadSubtasksFile(subtasksPath: string): SubtasksFile {
     );
   }
 
-  return parsed as SubtasksFile;
+  const loaded = parsed as SubtasksFile;
+  return { ...loaded, fingerprint: computeFingerprint(loaded.subtasks) };
 }
 
 /**
@@ -721,12 +738,19 @@ function mergeSubtaskFragments(
  * @param subtasksPath - Path to subtasks.json file
  * @param data - SubtasksFile object to write
  */
-function saveSubtasksFile(subtasksPath: string, data: SubtasksFile): void {
+function saveSubtasksFile(
+  subtasksPath: string,
+  data: LoadedSubtasksFile | SubtasksFile,
+): void {
+  const { fingerprint: _fingerprint, ...serializableData } =
+    data as LoadedSubtasksFile;
+
   const normalizedData: SubtasksFile = {
-    ...data,
-    subtasks: data.subtasks.map((subtask) => {
+    ...serializableData,
+    subtasks: serializableData.subtasks.map((subtask) => {
       const subtaskRecord = subtask as unknown as Record<string, unknown>;
-      if (!("status" in subtaskRecord)) {
+      const hasLegacyFields = "status" in subtaskRecord;
+      if (!hasLegacyFields) {
         return subtask;
       }
 
@@ -744,6 +768,7 @@ function saveSubtasksFile(subtasksPath: string, data: SubtasksFile): void {
 // =============================================================================
 
 export {
+  appendMilestoneLogEntry,
   appendSubtasksToFile,
   countRemaining,
   countSubtasksInFile,

@@ -1,0 +1,16 @@
+[CALIBRATE] [INFO] Using provider: claude
+╭──────────────────────────────────────────────────────────────────╮
+│ [CALIBRATE] [START] Self-Improvement Analysis                    │
+│ Analyze completed sessions for inefficiencies                    │
+╰──────────────────────────────────────────────────────────────────╯
+[CALIBRATE] [INFO] Found sessionIds: 2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,861be582-6a52-4212-876d-ff5ad2e1ab3f,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f
+[CALIBRATE] [INFO] Session log preflight: 37 available entries, 4 unique sessions, 0 missing
+[CALIBRATE] [INFO] Self-improvement mode: suggest
+──────────────────── Invoking Claude (headless) ────────────────────
+[CALIBRATE] [START] Invoking claude for self-improvement analysis across 4 unique session(s)...
+[CALIBRATE] [SKIP] Skipping session 2440339a-ef41-4c89-8436-639f6c011497: offTrackScore=0.094 < 0.1
+[CALIBRATE] [SKIP] Skipping session 861be582-6a52-4212-876d-ff5ad2e1ab3f: offTrackScore=0.042 < 0.1
+[CALIBRATE] [SKIP] Skipping session 01e0eb0f-aa64-4e30-bff0-56366c1caf9f: offTrackScore=0.080 < 0.1
+[CALIBRATE] [INFO] Self-Improvement: no corrective subtasks proposed
+[CALIBRATE] [INFO] Self-improvement analyzed 1 session(s) with actionable signals
+[CALIBRATE] [DONE] Self-Improvement Analysis Complete

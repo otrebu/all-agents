@@ -9,6 +9,8 @@ depends:
 
 Create or update atomic documentation following DRY composition patterns.
 
+Prompting policy is centralized in @context/blocks/docs/prompting.md (single canonical standard).
+
 ## Rules
 
 See @context/blocks/docs/atomic-documentation.md for:
@@ -20,6 +22,8 @@ See @context/blocks/docs/atomic-documentation.md for:
 - Frontmatter structure (`depends`, `tags`)
 
 See @context/blocks/docs/maintenance.md for composition patterns & when to split.
+
+See @context/blocks/docs/prompting.md for shared MUST/SHOULD/MAY prompt quality policy.
 
 ## Workflow
 
@@ -158,7 +162,7 @@ Complete config: // ❌ Duplicates base
 - [ ] Shows only deltas (if foundation/stack)?
 - [ ] File size appropriate? (see atomic-documentation.md)
 - [ ] Has `depends` frontmatter if references blocks/foundations?
-- [ ] Follows prompting.md style (brief, direct, lists)?
+- [ ] Follows canonical prompting.md policy tiers (MUST baseline, SHOULD defaults, MAY tuning)?
 
 **Post-save:**
 

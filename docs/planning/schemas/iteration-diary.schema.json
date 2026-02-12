@@ -28,6 +28,19 @@
       "format": "date-time",
       "description": "ISO 8601 timestamp when this iteration completed"
     },
+    "type": {
+      "type": "string",
+      "enum": [
+        "iteration",
+        "planning",
+        "subtask-review",
+        "validation",
+        "calibration",
+        "queue-proposal",
+        "queue-apply"
+      ],
+      "description": "Daily log entry discriminator. Iteration metrics consume only type=iteration records (legacy entries may omit this field)."
+    },
     "milestone": {
       "type": "string",
       "description": "Name of the milestone this subtask belongs to"

@@ -6,6 +6,7 @@ import { execa } from "execa";
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -104,9 +105,9 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("--headless");
     expect(stdout).toContain("--skip-summary");
     expect(stdout).toContain("--force");
-    expect(stdout).toContain("Skip all approval prompts");
+    expect(stdout).toContain("Approval mode: auto-apply");
     expect(stdout).toContain("--review");
-    expect(stdout).toContain("Require all approval prompts");
+    expect(stdout).toContain("Approval mode: stage");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
   });
@@ -372,6 +373,257 @@ describe("ralph E2E", () => {
     expect(stderr).toContain("Subtasks file not found");
   });
 
+  test("ralph build --validate-first --force applies proposal before build loop starts", async () => {
+    const milestoneDirectory = join(
+      temporaryDirectory,
+      "validation-force-build",
+    );
+    mkdirSync(milestoneDirectory, { recursive: true });
+    const subtasksPath = join(milestoneDirectory, "subtasks.json");
+
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: {
+            milestoneRef: "validation-force-build",
+            scope: "milestone",
+          },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Validation proposal applies before build"],
+              description: "Will be removed by validation operation",
+              done: false,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "TASK-001-test",
+              title: "Pending subtask",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"{\\"aligned\\":true,\\"operations\\":[{\\"type\\":\\"remove\\",\\"id\\":\\"SUB-001\\"}]}","duration_ms":8,"total_cost_usd":0.0,"session_id":"sess-validation-force"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "build",
+        "--subtasks",
+        subtasksPath,
+        "--headless",
+        "--validate-first",
+        "--force",
+      ],
+      {
+        cwd: TOOLS_DIR,
+        env: {
+          ...process.env,
+          PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+        },
+      },
+    );
+
+    expect(exitCode).toBe(0);
+
+    const proposalAppliedIndex = stdout.indexOf("Validation proposal applied");
+    const buildStartIndex = stdout.indexOf("Starting build loop");
+    expect(proposalAppliedIndex).toBeGreaterThan(-1);
+    expect(buildStartIndex).toBeGreaterThan(-1);
+    expect(proposalAppliedIndex).toBeLessThan(buildStartIndex);
+
+    const updatedQueue = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      subtasks: Array<unknown>;
+    };
+    expect(updatedQueue.subtasks).toHaveLength(0);
+
+    const feedbackDirectory = join(milestoneDirectory, "feedback");
+    expect(existsSync(feedbackDirectory)).toBe(true);
+    const feedbackFiles = readdirSync(feedbackDirectory);
+    expect(
+      feedbackFiles.some((fileName) =>
+        fileName.endsWith("validation_proposal.md"),
+      ),
+    ).toBe(true);
+  });
+
+  test("ralph build --validate-first (headless default) auto-applies proposal", async () => {
+    const milestoneDirectory = join(
+      temporaryDirectory,
+      "validation-default-headless-build",
+    );
+    mkdirSync(milestoneDirectory, { recursive: true });
+    const subtasksPath = join(milestoneDirectory, "subtasks.json");
+
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: {
+            milestoneRef: "validation-default-headless-build",
+            scope: "milestone",
+          },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Validation proposal applies before build"],
+              description: "Will be removed by validation operation",
+              done: false,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "TASK-001-test",
+              title: "Pending subtask",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"{\\"aligned\\":true,\\"operations\\":[{\\"type\\":\\"remove\\",\\"id\\":\\"SUB-001\\"}]}","duration_ms":8,"total_cost_usd":0.0,"session_id":"sess-validation-default"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "build",
+        "--subtasks",
+        subtasksPath,
+        "--headless",
+        "--validate-first",
+      ],
+      {
+        cwd: TOOLS_DIR,
+        env: {
+          ...process.env,
+          PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+        },
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Validation proposal staged:");
+    expect(stdout).toContain("Validation proposal applied");
+
+    const updatedQueue = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      subtasks: Array<unknown>;
+    };
+    expect(updatedQueue.subtasks).toHaveLength(0);
+  });
+
+  test("ralph build --validate-first --review stages proposal and blocks in headless mode", async () => {
+    const milestoneDirectory = join(
+      temporaryDirectory,
+      "validation-review-build",
+    );
+    mkdirSync(milestoneDirectory, { recursive: true });
+    const subtasksPath = join(milestoneDirectory, "subtasks.json");
+
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: {
+            milestoneRef: "validation-review-build",
+            scope: "milestone",
+          },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Validation proposal requires approval"],
+              description: "Should remain pending until approval",
+              done: false,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "TASK-001-test",
+              title: "Pending subtask",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"{\\"aligned\\":true,\\"operations\\":[{\\"type\\":\\"remove\\",\\"id\\":\\"SUB-001\\"}]}","duration_ms":8,"total_cost_usd":0.0,"session_id":"sess-validation-review"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const { exitCode, stderr, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "build",
+        "--subtasks",
+        subtasksPath,
+        "--headless",
+        "--validate-first",
+        "--review",
+      ],
+      {
+        cwd: TOOLS_DIR,
+        env: {
+          ...process.env,
+          PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+        },
+        reject: false,
+      },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain("Validation proposal staged:");
+    expect(stderr).toContain("Validation proposal requires approval");
+    expect(stderr).toContain("Build paused: validation proposal not approved");
+
+    const updatedQueue = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      subtasks: Array<unknown>;
+    };
+    expect(updatedQueue.subtasks).toHaveLength(1);
+
+    const feedbackDirectory = join(milestoneDirectory, "feedback");
+    expect(existsSync(feedbackDirectory)).toBe(true);
+    const feedbackFiles = readdirSync(feedbackDirectory);
+    expect(
+      feedbackFiles.some((fileName) =>
+        fileName.endsWith("validation_proposal.md"),
+      ),
+    ).toBe(true);
+  });
+
   describe("ralph build --print", () => {
     test("prints effective prompt for next runnable subtask and keeps output bounded", async () => {
       const milestoneDirectory = join(
@@ -385,7 +637,6 @@ describe("ralph E2E", () => {
       const subtasks = [
         {
           acceptanceCriteria: ["Blocked"],
-          blockedBy: ["SUB-999"],
           description: "Blocked first item",
           done: false,
           filesToRead: [],
@@ -441,7 +692,7 @@ describe("ralph E2E", () => {
         ],
         { cwd: TOOLS_DIR },
       );
-      expect(nextResult.stdout).toContain("SUB-002: Ready");
+      expect(nextResult.stdout).toContain("SUB-001: Blocked");
 
       const nextMatch = /\b(?<subtaskId>SUB-\d{3})\b/.exec(nextResult.stdout);
       expect(nextMatch).not.toBeNull();
@@ -453,9 +704,11 @@ describe("ralph E2E", () => {
       );
 
       expect(printResult.exitCode).toBe(0);
-      expect(printResult.stdout).toContain("Selected subtask: SUB-002 (Ready)");
+      expect(printResult.stdout).toContain(
+        "Selected subtask: SUB-001 (Blocked)",
+      );
       expect(printResult.stdout).toContain("Assigned subtask:");
-      expect(printResult.stdout).toContain('"id": "SUB-002"');
+      expect(printResult.stdout).toContain('"id": "SUB-001"');
       const printMatch =
         /Selected subtask: (?<selectedSubtaskId>SUB-\d{3}) \(/.exec(
           printResult.stdout,
@@ -563,10 +816,10 @@ describe("ralph E2E", () => {
       expect(stdout.length).toBeLessThan(5000);
     });
 
-    test("prints clear blocked message when pending subtasks are blocked", async () => {
+    test("selects first pending subtask in queue order", async () => {
       const milestoneDirectory = join(
         temporaryDirectory,
-        "005-test-build-print-blocked",
+        "005-test-build-print-first-pending",
       );
       mkdirSync(milestoneDirectory, { recursive: true });
       const subtasksPath = join(milestoneDirectory, "subtasks.json");
@@ -576,13 +829,12 @@ describe("ralph E2E", () => {
         JSON.stringify(
           {
             metadata: {
-              milestoneRef: "005-test-build-print-blocked",
+              milestoneRef: "005-test-build-print-first-pending",
               scope: "milestone",
             },
             subtasks: [
               {
                 acceptanceCriteria: ["Blocked"],
-                blockedBy: ["SUB-999"],
                 description: "Blocked",
                 done: false,
                 filesToRead: [],
@@ -592,7 +844,6 @@ describe("ralph E2E", () => {
               },
               {
                 acceptanceCriteria: ["Blocked"],
-                blockedBy: ["SUB-998"],
                 description: "Blocked",
                 done: false,
                 filesToRead: [],
@@ -614,11 +865,8 @@ describe("ralph E2E", () => {
       );
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain(
-        "No runnable subtask: all pending subtasks are blocked.",
-      );
-      expect(stdout).toContain("- SUB-001: blockedBy SUB-999");
-      expect(stdout).toContain("- SUB-002: blockedBy SUB-998");
+      expect(stdout).toContain("Selected subtask: SUB-001 (Blocked 1)");
+      expect(stdout).toContain('"id": "SUB-001"');
     });
   });
 
@@ -700,7 +948,7 @@ kill -s INT $$
   });
 
   describe("ralph subtasks queue commands", () => {
-    test("subtasks next returns next runnable pending subtask", async () => {
+    test("subtasks next returns first pending subtask in queue order", async () => {
       const milestoneDirectory = join(
         temporaryDirectory,
         "005-test-subtasks-next",
@@ -718,7 +966,6 @@ kill -s INT $$
             subtasks: [
               {
                 acceptanceCriteria: ["Blocked until SUB-002"],
-                blockedBy: ["SUB-002"],
                 description: "Blocked subtask",
                 done: false,
                 filesToRead: [],
@@ -757,7 +1004,7 @@ kill -s INT $$
       );
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("SUB-002: Ready");
+      expect(stdout).toContain("SUB-001: Blocked");
     });
 
     test("subtasks list --pending lists pending subtasks", async () => {
@@ -886,6 +1133,8 @@ kill -s INT $$
           done: boolean;
           id: string;
           sessionId?: string;
+          sessionLogPath?: string;
+          sessionRepoRoot?: string;
         }>;
       };
       const updatedSubtask = updated.subtasks.find(
@@ -897,6 +1146,8 @@ kill -s INT $$
       expect(updatedSubtask?.commitHash).toBe("abc1234");
       expect(updatedSubtask?.sessionId).toBe("s1");
       expect(updatedSubtask?.completedAt).toBe(completionTimestamp);
+      expect(typeof updatedSubtask?.sessionRepoRoot).toBe("string");
+      expect((updatedSubtask?.sessionRepoRoot ?? "").length).toBeGreaterThan(0);
     });
 
     test("subtasks next/list/complete fail when --milestone is missing", async () => {

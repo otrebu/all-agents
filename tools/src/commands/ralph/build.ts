@@ -18,7 +18,6 @@ import path from "node:path";
 import * as readline from "node:readline";
 
 import type { ProviderType } from "./providers/types";
-import type { BuildOptions, Subtask } from "./types";
 
 import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import {
@@ -34,6 +33,7 @@ import {
   loadRalphConfig,
   loadSubtasksFile,
   loadTimeoutConfig,
+  saveSubtasksFile,
 } from "./config";
 import {
   renderBuildPracticalSummary,
@@ -59,10 +59,22 @@ import {
   validateProviderInvocationPreflight,
 } from "./providers/registry";
 import { discoverRecentSessionForProvider } from "./providers/session-adapter";
+import { applyAndSaveProposal } from "./queue-ops";
+import { getSessionJsonlPath } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
-import { getProviderTimingMs } from "./types";
-import { validateAllSubtasks } from "./validation";
+import {
+  type BuildOptions,
+  getProviderTimingMs,
+  type QueueOperation,
+  type QueueProposal,
+  type Subtask,
+} from "./types";
+import {
+  validateAllSubtasks,
+  writeValidationProposalArtifact,
+  writeValidationQueueApplyLogEntry,
+} from "./validation";
 
 // =============================================================================
 // Constants
@@ -119,7 +131,11 @@ interface MaxIterationsCheckOptions {
 interface PeriodicCalibrationOptions {
   calibrateEvery: number;
   contextRoot: string;
+  force: boolean;
   iteration: number;
+  model?: string;
+  provider: ProviderType;
+  review: boolean;
   subtasksPath: string;
 }
 
@@ -193,6 +209,8 @@ interface SupervisedIterationResult {
   hookResult: null | PostIterationResult;
 }
 
+type ValidationProposalMode = "auto-apply" | "prompt" | "review";
+
 // =============================================================================
 // Module-Level State for Signal Handling
 // =============================================================================
@@ -214,33 +232,6 @@ let summaryContext: null | SummaryContext = null;
 // =============================================================================
 
 /**
- * Build jq command guidance with concrete subtask ID and file path.
- *
- * This minimizes model mistakes when updating large subtasks files by ensuring
- * commands always target `.subtasks[]` and the assigned subtask only.
- */
-function buildAssignedSubtaskJqSnippet(
-  subtaskId: string,
-  subtasksPath: string,
-): string {
-  const quotedId = escapeShellArgument(subtaskId);
-  const quotedSubtasksPath = escapeShellArgument(subtasksPath);
-  const quotedTemporaryPath = escapeShellArgument(`${subtasksPath}.tmp`);
-
-  return `Use these exact jq commands for this assigned subtask:
-\`\`\`bash
-jq -e --arg id ${quotedId} '.subtasks[] | select(.id==$id and .done==false)' ${quotedSubtasksPath} > /dev/null
-jq --arg id ${quotedId} \\
-   --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \\
-   --arg commit "$(git rev-parse HEAD)" \\
-   --arg session "$(cat .claude/current-session 2>/dev/null || echo '')" \\
-   '(.subtasks[] | select(.id==$id)) |= . + {done:true, completedAt:$ts, commitHash:$commit, sessionId:$session}' \\
-   ${quotedSubtasksPath} > ${quotedTemporaryPath} && mv ${quotedTemporaryPath} ${quotedSubtasksPath}
-jq -e --arg id ${quotedId} '.subtasks[] | select(.id==$id and .done==true)' ${quotedSubtasksPath} > /dev/null
-\`\`\``;
-}
-
-/**
  * Build shared assignment context consumed by both headless and supervised modes.
  */
 function buildIterationContext(
@@ -249,11 +240,6 @@ function buildIterationContext(
   progressPath: string,
 ): string {
   const subtaskJson = JSON.stringify(currentSubtask, null, 2);
-  const jqCommands = buildAssignedSubtaskJqSnippet(
-    currentSubtask.id,
-    subtasksPath,
-  );
-
   return `Execute one iteration of the Ralph build loop.
 
 Work ONLY on the assigned subtask below. Do not pick a different subtask.
@@ -266,15 +252,12 @@ ${subtaskJson}
 Subtasks file path: ${subtasksPath}
 Progress log path: ${progressPath}
 
-If you need to inspect the queue, do not read the entire subtasks file; use jq to view only pending items.
-
-${jqCommands}
-
 After completing the assigned subtask (${currentSubtask.id}):
-1. Update subtasks.json for ${currentSubtask.id} with done: true, completedAt, commitHash, sessionId
-2. Append to PROGRESS.md
-3. Create the commit
-4. STOP - do not continue to the next subtask`;
+1. Append to PROGRESS.md
+2. Create the commit
+3. STOP - do not continue to the next subtask
+
+Do NOT modify subtasks.json — the build loop handles completion tracking.`;
 }
 
 /**
@@ -332,13 +315,6 @@ function enforceSingleSubtaskInvariant(
   }
 
   return completionInvariant.completedIds.includes(assignedSubtaskId);
-}
-
-/**
- * Escape an argument for POSIX shells.
- */
-function escapeShellArgument(value: string): string {
-  return `'${value.replaceAll("'", `'"'"'`)}'`;
 }
 
 /**
@@ -471,13 +447,11 @@ function getNextRunnableSubtask(
     return getNextSubtask(subtasks);
   }
 
-  // Exclude validation-skipped subtasks from selection while preserving
-  // dependency semantics for downstream subtasks.
-  const runnableSubtasks = subtasks.filter(
-    (subtask) => !skippedSubtaskIds.has(subtask.id),
+  return (
+    subtasks.find(
+      (subtask) => !subtask.done && !skippedSubtaskIds.has(subtask.id),
+    ) ?? null
   );
-
-  return getNextSubtask(runnableSubtasks);
 }
 
 /**
@@ -624,18 +598,13 @@ async function handleNoRunnableSubtasks(options: {
   const skippedPending = pending.filter(
     (subtask) => skippedSubtaskIds?.has(subtask.id) === true,
   );
-  const blockedPending = pending.filter(
+  const remainingPending = pending.filter(
     (subtask) => skippedSubtaskIds?.has(subtask.id) !== true,
   );
-  const blockedList = blockedPending
-    .map((s) => {
-      const blockedBy = s.blockedBy ?? [];
-      const deps =
-        blockedBy.length === 0 ? "(no blockedBy listed)" : blockedBy.join(", ");
-      return `- ${s.id}: blockedBy ${deps}`;
-    })
-    .join("\n");
   const skippedList = skippedPending
+    .map((subtask) => `- ${subtask.id}: ${subtask.title}`)
+    .join("\n");
+  const remainingList = remainingPending
     .map((subtask) => `- ${subtask.id}: ${subtask.title}`)
     .join("\n");
 
@@ -648,19 +617,19 @@ async function handleNoRunnableSubtasks(options: {
       console.error(`\nSkipped subtasks:\n${skippedList}`);
     }
   }
-  if (blockedPending.length > 0) {
+  if (remainingPending.length > 0) {
     console.error(
-      "All remaining non-skipped subtasks appear blocked by incomplete dependencies.",
+      "Pending subtasks remain, but none are runnable in the current selection.",
     );
-    if (blockedList !== "") {
-      console.error(`\nBlocked subtasks:\n${blockedList}`);
+    if (remainingList !== "") {
+      console.error(`\nPending subtasks:\n${remainingList}`);
     }
   }
 
   const noRunnableReason =
-    skippedPending.length > 0 && blockedPending.length === 0
+    skippedPending.length > 0 && remainingPending.length === 0
       ? `No runnable subtasks found for milestone ${milestone}. ${skippedPending.length} subtask(s) were skipped by pre-build validation.`
-      : `No runnable subtasks found for milestone ${milestone}. All remaining non-skipped subtasks appear blocked.`;
+      : `No runnable subtasks found for milestone ${milestone}. Pending subtasks remain but none are runnable.`;
 
   await executeHook("onValidationFail", {
     message: noRunnableReason,
@@ -716,6 +685,40 @@ function logSubtasksSizeGuidance(options: {
     }
   }
   console.log();
+}
+
+/**
+ * Mark a subtask as complete in subtasks.json with full metadata.
+ *
+ * Mirrors the logic in `ralph subtasks complete` (index.ts) so that
+ * the build loop owns completion tracking instead of the sub-agent.
+ */
+function markSubtaskComplete(options: {
+  commitHash: string;
+  contextRoot: string;
+  sessionId: string;
+  subtaskId: string;
+  subtasksPath: string;
+}): void {
+  const { commitHash, contextRoot, sessionId, subtaskId, subtasksPath } =
+    options;
+  const subtasksFile = loadSubtasksFile(subtasksPath);
+  const target = subtasksFile.subtasks.find((s) => s.id === subtaskId);
+  if (target === undefined || target.done) return;
+
+  target.done = true;
+  target.completedAt = new Date().toISOString();
+  target.commitHash = commitHash;
+  target.sessionId = sessionId;
+  const repoRoot = findProjectRoot() ?? contextRoot;
+  target.sessionRepoRoot = repoRoot;
+  const logPath = getSessionJsonlPath(sessionId, repoRoot);
+  if (logPath === null) {
+    delete target.sessionLogPath;
+  } else {
+    target.sessionLogPath = logPath;
+  }
+  saveSubtasksFile(subtasksPath, subtasksFile);
 }
 
 /**
@@ -796,6 +799,17 @@ async function processHeadlessIteration(
   console.log(`\n${renderResponseHeader(provider)}`);
   console.log(renderMarkdown(result.result));
   console.log();
+
+  // Build loop owns completion: mark subtask done if a new commit was made
+  if (commitBefore !== commitAfter && commitAfter !== null) {
+    markSubtaskComplete({
+      commitHash: commitAfter,
+      contextRoot,
+      sessionId: result.sessionId,
+      subtaskId: currentSubtask.id,
+      subtasksPath,
+    });
+  }
 
   // Reload subtasks to check if current one was completed
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
@@ -956,6 +970,17 @@ async function processSupervisedIteration(
     `\n${provider} interactive supervised session completed${sessionSuffix}`,
   );
 
+  // Build loop owns completion: mark subtask done if a new commit was made
+  if (commitBefore !== commitAfter && commitAfter !== null) {
+    markSubtaskComplete({
+      commitHash: commitAfter,
+      contextRoot,
+      sessionId,
+      subtaskId: currentSubtask.id,
+      subtasksPath,
+    });
+  }
+
   // Reload subtasks to check completion status
   const postIterationSubtasks = loadSubtasksFile(subtasksPath);
   const postRemaining = countRemaining(postIterationSubtasks.subtasks);
@@ -1090,6 +1115,60 @@ function registerSignalHandlers(): void {
   });
 }
 
+async function resolveApprovalForValidationProposal(options: {
+  proposalMode: ValidationProposalMode;
+  proposalPath: string;
+}): Promise<boolean> {
+  const { proposalMode, proposalPath } = options;
+
+  if (proposalMode === "auto-apply") {
+    return true;
+  }
+
+  const isExplicitApprovalRequired = proposalMode === "review";
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.error(
+      "Validation proposal requires approval, but no TTY is available.",
+    );
+    console.error(`Review proposal artifact: ${proposalPath}`);
+    return false;
+  }
+
+  const question = isExplicitApprovalRequired
+    ? "Apply staged validation proposal after review? [y/N] "
+    : "Apply staged validation proposal before build starts? [Y/n] ";
+
+  // eslint-disable-next-line promise/avoid-new -- readline requires callback API
+  return new Promise<boolean>((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.on("error", () => {
+      rl.close();
+      resolve(false);
+    });
+
+    rl.on("SIGINT", () => {
+      rl.close();
+      process.emit("SIGINT");
+      resolve(false);
+    });
+
+    rl.question(question, (answer) => {
+      rl.close();
+      const normalized = answer.trim().toLowerCase();
+      if (isExplicitApprovalRequired) {
+        resolve(normalized === "y" || normalized === "yes");
+        return;
+      }
+
+      resolve(!(normalized === "n" || normalized === "no"));
+    });
+  });
+}
+
 /**
  * Resolve model selection with priority:
  * CLI flag > config file
@@ -1134,10 +1213,23 @@ async function resolveProviderOrExit(
 async function resolveSkippedSubtaskIds(options: {
   contextRoot: string;
   mode: "headless" | "supervised";
+  model?: string;
+  provider: ProviderType;
+  shouldForceProposalApply: boolean;
+  shouldRequireProposalReview: boolean;
   shouldValidateFirst: boolean;
   subtasksPath: string;
 }): Promise<null | Set<string>> {
-  const { contextRoot, mode, shouldValidateFirst, subtasksPath } = options;
+  const {
+    contextRoot,
+    mode,
+    model,
+    provider,
+    shouldForceProposalApply,
+    shouldRequireProposalReview,
+    shouldValidateFirst,
+    subtasksPath,
+  } = options;
   if (!shouldValidateFirst) {
     return null;
   }
@@ -1166,7 +1258,7 @@ async function resolveSkippedSubtaskIds(options: {
   const milestonePath = path.dirname(subtasksPath);
   const validationResult = await validateAllSubtasks(
     pendingSubtasks,
-    { mode, subtasksPath },
+    { mode, model, provider, subtasksPath },
     milestonePath,
     contextRoot,
   );
@@ -1179,7 +1271,91 @@ async function resolveSkippedSubtaskIds(options: {
     }),
   );
 
+  const defaultRemoveOperations = validationResult.skippedSubtasks.map(
+    (skipped): QueueOperation => ({ id: skipped.subtaskId, type: "remove" }),
+  );
+  const operations = validationResult.operations ?? defaultRemoveOperations;
+
+  if (operations.length > 0) {
+    const proposalMode = resolveValidationProposalMode({
+      mode,
+      shouldForceProposalApply,
+      shouldRequireProposalReview,
+    });
+    const proposal: QueueProposal = {
+      fingerprint: initialSubtasksFile.fingerprint,
+      operations,
+      source: "validation",
+      timestamp: new Date().toISOString(),
+    };
+    const proposalPath = writeValidationProposalArtifact(
+      milestonePath,
+      proposal,
+      {
+        aligned: validationResult.aligned,
+        skipped: validationResult.skippedSubtasks.length,
+        total: pendingSubtasks.length,
+      },
+    );
+
+    console.log(
+      renderEventLine({
+        domain: "VALIDATE",
+        message: `Validation proposal staged: ${proposalPath}`,
+        state: "INFO",
+      }),
+    );
+
+    const didApprove = await resolveApprovalForValidationProposal({
+      proposalMode,
+      proposalPath,
+    });
+    if (!didApprove) {
+      console.error(
+        "Build paused: validation proposal not approved. Re-run with --force to auto-apply.",
+      );
+      process.exit(1);
+    }
+
+    const summary = applyAndSaveProposal(subtasksPath, proposal);
+
+    const state = summary.applied ? "DONE" : "SKIP";
+    const message = summary.applied
+      ? `Validation proposal applied (${summary.operationsApplied} operation(s), queue ${summary.subtasksBefore} -> ${summary.subtasksAfter})`
+      : "Validation proposal skipped (queue changed before apply)";
+    console.log(renderEventLine({ domain: "VALIDATE", message, state }));
+    writeValidationQueueApplyLogEntry(milestonePath, {
+      applied: summary.applied,
+      fingerprints: {
+        after: summary.fingerprintAfter,
+        before: summary.fingerprintBefore,
+      },
+      operationCount: summary.operationsApplied,
+      source: proposal.source,
+      summary: message,
+    });
+  }
+
   return new Set(validationResult.skippedSubtasks.map((s) => s.subtaskId));
+}
+
+function resolveValidationProposalMode(options: {
+  mode: "headless" | "supervised";
+  shouldForceProposalApply: boolean;
+  shouldRequireProposalReview: boolean;
+}): ValidationProposalMode {
+  const { mode, shouldForceProposalApply, shouldRequireProposalReview } =
+    options;
+  if (shouldForceProposalApply) {
+    return "auto-apply";
+  }
+  if (shouldRequireProposalReview) {
+    return "review";
+  }
+  if (mode === "headless") {
+    return "auto-apply";
+  }
+  return "prompt";
 }
 
 /**
@@ -1198,11 +1374,13 @@ async function runBuild(
 ): Promise<void> {
   const {
     calibrateEvery,
+    force: shouldForceProposalApply,
     interactive: isInteractive,
     maxIterations,
     mode,
     model: modelOverride,
     quiet: isQuiet,
+    review: shouldRequireProposalReview,
     skipSummary: shouldSkipSummary,
     subtasksPath,
     validateFirst: shouldValidateFirst,
@@ -1252,6 +1430,10 @@ async function runBuild(
   skippedSubtaskIds = await resolveSkippedSubtaskIds({
     contextRoot,
     mode,
+    model,
+    provider,
+    shouldForceProposalApply,
+    shouldRequireProposalReview,
     shouldValidateFirst,
     subtasksPath,
   });
@@ -1510,7 +1692,11 @@ async function runBuild(
     await runPeriodicCalibration({
       calibrateEvery,
       contextRoot,
+      force: shouldForceProposalApply,
       iteration,
+      model,
+      provider,
+      review: shouldRequireProposalReview,
       subtasksPath,
     });
 
@@ -1529,7 +1715,16 @@ async function runBuild(
 async function runPeriodicCalibration(
   options: PeriodicCalibrationOptions,
 ): Promise<void> {
-  const { calibrateEvery, contextRoot, iteration, subtasksPath } = options;
+  const {
+    calibrateEvery,
+    contextRoot,
+    force: shouldForceProposalApply,
+    iteration,
+    model,
+    provider,
+    review: shouldRequireProposalReview,
+    subtasksPath,
+  } = options;
   if (calibrateEvery > 0 && iteration % calibrateEvery === 0) {
     console.log();
     console.log(
@@ -1542,7 +1737,14 @@ async function runPeriodicCalibration(
         title: "Running calibration",
       }),
     );
-    await runCalibrate("all", { contextRoot, subtasksPath });
+    await runCalibrate("all", {
+      contextRoot,
+      force: shouldForceProposalApply,
+      model,
+      provider,
+      review: shouldRequireProposalReview,
+      subtasksPath,
+    });
   }
 }
 
@@ -1618,10 +1820,12 @@ function startHeartbeat(label: string, intervalMs = 30_000): () => void {
 // =============================================================================
 
 export {
-  buildAssignedSubtaskJqSnippet,
   buildIterationContext,
   buildIterationPrompt,
   getSubtaskQueueStats,
   getSubtasksSizeGuidanceLines,
+  resolveApprovalForValidationProposal,
+  resolveSkippedSubtaskIds,
+  resolveValidationProposalMode,
 };
 export default runBuild;

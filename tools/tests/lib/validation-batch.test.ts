@@ -1,25 +1,47 @@
-import type { Subtask } from "@tools/commands/ralph/types";
 import type { BatchValidationResult } from "@tools/commands/ralph/validation";
 import type { Mock } from "bun:test";
 
+import { getMilestoneLogPath } from "@tools/commands/ralph/config";
 import * as hooks from "@tools/commands/ralph/hooks";
 import * as summaryProvider from "@tools/commands/ralph/providers/summary";
+import {
+  computeFingerprint,
+  type QueueProposal,
+  type Subtask,
+} from "@tools/commands/ralph/types";
 import {
   getMilestoneFromPath,
   printValidationSummary,
   validateAllSubtasks,
+  writeValidationProposalArtifact,
+  writeValidationQueueApplyLogEntry,
 } from "@tools/commands/ralph/validation";
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import * as readline from "node:readline";
+
+function createParentTask(
+  milestonePath: string,
+  taskReference: string,
+  content?: string,
+): void {
+  const tasksDirectory = path.join(milestonePath, "tasks");
+  mkdirSync(tasksDirectory, { recursive: true });
+  writeFileSync(
+    path.join(tasksDirectory, `${taskReference}.md`),
+    content ?? "# Task\n\nTask body content",
+    "utf8",
+  );
+}
 
 function createSubtask(id: string): Subtask {
   return {
@@ -105,7 +127,11 @@ describe("validateAllSubtasks", () => {
     try {
       const result = await validateAllSubtasks(
         [createSubtask("SUB-413"), createSubtask("SUB-414")],
-        { mode: "headless", subtasksPath: fixture.subtasksPath },
+        {
+          mode: "headless",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
         fixture.milestonePath,
         fixture.contextRoot,
       );
@@ -115,6 +141,21 @@ describe("validateAllSubtasks", () => {
         skippedSubtasks: [],
         success: true,
         total: 2,
+      });
+      const logPath = getMilestoneLogPath(fixture.milestonePath);
+      const logLines = readFileSync(logPath, "utf8").trim().split("\n");
+      const parsedEntries = logLines.map(
+        (line) =>
+          JSON.parse(line) as { type?: string } & Record<string, unknown>,
+      );
+      const validationEntry = parsedEntries.find(
+        (entry) => entry.type === "validation",
+      );
+
+      expect(validationEntry).toMatchObject({
+        aligned: true,
+        operationCount: 0,
+        source: "validation",
       });
       expect(hookSpy).not.toHaveBeenCalled();
     } finally {
@@ -162,7 +203,11 @@ describe("validateAllSubtasks", () => {
     try {
       const result = await validateAllSubtasks(
         [createSubtask("SUB-411")],
-        { mode: "supervised", subtasksPath: fixture.subtasksPath },
+        {
+          mode: "supervised",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
         fixture.milestonePath,
         fixture.contextRoot,
       );
@@ -219,24 +264,27 @@ describe("validateAllSubtasks", () => {
     try {
       const result = await validateAllSubtasks(
         [createSubtask("SUB-415")],
-        { mode: "supervised", subtasksPath: fixture.subtasksPath },
+        {
+          mode: "supervised",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
         fixture.milestonePath,
         fixture.contextRoot,
       );
 
-      expect(result).toEqual({
-        aligned: 0,
-        skippedSubtasks: [
-          {
-            feedbackPath: "",
-            issueType: "scope_creep",
-            reason: "Expands beyond task",
-            subtaskId: "SUB-415",
-          },
-        ],
-        success: false,
-        total: 1,
-      });
+      expect(result.aligned).toBe(0);
+      expect(result.operations).toEqual([{ id: "SUB-415", type: "remove" }]);
+      expect(result.success).toBe(false);
+      expect(result.total).toBe(1);
+      expect(result.skippedSubtasks).toHaveLength(1);
+
+      const skippedSubtask = result.skippedSubtasks[0];
+      expect(skippedSubtask?.issueType).toBe("scope_creep");
+      expect(skippedSubtask?.reason).toBe("Expands beyond task");
+      expect(skippedSubtask?.subtaskId).toBe("SUB-415");
+      expect(skippedSubtask?.feedbackPath).toContain("feedback/");
+      expect(existsSync(skippedSubtask?.feedbackPath ?? "")).toBe(true);
       expect(hookSpy).not.toHaveBeenCalled();
     } finally {
       logSpy.mockRestore();
@@ -264,12 +312,17 @@ describe("validateAllSubtasks", () => {
     try {
       const result = await validateAllSubtasks(
         [createSubtask("SUB-412")],
-        { mode: "headless", subtasksPath: fixture.subtasksPath },
+        {
+          mode: "headless",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
         fixture.milestonePath,
         fixture.contextRoot,
       );
 
       expect(result.aligned).toBe(0);
+      expect(result.operations).toEqual([{ id: "SUB-412", type: "remove" }]);
       expect(result.success).toBe(false);
       expect(result.total).toBe(1);
       expect(result.skippedSubtasks).toHaveLength(1);
@@ -286,6 +339,68 @@ describe("validateAllSubtasks", () => {
         milestone: "003-ralph-workflow",
         subtaskId: "SUB-412",
       });
+    } finally {
+      logSpy.mockRestore();
+      hookSpy.mockRestore();
+      invokeSpy.mockRestore();
+      fixture.cleanup();
+    }
+  });
+
+  test("resolves parent task files once per unique taskRef", async () => {
+    const fixture = createValidationFixture();
+    createParentTask(fixture.milestonePath, "TASK-020-validation-batch");
+    createParentTask(fixture.milestonePath, "TASK-021-validation-batch");
+
+    let invocationCount = 0;
+    const invokeSpy = spyOn(
+      summaryProvider,
+      "invokeProviderSummary",
+    ).mockImplementation(async () => {
+      invocationCount += 1;
+      if (invocationCount === 1) {
+        rmSync(
+          path.join(
+            fixture.milestonePath,
+            "tasks",
+            "TASK-020-validation-batch.md",
+          ),
+          { force: true },
+        );
+      }
+      return await Promise.resolve('{"aligned": true}');
+    });
+    const hookSpy = spyOn(hooks, "executeHook");
+    const logSpy = spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await validateAllSubtasks(
+        [
+          createSubtask("SUB-501"),
+          createSubtask("SUB-502"),
+          { ...createSubtask("SUB-503"), taskRef: "TASK-021-validation-batch" },
+        ],
+        {
+          mode: "headless",
+          provider: "claude",
+          subtasksPath: fixture.subtasksPath,
+        },
+        fixture.milestonePath,
+        fixture.contextRoot,
+      );
+
+      const firstPrompt = invokeSpy.mock.calls[0]?.[0]?.prompt ?? "";
+      const secondPrompt = invokeSpy.mock.calls[1]?.[0]?.prompt ?? "";
+      const thirdPrompt = invokeSpy.mock.calls[2]?.[0]?.prompt ?? "";
+
+      expect(firstPrompt).toContain("Task body content");
+      expect(secondPrompt).toContain("Task body content");
+      expect(secondPrompt).not.toContain(
+        "*Not found: TASK-020-validation-batch*",
+      );
+      expect(thirdPrompt).toContain("Task body content");
+      expect(hookSpy).not.toHaveBeenCalled();
+      expect(invokeSpy).toHaveBeenCalledTimes(3);
     } finally {
       logSpy.mockRestore();
       hookSpy.mockRestore();
@@ -352,5 +467,66 @@ describe("getMilestoneFromPath", () => {
     expect(getMilestoneFromPath("/path/to/003-ralph-workflow")).toBe(
       "003-ralph-workflow",
     );
+  });
+});
+
+describe("validation queue event logging", () => {
+  test("writes queue-proposal and queue-apply entries to milestone daily log", () => {
+    const fixture = createValidationFixture();
+
+    try {
+      const proposal: QueueProposal = {
+        fingerprint: computeFingerprint([]),
+        operations: [{ id: "SUB-001", type: "remove" }],
+        source: "validation",
+        timestamp: "2026-02-10T00:00:00Z",
+      };
+      writeValidationProposalArtifact(fixture.milestonePath, proposal, {
+        aligned: 0,
+        skipped: 1,
+        total: 1,
+      });
+      writeValidationQueueApplyLogEntry(fixture.milestonePath, {
+        applied: true,
+        fingerprints: { after: "after-hash", before: "before-hash" },
+        operationCount: 1,
+        source: "validation",
+        summary: "Validation proposal applied",
+      });
+
+      const logPath = getMilestoneLogPath(fixture.milestonePath);
+      const parsedEntries = readFileSync(logPath, "utf8")
+        .trim()
+        .split("\n")
+        .map(
+          (line) =>
+            JSON.parse(line) as { type?: string } & Record<string, unknown>,
+        );
+
+      const queueProposal = parsedEntries.find(
+        (entry) => entry.type === "queue-proposal",
+      );
+      const queueApply = parsedEntries.find(
+        (entry) => entry.type === "queue-apply",
+      );
+
+      expect(queueProposal).toMatchObject({
+        operationCount: 1,
+        source: "validation",
+      });
+      expect(typeof queueProposal?.summary).toBe("string");
+      expect(String(queueProposal?.summary)).toContain(
+        "Validation proposal generated",
+      );
+      expect(queueApply).toMatchObject({
+        afterFingerprint: { hash: "after-hash" },
+        applied: true,
+        beforeFingerprint: { hash: "before-hash" },
+        operationCount: 1,
+        source: "validation",
+      });
+    } finally {
+      fixture.cleanup();
+    }
   });
 });

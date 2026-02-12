@@ -8,6 +8,232 @@
 
 ## Session Notes
 
+## 2026-02-12
+
+### SUB-041
+- **Problem:** Queue create operations expose `atIndex` for positional insertion, but this subtask required explicit verification that create-at-index behavior (prepend and middle insert) is covered and that out-of-range index errors are actionable.
+- **Changes:** Confirmed `applyQueueOperations()` already honors `atIndex` via `splice(atIndex, 0, createdSubtask)` in `queue-ops.ts`, then added focused unit coverage for middle-index insertion (`atIndex: 1`) and upper-bound out-of-range create errors to complement existing prepend and negative-index checks.
+- **Files:** `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-042
+- **Problem:** `ralph subtasks append` still duplicated subtask ID allocation and build logic in `index.ts`, and wrote via `appendSubtasksToFile()` instead of the shared queue-ops pipeline used by `prepend`.
+- **Changes:** Refactored `append` to build `create` operations with queue fingerprint metadata and run them through `applyQueueOperations()` at tail indices, reused the resulting queue for dry-run ID previews, and saved the mutated queue directly. Removed now-unused append-specific ID helper imports from `index.ts`.
+- **Files:** `tools/src/commands/ralph/index.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-043
+- **Problem:** `ralph-subtasks-cli` E2E coverage only validated `append`/`prepend` dry-run and help output, leaving real write-path behavior (ID allocation, queue ordering, and persisted on-disk state) unverified.
+- **Changes:** Added E2E coverage for non-dry-run queue mutations: `append` now has a write-path assertion for tail insertion with `SUB-NNN` allocation, `prepend` has a write-path assertion for head insertion with `SUB-NNN` allocation, and a combined append-then-prepend regression verifies final persisted subtask count and order on disk.
+- **Files:** `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-044
+- **Problem:** `SUB-009` completion metadata pointed at tracking-only commit `da64a5cd`, obscuring the actual implementation evidence for validation proposal approval behavior and related test coverage.
+- **Changes:** Verified implementation coverage in commit `6b3883d` (not `a32c865e`) for `--force` auto-apply, `--review` staging/approval gating, and `--validate-first --force` E2E queue-mutation timing; then corrected `SUB-009` commitHash in milestone `subtasks.json`.
+- **Files:** `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-045
+- **Problem:** `validation.ts` and `calibrate.ts` both implemented `appendMilestoneLogEntry()` with duplicated logic, and calibration lacked the validation-side try/catch guard for log write failures.
+- **Changes:** Extracted a single shared `appendMilestoneLogEntry()` into `config.ts` next to `getMilestoneLogPath()` with unified try/catch + `console.warn` handling, then removed local implementations and switched both modules to import the shared helper.
+- **Files:** `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/calibrate.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-046
+- **Problem:** Legacy `blockedBy` reads previously relied on repeated unsafe cast and string-filtering logic, which made migration-shim handling inconsistent across Ralph command modules.
+- **Changes:** Added shared `readLegacyBlockedBy(subtask)` in `types.ts` (with legacy-migration JSDoc) to centralize the unsafe cast and runtime string filtering, then switched build/config/index/status call sites to use the helper for legacy `blockedBy` inspection instead of local cast logic.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/status.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-047
+- **Problem:** Queue operation parsing had drift risk because SUB-047 expected `parseQueueOperation` and helper parsers to be duplicated across `queue-ops.ts` and `validation.ts`, which could cause behavior mismatches.
+- **Changes:** Verified parser helpers are already consolidated in `queue-ops.ts` as the single canonical module, confirmed `validation.ts` consumes only `parseQueueOperations` from `queue-ops.ts` without local duplicates, and re-ran targeted queue parser/apply unit suites to confirm behavior remains green.
+- **Files:** `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/queue-operations.test.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-039
+- **Problem:** Legacy runtime compatibility shims still read `blockedBy` in build/config/index/status, which kept dependency-aware behavior alive despite WS-06 requiring queue-order-only runtime selection.
+- **Changes:** Removed all `blockedBy` runtime reads and messaging from the four command modules, kept `getNextSubtask()` as first-pending queue-order selection, simplified no-runnable and status/print pending previews to plain queue-order output, and retained legacy normalization only for `status` field stripping.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/status.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+## 2026-02-11
+
+### SUB-031
+- **Problem:** Calibration needed reusable pre-processing helpers for batch-loop context assembly (diff extraction, planning-chain resolution, files-to-read hydration, and result merging/deduplication).
+- **Changes:** Added `extractDiffSummary()`, `resolvePlanningChain()`, `resolveFilesToRead()`, and `mergeCalibrationResults()` to `calibrate.ts` with new `DiffSummary` / `PlanningChainContext` / `ResolvedFile` contracts; added focused unit coverage in `calibrate-utils.test.ts` for diff behavior, section-based planning resolution (`WS-01-*`), `@context/` file resolution with token estimates, and title-similarity deduping. Also updated tools ESLint ignores to exclude one-off `tools/scripts/**` from project-service linting.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `tools/tests/lib/calibrate-utils.test.ts`, `tools/eslint.config.js`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-032
+- **Problem:** Calibration self-improvement needed a dedicated streaming analyzer to extract high-signal failure patterns from session JSONL logs without loading full logs into prompt context.
+- **Changes:** Added `session-analysis.ts` with `OffTrackReport`, incremental line-by-line parsing, and stateful detectors for oversized-file errors, file-not-found errors, repeated 3-step tool loops, and Edit backtracking reversals (exact + partial). Reused shared session metrics from `session.ts` (`countToolCalls`, `getFilesFromSession`, `calculateDurationMs`, `getTokenUsageFromSession`) and added focused unit tests for all four detector behaviors.
+- **Files:** `tools/src/commands/ralph/session-analysis.ts`, `tools/tests/lib/session-analysis.test.ts`, `tools/CLAUDE.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-033
+- **Problem:** Session analysis lacked detectors 5-8 plus composite scoring, so self-improvement calibration could not flag exploration-only runs, correction churn, token snowballing, or repeated test-fix loops.
+- **Changes:** Completed `session-analysis.ts` with `ExplorationDetector`, `SelfCorrectionDetector`, `TokenAccelerationDetector`, and `TestFixLoopDetector`; added weighted composite `offTrackScore` normalized by session length; and expanded unit coverage to validate all 8 detectors, composite scoring normalization, and the full `extractSignals()` report contract.
+- **Files:** `tools/src/commands/ralph/session-analysis.ts`, `tools/tests/lib/session-analysis.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-034
+- **Problem:** Intention calibration still used one large provider invocation with global planning docs, causing context pressure and lacking per-batch planning-chain filtering.
+- **Changes:** Refactored `runIntentionCheck()` in `calibrate.ts` to process completed subtasks in TypeScript-controlled batches of five, pre-resolve each subtask via `extractDiffSummary()` and `resolvePlanningChain()`, filter out entries with null planning context, build inline scoped prompts through `buildIntentionBatchPrompt()`, parse each batch with `parseCalibrationResult()`, merge all findings with `mergeCalibrationResults()`, and call `applyCalibrationProposal()` once with the merged result. Rewrote `intention-drift.md` as a single-batch analysis template with an explicit "DO NOT read additional files" instruction and removed parallel-analyzer orchestration guidance.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/intention-drift.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-035
+- **Problem:** Technical calibration still used one monolithic provider invocation and prompt-side orchestration instructions, which caused context pressure and prevented deterministic batch preprocessing of diffs plus referenced files.
+- **Changes:** Refactored `runTechnicalCheck()` in `calibrate.ts` to process completed subtasks in batches of five, pre-resolve each subtask's full diff via `extractDiffSummary()` and all `filesToRead` content via `resolveFilesToRead()`, build inline batch payloads with new `buildTechnicalBatchPrompt()`, parse per-batch responses with `parseCalibrationResult()`, merge findings through `mergeCalibrationResults()`, and apply once with `applyCalibrationProposal()`. Rewrote `technical-drift.md` as a single-batch prompt, removed Phase 2 parallel analyzer orchestration guidance, preserved technical drift checks (tests/patterns/error handling/docs/types/security/atomic docs), added consistency-checker framework references (Code vs Prose 6-13, Code-to-Code 14-19), and added explicit "DO NOT read additional files beyond what is provided." guidance.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/technical-drift.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-036
+- **Problem:** Self-improvement calibration still ran one monolithic invocation across all session logs, causing context pressure and not using per-session signal triage.
+- **Changes:** Refactored `runImproveCheck()` in `calibrate.ts` to dedupe `preflight.available` by `sessionId`, call `extractSignals()` per unique session, skip sessions with `offTrackScore < 0.1`, build session-scoped prompts with `buildSessionAnalysisPrompt()`, invoke the provider once per unique session with fresh context, merge findings via `mergeCalibrationResults()`, and apply once while preserving suggest/autofix/off behavior and missing-log fallback. Rewrote `self-improvement.md` for signal-based analysis with a `<session-signals>` template, added targeted Grep guidance for heavy backtracking cases (5+), removed raw `<session-log>` template usage, and removed chunking guidance.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `context/workflows/ralph/calibration/self-improvement.md`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-037
+- **Problem:** `.claude/skills/ralph-calibrate/SKILL.md` duplicated calibration orchestration and prompt references that now belong exclusively in the CLI runtime.
+- **Changes:** Rewrote the skill into a thin wrapper that parses the check argument, resolves `subtasks.json` context, delegates execution to `aaa ralph calibrate <check> [--review] [--force]` via Bash, and shows usage help when no check is provided.
+- **Files:** `.claude/skills/ralph-calibrate/SKILL.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+## 2026-02-10
+
+### SUB-001
+- **Problem:** Queue mutation primitives for milestone 006 were undefined, so validation/calibration could not express deterministic create/update/remove/reorder/split proposals with replay protection.
+- **Changes:** Added queue operation contracts (`QueueOperation`, `QueueProposal`, `QueueFingerprint`) and `computeFingerprint()` in Ralph shared types, then added focused unit tests covering all operation variants plus deterministic/delta fingerprint behavior.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/tests/lib/queue-operations.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-002
+- **Problem:** Ralph had queue-operation type definitions but no deterministic apply engine to validate/apply create/update/remove/reorder/split proposals safely against pending-only queue state.
+- **Changes:** Added `applyQueueOperations()` in a new `queue-ops.ts` module with fingerprint replay protection, canonical `SUB-###` allocation for create/split drafts, pending-target guards with actionable errors, and deterministic operation handling (create append, update, remove, reorder, split). Added focused unit coverage for all operation kinds, replay safety, missing-target failures, and immutable `done:true` subtask protection.
+- **Files:** `tools/src/commands/ralph/queue-ops.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-003
+- **Problem:** Queue operations were not wired into the canonical queue file read/write path, so proposals could not be applied and persisted through one deterministic helper while preserving save-time normalization.
+- **Changes:** Added `applyAndSaveProposal()` in `queue-ops.ts` to load the queue, apply `applyQueueOperations()`, save through `saveSubtasksFile()`, and return an apply summary with before/after fingerprints and queue counts. Updated `loadSubtasksFile()` to return a computed fingerprint from current queue state and updated `saveSubtasksFile()` to strip transient fingerprint metadata while still removing legacy `status` fields. Added a round-trip unit test (`load -> propose -> apply -> save -> reload`) that verifies expected queue state and normalization behavior.
+- **Files:** `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-004
+- **Problem:** Ralph queue tooling lacked CLI commands to append/prepend subtasks from structured JSON input while preserving canonical ID allocation and safe dry-run previews.
+- **Changes:** Added `aaa ralph subtasks append` and `aaa ralph subtasks prepend` with `--subtasks`, `--file`, and `--dry-run` support. Both commands accept JSON from stdin or file, allocate new `SUB-NNN` IDs, and emit machine-readable JSON for dry-runs. `append` writes through `appendSubtasksToFile()`, while `prepend` uses `applyQueueOperations()` create ops then reorders to queue front before save. Added a dedicated E2E suite covering help output and dry-run behavior for both commands.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `tools/README.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-005
+- **Problem:** Ralph could generate queue proposals but had no CLI surface to preview proposal deltas or apply them safely against a specific subtasks file.
+- **Changes:** Added `aaa ralph subtasks diff` and `aaa ralph subtasks apply` with `--proposal` and `--subtasks` inputs. `diff` now renders a human-readable change summary plus machine-parseable JSON via `--json`, while `apply` persists changes through `applyAndSaveProposal()`. Both commands validate queue fingerprints first and emit actionable stale-proposal errors. Expanded `ralph-subtasks-cli` E2E coverage for readable diff output, JSON diff output, deterministic apply behavior, and fingerprint mismatch failures.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `tools/README.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-006
+- **Problem:** Shell completion scripts for `aaa ralph subtasks` did not include the new queue mutation subcommands and still used "next runnable" wording.
+- **Changes:** Updated zsh and fish completion generators to add `append`, `prepend`, `diff`, and `apply` subcommands with their command-specific flags (`--subtasks`, `--file`, `--dry-run`, `--proposal`, `--json`) and switched next-subtask descriptions to queue-order wording. Added completion E2E assertions covering the new subcommands, flags, and wording regression checks.
+- **Files:** `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `tools/tests/e2e/completion.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-008
+- **Problem:** Pre-build validation only emitted skipped-subtask records, so `--validate-first` could not produce deterministic queue mutations like create/update proposals.
+- **Changes:** Refactored validation parsing and batch results to support queue operation proposals (`create/update/remove/reorder/split`), updated the pre-build validation prompt contract to request structured operations, mapped legacy skip decisions to `remove` operations for backward compatibility, and wired build-time `--validate-first` to apply proposals through `applyAndSaveProposal()` before iteration selection.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/build.ts`, `tools/tests/lib/validation.test.ts`, `tools/tests/lib/validation-batch.test.ts`, `context/workflows/ralph/building/pre-build-validation.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-009
+- **Problem:** `--validate-first` always auto-applied validation proposals, so build mode/flags could not control when proposals are staged, reviewed, or approved before queue mutation.
+- **Changes:** Added validation-proposal approval policy wiring for build (`--force`, `--review`, and default mode behavior), staged proposal artifacts into milestone `feedback/` before apply decisions, and blocked headless `--review` runs until explicit approval. Updated validation flow to always write misalignment feedback artifacts to milestone `feedback/` (including supervised mode), and added E2E coverage for force/default/review validation-first proposal handling plus unit coverage for proposal mode resolution and artifact writing.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/cascade.ts`, `tools/README.md`, `tools/tests/e2e/ralph.test.ts`, `tools/tests/lib/build.test.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `tools/tests/lib/validation-batch.test.ts`, `tools/tests/lib/validation-headless.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-010
+- **Problem:** Periodic calibration in `runPeriodicCalibration()` did not forward build-level provider/model/force/review flags, so `--calibrate-every` could drift from the active build invocation context.
+- **Changes:** Extended `PeriodicCalibrationOptions` with `provider`, `model`, `force`, and `review`, threaded those values from `runBuild()` into `runPeriodicCalibration()`, and forwarded them to `runCalibrate("all", ...)`. Added regression coverage in `build-validation-integration.test.ts` to assert periodic calibration receives and passes through all four flags.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-011
+- **Problem:** Calibration flows still relied on ad-hoc output/task-file contracts and local approval-mode logic, so corrective work was not emitted as deterministic queue proposals against the milestone queue.
+- **Changes:** Refactored calibration to parse structured corrective-subtask JSON, convert it into `QueueProposal` create operations, and route proposal handling through shared `evaluateApproval("correctionTasks", ...)` behavior with milestone `feedback/` artifact staging. `--review` now stages proposals without queue mutation, `--force` applies proposals automatically, self-improvement mode still supports suggest/autofix behavior, and queue create operations now honor `atIndex` so prepend insertions are deterministic.
+- **Files:** `tools/src/commands/ralph/calibrate.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/index.ts`, `tools/tests/lib/calibrate.test.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-012
+- **Problem:** Calibration prompt templates still instructed drift/self-improvement analyzers to create standalone task files, which conflicted with milestone-scoped queue mutation flow.
+- **Changes:** Updated intention drift, technical drift, and self-improvement calibration prompts to require JSON-only output with deterministic `QueueOperation[]` payloads, embedded the QueueOperation schema reference in each prompt, and added explicit guidance to target the current milestone `subtasks.json` queue with corrective subtask operations.
+- **Files:** `context/workflows/ralph/calibration/intention-drift.md`, `context/workflows/ralph/calibration/technical-drift.md`, `context/workflows/ralph/calibration/self-improvement.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-013
+- **Problem:** Daily milestone logs needed explicit type coverage for validation/calibration queue events without breaking iteration-only status metrics.
+- **Changes:** Extended Ralph log typings with `validation`, `calibration`, `queue-proposal`, and `queue-apply` discriminator values, exported typed log-entry interfaces for each new type, updated status filtering to continue accepting only iteration records for metrics, expanded the mixed-log regression test to include the new entry kinds, and updated the iteration diary JSON schema enum.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/status.ts`, `tools/tests/lib/status.test.ts`, `docs/planning/schemas/iteration-diary.schema.json`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-014
+- **Problem:** Validation and calibration flows generated queue proposals/applies and completion outcomes, but they were not persisted into milestone daily logs, leaving `ralph status` and log consumers without validation/calibration traceability.
+- **Changes:** Added milestone daily log emission in `validation.ts` and `calibrate.ts` using `getMilestoneLogPath()` for `validation`, `calibration`, `queue-proposal`, and `queue-apply` entries. Updated build-time validation proposal handling to pass full proposal context and append `queue-apply` records after apply decisions. Extended validation and calibration unit coverage to assert new daily-log entries and preserved status metrics behavior by running status regression tests against mixed daily logs.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/calibrate.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/validation-batch.test.ts`, `tools/tests/lib/validation-headless.test.ts`, `tools/tests/lib/calibrate.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-015
+- **Problem:** `blockedBy` was still encoded in Ralph subtask type/schema/docs, preventing cleanup of dependency metadata from the canonical subtask contract.
+- **Changes:** Removed `blockedBy` from `Subtask` in `types.ts`, removed the `blockedBy` property from `subtasks.schema.json`, and removed the optional-field mention from `subtask-spec.md`. Updated blocked-subtask reporting call sites to read legacy `blockedBy` fields via safe runtime narrowing so TypeScript compiles while queue migration continues.
+- **Files:** `tools/src/commands/ralph/types.ts`, `docs/planning/schemas/subtasks.schema.json`, `context/workflows/ralph/planning/subtask-spec.md`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/status.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-016
+- **Problem:** Queue selection and status/build messaging still included dependency-aware `blockedBy` behavior, which no longer matches the queue-order model.
+- **Changes:** Simplified `getNextSubtask()` to return the first pending subtask in array order, updated build-time `getNextRunnableSubtask()` to select the first non-done non-skipped subtask directly, and removed blocked/dependency messaging from `handleNoRunnableSubtasks()` and status queue rendering. Updated build integration and Ralph E2E tests to assert queue-order-first selection behavior.
+- **Files:** `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/status.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-017
+- **Problem:** Prompt/docs surfaces still referenced `blockedBy`, which conflicted with the queue-order-only execution model.
+- **Changes:** Removed remaining `blockedBy` wording from the Ralph iteration workflow and subtask-reviewer agent prompt, and updated pre-build validation task-context wording to avoid dependency framing.
+- **Files:** `context/workflows/ralph/building/ralph-iteration.md`, `.claude/agents/subtask-reviewer.md`, `context/workflows/ralph/building/pre-build-validation.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-018
+- **Problem:** Milestone queue files still carried legacy `blockedBy` dependency metadata that no longer matches queue-order execution and needed migration across active/historical milestone subtasks files.
+- **Changes:** Removed `blockedBy` keys from all canonical milestone `subtasks.json` files under `docs/planning/milestones/` (including legacy milestone queues), confirmed no archived `archive/**/subtasks.json` files exist to migrate in this repo, and verified diff scope is limited to `blockedBy` removals.
+- **Files:** `docs/planning/milestones/002-ralph-💪/subtasks.json`, `docs/planning/milestones/003-ralph-workflow/subtasks.json`, `docs/planning/milestones/004-MULTI-CLI/subtasks.json`, `docs/planning/milestones/005-consolidate-simplify/subtasks.json`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-019
+- **Problem:** Ralph E2E test fixtures still included legacy `blockedBy` fields, which no longer exist in the subtask contract and could mask regressions in queue-order-only behavior.
+- **Changes:** Removed all `blockedBy` fields from inline subtasks fixtures in `ralph.test.ts`, then re-ran the targeted Ralph E2E suite to confirm fixtures and command behavior still pass without dependency metadata.
+- **Files:** `tools/tests/e2e/ralph.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-020
+- **Problem:** Build CLI help/completion and README text did not clearly state queue mutation behavior parity between `--validate-first` and periodic calibration, and did not describe build approval modes clearly.
+- **Changes:** Updated `ralph build` help text so `--validate-first` explicitly lists create/update/remove/reorder/split queue mutations, `--calibrate-every` mentions corrective queue insertions, and `--force`/`--review` describe approval modes for validation/calibration proposals. Updated README build docs with queue-mutation behavior and approval-mode parity, and aligned zsh/fish completion descriptions to queue-order wording.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/README.md`, `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-021
+- **Problem:** `resolveMilestoneFromOptions()` ignored `--output-dir`, so text/file source runs targeting a milestone path could not resolve milestone context and planning logs fell back to `_orphan`.
+- **Changes:** Updated `resolveMilestoneFromOptions()` to accept `outputDirectory` and derive milestone context from `docs/planning/milestones/<slug>` paths when `--milestone`/`--story` are absent, then passed `options.outputDir` at the call site. Exported the resolver for tests and added regression coverage for output-dir inference, milestone/story precedence, and milestone log-path behavior.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/lib/ralph-index.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-022
+- **Problem:** Regression coverage for `resolveMilestoneFromOptions()` needed to explicitly lock the milestone-priority chain and verify log-path resolution keeps milestone context when only `--output-dir` is provided.
+- **Changes:** Expanded `ralph-index` unit coverage with explicit assertions for milestone/story priority over output-dir, milestone extraction from output-dir, non-milestone and all-undefined fallback behavior, and a log-path assertion that confirms `getPlanningLogPath` receives the resolved milestone path (not `undefined`).
+- **Files:** `tools/tests/lib/ralph-index.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-023
+- **Problem:** Planning docs did not clearly state that milestone-shaped `--output-dir` values affect planning log placement in addition to the generated `subtasks.json` destination.
+- **Changes:** Updated `subtasks-from-source.md` to clarify in both the parameters table and append phase that milestone-shaped output directories set both subtasks and planning log locations, and added matching shared-reference guidance in `subtask-spec.md`.
+- **Files:** `context/workflows/ralph/planning/subtasks-from-source.md`, `context/workflows/ralph/planning/subtask-spec.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-024
+- **Problem:** The 14 cascade-mode code review fixes were already applied in code but needed formal verification against acceptance criteria and queue tracking completion for milestone 006.
+- **Changes:** Verified the existing fixes commit (`d36edbf`) covers the review-fix categories across Ralph queue/build/validation/calibration modules, re-ran required typecheck and targeted regression suites (63/63 passing), and marked SUB-024 complete with commit/session metadata.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/approvals.ts`, `tools/src/commands/ralph/calibrate.ts`, `tools/src/commands/ralph/types.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-025
+- **Problem:** Queue helper regression coverage was missing for `appendSubtasksToFile()` guard clauses, fingerprint mismatch detection, and invalid queue-operation parsing.
+- **Changes:** Added targeted unit tests in `queue-ops.test.ts` for append behavior against new/existing files, duplicate ID skipping, and empty input. Added `queue-operations.test.ts` coverage for matching/mismatched/empty-queue fingerprint checks and invalid operation type handling. Exported `hasFingerprintMismatch` and `parseQueueOperation`, and hardened `parseQueueOperation` to throw for unsupported operation types while keeping `parseQueueOperations` fail-open behavior.
+- **Files:** `tools/tests/lib/queue-ops.test.ts`, `tools/tests/lib/queue-operations.test.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/validation.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-026
+- **Problem:** CLI subtask parsing helpers in `ralph/index.ts` lacked direct unit coverage for key validation/error branches and file-read guard clauses.
+- **Changes:** Exported `parseCliSubtaskDraft`, `parseCliSubtaskDrafts`, and `readQueueProposalFromFile` for focused unit testing, then added regression tests for required validation branches (missing title/description, invalid `storyRef`, null input), draft payload JSON error paths (malformed JSON, empty array, single-object wrapping, `subtasks` unwrapping), and proposal-file guards (missing file, invalid JSON, missing `operations`, valid proposal parse).
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/lib/ralph-index.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-027
+- **Problem:** Coverage gaps remained for validation proposal approval behavior and skip-to-queue-removal resolution in the build loop.
+- **Changes:** Exported `resolveApprovalForValidationProposal()` and `resolveSkippedSubtaskIds()` from `build.ts`, added unit tests for approval resolution across force/review/default supervised/default headless modes, and added an integration test that stubs validation output and verifies skipped subtask IDs are converted into remove operations that mutate `subtasks.json`.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build.test.ts`, `tools/tests/lib/build-skip-resolution.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-028
+- **Problem:** Subtask queue parsing and diff helpers were embedded in `ralph/index.ts`, keeping the command entrypoint oversized and harder to maintain.
+- **Changes:** Extracted subtask CLI helper types/functions into `subtask-helpers.ts` (`CliSubtaskDraft`, `QueueDiffSummary`, parsing, fingerprint mismatch, and queue diff helpers), rewired `index.ts` to import them, and added focused unit coverage for helper behavior/regression safety.
+- **Files:** `tools/src/commands/ralph/subtask-helpers.ts`, `tools/src/commands/ralph/index.ts`, `tools/tests/lib/subtask-helpers.test.ts`, `tools/CLAUDE.md`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-029
+- **Problem:** Validation repeatedly resolved the same parent task file per subtask, causing redundant task directory scans and file reads when multiple subtasks shared a `taskRef`.
+- **Changes:** Added parent-task caching in `validateAllSubtasks()` by precomputing `resolveParentTask()` once per unique `taskRef` and threading cached results into per-subtask validation/prompt assembly. Added regression coverage to ensure repeated subtasks keep parent-task context even after the task file is removed mid-run.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/validation-batch.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-030
+- **Problem:** Ralph build/status internals had minor structural coupling: build options lived in one broad interface, status re-sorted merged diary entries on every read, and validation-owned queue parsing logic was embedded in `validation.ts` instead of shared queue utilities.
+- **Changes:** Split `BuildOptions` into `BuildExecutionOptions` and `BuildQueueOptions` then composed `BuildOptions` from both; updated status diary loading to sort filenames once and per-file entries in `readSingleDiaryFile()` while removing merged-array sorting from `readIterationDiary()`; moved queue operation parsing helpers into `queue-ops.ts` and imported `parseQueueOperations` directly in `validation.ts`. Updated queue-operations unit test imports accordingly.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/status.ts`, `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/queue-operations.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-08
 
 ### SUB-001
@@ -934,3 +1160,17 @@
   - `tools/src/commands/ralph/types.ts` - Updated SelfImprovementConfig mode union type
   - `tools/src/commands/ralph/config.ts` - Changed default from 'always' to 'suggest'
   - `tools/src/commands/completion/zsh.ts` - Fixed pre-existing lint error (eslint disable for shell template)
+
+## 2026-02-10
+
+### SUB-007
+- **Problem:** `--validate-first` always invoked validation with the hardcoded `claude` provider, so `--provider opencode --model ...` did not affect pre-build validation.
+- **Changes:** Updated validation APIs to accept provider/model inputs, threaded provider/model through `resolveSkippedSubtaskIds()` and `validateAllSubtasks()`, and removed the hardcoded provider from `validateSubtask()`. Added regression coverage that asserts validation invocation forwards a non-claude provider and configured model.
+- **Files:** `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/build.ts`, `tools/tests/lib/validation-invoke.test.ts`, `tools/tests/lib/validation-batch.test.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+## 2026-02-11
+
+### SUB-038
+- **Problem:** Needed end-to-end verification that the refactored calibration flow runs in bounded batches/signals without context-window crashes across intention, technical, self-improvement, and full-suite modes.
+- **Changes:** Ran dry-run calibration checks with `--review` for milestone 006 (`intention`, `technical`, `improve`, and `all`) and captured logs showing per-batch progress plus signal-based self-improvement filtering (`offTrackScore` gating). Ran cross-milestone intention check on milestone 003: full queue surfaced an existing invalid commit-evidence blocker (`SUB-155`), then verified file-based `TASK-* -> STORY-*` resolution path using a focused temp queue (`subtasks.sub-038-temp.json`). Verified periodic build calibration wiring via targeted integration test plus build-loop gating checks (`calibrateEvery > 0 && iteration % calibrateEvery === 0` triggers `runCalibrate("all", ...)`).
+- **Files:** `docs/planning/milestones/006-cascade-mode-for-good/feedback/sub-038-intention-review.log`, `docs/planning/milestones/006-cascade-mode-for-good/feedback/sub-038-technical-review.log`, `docs/planning/milestones/006-cascade-mode-for-good/feedback/sub-038-improve-review.log`, `docs/planning/milestones/006-cascade-mode-for-good/feedback/sub-038-all-review.log`, `docs/planning/milestones/003-ralph-workflow/feedback/sub-038-intention-review.log`, `docs/planning/milestones/003-ralph-workflow/feedback/sub-038-intention-review-temp.log`, `tools/tests/lib/build-validation-integration.test.ts`, `tools/src/commands/ralph/build.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`

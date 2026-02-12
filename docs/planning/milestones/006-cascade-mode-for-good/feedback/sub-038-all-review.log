@@ -1,0 +1,86 @@
+[CALIBRATE] [INFO] Using provider: claude
+╭──────────────────────────────────────────────────────────────────╮
+│ [CALIBRATE] [START] Intention Drift Check                        │
+│ Check code changes against planning intent                       │
+╰──────────────────────────────────────────────────────────────────╯
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-009 commit=da64a5cd143190b3d81bd42c8db8bf7bfe555814: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-017 commit=c8ec8e8552099529ce9b5b49643108fb6929e87a: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-037 commit=b6b3f8e50f6f226713a55fd712a342fd91da3b83: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [SKIP] Proceeding with 3 low-confidence traceability warning(s).
+──────────────────── Invoking Claude (headless) ────────────────────
+[CALIBRATE] [START] Invoking claude for intention drift analysis in batches of 5...
+[CALIBRATE] [INFO] Batch 1/8: analyzing 5 subtask(s) for intention drift
+[CALIBRATE] [INFO] Batch 2/8: analyzing 5 subtask(s) for intention drift
+[CALIBRATE] [INFO] Batch 3/8: analyzing 5 subtask(s) for intention drift
+[CALIBRATE] [INFO] Batch 4/8: analyzing 5 subtask(s) for intention drift
+[CALIBRATE] [SKIP] Batch 5/8: no resolvable planning context, skipped
+[CALIBRATE] [SKIP] Batch 6/8: no resolvable planning context, skipped
+[CALIBRATE] [SKIP] Batch 7/8: no resolvable planning context, skipped
+[CALIBRATE] [SKIP] Batch 8/8: no resolvable planning context, skipped
+[CALIBRATE] [DONE] Intention Drift: proposal staged for review at /home/otrebu/dev/all-agents/docs/planning/milestones/006-cascade-mode-for-good/feedback/2026-02-11T18-04-56-308Z_calibration_intention-drift_proposal.md
+[CALIBRATE] [DONE] Intention Drift Check Complete
+╭──────────────────────────────────────────────────────────────────╮
+│ [CALIBRATE] [START] Technical Drift Check                        │
+│ Check completed subtasks for technical drift                     │
+╰──────────────────────────────────────────────────────────────────╯
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-009 commit=da64a5cd143190b3d81bd42c8db8bf7bfe555814: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-017 commit=c8ec8e8552099529ce9b5b49643108fb6929e87a: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-037 commit=b6b3f8e50f6f226713a55fd712a342fd91da3b83: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [SKIP] Proceeding with 3 low-confidence traceability warning(s).
+──────────────────── Invoking Claude (headless) ────────────────────
+[CALIBRATE] [START] Invoking claude for technical drift analysis in batches of 1...
+[CALIBRATE] [INFO] Batch 1/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 2/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 3/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 4/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 5/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 6/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 7/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 8/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 9/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 10/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 11/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 12/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 13/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 14/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 15/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 16/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 17/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 18/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 19/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 20/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 21/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 22/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 23/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 24/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [SKIP] Batch 24/37: skipped due to provider argument-size limit (E2BIG)
+[CALIBRATE] [INFO] Batch 25/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 26/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 27/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 28/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 29/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 30/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 31/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 32/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 33/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 34/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 35/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 36/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [INFO] Batch 37/37: analyzing 1 subtask(s) for technical drift
+[CALIBRATE] [DONE] Technical Drift: proposal staged for review at /home/otrebu/dev/all-agents/docs/planning/milestones/006-cascade-mode-for-good/feedback/2026-02-11T18-13-03-903Z_calibration_technical-drift_proposal.md
+[CALIBRATE] [DONE] Technical Drift Check Complete
+╭──────────────────────────────────────────────────────────────────╮
+│ [CALIBRATE] [START] Self-Improvement Analysis                    │
+│ Analyze completed sessions for inefficiencies                    │
+╰──────────────────────────────────────────────────────────────────╯
+[CALIBRATE] [INFO] Found sessionIds: 2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,2440339a-ef41-4c89-8436-639f6c011497,861be582-6a52-4212-876d-ff5ad2e1ab3f,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,85682707-53d7-48a7-81e5-d02772646028,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f,01e0eb0f-aa64-4e30-bff0-56366c1caf9f
+[CALIBRATE] [INFO] Session log preflight: 37 available entries, 4 unique sessions, 0 missing
+[CALIBRATE] [INFO] Self-improvement mode: suggest
+──────────────────── Invoking Claude (headless) ────────────────────
+[CALIBRATE] [START] Invoking claude for self-improvement analysis across 4 unique session(s)...
+[CALIBRATE] [SKIP] Skipping session 2440339a-ef41-4c89-8436-639f6c011497: offTrackScore=0.094 < 0.1
+[CALIBRATE] [SKIP] Skipping session 861be582-6a52-4212-876d-ff5ad2e1ab3f: offTrackScore=0.042 < 0.1
+[CALIBRATE] [SKIP] Skipping session 01e0eb0f-aa64-4e30-bff0-56366c1caf9f: offTrackScore=0.080 < 0.1
+[CALIBRATE] [DONE] Self-Improvement: proposal staged for review at /home/otrebu/dev/all-agents/docs/planning/milestones/006-cascade-mode-for-good/feedback/2026-02-11T18-13-34-451Z_calibration_self-improvement_proposal.md
+[CALIBRATE] [INFO] Self-improvement analyzed 1 session(s) with actionable signals
+[CALIBRATE] [DONE] Self-Improvement Analysis Complete

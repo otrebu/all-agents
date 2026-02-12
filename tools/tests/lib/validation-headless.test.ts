@@ -1,13 +1,16 @@
-import type { Subtask } from "@tools/commands/ralph/types";
-import type {
-  SkippedSubtask,
-  ValidationResult,
-} from "@tools/commands/ralph/validation";
 import type { Mock } from "bun:test";
 
 import {
+  computeFingerprint,
+  type QueueProposal,
+  type Subtask,
+} from "@tools/commands/ralph/types";
+import {
   generateValidationFeedback,
   handleHeadlessValidationFailure,
+  type SkippedSubtask,
+  type ValidationResult,
+  writeValidationProposalArtifact,
 } from "@tools/commands/ralph/validation";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
@@ -211,5 +214,44 @@ describe("handleHeadlessValidationFailure", () => {
     expect(logSpy).toHaveBeenCalledWith(
       `[Validation:SUB-409] Wrote feedback: ${filePath}`,
     );
+  });
+});
+
+describe("writeValidationProposalArtifact", () => {
+  let milestoneDirectory = "";
+
+  beforeEach(() => {
+    milestoneDirectory = mkdtempSync(
+      path.join(tmpdir(), "validation-proposal-artifact-"),
+    );
+  });
+
+  afterEach(() => {
+    rmSync(milestoneDirectory, { force: true, recursive: true });
+  });
+
+  test("writes proposal artifact under milestone feedback directory", () => {
+    const proposal: QueueProposal = {
+      fingerprint: computeFingerprint([]),
+      operations: [{ id: "SUB-001", type: "remove" }],
+      source: "validation",
+      timestamp: "2026-02-10T00:00:00Z",
+    };
+    const artifactPath = writeValidationProposalArtifact(
+      milestoneDirectory,
+      proposal,
+      { aligned: 0, skipped: 1, total: 1 },
+    );
+
+    expect(path.isAbsolute(artifactPath)).toBe(true);
+    expect(artifactPath).toContain("feedback/");
+    expect(path.basename(artifactPath)).toMatch(/validation_proposal\.md$/);
+    expect(existsSync(artifactPath)).toBe(true);
+
+    const content = readFileSync(artifactPath, "utf8");
+    expect(content).toContain("# Validation Proposal");
+    expect(content).toContain("**Operations:** 1");
+    expect(content).toContain('"type": "remove"');
+    expect(content).toContain('"id": "SUB-001"');
   });
 });

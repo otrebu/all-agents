@@ -9,9 +9,9 @@ const buildContent = readFileSync(BUILD_TS_PATH, "utf8");
 
 describe("build validation integration", () => {
   test("imports validateAllSubtasks", () => {
-    expect(buildContent).toContain(
-      'import { validateAllSubtasks } from "./validation"',
-    );
+    expect(buildContent).toContain('from "./validation"');
+    expect(buildContent).toContain("validateAllSubtasks");
+    expect(buildContent).toContain("writeValidationProposalArtifact");
   });
 
   test("declares skippedSubtaskIds before validate-first block", () => {
@@ -25,7 +25,7 @@ describe("build validation integration", () => {
       "const pendingSubtasks = getPendingSubtasks(initialSubtasksFile.subtasks);",
     );
     expect(buildContent).toContain("await validateAllSubtasks(");
-    expect(buildContent).toContain("{ mode, subtasksPath }");
+    expect(buildContent).toContain("{ mode, model, provider, subtasksPath }");
     expect(buildContent).toContain("milestonePath");
     expect(buildContent).toContain("contextRoot");
   });
@@ -48,6 +48,38 @@ describe("build validation integration", () => {
     expect(validationCallIndex).toBeLessThan(buildStartMessageIndex);
   });
 
+  test("forwards provider and model into pre-build validation resolver", () => {
+    expect(buildContent).toContain("model,");
+    expect(buildContent).toContain("provider,");
+    expect(buildContent).toContain("shouldForceProposalApply,");
+    expect(buildContent).toContain("shouldRequireProposalReview,");
+    expect(buildContent).toContain("model?: string;");
+    expect(buildContent).toContain("provider: ProviderType;");
+  });
+
+  test("forwards provider/model/force/review into periodic calibration", () => {
+    expect(buildContent).toContain("interface PeriodicCalibrationOptions {");
+    expect(buildContent).toContain("force: boolean;");
+    expect(buildContent).toContain("model?: string;");
+    expect(buildContent).toContain("provider: ProviderType;");
+    expect(buildContent).toContain("review: boolean;");
+    expect(buildContent).toContain("force: shouldForceProposalApply,");
+    expect(buildContent).toContain("model,");
+    expect(buildContent).toContain("provider,");
+    expect(buildContent).toContain("review: shouldRequireProposalReview,");
+    expect(buildContent).toContain('await runCalibrate("all", {');
+    expect(buildContent).toContain("force: shouldForceProposalApply,");
+    expect(buildContent).toContain("model,");
+    expect(buildContent).toContain("provider,");
+    expect(buildContent).toContain("review: shouldRequireProposalReview,");
+  });
+
+  test("stages validation proposals before optional apply", () => {
+    expect(buildContent).toContain("writeValidationProposalArtifact(");
+    expect(buildContent).toContain("resolveApprovalForValidationProposal({");
+    expect(buildContent).toContain("resolveValidationProposalMode({");
+  });
+
   test("uses validation start messaging that clarifies ordering", () => {
     expect(buildContent).toContain(
       "Pre-build validation starting before iteration phase",
@@ -58,14 +90,14 @@ describe("build validation integration", () => {
     expect(buildContent).toContain("handleNoRunnableSubtasks({");
     expect(buildContent).toContain("Pre-build validation skipped");
     expect(buildContent).toContain(
-      "All remaining non-skipped subtasks appear blocked",
+      "Pending subtasks remain but none are runnable",
     );
   });
 
   test("selects next subtask from validation-filtered queue", () => {
     expect(buildContent).toContain("getNextRunnableSubtask(");
     expect(buildContent).toContain(
-      "(subtask) => !skippedSubtaskIds.has(subtask.id)",
+      "(subtask) => !subtask.done && !skippedSubtaskIds.has(subtask.id)",
     );
   });
 });

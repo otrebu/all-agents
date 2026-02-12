@@ -75,6 +75,7 @@ Before generating subtasks, answer these questions **based on code exploration**
 - What existing patterns should be followed?
 - What dependencies exist that affect implementation order?
 - What test patterns are used in this codebase?
+- Which testing profiles apply to this task's AC (logic, integration/API, CLI E2E, web visual, web flow E2E)?
 - What validation/build steps are standard?
 - What did the parent task's Test Plan already decide?
 
@@ -131,16 +132,28 @@ Order subtasks by implementation dependency:
 
 - Title is concise and commit-message ready
 - Description specifies exact files to create/modify
-- Acceptance criteria are verifiable by running tests or inspecting code
+- Acceptance criteria are verifiable and tool-qualified (for example: unit/integration, Playwright E2E, agent-browser visual)
 - filesToRead provides context without overwhelming
 
-### Testing Context (Inherit from Parent Task)
+### Testing Context (Profile-Driven, Inherit from Parent Task)
 
-Subtasks inherit testing decisions from parent task:
+Subtasks inherit testing decisions from parent task and must map each AC to the correct verification profile:
 
 1. **Read parent task's `Test Plan` section** - testing approach already decided
-2. **Use as baseline** for subtask acceptance criteria
-3. **Extend only if** deep codebase analysis reveals patterns parent missed
+2. **Derive a testing profile per subtask AC** (logic, integration/API, CLI E2E, web visual, web behavioral flow)
+3. **Use as baseline** for subtask acceptance criteria
+4. **Extend only if** deep codebase analysis reveals patterns parent missed
+
+Required AC qualification:
+- **Logic-heavy behavior** -> unit/integration AC with concrete test target
+- **CLI behavior** -> automated E2E AC using CLI profile (bun/node per project)
+- **Web user-visible outcome** -> explicit agent-browser verification AC
+- **Web behavioral flow** (multi-step interaction/journey) -> explicit automated Playwright E2E AC
+
+Mixed TDD intent (concise):
+- Prefer **outside-in** for user flows (define flow-level behavior first, then drive implementation)
+- Prefer **unit-first** for isolated logic/rules/utilities
+- Do not require BDD/Cucumber unless the parent task explicitly asks for it
 
 For tool reference when writing AC:
 

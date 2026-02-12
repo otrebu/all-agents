@@ -1,568 +1,108 @@
 # Technical Drift Analysis
 
-You are an LLM-as-judge analyzing completed Ralph subtasks to detect when code changes have drifted from technical quality standards. Your goal is to identify technical debt and quality issues (not intention alignment—that's intention drift).
+You are an LLM-as-judge analyzing completed Ralph subtasks to detect technical drift.
 
-## Input Sources
+You are given N completed subtasks with inline commit diffs and inline `filesToRead` content.
 
-### 1. Completed Subtasks
-Read `subtasks.json` to find completed subtasks with `commitHash`:
+DO NOT read additional files beyond what is provided.
 
-```json
-{
-  "id": "SUB-001",
-  "taskRef": "TASK-001",
-  "title": "Implement user registration endpoint",
-  "description": "Create POST /api/auth/register with validation",
-  "done": true,
-  "completedAt": "2026-01-13T10:30:00Z",
-  "commitHash": "abc123def456",
-  "sessionId": "session-xyz"
-}
-```
+## Batch Input Contract
 
-### 2. Git Diffs
-For each completed subtask, read the git diff using the `commitHash`:
+The runtime provides a JSON batch payload inline. Each entry includes:
+- `subtask`: subtask metadata and acceptance criteria
+- `diff`: commit evidence (`commitHash`, `filesChanged`, `statSummary`, `patch`)
+- `referencedFiles`: resolved content of every path listed in that subtask's `filesToRead`
 
-```bash
-git show <commitHash> --stat
-git diff <commitHash>^..<commitHash>
-```
+`referencedFiles` may include source files, config files, and atomic docs (`@context/...`).
 
-### 3. Subtask Context Files
-Read the `filesToRead` array from the subtask if present:
+## Analysis Framework
 
-```json
-{
-  "id": "SUB-001",
-  "filesToRead": [
-    "src/auth/index.ts",
-    "@context/blocks/quality/data-integrity.md"
-  ]
-}
-```
+Use this structured framework from `@context/workflows/consistency-checker.md`:
+- **Code vs Prose (categories 6-13):** compare implementation against documented standards and guidance in inline docs/config.
+- **Code-to-Code (categories 14-19):** compare changed code patterns to surrounding implementation patterns for consistency.
 
-These are files the subtask author identified as relevant context. Read them to understand:
-- Existing patterns in the referenced implementation files
-- Documentation standards from any `.md` files referenced
-- Expected code style from surrounding context
-
-#### Atomic Doc References
-
-**Special handling for `@context/` paths:** When `filesToRead` contains paths starting with `@context/` (atomic documentation), these represent explicit guidance the code should follow. For example:
-
-| Atomic Doc Path | Code Should Follow |
-|-----------------|-------------------|
-| `@context/blocks/quality/data-integrity.md` | Null checks, race condition guards, validation patterns |
-| `@context/blocks/quality/performance.md` | N+1 avoidance, memory management, algorithm efficiency |
-| `@context/blocks/security/secure-coding.md` | OWASP Top 10 mitigations, input validation, secrets handling |
-| `@context/blocks/test/testing.md` | Test structure, coverage expectations, mock patterns |
-
-When atomic docs are referenced:
-1. Read the atomic doc to understand the guidance
-2. Verify the code changes follow that guidance
-3. Flag drift when code contradicts the atomic doc's recommendations
-
-### 4. Project Standards
-Check for project-specific quality standards:
-- `CLAUDE.md` - Project conventions and coding standards
-- `.eslintrc.*` / `eslint.config.*` - Linting rules
-- `tsconfig.json` - TypeScript strictness
-- `.prettierrc*` - Formatting standards
-- `docs/coding-standards.md` or similar - Explicit standards documentation
+Apply this framework while evaluating the technical drift patterns below.
 
 ## What to Analyze
 
 ### Technical Drift Patterns
 
-**1. Missing Tests**
-Code changes that should have tests but don't.
+1. **Missing Tests**
+   - Code with meaningful behavior changes lacks corresponding automated coverage.
 
-**Example:**
-```diff
-+ export function calculateTax(amount: number, rate: number): number {
-+   return amount * rate;
-+ }
-```
-*Drift:* New utility function with business logic has no corresponding test file.
+2. **Inconsistent Patterns**
+   - Code diverges from established implementation patterns without strong justification.
 
-**Acceptable Variation:**
-- Test files exist and cover the functionality
-- Change is to configuration or documentation only
-- Simple type definitions or interfaces without logic
+3. **Missing Error Handling**
+   - Critical paths lack required error handling, propagation, or failure guards.
 
-**2. Inconsistent Patterns**
-Code that doesn't follow established patterns in the codebase.
+4. **Documentation Gaps**
+   - Public APIs or complex logic are insufficiently documented.
 
-**Example:**
-```diff
-+ // New file uses callbacks when rest of codebase uses async/await
-+ function fetchUser(id, callback) {
-+   db.query('SELECT * FROM users WHERE id = ?', [id], (err, result) => {
-+     callback(err, result);
-+   });
-+ }
-```
-*Drift:* The codebase uses `async/await` everywhere but this new code uses callbacks.
+5. **Type Safety Issues**
+   - Avoidable `any`, unsafe assertions, missing types, or weak runtime validation for dynamic inputs.
 
-**Acceptable Variation:**
-- Pattern is explicitly documented as acceptable for this use case
-- Library or framework constraint requires different pattern
-- Performance optimization with documented justification
+6. **Security Concerns**
+   - Potential vulnerabilities such as injection, unsafe interpolation, missing validation, or secret leakage.
 
-**3. Missing Error Handling**
-Critical paths without proper error handling.
+7. **Atomic Doc Non-Compliance**
+   - Code contradicts guidance from atomic docs included in `referencedFiles`.
 
-**Example:**
-```diff
-+ async function processPayment(order) {
-+   const result = await paymentGateway.charge(order.total);
-+   return result.transactionId;
-+ }
-```
-*Drift:* Payment processing (critical path) has no try/catch or error handling.
+### Acceptable Variation (Do NOT flag)
 
-**Acceptable Variation:**
-- Error handling exists at a higher level (documented)
-- Errors are intentionally propagated to caller
-- Non-critical operation where failure is acceptable
-
-**4. Documentation Gaps**
-Public APIs or complex logic without documentation.
-
-**Example:**
-```diff
-+ export function calculateShippingCost(weight, dimensions, destination, expedited, fragile, insurance) {
-+   // 50 lines of complex calculation
-+ }
-```
-*Drift:* Complex function with 6 parameters has no JSDoc or inline comments.
-
-**Acceptable Variation:**
-- Internal utility with self-documenting code
-- README or external docs cover the API
-- Simple pass-through or delegation functions
-
-**5. Type Safety Issues**
-Use of `any`, type assertions, or missing types in TypeScript projects.
-
-**Example:**
-```diff
-+ function processData(data: any): any {
-+   return data.items.map((item: any) => item.value);
-+ }
-```
-*Drift:* Multiple `any` types defeat TypeScript's type safety.
-
-**Acceptable Variation:**
-- External library without type definitions (and `@ts-ignore` comment)
-- Genuinely dynamic data with runtime validation
-- Transitional code with TODO comment for future typing
-
-**6. Security Concerns**
-Code with potential security issues.
-
-**Example:**
-```diff
-+ app.get('/user/:id', (req, res) => {
-+   const query = `SELECT * FROM users WHERE id = ${req.params.id}`;
-+   db.query(query);
-+ });
-```
-*Drift:* SQL injection vulnerability from string interpolation.
-
-**Acceptable Variation:**
-- Input is already validated/sanitized at middleware level
-- Parameterized queries used (this example should be flagged)
-- Test code or fixtures (clearly isolated)
-
-**7. Does Not Follow Atomic Doc Guidance**
-Code that contradicts guidance from atomic docs referenced in the subtask's `filesToRead`.
-
-**Example:**
-```json
-// Subtask filesToRead:
-["@context/blocks/quality/data-integrity.md", "src/services/user.ts"]
-```
-```diff
-+ // data-integrity.md says: "Always check array bounds before access"
-+ function getFirstUser(users) {
-+   return users[0].name;  // No bounds check!
-+ }
-```
-*Drift:* The atomic doc explicitly recommends array bounds checking, but the code accesses `users[0]` without checking if the array is non-empty.
-
-**Acceptable Variation:**
-- Code has equivalent protection (e.g., TypeScript non-empty array type)
-- Caller guarantees precondition (documented at call site)
-- Guidance is marked as "optional" or "when applicable" in the atomic doc
+- Existing project-wide pattern where no stricter standard is documented
+- Non-functional config/docs-only changes
+- Intentional deviations with strong local rationale
+- Work-in-progress markers that clearly scope deferred improvements
 
 ## Don't Over-Flag Guard
 
-**Important:** Do NOT flag as drift:
-- Style preferences not documented in project standards
-- Minor variations that don't affect functionality
-- Code that follows the established patterns in surrounding files
-- Changes that are clearly work-in-progress with TODO markers
+Do NOT flag style-only preferences unless a concrete standard in the provided context requires it.
 
-Check the codebase context. If surrounding code has the same "issue," it's the project's established pattern, not drift.
+When in doubt:
+- Prefer lower confidence
+- Or skip flagging if evidence is weak
 
 ## Escape Hatch: HUMAN APPROVED
 
-Code marked with a `// HUMAN APPROVED` comment should be **ignored** during technical drift analysis. This escape hatch allows developers to explicitly acknowledge a deviation from standards when there's a valid reason.
-
-### Format
-
-The comment can appear in several forms:
-
-```typescript
-// HUMAN APPROVED: Using any here because external API has no types
-function processExternalData(data: any) { ... }
-
-// HUMAN APPROVED - Performance optimization requires callback pattern
-function highFrequencyHandler(callback) { ... }
-
-/* HUMAN APPROVED: No tests needed - pure type re-export */
-export type { UserDTO } from './types';
-```
-
-### When to Respect the Escape Hatch
-
-- The comment must contain `HUMAN APPROVED` (case-insensitive: `human approved`, `Human Approved`, etc.)
-- The comment should ideally include a reason, but is valid without one
-- The approval applies to the immediately following code (function, class, or statement)
-
-### When NOT to Respect the Escape Hatch
-
-- Security vulnerabilities (e.g., SQL injection, XSS) - these should always be flagged regardless of approval
-- Comments that appear to be auto-generated or templated without human review
-- Blanket approvals covering large sections of code (e.g., `// HUMAN APPROVED: entire file`)
-
-### Example
-
-**Git Diff:**
-```diff
-+ // HUMAN APPROVED: Legacy integration requires callback pattern
-+ function legacyHandler(data, callback) {
-+   oldSystem.process(data, (err, result) => {
-+     callback(err, result);
-+   });
-+ }
-```
-
-**Judgment:** NO DRIFT - The callback pattern would normally be flagged as inconsistent with async/await patterns, but the `HUMAN APPROVED` comment indicates this was a deliberate decision for legacy integration.
-
-## Few-Shot Examples
-
-### Example 1: Clear Drift (Flag This)
-
-**Subtask:** "Add user service to fetch user data"
-**Project standard:** All services have corresponding test files
-
-**Git Diff:**
-```diff
-+ // src/services/userService.ts
-+ export async function getUserById(id: string): Promise<User> {
-+   return db.users.findUnique({ where: { id } });
-+ }
-+
-+ export async function updateUser(id: string, data: Partial<User>): Promise<User> {
-+   return db.users.update({ where: { id }, data });
-+ }
-```
-
-**Judgment:** DRIFT - Missing Tests
-- Two new service functions added
-- No corresponding `userService.test.ts` file created
-- Project has test files for all other services
-
-### Example 2: Acceptable (Don't Flag)
-
-**Subtask:** "Add user service to fetch user data"
-**Project standard:** All services have corresponding test files
-
-**Git Diff:**
-```diff
-+ // src/services/userService.ts
-+ export async function getUserById(id: string): Promise<User> {
-+   return db.users.findUnique({ where: { id } });
-+ }
-
-+ // src/services/__tests__/userService.test.ts
-+ describe('userService', () => {
-+   test('getUserById returns user', async () => {
-+     const user = await getUserById('123');
-+     expect(user).toBeDefined();
-+   });
-+ });
-```
-
-**Judgment:** NO DRIFT
-- Service function added
-- Corresponding test file created
-- Follows project patterns
-
-### Example 3: Clear Drift (Flag This)
-
-**Subtask:** "Implement API endpoint for order creation"
-**Project standard:** TypeScript strict mode, no `any` types
-
-**Git Diff:**
-```diff
-+ app.post('/orders', async (req: any, res: any) => {
-+   const order: any = req.body;
-+   const result = await orderService.create(order);
-+   res.json(result);
-+ });
-```
-
-**Judgment:** DRIFT - Type Safety Issues
-- Uses `any` for request, response, and body
-- Project uses strict TypeScript
-- Other endpoints have proper types
-
-### Example 4: Acceptable (Don't Flag)
-
-**Subtask:** "Implement API endpoint for order creation"
-**Project standard:** TypeScript strict mode
-
-**Git Diff:**
-```diff
-+ import { Request, Response } from 'express';
-+ import { CreateOrderDTO, Order } from '../types';
-+
-+ app.post('/orders', async (req: Request<{}, {}, CreateOrderDTO>, res: Response<Order>) => {
-+   const result = await orderService.create(req.body);
-+   res.json(result);
-+ });
-```
-
-**Judgment:** NO DRIFT
-- Proper typing for request and response
-- DTO type for request body
-- Follows project patterns
+Respect `HUMAN APPROVED` comments as intentional deviations, except for clear security vulnerabilities.
 
 ## Output Format
 
-### 1. Summary to stdout
+Output ONLY valid JSON (markdown code fence optional).
 
-```markdown
-# Technical Drift Analysis
+Required output JSON:
 
-## Subtask: <subtask-id>
-**Title:** <subtask title>
-**Commit:** <commitHash>
-**Date:** <analysis date>
-
-## Project Standards Checked
-- Tests: <Yes/No/Not configured>
-- Linting: <Yes/No/Not configured>
-- TypeScript: <Yes/No/Not configured>
-- Documentation: <Yes/No/Not configured>
-
-## Analysis
-
-### Drift Detected: <Yes/No>
-
-<If no drift:>
-Code quality meets project standards. No corrective action needed.
-
-<If drift detected:>
-### Issues Found
-
-#### 1. <Issue Type>
-**Severity:** <High/Medium/Low>
-**Evidence:** <Specific code showing the issue>
-**Standard:** <What the project standard requires>
-**Recommendation:** <How to fix>
-
-## Summary
-- **Total issues:** <count>
-- **High severity:** <count>
-- **Medium severity:** <count>
-- **Low severity:** <count>
-
-## Recommendation
-<If drift:> See task file created in `docs/planning/tasks/`
-<If no drift:> No action required.
+```json
+{
+  "summary": "short analysis summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "TASK-###",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
 ```
 
-### 2. Task Files for Technical Issues
-
-When technical drift is detected, create a task file:
-
-**File:** `docs/planning/tasks/tech-<subtask-id>-<date>.md`
-
-```markdown
-## Task: Address technical drift in <subtask-id>
-
-**Source:** Technical drift analysis
-**Created:** <date>
-**Commit:** <commitHash>
-
-### Problem
-<Description of the technical issues detected>
-
-### Issues
-
-#### 1. <Issue Type>
-**Severity:** <High/Medium/Low>
-**Files affected:** <list of files>
-**Evidence:**
-```
-<code snippet>
-```
-**Fix:** <specific change needed>
-
-### Acceptance Criteria
-- [ ] All high-severity issues addressed
-- [ ] Medium-severity issues addressed or documented as tech debt
-- [ ] Code passes lint checks
-- [ ] Tests added where missing
-```
+Rules:
+- Return JSON only.
+- If no actionable drift is detected, return `"correctiveSubtasks": []` with a concise summary.
+- `insertionMode` should default to `"prepend"`.
+- Propose corrective subtasks only; do not propose standalone task files.
 
 ## Execution Instructions
 
-### Phase 1: Gather Context
+For each batch entry:
+1. Read `subtask` to understand scope and acceptance criteria.
+2. Use `diff` to evaluate actual implementation changes.
+3. Use `referencedFiles` to evaluate standards alignment (including atomic docs/config/source patterns).
+4. Assess drift patterns with the structured framework and over-flag guardrails.
 
-1. Read `subtasks.json` to find completed subtasks with `commitHash`
-2. Read project standards:
-   - `CLAUDE.md` - Project conventions and coding standards
-   - `.eslintrc.*` / `eslint.config.*` - Linting rules
-   - `tsconfig.json` - TypeScript strictness
-3. For each completed subtask, gather:
-   - The git diff: `git show <commitHash> --stat` and `git diff <commitHash>^..<commitHash>`
-   - The `filesToRead` array contents (context files and atomic docs)
-   - Any atomic docs referenced (`@context/` paths)
-
-### Phase 2: Spawn Parallel Analyzers
-
-**CRITICAL:** All Task calls must be in a single message for parallel execution.
-
-For each completed subtask with `commitHash`, spawn an analyzer subagent:
-
-```
-Launch ALL these Task tool calls in a SINGLE message:
-
-Task 1: general-purpose agent (for subtask SUB-001)
-  - subagent_type: "general-purpose"
-  - model: "opus"
-  - prompt: |
-      Analyze this subtask for technical drift. Output JSON findings.
-
-      <subtask>
-      {subtask JSON including id, title, description, filesToRead}
-      </subtask>
-
-      <project-standards>
-      {CLAUDE.md content}
-      {lint config summary}
-      {tsconfig strictness settings}
-      </project-standards>
-
-      <atomic-docs>
-      {content of any @context/ files from filesToRead}
-      </atomic-docs>
-
-      <diff>
-      {git diff output}
-      </diff>
-
-      Check for these technical drift patterns:
-      1. Missing Tests - code changes without corresponding tests
-      2. Inconsistent Patterns - doesn't follow established patterns
-      3. Missing Error Handling - critical paths without error handling
-      4. Documentation Gaps - public APIs without docs
-      5. Type Safety Issues - any types, missing types
-      6. Security Concerns - injection, XSS, etc.
-      7. Atomic Doc Non-Compliance - violates guidance from referenced atomic docs
-
-      Apply "Don't Over-Flag" guard: Check if surrounding code has same pattern.
-      Respect "HUMAN APPROVED" escape hatch comments.
-
-      Output format:
-      ```json
-      {
-        "subtaskId": "SUB-001",
-        "issues": [
-          {
-            "type": "missing-tests|inconsistent-pattern|missing-error-handling|documentation-gap|type-safety|security|atomic-doc-violation",
-            "severity": "high|medium|low",
-            "confidence": 0.0-1.0,
-            "file": "path/to/file.ts",
-            "line": 45,
-            "evidence": "specific code showing the issue",
-            "standard": "what project standard requires",
-            "recommendation": "how to fix"
-          }
-        ]
-      }
-      ```
-
-Task 2: general-purpose agent (for subtask SUB-002)
-  - subagent_type: "general-purpose"
-  - model: "opus"
-  - prompt: |
-      [same structure for next subtask]
-
-... one Task call per completed subtask with commitHash
-```
-
-### Phase 3: Synthesize Findings
-
-After all analyzers complete, synthesize the results:
-
-1. **Aggregate** - Collect all issues from parallel analyzers
-2. **Dedupe** - Remove duplicate issues (same file + line + similar description)
-   - Keep higher confidence finding
-   - Elevate to max severity if they differ
-   - Combine source attributions
-3. **Score** - Calculate priority: `severity_weight × confidence`
-   - high = 3, medium = 2, low = 1
-4. **Group** - Organize by file for navigation
-
-Output synthesized summary:
-
-```markdown
-# Technical Drift Analysis Summary
-
-## Statistics
-- Subtasks analyzed: N
-- Total issues: N (unique after dedupe)
-- By severity: high (N), medium (N), low (N)
-- By type: missing-tests (N), security (N), ...
-
-## Findings by File
-
-### path/to/file.ts (N issues)
-
-#### 1. [issue type] - Line XX
-**Severity:** high/medium/low
-**Confidence:** 0.X
-**Evidence:** ...
-**Fix:** ...
-
-### path/to/other.ts (N issues)
-...
-```
-
-### Phase 4: Create Task Files
-
-For each high-severity issue or group of related issues, create a task file in `docs/planning/tasks/` following the format in the Output Format section above.
-
-## Configuration
-
-Check `ralph.config.json` for the `techDriftTasks` setting:
-- `"auto"` (default): Creates tech drift task files automatically
-- `"always"`: Requires user approval before creating task files
-
-**CLI overrides:**
-- `--force`: Skip approval even if config says `"always"`
-- `--review`: Require approval even if config says `"auto"`
-
-## Important Notes
-
-- **Quality, not intention:** This prompt checks code quality standards, not alignment with planning docs (that's intention drift)
-- **Propose only:** Don't modify code directly—only create task files
-- **False positives:** When in doubt, don't flag. Some variations are acceptable engineering decisions
-- **Context matters:** Consider the project's actual patterns, not ideal patterns
-- **Severity matters:** Distinguish between critical issues (security, missing tests for critical code) and minor issues (style preferences)
+Then synthesize across the batch:
+- Summarize key technical drift themes.
+- Emit deterministic corrective subtasks only when drift is clear and actionable.

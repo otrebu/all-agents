@@ -1,3 +1,8 @@
+---
+name: setup-lint-staged
+description: "Set up lint-staged for optimized pre-commit validation in a target repository. Use when user asks to setup lint-staged or optimize pre-commit."
+---
+
 # Setup lint-staged
 
 Set up lint-staged for optimized pre-commit validation in a target repository.

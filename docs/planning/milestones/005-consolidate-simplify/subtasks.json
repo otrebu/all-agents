@@ -68,9 +68,6 @@
         "context/blocks/docs/naming-convention.md",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": [
-        "SUB-002"
-      ],
       "completedAt": "2026-02-08T18:15:54Z",
       "commitHash": "101f27d2c548a4ba11502e3dd95e2316b807b9d6",
       "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
@@ -91,9 +88,6 @@
         "tools/src/commands/ralph/config.ts",
         "tools/src/commands/ralph/build-invariant.ts",
         "docs/planning/consolidating.md"
-      ],
-      "blockedBy": [
-        "SUB-002"
       ],
       "completedAt": "2026-02-08T18:23:23Z",
       "commitHash": "416ed65f2380b7ee0941f432ec5930d38db4b895",
@@ -118,9 +112,6 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/build.ts",
         "docs/planning/consolidating.md"
-      ],
-      "blockedBy": [
-        "SUB-004"
       ],
       "completedAt": "2026-02-08T18:35:27Z",
       "commitHash": "d1ac7331225f0ea8005b13022c86338926ca1556",
@@ -166,9 +157,6 @@
         "tools/src/commands/ralph/build.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": [
-        "SUB-005"
-      ],
       "completedAt": "2026-02-08T18:58:21Z",
       "commitHash": "1c0a57271913ac704dc5bf64e9b46753f360b48f",
       "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
@@ -190,9 +178,6 @@
         "context/workflows/ralph/building/ralph-iteration.md",
         "tools/src/commands/ralph/build.ts",
         "docs/planning/consolidating.md"
-      ],
-      "blockedBy": [
-        "SUB-005"
       ],
       "completedAt": "2026-02-08T19:01:26Z",
       "commitHash": "3d92488c944d21663a06761c43d2842a2675ab61",
@@ -217,9 +202,6 @@
         "tools/src/commands/ralph/config.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": [
-        "SUB-007"
-      ],
       "completedAt": "2026-02-08T19:09:24Z",
       "commitHash": "1c56d96ebc8e4e65a5e4b9623018fb074330863c",
       "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
@@ -243,9 +225,6 @@
         "docs/ralph/README.md",
         "tools/src/commands/ralph/index.ts",
         "docs/planning/consolidating.md"
-      ],
-      "blockedBy": [
-        "SUB-005"
       ],
       "completedAt": "2026-02-08T19:12:21Z",
       "commitHash": "751765ff9ee8096a215f5116de75ab52f4050ffe",
@@ -293,9 +272,6 @@
         "context/blocks/docs/naming-convention.md",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": [
-        "SUB-003"
-      ],
       "completedAt": "2026-02-08T19:17:20Z",
       "commitHash": "d19295b669773561e45b15e598fd690e58a300c4",
       "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
@@ -320,9 +296,6 @@
         "context/workflows/ralph/planning/tasks-auto.md",
         ".claude/skills/ralph-plan/SKILL.md",
         "docs/planning/consolidating.md"
-      ],
-      "blockedBy": [
-        "SUB-012"
       ],
       "completedAt": "2026-02-08T19:19:57Z",
       "commitHash": "47383c13a5abb2ec06e7923599229f0f1982accb",
@@ -350,10 +323,6 @@
         "tools/src/commands/ralph/config.ts",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": [
-        "SUB-007",
-        "SUB-009"
-      ],
       "completedAt": "2026-02-08T19:29:11Z",
       "commitHash": "836968f38a0481a485e535c4dacd54c8ab90d091",
       "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
@@ -380,9 +349,6 @@
         "context/blocks/docs/naming-convention.md",
         "docs/planning/consolidating.md"
       ],
-      "blockedBy": [
-        "SUB-003"
-      ],
       "completedAt": "2026-02-08T19:32:36Z",
       "commitHash": "a80e2347a0f1c4b804dcabfbb0becb50967662f5",
       "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
@@ -408,9 +374,6 @@
         "tools/lib/numbered-files.ts",
         "tools/src/commands/ralph/config.ts",
         "docs/planning/consolidating.md"
-      ],
-      "blockedBy": [
-        "SUB-002"
       ],
       "completedAt": "2026-02-08T19:41:58Z",
       "commitHash": "091d97f879d4d84ce5f03b1b369f11b4581b650b",
@@ -453,9 +416,6 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/display.ts",
         "tools/tests/e2e/ralph.test.ts"
-      ],
-      "blockedBy": [
-        "SUB-017"
       ],
       "completedAt": "2026-02-08T20:05:18Z",
       "commitHash": "ea70df5f142abe0d4c4c447460478ce475f86bdb",
@@ -500,9 +460,6 @@
         "tools/README.md",
         "context/workflows/ralph/planning/subtasks-from-source.md"
       ],
-      "blockedBy": [
-        "SUB-019"
-      ],
       "completedAt": "2026-02-08T20:14:15Z",
       "commitHash": "336308f760d4a348e5ce06da763abc78f9c12fdb",
       "sessionId": "003c0b48-9ad7-4bfb-a401-689676e45d3d"
@@ -523,11 +480,6 @@
         "tools/tests/e2e/ralph.test.ts",
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/config.ts"
-      ],
-      "blockedBy": [
-        "SUB-018",
-        "SUB-019",
-        "SUB-020"
       ],
       "completedAt": "2026-02-08T20:22:02Z",
       "commitHash": "28faf35c7e87a019faba71857abd98ab7f6793ce",

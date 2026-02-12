@@ -84,9 +84,6 @@
         "tools/src/commands/ralph/providers/utils.ts",
         "docs/planning/milestones/004-MULTI-CLI/tasks/TASK-038-shared-utilities.md"
       ],
-      "blockedBy": [
-        "SUB-249"
-      ],
       "completedAt": "2026-02-05T15:16:45Z",
       "commitHash": "1f042e6539c6b3e8f735ed123361b5f53419ab91",
       "sessionId": "131eb08d-522a-4d9f-952c-f471979b059c"
@@ -123,7 +120,6 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/claude.ts"
       ],
-      "blockedBy": [],
       "completedAt": "2026-02-05T16:07:59Z",
       "commitHash": "8b625ce3a08b767948986b6a017662e0dc4c168e",
       "sessionId": "62448e1b-680d-4867-bd7c-7ecae29c2f90"
@@ -187,9 +183,6 @@
         "tools/tests/lib/ralph-config.test.ts",
         "tools/tests/lib/ralph-hooks.test.ts"
       ],
-      "blockedBy": [
-        "SUB-244"
-      ],
       "completedAt": "2026-02-05T17:05:17Z",
       "commitHash": "9da7f4a17afa917b0fa138b067a9d60edf768019",
       "sessionId": "2cb6b559-d364-4e89-8e97-164940ab2b0d"
@@ -251,7 +244,6 @@
         "tools/src/commands/ralph/providers/registry.ts",
         "tools/src/commands/ralph/providers/types.ts"
       ],
-      "blockedBy": [],
       "completedAt": "2026-02-05T17:35:49Z",
       "commitHash": "652bd9782fee8bcd7a3422816fd97e3f9df47b5e",
       "sessionId": "5c9f9417-aea4-42ba-8789-3dfb37092e2a"
@@ -292,9 +284,6 @@
       "title": "Update all dependent imports and delete original claude.ts",
       "description": "Update all files that import from ./claude to import from ./providers/claude instead. There are 5 dependent files: (1) tools/src/commands/ralph/build.ts imports buildPrompt, invokeClaudeChat, invokeClaudeHeadlessAsync; (2) tools/src/commands/ralph/index.ts imports multiple claude functions; (3) tools/src/commands/ralph/calibrate.ts imports invokeClaudeHeadlessAsync (updated in timeout protection migration); (4) tools/src/commands/ralph/post-iteration.ts imports invokeClaudeHaiku; (5) tools/src/commands/review/index.ts imports invokeClaudeChat, invokeClaudeHeadlessAsync from ../ralph/claude (becomes ../ralph/providers/claude). NOTE: calibrate.ts and review/index.ts were updated to use invokeClaudeHeadlessAsync (replacing the removed sync invokeClaudeHeadless) during the timeout protection migration. After updating all imports, delete the original tools/src/commands/ralph/claude.ts. Verify TypeScript compiles cleanly with bun run typecheck. Run existing tests to confirm no regressions.",
       "done": true,
-      "blockedBy": [
-        "SUB-254"
-      ],
       "acceptanceCriteria": [
         "build.ts imports from ./providers/claude instead of ./claude",
         "index.ts imports from ./providers/claude instead of ./claude",
@@ -495,7 +484,6 @@
         "tools/src/commands/completion/fish.ts",
         "tools/CLAUDE.md"
       ],
-      "blockedBy": [],
       "completedAt": "2026-02-05T23:17:49Z",
       "commitHash": "6e23f2d42cdea123ef118b596a06483d0bb99f24",
       "sessionId": "71b898a7-f39f-4501-a9ab-8aca29fa370b"
@@ -528,10 +516,6 @@
         "tools/src/commands/ralph/providers/types.ts",
         "tools/src/commands/ralph/providers/utils.ts",
         "tools/src/commands/ralph/providers/registry.ts"
-      ],
-      "blockedBy": [
-        "SUB-249",
-        "SUB-239"
       ],
       "completedAt": "2026-02-06T07:16:22Z",
       "commitHash": "9ad7b6e49b49efa1079137320fd68ccfb27affb9",

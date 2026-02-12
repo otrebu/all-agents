@@ -2,7 +2,7 @@ import { ubaEslintConfig } from "uba-eslint-config";
 
 export default [
   ...ubaEslintConfig,
-  { ignores: ["node_modules/**", "dist/**"] },
+  { ignores: ["node_modules/**", "dist/**", "scripts/**"] },
   {
     // Define Bun as a global for Bun runtime environment
     languageOptions: { globals: { Bun: "readonly" } },

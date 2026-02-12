@@ -57,7 +57,7 @@ Confirm the subtask you must work on for this iteration.
 **Sanity checks (quick):**
 1. Verify the assigned subtask exists in the subtasks file and is `done: false`
 2. If it’s already `done: true`, stop and report (queue is stale)
-3. If it’s blocked by incomplete `blockedBy`, stop and report (dependency issue)
+3. If assigned-subtask selection is inconsistent with queue order, stop and report (assignment issue)
 4. Do not mark any other subtask `done`, and do not start or plan the next subtask in this iteration
 
 ### Phase 3: Investigate
@@ -130,104 +130,91 @@ For each acceptance criterion:
 ```markdown
 ## AC Verification: SUB-047
 
-| # | Criterion | Tier | Command | Result | Evidence |
-|---|-----------|------|---------|--------|----------|
-| 1 | diary.ts exists with extracted functions | static | `test -f .../diary.ts` | PASS | File exists |
-| 2 | DIARY_PATH constant moved | content | `grep -q DIARY_PATH diary.ts` | PASS | Line 12 |
-| 3 | TypeScript compiles | behavioral | `bun run typecheck` | PASS | Exit 0 |
-| 4 | index.ts imports diary | content | `grep -q "from './diary'" index.ts` | PASS | Line 8 |
+| # | Criterion | Tier | Tool | Command / Check | Result | Evidence / Artifact Path |
+|---|-----------|------|------|------------------|--------|--------------------------|
+| 1 | diary.ts exists with extracted functions | static | shell | `test -f src/diary.ts` | PASS | `src/diary.ts` |
+| 2 | DIARY_PATH constant moved | content | shell | `rg "DIARY_PATH" src/diary.ts` | PASS | `src/diary.ts:12` |
+| 3 | Settings form saves and renders success toast | behavioral | e2e + agent-browser | `pnpm test tests/e2e/settings.save.spec.ts` + visual confirm | PASS | `artifacts/e2e/settings-save.xml`, `artifacts/browser/SUB-047/settings-toast.png` |
+| 4 | index.ts imports diary | content | shell | `rg "from './diary'" src/index.ts` | PASS | `src/index.ts:8` |
 
-**Summary:** 4/4 PASS → Proceed to commit
+**Summary:** 4/4 PASS -> Proceed to commit
 ```
 
 #### Generate Tests From AC
 
-**MANDATORY:** Tests are not optional. Every behavioral AC MUST have a corresponding test.
+**MANDATORY:** Tests are not optional. Every behavioral AC MUST have a corresponding automated test. No BDD rewrite required - map behavioral AC text directly to executable tests (Gherkin is optional, not required).
 
-##### Test Types and Locations
+##### Test Profile Selection (Required)
 
-| Change Type | Test Type | Location | File Pattern |
-|-------------|-----------|----------|--------------|
-| New CLI command | E2E | `tools/tests/e2e/` | `<command>.test.ts` |
-| New CLI flag | E2E | `tools/tests/e2e/` | Add to existing command test |
-| New utility function | Unit | `tools/tests/lib/` | `<module>.test.ts` |
-| New module extraction | Unit | `tools/tests/lib/` | `<module>.test.ts` |
-| Bug fix | Regression | Appropriate location | Add test that would have caught the bug |
+Pick the profile that best matches subtask intent, then generate tests from AC using that profile.
 
-##### AC-to-Test Mapping (Required)
+Use profile names from:
+- @context/workflows/ralph/planning/components/testing-profile-contract.md
 
-| AC Pattern | Required Test |
-|------------|---------------|
-| "Command X exists" | `test("X --help exits 0")` with `execa` |
-| "Flag --Y works" | `test("--Y flag is recognized")` with `execa` |
-| "Returns error on Z" | `test("fails with error on Z", { reject: false })` |
-| "Output contains W" | `expect(stdout).toContain("W")` |
-| "File X is created" | `expect(existsSync(X)).toBe(true)` |
-| "Function exports Y" | `expect(typeof module.Y).toBe("function")` |
-| "Throws on invalid input" | `expect(() => fn(invalid)).toThrow()` |
+| Profile | Typical Signals in AC | Required Automated Coverage |
+|---------|------------------------|-----------------------------|
+| `cli_command` | new command behavior, exit code, output contract | CLI E2E or integration tests executing command end-to-end |
+| `cli_flag` | new/changed flag semantics | CLI E2E or integration tests asserting flag behavior |
+| `web_ui_visual` | UI state/layout/interaction visibility | Agent Browser visual verification + automated assertion where feasible |
+| `web_user_flow` | multi-step user journey | Browser-driven automated E2E for behavior |
+| `api_endpoint` | route/procedure contract and errors | API integration tests for status/payload/error cases |
+| `module` | pure logic, utility, domain rules | Unit tests with deterministic inputs/outputs |
+| `refactor` | extraction/reorganization without intended behavior change | Regression coverage proving parity at unchanged interfaces |
+| `bug_fix` | defect reproduction and prevention | Failing regression test first (or equivalent), then passing test after fix |
 
-##### Test Template (E2E for CLI)
+If a subtask spans multiple surfaces, use mixed profiles (for example `web_user_flow + api_endpoint`).
 
-**Note:** Current tests use `execa` but consider alternatives like `Bun.spawn` for native Bun subprocess handling. Follow existing project patterns.
+##### Profile-Based AC-to-Test Mapping (Required)
 
-```typescript
-// tools/tests/e2e/<command>.test.ts
-import { describe, expect, test } from "bun:test";
-import { execa } from "execa";  // Or use Bun.spawn if preferred
+When AC lines are prefix-qualified, parse by prefix first:
+- `[Behavioral]` -> automated test implementation/execution
+- `[Visual]` -> Agent Browser verification with artifact path
+- `[Regression]` -> targeted regression case
+- `[Evidence]` -> proof payload in verification report
 
-describe("aaa <command>", () => {
-  test("--help shows usage", async () => {
-    const { exitCode, stdout } = await execa("bun", ["run", "dev", "<command>", "--help"]);
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain("<expected content>");
-  });
+| AC Pattern | Profile | Required Test Mapping |
+|------------|---------|-----------------------|
+| Command behavior/flags/errors | `cli_command` / `cli_flag` | CLI E2E test asserting exit code + stdout/stderr semantics |
+| User can complete web flow | `web_user_flow` | Automated E2E journey test asserting UI transitions and persisted outcome |
+| Visual UI quality/state | `web_ui_visual` | Agent Browser visual verification (artifact required) + automated assertion where feasible |
+| Endpoint contract/status/errors | `api_endpoint` | Integration test asserting status, payload shape, and error paths |
+| Function/module behavior | `module` | Unit test asserting deterministic result and invalid-input handling |
+| Behavior preserved after extraction | `refactor` | Regression test at unchanged interface proving parity |
+| Reported bug no longer reproduces | `bug_fix` | Regression test that fails before fix and passes after fix |
 
-  test("fails gracefully on invalid input", async () => {
-    const { exitCode, stderr } = await execa(
-      "bun", ["run", "dev", "<command>", "--invalid"],
-      { reject: false }
-    );
-    expect(exitCode).toBe(1);
-    expect(stderr).toContain("error");
-  });
-});
+##### Mixed TDD Guidance
 
-// Alternative with Bun.spawn:
-// const proc = Bun.spawn(["bun", "run", "dev", "<command>", "--help"]);
-// const stdout = await new Response(proc.stdout).text();
-// expect(proc.exitCode).toBe(0);
-```
+- Use outside-in TDD for flow/entrypoint profiles: `cli_command`, `cli_flag`, `web_user_flow`.
+- Use unit/component-first TDD for logic profiles: `web_ui_visual`, `module`, `api_endpoint`.
+- Use characterization-first for `refactor`.
+- Use failing regression first for `bug_fix`.
+- In mixed subtasks, start with an outer flow test, then fill logic seams with unit tests.
 
-##### Test Template (Unit for modules)
+##### Web UI Verification Mode (Agent Browser)
 
-```typescript
-// tools/tests/lib/<module>.test.ts
-import { describe, expect, test } from "bun:test";
-import { functionName } from "../../src/commands/<path>/<module>";
+Use this mode whenever an AC references visual state, interaction flow, or UX behavior.
 
-describe("<module>", () => {
-  test("functionName does X", () => {
-    const result = functionName(input);
-    expect(result).toBe(expected);
-  });
+1. Launch the app in deterministic test mode (fixed seed/data where possible).
+2. Navigate and perform the AC scenario using Agent Browser.
+3. Capture artifacts (screenshot/video/log) under a stable path, for example `artifacts/browser/<subtask-id>/...`.
+4. Record exact artifact paths in the AC verification report.
+5. Pair visual verification with automated E2E for behavioral ACs; visual-only checks without browser artifacts do not pass.
 
-  test("functionName throws on invalid input", () => {
-    expect(() => functionName(invalid)).toThrow();
-  });
-});
-```
+Agent Browser steps are verification-only and must remain idempotent from a validation perspective (re-runs should produce equivalent pass/fail outcomes).
 
 ##### When Tests Are REQUIRED (Not Optional)
 
 | Subtask Creates | Test Required? | Justification |
 |-----------------|----------------|---------------|
-| New CLI command | **YES** | Must verify command runs |
-| New CLI flag | **YES** | Must verify flag is recognized |
-| New module with exports | **YES** | Must verify exports work |
-| Refactor (extract module) | **YES** | Must verify no regression |
+| CLI behavior change | **YES** | Must verify command semantics |
+| Web UI behavioral change | **YES** | Must verify user flow via automated E2E |
+| Web UI visual AC | **YES** | Must include Agent Browser artifact path |
+| API contract change | **YES** | Must verify request/response contract |
+| Module/domain logic change | **YES** | Must verify deterministic logic behavior |
+| Refactor | **YES** | Must verify no behavioral regression |
 | Bug fix | **YES** | Must prevent regression |
-| Documentation only | No | No code to test |
-| Config change only | No | No code to test |
+| Documentation only | No | No executable behavior changed |
+| Config change only | No | No direct runtime behavior to test |
 
 **If unsure:** Write the test. Over-testing is better than under-testing.
 
@@ -335,36 +322,9 @@ cc-session-id: 93025345-eb7a-4f43-819f-3fe206639718
 
 Update tracking files to reflect the completed work.
 
-#### 1. Update subtasks.json
+**Note:** The build loop automatically marks the subtask as done in subtasks.json when it detects a new commit. Do NOT modify subtasks.json manually.
 
-**IMPORTANT:** Use Ralph CLI queue commands as the primary completion path.
-
-**Required fields to add/update:**
-- `done`: Set to `true`
-- `completedAt`: ISO 8601 timestamp of completion
-- `commitHash`: Git commit hash from the commit phase
-- `sessionId`: The current Claude session ID (for self-improvement analysis)
-
-**Single-subtask invariant (TypeScript runtime):**
-- Runtime enforces that only the assigned subtask can transition from `done: false` to `done: true` in an iteration.
-- Runtime exits non-zero when unexpected completions occur.
-
-Use this completion flow:
-
-```bash
-# 1) Confirm assignment before mutation
-aaa ralph subtasks next --milestone <name-or-path>
-
-# 2) Mark the assigned subtask complete (writes done/completedAt/commitHash/sessionId)
-aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id> --commit <hash> --session <id>
-
-# 3) Verify queue state after completion
-aaa ralph subtasks list --milestone <name-or-path>
-```
-
-If queue mutation fails, use the break-glass troubleshooting commands in the Error Handling section.
-
-#### 2. Append to PROGRESS.md
+#### 1. Append to PROGRESS.md
 
 Add an entry to PROGRESS.md documenting what was done:
 
@@ -382,7 +342,7 @@ Add an entry to PROGRESS.md documenting what was done:
 - Subtask ID as subsection header (### subtask-id)
 - Include: problem addressed, changes made, files affected
 
-#### 3. Commit tracking changes
+#### 2. Commit tracking changes
 
 **IMPORTANT:** Since the code was already validated and committed in Phase 6,
 use `--no-verify` for tracking-only commits to skip redundant validation:

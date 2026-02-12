@@ -11,6 +11,8 @@
  * @see docs/planning/schemas/iteration-diary.schema.json
  */
 
+import { createHash } from "node:crypto";
+
 import type { ProviderType } from "./providers/types";
 
 // =============================================================================
@@ -18,15 +20,11 @@ import type { ProviderType } from "./providers/types";
 // =============================================================================
 
 /**
- * Options for the build loop
+ * Build options that control provider execution behavior.
  */
-interface BuildOptions {
-  /** Run calibration every N iterations (0 = disabled) */
-  calibrateEvery: number;
+interface BuildExecutionOptions {
   /** Pause between iterations for user confirmation */
   interactive: boolean;
-  /** Maximum iterations per subtask (0 = unlimited) */
-  maxIterations: number;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
   mode: "headless" | "supervised";
   /** Model to use (validated against registry before provider invocation) */
@@ -35,6 +33,25 @@ interface BuildOptions {
   provider?: ProviderType;
   /** Suppress terminal summary output */
   quiet: boolean;
+}
+
+/**
+ * Options for the build loop.
+ */
+type BuildOptions = BuildExecutionOptions & BuildQueueOptions;
+
+/**
+ * Build options that control queue handling and orchestration.
+ */
+interface BuildQueueOptions {
+  /** Run calibration every N iterations (0 = disabled) */
+  calibrateEvery: number;
+  /** Skip validation proposal approval prompts and auto-apply proposals */
+  force: boolean;
+  /** Maximum iterations per subtask (0 = unlimited) */
+  maxIterations: number;
+  /** Require explicit approval before applying validation proposals */
+  review: boolean;
   /** Skip lightweight summary generation in headless mode to reduce latency and cost */
   skipSummary: boolean;
   /** Path to subtasks.json file */
@@ -46,6 +63,21 @@ interface BuildOptions {
 // =============================================================================
 // Cascade Types
 // =============================================================================
+
+/**
+ * Calibration entry persisted to a milestone daily log file.
+ */
+interface CalibrationLogEntry {
+  milestone?: string;
+  mode?: "headless" | "supervised";
+  operationCount?: number;
+  sessionId?: string;
+  source?: string;
+  summary: string;
+  taskRef?: string;
+  timestamp: string;
+  type: "calibration";
+}
 
 /**
  * Definition of a cascade level
@@ -77,6 +109,10 @@ interface CascadeOptions {
   milestone: string;
 }
 
+// =============================================================================
+// Ralph Configuration Types (matches ralph-config.schema.json)
+// =============================================================================
+
 /**
  * Result of a cascade execution
  *
@@ -93,9 +129,17 @@ interface CascadeResult {
   success: boolean;
 }
 
-// =============================================================================
-// Ralph Configuration Types (matches ralph-config.schema.json)
-// =============================================================================
+/**
+ * Entry type discriminator for milestone daily JSONL logs.
+ */
+type DailyLogEntryType =
+  | "calibration"
+  | "iteration"
+  | "planning"
+  | "queue-apply"
+  | "queue-proposal"
+  | "subtask-review"
+  | "validation";
 
 /** Hook action types */
 type HookAction = "log" | "notify" | "pause";
@@ -129,8 +173,11 @@ interface HooksConfig {
 }
 
 /**
- * Entry in the iteration diary (logs/iterations.jsonl)
- * Tracks Ralph iteration outcomes for status reporting and calibration
+ * Entry in the iteration diary
+ *
+ * Iteration records can coexist with planning/validation/calibration records in
+ * milestone-scoped daily JSONL files. Status metrics should only consume
+ * iteration records.
  */
 interface IterationDiaryEntry {
   /** Total cost in USD for this iteration */
@@ -173,14 +220,8 @@ interface IterationDiaryEntry {
   toolCalls?: number;
   /**
    * Entry type discriminator for daily log files.
-   * Allows iteration, planning, and subtask-review entries to coexist in the same
-   * milestone-scoped daily JSONL file while being distinguishable.
-   *
-   * - 'iteration': Build iteration diary entry (Ralph build)
-   * - 'planning': Planning session log (Ralph plan)
-   * - 'subtask-review': Subtask sizing review findings (subtask-reviewer agent)
    */
-  type?: "iteration" | "planning" | "subtask-review";
+  type?: DailyLogEntryType;
 }
 
 /**
@@ -209,6 +250,14 @@ interface IterationTiming {
 }
 
 /**
+ * Subtasks payload loaded from disk with a computed replay fingerprint.
+ */
+interface LoadedSubtasksFile extends SubtasksFile {
+  /** Current queue replay fingerprint computed from id+done snapshot */
+  fingerprint: QueueFingerprint;
+}
+
+/**
  * Extended configuration for post-iteration hooks
  */
 interface PostIterationHookConfig extends HookConfig {
@@ -218,12 +267,133 @@ interface PostIterationHookConfig extends HookConfig {
   enabled?: boolean;
   /** Model to use for summary generation */
   model?: string;
-  /** Pause after every iteration */
-  pauseAlways?: boolean;
-  /** Pause when iteration fails */
-  pauseOnFailure?: boolean;
-  /** Pause when iteration succeeds */
-  pauseOnSuccess?: boolean;
+}
+
+/**
+ * Queue proposal apply event emitted after proposal handling.
+ */
+interface QueueApplyLogEntry {
+  afterFingerprint?: QueueFingerprint;
+  applied: boolean;
+  beforeFingerprint?: QueueFingerprint;
+  operationCount: number;
+  sessionId?: string;
+  source: string;
+  summary: string;
+  timestamp: string;
+  type: "queue-apply";
+}
+
+/** Insert a new subtask at an exact queue index. */
+interface QueueCreateOperation {
+  atIndex: number;
+  subtask: QueueSubtaskDraft;
+  type: "create";
+}
+
+/**
+ * Fingerprint for replay protection when applying queue proposals.
+ *
+ * The hash is computed from queue order and done-state snapshots
+ * (`<subtask.id>:<0|1>` joined by `|`) using SHA-256.
+ */
+interface QueueFingerprint {
+  /** SHA-256 hex digest of queue id+done snapshot */
+  hash: string;
+}
+
+/**
+ * Union of deterministic queue mutation operations.
+ */
+type QueueOperation =
+  | QueueCreateOperation
+  | QueueRemoveOperation
+  | QueueReorderOperation
+  | QueueSplitOperation
+  | QueueUpdateOperation;
+
+/**
+ * Queue mutation proposal emitted by validation/calibration.
+ */
+interface QueueProposal {
+  /** Replay-protection snapshot captured before proposal generation */
+  fingerprint: QueueFingerprint;
+  /** Ordered deterministic operations to apply */
+  operations: Array<QueueOperation>;
+  /** Origin of proposal generation (for audit/debugging) */
+  source: string;
+  /** ISO 8601 timestamp for proposal generation */
+  timestamp: string;
+}
+
+// =============================================================================
+// Subtask Types (matches subtasks.schema.json)
+// =============================================================================
+
+/**
+ * Queue proposal event emitted from validation or calibration.
+ */
+interface QueueProposalLogEntry {
+  operationCount: number;
+  proposal: QueueProposal;
+  sessionId?: string;
+  source: string;
+  summary: string;
+  timestamp: string;
+  type: "queue-proposal";
+}
+
+/** Remove a pending subtask by ID. */
+interface QueueRemoveOperation {
+  id: string;
+  type: "remove";
+}
+
+// =============================================================================
+// Queue Operation Types
+// =============================================================================
+
+/** Move an existing subtask to an exact queue index. */
+interface QueueReorderOperation {
+  id: string;
+  toIndex: number;
+  type: "reorder";
+}
+
+/** Replace one subtask with multiple deterministic children. */
+interface QueueSplitOperation {
+  id: string;
+  subtasks: Array<QueueSubtaskDraft>;
+  type: "split";
+}
+
+/**
+ * Minimal payload needed to create deterministic new subtasks.
+ */
+type QueueSubtaskDraft = {
+  /** Optional explicit ID; when omitted, apply-time allocates canonical SUB-### */
+  id?: string;
+  /** Optional story linkage */
+  storyRef?: null | string;
+} & Pick<
+  Subtask,
+  "acceptanceCriteria" | "description" | "filesToRead" | "taskRef" | "title"
+>;
+
+/** Patch mutable fields on an existing pending subtask. */
+interface QueueUpdateOperation {
+  changes: Partial<
+    Pick<
+      Subtask,
+      | "acceptanceCriteria"
+      | "description"
+      | "filesToRead"
+      | "storyRef"
+      | "title"
+    >
+  >;
+  id: string;
+  type: "update";
 }
 
 /**
@@ -260,8 +430,6 @@ interface SelfImprovementConfig {
 interface Subtask {
   /** Plain English descriptions of how to verify the subtask is complete */
   acceptanceCriteria: Array<string>;
-  /** IDs of subtasks that must complete before this one */
-  blockedBy?: Array<string>;
   /** Git commit hash that completed this subtask */
   commitHash?: string;
   /** Git commit message - helps calibration trace intent */
@@ -278,6 +446,10 @@ interface Subtask {
   id: string;
   /** Provider session ID that completed this subtask */
   sessionId?: string;
+  /** Absolute canonical path to session JSONL when known at completion time */
+  sessionLogPath?: string;
+  /** Repository root used to deterministically resolve session logs for this subtask */
+  sessionRepoRoot?: string;
   /** Reference to grandparent story if task has one */
   storyRef?: null | string;
   /** Reference to parent task (e.g., 'TASK-001') */
@@ -285,10 +457,6 @@ interface Subtask {
   /** Short descriptive title for commit messages and progress tracking */
   title: string;
 }
-
-// =============================================================================
-// Subtask Types (matches subtasks.schema.json)
-// =============================================================================
 
 /**
  * Subtask metadata for queue-level information
@@ -323,6 +491,37 @@ interface TokenUsage {
   contextTokens: number;
   /** Output tokens generated (summed across all API calls for cost tracking) */
   outputTokens: number;
+}
+
+/**
+ * Validation entry persisted to a milestone daily log file.
+ */
+interface ValidationLogEntry {
+  aligned?: boolean;
+  issueType?: string;
+  milestone?: string;
+  operationCount?: number;
+  sessionId?: string;
+  source?: string;
+  subtaskId?: string;
+  suggestion?: string;
+  summary: string;
+  taskRef?: string;
+  timestamp: string;
+  type: "validation";
+}
+
+/**
+ * Compute replay-protection fingerprint from queue id+done state.
+ */
+function computeFingerprint(
+  subtasks: Array<Pick<Subtask, "done" | "id">>,
+): QueueFingerprint {
+  const snapshot = subtasks
+    .map((subtask) => `${subtask.id}:${subtask.done ? "1" : "0"}`)
+    .join("|");
+
+  return { hash: createHash("sha256").update(snapshot).digest("hex") };
 }
 
 // =============================================================================
@@ -425,10 +624,15 @@ function normalizeStatus(raw: string): IterationStatus {
 // =============================================================================
 
 export {
+  type BuildExecutionOptions,
   type BuildOptions,
+  type BuildQueueOptions,
+  type CalibrationLogEntry,
   type CascadeLevel,
   type CascadeOptions,
   type CascadeResult,
+  computeFingerprint,
+  type DailyLogEntryType,
   getProviderTimingMs,
   type HookAction,
   type HookConfig,
@@ -436,14 +640,22 @@ export {
   type IterationDiaryEntry,
   type IterationStatus,
   type IterationTiming,
+  type LoadedSubtasksFile,
   normalizeIterationDiaryEntry,
   normalizeIterationTiming,
   normalizeStatus,
   type PostIterationHookConfig,
+  type QueueApplyLogEntry,
+  type QueueFingerprint,
+  type QueueOperation,
+  type QueueProposal,
+  type QueueProposalLogEntry,
+  type QueueSubtaskDraft,
   type RalphConfig,
   type SelfImprovementConfig,
   type Subtask,
   type SubtaskMetadata,
   type SubtasksFile,
   type TokenUsage,
+  type ValidationLogEntry,
 };

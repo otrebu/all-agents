@@ -200,9 +200,11 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s s -l supervis
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s H -l headless -d 'Headless mode: JSON output + logging'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s q -l quiet -d 'Suppress terminal summary output'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l max-iterations -d 'Max retry attempts' -r
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Run pre-build validation'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Validate first; may create/update/remove/reorder/split pending queue order'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-every -d 'Run calibration every N iterations' -r
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-every -d 'Run calibration every N iterations; may insert corrective queue-order subtasks' -r
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l force -d 'Approval mode: auto-apply validation/calibration queue proposals'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l review -d 'Approval mode: require explicit approval for validation/calibration queue proposals'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 
@@ -303,9 +305,13 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph models' -l provider -d 
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph models' -l json -d 'Output as JSON'
 
 # ralph subtasks subcommands
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a next -d 'Get next runnable subtask'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a next -d 'Get next subtask in queue order'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a list -d 'List subtasks for a milestone queue'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a complete -d 'Mark a subtask complete'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a append -d 'Append subtasks to the end of queue order'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a prepend -d 'Prepend subtasks to the front of queue order'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a diff -d 'Preview queue-order changes from a proposal'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph subtasks' -a apply -d 'Apply queue-order changes from a proposal'
 
 # ralph subtasks next options
 function __fish_aaa_ralph_subtasks_next
@@ -335,6 +341,41 @@ complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l id -d 'Subtask ID' -r
 complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l commit -d 'Commit hash' -r
 complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l session -d 'Session ID' -r
 complete -c aaa -n __fish_aaa_ralph_subtasks_complete -l at -d 'Completion timestamp (ISO 8601)' -r
+
+# ralph subtasks append options
+function __fish_aaa_ralph_subtasks_append
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = subtasks -a "$cmd[4]" = append
+end
+complete -c aaa -n __fish_aaa_ralph_subtasks_append -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_append -l file -d 'Read subtask JSON from file' -ra '(__fish_complete_path)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_append -l dry-run -d 'Show JSON preview without writing queue file'
+
+# ralph subtasks prepend options
+function __fish_aaa_ralph_subtasks_prepend
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = subtasks -a "$cmd[4]" = prepend
+end
+complete -c aaa -n __fish_aaa_ralph_subtasks_prepend -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_prepend -l file -d 'Read subtask JSON from file' -ra '(__fish_complete_path)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_prepend -l dry-run -d 'Show JSON preview without writing queue file'
+
+# ralph subtasks diff options
+function __fish_aaa_ralph_subtasks_diff
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = subtasks -a "$cmd[4]" = diff
+end
+complete -c aaa -n __fish_aaa_ralph_subtasks_diff -l proposal -d 'Queue proposal JSON file' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_diff -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_diff -l json -d 'Output machine-readable JSON summary'
+
+# ralph subtasks apply options
+function __fish_aaa_ralph_subtasks_apply
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = subtasks -a "$cmd[4]" = apply
+end
+complete -c aaa -n __fish_aaa_ralph_subtasks_apply -l proposal -d 'Queue proposal JSON file' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_subtasks_apply -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
 
 # ralph calibrate options and subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a intention -d 'Check for intention drift'

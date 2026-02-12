@@ -278,9 +278,11 @@ _aaa_ralph() {
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
                         '(-q --quiet)'{-q,--quiet}'[Suppress terminal summary output]' \\
                         '--max-iterations[Max retry attempts]:number:' \\
-                        '--validate-first[Run pre-build validation]' \\
+                        '--validate-first[Validate first; may create/update/remove/reorder/split pending queue order]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
-                        '--calibrate-every[Run calibration every N iterations]:number:' \\
+                        '--calibrate-every[Run calibration every N iterations; may insert corrective queue-order subtasks]:number:' \\
+                        '--force[Approval mode: auto-apply validation/calibration queue proposals]' \\
+                        '--review[Approval mode: require explicit approval for validation/calibration queue proposals]' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model'
                     ;;
@@ -409,9 +411,13 @@ _aaa_ralph_plan() {
 _aaa_ralph_subtasks() {
     local -a subcommands
     subcommands=(
-        'next:Get next runnable subtask'
+        'next:Get next subtask in queue order'
         'list:List subtasks for a milestone queue'
         'complete:Mark a subtask complete'
+        'append:Append subtasks to the end of queue order'
+        'prepend:Prepend subtasks to the front of queue order'
+        'diff:Preview queue-order changes from a proposal'
+        'apply:Apply queue-order changes from a proposal'
     )
 
     _arguments -C \\
@@ -443,6 +449,29 @@ _aaa_ralph_subtasks() {
                         '--commit[Commit hash]:commit-hash:' \\
                         '--session[Session ID]:session-id:' \\
                         '--at[Completion timestamp (ISO 8601)]:timestamp:'
+                    ;;
+                append)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--file[Read subtask JSON from file]:file:_files' \\
+                        '--dry-run[Show JSON preview without writing queue file]'
+                    ;;
+                prepend)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--file[Read subtask JSON from file]:file:_files' \\
+                        '--dry-run[Show JSON preview without writing queue file]'
+                    ;;
+                diff)
+                    _arguments \\
+                        '--proposal[Queue proposal JSON file]:file:_files -g "*.json"' \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--json[Output machine-readable JSON summary]'
+                    ;;
+                apply)
+                    _arguments \\
+                        '--proposal[Queue proposal JSON file]:file:_files -g "*.json"' \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"'
                     ;;
             esac
             ;;

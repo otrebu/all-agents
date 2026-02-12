@@ -1,0 +1,10 @@
+[CALIBRATE] [INFO] Using provider: claude
+╭──────────────────────────────────────────────────────────────────╮
+│ [CALIBRATE] [START] Intention Drift Check                        │
+│ Check code changes against planning intent                       │
+╰──────────────────────────────────────────────────────────────────╯
+──────────────────── Invoking Claude (headless) ────────────────────
+[CALIBRATE] [START] Invoking claude for intention drift analysis in batches of 5...
+[CALIBRATE] [INFO] Batch 1/1: analyzing 2 subtask(s) for intention drift
+[CALIBRATE] [DONE] Intention Drift: proposal staged for review at /home/otrebu/dev/all-agents/docs/planning/milestones/003-ralph-workflow/feedback/2026-02-11T18-14-27-518Z_calibration_intention-drift_proposal.md
+[CALIBRATE] [DONE] Intention Drift Check Complete

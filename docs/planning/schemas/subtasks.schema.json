@@ -47,7 +47,15 @@
   "$defs": {
     "subtask": {
       "type": "object",
-      "required": ["id", "taskRef", "title", "description", "done", "acceptanceCriteria", "filesToRead"],
+      "required": [
+        "id",
+        "taskRef",
+        "title",
+        "description",
+        "done",
+        "acceptanceCriteria",
+        "filesToRead"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -111,13 +119,13 @@
           "type": "string",
           "description": "Claude Code session ID that completed this subtask. Maps to ~/.claude/projects/<path>/<session-id>.jsonl"
         },
-        "blockedBy": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^SUB-[0-9]{3,}$"
-          },
-          "description": "IDs of subtasks that must complete before this one"
+        "sessionLogPath": {
+          "type": "string",
+          "description": "Absolute canonical path to the session JSONL file when discovered at completion time"
+        },
+        "sessionRepoRoot": {
+          "type": "string",
+          "description": "Repository root used to deterministically resolve session logs for this subtask"
         }
       },
       "if": {

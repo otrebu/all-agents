@@ -166,9 +166,6 @@
         "context/workflows/ralph/building/ralph-iteration.md",
         ".claude/plans/distributed-baking-ullman.md"
       ],
-      "blockedBy": [
-        "SUB-149"
-      ],
       "status": "completed"
     },
     {
@@ -218,9 +215,6 @@
         "tools/src/commands/ralph/session.ts",
         ".claude/plans/distributed-baking-ullman.md"
       ],
-      "blockedBy": [
-        "SUB-151"
-      ],
       "status": "completed"
     },
     {
@@ -246,9 +240,6 @@
         ".claude/skills/interrogate-on-changes/SKILL.md",
         "context/workflows/interrogate.md",
         ".claude/plans/distributed-baking-ullman.md"
-      ],
-      "blockedBy": [
-        "SUB-152"
       ],
       "status": "completed"
     },
@@ -292,9 +283,6 @@
         "tools/src/commands/ralph/types.ts",
         "tools/package.json"
       ],
-      "blockedBy": [
-        "SUB-154"
-      ],
       "status": "completed"
     },
     {
@@ -319,9 +307,6 @@
         "tools/src/commands/ralph/build.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-002-cascade-module.md"
       ],
-      "blockedBy": [
-        "SUB-155"
-      ],
       "status": "completed"
     },
     {
@@ -343,9 +328,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/cascade.ts"
-      ],
-      "blockedBy": [
-        "SUB-157"
       ],
       "status": "completed"
     },
@@ -370,9 +352,6 @@
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/calibrate.ts",
         "tools/src/commands/ralph/types.ts"
-      ],
-      "blockedBy": [
-        "SUB-157"
       ],
       "status": "completed"
     },
@@ -399,10 +378,6 @@
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/types.ts"
       ],
-      "blockedBy": [
-        "SUB-158",
-        "SUB-159"
-      ],
       "status": "completed"
     },
     {
@@ -424,9 +399,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/cascade.ts",
         "tools/tests/e2e/session.test.ts"
-      ],
-      "blockedBy": [
-        "SUB-160"
       ],
       "status": "completed"
     },
@@ -451,9 +423,6 @@
         "tools/src/commands/ralph/types.ts",
         "context/blocks/construct/chalk.md",
         "context/blocks/construct/boxen.md"
-      ],
-      "blockedBy": [
-        "SUB-155"
       ],
       "status": "completed"
     },
@@ -499,11 +468,6 @@
         "tools/src/commands/ralph/index.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-005-plan-cascade-flag.md"
       ],
-      "blockedBy": [
-        "SUB-161",
-        "SUB-163",
-        "SUB-166"
-      ],
       "status": "completed"
     },
     {
@@ -525,9 +489,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
       ],
-      "blockedBy": [
-        "SUB-169"
-      ],
       "status": "completed"
     },
     {
@@ -548,9 +509,6 @@
       ],
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": [
-        "SUB-170"
       ],
       "status": "completed"
     },
@@ -576,9 +534,6 @@
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/cascade.ts"
       ],
-      "blockedBy": [
-        "SUB-161"
-      ],
       "status": "completed"
     },
     {
@@ -603,10 +558,6 @@
       "filesToRead": [
         "tools/tests/e2e/ralph.test.ts",
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": [
-        "SUB-171",
-        "SUB-174"
       ],
       "status": "completed"
     },
@@ -652,9 +603,6 @@
         "tools/src/commands/ralph/index.ts",
         ".claude/plans/tingly-prancing-eagle.md"
       ],
-      "blockedBy": [
-        "SUB-178"
-      ],
       "status": "completed"
     },
     {
@@ -698,9 +646,6 @@
         "tools/src/commands/ralph/display.ts",
         ".claude/plans/tingly-prancing-eagle.md"
       ],
-      "blockedBy": [
-        "SUB-180"
-      ],
       "status": "completed"
     },
     {
@@ -723,9 +668,6 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/display.ts",
         ".claude/plans/tingly-prancing-eagle.md"
-      ],
-      "blockedBy": [
-        "SUB-179"
       ],
       "status": "completed"
     },
@@ -791,9 +733,6 @@
         "tools/src/commands/notify/index.ts",
         "tools/src/lib/config/types.ts"
       ],
-      "blockedBy": [
-        "SUB-184"
-      ],
       "status": "completed"
     },
     {
@@ -816,9 +755,6 @@
       "filesToRead": [
         "aaa.config.json",
         "tools/src/lib/config/types.ts"
-      ],
-      "blockedBy": [
-        "SUB-185"
       ],
       "status": "completed"
     },
@@ -869,9 +805,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/hooks.ts"
       ],
-      "blockedBy": [
-        "SUB-187"
-      ],
       "status": "completed"
     },
     {
@@ -895,9 +828,6 @@
         "tools/src/commands/ralph/hooks.ts",
         "tools/src/commands/ralph/post-iteration.ts"
       ],
-      "blockedBy": [
-        "SUB-188"
-      ],
       "status": "completed"
     },
     {
@@ -920,9 +850,6 @@
         "tools/tests/lib/notify/",
         "tools/src/commands/ralph/hooks.ts",
         "tools/src/lib/config/types.ts"
-      ],
-      "blockedBy": [
-        "SUB-188"
       ],
       "status": "completed"
     },
@@ -967,9 +894,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/display.ts"
       ],
-      "blockedBy": [
-        "SUB-191"
-      ],
       "status": "completed"
     },
     {
@@ -992,9 +916,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/display.ts"
       ],
-      "blockedBy": [
-        "SUB-192"
-      ],
       "status": "completed"
     },
     {
@@ -1016,9 +937,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/config.ts"
-      ],
-      "blockedBy": [
-        "SUB-191"
       ],
       "status": "completed"
     },
@@ -1046,10 +964,6 @@
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/config.ts"
       ],
-      "blockedBy": [
-        "SUB-193",
-        "SUB-194"
-      ],
       "status": "completed"
     },
     {
@@ -1071,9 +985,6 @@
       "filesToRead": [
         "tools/tests/e2e/ralph.test.ts",
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": [
-        "SUB-195"
       ],
       "status": "completed"
     },
@@ -1120,9 +1031,6 @@
         "tools/src/lib/config/loader.ts",
         "tools/src/lib/config/defaults.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-009-approval-config-loading.md"
-      ],
-      "blockedBy": [
-        "SUB-201"
       ]
     },
     {
@@ -1143,9 +1051,6 @@
       "filesToRead": [
         "tools/src/lib/config/index.ts",
         "tools/src/lib/config/defaults.ts"
-      ],
-      "blockedBy": [
-        "SUB-201"
       ]
     },
     {
@@ -1170,9 +1075,6 @@
         "tools/tests/lib/config-loader.test.ts",
         "tools/src/lib/config/loader.ts",
         "tools/src/lib/config/defaults.ts"
-      ],
-      "blockedBy": [
-        "SUB-202"
       ]
     },
     {
@@ -1219,9 +1121,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/types.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
-      ],
-      "blockedBy": [
-        "SUB-205"
       ]
     },
     {
@@ -1245,9 +1144,6 @@
         "tools/src/commands/ralph/approvals.ts",
         "tools/src/lib/config/types.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-010-approval-evaluation.md"
-      ],
-      "blockedBy": [
-        "SUB-206"
       ],
       "completedAt": "2026-02-07T12:56:01Z",
       "commitHash": "18528c23f4995bb0221ff8e7df192408654dc363",
@@ -1274,9 +1170,6 @@
         "tools/tests/lib/ralph-config.test.ts",
         "tools/tests/lib/ralph-hooks.test.ts"
       ],
-      "blockedBy": [
-        "SUB-207"
-      ],
       "completedAt": "2026-02-07T13:01:26Z",
       "commitHash": "7cebf03e6b549a4eba5a4fd826bea532f2d8ae39",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -1302,9 +1195,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/approvals.ts",
         "tools/tests/lib/approvals.test.ts"
-      ],
-      "blockedBy": [
-        "SUB-208"
       ],
       "completedAt": "2026-02-07T13:05:27Z",
       "commitHash": "f236b8911bbb729f325abd8bdeb533d4ff32a69a",
@@ -1355,9 +1245,6 @@
       "filesToRead": [
         "tools/src/lib/config/types.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-008-approval-types.md"
-      ],
-      "blockedBy": [
-        "SUB-197"
       ]
     },
     {
@@ -1384,9 +1271,6 @@
         "tools/src/lib/config/types.ts",
         "tools/src/lib/config/index.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-008-approval-types.md"
-      ],
-      "blockedBy": [
-        "SUB-198"
       ]
     },
     {
@@ -1443,9 +1327,6 @@
         "tools/src/commands/ralph/approvals.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-012-tty-approval-prompt.md"
       ],
-      "blockedBy": [
-        "SUB-213"
-      ],
       "completedAt": "2026-02-07T13:21:28Z",
       "commitHash": "a11852dd3ccaaee9571a6b7f0f9468690c1bb106",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -1474,9 +1355,6 @@
         "tools/tests/lib/",
         "tools/src/commands/ralph/approvals.ts"
       ],
-      "blockedBy": [
-        "SUB-214"
-      ],
       "completedAt": "2026-02-07T13:27:05Z",
       "commitHash": "6288fc05054b58b402b8a58c4f92ca1535b686e9",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -1497,9 +1375,6 @@
       ],
       "filesToRead": [
         "tools/src/commands/ralph/cascade.ts"
-      ],
-      "blockedBy": [
-        "SUB-219"
       ],
       "completedAt": "2026-02-07T14:14:43Z",
       "commitHash": "1e097d84062011fcfc3afe0bae7f05ecd56d1dd8",
@@ -1523,9 +1398,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/cascade.ts"
-      ],
-      "blockedBy": [
-        "SUB-210"
       ],
       "completedAt": "2026-02-07T14:19:51Z",
       "commitHash": "134cf7d25e3564ceccd08cfecac6eecb74a954e5",
@@ -1570,9 +1442,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
       ],
-      "blockedBy": [
-        "SUB-222"
-      ],
       "completedAt": "2026-02-07T14:41:28Z",
       "commitHash": "eda16219ea664e67130edc6f6fe60ff4888a1331",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -1593,9 +1462,6 @@
       ],
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": [
-        "SUB-216"
       ],
       "completedAt": "2026-02-07T14:50:14Z",
       "commitHash": "4f454fc2d0377df2f4699f80e65850da0b8161f6",
@@ -1620,9 +1486,6 @@
       "filesToRead": [
         "tools/tests/e2e/ralph.test.ts",
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": [
-        "SUB-217"
       ],
       "completedAt": "2026-02-07T14:56:57Z",
       "commitHash": "c1e0de0b36085110722bab2fbe527371ea4c1218",
@@ -1688,9 +1551,6 @@
         "tools/src/commands/ralph/approvals.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-013-cascade-approval-integration.md"
       ],
-      "blockedBy": [
-        "SUB-225"
-      ],
       "completedAt": "2026-02-07T13:56:48Z",
       "commitHash": "5732a5e7a6dc1af794e2a0698865d146a142cd36",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -1715,9 +1575,6 @@
         "tools/tests/e2e/cascade.test.ts",
         "tools/tests/e2e/ralph.test.ts",
         "tools/src/commands/ralph/approvals.ts"
-      ],
-      "blockedBy": [
-        "SUB-226"
       ],
       "completedAt": "2026-02-07T14:03:47Z",
       "commitHash": "91e061e71c33ebddd416599799ee69e7fd7b18bc",
@@ -1766,11 +1623,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
       ],
-      "blockedBy": [
-        "SUB-211",
-        "SUB-212",
-        "SUB-219"
-      ],
       "completedAt": "2026-02-07T14:25:24Z",
       "commitHash": "7925fd846ae86ef7953b9ff5cda0d198f7aa1257",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -1790,11 +1642,6 @@
       ],
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": [
-        "SUB-211",
-        "SUB-212",
-        "SUB-219"
       ],
       "completedAt": "2026-02-07T14:30:09Z",
       "commitHash": "a2aedeb1f989fa07db9d02d1894c3b038a431655",
@@ -1816,9 +1663,6 @@
       ],
       "filesToRead": [
         "tools/src/commands/ralph/index.ts"
-      ],
-      "blockedBy": [
-        "SUB-221"
       ],
       "completedAt": "2026-02-07T14:36:21Z",
       "commitHash": "c5df8137b067d5a8830fb4826f678d8615bdf2c5",
@@ -1842,9 +1686,6 @@
       "filesToRead": [
         "tools/src/commands/ralph/cascade.ts",
         "tools/src/commands/ralph/approvals.ts"
-      ],
-      "blockedBy": [
-        "SUB-238"
       ],
       "completedAt": "2026-02-07T15:34:25Z",
       "commitHash": "0c13523540a2f779e4a6189a51060996a91ecb83",
@@ -1871,9 +1712,6 @@
         "tools/src/commands/ralph/approvals.ts",
         "tools/tests/lib/hooks.test.ts",
         "tools/tests/lib/config-loader.test.ts"
-      ],
-      "blockedBy": [
-        "SUB-223"
       ],
       "completedAt": "2026-02-07T15:39:16Z",
       "commitHash": "249f91e34f663de00f2e9311ac3ea271cd67b03f",
@@ -1940,9 +1778,6 @@
         "tools/tests/lib/notify/format-notification.test.ts",
         "tools/tests/e2e/cascade.test.ts"
       ],
-      "blockedBy": [
-        "SUB-232"
-      ],
       "completedAt": "2026-02-07T15:10:35Z",
       "commitHash": "6c58da6080ee27bb3da916f52b2a4094f2db3237",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -1995,9 +1830,6 @@
         "tools/src/commands/ralph/approvals.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-014-notify-wait-handler.md"
       ],
-      "blockedBy": [
-        "SUB-237"
-      ],
       "completedAt": "2026-02-07T15:26:34Z",
       "commitHash": "48be8372eae26b9179f4fe2702f0ef4bd25d9359",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -2024,10 +1856,6 @@
         "tools/src/commands/ralph/calibrate.ts",
         "tools/src/commands/ralph/providers/registry.ts"
       ],
-      "blockedBy": [
-        "SUB-211",
-        "SUB-219"
-      ],
       "completedAt": "2026-02-07T15:53:18Z",
       "commitHash": "8588e2944ad7895fb1d30abc37ae7b0f0028169a",
       "sessionId": "d4e92c1c-ad69-462d-ae8f-9760fa2a6a92"
@@ -2050,9 +1878,6 @@
         "tools/src/commands/ralph/cascade.ts",
         "tools/tests/lib/cascade.test.ts",
         "tools/tests/e2e/ralph.test.ts"
-      ],
-      "blockedBy": [
-        "SUB-232"
       ],
       "completedAt": "2026-02-07T16:04:32Z",
       "commitHash": "687dacdca360eb3cbe3e5f0d5d8538fc6c6af9e2",
@@ -2102,10 +1927,6 @@
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-031-template-substitution-utility.md",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-032-template-variables-interface.md"
       ],
-      "blockedBy": [
-        "SUB-378",
-        "SUB-383"
-      ],
       "completedAt": "2026-02-07T22:48:41Z",
       "commitHash": "e020556d5a940c4e76454fd9ccc119e009811b92",
       "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
@@ -2127,9 +1948,6 @@
         "tools/src/commands/ralph/post-iteration.ts",
         "tools/tests/lib/post-iteration.test.ts",
         "context/workflows/ralph/hooks/iteration-summary.md"
-      ],
-      "blockedBy": [
-        "SUB-388"
       ],
       "completedAt": "2026-02-07T22:58:05Z",
       "commitHash": "4dce424a8cf0a8e2592e90d10394bff8de467bfc",
@@ -2154,9 +1972,6 @@
         "context/workflows/ralph/hooks/iteration-summary.md",
         "tools/src/commands/ralph/post-iteration.ts"
       ],
-      "blockedBy": [
-        "SUB-393"
-      ],
       "completedAt": "2026-02-07T22:59:51Z",
       "commitHash": "a9e90e26946dc0d1f0c9324ce9d9561b18480364",
       "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
@@ -2180,9 +1995,6 @@
         "tools/src/commands/ralph/post-iteration.ts",
         "docs/planning/milestones/003-ralph-workflow/tasks/TASK-032-template-variables-interface.md",
         "docs/planning/milestones/003-ralph-workflow/stories/STORY-006-template-substitution.md"
-      ],
-      "blockedBy": [
-        "SUB-378"
       ],
       "completedAt": "2026-02-07T22:46:56Z",
       "commitHash": "5bc206a35f549135b24eadbe97c39244e6b57f36",
@@ -2244,9 +2056,6 @@
         "tools/tests/lib/approvals.test.ts",
         "tools/tests/lib/ralph-config.test.ts"
       ],
-      "blockedBy": [
-        "SUB-399"
-      ],
       "completedAt": "2026-02-07T23:06:22Z",
       "commitHash": "5e81761575150eab1e918bc16d49968b8aff0d09",
       "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
@@ -2273,9 +2082,6 @@
         "tools/src/commands/ralph/validation.ts",
         "tools/src/commands/ralph/display.ts",
         "tools/src/commands/ralph/types.ts"
-      ],
-      "blockedBy": [
-        "SUB-402"
       ],
       "completedAt": "2026-02-07T23:10:03Z",
       "commitHash": "5f02224",
@@ -2307,9 +2113,6 @@
         "tools/src/commands/ralph/display.ts",
         "context/blocks/construct/chalk.md"
       ],
-      "blockedBy": [
-        "SUB-405"
-      ],
       "completedAt": "2026-02-07T23:11:48Z",
       "commitHash": "4cb68b3",
       "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
@@ -2339,9 +2142,6 @@
         "context/workflows/ralph/building/pre-build-validation.md",
         "tools/tests/lib/build-hooks.test.ts"
       ],
-      "blockedBy": [
-        "SUB-399"
-      ],
       "completedAt": "2026-02-07T23:08:11Z",
       "commitHash": "c0ab03f81f6ade632c88acd9823501f1306af9e7",
       "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
@@ -2368,10 +2168,6 @@
         "tools/src/commands/ralph/providers/claude.ts",
         "tools/src/commands/ralph/types.ts",
         "tools/tests/lib/summary.test.ts"
-      ],
-      "blockedBy": [
-        "SUB-399",
-        "SUB-402"
       ],
       "completedAt": "2026-02-07T23:13:38Z",
       "commitHash": "d06c5eaec31411e23b709f4a1e706ec8517e16a8",
@@ -2404,9 +2200,6 @@
         "tools/src/commands/ralph/approvals.ts",
         "tools/tests/lib/approvals.test.ts"
       ],
-      "blockedBy": [
-        "SUB-405"
-      ],
       "completedAt": "2026-02-07T23:15:19Z",
       "commitHash": "54238c67a216a08548b75c616ad10efc9384a54f",
       "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
@@ -2436,9 +2229,6 @@
         "tools/src/commands/ralph/approvals.ts",
         "tools/tests/lib/approvals.test.ts"
       ],
-      "blockedBy": [
-        "SUB-408"
-      ],
       "completedAt": "2026-02-07T23:21:41Z",
       "commitHash": "01d6707e913395ee8682bdd1128cf17f5ad530ba",
       "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
@@ -2467,10 +2257,6 @@
         "tools/src/commands/ralph/hooks.ts",
         "tools/src/commands/ralph/types.ts"
       ],
-      "blockedBy": [
-        "SUB-406",
-        "SUB-409"
-      ],
       "completedAt": "2026-02-07T23:23:18Z",
       "commitHash": "4762d9c9d56a342206f750b9d9d944fa3bfeb870",
       "sessionId": "861be582-6a52-4212-876d-ff5ad2e1ab3f"
@@ -2497,9 +2283,6 @@
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/validation.ts",
         "tools/src/commands/ralph/config.ts"
-      ],
-      "blockedBy": [
-        "SUB-411"
       ],
       "completedAt": "2026-02-07T23:29:11Z",
       "commitHash": "60ddc54cec7bf041b4f29295e7b740dfb3a65c6d",
@@ -2528,9 +2311,6 @@
         "tools/src/commands/ralph/validation.ts",
         "tools/tests/lib/approvals.test.ts",
         "tools/tests/lib/ralph-config.test.ts"
-      ],
-      "blockedBy": [
-        "SUB-411"
       ],
       "completedAt": "2026-02-07T23:30:53Z",
       "commitHash": "ad93af33fecea22b8bef0b371b6af58bfa4e1548",

@@ -43,7 +43,7 @@ docs/planning/milestones/<milestone>/tasks/TASK-NNN.md
 The Task provides technical context:
 - Scope boundaries (what's in/out of scope)
 - Technical approach
-- Dependencies
+- Related implementation context
 - Related subtasks
 
 ### 3. Parent Story (via Task's storyRef)
@@ -111,6 +111,31 @@ Subtask: "Implement session-based authentication with cookies"
 
 **Criteria:** The subtask should be a faithful decomposition of the Task.
 
+### 4. Web AC Verifiability (Hard Gate)
+
+Apply these checks when the subtask describes web UI behavior (page, form, button, modal, layout, navigation, interaction).
+
+#### 4a. Visual AC must include Agent Browser verification path
+
+**Fail when:** A visual/web UX AC exists but no explicit browser verification path is present.
+
+**Required path details (in AC or description):**
+- Route/screen under test
+- User action sequence to reproduce
+- Artifact destination (for example `artifacts/browser/<subtask-id>/...`)
+
+Visual ACs without this path are not implementation-ready and must be flagged `aligned: false`.
+
+#### 4b. Behavioral web AC must map to automated E2E
+
+**Fail when:** A behavioral web AC (for example submit flow, validation, state transition, navigation) has no explicit automated E2E mapping.
+
+**Acceptable mapping signals:**
+- Named E2E test target/file to add/update
+- Clear statement that AC is covered by automated browser-driven E2E
+
+Behavioral web ACs that only specify manual/browser checks (without automated E2E mapping) must be flagged `aligned: false`.
+
 ## Graceful Degradation
 
 Not all subtasks have a complete planning chain. Handle partial chains gracefully:
@@ -126,6 +151,12 @@ Not all subtasks have a complete planning chain. Handle partial chains gracefull
 - Validate what exists in the chain
 - The subtask can still be aligned if it's well-defined
 
+**Explicit gap policy:**
+- Missing Story/Task context can degrade gracefully (informational only).
+- Missing web verification details cannot degrade gracefully:
+  - Visual web AC without Agent Browser path -> fail
+  - Behavioral web AC without automated E2E mapping -> fail
+
 ## Output Format
 
 **Important:** Output ONLY valid JSON. No markdown, no explanation, just the JSON object.
@@ -138,6 +169,24 @@ When the subtask passes all validation checks:
 {"aligned": true}
 ```
 
+If queue adjustments are useful even when aligned, include an `operations` array:
+
+```json
+{
+  "aligned": true,
+  "operations": [
+    {
+      "type": "update",
+      "id": "SUB-002",
+      "changes": {
+        "title": "Clarify AC wording",
+        "acceptanceCriteria": ["AC-1", "AC-2"]
+      }
+    }
+  ]
+}
+```
+
 ### Misaligned Subtask
 
 When any validation check fails:
@@ -147,7 +196,13 @@ When any validation check fails:
   "aligned": false,
   "reason": "<specific issue found>",
   "issue_type": "<scope_creep|too_broad|too_narrow|unfaithful>",
-  "suggestion": "<how to fix the issue>"
+  "suggestion": "<how to fix the issue>",
+  "operations": [
+    {
+      "type": "remove",
+      "id": "SUB-001"
+    }
+  ]
 }
 ```
 
@@ -155,7 +210,29 @@ When any validation check fails:
 - `reason`: Specific description of what's wrong
 - `issue_type`: One of: `scope_creep`, `too_broad`, `too_narrow`, `unfaithful`
   - For `too_broad`/`too_narrow`: cite specific rules from subtask-spec.md
+  - For missing web verification path/mapping: use `unfaithful` (subtask is not faithfully testable against its own AC)
 - `suggestion`: Actionable fix recommendation
+- `operations` (optional but preferred): deterministic queue operations to repair the queue
+
+### Queue Operation Schema (`operations`)
+
+Use one or more deterministic operations:
+
+- `{"type":"remove","id":"SUB-001"}`
+- `{"type":"update","id":"SUB-001","changes":{"title":"...","description":"...","acceptanceCriteria":["..."],"filesToRead":["..."],"storyRef":"STORY-001"}}`
+- `{"type":"create","atIndex":2,"subtask":{...QueueSubtaskDraft...}}`
+- `{"type":"reorder","id":"SUB-001","toIndex":0}`
+- `{"type":"split","id":"SUB-001","subtasks":[...QueueSubtaskDraft...]}`
+
+`QueueSubtaskDraft` requires:
+- `title` (string)
+- `description` (string)
+- `taskRef` (string)
+- `acceptanceCriteria` (string[])
+- `filesToRead` (string[])
+- optional: `id` (string), `storyRef` (string|null)
+
+Backward compatibility: if you recommend skipping/removing a subtask, prefer a `remove` operation.
 
 ## Examples
 

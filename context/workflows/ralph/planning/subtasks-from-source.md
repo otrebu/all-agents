@@ -38,7 +38,7 @@ If `--review-diary` flag is set, parse `logs/reviews.jsonl` for findings.
 | `--file <path>` | Yes* | File path as source |
 | `--text <string>` | Yes* | Text description as source |
 | `--review-diary` | Yes* | Parse review diary instead of file/text |
-| `--output-dir <path|milestone>` | No | Output directory (path or milestone name) |
+| `--output-dir <path|milestone>` | No | Output directory for `subtasks.json`; milestone-shaped paths (`docs/planning/milestones/<slug>`) also set the planning log directory |
 | `--size <small\|medium\|large>` | No | Slice thickness for generated subtasks |
 
 *One of `--file`, `--text`, or `--review-diary` is required.
@@ -86,10 +86,21 @@ Answer these questions:
 - What files need to be created vs modified?
 - What existing patterns should be followed?
 - What dependencies exist that affect implementation order?
+- Which testing profiles apply (logic, integration/API, CLI E2E, web visual, web flow E2E)?
 
 ### Phase 3: Generate Subtasks
 
 For each actionable item, create a subtask following the schema in subtask-spec.md.
+
+Acceptance criteria and test intent must be profile-driven (not tool-assumed by default):
+- Tool-qualify verification ACs (unit/integration, Playwright E2E, agent-browser visual, CLI E2E)
+- For web/UI work, always include:
+  - a user-visible AC with agent-browser verification
+  - a behavioral flow AC with automated Playwright E2E
+- Apply mixed TDD intent concisely:
+  - outside-in for end-to-end/user-flow behavior
+  - unit-first for pure logic/rules/helpers
+- Do not require BDD/Cucumber unless explicitly requested by the source input
 
 **taskRef handling (specific to this workflow):**
 - If input references a specific TASK, use that
@@ -99,6 +110,8 @@ For each actionable item, create a subtask following the schema in subtask-spec.
 
 Run the Validation Checklist and AC Quality Gate in @context/workflows/ralph/planning/subtask-spec.md before writing output.
 
+During validation, confirm each AC states the verification tool/profile explicitly where relevant.
+
 ### Phase 5: Append Subtasks
 
 After validation, write final subtasks to the destination directly:
@@ -106,6 +119,8 @@ After validation, write final subtasks to the destination directly:
 **Output location:**
 - If `--output-dir` is provided: `<output-dir>/subtasks.json`
 - Otherwise: `docs/planning/subtasks.json`
+
+When `--output-dir` points to a milestone-shaped path (`docs/planning/milestones/<slug>`), both generated subtasks and planning logs resolve to that same milestone context.
 
 **IMPORTANT: Use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`**
 

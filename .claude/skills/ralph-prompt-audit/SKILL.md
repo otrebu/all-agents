@@ -1,7 +1,6 @@
 ---
 name: ralph-prompt-audit
-description: Audit and repair `aaa ralph` command examples in this repo's prompts using LLM-as-judge backed by the live CLI command table. Use when user asks to find prompt drift, stale Ralph commands, or sync prompt examples with current CLI syntax.
-argument-hint: [check|fix] [--scope <glob>]
+description: "Audit and repair aaa ralph command examples in this repo's prompts using LLM-as-judge backed by the live CLI command table. Use when user asks to find prompt drift, stale Ralph commands, or sync prompt examples with current CLI syntax."
 ---
 
 # Ralph Prompt Audit

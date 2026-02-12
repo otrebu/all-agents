@@ -1,0 +1,21 @@
+[CALIBRATE] [INFO] Using provider: claude
+╭──────────────────────────────────────────────────────────────────╮
+│ [CALIBRATE] [START] Intention Drift Check                        │
+│ Check code changes against planning intent                       │
+╰──────────────────────────────────────────────────────────────────╯
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-009 commit=da64a5cd143190b3d81bd42c8db8bf7bfe555814: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-017 commit=c8ec8e8552099529ce9b5b49643108fb6929e87a: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [INFO] LOW-CONFIDENCE traceability for SUB-037 commit=b6b3f8e50f6f226713a55fd712a342fd91da3b83: Commit touches only planning/tracking metadata files; traceability confidence is low. Remediation: Split metadata-only changes into a separate commit and relink this subtask to the implementation commit.
+[CALIBRATE] [SKIP] Proceeding with 3 low-confidence traceability warning(s).
+──────────────────── Invoking Claude (headless) ────────────────────
+[CALIBRATE] [START] Invoking claude for intention drift analysis in batches of 5...
+[CALIBRATE] [INFO] Batch 1/8: analyzing 5 subtask(s) for intention drift
+[CALIBRATE] [INFO] Batch 2/8: analyzing 5 subtask(s) for intention drift
+[CALIBRATE] [INFO] Batch 3/8: analyzing 5 subtask(s) for intention drift
+[CALIBRATE] [INFO] Batch 4/8: analyzing 5 subtask(s) for intention drift
+[CALIBRATE] [SKIP] Batch 5/8: no resolvable planning context, skipped
+[CALIBRATE] [SKIP] Batch 6/8: no resolvable planning context, skipped
+[CALIBRATE] [SKIP] Batch 7/8: no resolvable planning context, skipped
+[CALIBRATE] [SKIP] Batch 8/8: no resolvable planning context, skipped
+[CALIBRATE] [DONE] Intention Drift: proposal staged for review at /home/otrebu/dev/all-agents/docs/planning/milestones/006-cascade-mode-for-good/feedback/2026-02-11T17-54-42-556Z_calibration_intention-drift_proposal.md
+[CALIBRATE] [DONE] Intention Drift Check Complete
