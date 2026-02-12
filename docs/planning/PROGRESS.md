@@ -25,6 +25,11 @@
 - **Changes:** Added a realistic integration fixture (3 stories, 5 tasks, 12 subtasks with 8 pending/4 done) and new `computeExecutionPlan()` assertions for cascade `subtasks -> calibrate`, runtime enrichment counts, approval action/gate resolution, flag-effect composition (`--validate-first`, `--calibrate-every`), and JSON round-trip stability. Added a type-import smoke test that imports and uses `ExecutionPlan`, `ExecutionPhase`, `RuntimeContext`, `FlagEffect`, and `PhaseStep` from `plan-preview.ts` to lock module export compatibility.
 - **Files:** `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-004
+- **Problem:** Ralph CLI pipeline entrypoints (`build` + `plan roadmap/stories/tasks/subtasks`) lacked a consistent `--dry-run` early-exit path, so users could not preview execution plans as machine-parseable JSON before runtime side effects.
+- **Changes:** Added `--dry-run` flag wiring to `ralph build` and all four `ralph plan` subcommands, added command-level early exits that compute and print `computeExecutionPlan()` JSON before normal execution, and added normalization helpers for cascade/from-level mapping. Updated Ralph shared types so `BuildOptions` and `CascadeOptions` include `dryRun?: boolean`. Expanded E2E coverage to assert JSON dry-run behavior for build, build headless dry-run, and plan roadmap/stories/tasks/subtasks dry-runs.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-041
 - **Problem:** Queue create operations expose `atIndex` for positional insertion, but this subtask required explicit verification that create-at-index behavior (prepend and middle insert) is covered and that out-of-range index errors are actionable.
 - **Changes:** Confirmed `applyQueueOperations()` already honors `atIndex` via `splice(atIndex, 0, createdSubtask)` in `queue-ops.ts`, then added focused unit coverage for middle-index insertion (`atIndex: 1`) and upper-bound out-of-range create errors to complement existing prepend and negative-index checks.

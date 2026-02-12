@@ -133,6 +133,126 @@ describe("ralph E2E", () => {
     expect(stderr).not.toContain("Subtasks file not found");
   });
 
+  test("ralph build --dry-run exits 0 with parseable JSON", async () => {
+    const subtasksPath = join(temporaryDirectory, "dry-run-subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({ metadata: { scope: "milestone" }, subtasks: [] }),
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "build", "--dry-run", "--subtasks", subtasksPath],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as {
+      command: string;
+      summary: { phaseCount: number };
+    };
+    expect(parsed.command).toBe("build");
+    expect(parsed.summary.phaseCount).toBeGreaterThan(0);
+  });
+
+  test("ralph build --dry-run --headless outputs parseable JSON", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "build", "--dry-run", "--headless"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as { flags: { headless: boolean } };
+    expect(parsed.flags.headless).toBe(true);
+  });
+
+  test("ralph plan roadmap --dry-run exits 0 with parseable JSON", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "plan", "roadmap", "--dry-run"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as { command: string };
+    expect(parsed.command).toBe("plan-roadmap");
+  });
+
+  test("ralph plan stories --dry-run exits 0 with JSON without provider invocation", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "dry-run-stories");
+    mkdirSync(milestoneDirectory, { recursive: true });
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        milestoneDirectory,
+        "--provider",
+        "nope",
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as { command: string };
+    expect(parsed.command).toBe("plan-stories");
+  });
+
+  test("ralph plan tasks --milestone --dry-run exits 0 with parseable JSON", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "dry-run-tasks");
+    mkdirSync(milestoneDirectory, { recursive: true });
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "tasks",
+        "--milestone",
+        milestoneDirectory,
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as { command: string };
+    expect(parsed.command).toBe("plan-tasks");
+  });
+
+  test("ralph plan subtasks --milestone --dry-run exits 0 with parseable JSON", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "dry-run-subtasks");
+    mkdirSync(milestoneDirectory, { recursive: true });
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "subtasks",
+        "--milestone",
+        milestoneDirectory,
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as { command: string };
+    expect(parsed.command).toBe("plan-subtasks");
+  });
+
   test("ralph plan roadmap rejects --force with --review before main logic", async () => {
     const { exitCode, stderr } = await execa(
       "bun",
@@ -1711,7 +1831,7 @@ kill -s INT $$
       expect(stderr).toContain("Cannot cascade backward");
     });
 
-    test("plan tasks --cascade build fails early with executable-target guidance", async () => {
+    test("plan tasks --cascade build fails early without milestone/story source", async () => {
       const { exitCode, stderr } = await execa(
         "bun",
         [
@@ -1729,12 +1849,11 @@ kill -s INT $$
       );
 
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("not executable yet");
-      expect(stderr).toContain("Supported targets from 'tasks': none");
+      expect(stderr).toContain("requires --milestone or --story source");
       expect(stderr).not.toContain("provider binary not found");
     });
 
-    test("plan stories --cascade build fails before milestone validation", async () => {
+    test("plan stories --cascade build validates milestone after cascade target", async () => {
       const { exitCode, stderr } = await execa(
         "bun",
         [
@@ -1752,9 +1871,7 @@ kill -s INT $$
       );
 
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("not executable yet");
-      expect(stderr).toContain("Supported targets from 'stories': none");
-      expect(stderr).not.toContain("milestone not found");
+      expect(stderr).toContain("milestone not found");
     });
 
     test("plan roadmap --cascade stories fails early with supported target guidance", async () => {

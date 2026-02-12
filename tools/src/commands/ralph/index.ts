@@ -17,7 +17,11 @@ import type { ProviderType } from "./providers/types";
 import { runArchive } from "./archive";
 import runBuild, { buildIterationPrompt } from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
-import { runCascadeFrom, validateCascadeTarget } from "./cascade";
+import {
+  getLevelsInRange,
+  runCascadeFrom,
+  validateCascadeTarget,
+} from "./cascade";
 import {
   countSubtasksInFile,
   discoverTasksFromMilestone,
@@ -41,6 +45,7 @@ import {
   renderPhaseCard,
   renderPlanSubtasksSummary,
 } from "./display";
+import { computeExecutionPlan } from "./plan-preview";
 import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
@@ -855,13 +860,45 @@ ralphCommand.addCommand(
       "--cascade <target>",
       "Chain forward to target level after build (e.g. calibrate). Levels: build, calibrate",
     )
+    .option("--dry-run", "Show execution plan without executing")
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
-      const contextRoot = getContextRoot();
-
-      // Resolve subtasks path
+      // Determine execution mode: headless or supervised (default)
+      const mode = options.headless === true ? "headless" : "supervised";
       const subtasksPath = path.resolve(options.subtasks);
+      const calibrateEvery = Number.parseInt(options.calibrateEvery, 10);
+
+      // Validate cascade target early (before running build)
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget("build", options.cascade);
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+      }
+
+      if (options.dryRun === true) {
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "build",
+          flags: {
+            calibrateEvery,
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+            validateFirst: options.validateFirst === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          model: options.model,
+          provider: options.provider,
+          subtasksPath,
+        });
+        console.log(JSON.stringify(plan, null, 2));
+        process.exit(0);
+      }
+
+      const contextRoot = getContextRoot();
 
       // For --print mode, render the effective runtime prompt for next assignment.
       if (options.print) {
@@ -911,22 +948,10 @@ ralphCommand.addCommand(
         return;
       }
 
-      // Determine execution mode: headless or supervised (default)
-      const mode = options.headless === true ? "headless" : "supervised";
-
-      // Validate cascade target early (before running build)
-      if (options.cascade !== undefined) {
-        const validationError = validateCascadeTarget("build", options.cascade);
-        if (validationError !== null) {
-          console.error(`Error: ${validationError}`);
-          process.exit(1);
-        }
-      }
-
       // Map CLI options to BuildOptions and call runBuild()
       await runBuild(
         {
-          calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+          calibrateEvery,
           force: options.force === true,
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
@@ -1434,6 +1459,21 @@ function getSubtasksPromptPath(
   );
 }
 
+function getSubtasksSizeGuidance(
+  sizeMode: "large" | "medium" | "small",
+): string {
+  const sizeDescriptions: Record<typeof sizeMode, string> = {
+    large:
+      "Large slices: Only split at major functional boundaries. One subtask per logical feature. Prefer fewer, larger subtasks.",
+    medium:
+      "Medium slices (default): One PR per subtask. Each subtask is a coherent unit of work that ships independently.",
+    small:
+      "Small slices: Thinnest viable slices. Maximize granularity for fine-grained progress tracking. Split aggressively.",
+  };
+
+  return sizeDescriptions[sizeMode];
+}
+
 /**
  * Handle cascade execution after a planning level completes
  *
@@ -1498,6 +1538,115 @@ async function handleCascadeExecution(
   );
   console.log();
 
+  async function runPlanningLevelFromCascade(
+    level: "subtasks" | "tasks",
+    planningOptions: {
+      contextRoot: string;
+      milestonePath: string;
+      model?: string;
+      provider?: ProviderType;
+    },
+  ): Promise<null | string> {
+    const {
+      contextRoot: planningContextRoot,
+      milestonePath,
+      model: planningModel,
+      provider: planningProvider,
+    } = planningOptions;
+
+    try {
+      switch (level) {
+        case "subtasks": {
+          const outputDirectory = resolveOutputDirectory(
+            undefined,
+            milestonePath,
+          );
+          const preCheckResult = checkSubtasksPreCheck(
+            milestonePath,
+            outputDirectory,
+          );
+          const { beforeCount, shouldSkip, skippedTasks, totalTasks } =
+            preCheckResult;
+          const expectedFragmentCount = totalTasks - skippedTasks.length;
+
+          if (shouldSkip) {
+            console.log(
+              `All ${totalTasks} tasks already have subtasks - nothing to generate`,
+            );
+            return null;
+          }
+
+          if (skippedTasks.length > 0) {
+            const remainingCount = totalTasks - skippedTasks.length;
+            console.log(
+              `Pre-check: ${skippedTasks.length} tasks already have subtasks, ${remainingCount} to process`,
+            );
+          }
+
+          const sourceFlags: SubtasksSourceFlags = {
+            hasFile: false,
+            hasMilestone: true,
+            hasReview: false,
+            hasStory: false,
+            hasTask: false,
+            hasText: false,
+          };
+          const { contextParts, sourceInfo } = buildSubtasksSourceContext(
+            sourceFlags,
+            { milestone: milestonePath, resolvedMilestonePath: milestonePath },
+          );
+
+          const sizeMode = "medium" as const;
+          contextParts.push(`Sizing mode: ${sizeMode}`);
+          contextParts.push(
+            `Sizing guidance: ${getSubtasksSizeGuidance(sizeMode)}`,
+          );
+
+          const promptPath = getSubtasksPromptPath(
+            planningContextRoot,
+            sourceFlags,
+          );
+          const extraContext = contextParts.join("\n");
+
+          await runSubtasksHeadless({
+            beforeCount,
+            expectedFragmentCount,
+            extraContext,
+            milestone: milestonePath,
+            model: planningModel,
+            outputDirectory: undefined,
+            promptPath,
+            provider: planningProvider,
+            resolvedMilestonePath: milestonePath,
+            sizeMode,
+            skippedTasks,
+            sourceInfo,
+            storyRef: undefined,
+          });
+          return null;
+        }
+
+        case "tasks": {
+          await runTasksMilestoneMode({
+            contextRoot: planningContextRoot,
+            isAutoMode: true,
+            isHeadless: true,
+            milestone: milestonePath,
+            model: planningModel,
+            provider: planningProvider,
+          });
+          return null;
+        }
+
+        default: {
+          return "Unsupported planning level for cascade execution";
+        }
+      }
+    } catch (error) {
+      return `Failed to execute planning level '${level}': ${formatErrorMessage(error)}`;
+    }
+  }
+
   const result = await runCascadeFrom(fromLevel, cascadeTarget, {
     calibrateEvery,
     contextRoot,
@@ -1505,6 +1654,7 @@ async function handleCascadeExecution(
     fromLevel,
     milestonePath: resolvedMilestonePath ?? undefined,
     model,
+    planningLevelRunner: runPlanningLevelFromCascade,
     provider,
     reviewFlag: isReviewFlag,
     subtasksPath,
@@ -1688,7 +1838,7 @@ function renderSubtasksHeadlessStartBanner(options: {
 function resolveMilestoneFromOptions(
   milestoneOption: string | undefined,
   storyOption: string | undefined,
-  outputDirectory: string | undefined,
+  outputDirectory?: string,
 ): null | string | undefined {
   if (milestoneOption !== undefined) {
     // Explicit milestone flag
@@ -2105,6 +2255,38 @@ function stopWatchdogTimerIfPossible(
   }
 }
 
+function toPlanCascadeTarget(
+  value: string | undefined,
+): "build" | "calibrate" | undefined {
+  if (value === "build" || value === "calibrate") {
+    return value;
+  }
+  return undefined;
+}
+
+function toPlanFromLevel(
+  value: string | undefined,
+):
+  | "build"
+  | "calibrate"
+  | "roadmap"
+  | "stories"
+  | "subtasks"
+  | "tasks"
+  | undefined {
+  if (
+    value === "roadmap" ||
+    value === "stories" ||
+    value === "tasks" ||
+    value === "subtasks" ||
+    value === "build" ||
+    value === "calibrate"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
 function tryMergeSubtaskFragments(options: {
   beforeQueueRaw: null | string;
   expectedFragmentCount?: number;
@@ -2319,6 +2501,7 @@ planCommand.addCommand(
       "AI provider to use for planning (default: claude)",
     )
     .option("--model <name>", "Model to use for planning invocation")
+    .option("--dry-run", "Show execution plan without executing")
     .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
@@ -2335,6 +2518,22 @@ planCommand.addCommand(
           console.error(`Error: ${validationError}`);
           process.exit(1);
         }
+      }
+
+      if (options.dryRun === true) {
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-roadmap",
+          flags: {
+            force: options.force === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          model: options.model,
+          provider: options.provider,
+        });
+        console.log(JSON.stringify(plan, null, 2));
+        process.exit(0);
       }
 
       const contextRoot = getContextRoot();
@@ -2387,6 +2586,7 @@ planCommand.addCommand(
       "AI provider to use for planning (default: claude)",
     )
     .option("--model <name>", "Model to use for planning invocation")
+    .option("--dry-run", "Show execution plan without executing")
     .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
@@ -2403,6 +2603,24 @@ planCommand.addCommand(
           console.error(`Error: ${validationError}`);
           process.exit(1);
         }
+      }
+
+      if (options.dryRun === true) {
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-stories",
+          flags: {
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          milestonePath: options.milestone,
+          model: options.model,
+          provider: options.provider,
+        });
+        console.log(JSON.stringify(plan, null, 2));
+        process.exit(0);
       }
 
       const contextRoot = getContextRoot();
@@ -2499,6 +2717,7 @@ planCommand.addCommand(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
     )
+    .option("--dry-run", "Show execution plan without executing")
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
@@ -2522,14 +2741,53 @@ planCommand.addCommand(
       }
 
       if (options.cascade !== undefined) {
+        const cascadeStartLevel = options.from ?? "tasks";
         const validationError = validateCascadeTarget(
-          options.from ?? "tasks",
+          cascadeStartLevel,
           options.cascade,
         );
         if (validationError !== null) {
           console.error(`Error: ${validationError}`);
           process.exit(1);
         }
+
+        const cascadeLevels = getLevelsInRange(
+          cascadeStartLevel,
+          options.cascade,
+        );
+        const planningLevelsInPath = cascadeLevels.filter(
+          (level) => level === "subtasks" || level === "tasks",
+        );
+
+        if (planningLevelsInPath.length > 0 && !hasMilestone && !hasStory) {
+          const planningList = planningLevelsInPath.join(", ");
+          console.error(
+            `Error: Cascading through planning levels (${planningList}) requires --milestone or --story source for 'ralph plan tasks'.`,
+          );
+          process.exit(1);
+        }
+      }
+
+      if (options.dryRun === true) {
+        const milestonePath = resolveMilestoneFromOptions(
+          options.milestone,
+          options.story,
+        );
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-tasks",
+          flags: {
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          milestonePath: milestonePath ?? undefined,
+          model: options.model,
+          provider: options.provider,
+        });
+        console.log(JSON.stringify(plan, null, 2));
+        process.exit(0);
       }
 
       const contextRoot = getContextRoot();
@@ -2642,6 +2900,7 @@ planCommand.addCommand(
       "AI provider to use for planning (default: claude)",
     )
     .option("--model <name>", "Model to use for planning invocation")
+    .option("--dry-run", "Show execution plan without executing")
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
@@ -2669,6 +2928,36 @@ planCommand.addCommand(
         sourceCount,
       });
       validateSubtasksCascadeOption(options.cascade, options.from);
+
+      if (options.dryRun === true) {
+        const resolvedMilestonePath = resolveMilestoneFromOptions(
+          options.milestone,
+          options.story,
+          options.outputDir,
+        );
+        const resolvedOutputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          resolvedMilestonePath,
+        );
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-subtasks",
+          flags: {
+            calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+            validateFirst: options.validateFirst === true,
+          },
+          fromLevel: toPlanFromLevel(getSubtasksCascadeFromLevel(options.from)),
+          milestonePath: resolvedMilestonePath ?? undefined,
+          model: options.model,
+          provider: options.provider,
+          subtasksPath: path.join(resolvedOutputDirectory, "subtasks.json"),
+        });
+        console.log(JSON.stringify(plan, null, 2));
+        process.exit(0);
+      }
 
       const contextRoot = getContextRoot();
 
@@ -2783,16 +3072,10 @@ planCommand.addCommand(
 
       // Add sizing mode context
       const sizeMode = options.size as "large" | "medium" | "small";
-      const sizeDescriptions: Record<typeof sizeMode, string> = {
-        large:
-          "Large slices: Only split at major functional boundaries. One subtask per logical feature. Prefer fewer, larger subtasks.",
-        medium:
-          "Medium slices (default): One PR per subtask. Each subtask is a coherent unit of work that ships independently.",
-        small:
-          "Small slices: Thinnest viable slices. Maximize granularity for fine-grained progress tracking. Split aggressively.",
-      };
       contextParts.push(`Sizing mode: ${sizeMode}`);
-      contextParts.push(`Sizing guidance: ${sizeDescriptions[sizeMode]}`);
+      contextParts.push(
+        `Sizing guidance: ${getSubtasksSizeGuidance(sizeMode)}`,
+      );
 
       // Add output directory to context if specified
       if (hasOutputDirectory) {

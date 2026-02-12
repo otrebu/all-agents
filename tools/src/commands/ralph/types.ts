@@ -23,6 +23,8 @@ import type { ProviderType } from "./providers/types";
  * Build options that control provider execution behavior.
  */
 interface BuildExecutionOptions {
+  /** Preview execution plan without running providers */
+  dryRun?: boolean;
   /** Pause between iterations for user confirmation */
   interactive: boolean;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
@@ -101,6 +103,8 @@ interface CascadeLevel {
 interface CascadeOptions {
   /** Interval for running calibration (e.g., every N subtasks completed) */
   calibrateEvery: number;
+  /** Preview execution plan without running providers */
+  dryRun?: boolean;
   /** Skip confirmation prompts between cascade levels */
   force: boolean;
   /** Run without TTY prompts (for CI/automation) */
