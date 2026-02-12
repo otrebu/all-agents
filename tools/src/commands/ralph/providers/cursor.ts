@@ -14,8 +14,12 @@ interface CursorEvent extends Record<string, unknown> {
   content?: unknown;
   cost?: unknown;
   duration_ms?: unknown;
+  error?: unknown;
+  is_error?: unknown;
+  message?: unknown;
   result?: unknown;
   session_id?: unknown;
+  subtype?: unknown;
   text?: unknown;
   type?: unknown;
   usage?: unknown;
@@ -93,6 +97,95 @@ function exitCodeToSignal(
   return null;
 }
 
+function extractAssistantContentText(content: unknown): string | undefined {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  if (!Array.isArray(content)) {
+    return undefined;
+  }
+
+  const parts = content
+    .map((part): string => {
+      if (typeof part === "string") {
+        return part;
+      }
+
+      if (!isRecord(part)) {
+        return "";
+      }
+
+      const text = readString(part, ["text", "content"]);
+      return text ?? "";
+    })
+    .join("");
+
+  return parts === "" ? undefined : parts;
+}
+
+function extractCursorAssistantText(payload: CursorEvent): string | undefined {
+  const directText = readString(payload, ["content", "text"]);
+  if (directText !== undefined) {
+    return directText;
+  }
+
+  if (!isRecord(payload.message)) {
+    return undefined;
+  }
+
+  return extractAssistantContentText(payload.message.content);
+}
+
+function extractCursorErrorMessage(payload: CursorEvent): string {
+  const nestedMessage = readNestedString(payload, [
+    ["error", "message"],
+    ["error", "text"],
+    ["message", "text"],
+    ["message", "message"],
+    ["result", "error", "message"],
+    ["result", "message"],
+    ["result"],
+  ]);
+
+  if (nestedMessage !== undefined && nestedMessage.trim() !== "") {
+    return `Cursor reported an error result: ${nestedMessage.trim()}`;
+  }
+
+  const subtype = readString(payload, ["subtype"]);
+  if (subtype !== undefined && subtype.trim() !== "") {
+    return `Cursor reported an error result (subtype: ${subtype.trim()})`;
+  }
+
+  return "Cursor reported an error result";
+}
+
+function extractCursorResultText(payload: CursorEvent): string | undefined {
+  const directResult = readNestedString(payload, [
+    ["result"],
+    ["result", "text"],
+    ["result", "message"],
+    ["result", "content"],
+    ["result", "content", "text"],
+    ["content"],
+    ["content", "text"],
+    ["text"],
+    ["message"],
+    ["message", "text"],
+  ]);
+
+  if (directResult !== undefined) {
+    return directResult;
+  }
+
+  const { result } = payload;
+  if (!isRecord(result)) {
+    return undefined;
+  }
+
+  return extractAssistantContentText(result.content);
+}
+
 function extractCursorTokenUsage(payload: CursorEvent): TokenUsage | undefined {
   const { usage } = payload;
   if (!isRecord(usage)) {
@@ -129,6 +222,22 @@ function extractCursorTokenUsage(payload: CursorEvent): TokenUsage | undefined {
     output: output ?? 0,
     reasoning,
   };
+}
+
+function getNestedValue(
+  payload: Record<string, unknown>,
+  pathParts: Array<string>,
+): unknown {
+  let current: unknown = payload;
+  for (const pathPart of pathParts) {
+    if (!isRecord(current)) {
+      return undefined;
+    }
+
+    current = current[pathPart];
+  }
+
+  return current;
 }
 
 async function invokeCursor(options: InvocationOptions): Promise<AgentResult> {
@@ -238,6 +347,19 @@ async function invokeCursorSupervised(
   return { costUsd: 0, durationMs, result: "", sessionId: "" };
 }
 
+function isCursorResultError(payload: CursorEvent): boolean {
+  if (payload.is_error === true || payload.is_error === "true") {
+    return true;
+  }
+
+  const subtype = readString(payload, ["subtype"]);
+  if (subtype?.toLowerCase().startsWith("error") === true) {
+    return true;
+  }
+
+  return payload.error !== undefined;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -279,40 +401,50 @@ function normalizeCursorStructuredPayload(payload: unknown): AgentResult {
     events.findLast((entry) => readString(entry, ["result"]) !== undefined) ??
     events.at(-1);
 
+  if (resultEvent !== undefined && isCursorResultError(resultEvent)) {
+    throw new Error(extractCursorErrorMessage(resultEvent));
+  }
+
   const assistantText = events
     .filter((entry) => readString(entry, ["type"]) === "assistant")
-    .map((entry) => readString(entry, ["content", "text"]) ?? "")
+    .map((entry) => extractCursorAssistantText(entry) ?? "")
     .join("");
 
   const text =
     (resultEvent === undefined
       ? undefined
-      : readString(resultEvent, ["result", "content", "text", "message"])) ??
-    assistantText;
+      : extractCursorResultText(resultEvent)) ?? assistantText;
 
   const durationMs =
     (resultEvent === undefined
       ? undefined
-      : readNumber(resultEvent, ["duration_ms", "durationMs"])) ?? 0;
+      : readNestedNumber(resultEvent, [["duration_ms"], ["durationMs"]])) ?? 0;
 
   const costUsd =
     (resultEvent === undefined
       ? undefined
-      : readNumber(resultEvent, [
-          "total_cost_usd",
-          "cost_usd",
-          "costUsd",
-          "cost",
+      : readNestedNumber(resultEvent, [
+          ["total_cost_usd"],
+          ["cost_usd"],
+          ["costUsd"],
+          ["cost"],
+          ["result", "cost_usd"],
+          ["result", "costUsd"],
+          ["result", "cost"],
         ])) ?? 0;
 
   const sessionId =
     (resultEvent === undefined
       ? undefined
-      : readString(resultEvent, [
-          "session_id",
-          "sessionId",
-          "chat_id",
-          "chatId",
+      : readNestedString(resultEvent, [
+          ["session_id"],
+          ["sessionId"],
+          ["chat_id"],
+          ["chatId"],
+          ["result", "session_id"],
+          ["result", "sessionId"],
+          ["result", "chat_id"],
+          ["result", "chatId"],
         ])) ??
     events
       .map((entry) =>
@@ -327,6 +459,34 @@ function normalizeCursorStructuredPayload(payload: unknown): AgentResult {
       : extractCursorTokenUsage(resultEvent);
 
   return { costUsd, durationMs, result: text, sessionId, tokenUsage };
+}
+
+function readNestedNumber(
+  payload: Record<string, unknown>,
+  pathOptions: Array<Array<string>>,
+): number | undefined {
+  for (const pathParts of pathOptions) {
+    const value = getNestedValue(payload, pathParts);
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function readNestedString(
+  payload: Record<string, unknown>,
+  pathOptions: Array<Array<string>>,
+): string | undefined {
+  for (const pathParts of pathOptions) {
+    const value = getNestedValue(payload, pathParts);
+    if (typeof value === "string") {
+      return value;
+    }
+  }
+
+  return undefined;
 }
 
 function readNumber(

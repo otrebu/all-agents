@@ -79,6 +79,43 @@ describe("normalizeCursorResult", () => {
     expect(result.sessionId).toBe("cur_abc");
   });
 
+  test("extracts nested assistant message content when result text missing", () => {
+    const jsonl = [
+      '{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"nested "},{"type":"text","text":"content"}]},"session_id":"cur_nested"}',
+      '{"type":"result","duration_ms":450}',
+    ].join("\n");
+
+    const result = normalizeCursorResult(jsonl);
+    expect(result.result).toBe("nested content");
+    expect(result.durationMs).toBe(450);
+    expect(result.sessionId).toBe("cur_nested");
+  });
+
+  test("extracts nested result content text objects", () => {
+    const output = JSON.stringify({
+      duration_ms: 800,
+      result: { content: { text: "deep result text" } },
+      session_id: "cur_deep",
+    });
+
+    const result = normalizeCursorResult(output);
+    expect(result.result).toBe("deep result text");
+    expect(result.sessionId).toBe("cur_deep");
+  });
+
+  test("throws when result event reports explicit error", () => {
+    const output = JSON.stringify({
+      error: { message: "Permission denied by policy" },
+      is_error: true,
+      subtype: "error_permission",
+      type: "result",
+    });
+
+    expect(() => normalizeCursorResult(output)).toThrow(
+      "Permission denied by policy",
+    );
+  });
+
   test("throws for non-JSON output", () => {
     expect(() => normalizeCursorResult("plain text response")).toThrow(
       "Unable to parse Cursor output as JSON or JSONL structured payload",

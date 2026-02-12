@@ -302,6 +302,51 @@ describe("provider session adapters", () => {
     }
   });
 
+  test("cursor adapter handles alternate tool_call shapes and nested usage cache", () => {
+    const testRoot = mkdtempSync(join(tmpdir(), "aaa-session-cursor-alt-"));
+    const repoRoot = join(testRoot, "repo");
+    const sessionDirectory = join(repoRoot, ".ralph", "sessions", "cursor");
+    const sessionId = "cursor-session-alt-001";
+    const sessionPath = join(sessionDirectory, `${sessionId}.jsonl`);
+
+    mkdirSync(repoRoot, { recursive: true });
+    mkdirSync(sessionDirectory, { recursive: true });
+
+    const payload = [
+      `{"type":"system","session_id":"${sessionId}","timestamp_ms":4000}`,
+      '{"type":"tool_call","subtype":"started","tool_call":{"tool":"edit","input":{"targetPath":"src/direct.ts"}},"timestamp_ms":1000}',
+      `{"type":"tool_call","subtype":"started","tool_call":{"writeToolCall":{"args":{"filePath":"${repoRoot}/src/nested.ts"}}},"timestamp_ms":2000}`,
+      `{"type":"result","session_id":"${sessionId}","usage":{"input_tokens":20,"output_tokens":5,"cache":{"read":3,"write":2}},"timestamp_ms":3000}`,
+    ].join("\n");
+    writeFileSync(sessionPath, payload, "utf8");
+
+    try {
+      const resolved = resolveSessionForProvider("cursor", sessionId, repoRoot);
+      expect(resolved).not.toBeNull();
+
+      if (resolved === null) {
+        throw new Error("expected resolved cursor session");
+      }
+
+      const metrics = extractSessionMetricsForProvider(
+        "cursor",
+        resolved,
+        repoRoot,
+      );
+
+      expect(metrics.durationMs).toBe(3000);
+      expect(metrics.toolCalls).toBe(2);
+      expect(metrics.filesChanged).toContain("src/direct.ts");
+      expect(metrics.filesChanged).toContain("src/nested.ts");
+      expect(metrics.tokenUsage).toEqual({
+        contextTokens: 25,
+        outputTokens: 5,
+      });
+    } finally {
+      rmSync(testRoot, { force: true, recursive: true });
+    }
+  });
+
   test("unsupported providers degrade to null/default metrics", () => {
     const discovered = discoverRecentSessionForProvider(
       "codex",
