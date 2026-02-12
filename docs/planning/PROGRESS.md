@@ -45,6 +45,11 @@
 - **Changes:** Verified parser helpers are already consolidated in `queue-ops.ts` as the single canonical module, confirmed `validation.ts` consumes only `parseQueueOperations` from `queue-ops.ts` without local duplicates, and re-ran targeted queue parser/apply unit suites to confirm behavior remains green.
 - **Files:** `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/queue-operations.test.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-039
+- **Problem:** Legacy runtime compatibility shims still read `blockedBy` in build/config/index/status, which kept dependency-aware behavior alive despite WS-06 requiring queue-order-only runtime selection.
+- **Changes:** Removed all `blockedBy` runtime reads and messaging from the four command modules, kept `getNextSubtask()` as first-pending queue-order selection, simplified no-runnable and status/print pending previews to plain queue-order output, and retained legacy normalization only for `status` field stripping.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/status.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-11
 
 ### SUB-031

@@ -35,7 +35,6 @@ import {
   type QueueApplyLogEntry,
   type QueueProposalLogEntry,
   type RalphConfig,
-  readLegacyBlockedBy,
   type Subtask,
   type SubtasksFile,
   type ValidationLogEntry,
@@ -750,18 +749,12 @@ function saveSubtasksFile(
     ...serializableData,
     subtasks: serializableData.subtasks.map((subtask) => {
       const subtaskRecord = subtask as unknown as Record<string, unknown>;
-      const hasLegacyBlockedBy =
-        "blockedBy" in subtaskRecord || readLegacyBlockedBy(subtask).length > 0;
-      const hasLegacyFields = "status" in subtaskRecord || hasLegacyBlockedBy;
+      const hasLegacyFields = "status" in subtaskRecord;
       if (!hasLegacyFields) {
         return subtask;
       }
 
-      const {
-        blockedBy: _legacyBlockedBy,
-        status: _legacyStatus,
-        ...normalizedSubtask
-      } = subtaskRecord;
+      const { status: _legacyStatus, ...normalizedSubtask } = subtaskRecord;
       return normalizedSubtask as unknown as Subtask;
     }),
   };

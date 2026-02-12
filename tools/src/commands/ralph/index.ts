@@ -66,7 +66,6 @@ import {
   parseCliSubtaskDrafts,
   readQueueProposalFromFile,
 } from "./subtask-helpers";
-import { readLegacyBlockedBy } from "./types";
 
 /**
  * Extract task reference from a task path
@@ -889,12 +888,7 @@ ralphCommand.addCommand(
             );
             console.log("Pending subtasks (queue order):");
             for (const subtask of pending) {
-              const blockedBy = readLegacyBlockedBy(subtask);
-              const legacySuffix =
-                blockedBy.length === 0
-                  ? ""
-                  : ` (legacy blockedBy: ${blockedBy.join(", ")})`;
-              console.log(`- ${subtask.id}: ${subtask.title}${legacySuffix}`);
+              console.log(`- ${subtask.id}: ${subtask.title}`);
             }
           }
           console.log("\n=== End of Prompt ===");

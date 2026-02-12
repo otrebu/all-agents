@@ -28,11 +28,7 @@ import {
   renderProgressBar,
   truncate,
 } from "./display";
-import {
-  normalizeIterationDiaryEntry,
-  normalizeStatus,
-  readLegacyBlockedBy,
-} from "./types";
+import { normalizeIterationDiaryEntry, normalizeStatus } from "./types";
 
 // =============================================================================
 // Helper Functions
@@ -366,14 +362,7 @@ function renderSubtaskDetails(subtasksPath: string): void {
       console.log(
         `  Next up:   ${chalk.red("None selected")} (${pending.length} pending)`,
       );
-      const preview = pending.slice(0, 3).map((subtask) => {
-        const blockedBy = readLegacyBlockedBy(subtask);
-        if (blockedBy.length === 0) {
-          return subtask.id;
-        }
-
-        return `${subtask.id} (legacy blockedBy: ${blockedBy.join(", ")})`;
-      });
+      const preview = pending.slice(0, 3).map((subtask) => subtask.id);
       if (preview.length > 0) {
         console.log(`             ${chalk.dim(preview.join("; "))}`);
       }

@@ -1009,7 +1009,7 @@
       "taskRef": "WS-06-remove-blockedby",
       "title": "Remove legacy blockedBy runtime access patterns from build/config/index/status",
       "description": "SUB-015 removed blockedBy from the Subtask type and schema but introduced `(s as { blockedBy?: unknown }).blockedBy` cast patterns in build.ts, config.ts, index.ts, and status.ts to preserve legacy reads. The WS-06 milestone acceptance criterion states 'No blockedBy references remain in runtime code paths.' These cast-based accesses keep blockedBy semantics alive in runtime logic (next-subtask selection, blocked-list rendering, status display). Remove these access patterns entirely and simplify next-subtask selection to first-pending-in-queue-order as WS-06 specifies.",
-      "done": false,
+      "done": true,
       "acceptanceCriteria": [
         "No `blockedBy` string literal or property access remains in build.ts, config.ts, index.ts, or status.ts",
         "getNextSubtask() in config.ts selects first pending subtask by queue order without dependency checking",
@@ -1023,7 +1023,10 @@
         "tools/src/commands/ralph/config.ts",
         "tools/src/commands/ralph/index.ts",
         "tools/src/commands/ralph/status.ts"
-      ]
+      ],
+      "completedAt": "2026-02-12T08:30:39Z",
+      "commitHash": "426b76530db174be9c471d73afe5170395276f93",
+      "sessionId": "8c5aa553-08a2-447f-9cb5-8d648a5d0778"
     },
     {
       "id": "SUB-040",
