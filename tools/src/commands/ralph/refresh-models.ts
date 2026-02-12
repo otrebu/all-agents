@@ -30,7 +30,8 @@ interface RefreshOptions {
 // =============================================================================
 
 /** Providers that support model listing */
-const DISCOVERABLE_PROVIDERS: Array<ProviderType> = ["opencode"];
+const CURSOR_BINARY_CANDIDATES = ["agent", "cursor-agent"] as const;
+const DISCOVERABLE_PROVIDERS: Array<ProviderType> = ["cursor", "opencode"];
 
 /**
  * Derive a stable registry model ID from discovered model record data.
@@ -61,6 +62,47 @@ function deriveFriendlyId(
 }
 
 /**
+ * Discover models from Cursor Agent via `agent --list-models`.
+ *
+ * Uses the same binary fallback strategy as runtime invocation:
+ * try `agent`, then `cursor-agent`.
+ */
+function discoverCursorModels(): Array<ModelInfo> {
+  const binary = resolveCursorDiscoveryBinary();
+  if (binary === null) {
+    console.warn("Warning: cursor agent CLI not found, skipping...");
+    return [];
+  }
+
+  try {
+    const proc = Bun.spawnSync([binary, "--list-models"], {
+      stderr: "pipe",
+      stdout: "pipe",
+      timeout: 20_000,
+    });
+
+    if (proc.exitCode !== 0) {
+      const stderr = proc.stderr.toString().trim();
+      console.error(
+        `Error discovering cursor models: ${stderr || `exit code ${proc.exitCode}`}`,
+      );
+      return [];
+    }
+
+    const stdout = proc.stdout.toString();
+    if (stdout.trim() === "") {
+      return [];
+    }
+
+    return parseCursorModelsOutput(stdout);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Error discovering cursor models: ${message}`);
+    return [];
+  }
+}
+
+/**
  * Discover models from a list of providers.
  * Each provider is queried independently; failures are logged and skipped.
  */
@@ -69,6 +111,10 @@ function discoverFromProviders(
 ): Array<ModelInfo> {
   const results: Array<ModelInfo> = [];
   for (const p of providers) {
+    if (p === "cursor") {
+      results.push(...discoverCursorModels());
+    }
+
     if (p === "opencode") {
       results.push(...discoverOpencodeModels());
     }
@@ -165,7 +211,6 @@ function generateDynamicFileContent(models: Array<ModelInfo>): string {
     "",
     'import type { ModelInfo } from "./models-static";',
     "",
-    "// eslint-disable-next-line import/prefer-default-export -- named export required for code generation consistency",
   );
 
   if (sorted.length === 0) {
@@ -186,7 +231,12 @@ function generateDynamicFileContent(models: Array<ModelInfo>): string {
     lines.push("];");
   }
 
-  lines.push("", "export { DISCOVERED_MODELS };", "");
+  lines.push(
+    "",
+    "// eslint-disable-next-line import/prefer-default-export -- named export required for code generation consistency",
+    "export { DISCOVERED_MODELS };",
+    "",
+  );
 
   return lines.join("\n");
 }
@@ -196,6 +246,101 @@ function generateDynamicFileContent(models: Array<ModelInfo>): string {
  */
 function getDynamicModelsPath(): string {
   return path.join(import.meta.dirname, "providers", "models-dynamic.ts");
+}
+
+function parseCursorCostHint(
+  modelId: string,
+  displayName: string,
+): "cheap" | "expensive" | "standard" {
+  const tokenized = `${modelId} ${displayName}`
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/gu, " ")
+    .trim()
+    .split(/\s+/u)
+    .filter((token) => token !== "");
+
+  const tokenSet = new Set(tokenized);
+
+  if (
+    tokenSet.has("fast") ||
+    tokenSet.has("flash") ||
+    tokenSet.has("haiku") ||
+    tokenSet.has("low") ||
+    tokenSet.has("mini")
+  ) {
+    return "cheap";
+  }
+
+  if (
+    tokenSet.has("high") ||
+    tokenSet.has("max") ||
+    tokenSet.has("opus") ||
+    tokenSet.has("thinking") ||
+    tokenSet.has("xhigh")
+  ) {
+    return "expensive";
+  }
+
+  return "standard";
+}
+
+function parseCursorModelLine(
+  line: string,
+  discoveredAt: string,
+): ModelInfo | undefined {
+  const trimmed = line.trim();
+  if (
+    trimmed === "" ||
+    trimmed.startsWith("Available models") ||
+    trimmed.startsWith("Loading models") ||
+    trimmed.startsWith("Tip:")
+  ) {
+    return undefined;
+  }
+
+  const match = /^(?<id>[a-zA-Z0-9._/-]+)\s+-\s+(?<displayName>.+)$/u.exec(
+    trimmed,
+  );
+  const modelId = match?.groups?.id;
+  const displayName = match?.groups?.displayName;
+  if (modelId === undefined || displayName === undefined) {
+    return undefined;
+  }
+
+  return {
+    cliFormat: modelId,
+    costHint: parseCursorCostHint(modelId, displayName),
+    discoveredAt,
+    id: modelId,
+    provider: "cursor",
+  };
+}
+
+/**
+ * Parse `agent --list-models` plain-text output into ModelInfo[].
+ */
+function parseCursorModelsOutput(data: unknown): Array<ModelInfo> {
+  if (typeof data !== "string") {
+    console.error("Error: cursor models output is not a string");
+    return [];
+  }
+
+  if (data.trim() === "") {
+    return [];
+  }
+
+  const cleanOutput = removeCursorControlSequences(data).replaceAll("\r", "");
+  const discoveredAt = new Date().toISOString().split("T")[0] ?? "";
+  const discovered = new Map<string, ModelInfo>();
+
+  for (const rawLine of cleanOutput.split("\n")) {
+    const model = parseCursorModelLine(rawLine, discoveredAt);
+    if (model !== undefined) {
+      discovered.set(model.id, model);
+    }
+  }
+
+  return [...discovered.values()];
 }
 
 /**
@@ -281,6 +426,67 @@ function parseOpencodeModelsOutput(data: unknown): Array<ModelInfo> {
   return models;
 }
 
+function removeCursorControlSequences(value: string): string {
+  let index = 0;
+  let output = "";
+
+  while (index < value.length) {
+    const character = value[index];
+    const next = value[index + 1];
+
+    if (character !== "\u001b") {
+      output += character;
+      index += 1;
+    } else if (next === "[") {
+      // CSI sequence: ESC [ ... final-byte
+      index += 2;
+      while (index < value.length) {
+        const codePoint = value.codePointAt(index);
+        index += 1;
+        if (codePoint !== undefined && codePoint >= 64 && codePoint <= 126) {
+          break;
+        }
+      }
+    } else if (next === "]") {
+      // OSC sequence: ESC ] ... BEL OR ESC \\
+      index += 2;
+      while (index < value.length) {
+        const current = value[index];
+        if (current === "\u0007") {
+          index += 1;
+          break;
+        }
+
+        if (current === "\u001b" && value[index + 1] === "\\") {
+          index += 2;
+          break;
+        }
+
+        index += 1;
+      }
+    } else {
+      // Single-character escape sequence.
+      index += 2;
+    }
+  }
+
+  return output;
+}
+
+function resolveCursorDiscoveryBinary(): null | string {
+  for (const candidate of CURSOR_BINARY_CANDIDATES) {
+    const proc = Bun.spawnSync(["which", candidate], {
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+    if (proc.exitCode === 0) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 // =============================================================================
 // Main Command Logic
 // =============================================================================
@@ -352,11 +558,14 @@ function runRefreshModels(options: RefreshOptions): void {
 export {
   deriveFriendlyId,
   DISCOVERABLE_PROVIDERS,
+  discoverCursorModels,
   discoverFromProviders,
   discoverOpencodeModels,
   filterDuplicates,
   generateDynamicFileContent,
   getDynamicModelsPath,
+  parseCursorModelsOutput,
   parseOpencodeModelsOutput,
+  resolveCursorDiscoveryBinary,
   runRefreshModels,
 };

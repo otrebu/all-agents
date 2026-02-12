@@ -1,9 +1,21 @@
 import {
+  DISCOVERED_MODELS,
   getModelById,
   REFRESH_HINT,
   validateModelSelection,
 } from "@tools/commands/ralph/providers/models";
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+
+const DISCOVERED_MODELS_SNAPSHOT = [...DISCOVERED_MODELS];
+
+beforeEach(() => {
+  DISCOVERED_MODELS.length = 0;
+});
+
+afterAll(() => {
+  DISCOVERED_MODELS.length = 0;
+  DISCOVERED_MODELS.push(...DISCOVERED_MODELS_SNAPSHOT);
+});
 
 // =============================================================================
 // validateModelSelection - Valid Models
@@ -197,6 +209,14 @@ describe("REFRESH_HINT", () => {
 describe("validateModelSelection - edge cases", () => {
   test("returns empty suggestions for provider with no models", () => {
     const result = validateModelSelection("some-model", "codex");
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.suggestions).toEqual([]);
+    }
+  });
+
+  test("returns empty suggestions for cursor while registry is empty", () => {
+    const result = validateModelSelection("cursor-model", "cursor");
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.suggestions).toEqual([]);

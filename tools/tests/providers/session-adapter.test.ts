@@ -37,6 +37,7 @@ function makeSpawnSyncResult(
 describe("provider session adapters", () => {
   const originalSpawnSync = Bun.spawnSync;
   const originalClaudeConfigDirectory = process.env.CLAUDE_CONFIG_DIR;
+  const originalCursorConfigDirectory = process.env.CURSOR_CONFIG_DIR;
 
   afterAll(() => {
     Bun.spawnSync = originalSpawnSync;
@@ -44,6 +45,12 @@ describe("provider session adapters", () => {
       delete process.env.CLAUDE_CONFIG_DIR;
     } else {
       process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDirectory;
+    }
+
+    if (originalCursorConfigDirectory === undefined) {
+      delete process.env.CURSOR_CONFIG_DIR;
+    } else {
+      process.env.CURSOR_CONFIG_DIR = originalCursorConfigDirectory;
     }
   });
 
@@ -224,6 +231,75 @@ describe("provider session adapters", () => {
     expect(metrics.toolCalls).toBe(4);
     expect(metrics.filesChanged).toEqual(["src/new.ts", "src/existing.ts"]);
     expect(metrics.tokenUsage).toEqual({ contextTokens: 75, outputTokens: 50 });
+  });
+
+  test("cursor adapter resolves transcript payload and extracts metrics", () => {
+    const testRoot = mkdtempSync(join(tmpdir(), "aaa-session-cursor-"));
+    const repoRoot = join(testRoot, "repo");
+    const cursorConfigDirectory = join(testRoot, ".cursor-test");
+    const encodedPath = repoRoot
+      .replaceAll("/", "-")
+      .replaceAll(".", "-")
+      .replace(/^-+/u, "");
+    const transcriptDirectory = join(
+      cursorConfigDirectory,
+      "projects",
+      encodedPath,
+      "agent-transcripts",
+    );
+    const sessionId = "cursor-session-001";
+    const transcriptPath = join(transcriptDirectory, `${sessionId}.txt`);
+
+    mkdirSync(repoRoot, { recursive: true });
+    mkdirSync(transcriptDirectory, { recursive: true });
+
+    const payload = [
+      `{"type":"system","session_id":"${sessionId}","timestamp_ms":1000}`,
+      '{"type":"tool_call","subtype":"started","tool_call":{"writeToolCall":{"args":{"path":"src/new.ts"}}},"timestamp_ms":1100}',
+      `{"type":"tool_call","subtype":"started","tool_call":{"editToolCall":{"args":{"filePath":"${repoRoot}/src/existing.ts"}}},"timestamp_ms":1200}`,
+      `{"type":"result","duration_ms":3000,"session_id":"${sessionId}","usage":{"input_tokens":200,"output_tokens":30,"cache_read":50},"timestamp_ms":4000}`,
+    ].join("\n");
+    writeFileSync(transcriptPath, payload, "utf8");
+
+    process.env.CURSOR_CONFIG_DIR = cursorConfigDirectory;
+
+    try {
+      const resolved = resolveSessionForProvider("cursor", sessionId, repoRoot);
+      expect(resolved).not.toBeNull();
+
+      if (resolved === null) {
+        throw new Error("expected resolved cursor session");
+      }
+
+      const metrics = extractSessionMetricsForProvider(
+        "cursor",
+        resolved,
+        repoRoot,
+      );
+
+      expect(metrics.durationMs).toBe(3000);
+      expect(metrics.toolCalls).toBe(2);
+      expect(metrics.filesChanged).toContain("src/new.ts");
+      expect(metrics.filesChanged).toContain("src/existing.ts");
+      expect(metrics.tokenUsage).toEqual({
+        contextTokens: 250,
+        outputTokens: 30,
+      });
+
+      const discovered = discoverRecentSessionForProvider(
+        "cursor",
+        Date.now() - 60_000,
+        repoRoot,
+      );
+      expect(discovered?.sessionId).toBe(sessionId);
+    } finally {
+      if (originalCursorConfigDirectory === undefined) {
+        delete process.env.CURSOR_CONFIG_DIR;
+      } else {
+        process.env.CURSOR_CONFIG_DIR = originalCursorConfigDirectory;
+      }
+      rmSync(testRoot, { force: true, recursive: true });
+    }
   });
 
   test("unsupported providers degrade to null/default metrics", () => {

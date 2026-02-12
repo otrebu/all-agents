@@ -16,7 +16,10 @@ import type {
 import { loadRalphConfig, loadTimeoutConfig } from "../ralph/config";
 import { formatDuration, renderMarkdown } from "../ralph/display";
 import { executeHook, type HookContext } from "../ralph/hooks";
-import { validateModelSelection } from "../ralph/providers/models";
+import {
+  getModelsForProvider,
+  validateModelSelection,
+} from "../ralph/providers/models";
 import {
   formatProviderFailureOutcome,
   invokeWithProviderOutcome,
@@ -940,20 +943,7 @@ async function runHeadlessReview(options: {
   const model = resolveModel(modelOverride);
 
   // Validate model selection if specified
-  if (model !== undefined) {
-    const modelResult = validateModelSelection(model, provider);
-    if (!modelResult.valid) {
-      console.error(chalk.red(`\nError: ${modelResult.error}`));
-      if (modelResult.suggestions.length > 0) {
-        console.error(chalk.yellow("\nDid you mean:"));
-        for (const suggestion of modelResult.suggestions) {
-          console.error(chalk.yellow(`  - ${suggestion}`));
-        }
-      }
-      process.exit(1);
-    }
-    console.log(chalk.dim(`Using model: ${model} (${modelResult.cliFormat})`));
-  }
+  validateModelSelectionOrExit(model, provider);
 
   console.log(chalk.dim("Invoking in headless mode...\n"));
 
@@ -966,6 +956,7 @@ async function runHeadlessReview(options: {
     prompt,
     stallTimeoutMs: timeoutConfig.stallMinutes * 60 * 1000,
     timeout: timeoutConfig.hardMinutes * 60 * 1000,
+    workingDirectory: projectRoot,
   });
 
   if (invocationOutcome.status !== "success") {
@@ -1283,20 +1274,7 @@ async function runSupervisedReview(
   const model = resolveModel(modelOverride);
 
   // Validate model selection if specified
-  if (model !== undefined) {
-    const modelResult = validateModelSelection(model, provider);
-    if (!modelResult.valid) {
-      console.error(chalk.red(`\nError: ${modelResult.error}`));
-      if (modelResult.suggestions.length > 0) {
-        console.error(chalk.yellow("\nDid you mean:"));
-        for (const suggestion of modelResult.suggestions) {
-          console.error(chalk.yellow(`  - ${suggestion}`));
-        }
-      }
-      process.exit(1);
-    }
-    console.log(chalk.dim(`Using model: ${model} (${modelResult.cliFormat})`));
-  }
+  validateModelSelectionOrExit(model, provider);
 
   // Invoke in chat/supervised mode
   // User can watch and type during the session
@@ -1314,6 +1292,7 @@ Start by gathering the diff.`,
     model,
     promptPath,
     sessionName: "code review",
+    workingDirectory: projectRoot,
   });
 
   if (invocationOutcome.status !== "success") {
@@ -1325,6 +1304,59 @@ Start by gathering the diff.`,
   }
 
   console.log(chalk.green("\nCode review session completed."));
+}
+
+function validateModelSelectionOrExit(
+  model: string | undefined,
+  provider: ProviderType,
+): void {
+  if (model === undefined) {
+    return;
+  }
+
+  if (provider === "cursor") {
+    const hasDiscoveredCursorModels = getModelsForProvider("cursor").length > 0;
+    if (!hasDiscoveredCursorModels) {
+      console.log(
+        chalk.yellow(
+          `Cursor model '${model}' is passed through without validation because no Cursor models are registered.\n` +
+            "Run 'aaa ralph refresh-models --provider cursor' to enable strict validation.",
+        ),
+      );
+      return;
+    }
+
+    const cursorModelResult = validateModelSelection(model, provider);
+    if (!cursorModelResult.valid) {
+      console.error(chalk.red(`\nError: ${cursorModelResult.error}`));
+      if (cursorModelResult.suggestions.length > 0) {
+        console.error(chalk.yellow("\nDid you mean:"));
+        for (const suggestion of cursorModelResult.suggestions) {
+          console.error(chalk.yellow(`  - ${suggestion}`));
+        }
+      }
+      process.exit(1);
+    }
+
+    console.log(
+      chalk.dim(`Using model: ${model} (${cursorModelResult.cliFormat})`),
+    );
+    return;
+  }
+
+  const modelResult = validateModelSelection(model, provider);
+  if (!modelResult.valid) {
+    console.error(chalk.red(`\nError: ${modelResult.error}`));
+    if (modelResult.suggestions.length > 0) {
+      console.error(chalk.yellow("\nDid you mean:"));
+      for (const suggestion of modelResult.suggestions) {
+        console.error(chalk.yellow(`  - ${suggestion}`));
+      }
+    }
+    process.exit(1);
+  }
+
+  console.log(chalk.dim(`Using model: ${model} (${modelResult.cliFormat})`));
 }
 
 /**

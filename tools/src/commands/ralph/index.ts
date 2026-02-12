@@ -884,17 +884,17 @@ function resolvePlanningModel(modelOverride?: string): string | undefined {
 
 /**
  * Resolve provider selection for planning commands.
- * Planning commands default to Claude unless explicitly overridden by CLI flag.
+ * Priority: CLI flag > env var > config file > auto-detect.
  */
 async function resolvePlanningProvider(
   providerOverride?: string,
 ): Promise<ProviderType> {
-  if (providerOverride === undefined || providerOverride === "") {
-    return "claude";
-  }
-
   try {
-    return await resolveProvider({ cliFlag: providerOverride });
+    if (providerOverride !== undefined && providerOverride !== "") {
+      return await resolveProvider({ cliFlag: providerOverride });
+    }
+
+    return await resolveProvider();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(message);

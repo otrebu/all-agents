@@ -29,6 +29,7 @@ import {
   invokeClaudeChat,
   invokeClaudeHeadlessAsync,
 } from "./claude";
+import { invokeCursor } from "./cursor";
 import { invokeOpencode, mapOpencodeInvocationError } from "./opencode";
 import { PROVIDER_BINARIES } from "./types";
 
@@ -51,6 +52,8 @@ interface HeadlessProviderOptions {
   stallTimeoutMs?: number;
   /** Hard timeout in ms (0 = disabled) */
   timeout?: number;
+  /** Working directory for provider invocation */
+  workingDirectory?: string;
 }
 
 /** Union of provider invocation options, discriminated by mode */
@@ -82,6 +85,8 @@ interface SupervisedProviderOptions {
   promptPath: string;
   /** Session name for display */
   sessionName: string;
+  /** Working directory for provider invocation */
+  workingDirectory?: string;
 }
 
 /** Error thrown when a provider operation fails */
@@ -156,6 +161,11 @@ const GENERIC_FAILURE_REASON_RULES: Array<{
     reason: "configuration",
   },
 ];
+
+const CURSOR_BINARY_CANDIDATES = [
+  PROVIDER_BINARIES.cursor,
+  "cursor-agent",
+] as const;
 
 // =============================================================================
 // Functions (alphabetical order per perfectionist/sort-modules)
@@ -258,12 +268,23 @@ function getInstallInstructions(provider: ProviderType): string {
   const instructions: Record<ProviderType, string> = {
     claude: "npm install -g @anthropic-ai/claude-code",
     codex: "npm install -g @openai/codex",
-    cursor: "Download from cursor.com and install cursor-agent",
+    cursor: "Install Cursor and ensure 'agent' or 'cursor-agent' is on PATH",
     gemini: "npm install -g @google/gemini-cli",
     opencode: "npm install -g opencode",
     pi: "npm install -g @pi-mono/pi",
   };
   return instructions[provider];
+}
+
+/**
+ * Resolve binary candidates to check for a provider.
+ */
+function getProviderBinaryCandidates(provider: ProviderType): Array<string> {
+  if (provider === "cursor") {
+    return [...CURSOR_BINARY_CANDIDATES];
+  }
+
+  return [PROVIDER_BINARIES[provider]];
 }
 
 /**
@@ -337,9 +358,8 @@ function invokeClaudeSupervised(
  * Invoke a provider with the given options.
  *
  * Validates that the provider binary is available and that the provider
- * is implemented before invoking. Currently only "claude" is implemented
- * via direct function calls; other providers will use the REGISTRY pattern
- * once their implementations are added.
+ * is implemented before invoking. Claude uses a direct legacy path while
+ * other enabled providers invoke through REGISTRY capabilities.
  *
  * @param provider - Which provider to use
  * @param options - Invocation options (discriminated by mode)
@@ -363,7 +383,11 @@ async function invokeWithProvider(
 
   const capabilities = REGISTRY[provider];
 
-  const invokeConfig = makeProviderConfig(provider, options.model);
+  const invokeConfig = makeProviderConfig(
+    provider,
+    options.model,
+    options.workingDirectory,
+  );
   const prompt =
     options.mode === "headless"
       ? options.prompt
@@ -466,12 +490,17 @@ function loadConfigProvider(): string | undefined {
 function makeProviderConfig(
   provider: ProviderType,
   model: string | undefined,
+  workingDirectory?: string,
 ): ProviderConfig {
   if (provider === "claude") {
-    return { provider };
+    return workingDirectory === undefined
+      ? { provider }
+      : { provider, workingDirectory };
   }
 
-  return { model, provider };
+  return workingDirectory === undefined
+    ? { model, provider }
+    : { model, provider, workingDirectory };
 }
 
 /** Build supervised prompt from prompt file and optional context */
@@ -655,11 +684,26 @@ async function validateProviderInvocationPreflight(
     );
   }
 
-  const binary = PROVIDER_BINARIES[provider];
-  if (!(await isBinaryAvailable(binary))) {
+  const binaryCandidates = getProviderBinaryCandidates(provider);
+  let foundBinary: null | string = null;
+
+  for (const candidate of binaryCandidates) {
+    // eslint-disable-next-line no-await-in-loop -- fallback checks must preserve candidate order
+    if (await isBinaryAvailable(candidate)) {
+      foundBinary = candidate;
+      break;
+    }
+  }
+
+  if (foundBinary === null) {
+    const binaryLabel =
+      binaryCandidates.length === 1
+        ? `Binary '${binaryCandidates[0]}' not found in PATH.`
+        : `Binaries '${binaryCandidates.join("', '")}' not found in PATH.`;
+
     throw new ProviderError(
       provider,
-      `Provider '${provider}' is not available. Binary '${binary}' not found in PATH.\n` +
+      `Provider '${provider}' is not available. ${binaryLabel}\n` +
         `Install: ${getInstallInstructions(provider)}`,
     );
   }
@@ -699,12 +743,16 @@ const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
     supportsSessionExport: false,
   },
   cursor: {
-    available: false,
-    invoke: createNotImplementedInvoker("cursor"),
-    supportedModes: [] satisfies Array<InvocationMode>,
-    supportsHeadless: false,
-    supportsInteractiveSupervised: false,
-    supportsModelDiscovery: false,
+    available: true,
+    invoke: invokeCursor,
+    supportedModes: [
+      "supervised",
+      "headless-sync",
+      "headless-async",
+    ] satisfies Array<InvocationMode>,
+    supportsHeadless: true,
+    supportsInteractiveSupervised: true,
+    supportsModelDiscovery: true,
     supportsSessionExport: false,
   },
   gemini: {
