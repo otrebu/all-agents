@@ -9,7 +9,18 @@ import {
   validateModelForProvider,
 } from "@tools/commands/ralph/providers/models";
 import { STATIC_MODELS } from "@tools/commands/ralph/providers/models-static";
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+
+const DISCOVERED_MODELS_SNAPSHOT = [...DISCOVERED_MODELS];
+
+beforeEach(() => {
+  DISCOVERED_MODELS.length = 0;
+});
+
+afterAll(() => {
+  DISCOVERED_MODELS.length = 0;
+  DISCOVERED_MODELS.push(...DISCOVERED_MODELS_SNAPSHOT);
+});
 
 // =============================================================================
 // Static Model Count & Field Presence
@@ -235,10 +246,6 @@ describe("validateModelForProvider", () => {
 // =============================================================================
 
 describe("getAllModels", () => {
-  afterEach(() => {
-    DISCOVERED_MODELS.length = 0;
-  });
-
   test("returns all 44 static models when no dynamic models exist", () => {
     const models = getAllModels();
     expect(models).toHaveLength(44);

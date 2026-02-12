@@ -5,6 +5,7 @@ import {
   CLAUDE_SESSION_ADAPTER,
   type DiscoveredSession,
 } from "./session-claude";
+import { CURSOR_SESSION_ADAPTER } from "./session-cursor";
 import { OPENCODE_SESSION_ADAPTER } from "./session-opencode";
 
 interface ProviderSession {
@@ -56,7 +57,7 @@ const NOOP_SESSION_ADAPTER: ProviderSessionAdapter = {
 const SESSION_ADAPTERS: Record<ProviderType, ProviderSessionAdapter> = {
   claude: CLAUDE_SESSION_ADAPTER,
   codex: NOOP_SESSION_ADAPTER,
-  cursor: NOOP_SESSION_ADAPTER,
+  cursor: CURSOR_SESSION_ADAPTER,
   gemini: NOOP_SESSION_ADAPTER,
   opencode: OPENCODE_SESSION_ADAPTER,
   pi: NOOP_SESSION_ADAPTER,

@@ -49,15 +49,14 @@ describe("REGISTRY", () => {
   });
 
   test("non-implemented providers have available: false", () => {
-    const stubProviders: Array<ProviderType> = [
-      "codex",
-      "cursor",
-      "gemini",
-      "pi",
-    ];
+    const stubProviders: Array<ProviderType> = ["codex", "gemini", "pi"];
     for (const provider of stubProviders) {
       expect(REGISTRY[provider].available).toBe(false);
     }
+  });
+
+  test("cursor has available: true", () => {
+    expect(REGISTRY.cursor.available).toBe(true);
   });
 
   test("opencode has available: true", () => {
@@ -86,11 +85,13 @@ describe("REGISTRY", () => {
     expect(REGISTRY.opencode.supportedModes).toContain("headless-async");
   });
 
-  test("capability booleans are set for claude and opencode", () => {
+  test("capability booleans are set for claude, opencode, and cursor", () => {
     expect(REGISTRY.claude.supportsHeadless).toBe(true);
     expect(REGISTRY.claude.supportsInteractiveSupervised).toBe(true);
     expect(REGISTRY.opencode.supportsHeadless).toBe(true);
     expect(REGISTRY.opencode.supportsInteractiveSupervised).toBe(true);
+    expect(REGISTRY.cursor.supportsHeadless).toBe(true);
+    expect(REGISTRY.cursor.supportsInteractiveSupervised).toBe(true);
   });
 
   test("codex has empty supportedModes", () => {
@@ -105,8 +106,10 @@ describe("REGISTRY", () => {
     expect(REGISTRY.pi.supportedModes).toEqual([]);
   });
 
-  test("cursor has empty supportedModes", () => {
-    expect(REGISTRY.cursor.supportedModes).toEqual([]);
+  test("cursor has supervised, headless-sync, headless-async modes", () => {
+    expect(REGISTRY.cursor.supportedModes).toContain("supervised");
+    expect(REGISTRY.cursor.supportedModes).toContain("headless-sync");
+    expect(REGISTRY.cursor.supportedModes).toContain("headless-async");
   });
 });
 
@@ -746,6 +749,87 @@ describe("validateProviderInvocationPreflight", () => {
     });
 
     await validateProviderInvocationPreflight("opencode", "headless");
+  });
+
+  test("passes for cursor headless when primary binary is available", async () => {
+    const spawnMock = mock((command: ReadonlyArray<string>) => {
+      const binary = command[1];
+      const exitCode = binary === "agent" ? 0 : 1;
+      return {
+        exited: Promise.resolve(exitCode),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      };
+    });
+
+    Object.assign(Bun, { spawn: spawnMock });
+    await validateProviderInvocationPreflight("cursor", "headless");
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    expect(spawnMock.mock.calls[0]?.[0]).toEqual(["which", "agent"]);
+  });
+
+  test("passes for cursor headless when fallback binary is available", async () => {
+    const spawnMock = mock((command: ReadonlyArray<string>) => {
+      const binary = command[1];
+      const exitCode = binary === "cursor-agent" ? 0 : 1;
+      return {
+        exited: Promise.resolve(exitCode),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      };
+    });
+
+    Object.assign(Bun, { spawn: spawnMock });
+    await validateProviderInvocationPreflight("cursor", "headless");
+
+    expect(spawnMock).toHaveBeenCalledTimes(2);
+    expect(spawnMock.mock.calls[0]?.[0]).toEqual(["which", "agent"]);
+    expect(spawnMock.mock.calls[1]?.[0]).toEqual(["which", "cursor-agent"]);
+  });
+
+  test("fails with install guidance when all cursor binaries are missing", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    try {
+      await validateProviderInvocationPreflight("cursor", "headless");
+      expect(true).toBe(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).toContain("agent");
+      expect(message).toContain("cursor-agent");
+      expect(message).toContain("Install Cursor");
+    }
   });
 
   test("fails with install guidance when supported mode binary is missing", async () => {

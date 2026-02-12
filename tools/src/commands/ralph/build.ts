@@ -51,7 +51,10 @@ import {
   runPostIterationHook,
 } from "./post-iteration";
 import { buildPrompt } from "./providers/claude";
-import { validateModelSelection } from "./providers/models";
+import {
+  getModelsForProvider,
+  validateModelSelection,
+} from "./providers/models";
 import {
   formatProviderFailureOutcome,
   invokeWithProviderOutcome,
@@ -572,6 +575,35 @@ function handleModelValidation(
   if (model === undefined) {
     return;
   }
+
+  if (provider === "cursor") {
+    const hasDiscoveredCursorModels = getModelsForProvider("cursor").length > 0;
+    if (hasDiscoveredCursorModels) {
+      const result = validateModelSelection(model, provider);
+      if (result.valid) {
+        console.log(chalk.dim(`Using model: ${model} (${result.cliFormat})`));
+        return;
+      }
+
+      console.error(chalk.red(`\nError: ${result.error}`));
+      if (result.suggestions.length > 0) {
+        console.error(chalk.yellow("\nDid you mean:"));
+        for (const suggestion of result.suggestions) {
+          console.error(chalk.yellow(`  - ${suggestion}`));
+        }
+      }
+      process.exit(1);
+    }
+
+    console.log(
+      chalk.yellow(
+        `Cursor model '${model}' is passed through without validation because no Cursor models are registered.\n` +
+          "Run 'aaa ralph refresh-models --provider cursor' to enable strict validation.",
+      ),
+    );
+    return;
+  }
+
   const result = validateModelSelection(model, provider);
   if (result.valid) {
     console.log(chalk.dim(`Using model: ${model} (${result.cliFormat})`));
@@ -773,6 +805,7 @@ async function processHeadlessIteration(
         prompt,
         stallTimeoutMs,
         timeout: hardTimeoutMs,
+        workingDirectory: projectRoot,
       });
     } finally {
       stopHeartbeat();
@@ -935,6 +968,7 @@ async function processSupervisedIteration(
     model,
     promptPath: path.join(contextRoot, ITERATION_PROMPT_PATH),
     sessionName: "build iteration",
+    workingDirectory: projectRoot,
   });
 
   if (invocationOutcome.status !== "success") {

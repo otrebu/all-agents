@@ -6,6 +6,7 @@ import {
   DISCOVERABLE_PROVIDERS,
   filterDuplicates,
   generateDynamicFileContent,
+  parseCursorModelsOutput,
   parseOpencodeModelsOutput,
 } from "@tools/commands/ralph/refresh-models";
 import { describe, expect, test } from "bun:test";
@@ -167,6 +168,57 @@ describe("parseOpencodeModelsOutput", () => {
     expect(result).toHaveLength(1);
     expect(result[0]?.id).toBe("opencode/big-pickle");
     expect(result[0]?.cliFormat).toBe("opencode/big-pickle");
+  });
+});
+
+// =============================================================================
+// parseCursorModelsOutput (list-models text format)
+// =============================================================================
+
+describe("parseCursorModelsOutput", () => {
+  test("parses cursor model list lines into cursor ModelInfo records", () => {
+    const input = [
+      "Available models",
+      "",
+      "gpt-5.3-codex - GPT-5.3 Codex",
+      "gpt-5.3-codex-fast - GPT-5.3 Codex Fast",
+      "opus-4.6-thinking - Claude 4.6 Opus (Thinking)  (current, default)",
+      "Tip: use --model <id> to switch.",
+    ].join("\n");
+
+    const result = parseCursorModelsOutput(input);
+    expect(result).toHaveLength(3);
+    expect(result[0]?.provider).toBe("cursor");
+    expect(result[0]?.id).toBe("gpt-5.3-codex");
+    expect(result[0]?.cliFormat).toBe("gpt-5.3-codex");
+  });
+
+  test("strips ANSI escape sequences before parsing", () => {
+    const input =
+      "\u001b[2K\u001b[GLoading models…\n\u001b[2K\u001b[1A\u001b[2K\u001b[GAvailable models\n\ngpt-5.2-codex-high-fast - GPT-5.2 Codex High Fast";
+
+    const result = parseCursorModelsOutput(input);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("gpt-5.2-codex-high-fast");
+    expect(result[0]?.provider).toBe("cursor");
+  });
+
+  test("returns empty array for non-string input", () => {
+    const result = parseCursorModelsOutput(42);
+    expect(result).toHaveLength(0);
+  });
+
+  test("returns empty array for empty string", () => {
+    const result = parseCursorModelsOutput("");
+    expect(result).toHaveLength(0);
+  });
+
+  test("does not classify gemini as mini-cost hint", () => {
+    const input = "gemini-3-pro - Gemini 3 Pro";
+    const result = parseCursorModelsOutput(input);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("gemini-3-pro");
+    expect(result[0]?.costHint).toBe("standard");
   });
 });
 
@@ -349,6 +401,10 @@ describe("generateDynamicFileContent", () => {
 // =============================================================================
 
 describe("DISCOVERABLE_PROVIDERS", () => {
+  test("includes cursor", () => {
+    expect(DISCOVERABLE_PROVIDERS).toContain("cursor");
+  });
+
   test("includes opencode", () => {
     expect(DISCOVERABLE_PROVIDERS).toContain("opencode");
   });
