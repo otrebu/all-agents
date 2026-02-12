@@ -68,6 +68,7 @@ import {
   getProviderTimingMs,
   type QueueOperation,
   type QueueProposal,
+  readLegacyBlockedBy,
   type Subtask,
 } from "./types";
 import {
@@ -602,10 +603,24 @@ async function handleNoRunnableSubtasks(options: {
     (subtask) => skippedSubtaskIds?.has(subtask.id) !== true,
   );
   const skippedList = skippedPending
-    .map((subtask) => `- ${subtask.id}: ${subtask.title}`)
+    .map((subtask) => {
+      const blockedBy = readLegacyBlockedBy(subtask);
+      const legacySuffix =
+        blockedBy.length === 0
+          ? ""
+          : ` (legacy blockedBy: ${blockedBy.join(", ")})`;
+      return `- ${subtask.id}: ${subtask.title}${legacySuffix}`;
+    })
     .join("\n");
   const remainingList = remainingPending
-    .map((subtask) => `- ${subtask.id}: ${subtask.title}`)
+    .map((subtask) => {
+      const blockedBy = readLegacyBlockedBy(subtask);
+      const legacySuffix =
+        blockedBy.length === 0
+          ? ""
+          : ` (legacy blockedBy: ${blockedBy.join(", ")})`;
+      return `- ${subtask.id}: ${subtask.title}${legacySuffix}`;
+    })
     .join("\n");
 
   console.error("Error: No runnable subtasks found.");
