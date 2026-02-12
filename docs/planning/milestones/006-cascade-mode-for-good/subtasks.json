@@ -139,7 +139,7 @@
         "Existing tests continue to pass: bun test tools/tests/lib/queue-operations.test.ts tools/tests/lib/queue-ops.test.ts exits 0"
       ],
       "description": "The SUB-025 commit exports parseQueueOperation from validation.ts (line 1038 addition) but queue-ops.ts also contains a full copy of parseQueueOperation and its helper functions (parseCreateOperation, parseRemoveOperation, etc.). The test file queue-operations.test.ts imports from queue-ops while validation.ts also exports it. This duplication means behavioral changes (like the null→throw change for unknown types) may not be applied consistently. Consolidate to a single canonical location and re-export from the other if needed.",
-      "done": false,
+      "done": true,
       "filesToRead": [
         "tools/src/commands/ralph/queue-ops.ts",
         "tools/src/commands/ralph/validation.ts",
@@ -147,7 +147,10 @@
       ],
       "id": "SUB-047",
       "taskRef": "tech-debt-test-coverage",
-      "title": "Deduplicate parseQueueOperation between queue-ops.ts and validation.ts"
+      "title": "Deduplicate parseQueueOperation between queue-ops.ts and validation.ts",
+      "completedAt": "2026-02-12T08:25:18Z",
+      "commitHash": "a25a05e76f3b4a358bafb057b74dd74f5e8e48ed",
+      "sessionId": "8c5aa553-08a2-447f-9cb5-8d648a5d0778"
     },
     {
       "id": "SUB-001",

@@ -40,6 +40,11 @@
 - **Changes:** Added shared `readLegacyBlockedBy(subtask)` in `types.ts` (with legacy-migration JSDoc) to centralize the unsafe cast and runtime string filtering, then switched build/config/index/status call sites to use the helper for legacy `blockedBy` inspection instead of local cast logic.
 - **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/status.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-047
+- **Problem:** Queue operation parsing had drift risk because SUB-047 expected `parseQueueOperation` and helper parsers to be duplicated across `queue-ops.ts` and `validation.ts`, which could cause behavior mismatches.
+- **Changes:** Verified parser helpers are already consolidated in `queue-ops.ts` as the single canonical module, confirmed `validation.ts` consumes only `parseQueueOperations` from `queue-ops.ts` without local duplicates, and re-ran targeted queue parser/apply unit suites to confirm behavior remains green.
+- **Files:** `tools/src/commands/ralph/queue-ops.ts`, `tools/src/commands/ralph/validation.ts`, `tools/tests/lib/queue-operations.test.ts`, `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-11
 
 ### SUB-031
