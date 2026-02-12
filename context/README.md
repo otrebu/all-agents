@@ -341,6 +341,52 @@ tags: [core, cli]
 
 ---
 
+## Reference Management (at-ref)
+
+We use `at-ref` to manage documentation links and compile modular docs into single files. This project relies on `@reference` paths (e.g., `@context/blocks/...`) which `at-ref` handles.
+
+### VS Code Extension
+
+Install the `at-ref` extension (search for `otrebu.at-ref` in marketplace) to enable:
+
+- **Validation**: Real-time red squiggles for broken `@reference` paths.
+- **Navigation**: Cmd/Ctrl+Click to follow references.
+- **Compilation**: Right-click a file -> "Compile with at-ref" to generate a standalone version.
+
+### CLI Tool
+
+Install the CLI globally to validate references across many files:
+
+```bash
+npm install -g @u-b/at-ref
+# or
+pnpm add -g @u-b/at-ref
+```
+
+Verify all references in your project:
+
+```bash
+at-ref check
+```
+
+### Compilation Strategy
+
+Compilation resolves all `@reference` links into actual content, creating a single, portable markdown file.
+
+**When to compile:**
+
+- **Stacks** (`context/stacks/`) and **Foundations** (`context/foundations/`): These are high-level entry points composed of many blocks. Compiling them creates a complete manual for that specific stack.
+- **Blocks** (`context/blocks/`): Usually self-contained or low-level. Rarely need compilation.
+
+**Example:**
+Generate a complete guide for the API stack:
+
+```bash
+at-ref compile context/stacks/api/rest-fastify.md -o dist/api-guide.md
+```
+
+---
+
 ## Further Reading
 
 - **Full philosophy:** @context/blocks/docs/atomic-documentation.md
