@@ -25,6 +25,11 @@
 - **Changes:** Added E2E coverage for non-dry-run queue mutations: `append` now has a write-path assertion for tail insertion with `SUB-NNN` allocation, `prepend` has a write-path assertion for head insertion with `SUB-NNN` allocation, and a combined append-then-prepend regression verifies final persisted subtask count and order on disk.
 - **Files:** `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-044
+- **Problem:** `SUB-009` completion metadata pointed at tracking-only commit `da64a5cd`, obscuring the actual implementation evidence for validation proposal approval behavior and related test coverage.
+- **Changes:** Verified implementation coverage in commit `6b3883d` (not `a32c865e`) for `--force` auto-apply, `--review` staging/approval gating, and `--validate-first --force` E2E queue-mutation timing; then corrected `SUB-009` commitHash in milestone `subtasks.json`.
+- **Files:** `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-11
 
 ### SUB-031

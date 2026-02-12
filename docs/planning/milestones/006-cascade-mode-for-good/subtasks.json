@@ -75,7 +75,7 @@
         "Verify E2E test exists for --validate-first --force queue mutation before build starts"
       ],
       "description": "SUB-009 was marked done with commit da64a5cd which only updates tracking metadata (PROGRESS.md, subtasks.json). None of the five acceptance criteria have matching code changes in the commit diff: no --force auto-apply path, no --review staged artifact path, no default interactive/headless behavior, no feedback artifact persistence changes, and no E2E test. Inspect git log for the actual implementation commit (the PROGRESS.md entry references commit a32c865e). If implementation exists under a different commit, update the subtask's commitHash. If implementation is genuinely missing, re-open SUB-009 and implement the --force/--review validation proposal wiring.",
-      "done": false,
+      "done": true,
       "filesToRead": [
         "tools/src/commands/ralph/build.ts",
         "tools/src/commands/ralph/validation.ts",
@@ -83,7 +83,10 @@
       ],
       "id": "SUB-044",
       "taskRef": "WS-03-validation-first-refactor",
-      "title": "Verify SUB-009 implementation evidence and re-open if missing"
+      "title": "Verify SUB-009 implementation evidence and re-open if missing",
+      "completedAt": "2026-02-12T08:01:23Z",
+      "commitHash": "87b5bedc6baf22c74da9f71d88f3e72013fb6e52",
+      "sessionId": "3bbe47ae-6f18-47c4-b6ae-c62e65c1f279"
     },
     {
       "acceptanceCriteria": [
@@ -332,7 +335,7 @@
         "tools/src/commands/ralph/cascade.ts"
       ],
       "completedAt": "2026-02-10T12:44:38Z",
-      "commitHash": "da64a5cd143190b3d81bd42c8db8bf7bfe555814",
+      "commitHash": "6b3883df25d00134b2ac5b0fb398ff869021786c",
       "sessionId": "2440339a-ef41-4c89-8436-639f6c011497"
     },
     {
