@@ -155,6 +155,34 @@ This roadmap transforms Ralph from a complete framework design into a fully oper
 
 ---
 
+### 7. [007-pipeline-preview](milestones/007-pipeline-preview/): Pipeline Preview & Dry-Run
+
+**Status:** 🔲 Not started
+
+**Outcome:** Users can see exactly what a Ralph command will do before it runs, via `--dry-run` on every pipeline command and an always-on lightweight preview in supervised mode
+
+**Why seventh:** With the full pipeline operational (plan, build, calibrate, cascade, review), users need confidence in what a command will execute before committing to it. Preview is a safety and productivity multiplier — especially for long-running cascades and headless CI runs.
+
+**Key deliverables:**
+- `computeExecutionPlan()` function reusing existing executor internals (`getLevelsInRange`, `evaluateApproval`, queue stats) — preview cannot drift from reality
+- `renderPipelinePlan()` detailed dry-run card and `renderLightweightPreview()` 3-5 line supervised auto-preview in display.ts
+- `--dry-run` flag on all 8 pipeline commands (`ralph build`, `ralph plan stories/tasks/subtasks/roadmap`, `ralph calibrate all/intention/technical`)
+- Two-tier display: lightweight auto-preview in supervised mode, detailed per-phase breakdown with `--dry-run`
+- `--headless --dry-run` JSON output for CI consumption
+- Updated CLI help text, shell completions (zsh, fish), and README examples
+
+**Success criteria:**
+- `aaa ralph build --dry-run` shows accurate execution plan and exits 0 without executing anything
+- `aaa ralph plan stories --cascade build --dry-run` shows all cascade levels with approval gates
+- Supervised mode shows lightweight pipeline summary and prompts `Proceed? [Y/n]` before first action
+- `--headless --dry-run` outputs JSON plan for CI pipelines
+- Preview uses the same functions as execution — zero drift possible
+- Zero new dependencies added (chalk + boxen + string-width from existing display.ts)
+
+**Dependencies:** code-review (milestone 5) for established CLI patterns and display utilities
+
+---
+
 ## Future Considerations
 
 Features from VISION.md that are explicitly deferred beyond these milestones:
