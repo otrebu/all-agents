@@ -192,7 +192,7 @@ _aaa_completions() {
                 return
                 ;;
             parallel-search)
-                COMPREPLY=($(compgen -W "--objective --queries --processor --max-results --max-chars" -- "$cur"))
+                COMPREPLY=($(compgen -W "--objective --queries --processor --max-results --max-chars -v --verbose" -- "$cur"))
                 return
                 ;;
             setup|uninstall)
@@ -205,20 +205,20 @@ _aaa_completions() {
                 ;;
             task)
                 if [[ "$subcmd" == "create" ]]; then
-                    COMPREPLY=($(compgen -W "-d --dir -s --story" -- "$cur"))
+                    COMPREPLY=($(compgen -W "-d --dir -s --story -m --milestone" -- "$cur"))
                 fi
                 return
                 ;;
             story)
                 if [[ "$subcmd" == "create" ]]; then
-                    COMPREPLY=($(compgen -W "-d --dir" -- "$cur"))
+                    COMPREPLY=($(compgen -W "-d --dir -m --milestone" -- "$cur"))
                 fi
                 return
                 ;;
             ralph)
                 case "$subcmd" in
                     build)
-                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless -q --quiet --max-iterations --validate-first --cascade --calibrate-every --provider --model" -- "$cur"))
+                        COMPREPLY=($(compgen -W "--subtasks -p --print -i --interactive -s --supervised -H --headless -q --quiet -S --skip-summary --max-iterations --validate-first --cascade --calibrate-every --force --review --from --provider --model" -- "$cur"))
                         return
                         ;;
                     plan)
@@ -279,7 +279,22 @@ _aaa_completions() {
                         return
                         ;;
                     review)
-                        # All review commands are supervised-only (no headless)
+                        case "$subsubcmd" in
+                            subtasks)
+                                COMPREPLY=($(compgen -W "--subtasks -H --headless" -- "$cur"))
+                                ;;
+                            tasks)
+                                COMPREPLY=($(compgen -W "--story -H --headless" -- "$cur"))
+                                ;;
+                            stories)
+                                COMPREPLY=($(compgen -W "--milestone" -- "$cur"))
+                                ;;
+                        esac
+                        return
+                        ;;
+                    refresh-models)
+                        COMPREPLY=($(compgen -W "--dry-run --provider" -- "$cur"))
+                        return
                         ;;
                     archive)
                         if [[ "$subsubcmd" == "subtasks" ]]; then
@@ -293,7 +308,7 @@ _aaa_completions() {
                 ;;
             review)
                 if [[ -z "$subcmd" ]]; then
-                    COMPREPLY=($(compgen -W "-s --supervised -H --headless --dry-run --provider --model" -- "$cur"))
+                    COMPREPLY=($(compgen -W "-s --supervised -H --headless --dry-run --require-approval --base --range --staged-only --unstaged-only --provider --model" -- "$cur"))
                 fi
                 return
                 ;;
@@ -350,14 +365,14 @@ _aaa_completions() {
             ;;
         ralph)
             if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "build plan review milestones models status subtasks calibrate archive" -- "$cur"))
+                COMPREPLY=($(compgen -W "build plan review milestones models status subtasks calibrate archive refresh-models" -- "$cur"))
             elif [[ "$subcmd" == "plan" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "vision roadmap stories tasks subtasks" -- "$cur"))
             elif [[ "$subcmd" == "review" && -z "$subsubcmd" ]]; then
-                COMPREPLY=($(compgen -W "stories roadmap gap tasks" -- "$cur"))
+                COMPREPLY=($(compgen -W "stories roadmap gap tasks subtasks" -- "$cur"))
             elif [[ "$subcmd" == "review" && "$subsubcmd" == "gap" ]]; then
                 # ralph review gap subcommands
-                COMPREPLY=($(compgen -W "roadmap stories" -- "$cur"))
+                COMPREPLY=($(compgen -W "roadmap stories tasks subtasks" -- "$cur"))
             elif [[ "$subcmd" == "subtasks" && -z "$subsubcmd" ]]; then
                 COMPREPLY=($(compgen -W "next list complete" -- "$cur"))
             elif [[ "$subcmd" == "calibrate" && -z "$subsubcmd" ]]; then

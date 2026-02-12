@@ -114,6 +114,7 @@ complete -c aaa -n '__fish_aaa_using_subcommand parallel-search' -l queries -d '
 complete -c aaa -n '__fish_aaa_using_subcommand parallel-search' -l processor -d 'Processing level' -xa 'base pro'
 complete -c aaa -n '__fish_aaa_using_subcommand parallel-search' -l max-results -d 'Maximum results' -r
 complete -c aaa -n '__fish_aaa_using_subcommand parallel-search' -l max-chars -d 'Max chars per excerpt' -r
+complete -c aaa -n '__fish_aaa_using_subcommand parallel-search' -s v -l verbose -d 'Show full report content instead of summary'
 
 # setup options
 complete -c aaa -n '__fish_aaa_using_subcommand setup' -l user -d 'Setup CLI globally'
@@ -175,11 +176,13 @@ complete -c aaa -n __fish_aaa_notify_config_test -s m -l message -d 'Custom test
 # task subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand task' -a create -d 'Create empty task file'
 complete -c aaa -n '__fish_aaa_using_subsubcommand task create' -s d -l dir -d 'Custom tasks directory' -ra '(__fish_complete_directories)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand task create' -s m -l milestone -d 'Milestone name/path' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand task create' -s s -l story -d 'Link task to story number' -r
 
 # story subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand story' -a create -d 'Create empty story file'
 complete -c aaa -n '__fish_aaa_using_subsubcommand story create' -s d -l dir -d 'Custom stories directory' -ra '(__fish_complete_directories)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand story create' -s m -l milestone -d 'Milestone name/path' -xa '(aaa __complete milestone 2>/dev/null; __fish_complete_directories)'
 
 # ralph subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a build -d 'Run subtask iteration loop'
@@ -191,6 +194,7 @@ complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a status -d 'Display bui
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a subtasks -d 'Subtask queue operations'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a calibrate -d 'Run calibration checks'
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a archive -d 'Archive subtasks and sessions'
+complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a refresh-models -d 'Discover models from CLI providers'
 
 # ralph build options
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
@@ -199,12 +203,14 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s i -l interact
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s s -l supervised -d 'Supervised mode: watch each iteration'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s H -l headless -d 'Headless mode: JSON output + logging'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s q -l quiet -d 'Suppress terminal summary output'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -s S -l skip-summary -d 'Skip summary generation in headless mode'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l max-iterations -d 'Max retry attempts' -r
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l validate-first -d 'Validate first; may create/update/remove/reorder/split pending queue order'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-every -d 'Run calibration every N iterations; may insert corrective queue-order subtasks' -r
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l force -d 'Approval mode: auto-apply validation/calibration queue proposals'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l review -d 'Approval mode: require explicit approval for validation/calibration queue proposals'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l from -d 'Resume cascade from this level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 
@@ -404,13 +410,36 @@ function __fish_aaa_ralph_archive_progress
 end
 complete -c aaa -n __fish_aaa_ralph_archive_progress -l progress -d 'PROGRESS.md file path' -ra '(__fish_complete_suffix .md)'
 
+# ralph refresh-models options
+function __fish_aaa_ralph_refresh_models
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 3 -a "$cmd[2]" = ralph -a "$cmd[3]" = refresh-models
+end
+complete -c aaa -n __fish_aaa_ralph_refresh_models -l dry-run -d 'Show what would be discovered without writing'
+complete -c aaa -n __fish_aaa_ralph_refresh_models -l provider -d 'Discover models from specific provider only' -xa '(aaa __complete provider 2>/dev/null)'
+
 # ralph review subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a stories -d 'Review stories for a milestone'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a roadmap -d 'Review roadmap milestones'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a gap -d 'Cold analysis for gaps'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a tasks -d 'Review tasks (coming soon)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a tasks -d 'Review tasks for a story'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph review' -a subtasks -d 'Review subtask queue before building'
 
-# ralph review - all supervised-only (no headless, review is dialogue)
+# ralph review tasks options
+function __fish_aaa_ralph_review_tasks
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = tasks
+end
+complete -c aaa -n __fish_aaa_ralph_review_tasks -l story -d 'Story path to review tasks for' -xa '(aaa __complete story 2>/dev/null; __fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_review_tasks -s H -l headless -d 'Headless mode: JSON output + logging'
+
+# ralph review subtasks options
+function __fish_aaa_ralph_review_subtasks
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = subtasks
+end
+complete -c aaa -n __fish_aaa_ralph_review_subtasks -l subtasks -d 'Subtasks file path to review' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_review_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
 
 # ralph review stories needs milestone argument
 function __fish_aaa_ralph_review_stories
@@ -428,8 +457,22 @@ function __fish_aaa_ralph_review_gap
 end
 complete -c aaa -n __fish_aaa_ralph_review_gap -a roadmap -d 'Gap analysis of roadmap'
 complete -c aaa -n __fish_aaa_ralph_review_gap -a stories -d 'Gap analysis of stories'
+complete -c aaa -n __fish_aaa_ralph_review_gap -a tasks -d 'Gap analysis of tasks'
+complete -c aaa -n __fish_aaa_ralph_review_gap -a subtasks -d 'Gap analysis of subtask queue'
 
-# ralph review gap - supervised only (no headless, requires human judgment)
+# ralph review gap tasks options
+function __fish_aaa_ralph_review_gap_tasks
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = tasks
+end
+complete -c aaa -n __fish_aaa_ralph_review_gap_tasks -l story -d 'Story path' -xa '(aaa __complete story 2>/dev/null; __fish_complete_suffix .md)'
+
+# ralph review gap subtasks options
+function __fish_aaa_ralph_review_gap_subtasks
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = subtasks
+end
+complete -c aaa -n __fish_aaa_ralph_review_gap_subtasks -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
 
 # ralph review gap stories needs milestone argument
 function __fish_aaa_ralph_review_gap_stories
@@ -442,6 +485,11 @@ complete -c aaa -n __fish_aaa_ralph_review_gap_stories -xa '(aaa __complete mile
 complete -c aaa -n '__fish_aaa_using_subcommand review' -s s -l supervised -d 'Supervised mode: watch execution'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -s H -l headless -d 'Headless mode: fully autonomous'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -l dry-run -d 'Preview findings without fixing (requires --headless)'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l require-approval -d 'Pause after triage for user confirmation (requires --headless)'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l base -d 'Compare HEAD against specified branch' -r
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l range -d 'Compare specific commits (format: from..to)' -r
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l staged-only -d 'Review only staged changes'
+complete -c aaa -n '__fish_aaa_using_subcommand review' -l unstaged-only -d 'Review only unstaged changes'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 complete -c aaa -n '__fish_aaa_using_subcommand review' -a status -d 'Display review history and statistics'

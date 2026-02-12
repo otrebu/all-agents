@@ -60,7 +60,6 @@ aaa uninstall --project # Remove project integration
 aaa sync-context --target ~/my-project --watch
 
 # Research commands
-aaa download https://example.com/article
 aaa gh-search "react hooks"
 aaa gemini-research "latest TypeScript features" --mode deep
 aaa parallel-search "best practices for CLI tools"
@@ -72,28 +71,35 @@ aaa story create "As a user, I want to login"
 
 ## Commands
 
-| Command                      | Description                                                                                                          | Output Location                             |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `sync-context`               | Sync context/ folder to target project (with --watch)                                                                | Target project's context/                   |
-| `download <urls...>`         | Fetch URLs, extract text, save as markdown                                                                           | `docs/research/downloads/`                  |
-| `extract-conversations`      | Extract Claude Code conversation history as markdown                                                                 | stdout or file                              |
-| `gh-search <query>`          | GitHub code search with intent-based ranking                                                                         | `docs/research/github/`                     |
-| `gemini-research <query>`    | Google Search via Gemini CLI (modes: quick, deep, code)                                                              | `docs/research/google/`                     |
-| `parallel-search <query>`    | Multi-angle web research with configurable depth                                                                     | `docs/research/parallel/`                   |
-| `task create <description>`  | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)                                    | milestone `tasks/` (or legacy global dir)   |
-| `story create <description>` | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`)                                   | milestone `stories/` (or legacy global dir) |
-| `setup`                      | Install CLI (`--user`) or integrate project (`--project`)                                                            | -                                           |
-| `uninstall`                  | Remove CLI (`--user`) or project integration (`--project`)                                                           | -                                           |
-| `ralph plan <level>`         | Interactive planning (vision, roadmap, stories, tasks)                                                               | `docs/planning/`                            |
-| `ralph build`                | Run subtask iteration loop (autonomous dev)                                                                          | `subtasks.json`                             |
-| `ralph subtasks <op>`        | Queue operations (`next`, `list`, `complete`, `append`, `prepend`, `diff`, `apply`) scoped to milestones/queue files | milestone `subtasks.json`                   |
-| `ralph status`               | Display build status and progress                                                                                    | -                                           |
-| `ralph calibrate <type>`     | Run drift checks (intention, technical, improve)                                                                     | -                                           |
-| `session path <id>`          | Get session file path by ID or from commit's cc-session-id trailer                                                   | stdout                                      |
-| `session current`            | Get current session ID from .claude/current-session                                                                  | stdout                                      |
-| `session cat <id>`           | Output session JSONL content to stdout (supports --commit flag)                                                      | stdout                                      |
-| `session list`               | List recent sessions (--verbose for table, --limit N)                                                                | stdout                                      |
-| `completion <shell>`         | Generate shell completion script (`bash`, `zsh`, `fish`) or command table (`table`)                                  | stdout                                      |
+| Command                       | Description                                                                                                          | Output Location                             |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `sync-context`                | Sync context/ folder to target project (with --watch)                                                                | Target project's context/                   |
+| `extract-conversations`       | Extract Claude Code conversation history as markdown                                                                 | stdout or file                              |
+| `gh-search <query>`           | GitHub code search with intent-based ranking                                                                         | `docs/research/github/`                     |
+| `gemini-research <query>`     | Google Search via Gemini CLI (modes: quick, deep, code)                                                              | `docs/research/google/`                     |
+| `parallel-search <query>`     | Multi-angle web research with configurable depth                                                                     | `docs/research/parallel/`                   |
+| `task create <description>`   | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)                                    | milestone `tasks/` (or legacy global dir)   |
+| `story create <description>`  | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`)                                   | milestone `stories/` (or legacy global dir) |
+| `setup`                       | Install CLI (`--user`) or integrate project (`--project`)                                                            | -                                           |
+| `uninstall`                   | Remove CLI (`--user`) or project integration (`--project`)                                                           | -                                           |
+| `ralph plan <level>`          | Interactive planning (vision, roadmap, stories, tasks)                                                               | `docs/planning/`                            |
+| `ralph build`                 | Run subtask iteration loop (autonomous dev)                                                                          | `subtasks.json`                             |
+| `ralph subtasks <op>`         | Queue operations (`next`, `list`, `complete`, `append`, `prepend`, `diff`, `apply`) scoped to milestones/queue files | milestone `subtasks.json`                   |
+| `ralph status`                | Display build status and progress                                                                                    | -                                           |
+| `ralph calibrate <type>`      | Run drift checks (intention, technical, improve)                                                                     | -                                           |
+| `ralph milestones`            | List available milestones from roadmap                                                                               | stdout                                      |
+| `ralph models`                | List available model names from registry                                                                             | stdout                                      |
+| `ralph archive <target>`      | Archive completed subtasks or old PROGRESS.md sessions                                                               | milestone directory                         |
+| `ralph refresh-models`        | Discover models from CLI providers and update dynamic registry                                                       | model registry                              |
+| `notify <message>`            | Send push notification via ntfy.sh                                                                                   | -                                           |
+| `notify on/off/status`        | Enable/disable/check notifications                                                                                   | -                                           |
+| `notify config set/show/test` | Manage notification configuration                                                                                    | `aaa.config.json`                           |
+| `review`                      | Run parallel multi-agent code review (11 specialized reviewers)                                                      | `logs/reviews.jsonl`                        |
+| `session path <id>`           | Get session file path by ID or from commit's cc-session-id trailer                                                   | stdout                                      |
+| `session current`             | Get current session ID from .claude/current-session                                                                  | stdout                                      |
+| `session cat <id>`            | Output session JSONL content to stdout (supports --commit flag)                                                      | stdout                                      |
+| `session list`                | List recent sessions (--verbose for table, --limit N)                                                                | stdout                                      |
+| `completion <shell>`          | Generate shell completion script (`bash`, `zsh`, `fish`) or command table (`table`)                                  | stdout                                      |
 
 ### Command Examples
 
@@ -114,24 +120,6 @@ aaa sync-context -t ~/my-project -w
 Syncs the `context/` folder from all-agents repo to target directory. Watch mode continuously monitors for changes and re-syncs automatically.
 
 **Note:** Always syncs FROM all-agents TO target (one-way sync).
-
-#### download
-
-```bash
-# Single URL
-aaa download https://example.com/article
-
-# Multiple URLs
-aaa download https://example.com/article https://example.com/tutorial
-
-# Custom output name
-aaa download https://example.com/article -o "my-article"
-
-# Custom directory (relative to docs/research/)
-aaa download https://example.com/article -d "special/folder"
-```
-
-Output: `docs/research/downloads/YYYYMMDD-HHMMSS-{topic}.md`
 
 #### extract-conversations
 
@@ -366,9 +354,17 @@ aaa ralph build --validate-first
 aaa ralph build --validate-first --force   # auto-apply queued proposals (skip prompts)
 aaa ralph build --validate-first --review  # stage proposals in milestone feedback/ and require explicit approval
 
+# Skip lightweight summary generation in headless mode
+aaa ralph build --headless --skip-summary
+
+# Use a specific provider and model
+aaa ralph build --provider opencode --model openai/gpt-5.3-codex
+
 # Print prompt without executing
 aaa ralph build -p
 ```
+
+**Multi-provider support:** All ralph execution commands (`build`, `plan`, `calibrate`) accept `--provider <name>` and `--model <name>` flags for multi-provider execution.
 
 Queue mutation behavior in build mode:
 
@@ -377,6 +373,12 @@ Queue mutation behavior in build mode:
 - `--force` and `--review` set approval mode for both validation and calibration proposal handling.
 
 **Cascade mode** (chain levels together):
+
+Cascade chains planning levels forward through execution. The level sequence is:
+
+`roadmap → stories → tasks → subtasks → build → calibrate`
+
+Planning levels (`roadmap`, `stories`, `tasks`, `subtasks`) serve as **entry points** where the cascade begins. Only `build` and `calibrate` are autonomous execution targets. Use `--from` to resume a cascade from a specific level (must be at or after the current command's level).
 
 ```bash
 # Chain from stories through to calibrate
@@ -392,8 +394,6 @@ aaa ralph build --cascade calibrate
 # Run calibration every 5 build iterations
 aaa ralph build --calibrate-every 5
 ```
-
-Level sequence: `roadmap → stories → tasks → subtasks → build → calibrate`
 
 Cascade flows forward only. TTY mode prompts for confirmation between levels; non-TTY (headless/CI) continues automatically.
 
@@ -652,7 +652,7 @@ aaa completion table --format json
 
 Tab completion provides suggestions for:
 
-- All top-level commands (`download`, `gh-search`, `ralph`, etc.)
+- All top-level commands (`gh-search`, `ralph`, `review`, `notify`, etc.)
 - Subcommands (`ralph plan`, `ralph build`, `task create`)
 - Options and flags (`--milestone`, `--interactive`, `-o`)
 - Dynamic values where supported (e.g., milestone names from `roadmap.md`)
@@ -769,26 +769,67 @@ tools/
 │   ├── cli.ts              # Entry point (Commander.js)
 │   ├── env.ts              # Environment configuration
 │   ├── commands/           # Command implementations
-│   │   ├── download/
+│   │   ├── completion/     # Shell completion generators
+│   │   │   ├── index.ts    # Main command + __complete handler
+│   │   │   ├── bash.ts     # Bash completion script
+│   │   │   ├── zsh.ts      # Zsh completion script
+│   │   │   ├── fish.ts     # Fish completion script
+│   │   │   └── table.ts    # Command/option table generator
 │   │   ├── extract-conversations.ts
 │   │   ├── github/
 │   │   ├── gemini/
+│   │   ├── notify/         # Push notification command
+│   │   │   ├── index.ts
+│   │   │   ├── config.ts
+│   │   │   ├── client.ts
+│   │   │   └── types.ts
 │   │   ├── parallel-search/
 │   │   ├── ralph/          # Autonomous development framework
-│   │   │   ├── index.ts    # CLI commands (plan, build, status, calibrate)
-│   │   │   ├── claude.ts   # Claude invocation helpers
+│   │   │   ├── index.ts    # CLI commands (plan, build, status, calibrate, etc.)
 │   │   │   ├── types.ts    # Type definitions
 │   │   │   ├── config.ts   # Config + subtasks loading
+│   │   │   ├── build.ts    # Build loop
+│   │   │   ├── build-invariant.ts # Build invariant checks
+│   │   │   ├── calibrate.ts # Calibrate command
+│   │   │   ├── cascade.ts  # Cascade mode logic
+│   │   │   ├── validation.ts # Pre-build validation
+│   │   │   ├── queue-ops.ts # Subtask queue operations
+│   │   │   ├── approvals.ts # Approval flow logic
+│   │   │   ├── archive.ts  # Archive command
 │   │   │   ├── session.ts  # Session file utilities
+│   │   │   ├── session-analysis.ts # Session signal extraction
+│   │   │   ├── subtask-helpers.ts # Subtask queue parse/diff
 │   │   │   ├── display.ts  # Terminal output utilities
+│   │   │   ├── summary.ts  # Summary generation
 │   │   │   ├── hooks.ts    # Hook execution (log, notify, pause)
 │   │   │   ├── status.ts   # Status command
-│   │   │   ├── calibrate.ts # Calibrate command
-│   │   │   ├── build.ts    # Build loop
-│   │   │   └── post-iteration.ts # Post-iteration hook
+│   │   │   ├── naming.ts   # Naming conventions
+│   │   │   ├── template.ts # Template utilities
+│   │   │   ├── refresh-models.ts # Model discovery from providers
+│   │   │   ├── post-iteration.ts # Post-iteration hook
+│   │   │   └── providers/  # Multi-provider support
+│   │   │       ├── index.ts
+│   │   │       ├── types.ts
+│   │   │       ├── claude.ts
+│   │   │       ├── opencode.ts
+│   │   │       ├── registry.ts
+│   │   │       ├── models.ts
+│   │   │       ├── models-static.ts
+│   │   │       ├── models-dynamic.ts
+│   │   │       ├── session-adapter.ts
+│   │   │       ├── session-claude.ts
+│   │   │       ├── session-opencode.ts
+│   │   │       ├── summary.ts
+│   │   │       └── utils.ts
+│   │   ├── review/         # Code review command
+│   │   │   ├── index.ts
+│   │   │   └── types.ts
 │   │   ├── session/        # Session file management
 │   │   │   └── index.ts    # path and current commands
 │   │   ├── setup/
+│   │   ├── sync-context/   # Context sync command
+│   │   │   ├── index.ts
+│   │   │   └── types.ts
 │   │   ├── story.ts
 │   │   ├── task.ts
 │   │   └── uninstall.ts
@@ -796,12 +837,16 @@ tools/
 │       └── paths.ts        # Path resolution
 ├── lib/                    # Shared utilities
 │   ├── log.ts              # CLI logging (chalk)
+│   ├── milestones.ts       # Milestone discovery (used by completion + ralph)
 │   ├── numbered-files.ts   # Auto-numbered file creation
 │   ├── research.ts         # Research output formatting
 │   └── format.ts           # Filename sanitization
 ├── tests/
 │   ├── e2e/                # End-to-end tests
-│   └── lib/                # Unit tests
+│   ├── lib/                # Unit tests
+│   ├── completion/         # Completion tests
+│   ├── fixtures/           # Test fixtures
+│   └── providers/          # Provider tests
 ├── package.json
 ├── tsconfig.json
 └── README.md

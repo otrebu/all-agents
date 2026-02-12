@@ -19,8 +19,12 @@ tools/
 │   │   ├── task.ts               # Simple: single file, inline types
 │   │   ├── story.ts              # Simple: single file, inline types
 │   │   ├── uninstall.ts          # Simple: single file
-│   │   ├── download/             # Complex: folder structure
-│   │   │   └── index.ts          # Types inlined
+│   │   ├── completion/           # Shell completion generators
+│   │   │   ├── index.ts          # Main command + __complete handler
+│   │   │   ├── bash.ts           # Bash completion script
+│   │   │   ├── zsh.ts            # Zsh completion script
+│   │   │   ├── fish.ts           # Fish completion script
+│   │   │   └── table.ts          # Command/option table generator
 │   │   ├── gemini/               # Complex: folder + types.ts (32L)
 │   │   │   ├── index.ts
 │   │   │   └── types.ts
@@ -30,30 +34,57 @@ tools/
 │   │   │   ├── github.ts
 │   │   │   ├── ranker.ts
 │   │   │   └── query.ts
+│   │   ├── notify/               # Push notifications via ntfy.sh
+│   │   │   ├── index.ts
+│   │   │   ├── config.ts
+│   │   │   ├── client.ts
+│   │   │   └── types.ts
 │   │   ├── parallel-search/
 │   │   │   ├── index.ts
 │   │   │   ├── types.ts          # 95L - separate justified
 │   │   │   ├── parallel-client.ts
 │   │   │   └── formatter.ts
 │   │   ├── ralph/                # Autonomous dev framework (TypeScript)
-│   │   │   ├── index.ts          # CLI commands (plan, build, status, calibrate)
-│   │   │   ├── claude.ts         # Claude invocation helpers
+│   │   │   ├── index.ts          # CLI commands (plan, build, status, calibrate, etc.)
 │   │   │   ├── types.ts          # All type definitions
 │   │   │   ├── config.ts         # Config + subtasks loading
+│   │   │   ├── build.ts          # Build loop implementation
+│   │   │   ├── build-invariant.ts # Build invariant checks
+│   │   │   ├── calibrate.ts      # Calibrate command implementation
+│   │   │   ├── cascade.ts        # Cascade mode logic
+│   │   │   ├── validation.ts     # Pre-build validation
+│   │   │   ├── queue-ops.ts      # Subtask queue operations (CLI)
+│   │   │   ├── approvals.ts      # Approval flow logic
+│   │   │   ├── archive.ts        # Archive completed subtasks/sessions
 │   │   │   ├── subtask-helpers.ts # Subtask queue parse/diff helpers
 │   │   │   ├── session.ts        # Session file utilities
 │   │   │   ├── session-analysis.ts # Session signal extraction detectors
 │   │   │   ├── display.ts        # Terminal output utilities
+│   │   │   ├── summary.ts        # Summary generation
 │   │   │   ├── hooks.ts          # Hook execution (log, notify, pause)
 │   │   │   ├── status.ts         # Status command implementation
-│   │   │   ├── calibrate.ts      # Calibrate command implementation
-│   │   │   ├── build.ts          # Build loop implementation
-│   │   │   └── post-iteration.ts # Post-iteration hook logic
+│   │   │   ├── naming.ts         # Naming conventions
+│   │   │   ├── template.ts       # Template utilities
+│   │   │   ├── refresh-models.ts # Model discovery from CLI providers
+│   │   │   ├── post-iteration.ts # Post-iteration hook logic
+│   │   │   └── providers/        # Multi-provider support
+│   │   │       ├── index.ts
+│   │   │       ├── types.ts
+│   │   │       ├── claude.ts     # Claude CLI invocation
+│   │   │       ├── opencode.ts   # OpenCode CLI invocation
+│   │   │       ├── registry.ts   # Provider registry
+│   │   │       ├── models.ts     # Model resolution
+│   │   │       ├── models-static.ts
+│   │   │       ├── models-dynamic.ts
+│   │   │       └── session-adapter.ts
 │   │   ├── review/               # Code review CLI (modes: supervised, headless)
 │   │   │   ├── index.ts          # CLI commands and mode logic
 │   │   │   └── types.ts          # Finding, DiaryEntry, triage types
 │   │   ├── session/              # Session file management (simple)
 │   │   │   └── index.ts          # path and current commands
+│   │   ├── sync-context/         # Context sync to target project
+│   │   │   ├── index.ts
+│   │   │   └── types.ts
 │   │   └── setup/
 │   │       ├── index.ts
 │   │       └── utils.ts
@@ -61,12 +92,16 @@ tools/
 │       └── paths.ts              # Root resolution, output paths
 ├── lib/                          # Shared utilities
 │   ├── log.ts                    # CLI logging (chalk)
+│   ├── milestones.ts             # Milestone discovery (completion + ralph)
 │   ├── numbered-files.ts         # Auto-numbered file creation
 │   ├── research.ts               # Research output formatting
 │   └── format.ts                 # Filename sanitization
 └── tests/
     ├── e2e/                      # Command E2E tests
-    └── lib/                      # Utility unit tests
+    ├── lib/                      # Utility unit tests
+    ├── completion/               # Completion tests
+    ├── fixtures/                 # Test fixtures
+    └── providers/                # Provider tests
 ```
 
 ## Command Structure Guidelines
@@ -82,7 +117,7 @@ tools/
 - Folder structure: `commands/commandName/`
 - Separate `types.ts` if >30 lines OR >3 interfaces/types
 - Additional modules for utilities/sub-features
-- Examples: `github/`, `parallel-search/` (keep types.ts), `download/` (types inlined)
+- Examples: `github/`, `parallel-search/` (keep types.ts), `notify/` (types separate)
 
 **Threshold for separate types.ts:**
 

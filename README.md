@@ -22,6 +22,7 @@ Shared AI configuration and research tools for Claude Code and Cursor. One setup
 - [Bun](https://bun.sh) (required)
 - [Claude Code](https://claude.ai/download) (Required for full agent/skill functionality. While the CLI tools work standalone, the core value comes from integrating with Claude Code's user config)
 - [gh CLI](https://cli.github.com) (optional, for GitHub search)
+
 ## Setup
 
 ### Option 1: Global User Config (Recommended)
@@ -101,6 +102,13 @@ aaa ralph review tasks --story     # Review tasks for a story
 aaa ralph review gap tasks --story # Gap analysis of tasks
 aaa ralph review gap subtasks      # Gap analysis of subtask queue
 aaa ralph calibrate intention      # Check for drift
+aaa ralph milestones               # List available milestones
+aaa ralph models                   # List available model names
+aaa ralph archive subtasks         # Archive completed subtasks
+aaa ralph refresh-models           # Discover models from CLI providers
+#
+# Multi-provider: all execution commands accept --provider <name> --model <name>
+aaa ralph build --provider opencode --model openai/gpt-5.3-codex
 #
 # Skills: /ralph-plan, /ralph-build, /ralph-review, /ralph-calibrate, /ralph-status
 # Full docs: docs/ralph/README.md | Design spec: docs/planning/VISION.md
@@ -252,66 +260,69 @@ Claude Code extends with three mechanisms:
 <details>
 <summary><strong>Slash Commands</strong> (9 commands)</summary>
 
-| Command                            | Description                                 | Stability    | Created    | DRY | Refs/Depends                              | Action |
-| :--------------------------------- | :------------------------------------------ | :----------- | :--------- | :-- | :---------------------------------------- | :----- |
-| `/dev:git-commit`                  | Create conventional commits                 | stable       | 2025-11-18 | ✓   | @context/workflows/commit.md              | FIX: (1) rename → /git-commit (2) add git pull/log/reset perms (3) pre-flight checks |
-| `/dev:git-multiple-commits`        | Create multiple commits                     | stable       | 2025-11-18 | ✓   | @context/workflows/multiple-commits.md    | FIX: (1) rename → /git-multiple-commits (2) add git reset perm (3) add inline context |
-| `/dev:start-feature`               | Create/switch feature branches              | stable       | 2025-11-18 | ✓   | @context/workflows/start-feature.md       | FIX: add git fetch perm, clarify $ARGUMENTS |
-| `/dev:complete-feature`            | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md    | FIX: (1) add git reset perm (2) remove branch deletion (3) trim Step 4 verbosity |
-| `/dev:consistency-check`           | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md | DONE |
-| `/parallel-search`                 | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md | - |
-| `/context:plan-multi-agent`        | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)          | DONE (INTEGRATED) |
-| `/meta:claude-code:create-skill`   | Create a new skill                          | beta         | 2025-11-18 | ✗   | Python init script                        | FIX: wrong script path, step numbering |
-| `/meta:claude-code:create-agent`   | Create a sub-agent                          | beta         | 2025-11-18 | ✗   | @context/blocks/docs/prompting-agent-templates.md | FIX: wrong URL, add frontmatter docs |
-| `/meta:create-cursor-rule`         | Create .cursorrules file                    | experimental | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md         | FIX: add allowed-tools |
+| Command                          | Description                                 | Stability    | Created    | DRY | Refs/Depends                                      | Action                                                                                |
+| :------------------------------- | :------------------------------------------ | :----------- | :--------- | :-- | :------------------------------------------------ | :------------------------------------------------------------------------------------ |
+| `/dev:git-commit`                | Create conventional commits                 | stable       | 2025-11-18 | ✓   | @context/workflows/commit.md                      | FIX: (1) rename → /git-commit (2) add git pull/log/reset perms (3) pre-flight checks  |
+| `/dev:git-multiple-commits`      | Create multiple commits                     | stable       | 2025-11-18 | ✓   | @context/workflows/multiple-commits.md            | FIX: (1) rename → /git-multiple-commits (2) add git reset perm (3) add inline context |
+| `/dev:start-feature`             | Create/switch feature branches              | stable       | 2025-11-18 | ✓   | @context/workflows/start-feature.md               | FIX: add git fetch perm, clarify $ARGUMENTS                                           |
+| `/dev:complete-feature`          | Merge feature to main                       | stable       | 2025-11-18 | ✓   | @context/workflows/complete-feature.md            | FIX: (1) add git reset perm (2) remove branch deletion (3) trim Step 4 verbosity      |
+| `/dev:consistency-check`         | Verify docs match code, find contradictions | beta         | 2025-12-22 | ✓   | @context/workflows/consistency-checker.md         | DONE                                                                                  |
+| `/parallel-search`               | Multi-angle web research                    | beta         | 2025-11-18 | ✓   | @context/blocks/construct/parallel-search.md      | -                                                                                     |
+| `/context:plan-multi-agent`      | Plan docs with Opus agents                  | experimental | 2025-12-24 | ✓   | Task tool (parallel Opus agents)                  | DONE (INTEGRATED)                                                                     |
+| `/meta:claude-code:create-skill` | Create a new skill                          | beta         | 2025-11-18 | ✗   | Python init script                                | FIX: wrong script path, step numbering                                                |
+| `/meta:claude-code:create-agent` | Create a sub-agent                          | beta         | 2025-11-18 | ✗   | @context/blocks/docs/prompting-agent-templates.md | FIX: wrong URL, add frontmatter docs                                                  |
+| `/meta:create-cursor-rule`       | Create .cursorrules file                    | experimental | 2025-11-18 | ✓   | @context/blocks/docs/prompting.md                 | FIX: add allowed-tools                                                                |
 
 </details>
 
 <details>
-<summary><strong>Sub-agents</strong> (18 agents)</summary>
+<summary><strong>Sub-agents</strong> (17 agents)</summary>
 
-| Agent                            | Description                                       | Stability    | Created    | Used By                     | Action |
-| :------------------------------- | :------------------------------------------------ | :----------- | :--------- | :-------------------------- | :----- |
-| `atomic-doc-creator`             | Create missing atomic documentation               | experimental | 2026-01-23 | task-generator, ralph-plan  | DONE (skill created: context-atomic-doc) |
-| `parallel-search`                | Multi-angle web research                          | beta         | 2025-11-19 | /parallel-search command    | DONE (agent fixed) |
-| `subtask-reviewer`               | Review subtasks using vertical slice test         | experimental | 2026-01-26 | ralph-plan skill            | DONE (DRYed up) |
-| `task-generator`                 | Generate technical tasks from stories             | experimental | 2026-01-23 | ralph-plan skill            | DONE (DRYed up) |
-| `accessibility-reviewer`         | WCAG, keyboard nav, ARIA, color contrast          | experimental | 2026-01-26 | code-review skill  | DONE (DRYed up) |
-| `data-integrity-reviewer`        | Null checks, race conditions, schema violations   | experimental | 2026-01-25 | code-review skill  | DONE (DRYed up) |
-| `dependency-reviewer`            | Version compat, licenses, circular deps           | experimental | 2026-01-26 | code-review skill  | DONE (DRYed up) |
-| `documentation-reviewer`         | Docstrings, API docs, README gaps                 | experimental | 2026-01-26 | code-review skill  | DONE (DRYed up) |
-| `error-handling-reviewer`        | Swallowed exceptions, missing catch, async issues | experimental | 2026-01-25 | code-review skill  | REFACTOR: find/create atomic doc, DRY up |
-| `intent-alignment-reviewer`      | Code matches specification                        | experimental | 2026-01-26 | code-review skill  | N/A - uses planning chain |
-| `maintainability-reviewer`       | Coupling, naming, DRY, SRP issues                 | experimental | 2026-01-25 | code-review skill  | DONE (DRYed up) |
-| `over-engineering-reviewer`      | YAGNI, premature abstraction                      | experimental | 2026-01-26 | code-review skill  | DONE (DRYed up) |
-| `performance-reviewer`           | O(n²), memory leaks, N+1 queries                  | experimental | 2026-01-26 | code-review skill  | DONE (DRYed up) |
-| `security-reviewer`              | OWASP Top 10, injection, XSS, auth, secrets       | experimental | 2026-01-25 | code-review skill  | DONE (DRYed up) |
-| `test-coverage-reviewer`         | Missing tests, untested branches, assertions      | experimental | 2026-01-25 | code-review skill  | DONE (DRYed up) |
-| `synthesizer`                    | Aggregate and dedupe findings from reviewers      | experimental | 2026-01-25 | code-review skill  | - |
-| `triage`                         | Curate findings: select must-review, group by root cause, filter noise | experimental | 2026-01-28 | code-review skill  | - |
+| Agent                       | Description                                                            | Stability    | Created    | Used By                    | Action                                   |
+| :-------------------------- | :--------------------------------------------------------------------- | :----------- | :--------- | :------------------------- | :--------------------------------------- |
+| `atomic-doc-creator`        | Create missing atomic documentation                                    | experimental | 2026-01-23 | task-generator, ralph-plan | DONE (skill created: context-atomic-doc) |
+| `parallel-search`           | Multi-angle web research                                               | beta         | 2025-11-19 | /parallel-search command   | DONE (agent fixed)                       |
+| `subtask-reviewer`          | Review subtasks using vertical slice test                              | experimental | 2026-01-26 | ralph-plan skill           | DONE (DRYed up)                          |
+| `task-generator`            | Generate technical tasks from stories                                  | experimental | 2026-01-23 | ralph-plan skill           | DONE (DRYed up)                          |
+| `accessibility-reviewer`    | WCAG, keyboard nav, ARIA, color contrast                               | experimental | 2026-01-26 | code-review skill          | DONE (DRYed up)                          |
+| `data-integrity-reviewer`   | Null checks, race conditions, schema violations                        | experimental | 2026-01-25 | code-review skill          | DONE (DRYed up)                          |
+| `dependency-reviewer`       | Version compat, licenses, circular deps                                | experimental | 2026-01-26 | code-review skill          | DONE (DRYed up)                          |
+| `documentation-reviewer`    | Docstrings, API docs, README gaps                                      | experimental | 2026-01-26 | code-review skill          | DONE (DRYed up)                          |
+| `error-handling-reviewer`   | Swallowed exceptions, missing catch, async issues                      | experimental | 2026-01-25 | code-review skill          | REFACTOR: find/create atomic doc, DRY up |
+| `intent-alignment-reviewer` | Code matches specification                                             | experimental | 2026-01-26 | code-review skill          | N/A - uses planning chain                |
+| `maintainability-reviewer`  | Coupling, naming, DRY, SRP issues                                      | experimental | 2026-01-25 | code-review skill          | DONE (DRYed up)                          |
+| `over-engineering-reviewer` | YAGNI, premature abstraction                                           | experimental | 2026-01-26 | code-review skill          | DONE (DRYed up)                          |
+| `performance-reviewer`      | O(n²), memory leaks, N+1 queries                                       | experimental | 2026-01-26 | code-review skill          | DONE (DRYed up)                          |
+| `security-reviewer`         | OWASP Top 10, injection, XSS, auth, secrets                            | experimental | 2026-01-25 | code-review skill          | DONE (DRYed up)                          |
+| `test-coverage-reviewer`    | Missing tests, untested branches, assertions                           | experimental | 2026-01-25 | code-review skill          | DONE (DRYed up)                          |
+| `synthesizer`               | Aggregate and dedupe findings from reviewers                           | experimental | 2026-01-25 | code-review skill          | -                                        |
+| `triage`                    | Curate findings: select must-review, group by root cause, filter noise | experimental | 2026-01-28 | code-review skill          | -                                        |
 
 </details>
 
 <details>
-<summary><strong>Skills</strong> (15 skills)</summary>
+<summary><strong>Skills</strong> (18 skills)</summary>
 
-| Skill                  | Description                                    | Stability    | Created    | DRY | CLI Sibling | Action |
-| :--------------------- | :--------------------------------------------- | :----------- | :--------- | :-- | :---------- | :----- |
-| `aaa-feature-wizard`   | Wizard for adding new aaa CLI commands         | experimental | 2026-01-28 | ✓   | -           | - |
-| `brainwriting`         | 5 parallel idea explorations, then synthesize  | beta         | 2025-11-19 | ✓   | -           | ✓ KEEP (add note: "for product vision use ralph-plan vision") |
-| `context-atomic-doc`   | Create/update atomic docs (blocks, foundations, stacks) | experimental | 2026-01-28 | ✓   | -           | - |
-| `dev-work-summary`     | Scan ~/dev for today's git work                | beta         | 2025-11-18 | ✓   | -           | ✓ KEEP |
-| `doc-analyze`          | Tiered doc analysis (T1: Haiku lookup, T2: Sonnet gaps, T3: Opus deep) | experimental | 2026-01-28 | ✓   | -           | - |
-| `gh-search`            | Search GitHub for code examples and patterns   | experimental | 2026-01-28 | ✓   | `aaa gh-search` | - |
-| `interrogate-on-changes` | Surface decisions, alternatives, confidence  | experimental | 2026-01-28 | ✓   | -           | - |
-| `code-review`          | Orchestrate 11 reviewers in parallel           | experimental | 2026-01-25 | ✗   | `aaa review` | REWRITE: (1) ~~rename → code-review~~ DONE (2) ~~add triage agent that PICKS not just aggregates~~ DONE (3) ~~add approval gate before changes~~ DONE (4) ~~add flexible diff targets (branch vs main, between commits)~~ DONE (5) add ralph hooks integration |
-| `ralph-build`          | Autonomous build loop for subtasks             | experimental | 2026-01-23 | ✓   | `aaa ralph build` | FIX: pre-build-validation.md should ref subtask-spec.md for sizing (vertical slice test, small/medium/large modes, 2-5 AC threshold) — keep only alignment checks (scope_creep, unfaithful) |
-| `ralph-calibrate`      | Check intention drift, technical quality       | experimental | 2026-01-23 | ✓   | `aaa ralph calibrate` | ✓ KEEP (complementary to code-review: calibrate = drift from our docs, review = general quality) |
-| `ralph-plan`           | Interactive vision planning (Socratic method)  | experimental | 2026-01-23 | ✓   | `aaa ralph plan` | FIX: (1) add argument-hint frontmatter (2) clarify --task mode in docs (3) add --1-to-1 flag for direct tasks→subtasks mapping (no decomposition) |
-| `ralph-review`         | Review auto-generated planning artifacts       | experimental | 2026-01-23 | ✓   | -           | FIX: Coverage gaps — Tasks: QR+GA+auto all missing. Subtasks: GA+auto missing. Vision: all missing (low priority). CLI: expose --headless flag (auto workflows exist but not accessible). Consolidate duplicate gap workflows (planning/ vs review/). |
-| `ralph-status`         | Display build progress and stats               | experimental | 2026-01-23 | ✓   | `aaa ralph status` | ✓ KEEP |
-| `setup-lint-staged`    | Set up lint-staged for optimized pre-commit validation | experimental | 2026-02-04 | ✓   | -           | - |
-| `walkthrough`          | Present items one at a time interactively      | experimental | 2026-01-26 | ✓   | -           | ✓ KEEP |
+| Skill                    | Description                                                            | Stability    | Created    | DRY | CLI Sibling           | Action                                                                                                                                                                                                                                                         |
+| :----------------------- | :--------------------------------------------------------------------- | :----------- | :--------- | :-- | :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aaa-feature-wizard`     | Wizard for adding new aaa CLI commands                                 | experimental | 2026-01-28 | ✓   | -                     | -                                                                                                                                                                                                                                                              |
+| `brainwriting`           | 5 parallel idea explorations, then synthesize                          | beta         | 2025-11-19 | ✓   | -                     | ✓ KEEP (add note: "for product vision use ralph-plan vision")                                                                                                                                                                                                  |
+| `context-atomic-doc`     | Create/update atomic docs (blocks, foundations, stacks)                | experimental | 2026-01-28 | ✓   | -                     | -                                                                                                                                                                                                                                                              |
+| `dev-work-summary`       | Scan ~/dev for today's git work                                        | beta         | 2025-11-18 | ✓   | -                     | ✓ KEEP                                                                                                                                                                                                                                                         |
+| `doc-analyze`            | Tiered doc analysis (T1: Haiku lookup, T2: Sonnet gaps, T3: Opus deep) | experimental | 2026-01-28 | ✓   | -                     | -                                                                                                                                                                                                                                                              |
+| `gh-search`              | Search GitHub for code examples and patterns                           | experimental | 2026-01-28 | ✓   | `aaa gh-search`       | -                                                                                                                                                                                                                                                              |
+| `interrogate-on-changes` | Surface decisions, alternatives, confidence                            | experimental | 2026-01-28 | ✓   | -                     | -                                                                                                                                                                                                                                                              |
+| `code-review`            | Orchestrate 11 reviewers in parallel                                   | experimental | 2026-01-25 | ✗   | `aaa review`          | REWRITE: (1) ~~rename → code-review~~ DONE (2) ~~add triage agent that PICKS not just aggregates~~ DONE (3) ~~add approval gate before changes~~ DONE (4) ~~add flexible diff targets (branch vs main, between commits)~~ DONE (5) add ralph hooks integration |
+| `ralph-build`            | Autonomous build loop for subtasks                                     | experimental | 2026-01-23 | ✓   | `aaa ralph build`     | FIX: pre-build-validation.md should ref subtask-spec.md for sizing (vertical slice test, small/medium/large modes, 2-5 AC threshold) — keep only alignment checks (scope_creep, unfaithful)                                                                    |
+| `ralph-calibrate`        | Check intention drift, technical quality                               | experimental | 2026-01-23 | ✓   | `aaa ralph calibrate` | ✓ KEEP (complementary to code-review: calibrate = drift from our docs, review = general quality)                                                                                                                                                               |
+| `ralph-plan`             | Interactive vision planning (Socratic method)                          | experimental | 2026-01-23 | ✓   | `aaa ralph plan`      | FIX: (1) add argument-hint frontmatter (2) clarify --task mode in docs (3) add --1-to-1 flag for direct tasks→subtasks mapping (no decomposition)                                                                                                              |
+| `ralph-review`           | Review auto-generated planning artifacts                               | experimental | 2026-01-23 | ✓   | -                     | FIX: Coverage gaps — Tasks: QR+GA+auto all missing. Subtasks: GA+auto missing. Vision: all missing (low priority). CLI: expose --headless flag (auto workflows exist but not accessible). Consolidate duplicate gap workflows (planning/ vs review/).          |
+| `ralph-status`           | Display build progress and stats                                       | experimental | 2026-01-23 | ✓   | `aaa ralph status`    | ✓ KEEP                                                                                                                                                                                                                                                         |
+| `ralph-prompt-audit`     | Audit ralph command examples in prompts vs live CLI                    | experimental | 2026-02-04 | ✓   | -                     | -                                                                                                                                                                                                                                                              |
+| `run-guide-and-fix`      | Walk through GUIDE.md with agent-browser, fix bugs                     | experimental | 2026-02-04 | ✓   | -                     | -                                                                                                                                                                                                                                                              |
+| `write-guide`            | Generate comprehensive GUIDE.md for a milestone                        | experimental | 2026-02-04 | ✓   | -                     | -                                                                                                                                                                                                                                                              |
+| `setup-lint-staged`      | Set up lint-staged for optimized pre-commit validation                 | experimental | 2026-02-04 | ✓   | -                     | -                                                                                                                                                                                                                                                              |
+| `walkthrough`            | Present items one at a time interactively                              | experimental | 2026-01-26 | ✓   | -                     | ✓ KEEP                                                                                                                                                                                                                                                         |
 
 </details>
 
@@ -327,17 +338,27 @@ Get push notifications when Claude Code completes tasks or needs permission. Use
 ```json
 {
   "hooks": {
-    "Stop": [{
-      "hooks": [
-        { "type": "command", "command": "aaa notify --event claude:stop 'Task complete' --quiet" }
-      ]
-    }],
-    "Notification": [{
-      "matcher": "permission_prompt",
-      "hooks": [
-        { "type": "command", "command": "aaa notify --event claude:permissionPrompt 'Permission needed' --quiet" }
-      ]
-    }]
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "aaa notify --event claude:stop 'Task complete' --quiet"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "aaa notify --event claude:permissionPrompt 'Permission needed' --quiet"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -357,6 +378,7 @@ Get push notifications when Claude Code completes tasks or needs permission. Use
 ```
 
 **Available events:**
+
 - `claude:stop` - Claude Code task completed
 - `claude:permissionPrompt` - Permission prompt requires action
 
@@ -457,8 +479,16 @@ Create `aaa.config.json` in your project root for unified configuration across a
       "endHour": 8
     },
     "events": {
-      "ralph:maxIterationsExceeded": { "topic": "critical", "priority": "max", "tags": ["warning", "sos"] },
-      "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
+      "ralph:maxIterationsExceeded": {
+        "topic": "critical",
+        "priority": "max",
+        "tags": ["warning", "sos"]
+      },
+      "ralph:milestoneComplete": {
+        "topic": "builds",
+        "priority": "high",
+        "tags": ["tada"]
+      },
       "ralph:subtaskComplete": { "priority": "default" },
       "claude:stop": { "enabled": false },
       "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
@@ -499,26 +529,27 @@ Create `aaa.config.json` in your project root for unified configuration across a
 
 **Config sections:**
 
-| Section    | Description                                        |
-| ---------- | -------------------------------------------------- |
-| `notify`   | Push notifications via ntfy.sh with event routing  |
-| `ralph`    | Autonomous build system hooks and settings         |
-| `review`   | Code review auto-fix threshold and diary location  |
-| `research` | Research output directory and result limits        |
-| `debug`    | Enable debug logging across all commands           |
+| Section    | Description                                       |
+| ---------- | ------------------------------------------------- |
+| `notify`   | Push notifications via ntfy.sh with event routing |
+| `ralph`    | Autonomous build system hooks and settings        |
+| `review`   | Code review auto-fix threshold and diary location |
+| `research` | Research output directory and result limits       |
+| `debug`    | Enable debug logging across all commands          |
 
 **Event config options:**
 
 Each event in `notify.events` supports these fields:
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| `enabled` | boolean | Set to `false` to disable the event entirely |
-| `topic` | string | Override the default ntfy topic |
-| `priority` | string | Notification priority: `min`, `low`, `default`, `high`, `max` |
-| `tags` | array | Emoji tags for the notification (e.g., `["tada", "warning"]`) |
+| Field      | Type    | Description                                                   |
+| ---------- | ------- | ------------------------------------------------------------- |
+| `enabled`  | boolean | Set to `false` to disable the event entirely                  |
+| `topic`    | string  | Override the default ntfy topic                               |
+| `priority` | string  | Notification priority: `min`, `low`, `default`, `high`, `max` |
+| `tags`     | array   | Emoji tags for the notification (e.g., `["tada", "warning"]`) |
 
 Example: Disable `claude:stop` notifications while keeping others:
+
 ```json
 {
   "notify": {

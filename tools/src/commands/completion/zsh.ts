@@ -70,7 +70,8 @@ _aaa() {
                         '*--queries[Additional search queries]:query:' \\
                         '--processor[Processing level]:processor:(base pro)' \\
                         '--max-results[Maximum results]:number:' \\
-                        '--max-chars[Max chars per excerpt]:number:'
+                        '--max-chars[Max chars per excerpt]:number:' \\
+                        '(-v --verbose)'{-v,--verbose}'[Show full report content instead of summary]'
                     ;;
                 setup)
                     _arguments \\
@@ -138,6 +139,7 @@ _aaa_task() {
                 create)
                     _arguments \\
                         '(-d --dir)'{-d,--dir}'[Custom tasks directory]:directory:_files -/' \\
+                        '(-m --milestone)'{-m,--milestone}'[Milestone name/path]:milestone:_aaa_milestone_or_dir' \\
                         '(-s --story)'{-s,--story}'[Link task to story number]:story:' \\
                         '1:name:'
                     ;;
@@ -165,6 +167,7 @@ _aaa_story() {
                 create)
                     _arguments \\
                         '(-d --dir)'{-d,--dir}'[Custom stories directory]:directory:_files -/' \\
+                        '(-m --milestone)'{-m,--milestone}'[Milestone name/path]:milestone:_aaa_milestone_or_dir' \\
                         '1:name:'
                     ;;
             esac
@@ -248,7 +251,7 @@ _aaa_notify_config() {
 _aaa_ralph() {
     local -a subcommands
     subcommands=(
-        'build:Run subtask iteration loop'
+        'build:Run autonomous subtask build loop'
         'plan:Planning tools for vision, roadmap, stories, tasks'
         'review:Review planning artifacts for quality and gaps'
         'milestones:List available milestones'
@@ -257,6 +260,7 @@ _aaa_ralph() {
         'subtasks:Subtask queue operations'
         'calibrate:Run calibration checks'
         'archive:Archive completed subtasks and old sessions'
+        'refresh-models:Discover models from CLI providers'
     )
 
     _arguments -C \\
@@ -277,12 +281,14 @@ _aaa_ralph() {
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch each iteration]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
                         '(-q --quiet)'{-q,--quiet}'[Suppress terminal summary output]' \\
+                        '(-S --skip-summary)'{-S,--skip-summary}'[Skip summary generation in headless mode]' \\
                         '--max-iterations[Max retry attempts]:number:' \\
                         '--validate-first[Validate first; may create/update/remove/reorder/split pending queue order]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--calibrate-every[Run calibration every N iterations; may insert corrective queue-order subtasks]:number:' \\
                         '--force[Approval mode: auto-apply validation/calibration queue proposals]' \\
                         '--review[Approval mode: require explicit approval for validation/calibration queue proposals]' \\
+                        '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model'
                     ;;
@@ -314,6 +320,11 @@ _aaa_ralph() {
                     ;;
                 archive)
                     _aaa_ralph_archive
+                    ;;
+                refresh-models)
+                    _arguments \\
+                        '--dry-run[Show what would be discovered without writing]' \\
+                        '--provider[Discover models from specific provider only]:provider:_aaa_provider'
                     ;;
             esac
             ;;
@@ -515,7 +526,8 @@ _aaa_ralph_review() {
         'stories:Review stories for a milestone'
         'roadmap:Review roadmap milestones'
         'gap:Cold analysis for gaps and blind spots'
-        'tasks:Review tasks for a story (coming soon)'
+        'tasks:Review tasks for a story'
+        'subtasks:Review subtask queue before building'
     )
 
     _arguments -C \\
@@ -527,7 +539,6 @@ _aaa_ralph_review() {
             _describe 'subcommand' subcommands
             ;;
         args)
-            # All review commands are supervised-only (no headless)
             case $words[1] in
                 stories)
                     _arguments '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir'
@@ -539,7 +550,14 @@ _aaa_ralph_review() {
                     _aaa_ralph_review_gap
                     ;;
                 tasks)
-                    _arguments '1:story-id:'
+                    _arguments \\
+                        '--story[Story path to review tasks for]:story:_aaa_story_or_file' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                    ;;
+                subtasks)
+                    _arguments \\
+                        '--subtasks[Subtasks file path to review]:file:_files -g "*.json"' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
                     ;;
             esac
             ;;
@@ -551,6 +569,8 @@ _aaa_ralph_review_gap() {
     subcommands=(
         'roadmap:Cold analysis of roadmap for gaps'
         'stories:Cold analysis of stories for gaps'
+        'tasks:Cold analysis of tasks for gaps'
+        'subtasks:Cold analysis of subtask queue for gaps'
     )
 
     _arguments -C \\
@@ -567,8 +587,13 @@ _aaa_ralph_review_gap() {
                     # Gap analysis is supervised-only (no headless)
                     ;;
                 stories)
-                    # Gap analysis is supervised-only (no headless)
                     _arguments '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir'
+                    ;;
+                tasks)
+                    _arguments '--story[Story path]:story:_aaa_story_or_file'
+                    ;;
+                subtasks)
+                    _arguments '--subtasks[Subtasks file path]:file:_files -g "*.json"'
                     ;;
             esac
             ;;
@@ -585,6 +610,11 @@ _aaa_review() {
         '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch execution]' \\
         '(-H --headless)'{-H,--headless}'[Headless mode: fully autonomous]' \\
         '--dry-run[Preview findings without fixing (requires --headless)]' \\
+        '--require-approval[Pause after triage for user confirmation (requires --headless)]' \\
+        '--base[Compare HEAD against specified branch]:branch:' \\
+        '--range[Compare specific commits (format: from..to)]:range:' \\
+        '--staged-only[Review only staged changes]' \\
+        '--unstaged-only[Review only unstaged changes]' \\
         '--provider[AI provider]:provider:_aaa_provider' \\
         '--model[Model to use]:model:_aaa_model' \\
         '1: :->subcmd'

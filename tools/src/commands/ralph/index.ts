@@ -813,7 +813,7 @@ const ralphCommand = new Command("ralph").description(
 // ralph build - execute subtask iteration loop
 ralphCommand.addCommand(
   new Command("build")
-    .description("Run subtask iteration loop using ralph-iteration.md prompt")
+    .description("Run autonomous subtask build loop")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option("-p, --print", "Print prompt without executing provider")
     .option(
@@ -853,7 +853,7 @@ ralphCommand.addCommand(
     .option("--from <level>", "Resume cascade from this level")
     .option(
       "--cascade <target>",
-      "Continue to target level after build completes (calibrate)",
+      "Chain forward to target level after build (e.g. calibrate). Levels: build, calibrate",
     )
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
