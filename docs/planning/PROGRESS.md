@@ -8,6 +8,13 @@
 
 ## Session Notes
 
+## 2026-02-12
+
+### SUB-041
+- **Problem:** Queue create operations expose `atIndex` for positional insertion, but this subtask required explicit verification that create-at-index behavior (prepend and middle insert) is covered and that out-of-range index errors are actionable.
+- **Changes:** Confirmed `applyQueueOperations()` already honors `atIndex` via `splice(atIndex, 0, createdSubtask)` in `queue-ops.ts`, then added focused unit coverage for middle-index insertion (`atIndex: 1`) and upper-bound out-of-range create errors to complement existing prepend and negative-index checks.
+- **Files:** `tools/tests/lib/queue-ops.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-11
 
 ### SUB-031

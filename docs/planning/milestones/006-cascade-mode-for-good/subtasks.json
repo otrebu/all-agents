@@ -6,6 +6,135 @@
   },
   "subtasks": [
     {
+      "acceptanceCriteria": [
+        "create operation with atIndex inserts at the specified position (or atIndex is removed from the type if append-only is intended)",
+        "Unit test verifies positional insertion: create at index 0 prepends, create at middle index inserts correctly",
+        "Out-of-range atIndex throws actionable error consistent with reorder bounds checking"
+      ],
+      "description": "The QueueCreateOperation type defines an `atIndex` field for positional insertion, but applyQueueOperations ignores it and always appends via `push()`. Either implement `splice(atIndex, 0, createdSubtask)` to honor the field, or remove `atIndex` from the type if append-only is the intended behavior. Add test coverage for positional insertion (e.g., create at index 0 should prepend, create at index 1 should insert between existing subtasks).",
+      "done": true,
+      "filesToRead": [
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/tests/lib/queue-ops.test.ts"
+      ],
+      "id": "SUB-041",
+      "taskRef": "WS-01-queue-operation-engine",
+      "title": "Implement atIndex positional insertion for queue create operation",
+      "completedAt": "2026-02-12T07:45:44Z",
+      "commitHash": "80091eafda2616f956f1500a2669bb9535983418",
+      "sessionId": "3bbe47ae-6f18-47c4-b6ae-c62e65c1f279"
+    },
+    {
+      "acceptanceCriteria": [
+        "Append command delegates to applyQueueOperations (or equivalent queue-ops function) instead of manually building subtasks",
+        "Duplicate formatSubtaskId and getMaxSubtaskNumber functions removed from index.ts (use exports from queue-ops.ts)",
+        "Append command benefits from fingerprint-based optimistic concurrency like prepend does",
+        "Existing E2E tests for append --dry-run still pass"
+      ],
+      "description": "The append command in index.ts duplicates formatSubtaskId, getMaxSubtaskNumber, and subtask-building logic that already exists in queue-ops.ts. The prepend command correctly delegates to applyQueueOperations, but append manually builds subtasks and calls appendSubtasksToFile directly, bypassing fingerprint-based concurrency guards. Refactor append to use the same applyQueueOperations path as prepend (with atIndex set to the end of the queue) so both commands share the same ID allocation, validation, and concurrency behavior.",
+      "done": false,
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/config.ts"
+      ],
+      "id": "SUB-042",
+      "taskRef": "WS-02-cli-expansion",
+      "title": "Refactor append command to use queue-ops for ID allocation and subtask creation"
+    },
+    {
+      "acceptanceCriteria": [
+        "E2E test verifies append writes subtasks to the end of the queue file with correct SUB-NNN IDs",
+        "E2E test verifies prepend writes subtasks to the beginning of the queue file with correct SUB-NNN IDs",
+        "E2E test verifies file on disk has expected subtask count and order after write operations"
+      ],
+      "description": "Current E2E tests only cover --dry-run behavior and --help output. There are no tests verifying that append and prepend actually write to the subtasks.json file correctly. Add tests that verify: (1) append adds subtasks at the end with correct IDs, (2) prepend adds subtasks at the beginning with correct IDs, (3) the file on disk reflects the expected order after each operation.",
+      "done": false,
+      "filesToRead": [
+        "tools/tests/e2e/ralph-subtasks-cli.test.ts",
+        "tools/src/commands/ralph/index.ts"
+      ],
+      "id": "SUB-043",
+      "taskRef": "WS-02-cli-expansion",
+      "title": "Add E2E tests for append and prepend actual write paths"
+    },
+    {
+      "acceptanceCriteria": [
+        "Confirm whether commit a32c865e (referenced in PROGRESS.md) contains the SUB-009 implementation code",
+        "If implementation exists, update SUB-009 commitHash in subtasks.json to the correct commit",
+        "If implementation is missing, set SUB-009 done:false and remove completedAt/commitHash/sessionId",
+        "Verify --force applies validation proposals immediately in build.ts runValidateFirst flow",
+        "Verify --review writes proposal artifact to milestone feedback/ and blocks until approval",
+        "Verify E2E test exists for --validate-first --force queue mutation before build starts"
+      ],
+      "description": "SUB-009 was marked done with commit da64a5cd which only updates tracking metadata (PROGRESS.md, subtasks.json). None of the five acceptance criteria have matching code changes in the commit diff: no --force auto-apply path, no --review staged artifact path, no default interactive/headless behavior, no feedback artifact persistence changes, and no E2E test. Inspect git log for the actual implementation commit (the PROGRESS.md entry references commit a32c865e). If implementation exists under a different commit, update the subtask's commitHash. If implementation is genuinely missing, re-open SUB-009 and implement the --force/--review validation proposal wiring.",
+      "done": false,
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/validation.ts",
+        "docs/planning/milestones/006-cascade-mode-for-good/subtasks.json"
+      ],
+      "id": "SUB-044",
+      "taskRef": "WS-03-validation-first-refactor",
+      "title": "Verify SUB-009 implementation evidence and re-open if missing"
+    },
+    {
+      "acceptanceCriteria": [
+        "A single appendMilestoneLogEntry function exists (not duplicated across modules)",
+        "The shared function includes try/catch error handling with console.warn on failure",
+        "Both validation.ts and calibrate.ts import and use the shared function",
+        "Existing tests continue to pass without modification"
+      ],
+      "description": "Both validation.ts and calibrate.ts define their own appendMilestoneLogEntry() with identical signatures but different error handling: validation.ts wraps in try/catch with console.warn, calibrate.ts does not. Extract a single shared implementation (e.g., into config.ts alongside getMilestoneLogPath) with consistent error handling (the try/catch pattern from validation.ts is preferable to avoid crashing on log write failures).",
+      "done": false,
+      "filesToRead": [
+        "tools/src/commands/ralph/validation.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/config.ts"
+      ],
+      "id": "SUB-045",
+      "taskRef": "WS-05-unified-logging",
+      "title": "Deduplicate appendMilestoneLogEntry and align error handling"
+    },
+    {
+      "acceptanceCriteria": [
+        "A shared helper function (e.g., readLegacyBlockedBy) exists in types.ts or a ralph utils module that encapsulates the unsafe cast and array filtering",
+        "All 4 call sites in build.ts, config.ts, index.ts, and status.ts use the shared helper instead of inline casts",
+        "The helper has a JSDoc comment marking it as legacy migration code",
+        "TypeScript compiles without errors: bun run typecheck exits 0"
+      ],
+      "description": "The SUB-015 commit introduced identical `(s as { blockedBy?: unknown }).blockedBy` + `Array.isArray` + `.filter(typeof string)` patterns in 4 files (build.ts, config.ts, index.ts, status.ts). Extract this into a single typed helper function in types.ts or a shared utils module (e.g., `readLegacyBlockedBy(subtask: Subtask): string[]`) to eliminate duplication and centralize the unsafe cast. Add a JSDoc comment explaining this is a legacy migration shim that can be removed once no subtasks.json files contain blockedBy fields.",
+      "done": false,
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/status.ts"
+      ],
+      "id": "SUB-046",
+      "taskRef": "WS-06-remove-blockedby",
+      "title": "Extract legacy blockedBy reader into shared helper"
+    },
+    {
+      "acceptanceCriteria": [
+        "parseQueueOperation and its helper parsing functions exist in exactly one module (not duplicated across queue-ops.ts and validation.ts)",
+        "All imports of parseQueueOperation across the codebase resolve to the single canonical location",
+        "Existing tests continue to pass: bun test tools/tests/lib/queue-operations.test.ts tools/tests/lib/queue-ops.test.ts exits 0"
+      ],
+      "description": "The SUB-025 commit exports parseQueueOperation from validation.ts (line 1038 addition) but queue-ops.ts also contains a full copy of parseQueueOperation and its helper functions (parseCreateOperation, parseRemoveOperation, etc.). The test file queue-operations.test.ts imports from queue-ops while validation.ts also exports it. This duplication means behavioral changes (like the null→throw change for unknown types) may not be applied consistently. Consolidate to a single canonical location and re-export from the other if needed.",
+      "done": false,
+      "filesToRead": [
+        "tools/src/commands/ralph/queue-ops.ts",
+        "tools/src/commands/ralph/validation.ts",
+        "tools/tests/lib/queue-operations.test.ts"
+      ],
+      "id": "SUB-047",
+      "taskRef": "tech-debt-test-coverage",
+      "title": "Deduplicate parseQueueOperation between queue-ops.ts and validation.ts"
+    },
+    {
       "id": "SUB-001",
       "taskRef": "WS-01-queue-operation-engine",
       "title": "Define queue operation types and validation schema",
@@ -856,6 +985,45 @@
       "completedAt": "2026-02-11T18:16:00Z",
       "commitHash": "87ceb17f3907ab20253cb2eec3bfb2bc23b0e1c7",
       "sessionId": "f0552605-5b91-4b4e-9ee7-48cf0eaa77a6"
+    },
+    {
+      "id": "SUB-039",
+      "taskRef": "WS-06-remove-blockedby",
+      "title": "Remove legacy blockedBy runtime access patterns from build/config/index/status",
+      "description": "SUB-015 removed blockedBy from the Subtask type and schema but introduced `(s as { blockedBy?: unknown }).blockedBy` cast patterns in build.ts, config.ts, index.ts, and status.ts to preserve legacy reads. The WS-06 milestone acceptance criterion states 'No blockedBy references remain in runtime code paths.' These cast-based accesses keep blockedBy semantics alive in runtime logic (next-subtask selection, blocked-list rendering, status display). Remove these access patterns entirely and simplify next-subtask selection to first-pending-in-queue-order as WS-06 specifies.",
+      "done": false,
+      "acceptanceCriteria": [
+        "No `blockedBy` string literal or property access remains in build.ts, config.ts, index.ts, or status.ts",
+        "getNextSubtask() in config.ts selects first pending subtask by queue order without dependency checking",
+        "handleNoRunnableSubtasks() in build.ts does not reference blockedBy in its blocked-list rendering",
+        "Status display in status.ts does not reference blockedBy for pending subtask preview",
+        "TypeScript compiles without errors: bun run typecheck exits 0",
+        "Existing tests pass: bun test exits 0"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/status.ts"
+      ]
+    },
+    {
+      "id": "SUB-040",
+      "taskRef": "fix-calibration-context-explosion",
+      "title": "Fix ralph-calibrate skill to use --subtasks flag instead of cd",
+      "description": "The ralph-calibrate SKILL.md currently instructs the agent to resolve subtasks.json path and cd into its directory before running the CLI. The CLI already supports --subtasks <path> for all calibrate subcommands, so the skill should pass --subtasks <absolute-path> instead of changing directory. This eliminates the cd pattern and makes invocation cleaner.",
+      "done": true,
+      "acceptanceCriteria": [
+        "SKILL.md step 5 builds command with --subtasks <resolved-path> instead of setting workdir",
+        "SKILL.md step 6 runs command without cd prefix",
+        "SKILL.md removes 'set workdir to the resolved subtasks.json directory when needed' guidance",
+        "SKILL.md examples show --subtasks usage",
+        "SKILL.md line count remains under 80 lines"
+      ],
+      "filesToRead": [
+        ".claude/skills/ralph-calibrate/SKILL.md",
+        "tools/src/commands/ralph/index.ts"
+      ]
     }
   ]
 }
