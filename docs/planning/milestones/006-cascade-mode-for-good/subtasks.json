@@ -117,7 +117,7 @@
         "TypeScript compiles without errors: bun run typecheck exits 0"
       ],
       "description": "The SUB-015 commit introduced identical `(s as { blockedBy?: unknown }).blockedBy` + `Array.isArray` + `.filter(typeof string)` patterns in 4 files (build.ts, config.ts, index.ts, status.ts). Extract this into a single typed helper function in types.ts or a shared utils module (e.g., `readLegacyBlockedBy(subtask: Subtask): string[]`) to eliminate duplication and centralize the unsafe cast. Add a JSDoc comment explaining this is a legacy migration shim that can be removed once no subtasks.json files contain blockedBy fields.",
-      "done": false,
+      "done": true,
       "filesToRead": [
         "tools/src/commands/ralph/types.ts",
         "tools/src/commands/ralph/build.ts",
@@ -127,7 +127,10 @@
       ],
       "id": "SUB-046",
       "taskRef": "WS-06-remove-blockedby",
-      "title": "Extract legacy blockedBy reader into shared helper"
+      "title": "Extract legacy blockedBy reader into shared helper",
+      "completedAt": "2026-02-12T08:23:29Z",
+      "commitHash": "e14b939ca95c1f7f93fdf97401049fb5abdfe1c6",
+      "sessionId": "3bbe47ae-6f18-47c4-b6ae-c62e65c1f279"
     },
     {
       "acceptanceCriteria": [
