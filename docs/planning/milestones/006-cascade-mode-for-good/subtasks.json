@@ -96,7 +96,7 @@
         "Existing tests continue to pass without modification"
       ],
       "description": "Both validation.ts and calibrate.ts define their own appendMilestoneLogEntry() with identical signatures but different error handling: validation.ts wraps in try/catch with console.warn, calibrate.ts does not. Extract a single shared implementation (e.g., into config.ts alongside getMilestoneLogPath) with consistent error handling (the try/catch pattern from validation.ts is preferable to avoid crashing on log write failures).",
-      "done": false,
+      "done": true,
       "filesToRead": [
         "tools/src/commands/ralph/validation.ts",
         "tools/src/commands/ralph/calibrate.ts",
@@ -104,7 +104,10 @@
       ],
       "id": "SUB-045",
       "taskRef": "WS-05-unified-logging",
-      "title": "Deduplicate appendMilestoneLogEntry and align error handling"
+      "title": "Deduplicate appendMilestoneLogEntry and align error handling",
+      "completedAt": "2026-02-12T08:11:40Z",
+      "commitHash": "6c2ec289f20bb81f70c3348b3b7e45821f02d65a",
+      "sessionId": "3bbe47ae-6f18-47c4-b6ae-c62e65c1f279"
     },
     {
       "acceptanceCriteria": [

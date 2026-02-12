@@ -30,6 +30,11 @@
 - **Changes:** Verified implementation coverage in commit `6b3883d` (not `a32c865e`) for `--force` auto-apply, `--review` staging/approval gating, and `--validate-first --force` E2E queue-mutation timing; then corrected `SUB-009` commitHash in milestone `subtasks.json`.
 - **Files:** `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-045
+- **Problem:** `validation.ts` and `calibrate.ts` both implemented `appendMilestoneLogEntry()` with duplicated logic, and calibration lacked the validation-side try/catch guard for log write failures.
+- **Changes:** Extracted a single shared `appendMilestoneLogEntry()` into `config.ts` next to `getMilestoneLogPath()` with unified try/catch + `console.warn` handling, then removed local implementations and switched both modules to import the shared helper.
+- **Files:** `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/validation.ts`, `tools/src/commands/ralph/calibrate.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-11
 
 ### SUB-031
