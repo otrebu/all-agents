@@ -24,6 +24,11 @@ interface CursorSessionCandidate {
   sessionId: string;
 }
 
+interface CursorToolCallCandidate {
+  args: Record<string, unknown>;
+  toolName: string;
+}
+
 const CURSOR_FILE_MUTATION_TOOLS = new Set<string>([
   "addfile",
   "applypatch",
@@ -87,12 +92,14 @@ function extractCursorDurationMs(payload: string): number {
     .filter((value): value is number => value !== undefined);
 
   const start = timestamps[0];
-  const end = timestamps.at(-1);
-  if (start === undefined || end === undefined) {
+  if (start === undefined) {
     return 0;
   }
 
-  return end >= start ? end - start : 0;
+  const end = Math.max(...timestamps);
+  const earliest = Math.min(...timestamps);
+
+  return end >= earliest ? end - earliest : 0;
 }
 
 function extractCursorFilesChanged(
@@ -117,35 +124,24 @@ function extractCursorFilesChanged(
       continue;
     }
 
-    for (const [toolCallName, toolCallPayload] of Object.entries(toolCall)) {
-      const normalizedToolName = normalizeCursorToolName(toolCallName);
+    const toolCallCandidates = getCursorToolCallCandidates(toolCall);
+    for (const candidate of toolCallCandidates) {
+      const normalizedToolName = normalizeCursorToolName(candidate.toolName);
       if (!CURSOR_FILE_MUTATION_TOOLS.has(normalizedToolName)) {
         // eslint-disable-next-line no-continue -- skip non-mutating tools
         continue;
       }
 
-      if (!isRecord(toolCallPayload)) {
-        // eslint-disable-next-line no-continue -- skip malformed tool payloads
-        continue;
-      }
-
-      const args = isRecord(toolCallPayload.args)
-        ? toolCallPayload.args
-        : undefined;
-      if (args === undefined) {
-        // eslint-disable-next-line no-continue -- no args means no path to extract
-        continue;
-      }
-
-      const rawPath = readString(args, [
-        "destination_path",
-        "destinationPath",
-        "file_path",
-        "filePath",
-        "path",
-        "target_path",
-        "targetPath",
-      ]);
+      const rawPath =
+        readString(candidate.args, [
+          "destination_path",
+          "destinationPath",
+          "file_path",
+          "filePath",
+          "path",
+          "target_path",
+          "targetPath",
+        ]) ?? findLikelyPathArgument(candidate.args);
 
       const normalized = normalizePath(rawPath, repoRoot);
       if (normalized !== null) {
@@ -175,6 +171,8 @@ function extractCursorTokenUsage(payload: string): TokenUsage | undefined {
     return undefined;
   }
 
+  const cache = isRecord(usage.cache) ? usage.cache : undefined;
+
   const input =
     readNumber(usage, [
       "input",
@@ -189,8 +187,14 @@ function extractCursorTokenUsage(payload: string): TokenUsage | undefined {
       "output_tokens",
       "outputTokens",
     ]) ?? 0;
-  const cacheRead = readNumber(usage, ["cache_read", "cacheRead"]) ?? 0;
-  const cacheWrite = readNumber(usage, ["cache_write", "cacheWrite"]) ?? 0;
+  const cacheRead =
+    readNumber(usage, ["cache_read", "cacheRead"]) ??
+    (cache === undefined ? undefined : readNumber(cache, ["read"])) ??
+    0;
+  const cacheWrite =
+    readNumber(usage, ["cache_write", "cacheWrite"]) ??
+    (cache === undefined ? undefined : readNumber(cache, ["write"])) ??
+    0;
 
   if (input === 0 && output === 0 && cacheRead === 0 && cacheWrite === 0) {
     return undefined;
@@ -218,6 +222,54 @@ function extractCursorToolCalls(payload: string): number {
   return startedCount > 0 ? startedCount : events.length;
 }
 
+function extractToolCallArguments(
+  payload: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const args = isRecord(payload.args) ? payload.args : undefined;
+  if (args !== undefined) {
+    return args;
+  }
+
+  const input = isRecord(payload.input) ? payload.input : undefined;
+  if (input !== undefined) {
+    return input;
+  }
+
+  const argumentsPayload = isRecord(payload.arguments)
+    ? payload.arguments
+    : undefined;
+
+  return argumentsPayload;
+}
+
+function extractToolCallName(
+  payload: Record<string, unknown>,
+): string | undefined {
+  return readString(payload, ["name", "tool", "tool_name", "toolName"]);
+}
+
+function findLikelyPathArgument(
+  args: Record<string, unknown>,
+): string | undefined {
+  const prioritizedEntries = Object.entries(args).sort(([left], [right]) => {
+    const leftPathScore = /path|file/iu.test(left) ? 0 : 1;
+    const rightPathScore = /path|file/iu.test(right) ? 0 : 1;
+    if (leftPathScore !== rightPathScore) {
+      return leftPathScore - rightPathScore;
+    }
+
+    return left.localeCompare(right);
+  });
+
+  for (const [, value] of prioritizedEntries) {
+    if (typeof value === "string" && value !== "") {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
 function getCursorConfigDirectory(): string {
   return process.env.CURSOR_CONFIG_DIR ?? path.join(homedir(), ".cursor");
 }
@@ -238,6 +290,35 @@ function getCursorProjectsDirectory(): string {
 
 function getCursorRalphSessionDirectory(repoRoot: string): string {
   return path.join(path.resolve(repoRoot), ".ralph", "sessions", "cursor");
+}
+
+function getCursorToolCallCandidates(
+  toolCall: Record<string, unknown>,
+): Array<CursorToolCallCandidate> {
+  const candidates: Array<CursorToolCallCandidate> = [];
+
+  const directToolName = extractToolCallName(toolCall);
+  const directArguments = extractToolCallArguments(toolCall);
+  if (directToolName !== undefined && directArguments !== undefined) {
+    candidates.push({ args: directArguments, toolName: directToolName });
+  }
+
+  for (const [toolCallName, toolCallPayload] of Object.entries(toolCall)) {
+    if (!isRecord(toolCallPayload)) {
+      // eslint-disable-next-line no-continue -- skip malformed tool payloads
+      continue;
+    }
+
+    const args = extractToolCallArguments(toolCallPayload);
+    if (args === undefined) {
+      // eslint-disable-next-line no-continue -- no args means no path to extract
+      continue;
+    }
+
+    candidates.push({ args, toolName: toolCallName });
+  }
+
+  return candidates;
 }
 
 function getCursorTranscriptDirectory(repoRoot: string): string {
