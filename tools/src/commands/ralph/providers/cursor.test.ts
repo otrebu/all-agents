@@ -1,6 +1,27 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { buildCursorHeadlessArguments, normalizeCursorResult } from "./cursor";
+
+interface CursorFixtureScenario {
+  events: Array<Record<string, unknown>>;
+  expectedContains: string;
+  name: string;
+}
+
+function loadCursorStreamJsonFixtures(): Array<CursorFixtureScenario> {
+  const fixturePath = join(
+    import.meta.dir,
+    "../../../../tests/fixtures/cursor/stream-json-events.json",
+  );
+  const raw = readFileSync(fixturePath, "utf8");
+  const parsed = JSON.parse(raw) as {
+    scenarios?: Array<CursorFixtureScenario>;
+  };
+
+  return parsed.scenarios ?? [];
+}
 
 describe("buildCursorHeadlessArguments", () => {
   test("includes headless flags, model, and prompt separator", () => {
@@ -121,4 +142,16 @@ describe("normalizeCursorResult", () => {
       "Unable to parse Cursor output as JSON or JSONL structured payload",
     );
   });
+});
+
+describe("normalizeCursorResult fixtures", () => {
+  const scenarios = loadCursorStreamJsonFixtures();
+
+  for (const scenario of scenarios) {
+    test(`parses cursor fixture: ${scenario.name}`, () => {
+      const result = normalizeCursorResult(JSON.stringify(scenario.events));
+      expect(result.result).toContain(scenario.expectedContains);
+      expect(result.sessionId).not.toBe("");
+    });
+  }
 });
