@@ -53,14 +53,17 @@
         "E2E test verifies file on disk has expected subtask count and order after write operations"
       ],
       "description": "Current E2E tests only cover --dry-run behavior and --help output. There are no tests verifying that append and prepend actually write to the subtasks.json file correctly. Add tests that verify: (1) append adds subtasks at the end with correct IDs, (2) prepend adds subtasks at the beginning with correct IDs, (3) the file on disk reflects the expected order after each operation.",
-      "done": false,
+      "done": true,
       "filesToRead": [
         "tools/tests/e2e/ralph-subtasks-cli.test.ts",
         "tools/src/commands/ralph/index.ts"
       ],
       "id": "SUB-043",
       "taskRef": "WS-02-cli-expansion",
-      "title": "Add E2E tests for append and prepend actual write paths"
+      "title": "Add E2E tests for append and prepend actual write paths",
+      "completedAt": "2026-02-12T07:54:30Z",
+      "commitHash": "6274ceb104023799d39d86b531a482d41c49683b",
+      "sessionId": "3bbe47ae-6f18-47c4-b6ae-c62e65c1f279"
     },
     {
       "acceptanceCriteria": [

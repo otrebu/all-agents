@@ -240,6 +240,297 @@ describe("ralph subtasks queue mutation CLI", () => {
     ]);
   });
 
+  test("append writes new subtasks to queue tail with allocated IDs", async () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "test", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["existing"],
+              description: "existing",
+              done: false,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "TASK-001",
+              title: "existing",
+            },
+            {
+              acceptanceCriteria: ["existing"],
+              description: "existing",
+              done: false,
+              filesToRead: [],
+              id: "SUB-002",
+              taskRef: "TASK-001",
+              title: "existing 2",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const payloadPath = join(temporaryDirectory, "append-payload.json");
+    writeFileSync(
+      payloadPath,
+      JSON.stringify(
+        [
+          {
+            acceptanceCriteria: ["a"],
+            description: "new one",
+            filesToRead: ["tools/src/commands/ralph/index.ts"],
+            taskRef: "TASK-001",
+            title: "new one",
+          },
+          {
+            acceptanceCriteria: ["b"],
+            description: "new two",
+            filesToRead: ["tools/src/commands/ralph/config.ts"],
+            taskRef: "TASK-001",
+            title: "new two",
+          },
+        ],
+        null,
+        2,
+      ),
+    );
+
+    const { exitCode } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "subtasks",
+        "append",
+        "--subtasks",
+        subtasksPath,
+        "--file",
+        payloadPath,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const queueAfter = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      subtasks: Array<{ id: string }>;
+    };
+    expect(queueAfter.subtasks).toHaveLength(4);
+    expect(queueAfter.subtasks.map((subtask) => subtask.id)).toEqual([
+      "SUB-001",
+      "SUB-002",
+      "SUB-003",
+      "SUB-004",
+    ]);
+  });
+
+  test("prepend writes new subtasks to queue head with allocated IDs", async () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "test", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["existing"],
+              description: "existing",
+              done: false,
+              filesToRead: [],
+              id: "SUB-009",
+              taskRef: "TASK-001",
+              title: "existing",
+            },
+            {
+              acceptanceCriteria: ["existing"],
+              description: "existing",
+              done: false,
+              filesToRead: [],
+              id: "SUB-010",
+              taskRef: "TASK-001",
+              title: "existing 2",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const payloadPath = join(temporaryDirectory, "prepend-payload.json");
+    writeFileSync(
+      payloadPath,
+      JSON.stringify(
+        [
+          {
+            acceptanceCriteria: ["new first"],
+            description: "new first",
+            filesToRead: ["tools/src/commands/ralph/queue-ops.ts"],
+            taskRef: "TASK-001",
+            title: "new first",
+          },
+          {
+            acceptanceCriteria: ["new second"],
+            description: "new second",
+            filesToRead: ["tools/src/commands/ralph/index.ts"],
+            taskRef: "TASK-001",
+            title: "new second",
+          },
+        ],
+        null,
+        2,
+      ),
+    );
+
+    const { exitCode } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "subtasks",
+        "prepend",
+        "--subtasks",
+        subtasksPath,
+        "--file",
+        payloadPath,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const queueAfter = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      subtasks: Array<{ id: string }>;
+    };
+    expect(queueAfter.subtasks).toHaveLength(4);
+    expect(queueAfter.subtasks.map((subtask) => subtask.id)).toEqual([
+      "SUB-011",
+      "SUB-012",
+      "SUB-009",
+      "SUB-010",
+    ]);
+  });
+
+  test("file on disk reflects expected count and order after append then prepend", async () => {
+    const subtasksPath = join(temporaryDirectory, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "test", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["existing"],
+              description: "existing",
+              done: false,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "TASK-001",
+              title: "existing",
+            },
+            {
+              acceptanceCriteria: ["existing"],
+              description: "existing",
+              done: false,
+              filesToRead: [],
+              id: "SUB-002",
+              taskRef: "TASK-001",
+              title: "existing 2",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const appendPayloadPath = join(
+      temporaryDirectory,
+      "append-single-payload.json",
+    );
+    writeFileSync(
+      appendPayloadPath,
+      JSON.stringify(
+        {
+          acceptanceCriteria: ["append"],
+          description: "append one",
+          filesToRead: ["tools/src/commands/ralph/index.ts"],
+          taskRef: "TASK-001",
+          title: "append one",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const prependPayloadPath = join(
+      temporaryDirectory,
+      "prepend-single-payload.json",
+    );
+    writeFileSync(
+      prependPayloadPath,
+      JSON.stringify(
+        {
+          acceptanceCriteria: ["prepend"],
+          description: "prepend one",
+          filesToRead: ["tools/src/commands/ralph/queue-ops.ts"],
+          taskRef: "TASK-001",
+          title: "prepend one",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const appendResult = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "subtasks",
+        "append",
+        "--subtasks",
+        subtasksPath,
+        "--file",
+        appendPayloadPath,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+    expect(appendResult.exitCode).toBe(0);
+
+    const prependResult = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "subtasks",
+        "prepend",
+        "--subtasks",
+        subtasksPath,
+        "--file",
+        prependPayloadPath,
+      ],
+      { cwd: TOOLS_DIR },
+    );
+    expect(prependResult.exitCode).toBe(0);
+
+    const queueAfter = JSON.parse(readFileSync(subtasksPath, "utf8")) as {
+      subtasks: Array<{ id: string }>;
+    };
+    expect(queueAfter.subtasks).toHaveLength(4);
+    expect(queueAfter.subtasks.map((subtask) => subtask.id)).toEqual([
+      "SUB-004",
+      "SUB-001",
+      "SUB-002",
+      "SUB-003",
+    ]);
+  });
+
   test("diff shows readable queue change summary", async () => {
     const subtasksPath = join(temporaryDirectory, "subtasks.json");
     const baseQueue = {

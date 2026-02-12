@@ -20,6 +20,11 @@
 - **Changes:** Refactored `append` to build `create` operations with queue fingerprint metadata and run them through `applyQueueOperations()` at tail indices, reused the resulting queue for dry-run ID previews, and saved the mutated queue directly. Removed now-unused append-specific ID helper imports from `index.ts`.
 - **Files:** `tools/src/commands/ralph/index.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-043
+- **Problem:** `ralph-subtasks-cli` E2E coverage only validated `append`/`prepend` dry-run and help output, leaving real write-path behavior (ID allocation, queue ordering, and persisted on-disk state) unverified.
+- **Changes:** Added E2E coverage for non-dry-run queue mutations: `append` now has a write-path assertion for tail insertion with `SUB-NNN` allocation, `prepend` has a write-path assertion for head insertion with `SUB-NNN` allocation, and a combined append-then-prepend regression verifies final persisted subtask count and order on disk.
+- **Files:** `tools/tests/e2e/ralph-subtasks-cli.test.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-11
 
 ### SUB-031
