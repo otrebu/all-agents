@@ -3559,6 +3559,7 @@ function resolveCalibrateSubtasksPath(
 async function runCalibrateSubcommand(
   subcommand: CalibrateSubcommand,
   options: {
+    dryRun?: boolean;
     force?: boolean;
     model?: string;
     provider?: string;
@@ -3573,6 +3574,47 @@ async function runCalibrateSubcommand(
   );
 
   validateApprovalFlags(options.force, options.review);
+
+  if (options.dryRun === true) {
+    let command:
+      | "calibrate-all"
+      | "calibrate-intention"
+      | "calibrate-technical"
+      | null = null;
+    switch (subcommand) {
+      case "all": {
+        command = "calibrate-all";
+        break;
+      }
+      case "intention": {
+        command = "calibrate-intention";
+        break;
+      }
+      case "technical": {
+        command = "calibrate-technical";
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+
+    if (command !== null) {
+      const plan = computeExecutionPlan({
+        command,
+        flags: {
+          force: options.force === true,
+          review: options.review === true,
+        },
+        milestonePath: path.dirname(path.resolve(resolvedSubtasksPath)),
+        model: options.model,
+        provider: options.provider,
+        subtasksPath: resolvedSubtasksPath,
+      });
+      console.log(JSON.stringify(plan, null, 2));
+      process.exit(0);
+    }
+  }
 
   const didSucceed = await runCalibrate(subcommand, {
     contextRoot,
@@ -4091,6 +4133,7 @@ calibrateCommand.addCommand(
   new Command("intention")
     .description("Check for intention drift (code vs planning docs)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--dry-run", "Show execution plan without executing")
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
@@ -4105,6 +4148,7 @@ calibrateCommand.addCommand(
   new Command("technical")
     .description("Check for technical drift (code quality issues)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--dry-run", "Show execution plan without executing")
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
@@ -4133,6 +4177,7 @@ calibrateCommand.addCommand(
   new Command("all")
     .description("Run all calibration checks sequentially")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option("--dry-run", "Show execution plan without executing")
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")

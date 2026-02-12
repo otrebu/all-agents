@@ -30,6 +30,11 @@
 - **Changes:** Added `--dry-run` flag wiring to `ralph build` and all four `ralph plan` subcommands, added command-level early exits that compute and print `computeExecutionPlan()` JSON before normal execution, and added normalization helpers for cascade/from-level mapping. Updated Ralph shared types so `BuildOptions` and `CascadeOptions` include `dryRun?: boolean`. Expanded E2E coverage to assert JSON dry-run behavior for build, build headless dry-run, and plan roadmap/stories/tasks/subtasks dry-runs.
 - **Files:** `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-005
+- **Problem:** Calibrate CLI flows (`all`, `intention`, `technical`) still lacked `--dry-run` preview support, so users could not inspect calibration execution plans without triggering provider invocations.
+- **Changes:** Added `--dry-run` to `ralph calibrate all|intention|technical`, wired a shared early-exit path in `runCalibrateSubcommand()` that computes `computeExecutionPlan()` with calibration command mapping and prints JSON before invoking providers, and expanded Ralph E2E coverage for calibrate dry-run JSON output, calibrate help flag visibility, and subtasks cascade dry-run level output assertions.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-041
 - **Problem:** Queue create operations expose `atIndex` for positional insertion, but this subtask required explicit verification that create-at-index behavior (prepend and middle insert) is covered and that out-of-range index errors are actionable.
 - **Changes:** Confirmed `applyQueueOperations()` already honors `atIndex` via `splice(atIndex, 0, createdSubtask)` in `queue-ops.ts`, then added focused unit coverage for middle-index insertion (`atIndex: 1`) and upper-bound out-of-range create errors to complement existing prepend and negative-index checks.

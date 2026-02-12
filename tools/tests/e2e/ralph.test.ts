@@ -253,6 +253,105 @@ describe("ralph E2E", () => {
     expect(parsed.command).toBe("plan-subtasks");
   });
 
+  test("ralph plan subtasks --milestone --cascade build --dry-run includes all cascade levels", async () => {
+    const milestoneDirectory = join(
+      temporaryDirectory,
+      "dry-run-subtasks-cascade",
+    );
+    mkdirSync(milestoneDirectory, { recursive: true });
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "subtasks",
+        "--milestone",
+        milestoneDirectory,
+        "--cascade",
+        "build",
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as {
+      summary: { levels: Array<string>; phaseCount: number };
+    };
+    expect(parsed.summary.levels).toEqual(["build"]);
+    expect(parsed.summary.phaseCount).toBe(1);
+  });
+
+  test("ralph calibrate all --dry-run exits 0 with JSON plan", async () => {
+    const subtasksPath = join(
+      temporaryDirectory,
+      "dry-run-calibrate-all-subtasks.json",
+    );
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({ metadata: { scope: "milestone" }, subtasks: [] }),
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "calibrate",
+        "all",
+        "--provider",
+        "nope",
+        "--subtasks",
+        subtasksPath,
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as { command: string };
+    expect(parsed.command).toBe("calibrate-all");
+  });
+
+  test("ralph calibrate intention --dry-run exits 0 with JSON plan", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "calibrate", "intention", "--dry-run"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as { command: string };
+    expect(parsed.command).toBe("calibrate-intention");
+  });
+
+  test("ralph calibrate technical --dry-run exits 0 with JSON plan", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "calibrate", "technical", "--dry-run"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as { command: string };
+    expect(parsed.command).toBe("calibrate-technical");
+  });
+
+  test("ralph calibrate all --help includes --dry-run", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "calibrate", "all", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--dry-run");
+  });
+
   test("ralph plan roadmap rejects --force with --review before main logic", async () => {
     const { exitCode, stderr } = await execa(
       "bun",
