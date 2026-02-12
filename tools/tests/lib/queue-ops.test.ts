@@ -85,6 +85,37 @@ describe("applyQueueOperations", () => {
     expect(result.subtasks[0]?.title).toBe("Created");
   });
 
+  test("create at middle index inserts between existing subtasks", () => {
+    const input = makeSubtasksFile([
+      makeSubtask("SUB-001"),
+      makeSubtask("SUB-002"),
+      makeSubtask("SUB-003"),
+    ]);
+    const proposal = makeProposal(input, [
+      {
+        atIndex: 1,
+        subtask: {
+          acceptanceCriteria: ["inserted AC"],
+          description: "inserted description",
+          filesToRead: ["docs/planning/PROGRESS.md"],
+          taskRef: "TASK-002",
+          title: "Inserted",
+        },
+        type: "create",
+      },
+    ]);
+
+    const result = applyQueueOperations(input, proposal);
+
+    expect(result.subtasks.map((subtask) => subtask.id)).toEqual([
+      "SUB-001",
+      "SUB-004",
+      "SUB-002",
+      "SUB-003",
+    ]);
+    expect(result.subtasks[1]?.title).toBe("Inserted");
+  });
+
   test("prepend create operations preserve draft order at queue front", () => {
     const input = makeSubtasksFile([
       makeSubtask("SUB-001"),
@@ -281,6 +312,24 @@ describe("applyQueueOperations", () => {
     expect(() =>
       applyQueueOperations(missingTargetInput, invalidCreateProposal),
     ).toThrow(/Cannot create subtask: atIndex -1 is out of range/);
+
+    const outOfRangeCreateProposal = makeProposal(missingTargetInput, [
+      {
+        atIndex: 2,
+        subtask: {
+          acceptanceCriteria: ["invalid"],
+          description: "invalid",
+          filesToRead: ["x"],
+          taskRef: "TASK-001",
+          title: "Invalid",
+        },
+        type: "create",
+      },
+    ]);
+
+    expect(() =>
+      applyQueueOperations(missingTargetInput, outOfRangeCreateProposal),
+    ).toThrow(/Cannot create subtask: atIndex 2 is out of range/);
   });
 });
 
