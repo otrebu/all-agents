@@ -42,7 +42,7 @@ type ExecutionCommand =
 
 interface ExecutionPhase {
   approvalAction: ApprovalAction;
-  approvalGate: ApprovalGate | null;
+  approvalGate?: { action: ApprovalAction; gate: ApprovalGate };
   command: ExecutionCommand;
   estimatedTime: string;
   level: CascadeLevel;
@@ -423,7 +423,8 @@ function computeExecutionPlan(
 
     return {
       approvalAction,
-      approvalGate: gate,
+      approvalGate:
+        gate === null ? undefined : { action: approvalAction, gate },
       command: flowCommand,
       estimatedTime,
       level,
@@ -448,8 +449,9 @@ function computeExecutionPlan(
     phases,
     runtime,
     summary: {
-      approvalGateCount: phases.filter((phase) => phase.approvalGate !== null)
-        .length,
+      approvalGateCount: phases.filter(
+        (phase) => phase.approvalGate !== undefined,
+      ).length,
       levels: phases.map((phase) => phase.level),
       phaseCount: phases.length,
       totalEstimatedTime: `~${totalEstimatedMinutes} min`,

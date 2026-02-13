@@ -188,7 +188,10 @@ describe("computeExecutionPlan", () => {
     });
 
     expect(plan.phases[0]?.approvalAction).toBe("write");
-    expect(plan.phases[0]?.approvalGate).toBe("createTasks");
+    expect(plan.phases[0]?.approvalGate).toEqual({
+      action: "write",
+      gate: "createTasks",
+    });
   });
 
   test("approval gate resolves to prompt with --review in TTY context", () => {
@@ -198,7 +201,98 @@ describe("computeExecutionPlan", () => {
     });
 
     expect(plan.phases[0]?.approvalAction).toBe("prompt");
-    expect(plan.phases[0]?.approvalGate).toBe("createStories");
+    expect(plan.phases[0]?.approvalGate).toEqual({
+      action: "prompt",
+      gate: "createStories",
+    });
+  });
+
+  test("approval gate field is present only for levels that define gates", () => {
+    const plan = computeExecutionPlan({
+      cascadeTarget: "build",
+      command: "plan-roadmap",
+      flags: { force: true },
+    });
+
+    const byLevel = Object.fromEntries(
+      plan.phases.map((phase) => [phase.level, phase]),
+    );
+
+    expect(byLevel.stories?.approvalGate).toEqual({
+      action: "write",
+      gate: "createStories",
+    });
+    expect(byLevel.tasks?.approvalGate).toEqual({
+      action: "write",
+      gate: "createTasks",
+    });
+    expect(byLevel.subtasks?.approvalGate).toEqual({
+      action: "write",
+      gate: "createSubtasks",
+    });
+    expect(byLevel.build?.approvalGate).toBeUndefined();
+  });
+
+  test("--force resolves all cascade gate actions to write", () => {
+    const plan = computeExecutionPlan({
+      cascadeTarget: "build",
+      command: "plan-roadmap",
+      flags: { force: true },
+    });
+
+    const gateActions = plan.phases
+      .map((phase) => phase.approvalGate?.action)
+      .filter((action) => action !== undefined);
+
+    expect(gateActions.length).toBeGreaterThan(0);
+    expect(gateActions.every((action) => action === "write")).toBe(true);
+  });
+
+  test("--review resolves gates to prompt in TTY and exit-unstaged in headless", () => {
+    const ttyPlan = computeExecutionPlan({
+      cascadeTarget: "build",
+      command: "plan-roadmap",
+      flags: { isTTY: true, review: true },
+    });
+    const headlessPlan = computeExecutionPlan({
+      cascadeTarget: "build",
+      command: "plan-roadmap",
+      flags: { isTTY: false, review: true },
+    });
+
+    const ttyActions = ttyPlan.phases
+      .map((phase) => phase.approvalGate?.action)
+      .filter((action) => action !== undefined);
+    const headlessActions = headlessPlan.phases
+      .map((phase) => phase.approvalGate?.action)
+      .filter((action) => action !== undefined);
+
+    expect(ttyActions.length).toBeGreaterThan(0);
+    expect(ttyActions.every((action) => action === "prompt")).toBe(true);
+    expect(headlessActions.length).toBeGreaterThan(0);
+    expect(headlessActions.every((action) => action === "exit-unstaged")).toBe(
+      true,
+    );
+  });
+
+  test("suggest mode resolves to write in TTY and notify-wait in headless", () => {
+    const ttyPlan = computeExecutionPlan({
+      command: "plan-tasks",
+      flags: { isTTY: true },
+    });
+    const headlessPlan = computeExecutionPlan({
+      command: "plan-tasks",
+      flags: { isTTY: false },
+    });
+
+    expect(ttyPlan.phases[0]?.approvalGate).toEqual({
+      action: "write",
+      gate: "createTasks",
+    });
+    expect(headlessPlan.phases[0]?.approvalGate).toEqual({
+      action: "notify-wait",
+      gate: "createTasks",
+    });
   });
 
   test("LEVEL_FLOWS includes all 8 pipeline command entries", () => {
@@ -356,8 +450,8 @@ describe("computeExecutionPlan", () => {
         "calibrate",
       ]);
       expect(plan.phases.map((phase) => phase.approvalGate)).toEqual([
-        null,
-        null,
+        undefined,
+        undefined,
       ]);
       expect(plan.phases.map((phase) => phase.approvalAction)).toEqual([
         "write",

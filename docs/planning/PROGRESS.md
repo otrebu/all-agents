@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-031
+- **Problem:** `computeExecutionPlan()` still exposed gate/action as split fields and always emitted `approvalGate` as `null` for non-gated levels, so dry-run output could not represent per-level approval resolution as `{ gate, action }` only where gates actually exist.
+- **Changes:** Updated `ExecutionPhase.approvalGate` in `plan-preview.ts` to an optional object shape (`{ gate, action }`), kept existing `approvalAction` for backward compatibility, and changed plan computation to populate gate objects only for gated levels while omitting the field for ungated levels (`build`, `calibrate`). Expanded `plan-preview` unit coverage for gate-presence semantics, force/review/suggest approval resolution matrices (TTY vs headless), and updated existing assertions to the new gate object contract.
+- **Files:** `tools/src/commands/ralph/plan-preview.ts`, `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-029
 - **Problem:** `cascade.test.ts` only covered pure validation helpers, so there was no CLI-level E2E regression coverage proving cascade live header progression/checkmark rendering or process cleanup behavior.
 - **Changes:** Added the first CLI E2E cascade pipeline-header test in `cascade.test.ts` using `execa` + tracked-process cleanup (`afterEach`) with a minimal temp milestone fixture and mock `claude` binary; the test executes a fast headless cascade path and asserts multi-phase header transitions (`→`) plus completed-phase checkmark output. Also fixed cascade handoff wiring so planning commands now propagate `headless` into `runCascadeFrom`, preventing interactive prompts and enabling deterministic headless cascade runs in E2E.
