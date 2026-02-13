@@ -6,12 +6,17 @@ import type { BuildPracticalSummary } from "@tools/commands/ralph/summary";
 import type {
   CascadeResult,
   PipelinePhaseNode,
+  PipelineStep,
 } from "@tools/commands/ralph/types";
 
 import {
   formatDuration,
   formatTokenCount,
+  MARKER_ADDED,
+  MARKER_REPLACED,
+  MARKER_STRUCK,
   type PlanSubtasksSummaryData,
+  renderAnnotatedStep,
   renderBuildPracticalSummary,
   renderCascadeProgress,
   renderCascadeSummary,
@@ -351,7 +356,7 @@ describe("display utilities", () => {
     function createExpandedNode(overrides?: {
       gate?: null | string;
       reads?: Array<string>;
-      steps?: Array<string>;
+      steps?: Array<PipelineStep>;
       writes?: Array<string>;
     }): PipelinePhaseNode {
       return {
@@ -360,8 +365,8 @@ describe("display utilities", () => {
           gate: overrides?.gate ?? undefined,
           reads: overrides?.reads ?? ["milestones/M1/MILESTONE.md"],
           steps: overrides?.steps ?? [
-            "1. Read milestone description",
-            "2. Generate story files",
+            { text: "1. Read milestone description" },
+            { text: "2. Generate story files" },
           ],
           writes: overrides?.writes ?? ["stories/S-NNN-*.md"],
         },
@@ -427,7 +432,7 @@ describe("display utilities", () => {
         expandedDetail: {
           gate: options.gate,
           reads: options.reads ?? [],
-          steps: options.steps ?? [],
+          steps: (options.steps ?? []).map((text) => ({ text })),
           writes: options.writes ?? [],
         },
         name: options.name,
@@ -709,6 +714,67 @@ describe("display utilities", () => {
       const result = renderResponseHeader("opencode");
 
       expect(result).toContain("OpenCode Response");
+    });
+  });
+
+  describe("renderAnnotatedStep", () => {
+    test("renders added annotation with '+' marker and green styling", () => {
+      const output = renderAnnotatedStep({
+        annotation: { effect: "added", flag: "validate-first" },
+        text: "0. Pre-build validation",
+      });
+
+      expect(output).toContain(chalk.green(MARKER_ADDED));
+      expect(output).toContain(chalk.green("0. Pre-build validation"));
+      expect(output).toContain("[validate-first]");
+    });
+
+    test("renders replaced annotation with '~' marker and yellow styling", () => {
+      const output = renderAnnotatedStep({
+        annotation: { effect: "replaced", flag: "headless" },
+        text: "2. Single-pass autonomous generation",
+      });
+
+      expect(output).toContain(chalk.yellow(MARKER_REPLACED));
+      expect(output).toContain(
+        chalk.yellow("2. Single-pass autonomous generation"),
+      );
+      expect(output).toContain("[headless]");
+    });
+
+    test("renders struck annotation with '×' marker and dim strikethrough text", () => {
+      const output = renderAnnotatedStep({
+        annotation: { effect: "struck", flag: "force" },
+        text: "3. Prompt for approval",
+      });
+
+      expect(output).toContain(chalk.dim(MARKER_STRUCK));
+      expect(output).toContain(
+        chalk.dim.strikethrough("3. Prompt for approval"),
+      );
+      expect(output).toContain("[force]");
+    });
+
+    test("returns plain step text when annotation is absent", () => {
+      const output = renderAnnotatedStep({
+        text: "4. Write each as separate file",
+      });
+
+      expect(output).toBe("4. Write each as separate file");
+      expect(output).not.toContain(MARKER_ADDED);
+      expect(output).not.toContain(MARKER_REPLACED);
+      expect(output).not.toContain(MARKER_STRUCK);
+      expect(output).not.toContain("[");
+    });
+
+    test("includes a right-padded flag tag for annotated steps", () => {
+      const output = renderAnnotatedStep({
+        annotation: { effect: "added", flag: "force" },
+        text: "6. Auto-approve all changes",
+      });
+
+      expect(output).toContain("[force]");
+      expect(output).toMatch(/\s\[force\]$/);
     });
   });
 

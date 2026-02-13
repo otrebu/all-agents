@@ -170,7 +170,7 @@ interface ExpandedPhaseDetail {
   /** Inputs consumed by this phase */
   reads: Array<string>;
   /** Process steps performed by this phase */
-  steps: Array<string>;
+  steps: Array<PipelineStep>;
   /** Outputs produced by this phase */
   writes: Array<string>;
 }
@@ -306,6 +306,16 @@ interface PipelinePhaseNode {
 }
 
 /**
+ * Renderable pipeline step entry with optional flag annotation metadata.
+ */
+interface PipelineStep {
+  /** Optional annotation describing a flag-induced mutation */
+  annotation?: StepAnnotation;
+  /** Step text shown in the phase STEPS section */
+  text: string;
+}
+
+/**
  * Extended configuration for post-iteration hooks
  */
 interface PostIterationHookConfig extends HookConfig {
@@ -374,6 +384,10 @@ interface QueueProposal {
   timestamp: string;
 }
 
+// =============================================================================
+// Subtask Types (matches subtasks.schema.json)
+// =============================================================================
+
 /**
  * Queue proposal event emitted from validation or calibration.
  */
@@ -387,15 +401,15 @@ interface QueueProposalLogEntry {
   type: "queue-proposal";
 }
 
-// =============================================================================
-// Subtask Types (matches subtasks.schema.json)
-// =============================================================================
-
 /** Remove a pending subtask by ID. */
 interface QueueRemoveOperation {
   id: string;
   type: "remove";
 }
+
+// =============================================================================
+// Queue Operation Types
+// =============================================================================
 
 /** Move an existing subtask to an exact queue index. */
 interface QueueReorderOperation {
@@ -403,10 +417,6 @@ interface QueueReorderOperation {
   toIndex: number;
   type: "reorder";
 }
-
-// =============================================================================
-// Queue Operation Types
-// =============================================================================
 
 /** Replace one subtask with multiple deterministic children. */
 interface QueueSplitOperation {
@@ -705,6 +715,7 @@ export {
   normalizeIterationTiming,
   normalizeStatus,
   type PipelinePhaseNode,
+  type PipelineStep,
   type PostIterationHookConfig,
   type QueueApplyLogEntry,
   type QueueFingerprint,

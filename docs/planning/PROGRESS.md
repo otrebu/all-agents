@@ -30,6 +30,11 @@
 - **Changes:** Implemented `renderPipelineTree()` in `display.ts` to iterate `PipelinePhaseNode[]`, delegate node body rendering to `renderExpandedPhase()` or `renderCollapsedPhase()`, apply connector rules (`├─` for non-last, `└─` for last), and insert `│` continuation lines between sibling phases. Added unit tests in `display.test.ts` for single expanded-only, 2-phase mixed, and 4-phase mixed trees aligned to Milestone Example 1 structure.
 - **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-010
+- **Problem:** Pipeline preview step rendering had no reusable annotation shape or renderer for flag-driven step deltas, so `added`/`replaced`/`struck` effects could not be displayed with marker symbols and flag tags.
+- **Changes:** Added `PipelineStep` in `types.ts`, switched `ExpandedPhaseDetail.steps` to `PipelineStep[]`, and implemented `renderAnnotatedStep()` in `display.ts` with exported marker constants (`MARKER_ADDED`, `MARKER_REPLACED`, `MARKER_STRUCK`), effect styling (green, yellow, dim+strikethrough), and basic right-padded `[flag]` tags. Expanded `display.test.ts` with focused tests for added/replaced/struck rendering, unannotated fallback, and flag-tag placement while keeping existing display suites green.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001

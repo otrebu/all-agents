@@ -26,6 +26,8 @@ import type {
   CascadeResult,
   IterationStatus,
   PipelinePhaseNode,
+  PipelineStep,
+  StepAnnotation,
   TokenUsage,
 } from "./types";
 
@@ -33,6 +35,17 @@ import type {
 const BOX_WIDTH = 68;
 // 64 = BOX_WIDTH minus borders and padding
 const BOX_INNER_WIDTH = BOX_WIDTH - 4;
+
+const MARKER_ADDED = "+";
+const MARKER_REPLACED = "~";
+const MARKER_STRUCK = "×";
+
+const STEP_FLAG_ALIGN_PADDING = 6;
+
+const annotationMarkerColors: Record<
+  StepAnnotation["effect"],
+  (text: string) => string
+> = { added: chalk.green, replaced: chalk.yellow, struck: chalk.dim };
 
 // Configure marked with terminal renderer
 const markedTerminalFactory = markedTerminal as unknown as (options: {
@@ -622,6 +635,43 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
 }
 
 /**
+ * Render a pipeline step with optional annotation marker and right-aligned flag tag.
+ */
+function renderAnnotatedStep(step: PipelineStep): string {
+  if (step.annotation === undefined) {
+    return step.text;
+  }
+
+  const markerByEffect: Record<StepAnnotation["effect"], string> = {
+    added: MARKER_ADDED,
+    replaced: MARKER_REPLACED,
+    struck: MARKER_STRUCK,
+  };
+
+  const markerText = markerByEffect[step.annotation.effect];
+  const marker = annotationMarkerColors[step.annotation.effect](markerText);
+  const styledStepText =
+    step.annotation.effect === "struck"
+      ? chalk.dim.strikethrough(step.text)
+      : annotationMarkerColors[step.annotation.effect](step.text);
+  const base = `${marker}  ${styledStepText}`;
+  const flagTag = chalk.dim(`[${step.annotation.flag}]`);
+
+  const baseWidth = stringWidth(base);
+  const flagWidth = stringWidth(flagTag);
+  const spacing = Math.max(
+    2,
+    BOX_WIDTH - baseWidth - flagWidth - STEP_FLAG_ALIGN_PADDING,
+  );
+
+  return `${base}${" ".repeat(spacing)}${flagTag}`;
+}
+
+// =============================================================================
+// Status Box Rendering
+// =============================================================================
+
+/**
  * Render practical build summary box (at end of build run or on interrupt)
  *
  * Shows: stats (completed/failed/cost/duration/files), git commit range with diff command,
@@ -729,7 +779,7 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
 }
 
 // =============================================================================
-// Status Box Rendering
+// Iteration Box Types
 // =============================================================================
 
 /**
@@ -777,10 +827,6 @@ function renderBuildSummary(data: BuildSummaryData): string {
     width: BOX_WIDTH,
   });
 }
-
-// =============================================================================
-// Iteration Box Types
-// =============================================================================
 
 /**
  * Render cascade progress line showing level progression
@@ -944,7 +990,10 @@ function renderExpandedPhase(node: PipelinePhaseNode): Array<string> {
   const lines = [
     `▾ ${chalk.cyan(node.name)}  ${chalk.dim(node.summary.description)}  ${chalk.dim(node.summary.timeEstimate)}`,
     ...renderSection("READS", node.expandedDetail.reads),
-    ...renderSection("STEPS", node.expandedDetail.steps),
+    ...renderSection(
+      "STEPS",
+      node.expandedDetail.steps.map((step) => step.text),
+    ),
     ...renderSection("WRITES", node.expandedDetail.writes),
   ];
 
@@ -1505,8 +1554,12 @@ export {
   getColoredStatus,
   type IterationDisplayData,
   makeClickablePath,
+  MARKER_ADDED,
+  MARKER_REPLACED,
+  MARKER_STRUCK,
   type PhaseCardData,
   type PlanSubtasksSummaryData,
+  renderAnnotatedStep,
   renderBuildPracticalSummary,
   renderBuildSummary,
   renderCascadeProgress,
