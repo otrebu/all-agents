@@ -26,12 +26,7 @@ interface ApprovalGatePreview {
   /** Optional reason suffix shown in parentheses */
   reason?: string;
   /** Resolved action for current mode/flags */
-  resolvedAction:
-    | "auto-proceed"
-    | "exit-unstaged"
-    | "notify-wait"
-    | "prompt"
-    | "skip";
+  resolvedAction: "exit-unstaged" | "notify-wait" | "prompt" | "write";
 }
 
 // =============================================================================

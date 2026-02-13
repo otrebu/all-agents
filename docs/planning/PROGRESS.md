@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-032
+- **Problem:** Dry-run pipeline preview did not render approval gates with the milestone's required status vocabulary (`SKIP`, `PROMPT`, `NOTIFY-WAIT`, `EXIT-UNSTAGED`) and flag annotations, so approval behavior was still hard to read at a glance.
+- **Changes:** Reworked `renderApprovalGatePreview()` to accept `(gateName, resolvedAction, options)` and render `GATE <name> -> <STATUS>` with the requested styles: `SKIP` (dim green + `[force]`), `PROMPT` (yellow + `[review]`), `NOTIFY-WAIT` (cyan), and `⚠ EXIT-UNSTAGED` (yellow warning). Moved gate-line injection from `renderExpandedPhase()` into `renderPipelineTree()` so each expanded phase appends gate status at the end of its detail block. Updated `ApprovalGatePreview.resolvedAction` to runtime actions (`write|prompt|notify-wait|exit-unstaged`), refreshed display unit tests for all new behaviors, and added an E2E assertion that `--dry-run --force` output includes approval gate entries for gated cascade levels.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/display.test.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-031
 - **Problem:** `computeExecutionPlan()` still exposed gate/action as split fields and always emitted `approvalGate` as `null` for non-gated levels, so dry-run output could not represent per-level approval resolution as `{ gate, action }` only where gates actually exist.
 - **Changes:** Updated `ExecutionPhase.approvalGate` in `plan-preview.ts` to an optional object shape (`{ gate, action }`), kept existing `approvalAction` for backward compatibility, and changed plan computation to populate gate objects only for gated levels while omitting the field for ungated levels (`build`, `calibrate`). Expanded `plan-preview` unit coverage for gate-presence semantics, force/review/suggest approval resolution matrices (TTY vs headless), and updated existing assertions to the new gate object contract.

@@ -47,6 +47,11 @@ const MARKER_STRUCK = "×";
 const STEP_INDENT_WIDTH = 3;
 const STEP_MARKER_WIDTH = 3;
 
+interface ApprovalGateRenderOptions {
+  force?: boolean;
+  review?: boolean;
+}
+
 interface StepAnnotationFormatOptions {
   flag: string;
   indentWidth?: number;
@@ -741,45 +746,40 @@ function renderAnnotatedStep(step: PipelineStep): string {
 /**
  * Render a one-line approval gate preview.
  */
-function renderApprovalGatePreview(gate: ApprovalGatePreview): string {
+function renderApprovalGatePreview(
+  gateName: string,
+  resolvedAction: ApprovalGatePreview["resolvedAction"],
+  options: ApprovalGateRenderOptions = {},
+): string {
   const actionLabel = (() => {
-    switch (gate.resolvedAction) {
-      case "auto-proceed": {
-        const autoText =
-          gate.reason === undefined ? "AUTO" : `AUTO (${gate.reason})`;
-        return chalk.green(autoText);
-      }
+    switch (resolvedAction) {
       case "exit-unstaged": {
-        const exitText =
-          gate.reason === undefined
-            ? "EXIT-UNSTAGED"
-            : `EXIT-UNSTAGED (${gate.reason})`;
-        return chalk.red(exitText);
+        return chalk.yellow("⚠ EXIT-UNSTAGED");
       }
       case "notify-wait": {
-        const waitText =
-          gate.reason === undefined
-            ? "NOTIFY-WAIT"
-            : `NOTIFY-WAIT (${gate.reason})`;
-        return chalk.yellow(waitText);
+        return chalk.cyan("NOTIFY-WAIT");
       }
       case "prompt": {
-        const promptText =
-          gate.reason === undefined ? "PROMPT" : `PROMPT (${gate.reason})`;
-        return chalk.yellow.bold(promptText);
+        return chalk.yellow("PROMPT");
       }
-      case "skip": {
-        const skipText =
-          gate.reason === undefined ? "SKIP" : `SKIP (${gate.reason})`;
-        return chalk.yellow(skipText);
+      case "write": {
+        return chalk.green.dim("SKIP");
       }
       default: {
-        return gate.resolvedAction;
+        return resolvedAction;
       }
     }
   })();
 
-  return `${gate.gateName} → ${actionLabel}`;
+  let marker = "";
+  if (resolvedAction === "write" && options.force === true) {
+    marker = ` ${chalk.dim("[force]")}`;
+  }
+  if (resolvedAction === "prompt" && options.review === true) {
+    marker = ` ${chalk.dim("[review]")}`;
+  }
+
+  return `GATE ${gateName} -> ${actionLabel}${marker}`;
 }
 
 // =============================================================================
@@ -1145,12 +1145,6 @@ function renderExpandedPhase(node: PipelinePhaseNode): Array<string> {
     ...renderSection("WRITES", node.expandedDetail.writes),
   ];
 
-  if (node.expandedDetail.gate !== undefined) {
-    lines.push(
-      `${sectionPrefix}${chalk.dim("GATE".padEnd(sectionLabelWidth))} ${renderApprovalGatePreview(node.expandedDetail.gate)}`,
-    );
-  }
-
   return lines;
 }
 
@@ -1470,7 +1464,10 @@ function renderPipelineHeader(data: PipelineHeaderData): string {
 /**
  * Render the full pipeline tree for mixed expanded/collapsed phases.
  */
-function renderPipelineTree(nodes: Array<PipelinePhaseNode>): Array<string> {
+function renderPipelineTree(
+  nodes: Array<PipelinePhaseNode>,
+  gateOptions: ApprovalGateRenderOptions = {},
+): Array<string> {
   const lines: Array<string> = [];
 
   for (const [index, node] of nodes.entries()) {
@@ -1488,6 +1485,16 @@ function renderPipelineTree(nodes: Array<PipelinePhaseNode>): Array<string> {
       const detailPrefix = isLast ? "   " : "│  ";
       for (const detailLine of detailLines) {
         lines.push(`${detailPrefix}${detailLine}`);
+      }
+
+      if (node.expandedDetail.gate !== undefined) {
+        lines.push(
+          `${detailPrefix}│  ${renderApprovalGatePreview(
+            node.expandedDetail.gate.gateName,
+            node.expandedDetail.gate.resolvedAction,
+            gateOptions,
+          )}`,
+        );
       }
     } else {
       lines.push(renderCollapsedPhase(node, isLast));

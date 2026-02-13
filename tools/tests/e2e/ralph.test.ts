@@ -243,6 +243,38 @@ describe("ralph E2E", () => {
     expect(parsed.command).toBe("plan-stories");
   });
 
+  test("ralph plan stories --cascade build --dry-run --force includes gate status lines for gated levels", async () => {
+    const milestoneDirectory = join(
+      temporaryDirectory,
+      "dry-run-stories-cascade-gates",
+    );
+    mkdirSync(milestoneDirectory, { recursive: true });
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        milestoneDirectory,
+        "--cascade",
+        "build",
+        "--force",
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('"approvalGate"');
+    expect(stdout).toContain('"gate": "createTasks"');
+    expect(stdout).toContain('"gate": "createSubtasks"');
+    expect(stdout).toContain('"action": "write"');
+  });
+
   test("ralph plan tasks --milestone --dry-run exits 0 with parseable JSON", async () => {
     const milestoneDirectory = join(temporaryDirectory, "dry-run-tasks");
     mkdirSync(milestoneDirectory, { recursive: true });

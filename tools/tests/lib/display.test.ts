@@ -386,54 +386,43 @@ describe("display utilities", () => {
   });
 
   describe("renderApprovalGatePreview", () => {
-    function createGate(
-      resolvedAction: ApprovalGatePreview["resolvedAction"],
-      reason?: string,
-    ): ApprovalGatePreview {
-      return {
-        configValue: "suggest",
-        gateName: "createStories",
-        reason,
-        resolvedAction,
-      };
-    }
+    test("renders SKIP with [force] marker in dim green", () => {
+      const output = renderApprovalGatePreview("createTasks", "write", {
+        force: true,
+      });
 
-    test("renders skip action with reason in yellow", () => {
-      const output = renderApprovalGatePreview(createGate("skip", "--force"));
-
-      expect(output).toContain("createStories");
+      expect(output).toContain("GATE createTasks ->");
       expect(output).toContain("SKIP");
-      expect(output).toContain("(--force)");
-      expect(output).toContain(chalk.yellow("SKIP (--force)"));
+      expect(output).toContain("[force]");
+      expect(output).toContain(chalk.green.dim("SKIP"));
     });
 
-    test("renders prompt action in yellow bold", () => {
-      const output = renderApprovalGatePreview(createGate("prompt"));
+    test("renders PROMPT with [review] marker in yellow", () => {
+      const output = renderApprovalGatePreview("createStories", "prompt", {
+        review: true,
+      });
 
       expect(output).toContain("PROMPT");
-      expect(output).toContain(chalk.yellow.bold("PROMPT"));
+      expect(output).toContain("[review]");
+      expect(output).toContain(chalk.yellow("PROMPT"));
     });
 
-    test("renders auto-proceed action as AUTO in green", () => {
-      const output = renderApprovalGatePreview(createGate("auto-proceed"));
-
-      expect(output).toContain("AUTO");
-      expect(output).toContain(chalk.green("AUTO"));
-    });
-
-    test("renders notify-wait action in yellow", () => {
-      const output = renderApprovalGatePreview(createGate("notify-wait", "5m"));
+    test("renders notify-wait action in cyan", () => {
+      const output = renderApprovalGatePreview("createSubtasks", "notify-wait");
 
       expect(output).toContain("NOTIFY-WAIT");
-      expect(output).toContain("(5m)");
-      expect(output).toContain(chalk.yellow("NOTIFY-WAIT (5m)"));
+      expect(output).toContain(chalk.cyan("NOTIFY-WAIT"));
     });
 
-    test("renders exit-unstaged action in red", () => {
-      const output = renderApprovalGatePreview(createGate("exit-unstaged"));
+    test("renders exit-unstaged action with warning symbol in yellow", () => {
+      const output = renderApprovalGatePreview(
+        "createRoadmap",
+        "exit-unstaged",
+      );
 
       expect(output).toContain("EXIT-UNSTAGED");
-      expect(output).toContain(chalk.red("EXIT-UNSTAGED"));
+      expect(output).toContain("⚠");
+      expect(output).toContain(chalk.yellow("⚠ EXIT-UNSTAGED"));
     });
   });
 
@@ -475,9 +464,9 @@ describe("display utilities", () => {
       };
     }
 
-    test("renders expanded layout with READS, STEPS, WRITES, and GATE sections", () => {
+    test("renders expanded layout with READS, STEPS, and WRITES sections", () => {
       const output = renderExpandedPhase(
-        createExpandedNode({ gate: createGate("skip", "--force") }),
+        createExpandedNode({ gate: createGate("write") }),
       );
 
       expect(output[0]).toContain("▾");
@@ -486,8 +475,7 @@ describe("display utilities", () => {
       expect(output[2]).toContain("│  STEPS");
       expect(output[3]).toContain("│         ");
       expect(output[4]).toContain("│  WRITES");
-      expect(output[5]).toContain("│  GATE");
-      expect(output[5]).toContain("createStories → SKIP (--force)");
+      expect(output.some((line) => line.includes("GATE"))).toBe(false);
     });
 
     test("omits GATE section when gate is undefined", () => {
@@ -499,7 +487,7 @@ describe("display utilities", () => {
     test("applies chalk styles and handles empty reads/writes arrays", () => {
       const output = renderExpandedPhase(
         createExpandedNode({
-          gate: createGate("auto-proceed"),
+          gate: createGate("write"),
           reads: [],
           writes: [],
         }),
@@ -509,9 +497,7 @@ describe("display utilities", () => {
       expect(output[1]).toContain(chalk.dim("READS"));
       expect(output[2]).toContain(chalk.dim("STEPS"));
       expect(output[4]).toContain(chalk.dim("WRITES"));
-      expect(output[5]).toContain(chalk.dim("GATE"));
-      expect(output[5]).toContain("createStories");
-      expect(output[5]).toContain(chalk.green("AUTO"));
+      expect(output.some((line) => line.includes("GATE"))).toBe(false);
     });
 
     test("renders mixed annotated and unannotated steps in Example 1 style", () => {
@@ -600,13 +586,9 @@ describe("display utilities", () => {
     function createGate(
       resolvedAction: ApprovalGatePreview["resolvedAction"],
       reason?: string,
+      gateName = "createStories",
     ): ApprovalGatePreview {
-      return {
-        configValue: "suggest",
-        gateName: "createStories",
-        reason,
-        resolvedAction,
-      };
+      return { configValue: "suggest", gateName, reason, resolvedAction };
     }
 
     function createPhaseNode(options: {
@@ -690,7 +672,7 @@ describe("display utilities", () => {
         createPhaseNode({
           description: "Generate story files from MILESTONE.md",
           expanded: true,
-          gate: createGate("skip", "--force"),
+          gate: createGate("write"),
           name: "stories",
           reads: ["milestones/M1/MILESTONE.md", "ROADMAP.md"],
           steps: ["1. Read milestone description", "2. Generate story files"],
@@ -724,12 +706,66 @@ describe("display utilities", () => {
       expect(output[0]).toContain("▾ stories");
       expect(output.some((line) => line.includes("│  │  READS"))).toBe(true);
       expect(
-        output.some((line) => line.includes("createStories → SKIP (--force)")),
+        output.some((line) => line.includes("GATE createStories -> SKIP")),
       ).toBe(true);
       expect(output.some((line) => line.includes("├─ tasks"))).toBe(true);
       expect(output.some((line) => line.includes("├─ subtasks"))).toBe(true);
       expect(output.at(-1)).toContain("└─ build");
       expect(output.at(-1)).toContain("auto");
+    });
+
+    test("renders [force] and [review] markers on gate lines", () => {
+      const output = renderPipelineTree(
+        [
+          createPhaseNode({
+            description: "Generate story files from MILESTONE.md",
+            expanded: true,
+            gate: createGate("write"),
+            name: "stories",
+            reads: ["milestones/M1/MILESTONE.md"],
+            steps: ["1. Generate stories"],
+            timeEstimate: "~3 min",
+            writes: ["stories/S-NNN-*.md"],
+          }),
+          createPhaseNode({
+            description: "Break stories into task files",
+            expanded: true,
+            gate: createGate("prompt", undefined, "createTasks"),
+            name: "tasks",
+            reads: ["stories/S-NNN-*.md"],
+            steps: ["1. Generate tasks"],
+            timeEstimate: "~5 min",
+            writes: ["tasks/T-NNN-*.md"],
+          }),
+        ],
+        { force: true, review: true },
+      );
+
+      expect(
+        output.some((line) => line.includes("GATE createStories -> SKIP")),
+      ).toBe(true);
+      expect(output.some((line) => line.includes("[force]"))).toBe(true);
+      expect(
+        output.some((line) => line.includes("GATE createStories -> PROMPT")),
+      ).toBe(false);
+      expect(
+        output.some((line) =>
+          line.includes("GATE createStories -> NOTIFY-WAIT"),
+        ),
+      ).toBe(false);
+      expect(
+        output.some((line) =>
+          line.includes("GATE createStories -> ⚠ EXIT-UNSTAGED"),
+        ),
+      ).toBe(false);
+      expect(
+        output.some((line) => line.includes("GATE createStories ->")),
+      ).toBe(true);
+      expect(
+        output.some((line) =>
+          line.includes("GATE createTasks -> PROMPT [review]"),
+        ),
+      ).toBe(true);
     });
   });
 
