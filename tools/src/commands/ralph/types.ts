@@ -638,6 +638,8 @@ interface Subtask {
   filesToRead: Array<string>;
   /** Unique subtask identifier (e.g., 'SUB-001') */
   id: string;
+  /** Provider used to complete this subtask */
+  provider?: ProviderType;
   /** Provider session ID that completed this subtask */
   sessionId?: string;
   /** Absolute canonical path to session JSONL when known at completion time */

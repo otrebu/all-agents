@@ -62,7 +62,10 @@ import {
   resolveProvider,
   validateProviderInvocationPreflight,
 } from "./providers/registry";
-import { discoverRecentSessionForProvider } from "./providers/session-adapter";
+import {
+  discoverRecentSessionForProvider,
+  resolveSessionForProvider,
+} from "./providers/session-adapter";
 import { applyAndSaveProposal } from "./queue-ops";
 import { getSessionJsonlPath } from "./session";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
@@ -729,12 +732,19 @@ function logSubtasksSizeGuidance(options: {
 function markSubtaskComplete(options: {
   commitHash: string;
   contextRoot: string;
+  provider?: ProviderType;
   sessionId: string;
   subtaskId: string;
   subtasksPath: string;
 }): void {
-  const { commitHash, contextRoot, sessionId, subtaskId, subtasksPath } =
-    options;
+  const {
+    commitHash,
+    contextRoot,
+    provider,
+    sessionId,
+    subtaskId,
+    subtasksPath,
+  } = options;
   const subtasksFile = loadSubtasksFile(subtasksPath);
   const target = subtasksFile.subtasks.find((s) => s.id === subtaskId);
   if (target === undefined || target.done) return;
@@ -743,9 +753,15 @@ function markSubtaskComplete(options: {
   target.completedAt = new Date().toISOString();
   target.commitHash = commitHash;
   target.sessionId = sessionId;
+  target.provider = provider;
   const repoRoot = findProjectRoot() ?? contextRoot;
   target.sessionRepoRoot = repoRoot;
-  const logPath = getSessionJsonlPath(sessionId, repoRoot);
+  const resolvedSession =
+    provider === undefined
+      ? null
+      : resolveSessionForProvider(provider, sessionId, repoRoot);
+  const logPath =
+    resolvedSession?.path ?? getSessionJsonlPath(sessionId, repoRoot);
   if (logPath === null) {
     delete target.sessionLogPath;
   } else {
@@ -839,6 +855,7 @@ async function processHeadlessIteration(
     markSubtaskComplete({
       commitHash: commitAfter,
       contextRoot,
+      provider,
       sessionId: result.sessionId,
       subtaskId: currentSubtask.id,
       subtasksPath,
@@ -1010,6 +1027,7 @@ async function processSupervisedIteration(
     markSubtaskComplete({
       commitHash: commitAfter,
       contextRoot,
+      provider,
       sessionId,
       subtaskId: currentSubtask.id,
       subtasksPath,

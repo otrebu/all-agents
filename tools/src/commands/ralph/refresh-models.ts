@@ -14,7 +14,10 @@ import path from "node:path";
 import type { ModelInfo } from "./providers/models-static";
 import type { ProviderType } from "./providers/types";
 
+import { discoverCodexModels } from "./providers/codex";
+import { DISCOVERED_MODELS } from "./providers/models-dynamic";
 import { STATIC_MODELS } from "./providers/models-static";
+import { REGISTRY, validateProvider } from "./providers/registry";
 
 // =============================================================================
 // Types
@@ -31,7 +34,12 @@ interface RefreshOptions {
 
 /** Providers that support model listing */
 const CURSOR_BINARY_CANDIDATES = ["agent", "cursor-agent"] as const;
-const DISCOVERABLE_PROVIDERS: Array<ProviderType> = ["cursor", "opencode"];
+const DISCOVERABLE_PROVIDERS: Array<ProviderType> = Object.entries(REGISTRY)
+  .filter(
+    ([, providerCapabilities]) => providerCapabilities.supportsModelDiscovery,
+  )
+  .map(([provider]) => provider as ProviderType)
+  .sort();
 
 /**
  * Derive a stable registry model ID from discovered model record data.
@@ -117,6 +125,8 @@ function discoverFromProviders(
 
     if (p === "opencode") {
       results.push(...discoverOpencodeModels());
+    } else if (p === "codex") {
+      results.push(...discoverCodexModels());
     }
     // Future providers can be added here
   }
@@ -181,7 +191,10 @@ function extractStringField(
  */
 function filterDuplicates(discovered: Array<ModelInfo>): Array<ModelInfo> {
   const staticIds = new Set(STATIC_MODELS.map((m) => m.id));
-  return discovered.filter((m) => !staticIds.has(m.id));
+  const dynamicIds = new Set(DISCOVERED_MODELS.map((m) => m.id));
+  return discovered.filter(
+    (m) => !staticIds.has(m.id) && !dynamicIds.has(m.id),
+  );
 }
 
 // =============================================================================
@@ -501,20 +514,23 @@ function runRefreshModels(options: RefreshOptions): void {
   const { isDryRun = false, provider } = options;
 
   // Validate provider flag first
-  if (
-    provider !== undefined &&
-    !DISCOVERABLE_PROVIDERS.includes(provider as ProviderType)
-  ) {
-    console.log(`Provider '${provider}' does not support model discovery.`);
-    console.log(`Supported providers: ${DISCOVERABLE_PROVIDERS.join(", ")}`);
-    return;
-  }
-
-  // Determine which providers to query
   const providersToRefresh: Array<ProviderType> =
     provider === undefined
       ? [...DISCOVERABLE_PROVIDERS]
-      : [provider as ProviderType];
+      : [validateProvider(provider)];
+
+  for (const providerToRefresh of providersToRefresh) {
+    if (!REGISTRY[providerToRefresh].supportsModelDiscovery) {
+      throw new Error(
+        `Provider '${providerToRefresh}' does not support model discovery.`,
+      );
+    }
+  }
+
+  if (providersToRefresh.length === 0) {
+    console.log("No providers available for model discovery.");
+    return;
+  }
 
   // Discover models from each provider
   const allDiscovered = discoverFromProviders(providersToRefresh);

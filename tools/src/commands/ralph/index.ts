@@ -65,6 +65,7 @@ import {
   resolveProvider,
   validateProvider,
 } from "./providers/registry";
+import { resolveSessionForProvider } from "./providers/session-adapter";
 import applyQueueOperations, { applyAndSaveProposal } from "./queue-ops";
 import { runRefreshModels } from "./refresh-models";
 import { getSessionJsonlPath } from "./session";
@@ -4268,6 +4269,7 @@ subtasksCommand.addCommand(
     .requiredOption("--id <subtaskId>", "Subtask ID (e.g. SUB-001)")
     .requiredOption("--commit <hash>", "Commit hash for this completion")
     .requiredOption("--session <id>", "Session ID for this completion")
+    .option("--provider <name>", "Provider that owns the session")
     .option("--at <iso>", "Completion timestamp (ISO 8601)")
     .action((options) => {
       const subtasksPath = requireMilestoneSubtasksPath(options.milestone);
@@ -4319,12 +4321,23 @@ subtasksCommand.addCommand(
       subtask.commitHash = options.commit;
       subtask.completedAt = completedAt;
       subtask.sessionId = options.session;
+      const completionProvider: ProviderType | undefined =
+        options.provider === undefined || options.provider === ""
+          ? undefined
+          : validateProviderOrExit(options.provider);
+      if (completionProvider !== undefined) {
+        subtask.provider = completionProvider;
+      }
       const sessionRepoRoot = findProjectRoot() ?? process.cwd();
       subtask.sessionRepoRoot = sessionRepoRoot;
-      const sessionLogPath = getSessionJsonlPath(
-        options.session,
-        sessionRepoRoot,
-      );
+      const sessionLogPath =
+        completionProvider === undefined
+          ? getSessionJsonlPath(options.session, sessionRepoRoot)
+          : resolveSessionForProvider(
+              completionProvider,
+              options.session,
+              sessionRepoRoot,
+            )?.path;
       if (sessionLogPath === null) {
         delete subtask.sessionLogPath;
       } else {

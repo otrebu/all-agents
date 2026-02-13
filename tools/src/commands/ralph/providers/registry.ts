@@ -30,6 +30,7 @@ import {
   invokeClaudeHeadlessAsync,
 } from "./claude";
 import { invokeCursor } from "./cursor";
+import { invokeCodex, mapCodexInvocationError } from "./codex";
 import { invokeOpencode, mapOpencodeInvocationError } from "./opencode";
 import { PROVIDER_BINARIES } from "./types";
 
@@ -223,6 +224,9 @@ function createProviderInvocationFailure(
 
   if (provider === "opencode") {
     return mapOpencodeInvocationError(error);
+  }
+  if (provider === "codex") {
+    return mapCodexInvocationError(error);
   }
 
   const message =
@@ -734,13 +738,17 @@ const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
     supportsSessionExport: true,
   },
   codex: {
-    available: false,
-    invoke: createNotImplementedInvoker("codex"),
-    supportedModes: [] satisfies Array<InvocationMode>,
-    supportsHeadless: false,
-    supportsInteractiveSupervised: false,
-    supportsModelDiscovery: false,
-    supportsSessionExport: false,
+    available: true,
+    invoke: invokeCodex,
+    supportedModes: [
+      "supervised",
+      "headless-sync",
+      "headless-async",
+    ] satisfies Array<InvocationMode>,
+    supportsHeadless: true,
+    supportsInteractiveSupervised: true,
+    supportsModelDiscovery: true,
+    supportsSessionExport: true,
   },
   cursor: {
     available: true,

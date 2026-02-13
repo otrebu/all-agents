@@ -4,6 +4,10 @@ import {
   resolveSessionForProvider,
 } from "@tools/commands/ralph/providers/session-adapter";
 import {
+  cacheCodexSessionPayload,
+  clearCodexSessionPayloadsForTests,
+} from "@tools/commands/ralph/providers/session-codex";
+import {
   afterAll,
   afterEach,
   beforeEach,
@@ -349,13 +353,93 @@ describe("provider session adapters", () => {
 
   test("unsupported providers degrade to null/default metrics", () => {
     const discovered = discoverRecentSessionForProvider(
-      "codex",
+      "cursor",
       Date.now(),
       "/tmp/repo",
     );
     expect(discovered).toBeNull();
 
-    const resolved = resolveSessionForProvider("codex", "ses_123", "/tmp/repo");
+    const resolved = resolveSessionForProvider(
+      "cursor",
+      "ses_123",
+      "/tmp/repo",
+    );
     expect(resolved).toBeNull();
+  });
+
+  test("codex adapter resolves cached payload and extracts metrics", () => {
+    const repoRoot = "/tmp/codex-repo";
+    const sessionId = "thread-codex-123";
+    const payload = [
+      '{"type":"thread.started","thread_id":"thread-codex-123","timestamp":1010}',
+      '{"type":"text","output":"Done","timestamp":1200}',
+      '{"type":"turn.completed","timestamp":2010,"part":{"usage":{"input":42,"output":11,"reasoning":7,"cache_read":3,"cache_write":1}}}',
+    ].join("\n");
+
+    clearCodexSessionPayloadsForTests();
+    cacheCodexSessionPayload(sessionId, payload, repoRoot);
+
+    const discovered = discoverRecentSessionForProvider(
+      "codex",
+      Date.now(),
+      repoRoot,
+    );
+    expect(discovered).not.toBeNull();
+    expect(discovered?.sessionId).toBe(sessionId);
+
+    const resolved = resolveSessionForProvider("codex", sessionId, repoRoot);
+    expect(resolved).not.toBeNull();
+
+    if (resolved === null) {
+      throw new Error("expected resolved codex session");
+    }
+
+    const metrics = extractSessionMetricsForProvider(
+      "codex",
+      resolved,
+      repoRoot,
+    );
+    expect(metrics.durationMs).toBe(1000);
+    expect(metrics.tokenUsage).toEqual({
+      cacheRead: 3,
+      cacheWrite: 1,
+      input: 42,
+      output: 11,
+      reasoning: 7,
+    });
+  });
+
+  test("codex adapter resolves persisted payload after in-memory cache is cleared", () => {
+    const repoRoot = "/tmp/codex-repo-persist";
+    const sessionId = "thread-codex-persist";
+    const payload = [
+      '{"type":"thread.started","thread_id":"thread-codex-persist","timestamp":1010}',
+      '{"type":"turn.completed","timestamp":2010,"part":{"usage":{"input":17,"output":5,"cache_read":2,"cache_write":0}}}',
+    ].join("\n");
+
+    clearCodexSessionPayloadsForTests();
+    cacheCodexSessionPayload(sessionId, payload, repoRoot);
+    clearCodexSessionPayloadsForTests();
+
+    const resolved = resolveSessionForProvider("codex", sessionId, repoRoot);
+    expect(resolved).not.toBeNull();
+
+    if (resolved === null) {
+      throw new Error("expected resolved codex session");
+    }
+
+    const metrics = extractSessionMetricsForProvider(
+      "codex",
+      resolved,
+      repoRoot,
+    );
+    expect(metrics.durationMs).toBe(1000);
+    expect(metrics.tokenUsage).toEqual({
+      cacheRead: 2,
+      cacheWrite: 0,
+      input: 17,
+      output: 5,
+      reasoning: undefined,
+    });
   });
 });

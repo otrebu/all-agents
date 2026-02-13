@@ -10,7 +10,7 @@ Confidence: Medium-High
 - Headless: Yes, via `codex exec --json` (JSONL events).
 - Supervised interactive: Yes, via `codex` TUI (PTY required).
 - Sessions: Partial+, with explicit resume in headless and interactive (`codex exec resume`, `codex resume`).
-- Caveat: no obvious local `models` listing command; model discovery may require docs/provider APIs.
+- Caveat: model output shape is version-sensitive; discovery parser supports JSON and plain-list formats across known command variants.
 
 ## Recommended command patterns
 

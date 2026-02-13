@@ -69,6 +69,14 @@ describe("validateModelSelection - valid model", () => {
       expect(result.cliFormat).toBe("openai/gpt-5.3-codex");
     }
   });
+
+  test("returns valid for codex-compatible model", () => {
+    const result = validateModelSelection("openai/gpt-5.3-codex", "codex");
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.cliFormat).toBe("openai/gpt-5.3-codex");
+    }
+  });
 });
 
 // =============================================================================
@@ -207,11 +215,11 @@ describe("REFRESH_HINT", () => {
 // =============================================================================
 
 describe("validateModelSelection - edge cases", () => {
-  test("returns empty suggestions for provider with no models", () => {
+  test("returns suggestions for codex provider", () => {
     const result = validateModelSelection("some-model", "codex");
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.suggestions).toEqual([]);
+      expect(result.suggestions.length).toBeGreaterThan(0);
     }
   });
 

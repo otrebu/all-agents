@@ -18,7 +18,7 @@ Static models provide a baseline, but new models are released frequently. Dynami
 2. See what models are available from their installed CLI providers
 3. Keep the model registry up to date
 
-The refresh command queries providers that support model listing (starting with OpenCode), generates a new `models-dynamic.ts` file, and merges discovered models with the static baseline.
+The refresh command queries providers that support model listing (currently OpenCode and Codex), generates a new `models-dynamic.ts` file, and merges discovered models with the static baseline.
 
 ### Plan
 1. Create `tools/src/commands/ralph/providers/models-dynamic.ts` placeholder:
@@ -36,6 +36,7 @@ The refresh command queries providers that support model listing (starting with 
    - Report discovery statistics
 3. Add provider discovery capabilities:
    - OpenCode: `opencode models --json` parsing
+   - Codex: `codex models --json` and fallback list-format parsing
    - Return array of ModelInfo with discoveredAt timestamp
 4. Handle errors gracefully:
    - Provider CLI not installed → skip with warning
@@ -79,6 +80,9 @@ aaa ralph refresh-models --dry-run
 
 # Discover only from OpenCode
 aaa ralph refresh-models --provider opencode
+
+# Discover only from Codex
+aaa ralph refresh-models --provider codex
 ```
 
 **OpenCode Discovery:**
@@ -127,7 +131,7 @@ export const DISCOVERED_MODELS: ModelInfo[] = [
 |----------|------------------|---------|
 | opencode | ✅ Yes | `opencode models --json` |
 | claude | ❌ No | No model listing command |
-| codex | ❌ No | Future |
+| codex | ✅ Yes | `codex models --json`/`codex models list` |
 | gemini | ❌ No | Future |
 
 **Security Note:**
