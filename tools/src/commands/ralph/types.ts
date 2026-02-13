@@ -292,6 +292,24 @@ interface LoadedSubtasksFile extends SubtasksFile {
 }
 
 /**
+ * Header metadata rendered above a pipeline preview diagram.
+ */
+interface PipelineHeaderData {
+  /** Approval-mode summary text */
+  approvalsStatus: string;
+  /** Human-readable command line (without `aaa ralph`) */
+  commandLine: string;
+  /** Optional milestone label */
+  milestone?: string;
+  /** Execution mode text */
+  mode: string;
+  /** Optional model name shown in provider field */
+  model?: string;
+  /** Provider label */
+  provider: string;
+}
+
+/**
  * Tree node model for pipeline phase rendering.
  */
 interface PipelinePhaseNode {
@@ -714,6 +732,7 @@ export {
   normalizeIterationDiaryEntry,
   normalizeIterationTiming,
   normalizeStatus,
+  type PipelineHeaderData,
   type PipelinePhaseNode,
   type PipelineStep,
   type PostIterationHookConfig,

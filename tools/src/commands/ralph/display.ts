@@ -25,6 +25,7 @@ import type { BuildPracticalSummary } from "./summary";
 import type {
   CascadeResult,
   IterationStatus,
+  PipelineHeaderData,
   PipelinePhaseNode,
   PipelineStep,
   StepAnnotation,
@@ -514,6 +515,44 @@ function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
   const ctxValue = chalk.yellow(formatTokenCount(contextTokens));
 
   return `${ctxLabel} ${ctxValue}`;
+}
+
+function formatTwoColumnRow(
+  leftText: string,
+  rightText: string,
+  innerWidth: number,
+): string {
+  let safeRight = rightText;
+  if (stringWidth(safeRight) > innerWidth) {
+    safeRight = truncate(safeRight, innerWidth);
+  }
+
+  const rightWidth = stringWidth(safeRight);
+  if (leftText === "") {
+    return `${" ".repeat(Math.max(0, innerWidth - rightWidth))}${safeRight}`;
+  }
+
+  if (safeRight === "") {
+    return stringWidth(leftText) > innerWidth
+      ? truncate(leftText, innerWidth)
+      : leftText;
+  }
+
+  const availableLeftWidth = innerWidth - rightWidth - 1;
+  if (availableLeftWidth <= 0) {
+    return safeRight;
+  }
+
+  const safeLeft =
+    stringWidth(leftText) > availableLeftWidth
+      ? truncate(leftText, availableLeftWidth)
+      : leftText;
+
+  const spacingWidth = Math.max(
+    1,
+    innerWidth - stringWidth(safeLeft) - rightWidth,
+  );
+  return `${safeLeft}${" ".repeat(spacingWidth)}${safeRight}`;
 }
 
 function getColoredEventLabel(label: string, state: EventState): string {
@@ -1254,6 +1293,40 @@ function renderPhaseCard(data: PhaseCardData): string {
 }
 
 /**
+ * Render a pipeline preview header box.
+ */
+function renderPipelineHeader(data: PipelineHeaderData): string {
+  const providerWithModel =
+    data.model === undefined
+      ? data.provider
+      : `${data.provider} (${data.model})`;
+
+  const commandRow = `${chalk.dim("  Command:   ")}${chalk.cyan(data.commandLine)}`;
+  const milestoneLeft =
+    data.milestone === undefined
+      ? ""
+      : `${chalk.dim("  Milestone: ")}${chalk.cyan(data.milestone)}`;
+  const providerRight = `${chalk.dim("Provider: ")}${chalk.cyan(providerWithModel)}`;
+  const modeLeft = `${chalk.dim("  Mode:      ")}${chalk.cyan(data.mode)}`;
+  const approvalsRight = `${chalk.dim("Approvals: ")}${chalk.cyan(data.approvalsStatus)}`;
+
+  const lines = [
+    commandRow,
+    formatTwoColumnRow(milestoneLeft, providerRight, BOX_INNER_WIDTH),
+    formatTwoColumnRow(modeLeft, approvalsRight, BOX_INNER_WIDTH),
+  ];
+
+  return renderSafeBox(lines.join("\n"), {
+    borderColor: "white",
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: "Ralph Pipeline Plan",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+/**
  * Render the full pipeline tree for mixed expanded/collapsed phases.
  */
 function renderPipelineTree(nodes: Array<PipelinePhaseNode>): Array<string> {
@@ -1581,6 +1654,7 @@ export {
   formatStepWithAnnotation,
   formatTimestamp,
   formatTokenCount,
+  formatTwoColumnRow,
   getColoredStatus,
   type IterationDisplayData,
   makeClickablePath,
@@ -1603,6 +1677,7 @@ export {
   renderIterationStart,
   renderMarkdown,
   renderPhaseCard,
+  renderPipelineHeader,
   renderPipelineTree,
   renderPlanSubtasksSummary,
   renderProgressBar,

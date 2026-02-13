@@ -14,6 +14,7 @@ import {
   formatDuration,
   formatStepWithAnnotation,
   formatTokenCount,
+  formatTwoColumnRow,
   MARKER_ADDED,
   MARKER_REPLACED,
   MARKER_STRUCK,
@@ -28,6 +29,7 @@ import {
   renderExpandedPhase,
   renderInvocationHeader,
   renderPhaseCard,
+  renderPipelineHeader,
   renderPipelineTree,
   renderPlanSubtasksSummary,
   renderResponseHeader,
@@ -911,6 +913,82 @@ describe("display utilities", () => {
       expect(output).toContain("...");
       expect(output).toContain("[very-long-flag-name]");
       expect(stringWidth(output)).toBe(BOX_WIDTH);
+    });
+  });
+
+  describe("formatTwoColumnRow", () => {
+    test("right-aligns right column for plain strings", () => {
+      const output = formatTwoColumnRow(
+        "  Milestone: M1",
+        "Provider: claude (opus-4)",
+        BOX_WIDTH - 4,
+      );
+
+      expect(stringWidth(output)).toBe(BOX_WIDTH - 4);
+      expect(output).toContain("Milestone: M1");
+      expect(output).toContain("Provider: claude (opus-4)");
+      expect(output).toMatch(/M1\s+Provider: claude \(opus-4\)$/);
+    });
+
+    test("measures ANSI-colored columns safely", () => {
+      const output = formatTwoColumnRow(
+        `${chalk.dim("Mode:")} ${chalk.cyan("headless")}`,
+        `${chalk.dim("Approvals:")} ${chalk.yellow("skipped (--force)")}`,
+        BOX_WIDTH - 4,
+      );
+
+      expect(stringWidth(output)).toBe(BOX_WIDTH - 4);
+      expect(output).toContain("Mode:");
+      expect(output).toContain("headless");
+      expect(output).toContain("Approvals:");
+      expect(output).toContain("skipped (--force)");
+    });
+  });
+
+  describe("renderPipelineHeader", () => {
+    test("renders double-border header with all fields", () => {
+      const output = renderPipelineHeader({
+        approvalsStatus: "skipped (--force)",
+        commandLine: "plan stories --cascade build",
+        milestone: "M1",
+        mode: "headless",
+        model: "opus-4",
+        provider: "claude",
+      });
+
+      expect(output).toContain("╔");
+      expect(output).toContain("Ralph Pipeline Plan");
+      expect(output).toContain("Command:");
+      expect(output).toContain("plan stories --cascade build");
+      expect(output).toContain("Milestone:");
+      expect(output).toContain("M1");
+      expect(output).toContain("Provider:");
+      expect(output).toContain("claude (opus-4)");
+      expect(output).toContain("Mode:");
+      expect(output).toContain("headless");
+      expect(output).toContain("Approvals:");
+      expect(output).toContain("skipped (--force)");
+    });
+
+    test("omits milestone segment and model parenthetical when optional fields are missing", () => {
+      const output = renderPipelineHeader({
+        approvalsStatus: "required",
+        commandLine: "build",
+        mode: "supervised",
+        provider: "claude",
+      });
+
+      expect(output).toContain("Ralph Pipeline Plan");
+      expect(output).toContain("Command:");
+      expect(output).toContain("build");
+      expect(output).not.toContain("Milestone:");
+      expect(output).toContain("Provider:");
+      expect(output).toContain("claude");
+      expect(output).not.toContain("(undefined)");
+      expect(output).toContain("Mode:");
+      expect(output).toContain("supervised");
+      expect(output).toContain("Approvals:");
+      expect(output).toContain("required");
     });
   });
 

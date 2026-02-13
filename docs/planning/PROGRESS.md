@@ -45,6 +45,11 @@
 - **Changes:** Updated `renderExpandedPhase()` to render `ExpandedPhaseDetail.steps` via `renderAnnotatedStep()` so annotated entries show marker color + right-aligned `[flag]` tags while unannotated entries keep standard indentation. Added an integration-level `display.test.ts` case that verifies the full STEPS block for mixed replaced/added/unannotated lines against Example 1 style patterns and confirms READS/WRITES remain unannotated.
 - **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-013
+- **Problem:** Pipeline preview output lacked a dedicated header renderer, so dry-run plan output could not show the Example 1 context box with aligned Command/Milestone/Provider/Mode/Approvals metadata.
+- **Changes:** Added `PipelineHeaderData` in `types.ts`, implemented ANSI-width-safe `formatTwoColumnRow()` in `display.ts` using `string-width`, and added `renderPipelineHeader()` with a double-border `boxen` layout (`BOX_WIDTH`, centered `Ralph Pipeline Plan` title). The header now handles missing optional milestone/model fields by omitting the milestone segment and provider model parenthetical without crashing. Expanded `display.test.ts` coverage for full-header rendering, missing-field behavior, and two-column alignment with both plain and ANSI-styled strings.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001
