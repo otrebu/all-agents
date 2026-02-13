@@ -18,6 +18,7 @@ import {
   renderCollapsedPhase,
   renderCommandBanner,
   renderEventLine,
+  renderExpandedPhase,
   renderInvocationHeader,
   renderPhaseCard,
   renderPlanSubtasksSummary,
@@ -25,6 +26,7 @@ import {
   truncate,
 } from "@tools/commands/ralph/display";
 import { describe, expect, test } from "bun:test";
+import chalk from "chalk";
 
 describe("display utilities", () => {
   describe("formatDuration", () => {
@@ -341,6 +343,69 @@ describe("display utilities", () => {
       expect(output).toContain("~5 min");
       expect(output).not.toContain("[APPROVAL]");
       expect(output.includes("\n")).toBe(false);
+    });
+  });
+
+  describe("renderExpandedPhase", () => {
+    function createExpandedNode(overrides?: {
+      gate?: null | string;
+      reads?: Array<string>;
+      steps?: Array<string>;
+      writes?: Array<string>;
+    }): PipelinePhaseNode {
+      return {
+        expanded: true,
+        expandedDetail: {
+          gate: overrides?.gate ?? undefined,
+          reads: overrides?.reads ?? ["milestones/M1/MILESTONE.md"],
+          steps: overrides?.steps ?? [
+            "1. Read milestone description",
+            "2. Generate story files",
+          ],
+          writes: overrides?.writes ?? ["stories/S-NNN-*.md"],
+        },
+        name: "stories",
+        summary: {
+          description: "Generate story files from MILESTONE.md",
+          timeEstimate: "~3 min",
+        },
+      };
+    }
+
+    test("renders expanded layout with READS, STEPS, WRITES, and GATE sections", () => {
+      const output = renderExpandedPhase(
+        createExpandedNode({ gate: "createStories → SKIP (--force)" }),
+      );
+
+      expect(output[0]).toContain("▾");
+      expect(output[0]).toContain("stories");
+      expect(output[1]).toContain("│  READS");
+      expect(output[2]).toContain("│  STEPS");
+      expect(output[3]).toContain("│         ");
+      expect(output[4]).toContain("│  WRITES");
+      expect(output[5]).toContain("│  GATE");
+      expect(output[5]).toContain("createStories → SKIP (--force)");
+    });
+
+    test("omits GATE section when gate is undefined or null", () => {
+      const withoutGate = renderExpandedPhase(createExpandedNode());
+      const nullGate = renderExpandedPhase(createExpandedNode({ gate: null }));
+
+      expect(withoutGate.some((line) => line.includes("GATE"))).toBe(false);
+      expect(nullGate.some((line) => line.includes("GATE"))).toBe(false);
+    });
+
+    test("applies chalk styles and handles empty reads/writes arrays", () => {
+      const output = renderExpandedPhase(
+        createExpandedNode({ gate: "none", reads: [], writes: [] }),
+      );
+
+      expect(output[0]).toContain(chalk.cyan("stories"));
+      expect(output[1]).toContain(chalk.dim("READS"));
+      expect(output[2]).toContain(chalk.dim("STEPS"));
+      expect(output[4]).toContain(chalk.dim("WRITES"));
+      expect(output[5]).toContain(chalk.dim("GATE"));
+      expect(output[5]).toContain(chalk.yellow("none"));
     });
   });
 

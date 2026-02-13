@@ -922,6 +922,42 @@ function renderEventLine(data: EventLineData): string {
 }
 
 /**
+ * Render an expanded pipeline phase with section detail lines.
+ */
+function renderExpandedPhase(node: PipelinePhaseNode): Array<string> {
+  const sectionLabelWidth = 7;
+  const sectionPrefix = "│  ";
+  const continuationPrefix = `${sectionPrefix}${" ".repeat(sectionLabelWidth)}`;
+
+  function renderSection(label: string, entries: Array<string>): Array<string> {
+    if (entries.length === 0) {
+      return [`${sectionPrefix}${chalk.dim(label.padEnd(sectionLabelWidth))}`];
+    }
+
+    const [firstEntry, ...restEntries] = entries;
+    return [
+      `${sectionPrefix}${chalk.dim(label.padEnd(sectionLabelWidth))} ${firstEntry}`,
+      ...restEntries.map((entry) => `${continuationPrefix} ${entry}`),
+    ];
+  }
+
+  const lines = [
+    `▾ ${chalk.cyan(node.name)}  ${chalk.dim(node.summary.description)}  ${chalk.dim(node.summary.timeEstimate)}`,
+    ...renderSection("READS", node.expandedDetail.reads),
+    ...renderSection("STEPS", node.expandedDetail.steps),
+    ...renderSection("WRITES", node.expandedDetail.writes),
+  ];
+
+  if (typeof node.expandedDetail.gate === "string") {
+    lines.push(
+      `${sectionPrefix}${chalk.dim("GATE".padEnd(sectionLabelWidth))} ${chalk.yellow(node.expandedDetail.gate)}`,
+    );
+  }
+
+  return lines;
+}
+
+/**
  * Render a styled separator for provider invocation
  *
  * @param mode - "headless" or "supervised" execution mode
@@ -1444,6 +1480,7 @@ export {
   renderCollapsedPhase,
   renderCommandBanner,
   renderEventLine,
+  renderExpandedPhase,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,

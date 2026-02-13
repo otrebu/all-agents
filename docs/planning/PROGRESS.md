@@ -20,6 +20,11 @@
 - **Changes:** Added new pipeline tree types in `types.ts` (`PipelinePhaseNode`, `CollapsedPhaseSummary`, `ExpandedPhaseDetail`, `StepAnnotation`) and exported them for downstream renderers. Implemented `renderCollapsedPhase(node, isLast)` in `display.ts` to emit a single-line tree row with `├─`/`└─` connector selection, cyan phase name, dim description/time estimate, and optional yellow gate indicator. Added focused `display.test.ts` coverage for with-gate vs without-gate output and last-node vs non-last-node connector selection.
 - **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-008
+- **Problem:** Expanded pipeline nodes were not yet renderable, so dry-run/cascade previews could not show per-phase READS/STEPS/WRITES detail with tree continuation formatting or optional gate rows.
+- **Changes:** Implemented `renderExpandedPhase(node)` in `display.ts` to return a multi-line string array with `▾` phase header, `│` continuation lines, aligned dim section labels (`READS`, `STEPS`, `WRITES`), and optional yellow `GATE` output when gate data exists (omitted for `undefined`/`null`). Added focused unit tests in `display.test.ts` for full four-section output, gate omission behavior, and empty reads/writes arrays with style assertions for cyan phase names, dim section labels, and yellow gate text.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001
