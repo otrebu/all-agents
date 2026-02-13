@@ -14,6 +14,51 @@ describe("build validation integration", () => {
     expect(buildContent).toContain("writeValidationProposalArtifact");
   });
 
+  test("imports and instantiates PipelineRenderer for build phase", () => {
+    expect(buildContent).toContain(
+      'import PipelineRenderer from "./pipeline-renderer"',
+    );
+    expect(buildContent).toContain(
+      'const renderer = new PipelineRenderer(["build"], mode === "headless", isTTY);',
+    );
+    expect(buildContent).toContain(
+      "const isTTY = Boolean(process.stdin.isTTY && process.stdout.isTTY);",
+    );
+  });
+
+  test("starts build phase before entering iteration loop", () => {
+    const startPhaseIndex = buildContent.indexOf(
+      'renderer.startPhase("build")',
+    );
+    const mainLoopIndex = buildContent.indexOf("for (;;) {");
+
+    expect(startPhaseIndex).toBeGreaterThan(-1);
+    expect(mainLoopIndex).toBeGreaterThan(-1);
+    expect(startPhaseIndex).toBeLessThan(mainLoopIndex);
+  });
+
+  test("updates renderer with current subtask and queue counts before iteration", () => {
+    expect(buildContent).toContain("const currentSubtaskIndex =");
+    expect(buildContent).toContain("renderer.updateSubtask(");
+    expect(buildContent).toContain("currentSubtask.id,");
+    expect(buildContent).toContain("currentSubtask.title,");
+    expect(buildContent).toContain("currentSubtaskIndex,");
+    expect(buildContent).toContain("subtasksFile.subtasks.length,");
+  });
+
+  test("completes phase with summary metrics on full queue completion", () => {
+    expect(buildContent).toContain("renderer.completePhase({");
+    expect(buildContent).toContain("costUsd: summary.stats.costUsd,");
+    expect(buildContent).toContain("elapsedMs: summary.stats.durationMs,");
+    expect(buildContent).toContain("filesChanged: summary.stats.filesChanged,");
+  });
+
+  test("stops renderer in both signal handlers and runBuild finally", () => {
+    expect(buildContent).toContain("registerSignalHandlers(() => {");
+    expect(buildContent).toContain("renderer.stop();");
+    expect(buildContent).toContain("} finally {");
+  });
+
   test("declares skippedSubtaskIds before validate-first block", () => {
     const declarationPattern =
       /let skippedSubtaskIds: Set<string> \| null = null;[\s\S]*resolveSkippedSubtaskIds\(/;
