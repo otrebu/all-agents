@@ -1,6 +1,6 @@
 ---
 name: dev:complete-feature
-allowed-tools: Bash(git branch:*), Bash(git status), Bash(git checkout:*), Bash(git pull:*), Bash(git merge:*), Bash(git push:*), Bash(git log:*), Bash(git reset:*), Bash(git gtr:*), Bash(cd:*)
+allowed-tools: Bash(git branch:*), Bash(git status), Bash(git checkout:*), Bash(git pull:*), Bash(git merge:*), Bash(git push:*), Bash(git log:*), Bash(git reset:*), Bash(git worktree:*), Bash(cd:*)
 description: Merge a feature branch to main and handle cleanup
 ---
 
