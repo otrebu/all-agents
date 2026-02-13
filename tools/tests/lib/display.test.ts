@@ -12,6 +12,12 @@ import type {
 
 import {
   BOX_WIDTH,
+  CASCADE_SYMBOL_COMPLETED,
+  CASCADE_SYMBOL_FAILED,
+  CASCADE_SYMBOL_PENDING,
+  CASCADE_SYMBOL_RUNNING,
+  CASCADE_SYMBOL_TIMED_WAIT,
+  CASCADE_SYMBOL_WAITING,
   formatDuration,
   formatStepWithAnnotation,
   formatTokenCount,
@@ -25,6 +31,7 @@ import {
   renderApprovalGatePreview,
   renderBuildPracticalSummary,
   renderCascadeProgress,
+  renderCascadeProgressWithStates,
   renderCascadeSummary,
   renderCollapsedPhase,
   renderCommandBanner,
@@ -317,6 +324,77 @@ describe("display utilities", () => {
       expect(result).toContain("[tasks]");
       expect(result).toContain("[subtasks]");
       expect(result).toContain("build");
+    });
+  });
+
+  describe("renderCascadeProgressWithStates", () => {
+    test("renders waiting phases with yellow pause-bars symbol", () => {
+      const result = renderCascadeProgressWithStates(["stories", "tasks"], {
+        stories: "completed",
+        tasks: "waiting",
+      });
+
+      expect(result).toContain(CASCADE_SYMBOL_WAITING);
+      expect(result).toContain(
+        chalk.yellow(`[tasks] ${CASCADE_SYMBOL_WAITING}`),
+      );
+    });
+
+    test("renders all six cascade symbol states with expected colors", () => {
+      const result = renderCascadeProgressWithStates(
+        ["done", "active", "gate", "delay", "stopped", "queued"],
+        {
+          active: "running",
+          delay: "timed-wait",
+          done: "completed",
+          gate: "waiting",
+          queued: "pending",
+          stopped: "failed",
+        },
+      );
+
+      expect(result).toContain(
+        chalk.green(`[done] ${CASCADE_SYMBOL_COMPLETED}`),
+      );
+      expect(result).toContain(
+        chalk.cyan.bold(`[active] ${CASCADE_SYMBOL_RUNNING}`),
+      );
+      expect(result).toContain(
+        chalk.yellow(`[gate] ${CASCADE_SYMBOL_WAITING}`),
+      );
+      expect(result).toContain(
+        chalk.yellow(`[delay] ${CASCADE_SYMBOL_TIMED_WAIT}`),
+      );
+      expect(result).toContain(chalk.red(`[stopped] ${CASCADE_SYMBOL_FAILED}`));
+      expect(result).toContain(chalk.dim(`[queued] ${CASCADE_SYMBOL_PENDING}`));
+    });
+
+    test("keeps waiting visually distinct from running and pending", () => {
+      const result = renderCascadeProgressWithStates(
+        ["waiting-level", "running-level", "pending-level"],
+        {
+          "pending-level": "pending",
+          "running-level": "running",
+          "waiting-level": "waiting",
+        },
+      );
+
+      expect(result).toContain(
+        chalk.yellow(`[waiting-level] ${CASCADE_SYMBOL_WAITING}`),
+      );
+      expect(result).toContain(
+        chalk.cyan.bold(`[running-level] ${CASCADE_SYMBOL_RUNNING}`),
+      );
+      expect(result).toContain(
+        chalk.dim(`[pending-level] ${CASCADE_SYMBOL_PENDING}`),
+      );
+
+      expect(result).not.toContain(
+        chalk.yellow(`[waiting-level] ${CASCADE_SYMBOL_RUNNING}`),
+      );
+      expect(result).not.toContain(
+        chalk.yellow(`[waiting-level] ${CASCADE_SYMBOL_PENDING}`),
+      );
     });
   });
 

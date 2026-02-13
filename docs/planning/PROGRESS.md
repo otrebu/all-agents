@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-037
+- **Problem:** Cascade progress rendering only represented completed/running/pending levels, so approval-gate waiting could not be shown with a distinct symbol or color.
+- **Changes:** Added exported cascade phase-state contracts in `display.ts` (`CascadePhaseState` plus per-state symbol constants) and introduced `renderCascadeProgressWithStates(levels, phaseStates)` to render all six states with explicit symbol/color mappings: completed (`✓` green), running (`◉` cyan), waiting (`‖` yellow), timed wait (`~` yellow), failed (`✗` red), pending (`○` dim). Kept existing `renderCascadeProgress()` behavior unchanged for regression safety while reusing shared symbol constants for completed/running output. Expanded `display.test.ts` with new coverage for waiting rendering, all six symbol/color combinations, and visual distinctness between waiting vs running/pending.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-035
 - **Problem:** Live cascade approvals still showed minimal prompt text, so users could not see the full approval-gate context (gate, mode, resolved action, options) before interactive and headless decisions.
 - **Changes:** Wired approval gate cards into `checkApprovalGate()` by constructing `ApprovalGateCardData` from level/gate/config/runtime context and passing it to `promptApproval()` and `handleNotifyWait()`. Updated approvals flow to accept optional card data and render/log `renderApprovalGateCard()` before prompting or waiting. Added regression coverage in cascade + approvals unit tests to verify card data pass-through and card rendering before the `Approve? [Y/n]` prompt.

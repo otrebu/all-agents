@@ -48,6 +48,21 @@ const MARKER_STRUCK = "×";
 const STEP_INDENT_WIDTH = 3;
 const STEP_MARKER_WIDTH = 3;
 
+type CascadePhaseState =
+  | "completed"
+  | "failed"
+  | "pending"
+  | "running"
+  | "timed-wait"
+  | "waiting";
+
+const CASCADE_SYMBOL_COMPLETED = "✓";
+const CASCADE_SYMBOL_RUNNING = "◉";
+const CASCADE_SYMBOL_WAITING = "‖";
+const CASCADE_SYMBOL_TIMED_WAIT = "~";
+const CASCADE_SYMBOL_FAILED = "✗";
+const CASCADE_SYMBOL_PENDING = "○";
+
 interface ApprovalGateActionOption {
   color: "green" | "red" | "yellow";
   key: string;
@@ -1039,11 +1054,11 @@ function renderCascadeProgress(
 
   // Completed levels: [level] ✓ in green
   for (const level of completed) {
-    parts.push(chalk.green(`[${level}] ✓`));
+    parts.push(chalk.green(`[${level}] ${CASCADE_SYMBOL_COMPLETED}`));
   }
 
   // Current level: [level] ◉ in cyan bold
-  parts.push(chalk.cyan.bold(`[${current}] ◉`));
+  parts.push(chalk.cyan.bold(`[${current}] ${CASCADE_SYMBOL_RUNNING}`));
 
   // Remaining levels: just the name in dim
   for (const level of remaining) {
@@ -1051,6 +1066,45 @@ function renderCascadeProgress(
   }
 
   // Join with arrows
+  return parts.join(chalk.dim(" → "));
+}
+
+/**
+ * Render cascade progress for explicit phase states.
+ */
+function renderCascadeProgressWithStates(
+  levels: Array<string>,
+  phaseStates: Partial<Record<string, CascadePhaseState>>,
+): string {
+  const parts = levels.map((level) => {
+    const state = phaseStates[level] ?? "pending";
+    const label = `[${level}]`;
+
+    switch (state) {
+      case "completed": {
+        return chalk.green(`${label} ${CASCADE_SYMBOL_COMPLETED}`);
+      }
+      case "failed": {
+        return chalk.red(`${label} ${CASCADE_SYMBOL_FAILED}`);
+      }
+      case "pending": {
+        return chalk.dim(`${label} ${CASCADE_SYMBOL_PENDING}`);
+      }
+      case "running": {
+        return chalk.cyan.bold(`${label} ${CASCADE_SYMBOL_RUNNING}`);
+      }
+      case "timed-wait": {
+        return chalk.yellow(`${label} ${CASCADE_SYMBOL_TIMED_WAIT}`);
+      }
+      case "waiting": {
+        return chalk.yellow(`${label} ${CASCADE_SYMBOL_WAITING}`);
+      }
+      default: {
+        return chalk.dim(`${label} ${CASCADE_SYMBOL_PENDING}`);
+      }
+    }
+  });
+
   return parts.join(chalk.dim(" → "));
 }
 
@@ -1864,6 +1918,13 @@ export {
   type ApprovalGateCardData,
   BOX_WIDTH,
   type BuildSummaryData,
+  CASCADE_SYMBOL_COMPLETED,
+  CASCADE_SYMBOL_FAILED,
+  CASCADE_SYMBOL_PENDING,
+  CASCADE_SYMBOL_RUNNING,
+  CASCADE_SYMBOL_TIMED_WAIT,
+  CASCADE_SYMBOL_WAITING,
+  type CascadePhaseState,
   colorStatus,
   type CommandBannerData,
   type EventDomain,
@@ -1888,6 +1949,7 @@ export {
   renderBuildPracticalSummary,
   renderBuildSummary,
   renderCascadeProgress,
+  renderCascadeProgressWithStates,
   renderCascadeSummary,
   renderCollapsedPhase,
   renderCommandBanner,
