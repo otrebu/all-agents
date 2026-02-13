@@ -2,7 +2,7 @@ import { getContextRoot } from "@tools/utils/paths";
 import addFormats from "ajv-formats";
 import Ajv2020 from "ajv/dist/2020";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { execa } from "execa";
+import { execa, type ResultPromise } from "execa";
 import {
   existsSync,
   mkdirSync,
@@ -16,9 +16,35 @@ import { join } from "node:path";
 
 const TOOLS_DIR = join(getContextRoot(), "tools");
 const CONTEXT_ROOT = getContextRoot();
+const CLI_ENTRY = join(import.meta.dir, "../../src/cli.ts");
 
 describe("ralph E2E", () => {
   let temporaryDirectory = "";
+  const runningProcesses = new Set<ResultPromise>();
+
+  function trackProcess(process: ResultPromise): ResultPromise {
+    runningProcesses.add(process);
+    return process;
+  }
+
+  async function initializeGitRepo(repoPath: string): Promise<void> {
+    writeFileSync(join(repoPath, "README.md"), "# temp e2e repo\n");
+    await execa("git", ["init"], { cwd: repoPath });
+    await execa("git", ["add", "README.md"], { cwd: repoPath });
+    await execa(
+      "git",
+      [
+        "-c",
+        "user.name=E2E Bot",
+        "-c",
+        "user.email=e2e@example.com",
+        "commit",
+        "-m",
+        "chore: seed e2e repo",
+      ],
+      { cwd: repoPath },
+    );
+  }
 
   function sortSlugs(slugs: Array<string>): Array<string> {
     return [...slugs].sort((a, b) => {
@@ -45,6 +71,17 @@ describe("ralph E2E", () => {
   });
 
   afterEach(() => {
+    for (const process of runningProcesses) {
+      if (process.exitCode === null && process.pid !== undefined) {
+        try {
+          process.kill("SIGKILL");
+        } catch {
+          // Ignore process cleanup failures in tests.
+        }
+      }
+    }
+    runningProcesses.clear();
+
     if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
       rmSync(temporaryDirectory, { force: true, recursive: true });
     }
@@ -593,6 +630,141 @@ describe("ralph E2E", () => {
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Subtasks file not found");
   });
+
+  test("build shows live progress header in headless mode", async () => {
+    const projectRoot = join(temporaryDirectory, "pipeline-header-headless");
+    mkdirSync(projectRoot, { recursive: true });
+    await initializeGitRepo(projectRoot);
+
+    const subtasksPath = join(projectRoot, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "pipeline-headless", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Render live header"],
+              description: "Exercise pipeline renderer",
+              done: false,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "TASK-001-test",
+              title: "Render pipeline header",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+set -euo pipefail
+echo "build run" >> run.log
+git add run.log
+git -c user.name='E2E Bot' -c user.email='e2e@example.com' commit -m 'test: complete subtask' >/dev/null
+sleep 2
+cat <<'JSON'
+[{"type":"result","result":"ok","duration_ms":2000,"total_cost_usd":0.0,"session_id":"sess-pipeline-headless"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const command = `PATH="${temporaryDirectory}:${process.env.PATH ?? ""}" bun "${CLI_ENTRY}" ralph build --headless --subtasks "${subtasksPath}"`;
+    const childProcess = trackProcess(
+      execa("script", ["-qec", command, "/dev/null"], {
+        cwd: projectRoot,
+        env: { ...process.env, TERM: "xterm-256color" },
+        reject: false,
+      }),
+    );
+    const { exitCode, stdout } = await childProcess;
+    const output = typeof stdout === "string" ? stdout : String(stdout ?? "");
+
+    expect(exitCode).toBe(0);
+    expect(output).toContain("●");
+    expect(output).toContain("✓");
+    expect(output).toMatch(/\[[#.]{16}\]/);
+    expect((output.match(/\[build\]/g) ?? []).length).toBeGreaterThan(1);
+  }, 60_000);
+
+  test("build degrades gracefully when piped (non-TTY)", async () => {
+    const projectRoot = join(temporaryDirectory, "pipeline-header-non-tty");
+    mkdirSync(projectRoot, { recursive: true });
+    await initializeGitRepo(projectRoot);
+
+    const subtasksPath = join(projectRoot, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "pipeline-non-tty", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Render non-tty transitions"],
+              description: "Exercise pipeline renderer non-tty mode",
+              done: false,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "TASK-001-test",
+              title: "Render transition line",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+set -euo pipefail
+echo "build run" >> run.log
+git add run.log
+git -c user.name='E2E Bot' -c user.email='e2e@example.com' commit -m 'test: complete subtask' >/dev/null
+cat <<'JSON'
+[{"type":"result","result":"ok","duration_ms":50,"total_cost_usd":0.0,"session_id":"sess-pipeline-non-tty"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const childProcess = trackProcess(
+      execa(
+        "bun",
+        [CLI_ENTRY, "ralph", "build", "--headless", "--subtasks", subtasksPath],
+        {
+          cwd: projectRoot,
+          env: {
+            ...process.env,
+            PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+            TERM: "dumb",
+          },
+          reject: false,
+        },
+      ),
+    );
+    const { exitCode, stdout } = await childProcess;
+    const output = typeof stdout === "string" ? stdout : String(stdout ?? "");
+    const escape = String.fromCodePoint(27);
+    const hasMoveUpCursorCode = output
+      .split(`${escape}[`)
+      .some((segment: string) => /^\d+A/.test(segment));
+
+    expect(exitCode).toBe(0);
+    expect(output).toContain("[PIPELINE] phase=build");
+    expect(output).toContain("[PIPELINE] phase=idle");
+    expect(output).not.toContain("\x1b[H");
+    expect(output).not.toContain("\x1b[2K");
+    expect(hasMoveUpCursorCode).toBe(false);
+  }, 60_000);
 
   test("ralph build --validate-first --force applies proposal before build loop starts", async () => {
     const milestoneDirectory = join(

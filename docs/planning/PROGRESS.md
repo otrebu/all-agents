@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-028
+- **Problem:** `ralph build` lacked E2E coverage for the live `PipelineRenderer` header contract, so regressions in headless TTY rendering and non-TTY degradation (including ANSI cursor-control leakage) could slip through.
+- **Changes:** Added two focused E2E tests in `ralph.test.ts` that run `ralph build` with a minimal mocked-provider fixture: one test exercises headless TTY output via `script` and asserts phase symbols/progress-bar formatting plus repeated header renders, and one test exercises non-TTY behavior (`TERM=dumb`) and asserts phase transition lines with explicit absence of cursor-control escape codes. Added process-tracking cleanup in `afterEach` to kill any lingering spawned commands (timer/process leak safety).
+- **Files:** `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-025
 - **Problem:** `types.ts` lacked the PipelineRenderer-specific shared contracts requested by TASK-013 (`PhaseStatus`, `PhaseMetrics`, `PhaseState`, `PipelineRendererOptions`, `SubtaskProgress`), so renderer/build/cascade typing could not use the milestone’s canonical shape.
 - **Changes:** Added the five required type definitions with JSDoc in `tools/src/commands/ralph/types.ts`, exported them from the module export block, and aligned live renderer metric usage to the new `timeElapsedMs` field across renderer wiring and targeted tests.
