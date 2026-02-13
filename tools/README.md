@@ -30,7 +30,7 @@ Switch the active `aaa` symlink to your current all-agents git worktree:
 aaa setup --user --worktree
 
 # Or point to a specific all-agents worktree path
-aaa setup --user --worktree ~/dev/all-agents-worktrees/feature-x
+aaa setup --user --worktree ~/dev/all-agents-feature-x
 ```
 
 ### Project Integration

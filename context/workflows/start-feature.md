@@ -32,11 +32,11 @@ Extract 2-4 key words that capture the essence of the feature from the descripti
 
 ### 2. Create Worktree
 
-Derive the worktree directory from the repo root, following the `<repo>-worktrees/` convention:
+Derive the worktree directory from the repo root as a flat sibling:
 
 ```bash
 REPO_ROOT=$(git rev-parse --show-toplevel)
-WORKTREE_DIR="${REPO_ROOT}-worktrees/feature-<slug>"
+WORKTREE_DIR="${REPO_ROOT}-feature-<slug>"
 git worktree add "$WORKTREE_DIR" -b feature/<slug>
 ```
 
@@ -75,7 +75,7 @@ git checkout -b feature/<slug>
 - Branch names **must** be lowercase kebab-case
 - If description is unclear or empty, **ask** for clarification before proceeding
 - **Prefer worktree** (`git worktree add`) over checkout (`git checkout -b`)
-- Worktree folder convention: `<repo>-worktrees/<branch-slug>/`
+- Worktree folder convention: `<repo>-feature-<slug>/` (flat sibling of main repo)
 
 ## Example Usage
 
@@ -84,7 +84,7 @@ git checkout -b feature/<slug>
 **Process:**
 
 1. Extract key words: "user", "profile", "editing" → "user-profile-edit"
-2. Compute path: `WORKTREE_DIR="${REPO_ROOT}-worktrees/feature-user-profile-edit"`
+2. Compute path: `WORKTREE_DIR="${REPO_ROOT}-feature-user-profile-edit"`
 3. Create: `git worktree add "$WORKTREE_DIR" -b feature/user-profile-edit`
 4. Navigate: `cd "$WORKTREE_DIR"`
 5. Confirm: "Created worktree for `feature/user-profile-edit`. Ready to work on user profile editing."
