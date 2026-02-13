@@ -400,13 +400,7 @@ describe("provider session adapters", () => {
       repoRoot,
     );
     expect(metrics.durationMs).toBe(1000);
-    expect(metrics.tokenUsage).toEqual({
-      cacheRead: 3,
-      cacheWrite: 1,
-      input: 42,
-      output: 11,
-      reasoning: 7,
-    });
+    expect(metrics.tokenUsage).toEqual({ contextTokens: 42, outputTokens: 11 });
   });
 
   test("codex adapter resolves persisted payload after in-memory cache is cleared", () => {
@@ -434,12 +428,6 @@ describe("provider session adapters", () => {
       repoRoot,
     );
     expect(metrics.durationMs).toBe(1000);
-    expect(metrics.tokenUsage).toEqual({
-      cacheRead: 2,
-      cacheWrite: 0,
-      input: 17,
-      output: 5,
-      reasoning: undefined,
-    });
+    expect(metrics.tokenUsage).toEqual({ contextTokens: 17, outputTokens: 5 });
   });
 });

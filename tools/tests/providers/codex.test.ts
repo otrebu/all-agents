@@ -35,22 +35,54 @@ function makeSpawnSyncResult(
   };
 }
 
+function makeSpawnSyncSubprocess(
+  exitCode: number,
+  stdout: string,
+  stderr = "",
+): ReturnType<typeof Bun.spawnSync> {
+  const result = makeSpawnSyncResult(exitCode, stdout, stderr);
+  return {
+    ...result,
+    pid: 0,
+    resourceUsage: undefined,
+    success: exitCode === 0,
+  } as unknown as ReturnType<typeof Bun.spawnSync>;
+}
+
+function parseSpawnSyncCommand(command: unknown): Array<string> {
+  if (Array.isArray(command)) {
+    return command;
+  }
+
+  if (
+    command !== null &&
+    typeof command === "object" &&
+    "cmd" in command &&
+    Array.isArray((command as { cmd: unknown }).cmd)
+  ) {
+    return (command as { cmd: Array<string> }).cmd;
+  }
+
+  return [];
+}
+
 function mockCodexDiscovery(commandOutputs: Record<string, string>): void {
   Object.assign(Bun, {
-    spawnSync: mock((command: Array<string>) => {
-      if (command[0] === "which") {
+    spawnSync: mock((command: unknown) => {
+      const args = parseSpawnSyncCommand(command);
+      if (args[0] === "which") {
         return commandOutputs.which === undefined
-          ? makeSpawnSyncResult(0, "/usr/local/bin/codex\n")
-          : makeSpawnSyncResult(0, commandOutputs.which);
+          ? makeSpawnSyncSubprocess(0, "/usr/local/bin/codex\n")
+          : makeSpawnSyncSubprocess(0, commandOutputs.which);
       }
-      if (command[0] === "codex") {
-        const commandText = command.slice(1).join(" ");
+      if (args[0] === "codex") {
+        const commandText = args.slice(1).join(" ");
         if (Object.hasOwn(commandOutputs, commandText)) {
-          return makeSpawnSyncResult(0, commandOutputs[commandText]);
+          return makeSpawnSyncSubprocess(0, commandOutputs[commandText]!);
         }
-        return makeSpawnSyncResult(0, "");
+        return makeSpawnSyncSubprocess(0, "");
       }
-      return makeSpawnSyncResult(1, "", "unexpected command");
+      return makeSpawnSyncSubprocess(1, "", "unexpected command");
     }),
   });
 }
@@ -128,7 +160,7 @@ describe("parseCodexEvents", () => {
     const events = parseCodexEvents(jsonl);
 
     expect(events).toHaveLength(3);
-    expect(events[0].type).toBe("thread.started");
+    expect(events.at(0)).toHaveProperty("type", "thread.started");
     expect(events[1]).toHaveProperty("text", "hello");
     expect(events[2]).toHaveProperty("type", "turn.completed");
   });
@@ -259,11 +291,12 @@ describe("discoverCodexModels", () => {
       "models list --json": "",
       which: "",
     });
-    Bun.spawnSync = mock((command: Array<string>) => {
-      if (command[0] === "which") {
-        return makeSpawnSyncResult(1, "", "not found");
+    Bun.spawnSync = mock((command: unknown) => {
+      const args = parseSpawnSyncCommand(command);
+      if (args[0] === "which") {
+        return makeSpawnSyncSubprocess(1, "", "not found");
       }
-      return makeSpawnSyncResult(1, "", "unexpected command");
+      return makeSpawnSyncSubprocess(1, "", "unexpected command");
     });
 
     expect(discoverCodexModels()).toEqual([]);
