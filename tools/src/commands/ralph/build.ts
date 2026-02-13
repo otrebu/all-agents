@@ -1527,8 +1527,8 @@ async function runBuild(
 
         renderer.completePhase({
           costUsd: summary.stats.costUsd,
-          elapsedMs: summary.stats.durationMs,
           filesChanged: summary.stats.filesChanged,
+          timeElapsedMs: summary.stats.durationMs,
         });
 
         // Render practical summary to terminal (unless quiet mode)

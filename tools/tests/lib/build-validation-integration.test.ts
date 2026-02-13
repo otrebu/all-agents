@@ -49,7 +49,7 @@ describe("build validation integration", () => {
   test("completes phase with summary metrics on full queue completion", () => {
     expect(buildContent).toContain("renderer.completePhase({");
     expect(buildContent).toContain("costUsd: summary.stats.costUsd,");
-    expect(buildContent).toContain("elapsedMs: summary.stats.durationMs,");
+    expect(buildContent).toContain("timeElapsedMs: summary.stats.durationMs,");
     expect(buildContent).toContain("filesChanged: summary.stats.filesChanged,");
   });
 

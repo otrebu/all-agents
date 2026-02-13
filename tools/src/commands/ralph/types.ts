@@ -341,24 +341,36 @@ interface LoadedSubtasksFile extends SubtasksFile {
  */
 interface PhaseMetrics {
   /** Total estimated or actual cost in USD for this phase */
-  costUsd: number;
-  /** Total elapsed time for this phase in milliseconds */
-  elapsedMs: number;
+  costUsd?: number;
   /** Number of files changed during this phase */
-  filesChanged: number;
+  filesChanged?: number;
+  /** Number of lines added during this phase */
+  linesAdded?: number;
+  /** Number of lines removed during this phase */
+  linesRemoved?: number;
+  /** Total elapsed time for this phase in milliseconds */
+  timeElapsedMs?: number;
 }
 
 /**
  * Runtime state of a pipeline phase in live execution rendering.
  */
-type PhaseState =
-  | "approval-wait"
-  | "completed"
-  | "failed"
-  | "pending"
-  | "running"
-  | "stopped"
-  | "timed-wait";
+interface PhaseState {
+  /** Metrics snapshot for this phase when available */
+  metrics?: PhaseMetrics;
+  /** Display name of the phase */
+  name: string;
+  /** Timestamp (ms) when phase became active */
+  startTimeMs?: number;
+  /** Current phase status */
+  status: PhaseStatus;
+}
+
+/**
+ * Runtime status labels used for live pipeline phase rendering.
+ */
+// eslint-disable-next-line perfectionist/sort-union-types -- status order follows milestone contract wording
+type PhaseStatus = "pending" | "active" | "completed" | "waiting" | "failed";
 
 /**
  * Footer summary metadata rendered below a pipeline tree.
@@ -410,6 +422,18 @@ interface PipelinePhaseNode {
   name: string;
   /** Collapsed mode one-line summary */
   summary: CollapsedPhaseSummary;
+}
+
+/**
+ * Constructor options for PipelineRenderer.
+ */
+interface PipelineRendererOptions {
+  /** Run without interactive prompts */
+  headless: boolean;
+  /** Whether output supports ANSI cursor control */
+  isTTY: boolean;
+  /** Ordered phase names rendered in the phase bar */
+  phases: Array<string>;
 }
 
 /**
@@ -646,6 +670,20 @@ interface SubtaskMetadata {
 }
 
 /**
+ * Progress snapshot for the currently active subtask.
+ */
+interface SubtaskProgress {
+  /** Completed subtask count (1-based position) */
+  current: number;
+  /** Human-readable subtask title/description */
+  description: string;
+  /** Subtask ID (for example: SUB-025) */
+  id: string;
+  /** Total subtasks in the active phase */
+  total: number;
+}
+
+/**
  * Root structure of subtasks.json
  */
 interface SubtasksFile {
@@ -825,9 +863,11 @@ export {
   normalizeStatus,
   type PhaseMetrics,
   type PhaseState,
+  type PhaseStatus,
   type PipelineFooterData,
   type PipelineHeaderData,
   type PipelinePhaseNode,
+  type PipelineRendererOptions,
   type PipelineStep,
   type PostIterationHookConfig,
   type QueueApplyLogEntry,
@@ -841,6 +881,7 @@ export {
   type StepAnnotation,
   type Subtask,
   type SubtaskMetadata,
+  type SubtaskProgress,
   type SubtasksFile,
   type TokenUsage,
   type ValidationLogEntry,

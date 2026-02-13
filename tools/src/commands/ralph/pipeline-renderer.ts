@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import stringWidth from "string-width";
 
-import type { PhaseMetrics, PhaseState } from "./types";
+import type { PhaseMetrics, PhaseStatus, SubtaskProgress } from "./types";
 
 import { BOX_WIDTH, formatDuration, truncate } from "./display";
 
@@ -9,15 +9,18 @@ interface PhaseRuntimeState {
   approvalGateName?: string;
   metrics?: PhaseMetrics;
   name: string;
-  state: PhaseState;
+  state: PhaseRuntimeStatus;
 }
 
-interface SubtaskRuntimeState {
-  current: number;
-  description: string;
-  id: string;
+type PhaseRuntimeStatus =
+  | "approval-wait"
+  | "running"
+  | "stopped"
+  | "timed-wait"
+  | PhaseStatus;
+
+interface SubtaskRuntimeState extends SubtaskProgress {
   knownSubtasks: Array<{ description: string; id: string; position: number }>;
-  total: number;
 }
 
 /**
@@ -225,8 +228,8 @@ class PipelineRenderer {
     }
 
     const files = `${phase.metrics.filesChanged} files`;
-    const elapsed = formatDuration(phase.metrics.elapsedMs);
-    const cost = `$${phase.metrics.costUsd.toFixed(2)}`;
+    const elapsed = formatDuration(phase.metrics.timeElapsedMs ?? 0);
+    const cost = `$${(phase.metrics.costUsd ?? 0).toFixed(2)}`;
     return `▸ ${phase.name}  ${files}  ${elapsed}  ${cost}  ${chalk.green("✓")}`;
   }
 

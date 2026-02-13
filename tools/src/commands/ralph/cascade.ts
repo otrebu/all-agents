@@ -668,8 +668,8 @@ async function runCascadeFrom(
 
       renderer.completePhase({
         costUsd: 0,
-        elapsedMs: Math.max(0, Date.now() - phaseStartedAt),
         filesChanged: 0,
+        timeElapsedMs: Math.max(0, Date.now() - phaseStartedAt),
       });
 
       if (approvalResult === "exit-unstaged") {

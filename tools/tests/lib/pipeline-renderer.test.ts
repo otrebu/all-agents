@@ -100,8 +100,8 @@ describe("PipelineRenderer", () => {
     };
     const metrics: PhaseMetrics = {
       costUsd: 0.24,
-      elapsedMs: 12_000,
       filesChanged: 5,
+      timeElapsedMs: 12_000,
     };
 
     renderer.startPhase("tasks");
@@ -180,13 +180,13 @@ describe("PipelineRenderer", () => {
     const renderer = new PipelineRenderer(mockPhases, true, true);
     const completedStories: PhaseMetrics = {
       costUsd: 0.15,
-      elapsedMs: 192_000,
       filesChanged: 5,
+      timeElapsedMs: 192_000,
     };
     const completedTasks: PhaseMetrics = {
       costUsd: 0.22,
-      elapsedMs: 344_000,
       filesChanged: 12,
+      timeElapsedMs: 344_000,
     };
 
     renderer.startPhase("stories");
@@ -287,8 +287,8 @@ describe("PipelineRenderer", () => {
     const renderer = new PipelineRenderer(mockPhases, false, false);
     const metrics: PhaseMetrics = {
       costUsd: 0.1,
-      elapsedMs: 10_000,
       filesChanged: 2,
+      timeElapsedMs: 10_000,
     };
 
     renderer.startPhase("tasks");

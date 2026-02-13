@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-025
+- **Problem:** `types.ts` lacked the PipelineRenderer-specific shared contracts requested by TASK-013 (`PhaseStatus`, `PhaseMetrics`, `PhaseState`, `PipelineRendererOptions`, `SubtaskProgress`), so renderer/build/cascade typing could not use the milestone’s canonical shape.
+- **Changes:** Added the five required type definitions with JSDoc in `tools/src/commands/ralph/types.ts`, exported them from the module export block, and aligned live renderer metric usage to the new `timeElapsedMs` field across renderer wiring and targeted tests.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/pipeline-renderer.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/pipeline-renderer.test.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-016
 - **Problem:** Pipeline preview rendering lacked a dedicated approval-gate preview contract and formatter, so gate action outcomes (skip/prompt/auto/wait/exit) were not consistently represented in dry-run/live plan output utilities.
 - **Changes:** Added `ApprovalGatePreview` to Ralph shared types with `gateName`, `configValue`, `resolvedAction`, and optional `reason`; implemented and exported `renderApprovalGatePreview()` in `display.ts` to render `<gateName> → <ACTION> (<reason>)` with action-specific coloring (`skip` yellow with reason, `prompt` yellow bold, `auto-proceed` green as `AUTO`, `notify-wait` yellow, `exit-unstaged` red). Added focused `display.test.ts` coverage under `describe("renderApprovalGatePreview")` for all five actions and format/color assertions, including the Example 1 style `createStories → SKIP (--force)` line.
