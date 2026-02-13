@@ -32,8 +32,9 @@ import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import {
   type ApprovalGateCardData,
+  type CascadePhaseState,
   renderApprovalGateCard,
-  renderCascadeProgress,
+  renderCascadeProgressWithStates,
   renderEventLine,
   renderPhaseCard,
 } from "./display";
@@ -255,7 +256,7 @@ async function checkApprovalGate(
   level: CascadeLevelName,
   approvalConfig: ApprovalsConfig | undefined,
   context: CheckApprovalContext,
-  onAction?: (action: ApprovalAction, gateName: ApprovalGate) => void,
+  onWaiting?: (gateName: ApprovalGate) => void,
 ): Promise<ApprovalResult> {
   const gate = levelToGate(level);
 
@@ -276,12 +277,11 @@ async function checkApprovalGate(
     resolvedAction: action,
   });
 
-  if (onAction !== undefined) {
-    onAction(action, gate);
-  }
-
   switch (action) {
     case "exit-unstaged": {
+      if (onWaiting !== undefined) {
+        onWaiting(gate);
+      }
       console.log(renderApprovalGateCard(gateCardData));
       console.log(
         `[Approval] exit-unstaged for ${gate} - manual review required`,
@@ -301,12 +301,18 @@ async function checkApprovalGate(
     }
 
     case "notify-wait": {
+      if (onWaiting !== undefined) {
+        onWaiting(gate);
+      }
       const summary = `Proceeding with ${level} level`;
       await handleNotifyWait(gate, approvalConfig, summary, gateCardData);
       return "continue";
     }
 
     case "prompt": {
+      if (onWaiting !== undefined) {
+        onWaiting(gate);
+      }
       const summary = `Proceeding with ${level} level`;
       const isApproved = await promptApproval(gate, summary, gateCardData);
       return isApproved ? "continue" : "aborted";
@@ -606,6 +612,12 @@ async function runCascadeFrom(
     options.headless === true,
     isTTY,
   );
+  const phaseStates: Partial<Record<string, CascadePhaseState>> = {};
+
+  function renderProgress(): void {
+    console.log();
+    console.log(renderCascadeProgressWithStates(levelsToExecute, phaseStates));
+  }
 
   // Step 3: Execute each level in sequence
   const completedLevels: Array<string> = [];
@@ -643,6 +655,8 @@ async function runCascadeFrom(
 
       renderer.startPhase(currentLevel);
       const phaseStartedAt = Date.now();
+      phaseStates[currentLevel] = "running";
+      renderProgress();
 
       const approvalGate = levelToGate(currentLevel);
 
@@ -655,14 +669,16 @@ async function runCascadeFrom(
           cascadeTarget: target,
           milestonePath: resolvedMilestonePath,
         },
-        (action, gateName) => {
-          if (action === "notify-wait" || action === "prompt") {
-            renderer.setApprovalWait(gateName);
-          }
+        (gateName) => {
+          renderer.setApprovalWait(gateName);
+          phaseStates[currentLevel] = "waiting";
+          renderProgress();
         },
       );
 
       if (approvalResult === "aborted") {
+        phaseStates[currentLevel] = "failed";
+        renderProgress();
         return {
           completedLevels,
           error: "Aborted by user at approval prompt",
@@ -671,11 +687,9 @@ async function runCascadeFrom(
         };
       }
 
-      const remainingLevels = levelsToExecute.slice(completedLevels.length + 1);
-      console.log();
-      console.log(
-        renderCascadeProgress(currentLevel, completedLevels, remainingLevels),
-      );
+      phaseStates[currentLevel] = "running";
+      renderProgress();
+
       console.log(
         renderPhaseCard({
           domain: "CASCADE",
@@ -692,6 +706,8 @@ async function runCascadeFrom(
       // eslint-disable-next-line no-await-in-loop -- Levels must execute sequentially
       const levelError = await runLevel(currentLevel, runOptions);
       if (levelError !== null) {
+        phaseStates[currentLevel] = "failed";
+        renderProgress();
         return {
           completedLevels,
           error: levelError,
@@ -705,6 +721,8 @@ async function runCascadeFrom(
         filesChanged: 0,
         timeElapsedMs: Math.max(0, Date.now() - phaseStartedAt),
       });
+      phaseStates[currentLevel] = "completed";
+      renderProgress();
 
       if (approvalResult === "exit-unstaged") {
         if (approvalGate === null) {

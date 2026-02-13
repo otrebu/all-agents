@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-038
+- **Problem:** Cascade approval gates did not render an explicit waiting (`‖`) phase in the cascade progress line before interactive/timed gate handling, so users could not see a clear paused-at-gate transition before prompt/notify/exit flows.
+- **Changes:** Updated `cascade.ts` to track per-level phase states and render cascade progress via `renderCascadeProgressWithStates()`; each level now transitions through running (`◉`) -> waiting (`‖`) before `promptApproval()`/`handleNotifyWait()` (and `exit-unstaged`), then back to running and completed (`✓`) as execution proceeds. Refined `checkApprovalGate()` to invoke a waiting callback immediately before gate interaction calls, and added unit coverage that asserts waiting-state rendering happens before prompt/notify handlers. Added E2E coverage in `cascade.test.ts` that runs a review-gated cascade and verifies `‖` appears and later transitions to running/completed output after approval.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/cascade.test.ts`, `tools/tests/e2e/cascade.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-037
 - **Problem:** Cascade progress rendering only represented completed/running/pending levels, so approval-gate waiting could not be shown with a distinct symbol or color.
 - **Changes:** Added exported cascade phase-state contracts in `display.ts` (`CascadePhaseState` plus per-state symbol constants) and introduced `renderCascadeProgressWithStates(levels, phaseStates)` to render all six states with explicit symbol/color mappings: completed (`✓` green), running (`◉` cyan), waiting (`‖` yellow), timed wait (`~` yellow), failed (`✗` red), pending (`○` dim). Kept existing `renderCascadeProgress()` behavior unchanged for regression safety while reusing shared symbol constants for completed/running output. Expanded `display.test.ts` with new coverage for waiting rendering, all six symbol/color combinations, and visual distinctness between waiting vs running/pending.

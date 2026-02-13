@@ -218,4 +218,51 @@ JSON
     expect(output).toContain("→");
     expect(output).toMatch(/\[build\][^\n]*✓/);
   }, 20_000);
+
+  test("cascade shows waiting symbol at approval gate and transitions after approval", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "prompt-milestone");
+    const storiesDirectory = join(milestoneDirectory, "stories");
+    mkdirSync(storiesDirectory, { recursive: true });
+
+    writeFileSync(
+      join(storiesDirectory, "001-story.md"),
+      "# Story\n\nPrompt approval gate waiting symbol test\n",
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"ok","duration_ms":5,"total_cost_usd":0.0,"session_id":"sess-cascade-wait"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const command = `PATH="${temporaryDirectory}:${process.env.PATH ?? ""}" bun "${CLI_ENTRY}" ralph plan stories --milestone "${milestoneDirectory}" --cascade tasks --review`;
+    const childProcess = trackProcess(
+      execa("script", ["-qec", command, "/dev/null"], {
+        cwd: TOOLS_DIR,
+        env: { ...process.env, TERM: "xterm-256color" },
+        input: "y\n",
+        reject: false,
+        timeout: 20_000,
+      }),
+    );
+
+    const { exitCode, stdout } = await childProcess;
+    const output = typeof stdout === "string" ? stdout : String(stdout ?? "");
+
+    expect(exitCode).toBe(0);
+    expect(output).toMatch(/\[tasks\][^\n]*‖/);
+    expect(output).toMatch(/\[tasks\][^\n]*(?:◉|✓)/);
+
+    const waitingIndex = output.search(/\[tasks\][^\n]*‖/);
+    const resumedAfterWaiting = output
+      .slice(waitingIndex + 1)
+      .search(/\[tasks\][^\n]*(?:◉|✓)/);
+    expect(waitingIndex).toBeGreaterThanOrEqual(0);
+    expect(resumedAfterWaiting).toBeGreaterThanOrEqual(0);
+  }, 30_000);
 });
