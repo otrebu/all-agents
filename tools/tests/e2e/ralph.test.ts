@@ -1729,8 +1729,7 @@ kill -s INT $$
       );
 
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("not executable yet");
-      expect(stderr).toContain("Supported targets from 'tasks': none");
+      expect(stderr).toContain("requires --milestone or --story source");
       expect(stderr).not.toContain("provider binary not found");
     });
 
@@ -1752,9 +1751,7 @@ kill -s INT $$
       );
 
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("not executable yet");
-      expect(stderr).toContain("Supported targets from 'stories': none");
-      expect(stderr).not.toContain("milestone not found");
+      expect(stderr).toContain("milestone not found");
     });
 
     test("plan roadmap --cascade stories fails early with supported target guidance", async () => {

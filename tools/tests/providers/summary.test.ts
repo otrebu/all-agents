@@ -26,8 +26,10 @@ describe("provider summary model resolution", () => {
     );
   });
 
-  test("returns undefined for providers without summary defaults", () => {
-    expect(resolveLightweightModelForProvider("codex")).toBeUndefined();
+  test("uses codex default lightweight model when unset", () => {
+    expect(resolveLightweightModelForProvider("codex")).toBe(
+      "openai/gpt-5.1-codex-mini",
+    );
   });
 
   test("exposes defaults map for claude and opencode", () => {
@@ -35,6 +37,7 @@ describe("provider summary model resolution", () => {
     expect(DEFAULT_LIGHTWEIGHT_MODELS.opencode).toBe(
       "anthropic/claude-3-5-haiku-latest",
     );
+    expect(DEFAULT_LIGHTWEIGHT_MODELS.codex).toBe("openai/gpt-5.1-codex-mini");
   });
 });
 
@@ -42,7 +45,7 @@ describe("invokeProviderSummary", () => {
   test("returns null for unsupported providers", async () => {
     const result = await invokeProviderSummary({
       prompt: "test prompt",
-      provider: "codex",
+      provider: "gemini",
     });
 
     expect(result).toBeNull();

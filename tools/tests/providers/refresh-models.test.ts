@@ -1,14 +1,139 @@
 import type { ModelInfo } from "@tools/commands/ralph/providers/models-static";
+import type * as RefreshModelsModule from "@tools/commands/ralph/refresh-models";
 
+import { DISCOVERED_MODELS } from "@tools/commands/ralph/providers/models-dynamic";
 import { STATIC_MODELS } from "@tools/commands/ralph/providers/models-static";
 import {
-  deriveFriendlyId,
-  DISCOVERABLE_PROVIDERS,
-  filterDuplicates,
-  generateDynamicFileContent,
-  parseOpencodeModelsOutput,
-} from "@tools/commands/ralph/refresh-models";
-import { describe, expect, test } from "bun:test";
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+} from "bun:test";
+
+void mock.module("../src/commands/ralph/config", () => ({
+  loadRalphConfig: () => ({}),
+}));
+
+void mock.module("@tools/commands/ralph/config", () => ({
+  loadRalphConfig: () => ({}),
+}));
+
+let refreshModelsModule: null | typeof RefreshModelsModule = null;
+
+beforeAll(async () => {
+  refreshModelsModule = await import("@tools/commands/ralph/refresh-models");
+});
+
+interface SpawnSyncResult {
+  exitCode: number;
+  stderr: Uint8Array;
+  stdout: Uint8Array;
+}
+
+function getRefreshModelsModule(): typeof RefreshModelsModule {
+  if (refreshModelsModule === null) {
+    throw new Error("refresh models module not loaded");
+  }
+  return refreshModelsModule;
+}
+
+const originalSpawnSync = Bun.spawnSync;
+const originalConsoleLog = console.log;
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+const consoleLines: Array<string> = [];
+
+function collectConsoleLines(): Array<string> {
+  const lines = [...consoleLines];
+  consoleLines.length = 0;
+  return lines;
+}
+
+function makeSpawnSyncResult(
+  exitCode: number,
+  stdout: string,
+  stderr = "",
+): SpawnSyncResult {
+  return {
+    exitCode,
+    stderr: Buffer.from(stderr, "utf8"),
+    stdout: Buffer.from(stdout, "utf8"),
+  };
+}
+
+function setupCodexSpawnSyncMockWithOutput(output: string): void {
+  Object.assign(Bun, {
+    spawnSync: mock((command: Array<string>) => {
+      if (command[0] === "which") {
+        return makeSpawnSyncResult(0, "/usr/local/bin/codex\n");
+      }
+      if (command[0] === "codex") {
+        const commandText = command.slice(1).join(" ");
+        if (commandText === "models --json") {
+          return makeSpawnSyncResult(0, output);
+        }
+        if (
+          commandText === "models list --json" ||
+          commandText === "models" ||
+          commandText === "model list"
+        ) {
+          return makeSpawnSyncResult(0, "");
+        }
+
+        return makeSpawnSyncResult(0, "");
+      }
+      return makeSpawnSyncResult(1, "", "unexpected command");
+    }),
+  });
+}
+
+function setupCodexSpawnSyncMockWithOutputs(
+  outputs: Record<string, string>,
+): void {
+  Object.assign(Bun, {
+    spawnSync: mock((command: Array<string>) => {
+      if (command[0] === "which") {
+        return outputs.which === undefined
+          ? makeSpawnSyncResult(0, "/usr/local/bin/codex\n")
+          : makeSpawnSyncResult(0, outputs.which);
+      }
+
+      if (command[0] === "codex") {
+        const commandText = command.slice(1).join(" ");
+        if (outputs[commandText] !== undefined) {
+          return makeSpawnSyncResult(0, outputs[commandText]);
+        }
+        return makeSpawnSyncResult(0, "");
+      }
+
+      return makeSpawnSyncResult(1, "", "unexpected command");
+    }),
+  });
+}
+
+afterEach(() => {
+  DISCOVERED_MODELS.length = 0;
+});
+
+beforeEach(() => {
+  Bun.spawnSync = originalSpawnSync;
+  consoleLines.length = 0;
+  console.log = mock((...lines: Array<unknown>) => {
+    consoleLines.push(lines.map(String).join(" "));
+  }) as typeof console.log;
+  console.warn = mock(() => {}) as typeof console.warn;
+  console.error = mock(() => {}) as typeof console.error;
+});
+
+afterEach(() => {
+  Bun.spawnSync = originalSpawnSync;
+  console.log = originalConsoleLog;
+  console.warn = originalConsoleWarn;
+  console.error = originalConsoleError;
+});
 
 // =============================================================================
 // parseOpencodeModelsOutput (verbose format)
@@ -41,7 +166,7 @@ describe("parseOpencodeModelsOutput", () => {
       ),
     ].join("\n");
 
-    const result = parseOpencodeModelsOutput(input);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput(input);
     expect(result).toHaveLength(2);
     expect(result[0]?.id).toBe("openai/gpt-5.3-codex");
     expect(result[0]?.cliFormat).toBe("openai/gpt-5.3-codex");
@@ -74,7 +199,7 @@ describe("parseOpencodeModelsOutput", () => {
       }),
     ].join("\n");
 
-    const result = parseOpencodeModelsOutput(input);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput(input);
     expect(result).toHaveLength(3);
     expect(result[0]?.costHint).toBe("cheap");
     expect(result[1]?.costHint).toBe("expensive");
@@ -87,24 +212,26 @@ describe("parseOpencodeModelsOutput", () => {
       JSON.stringify({ id: "my-model-name", providerID: "provider" }),
     ].join("\n");
 
-    const result = parseOpencodeModelsOutput(input);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput(input);
     expect(result).toHaveLength(1);
     expect(result[0]?.cliFormat).toBe("provider/my-model-name");
     expect(result[0]?.id).toBe("provider/my-model-name");
   });
 
   test("returns empty array for non-string input", () => {
-    const result = parseOpencodeModelsOutput([{ id: "test" }]);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput([
+      { id: "test" },
+    ]);
     expect(result).toHaveLength(0);
   });
 
   test("returns empty array for null input", () => {
-    const result = parseOpencodeModelsOutput(null);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput(null);
     expect(result).toHaveLength(0);
   });
 
   test("returns empty array for empty string", () => {
-    const result = parseOpencodeModelsOutput("");
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput("");
     expect(result).toHaveLength(0);
   });
 
@@ -118,7 +245,7 @@ describe("parseOpencodeModelsOutput", () => {
       JSON.stringify({ id: "another-good", providerID: "provider" }),
     ].join("\n");
 
-    const result = parseOpencodeModelsOutput(input);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput(input);
     expect(result).toHaveLength(2);
     expect(result[0]?.id).toBe("provider/good-model");
     expect(result[1]?.id).toBe("provider/another-good");
@@ -130,7 +257,7 @@ describe("parseOpencodeModelsOutput", () => {
       JSON.stringify({ id: "test", providerID: "provider" }),
     ].join("\n");
 
-    const result = parseOpencodeModelsOutput(input);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput(input);
     expect(result[0]?.discoveredAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -142,7 +269,7 @@ describe("parseOpencodeModelsOutput", () => {
       JSON.stringify({ id: "model-b", providerID: "github-copilot" }),
     ].join("\n");
 
-    const result = parseOpencodeModelsOutput(input);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput(input);
     for (const model of result) {
       expect(model.provider).toBe("opencode");
     }
@@ -163,7 +290,7 @@ describe("parseOpencodeModelsOutput", () => {
       ),
     ].join("\n");
 
-    const result = parseOpencodeModelsOutput(input);
+    const result = getRefreshModelsModule().parseOpencodeModelsOutput(input);
     expect(result).toHaveLength(1);
     expect(result[0]?.id).toBe("opencode/big-pickle");
     expect(result[0]?.cliFormat).toBe("opencode/big-pickle");
@@ -176,17 +303,25 @@ describe("parseOpencodeModelsOutput", () => {
 
 describe("deriveFriendlyId", () => {
   test("returns cliFormat when it contains a slash", () => {
-    const result = deriveFriendlyId({}, "openai/gpt-4o", "gpt-4o");
+    const result = getRefreshModelsModule().deriveFriendlyId(
+      {},
+      "openai/gpt-4o",
+      "gpt-4o",
+    );
     expect(result).toBe("openai/gpt-4o");
   });
 
   test("returns fallback when it contains a slash", () => {
-    const result = deriveFriendlyId({}, "gpt-4o", "openai/gpt-4o");
+    const result = getRefreshModelsModule().deriveFriendlyId(
+      {},
+      "gpt-4o",
+      "openai/gpt-4o",
+    );
     expect(result).toBe("openai/gpt-4o");
   });
 
   test("constructs provider/fallback from record.providerID", () => {
-    const result = deriveFriendlyId(
+    const result = getRefreshModelsModule().deriveFriendlyId(
       { providerID: "openai" },
       "gpt-4o",
       "gpt-4o",
@@ -195,7 +330,7 @@ describe("deriveFriendlyId", () => {
   });
 
   test("falls back to record.provider when providerID missing", () => {
-    const result = deriveFriendlyId(
+    const result = getRefreshModelsModule().deriveFriendlyId(
       { provider: "github-copilot" },
       "gpt-4o",
       "gpt-4o",
@@ -204,7 +339,11 @@ describe("deriveFriendlyId", () => {
   });
 
   test("returns plain fallback when no provider info available", () => {
-    const result = deriveFriendlyId({}, "gpt-4o", "gpt-4o");
+    const result = getRefreshModelsModule().deriveFriendlyId(
+      {},
+      "gpt-4o",
+      "gpt-4o",
+    );
     expect(result).toBe("gpt-4o");
   });
 });
@@ -234,7 +373,7 @@ describe("filterDuplicates", () => {
       },
     ];
 
-    const result = filterDuplicates(discovered);
+    const result = getRefreshModelsModule().filterDuplicates(discovered);
     expect(result).toHaveLength(1);
     expect(result[0]?.id).toBe("google/gemini-2.5-pro");
   });
@@ -250,7 +389,7 @@ describe("filterDuplicates", () => {
       },
     ];
 
-    const result = filterDuplicates(discovered);
+    const result = getRefreshModelsModule().filterDuplicates(discovered);
     expect(result).toHaveLength(1);
   });
 
@@ -260,12 +399,39 @@ describe("filterDuplicates", () => {
       discoveredAt: "2026-02-06",
     }));
 
-    const result = filterDuplicates(discovered);
+    const result = getRefreshModelsModule().filterDuplicates(discovered);
     expect(result).toHaveLength(0);
   });
 
+  test("skips models already stored in the dynamic registry", () => {
+    const existingModel: ModelInfo = {
+      cliFormat: "google/gemini-3-plus",
+      costHint: "standard",
+      discoveredAt: "2026-02-06",
+      id: "google/gemini-3-plus",
+      provider: "opencode",
+    };
+
+    DISCOVERED_MODELS.push(existingModel);
+
+    const discovered: Array<ModelInfo> = [
+      existingModel,
+      {
+        cliFormat: "google/gemini-3-flash",
+        costHint: "standard",
+        discoveredAt: "2026-02-06",
+        id: "google/gemini-3-flash",
+        provider: "opencode",
+      },
+    ];
+
+    const result = getRefreshModelsModule().filterDuplicates(discovered);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("google/gemini-3-flash");
+  });
+
   test("returns empty array for empty input", () => {
-    const result = filterDuplicates([]);
+    const result = getRefreshModelsModule().filterDuplicates([]);
     expect(result).toHaveLength(0);
   });
 });
@@ -276,7 +442,7 @@ describe("filterDuplicates", () => {
 
 describe("generateDynamicFileContent", () => {
   test("generates valid TypeScript with auto-generated header", () => {
-    const content = generateDynamicFileContent([]);
+    const content = getRefreshModelsModule().generateDynamicFileContent([]);
     expect(content).toContain("Auto-generated by `aaa ralph refresh-models`");
     expect(content).toContain("Do not edit manually");
     expect(content).toContain("Generated:");
@@ -285,14 +451,14 @@ describe("generateDynamicFileContent", () => {
   });
 
   test("generates empty array when no models provided", () => {
-    const content = generateDynamicFileContent([]);
+    const content = getRefreshModelsModule().generateDynamicFileContent([]);
     expect(content).toContain(
       "const DISCOVERED_MODELS: Array<ModelInfo> = [];",
     );
   });
 
   test("includes import for ModelInfo type", () => {
-    const content = generateDynamicFileContent([]);
+    const content = getRefreshModelsModule().generateDynamicFileContent([]);
     expect(content).toContain(
       'import type { ModelInfo } from "./models-static"',
     );
@@ -309,7 +475,7 @@ describe("generateDynamicFileContent", () => {
       },
     ];
 
-    const content = generateDynamicFileContent(models);
+    const content = getRefreshModelsModule().generateDynamicFileContent(models);
     expect(content).toContain('"google/gemini-2.5-pro"');
     expect(content).toContain('"standard"');
     expect(content).toContain('"2026-02-06"');
@@ -332,14 +498,14 @@ describe("generateDynamicFileContent", () => {
       },
     ];
 
-    const content = generateDynamicFileContent(models);
+    const content = getRefreshModelsModule().generateDynamicFileContent(models);
     const aIndex = content.indexOf('"a-model"');
     const zIndex = content.indexOf('"z-model"');
     expect(aIndex).toBeLessThan(zIndex);
   });
 
   test("includes generation timestamp in ISO format", () => {
-    const content = generateDynamicFileContent([]);
+    const content = getRefreshModelsModule().generateDynamicFileContent([]);
     expect(content).toMatch(/Generated: \d{4}-\d{2}-\d{2}T/);
   });
 });
@@ -349,11 +515,86 @@ describe("generateDynamicFileContent", () => {
 // =============================================================================
 
 describe("DISCOVERABLE_PROVIDERS", () => {
+  test("includes codex", () => {
+    expect(getRefreshModelsModule().DISCOVERABLE_PROVIDERS).toContain("codex");
+  });
+
   test("includes opencode", () => {
-    expect(DISCOVERABLE_PROVIDERS).toContain("opencode");
+    expect(getRefreshModelsModule().DISCOVERABLE_PROVIDERS).toContain(
+      "opencode",
+    );
   });
 
   test("is a non-empty array", () => {
-    expect(DISCOVERABLE_PROVIDERS.length).toBeGreaterThan(0);
+    expect(
+      getRefreshModelsModule().DISCOVERABLE_PROVIDERS.length,
+    ).toBeGreaterThan(0);
+  });
+});
+
+// =============================================================================
+// runRefreshModels
+// =============================================================================
+
+describe("runRefreshModels", () => {
+  test("discovers models for codex when provider is specified", () => {
+    const discovered = [
+      { id: "gpt-5.3-codex-unlisted", providerID: "openai" },
+      { id: "gpt-5-codex-bridge", providerID: "openai" },
+    ];
+
+    setupCodexSpawnSyncMockWithOutput(JSON.stringify(discovered));
+
+    getRefreshModelsModule().runRefreshModels({
+      isDryRun: true,
+      provider: "codex",
+    });
+    const lines = collectConsoleLines();
+
+    expect(
+      lines.some((line) => line.includes("Discovered 2 new models (dry run):")),
+    ).toBe(true);
+  });
+
+  test("discovers codex models via discoverFromProviders", () => {
+    const output = JSON.stringify([
+      { id: "gpt-5.1-codex", providerID: "openai" },
+    ]);
+    setupCodexSpawnSyncMockWithOutput(output);
+
+    const models = getRefreshModelsModule().discoverFromProviders(["codex"]);
+    expect(models).toHaveLength(1);
+    expect(models[0]?.id).toBe("openai/gpt-5.1-codex");
+    expect(models[0]?.provider).toBe("codex");
+    expect(models[0]?.cliFormat).toBe("openai/gpt-5.1-codex");
+  });
+
+  test("discovers codex models from plain-text fallback output", () => {
+    const output = ["openai/gpt-5.3-codex", "provider-b/gpt-mini"].join("\n");
+    setupCodexSpawnSyncMockWithOutputs({
+      "model list": "",
+      models: output,
+      "models --json": "",
+      "models list --json": "",
+    });
+
+    const models = getRefreshModelsModule().discoverFromProviders(["codex"]);
+    expect(models).toHaveLength(2);
+    expect(models.map((m) => m.id)).toEqual([
+      "openai/gpt-5.3-codex",
+      "provider-b/gpt-mini",
+    ]);
+  });
+
+  test("throws for unknown provider flag", () => {
+    expect(() => {
+      getRefreshModelsModule().runRefreshModels({ provider: "not-a-provider" });
+    }).toThrow();
+  });
+
+  test("throws for providers that do not support discovery", () => {
+    expect(() => {
+      getRefreshModelsModule().runRefreshModels({ provider: "claude" });
+    }).toThrow(/does not support model discovery/i);
   });
 });

@@ -8,6 +8,7 @@ import {
   createClaudeFailureOutcome,
   createClaudeNullOutcome,
 } from "@tools/commands/ralph/providers/claude";
+import { mapCodexInvocationError } from "@tools/commands/ralph/providers/codex";
 import { mapOpencodeInvocationError } from "@tools/commands/ralph/providers/opencode";
 import {
   formatProviderFailureOutcome,
@@ -48,10 +49,15 @@ describe("provider failure classifiers", () => {
 
   for (const fixture of fixtures) {
     test(`${fixture.provider} classifies ${fixture.name}`, () => {
-      const outcome =
-        fixture.provider === "claude"
-          ? createClaudeFailureOutcome(new Error(fixture.message))
-          : mapOpencodeInvocationError(new Error(fixture.message));
+      const outcome = (() => {
+        if (fixture.provider === "claude") {
+          return createClaudeFailureOutcome(new Error(fixture.message));
+        }
+        if (fixture.provider === "codex") {
+          return mapCodexInvocationError(new Error(fixture.message));
+        }
+        return mapOpencodeInvocationError(new Error(fixture.message));
+      })();
 
       expect(outcome.provider).toBe(fixture.provider);
       expect(outcome.reason).toBe(fixture.reason);

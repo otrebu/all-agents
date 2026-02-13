@@ -1,6 +1,7 @@
 import type { ProviderType } from "./types";
 
 import { invokeClaudeHaiku } from "./claude";
+import { invokeCodexHeadless } from "./codex";
 import { invokeOpencodeHeadless } from "./opencode";
 
 interface ProviderSummaryOptions {
@@ -12,6 +13,7 @@ interface ProviderSummaryOptions {
 
 const DEFAULT_LIGHTWEIGHT_MODELS: Partial<Record<ProviderType, string>> = {
   claude: "claude-3-5-haiku-latest",
+  codex: "openai/gpt-5.1-codex-mini",
   opencode: "anthropic/claude-3-5-haiku-latest",
 };
 
@@ -25,6 +27,15 @@ async function invokeProviderSummary(
     switch (provider) {
       case "claude": {
         return await invokeClaudeHaiku({ model, prompt, timeout: timeoutMs });
+      }
+      case "codex": {
+        const result = await invokeCodexHeadless({
+          config: { model, provider: "codex", timeoutMs },
+          mode: "headless-async",
+          prompt,
+        });
+        const text = result.result.trim();
+        return text === "" ? null : text;
       }
       case "opencode": {
         const result = await invokeOpencodeHeadless({

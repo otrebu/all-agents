@@ -34,6 +34,45 @@ interface ModelValidationSuccess {
 }
 
 // =============================================================================
+// Provider-Specific Model Helpers
+// =============================================================================
+
+const CODEX_COMPATIBLE_MODEL_PATTERN = /(?:^|[./-])codex(?=[./-]|$)/i;
+
+function getCodexCompatibleModels(models: Array<ModelInfo>): Array<ModelInfo> {
+  return models
+    .filter((model) => isCodexCompatibleModel(model))
+    .map((model) => ({ ...model, provider: "codex" }));
+}
+
+function getModelForProvider(
+  modelId: string,
+  provider: ProviderType,
+): ModelInfo | undefined {
+  const model = getModelById(modelId);
+  if (model === undefined) {
+    return undefined;
+  }
+
+  if (model.provider === provider) {
+    return model;
+  }
+
+  if (provider === "codex" && isCodexCompatibleModel(model)) {
+    return { ...model, provider: "codex" };
+  }
+
+  return model;
+}
+
+function isCodexCompatibleModel(model: ModelInfo): boolean {
+  return (
+    CODEX_COMPATIBLE_MODEL_PATTERN.test(model.id) ||
+    CODEX_COMPATIBLE_MODEL_PATTERN.test(model.cliFormat)
+  );
+}
+
+// =============================================================================
 // Constants
 // =============================================================================
 
@@ -70,6 +109,10 @@ function getModelCompletionsForProvider(provider: ProviderType): Array<string> {
 
 /** Filter models by provider */
 function getModelsForProvider(provider: ProviderType): Array<ModelInfo> {
+  if (provider === "codex") {
+    return getCodexCompatibleModels(getAllModels());
+  }
+
   return getAllModels().filter((m) => m.provider === provider);
 }
 
@@ -81,7 +124,7 @@ function validateModelForProvider(
   modelId: string,
   provider: ProviderType,
 ): string {
-  const model = getModelById(modelId);
+  const model = getModelForProvider(modelId, provider);
 
   if (!model) {
     const suggestions = getModelsForProvider(provider)
@@ -121,7 +164,7 @@ function validateModelSelection(
   modelId: string,
   provider: ProviderType,
 ): ModelValidationResult {
-  const model = getModelById(modelId);
+  const model = getModelForProvider(modelId, provider);
 
   if (!model) {
     const suggestions = getModelsForProvider(provider)

@@ -88,9 +88,13 @@ describe("getModelsForProvider", () => {
     }
   });
 
-  test("returns empty array for provider with no models", () => {
+  test("returns Codex-compatible models for 'codex'", () => {
     const models = getModelsForProvider("codex");
-    expect(models).toHaveLength(0);
+    expect(models.length).toBeGreaterThan(0);
+    for (const m of models) {
+      expect(m.provider).toBe("codex");
+      expect(m.id).toMatch(/codex/);
+    }
   });
 });
 
@@ -199,6 +203,11 @@ describe("validateModelForProvider", () => {
 
   test("returns cliFormat for valid OpenCode model", () => {
     const result = validateModelForProvider("openai/gpt-5.2-codex", "opencode");
+    expect(result).toBe("openai/gpt-5.2-codex");
+  });
+
+  test("returns cliFormat for valid Codex model alias", () => {
+    const result = validateModelForProvider("openai/gpt-5.2-codex", "codex");
     expect(result).toBe("openai/gpt-5.2-codex");
   });
 
