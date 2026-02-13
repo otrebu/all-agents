@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-043
+- **Problem:** Ralph shell completions still used older `--dry-run` wording for pipeline commands, so zsh/fish did not surface the standardized preview description for build/plan/calibrate flows.
+- **Changes:** Updated `--dry-run` completion descriptions in `zsh.ts` and `fish.ts` for `ralph build`, `ralph plan roadmap|stories|tasks|subtasks`, and `ralph calibrate` to `Preview execution plan without running`. Added completion tests that verify preview entries are present for those sections and that existing non-pipeline dry-run descriptions (notify, subtasks append/prepend, refresh-models) remain unchanged. Also made completion tests resolve `tools/` from the local test file path so they validate the active worktree.
+- **Files:** `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `tools/tests/completion/model-completion.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-038
 - **Problem:** Cascade approval gates did not render an explicit waiting (`‖`) phase in the cascade progress line before interactive/timed gate handling, so users could not see a clear paused-at-gate transition before prompt/notify/exit flows.
 - **Changes:** Updated `cascade.ts` to track per-level phase states and render cascade progress via `renderCascadeProgressWithStates()`; each level now transitions through running (`◉`) -> waiting (`‖`) before `promptApproval()`/`handleNotifyWait()` (and `exit-unstaged`), then back to running and completed (`✓`) as execution proceeds. Refined `checkApprovalGate()` to invoke a waiting callback immediately before gate interaction calls, and added unit coverage that asserts waiting-state rendering happens before prompt/notify handlers. Added E2E coverage in `cascade.test.ts` that runs a review-gated cascade and verifies `‖` appears and later transitions to running/completed output after approval.
