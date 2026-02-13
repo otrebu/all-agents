@@ -2,11 +2,12 @@
  * refresh-models command - discover available models from CLI providers
  *
  * Queries providers that support model listing (starting with OpenCode),
- * generates a new models-dynamic.ts file, and merges discovered models
+ * updates models-dynamic.json, and merges discovered models
  * with the static baseline.
  *
  * @see docs/planning/milestones/004-MULTI-CLI/tasks/TASK-050-dynamic-discovery.md
  */
+/* eslint-disable perfectionist/sort-modules, no-continue, no-nested-ternary, unicorn/no-nested-ternary */
 
 import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -25,7 +26,39 @@ import { REGISTRY, validateProvider } from "./providers/registry";
 
 interface RefreshOptions {
   isDryRun?: boolean;
+  isPrune?: boolean;
   provider?: string;
+}
+
+interface BuildNextDynamicModelsInput {
+  discovered: Array<ModelInfo>;
+  existing: Array<ModelInfo>;
+  isPrune: boolean;
+  successfulProviders: Array<ProviderType>;
+}
+
+interface BuildNextDynamicModelsResult {
+  nextModels: Array<ModelInfo>;
+  summary: RefreshSummary;
+}
+
+interface DynamicModelsPayload {
+  generatedAt: string;
+  models: Array<ModelInfo>;
+  version: 1;
+}
+
+interface ProviderDiscoveryOutcome {
+  didSucceed: boolean;
+  models: Array<ModelInfo>;
+  provider: ProviderType;
+}
+
+interface RefreshSummary {
+  added: number;
+  removed: number;
+  unchanged: number;
+  updated: number;
 }
 
 // =============================================================================
@@ -117,20 +150,61 @@ function discoverCursorModels(): Array<ModelInfo> {
 function discoverFromProviders(
   providers: Array<ProviderType>,
 ): Array<ModelInfo> {
-  const results: Array<ModelInfo> = [];
-  for (const p of providers) {
-    if (p === "cursor") {
-      results.push(...discoverCursorModels());
+  return discoverFromProvidersWithStatus(providers).flatMap(
+    (outcome) => outcome.models,
+  );
+}
+
+function discoverFromProvidersWithStatus(
+  providers: Array<ProviderType>,
+): Array<ProviderDiscoveryOutcome> {
+  const outcomes: Array<ProviderDiscoveryOutcome> = [];
+  for (const provider of providers) {
+    if (!isProviderBinaryAvailable(provider)) {
+      console.warn(
+        `Warning: ${provider} CLI not found in PATH, skipping discovery.`,
+      );
+      outcomes.push({ didSucceed: false, models: [], provider });
+      continue;
     }
 
-    if (p === "opencode") {
-      results.push(...discoverOpencodeModels());
-    } else if (p === "codex") {
-      results.push(...discoverCodexModels());
+    try {
+      if (provider === "cursor") {
+        outcomes.push({
+          didSucceed: true,
+          models: discoverCursorModels(),
+          provider,
+        });
+        continue;
+      }
+
+      if (provider === "opencode") {
+        outcomes.push({
+          didSucceed: true,
+          models: discoverOpencodeModels(),
+          provider,
+        });
+        continue;
+      }
+
+      if (provider === "codex") {
+        outcomes.push({
+          didSucceed: true,
+          models: discoverCodexModels(),
+          provider,
+        });
+        continue;
+      }
+
+      outcomes.push({ didSucceed: true, models: [], provider });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error discovering ${provider} models: ${message}`);
+      outcomes.push({ didSucceed: false, models: [], provider });
     }
-    // Future providers can be added here
   }
-  return results;
+
+  return outcomes;
 }
 
 /**
@@ -140,16 +214,6 @@ function discoverFromProviders(
  * Returns empty array if CLI is not installed or command fails.
  */
 function discoverOpencodeModels(): Array<ModelInfo> {
-  // Check if opencode is installed
-  const whichProc = Bun.spawnSync(["which", "opencode"], {
-    stderr: "pipe",
-    stdout: "pipe",
-  });
-  if (whichProc.exitCode !== 0) {
-    console.warn("Warning: opencode CLI not found, skipping...");
-    return [];
-  }
-
   try {
     const proc = Bun.spawnSync(["opencode", "models", "--verbose"], {
       stderr: "pipe",
@@ -185,16 +249,143 @@ function extractStringField(
   return typeof value === "string" ? value : undefined;
 }
 
+function isProviderBinaryAvailable(provider: ProviderType): boolean {
+  if (provider === "cursor") {
+    return CURSOR_BINARY_CANDIDATES.some((binary) => {
+      try {
+        const proc = Bun.spawnSync(["which", binary], {
+          stderr: "pipe",
+          stdout: "pipe",
+        });
+        return proc.exitCode === 0;
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  const binary =
+    provider === "opencode"
+      ? "opencode"
+      : provider === "codex"
+        ? "codex"
+        : null;
+  if (binary === null) {
+    return true;
+  }
+
+  try {
+    const proc = Bun.spawnSync(["which", binary], {
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+    return proc.exitCode === 0;
+  } catch {
+    return false;
+  }
+}
+
+function hasModelChanged(previous: ModelInfo, next: ModelInfo): boolean {
+  return (
+    previous.cliFormat !== next.cliFormat ||
+    previous.costHint !== next.costHint ||
+    previous.discoveredAt !== next.discoveredAt ||
+    previous.id !== next.id ||
+    previous.provider !== next.provider
+  );
+}
+
 /**
  * Filter out discovered models whose IDs match static models.
  * Static models always take precedence.
  */
 function filterDuplicates(discovered: Array<ModelInfo>): Array<ModelInfo> {
   const staticIds = new Set(STATIC_MODELS.map((m) => m.id));
-  const dynamicIds = new Set(DISCOVERED_MODELS.map((m) => m.id));
-  return discovered.filter(
-    (m) => !staticIds.has(m.id) && !dynamicIds.has(m.id),
-  );
+  return discovered.filter((m) => !staticIds.has(m.id));
+}
+
+function sortModels(models: Array<ModelInfo>): Array<ModelInfo> {
+  return [...models].sort((a, b) => {
+    if (a.provider < b.provider) return -1;
+    if (a.provider > b.provider) return 1;
+    if (a.id < b.id) return -1;
+    if (a.id > b.id) return 1;
+    return 0;
+  });
+}
+
+function uniqueById(models: Array<ModelInfo>): Array<ModelInfo> {
+  const byId = new Map<string, ModelInfo>();
+  for (const model of models) {
+    byId.set(model.id, model);
+  }
+  return [...byId.values()];
+}
+
+function buildNextDynamicModels(
+  input: BuildNextDynamicModelsInput,
+): BuildNextDynamicModelsResult {
+  const existing = uniqueById(filterDuplicates(input.existing));
+  const discovered = uniqueById(filterDuplicates(input.discovered));
+
+  const existingById = new Map(existing.map((model) => [model.id, model]));
+  const nextById = new Map(existingById);
+  for (const model of discovered) {
+    nextById.set(model.id, model);
+  }
+
+  if (input.isPrune) {
+    const successfulProviders = new Set(input.successfulProviders);
+    const discoveredByProvider = new Map<ProviderType, Set<string>>();
+    for (const model of discovered) {
+      const existingIds = discoveredByProvider.get(model.provider);
+      if (existingIds === undefined) {
+        discoveredByProvider.set(model.provider, new Set([model.id]));
+      } else {
+        existingIds.add(model.id);
+      }
+    }
+
+    for (const [id, model] of nextById) {
+      if (!successfulProviders.has(model.provider)) {
+        continue;
+      }
+
+      const discoveredIdsForProvider =
+        discoveredByProvider.get(model.provider) ?? new Set<string>();
+      if (!discoveredIdsForProvider.has(id)) {
+        nextById.delete(id);
+      }
+    }
+  }
+
+  const nextModels = sortModels([...nextById.values()]);
+  let added = 0;
+  let unchanged = 0;
+  let updated = 0;
+  for (const model of nextModels) {
+    const previous = existingById.get(model.id);
+    if (previous === undefined) {
+      added += 1;
+      continue;
+    }
+
+    if (hasModelChanged(previous, model)) {
+      updated += 1;
+      continue;
+    }
+
+    unchanged += 1;
+  }
+
+  let removed = 0;
+  for (const [id] of existingById) {
+    if (!nextById.has(id)) {
+      removed += 1;
+    }
+  }
+
+  return { nextModels, summary: { added, removed, unchanged, updated } };
 }
 
 // =============================================================================
@@ -202,63 +393,22 @@ function filterDuplicates(discovered: Array<ModelInfo>): Array<ModelInfo> {
 // =============================================================================
 
 /**
- * Generate the content of models-dynamic.ts from discovered models
+ * Generate the content of models-dynamic.json from discovered models
  */
 function generateDynamicFileContent(models: Array<ModelInfo>): string {
-  const timestamp = new Date().toISOString();
-
-  // Sort by provider, then by ID
-  const sorted = [...models].sort((a, b) => {
-    if (a.provider < b.provider) return -1;
-    if (a.provider > b.provider) return 1;
-    if (a.id < b.id) return -1;
-    if (a.id > b.id) return 1;
-    return 0;
-  });
-
-  const lines: Array<string> = [];
-  lines.push(
-    "// Auto-generated by `aaa ralph refresh-models`",
-    "// Do not edit manually - changes will be overwritten on next refresh",
-    `// Generated: ${timestamp}`,
-    "",
-    'import type { ModelInfo } from "./models-static";',
-    "",
-  );
-
-  if (sorted.length === 0) {
-    lines.push("const DISCOVERED_MODELS: Array<ModelInfo> = [];");
-  } else {
-    lines.push("const DISCOVERED_MODELS: Array<ModelInfo> = [");
-    for (const model of sorted) {
-      lines.push("  {");
-      lines.push(`    cliFormat: ${JSON.stringify(model.cliFormat)},`);
-      lines.push(`    costHint: ${JSON.stringify(model.costHint)},`);
-      if (model.discoveredAt !== undefined) {
-        lines.push(`    discoveredAt: ${JSON.stringify(model.discoveredAt)},`);
-      }
-      lines.push(`    id: ${JSON.stringify(model.id)},`);
-      lines.push(`    provider: ${JSON.stringify(model.provider)},`);
-      lines.push("  },");
-    }
-    lines.push("];");
-  }
-
-  lines.push(
-    "",
-    "// eslint-disable-next-line import/prefer-default-export -- named export required for code generation consistency",
-    "export { DISCOVERED_MODELS };",
-    "",
-  );
-
-  return lines.join("\n");
+  const payload: DynamicModelsPayload = {
+    generatedAt: new Date().toISOString(),
+    models: sortModels(models),
+    version: 1,
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
 }
 
 /**
- * Get the path to models-dynamic.ts
+ * Get the path to models-dynamic.json
  */
 function getDynamicModelsPath(): string {
-  return path.join(import.meta.dirname, "providers", "models-dynamic.ts");
+  return path.join(import.meta.dirname, "providers", "models-dynamic.json");
 }
 
 function parseCursorCostHint(
@@ -511,7 +661,7 @@ function resolveCursorDiscoveryBinary(): null | string {
  * 3. Write or preview results
  */
 function runRefreshModels(options: RefreshOptions): void {
-  const { isDryRun = false, provider } = options;
+  const { isDryRun = false, isPrune = false, provider } = options;
 
   // Validate provider flag first
   const providersToRefresh: Array<ProviderType> =
@@ -533,27 +683,52 @@ function runRefreshModels(options: RefreshOptions): void {
   }
 
   // Discover models from each provider
-  const allDiscovered = discoverFromProviders(providersToRefresh);
+  const outcomes = discoverFromProvidersWithStatus(providersToRefresh);
+  const allDiscovered = outcomes.flatMap((outcome) => outcome.models);
+  const successfulProviders = outcomes
+    .filter((outcome) => outcome.didSucceed)
+    .map((outcome) => outcome.provider);
 
-  // Filter out duplicates against static registry
-  const unique = filterDuplicates(allDiscovered);
-
-  if (unique.length === 0) {
-    console.log("No new models discovered.");
-    return;
-  }
+  const existing = uniqueById(filterDuplicates(DISCOVERED_MODELS));
+  const { nextModels, summary } = buildNextDynamicModels({
+    discovered: allDiscovered,
+    existing,
+    isPrune,
+    successfulProviders,
+  });
 
   // Dry-run mode: print without writing
   if (isDryRun) {
-    console.log(`Discovered ${unique.length} new models (dry run):`);
-    for (const model of unique) {
-      console.log(`  ${model.id} -> ${model.cliFormat} (${model.provider})`);
+    if (summary.added + summary.updated + summary.removed === 0) {
+      console.log("No model registry changes (dry run).");
+      return;
     }
+
+    if (summary.updated === 0 && summary.removed === 0) {
+      const existingIds = new Set(existing.map((model) => model.id));
+      const newlyAdded = nextModels.filter(
+        (model) => !existingIds.has(model.id),
+      );
+      console.log(`Discovered ${newlyAdded.length} new models (dry run):`);
+      for (const model of newlyAdded) {
+        console.log(`  ${model.id} -> ${model.cliFormat} (${model.provider})`);
+      }
+      return;
+    }
+
+    console.log(
+      `Model registry changes (dry run): +${summary.added} ~${summary.updated} -${summary.removed}`,
+    );
+    return;
+  }
+
+  if (summary.added + summary.updated + summary.removed === 0) {
+    console.log("No model registry changes.");
     return;
   }
 
   // Write the dynamic models file
-  const content = generateDynamicFileContent(unique);
+  const content = generateDynamicFileContent(nextModels);
   const filePath = getDynamicModelsPath();
 
   // Ensure the directory exists
@@ -563,7 +738,9 @@ function runRefreshModels(options: RefreshOptions): void {
   }
 
   writeFileSync(filePath, content, "utf8");
-  console.log(`Discovered ${unique.length} new models`);
+  console.log(
+    `Updated dynamic model registry: +${summary.added} ~${summary.updated} -${summary.removed}`,
+  );
   console.log(`Updated: ${filePath}`);
 }
 
@@ -572,10 +749,12 @@ function runRefreshModels(options: RefreshOptions): void {
 // =============================================================================
 
 export {
+  buildNextDynamicModels,
   deriveFriendlyId,
   DISCOVERABLE_PROVIDERS,
   discoverCursorModels,
   discoverFromProviders,
+  discoverFromProvidersWithStatus,
   discoverOpencodeModels,
   filterDuplicates,
   generateDynamicFileContent,

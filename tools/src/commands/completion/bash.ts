@@ -309,7 +309,7 @@ _aaa_completions() {
                         return
                         ;;
                     refresh-models)
-                        COMPREPLY=($(compgen -W "--dry-run --provider" -- "$cur"))
+                        COMPREPLY=($(compgen -W "--dry-run --prune --provider" -- "$cur"))
                         return
                         ;;
                     archive)
