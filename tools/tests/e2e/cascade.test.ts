@@ -1,5 +1,5 @@
 /**
- * E2E tests for cascade module validation functions
+ * E2E tests for cascade validation and CLI pipeline behavior
  *
  * Tests cascade validation logic through direct module imports.
  * Since cascade functions are internal utilities (not CLI commands),
@@ -14,7 +14,15 @@ import {
   getLevelsInRange,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
-import { describe, expect, test } from "bun:test";
+import { getContextRoot } from "@tools/utils/paths";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { execa, type ResultPromise } from "execa";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const TOOLS_DIR = join(getContextRoot(), "tools");
+const CLI_ENTRY = join(import.meta.dir, "../../src/cli.ts");
 
 // =============================================================================
 // validateCascadeTarget E2E Tests
@@ -34,15 +42,14 @@ describe("cascade E2E - validateCascadeTarget", () => {
     expect(validateCascadeTarget("build", "calibrate")).toBeNull();
   });
 
-  test("forward cascade through planning levels returns error (not executable)", () => {
-    const storiesError = validateCascadeTarget("stories", "calibrate");
-    expect(storiesError).not.toBeNull();
-    expect(storiesError).toContain("not executable yet");
-    expect(storiesError).toContain("tasks, subtasks");
+  test("forward cascade through executable planning levels returns null (valid)", () => {
+    expect(validateCascadeTarget("stories", "subtasks")).toBeNull();
+    expect(validateCascadeTarget("stories", "calibrate")).toBeNull();
 
     const roadmapError = validateCascadeTarget("roadmap", "subtasks");
     expect(roadmapError).not.toBeNull();
     expect(roadmapError).toContain("not executable yet");
+    expect(roadmapError).toContain("Unsupported levels in path: stories");
   });
 
   test("same level cascade returns error", () => {
@@ -108,4 +115,107 @@ describe("cascade E2E - getLevelsInRange", () => {
     expect(getLevelsInRange("invalid", "build")).toEqual([]);
     expect(getLevelsInRange("tasks", "invalid")).toEqual([]);
   });
+});
+
+describe("cascade E2E - CLI pipeline header", () => {
+  let temporaryDirectory = "";
+  const runningProcesses = new Set<ResultPromise>();
+
+  function trackProcess(process: ResultPromise): ResultPromise {
+    runningProcesses.add(process);
+    return process;
+  }
+
+  beforeEach(() => {
+    temporaryDirectory = join(
+      tmpdir(),
+      `cascade-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    for (const process of runningProcesses) {
+      if (process.exitCode === null && process.pid !== undefined) {
+        try {
+          process.kill("SIGKILL");
+        } catch {
+          // Ignore cleanup failures.
+        }
+      }
+    }
+    runningProcesses.clear();
+
+    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("cascade shows phase transitions in header", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "test-milestone");
+    const storiesDirectory = join(milestoneDirectory, "stories");
+    const tasksDirectory = join(milestoneDirectory, "tasks");
+    mkdirSync(storiesDirectory, { recursive: true });
+    mkdirSync(tasksDirectory, { recursive: true });
+
+    writeFileSync(
+      join(storiesDirectory, "001-story.md"),
+      "# Story\n\nPipeline header test story\n",
+    );
+    writeFileSync(
+      join(tasksDirectory, "001-task.md"),
+      "# Task\n\nPipeline header test task\n",
+    );
+    writeFileSync(
+      join(milestoneDirectory, "subtasks.json"),
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "test-milestone", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Already complete"],
+              description: "Existing subtask keeps build phase fast",
+              done: true,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "001-task",
+              title: "Completed seed",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"ok","duration_ms":5,"total_cost_usd":0.0,"session_id":"sess-cascade-header"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const command = `PATH="${temporaryDirectory}:${process.env.PATH ?? ""}" bun "${CLI_ENTRY}" ralph plan stories --milestone "${milestoneDirectory}" --from subtasks --cascade calibrate --headless --force`;
+    const childProcess = trackProcess(
+      execa("script", ["-qec", command, "/dev/null"], {
+        cwd: TOOLS_DIR,
+        env: { ...process.env, TERM: "xterm-256color" },
+        reject: false,
+        timeout: 10_000,
+      }),
+    );
+
+    const { exitCode, stdout } = await childProcess;
+    const output = typeof stdout === "string" ? stdout : String(stdout ?? "");
+
+    expect(exitCode).toBe(0);
+    expect(output).toContain("[build]");
+    expect(output).toContain("[calibrate]");
+    expect(output).toContain("→");
+    expect(output).toMatch(/\[build\][^\n]*✓/);
+  }, 20_000);
 });

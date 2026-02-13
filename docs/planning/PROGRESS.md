@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-029
+- **Problem:** `cascade.test.ts` only covered pure validation helpers, so there was no CLI-level E2E regression coverage proving cascade live header progression/checkmark rendering or process cleanup behavior.
+- **Changes:** Added the first CLI E2E cascade pipeline-header test in `cascade.test.ts` using `execa` + tracked-process cleanup (`afterEach`) with a minimal temp milestone fixture and mock `claude` binary; the test executes a fast headless cascade path and asserts multi-phase header transitions (`→`) plus completed-phase checkmark output. Also fixed cascade handoff wiring so planning commands now propagate `headless` into `runCascadeFrom`, preventing interactive prompts and enabling deterministic headless cascade runs in E2E.
+- **Files:** `tools/tests/e2e/cascade.test.ts`, `tools/src/commands/ralph/index.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-028
 - **Problem:** `ralph build` lacked E2E coverage for the live `PipelineRenderer` header contract, so regressions in headless TTY rendering and non-TTY degradation (including ANSI cursor-control leakage) could slip through.
 - **Changes:** Added two focused E2E tests in `ralph.test.ts` that run `ralph build` with a minimal mocked-provider fixture: one test exercises headless TTY output via `script` and asserts phase symbols/progress-bar formatting plus repeated header renders, and one test exercises non-TTY behavior (`TERM=dumb`) and asserts phase transition lines with explicit absence of cursor-control escape codes. Added process-tracking cleanup in `afterEach` to kill any lingering spawned commands (timer/process leak safety).

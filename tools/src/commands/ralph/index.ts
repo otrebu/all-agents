@@ -1037,6 +1037,8 @@ interface HandleCascadeOptions {
   forceFlag?: boolean;
   /** Optional level to resume from; overrides the cascade start argument */
   fromLevel?: string;
+  /** Preserve headless mode for cascade execution */
+  headless?: boolean;
   /** Provider model identifier to propagate across cascaded levels */
   model?: string;
   /** Provider selection to propagate across cascaded levels */
@@ -1488,6 +1490,7 @@ async function handleCascadeExecution(
     contextRoot,
     forceFlag: isForceFlag,
     fromLevel,
+    headless: isHeadless,
     model,
     provider,
     resolvedMilestonePath,
@@ -1652,6 +1655,7 @@ async function handleCascadeExecution(
     contextRoot,
     forceFlag: isForceFlag,
     fromLevel,
+    headless: isHeadless,
     milestonePath: resolvedMilestonePath ?? undefined,
     model,
     planningLevelRunner: runPlanningLevelFromCascade,
@@ -2681,6 +2685,7 @@ planCommand.addCommand(
           contextRoot,
           forceFlag: options.force === true,
           fromLevel: options.from ?? "stories",
+          headless: options.headless === true,
           model: planningModel,
           provider: planningProvider as ProviderType,
           resolvedMilestonePath: milestonePath,
@@ -2837,6 +2842,7 @@ planCommand.addCommand(
           contextRoot,
           forceFlag: options.force === true,
           fromLevel: options.from ?? "tasks",
+          headless: options.headless === true,
           model: options.model,
           provider: options.provider as ProviderType,
           resolvedMilestonePath,
@@ -3127,6 +3133,7 @@ planCommand.addCommand(
           contextRoot,
           forceFlag: options.force === true,
           fromLevel: getSubtasksCascadeFromLevel(options.from),
+          headless: options.headless === true,
           model: options.model,
           provider: options.provider as ProviderType,
           resolvedMilestonePath: resolvedMilestonePath ?? null,
