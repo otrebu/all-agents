@@ -24,7 +24,9 @@ import type { ProviderType } from "./providers/types";
 import type { BuildPracticalSummary } from "./summary";
 import type {
   CascadeResult,
+  CompactPreviewData,
   IterationStatus,
+  PipelineFooterData,
   PipelineHeaderData,
   PipelinePhaseNode,
   PipelineStep,
@@ -1028,6 +1030,39 @@ function renderCommandBanner(data: CommandBannerData): string {
   });
 }
 
+/**
+ * Render compact single-level preview banner.
+ */
+function renderCompactPreview(data: CompactPreviewData): string {
+  const lines = [
+    `${chalk.dim("  Milestone")}   ${chalk.cyan(data.milestone)}`,
+    formatTwoColumnRow(
+      `${chalk.dim("  Provider")}    ${chalk.cyan(data.provider)}`,
+      `${chalk.dim("Model")}   ${chalk.cyan(data.model)}`,
+      BOX_INNER_WIDTH,
+    ),
+    `${chalk.dim("  Queue")}       ${chalk.cyan(data.queueStats)}`,
+    `${chalk.dim("  Next")}        ${chalk.cyan(data.nextSubtask)}`,
+    formatTwoColumnRow(
+      `${chalk.dim("  Mode")}        ${chalk.cyan(data.mode)}`,
+      `${chalk.dim("Validate")}  ${chalk.cyan(data.validateStatus)}`,
+      BOX_INNER_WIDTH,
+    ),
+    "─".repeat(BOX_INNER_WIDTH),
+    `${chalk.dim("  Pipeline")}    ${chalk.cyan(data.pipelineSummary)}`,
+    `${chalk.dim("  Gates")}       ${chalk.cyan(data.gatesSummary)}`,
+  ];
+
+  return renderSafeBox(lines.join("\n"), {
+    borderColor: "white",
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: data.title ?? "Ralph Build",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
 function renderEventLine(data: EventLineData): string {
   const { domain, message, state } = data;
   const label = `[${domain}] [${state}]`;
@@ -1240,6 +1275,10 @@ function renderIterationStart(data: IterationDisplayData): string {
   });
 }
 
+// =============================================================================
+// Text Formatting
+// =============================================================================
+
 /**
  * Render markdown content for terminal display
  *
@@ -1251,10 +1290,6 @@ function renderIterationStart(data: IterationDisplayData): string {
 function renderMarkdown(markdown: string): string {
   return marked(markdown) as string;
 }
-
-// =============================================================================
-// Text Formatting
-// =============================================================================
 
 function renderPhaseCard(data: PhaseCardData): string {
   const { domain, lines = [], state, title, tone } = data;
@@ -1290,6 +1325,45 @@ function renderPhaseCard(data: PhaseCardData): string {
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
     width: BOX_WIDTH,
   });
+}
+
+/**
+ * Render pipeline footer lines (to embed inside an existing plan box).
+ */
+function renderPipelineFooter(data: PipelineFooterData): Array<string> {
+  const gatesRight =
+    data.gatesStatus === undefined || data.gatesStatus === ""
+      ? `${chalk.dim("Gates:")} ${chalk.cyan(String(data.phaseGateCount))}`
+      : `${chalk.dim("Gates:")} ${chalk.cyan(String(data.phaseGateCount))} ${chalk.dim(data.gatesStatus)}`;
+  const costText = `${chalk.dim("Est. cost:")} ${chalk.magenta(data.estimatedCost)}`;
+  const nextStepText =
+    data.nextStep === "dry-run"
+      ? "To execute: remove --dry-run flag"
+      : "Proceed? [Y/n]:";
+  const lines = [
+    "─".repeat(BOX_INNER_WIDTH),
+    formatTwoColumnRow(
+      `${chalk.dim("Phases:")} ${chalk.cyan(String(data.phaseCount))}`,
+      gatesRight,
+      BOX_INNER_WIDTH,
+    ),
+    formatTwoColumnRow(
+      `${chalk.dim("Est. time:")} ${chalk.cyan(`~${data.estimatedMinutes} min`)}`,
+      costText,
+      BOX_INNER_WIDTH,
+    ),
+  ];
+
+  if (data.warnings !== undefined && data.warnings.length > 0) {
+    lines.push("");
+    for (const warning of data.warnings) {
+      lines.push(`${chalk.yellow("⚠")} ${chalk.yellow(warning)}`);
+    }
+  }
+
+  lines.push("");
+  lines.push(nextStepText);
+  return lines;
 }
 
 /**
@@ -1670,6 +1744,7 @@ export {
   renderCascadeSummary,
   renderCollapsedPhase,
   renderCommandBanner,
+  renderCompactPreview,
   renderEventLine,
   renderExpandedPhase,
   renderInvocationHeader,
@@ -1677,6 +1752,7 @@ export {
   renderIterationStart,
   renderMarkdown,
   renderPhaseCard,
+  renderPipelineFooter,
   renderPipelineHeader,
   renderPipelineTree,
   renderPlanSubtasksSummary,

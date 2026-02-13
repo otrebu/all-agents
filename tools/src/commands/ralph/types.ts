@@ -150,6 +150,32 @@ interface CollapsedPhaseSummary {
 }
 
 /**
+ * Compact single-level pipeline preview banner data.
+ */
+interface CompactPreviewData {
+  /** Gates summary text */
+  gatesSummary: string;
+  /** Milestone label */
+  milestone: string;
+  /** Mode text */
+  mode: string;
+  /** Model label */
+  model: string;
+  /** Next subtask summary (ID + title) */
+  nextSubtask: string;
+  /** Pipeline summary text */
+  pipelineSummary: string;
+  /** Provider label */
+  provider: string;
+  /** Queue summary text */
+  queueStats: string;
+  /** Optional title (defaults to "Ralph Build") */
+  title?: string;
+  /** Validation mode/status text */
+  validateStatus: string;
+}
+
+/**
  * Entry type discriminator for milestone daily JSONL logs.
  */
 type DailyLogEntryType =
@@ -289,6 +315,26 @@ interface IterationTiming {
 interface LoadedSubtasksFile extends SubtasksFile {
   /** Current queue replay fingerprint computed from id+done snapshot */
   fingerprint: QueueFingerprint;
+}
+
+/**
+ * Footer summary metadata rendered below a pipeline tree.
+ */
+interface PipelineFooterData {
+  /** Estimated cost display text (for example: "$0.20 - $0.60 (planning only)") */
+  estimatedCost: string;
+  /** Total estimated duration in minutes */
+  estimatedMinutes: number;
+  /** Optional gate status text (for example: "skipped (--force)") */
+  gatesStatus?: string;
+  /** Next-step mode used to render final guidance line */
+  nextStep: "dry-run" | "prompt";
+  /** Number of phases in the plan */
+  phaseCount: number;
+  /** Number of approval gates in the plan */
+  phaseGateCount: number;
+  /** Optional warnings shown below totals */
+  warnings?: Array<string>;
 }
 
 /**
@@ -718,6 +764,7 @@ export {
   type CascadeOptions,
   type CascadeResult,
   type CollapsedPhaseSummary,
+  type CompactPreviewData,
   computeFingerprint,
   type DailyLogEntryType,
   type ExpandedPhaseDetail,
@@ -732,6 +779,7 @@ export {
   normalizeIterationDiaryEntry,
   normalizeIterationTiming,
   normalizeStatus,
+  type PipelineFooterData,
   type PipelineHeaderData,
   type PipelinePhaseNode,
   type PipelineStep,

@@ -50,6 +50,11 @@
 - **Changes:** Added `PipelineHeaderData` in `types.ts`, implemented ANSI-width-safe `formatTwoColumnRow()` in `display.ts` using `string-width`, and added `renderPipelineHeader()` with a double-border `boxen` layout (`BOX_WIDTH`, centered `Ralph Pipeline Plan` title). The header now handles missing optional milestone/model fields by omitting the milestone segment and provider model parenthetical without crashing. Expanded `display.test.ts` coverage for full-header rendering, missing-field behavior, and two-column alignment with both plain and ANSI-styled strings.
 - **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-014
+- **Problem:** Pipeline previews still lacked a reusable footer section and the compact single-level build banner, so dry-run/full preview output could not show consistent totals/warnings/next-step guidance or Example 3-style build context.
+- **Changes:** Added `PipelineFooterData` and `CompactPreviewData` contracts in `types.ts`, implemented `renderPipelineFooter()` in `display.ts` with summary separator + totals (Phases/Gates/Est. time/Est. cost), optional yellow warning lines, and next-step mapping (`dry-run` -> remove flag, `prompt` -> confirmation prompt), and implemented `renderCompactPreview()` as a double-border `BOX_WIDTH` banner using `formatTwoColumnRow()` for Provider/Model and Mode/Validate alignment plus Queue/Next/Pipeline/Gates rows. Expanded `display.test.ts` with footer-with-warnings, footer-without-warnings, and compact-preview rendering coverage.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001

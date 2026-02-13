@@ -25,10 +25,12 @@ import {
   renderCascadeSummary,
   renderCollapsedPhase,
   renderCommandBanner,
+  renderCompactPreview,
   renderEventLine,
   renderExpandedPhase,
   renderInvocationHeader,
   renderPhaseCard,
+  renderPipelineFooter,
   renderPipelineHeader,
   renderPipelineTree,
   renderPlanSubtasksSummary,
@@ -989,6 +991,93 @@ describe("display utilities", () => {
       expect(output).toContain("supervised");
       expect(output).toContain("Approvals:");
       expect(output).toContain("required");
+    });
+  });
+
+  describe("renderPipelineFooter", () => {
+    test("renders totals, warnings, and dry-run next step", () => {
+      const lines = renderPipelineFooter({
+        estimatedCost: "$0.20 - $0.60 (planning only)",
+        estimatedMinutes: 61,
+        gatesStatus: "skipped (--force)",
+        nextStep: "dry-run",
+        phaseCount: 4,
+        phaseGateCount: 3,
+        warnings: [
+          "--force skips all approval gates",
+          "--headless disables interactive prompts",
+        ],
+      });
+
+      expect(lines[0]).toBe("─".repeat(BOX_WIDTH - 4));
+      expect(lines[1]).toContain(chalk.dim("Phases:"));
+      expect(lines[1]).toContain(chalk.cyan("4"));
+      expect(lines[1]).toContain(chalk.dim("Gates:"));
+      expect(lines[1]).toContain(chalk.cyan("3"));
+      expect(lines[2]).toContain(chalk.dim("Est. time:"));
+      expect(lines[2]).toContain(chalk.cyan("~61 min"));
+      expect(lines[2]).toContain(chalk.dim("Est. cost:"));
+      expect(lines[2]).toContain(
+        chalk.magenta("$0.20 - $0.60 (planning only)"),
+      );
+      expect(lines).toContain(
+        `${chalk.yellow("⚠")} ${chalk.yellow("--force skips all approval gates")}`,
+      );
+      expect(lines).toContain(
+        `${chalk.yellow("⚠")} ${chalk.yellow("--headless disables interactive prompts")}`,
+      );
+      expect(lines.at(-1)).toBe("To execute: remove --dry-run flag");
+    });
+
+    test("omits warnings and renders prompt next step", () => {
+      const lines = renderPipelineFooter({
+        estimatedCost: "$0.05 - $0.12",
+        estimatedMinutes: 12,
+        nextStep: "prompt",
+        phaseCount: 1,
+        phaseGateCount: 0,
+      });
+
+      expect(lines.some((line) => line.includes("⚠"))).toBe(false);
+      expect(lines.at(-1)).toBe("Proceed? [Y/n]:");
+    });
+  });
+
+  describe("renderCompactPreview", () => {
+    test("renders Example 3-style compact build preview", () => {
+      const output = renderCompactPreview({
+        gatesSummary: "none (--force not set, will prompt on validation fail)",
+        milestone: "006-cascade-mode-for-good",
+        mode: "supervised",
+        model: "sonnet",
+        nextSubtask: "SUB-045  Wire cascade --from flag to CLI",
+        pipelineSummary: "build",
+        provider: "Claude",
+        queueStats: "12 pending / 34 total (22 completed, 64%)",
+        validateStatus: "off",
+      });
+
+      expect(output).toContain("╔");
+      expect(output).toContain("Ralph Build");
+      expect(output).toContain("Milestone");
+      expect(output).toContain("006-cascade-mode-for-good");
+      expect(output).toContain("Provider");
+      expect(output).toContain("Claude");
+      expect(output).toContain("Model");
+      expect(output).toContain("sonnet");
+      expect(output).toContain("Queue");
+      expect(output).toContain("12 pending / 34 total");
+      expect(output).toContain("Next");
+      expect(output).toContain("SUB-045");
+      expect(output).toContain("Mode");
+      expect(output).toContain("Validate");
+      expect(output).toContain("Pipeline");
+      expect(output).toContain("build");
+      expect(output).toContain("Gates");
+      expect(output).toContain(
+        "none (--force not set, will prompt on validation",
+      );
+      expect(output).toContain("fail)");
     });
   });
 
