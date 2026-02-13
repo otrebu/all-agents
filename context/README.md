@@ -151,7 +151,7 @@ Version, release, publish.
 - husky.md - Git hooks
 - commitlint.md - Commit linting
 - semantic-release.md - Automated releases
-- git-gtr.md - Git worktree management (git-worktree-runner)
+- git-worktree.md - Git worktree parallel development
 
 ### observe/
 
