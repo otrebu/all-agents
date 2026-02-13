@@ -150,13 +150,26 @@ describe("computeExecutionPlan", () => {
     }
   });
 
-  test("cascade target build from subtasks resolves to [build]", () => {
+  test("cascade target build from subtasks resolves to downstream only levels", () => {
     const plan = computeExecutionPlan({
       cascadeTarget: "build",
       command: "plan-subtasks",
     });
 
     expect(plan.phases.map((phase) => phase.level)).toEqual(["build"]);
+  });
+
+  test("cascade target build from subtasks includes entry level for preview", () => {
+    const plan = computeExecutionPlan({
+      cascadeTarget: "build",
+      command: "plan-subtasks",
+      includeEntryInCascade: true,
+    });
+
+    expect(plan.phases.map((phase) => phase.level)).toEqual([
+      "subtasks",
+      "build",
+    ]);
   });
 
   test("cascade target calibrate from subtasks resolves to [build, calibrate]", () => {
@@ -171,6 +184,20 @@ describe("computeExecutionPlan", () => {
     ]);
   });
 
+  test("cascade target calibrate from subtasks includes entry level for preview", () => {
+    const plan = computeExecutionPlan({
+      cascadeTarget: "calibrate",
+      command: "plan-subtasks",
+      includeEntryInCascade: true,
+    });
+
+    expect(plan.phases.map((phase) => phase.level)).toEqual([
+      "subtasks",
+      "build",
+      "calibrate",
+    ]);
+  });
+
   test("from-level override adjusts cascade start point", () => {
     const plan = computeExecutionPlan({
       cascadeTarget: "calibrate",
@@ -179,6 +206,20 @@ describe("computeExecutionPlan", () => {
     });
 
     expect(plan.phases.map((phase) => phase.level)).toEqual(["calibrate"]);
+  });
+
+  test("from-level override includes entry phase for preview", () => {
+    const plan = computeExecutionPlan({
+      cascadeTarget: "calibrate",
+      command: "plan-subtasks",
+      fromLevel: "build",
+      includeEntryInCascade: true,
+    });
+
+    expect(plan.phases.map((phase) => phase.level)).toEqual([
+      "build",
+      "calibrate",
+    ]);
   });
 
   test("approval gate resolves to write with --force", () => {

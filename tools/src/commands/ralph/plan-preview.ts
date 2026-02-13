@@ -24,6 +24,7 @@ interface ComputeExecutionPlanOptions {
   command: ExecutionCommand;
   flags?: PlanFlags;
   fromLevel?: CascadeLevel;
+  includeEntryInCascade?: boolean;
   milestonePath?: string;
   model?: string;
   provider?: string;
@@ -102,7 +103,7 @@ interface PhaseStep {
   text: string;
 }
 
-type PlanCascadeTarget = "build" | "calibrate";
+type PlanCascadeTarget = CascadeLevel;
 
 interface PlanFlags {
   calibrateEvery?: number;
@@ -372,11 +373,11 @@ function computeExecutionPlan(
     validateFirst: options.flags?.validateFirst === true,
   };
 
-  const levelsToExecute = resolveExecutionLevels(
-    options.command,
-    options.cascadeTarget,
-    options.fromLevel,
-  );
+  const levelsToExecute = resolveExecutionLevels(options.command, {
+    cascadeTarget: options.cascadeTarget,
+    fromLevel: options.fromLevel,
+    shouldIncludeEntryInCascade: options.includeEntryInCascade,
+  });
   const runtime = collectRuntimeContext({
     milestonePath: options.milestonePath,
     model: options.model,
@@ -550,15 +551,30 @@ function parseEstimateMinutes(estimate: string): number {
 
 function resolveExecutionLevels(
   command: ExecutionCommand,
-  cascadeTarget: PlanCascadeTarget | undefined,
-  fromLevel: CascadeLevel | undefined,
+  options: {
+    cascadeTarget: PlanCascadeTarget | undefined;
+    fromLevel: CascadeLevel | undefined;
+    shouldIncludeEntryInCascade: boolean | undefined;
+  },
 ): Array<CascadeLevel> {
-  if (cascadeTarget === undefined) {
+  if (options.cascadeTarget === undefined) {
     return [COMMAND_TO_LEVEL[command]];
   }
 
-  const startLevel = fromLevel ?? COMMAND_TO_LEVEL[command];
-  return getLevelsInRange(startLevel, cascadeTarget) as Array<CascadeLevel>;
+  const startLevel = options.fromLevel ?? COMMAND_TO_LEVEL[command];
+  const levelsToExecute = getLevelsInRange(
+    startLevel,
+    options.cascadeTarget,
+  ) as Array<CascadeLevel>;
+
+  if (
+    options.shouldIncludeEntryInCascade === true &&
+    !levelsToExecute.includes(startLevel)
+  ) {
+    return [startLevel, ...levelsToExecute];
+  }
+
+  return levelsToExecute;
 }
 
 function resolveSubtasksPath(
@@ -594,6 +610,7 @@ export {
   FLOW_MODS,
   LEVEL_FLOWS,
   type PhaseStep,
+  type PlanCascadeTarget,
   type PlanFlags,
   type RuntimeContext,
 };

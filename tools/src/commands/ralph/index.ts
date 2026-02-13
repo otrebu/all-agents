@@ -1,5 +1,6 @@
 import { Command } from "@commander-js/extra-typings";
 import { discoverMilestones, getMilestonePaths } from "@lib/milestones";
+import { loadAaaConfig } from "@tools/lib/config";
 import { findProjectRoot, getContextRoot } from "@tools/utils/paths";
 import chalk from "chalk";
 import {
@@ -43,9 +44,12 @@ import {
   renderEventLine,
   renderInvocationHeader,
   renderPhaseCard,
+  renderPipelineFooter,
+  renderPipelineHeader,
+  renderPipelineTree,
   renderPlanSubtasksSummary,
 } from "./display";
-import { computeExecutionPlan } from "./plan-preview";
+import { computeExecutionPlan, type ExecutionPlan } from "./plan-preview";
 import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
@@ -85,8 +89,99 @@ function extractTaskReference(taskPath: string): string {
   return path.basename(taskPath, ".md");
 }
 
+function formatDryRunCommandLine(plan: ExecutionPlan): string {
+  const commandByType: Record<ExecutionPlan["command"], string> = {
+    build: "build",
+    "calibrate-all": "calibrate all",
+    "calibrate-intention": "calibrate intention",
+    "calibrate-technical": "calibrate technical",
+    "plan-roadmap": "plan roadmap",
+    "plan-stories": "plan stories",
+    "plan-subtasks": "plan subtasks",
+    "plan-tasks": "plan tasks",
+  };
+
+  const parts = [commandByType[plan.command]];
+  if (plan.runtime.milestonePath !== null) {
+    parts.push(`--milestone ${path.basename(plan.runtime.milestonePath)}`);
+  }
+  if (plan.cascadeTarget !== null) {
+    parts.push(`--cascade ${plan.cascadeTarget}`);
+  }
+  if (plan.fromLevel !== null) {
+    parts.push(`--from ${plan.fromLevel}`);
+  }
+  if (plan.flags.force) {
+    parts.push("--force");
+  }
+  if (plan.flags.review) {
+    parts.push("--review");
+  }
+  if (plan.flags.validateFirst) {
+    parts.push("--validate-first");
+  }
+  if (plan.flags.calibrateEvery > 0) {
+    parts.push(`--calibrate-every ${plan.flags.calibrateEvery}`);
+  }
+
+  return parts.join(" ");
+}
+
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getDryRunApprovalStatus(plan: ExecutionPlan): string {
+  if (plan.summary.approvalGateCount === 0) {
+    return "none";
+  }
+  if (plan.flags.force) {
+    return "skipped (--force)";
+  }
+  if (plan.flags.review) {
+    return "required (--review)";
+  }
+  return "default";
+}
+
+function getDryRunGateStatus(
+  phase: ExecutionPlan["phases"][number],
+  plan: ExecutionPlan,
+): "APPROVAL" | "auto" | "SKIP" | undefined {
+  if (phase.approvalGate === undefined) {
+    return undefined;
+  }
+  if (phase.approvalGate.action === "prompt") {
+    return "APPROVAL";
+  }
+  if (phase.approvalGate.action === "write") {
+    return plan.flags.force ? "SKIP" : "auto";
+  }
+  return "APPROVAL";
+}
+
+function getDryRunOutputFormat(): "json" | "pretty" {
+  try {
+    const configuredFormat = loadAaaConfig().ralph?.dryRun?.format;
+    return configuredFormat === "json" ? "json" : "pretty";
+  } catch {
+    return "pretty";
+  }
+}
+
+function getDryRunPhaseDescription(command: ExecutionPlan["command"]): string {
+  const descriptionByCommand: Record<ExecutionPlan["command"], string> = {
+    build: "Run subtask implementation loop",
+    "calibrate-all": "Run intention and technical drift analysis",
+    "calibrate-intention": "Run intention drift analysis",
+    "calibrate-technical": "Run technical drift analysis",
+    "plan-roadmap": "Generate roadmap milestones",
+    "plan-stories": "Generate story files",
+    "plan-subtasks": "Generate executable subtask queue",
+    "plan-tasks": "Generate task files",
+  };
+
+  return descriptionByCommand[command];
 }
 
 function getMilestoneRootFromPath(candidatePath: string): string {
@@ -106,6 +201,104 @@ function getMilestoneRootFromPath(candidatePath: string): string {
   }
 
   return candidatePath;
+}
+
+function printDryRunPlan(plan: ExecutionPlan): void {
+  const shouldRenderAsJson = getDryRunOutputFormat() === "json";
+
+  if (shouldRenderAsJson) {
+    console.log(JSON.stringify(plan, null, 2));
+    return;
+  }
+
+  const displayMode = plan.flags.headless ? "headless" : "supervised";
+
+  const phaseNodes = plan.phases.map((phase) => ({
+    expanded: true,
+    expandedDetail: {
+      gate:
+        phase.approvalGate === undefined
+          ? undefined
+          : {
+              configValue: "resolved",
+              gateName: phase.approvalGate.gate,
+              resolvedAction: phase.approvalGate.action,
+            },
+      reads: phase.reads,
+      steps: phase.steps.map((step) => {
+        const primaryFlagEffect = step.flagEffects[0];
+        if (primaryFlagEffect === undefined) {
+          return { text: step.text };
+        }
+        return {
+          annotation: {
+            effect: primaryFlagEffect.type,
+            flag: primaryFlagEffect.flag.replace(/^--/, ""),
+          },
+          text: step.text,
+        };
+      }),
+      writes: phase.writes,
+    },
+    name: phase.level,
+    summary: {
+      description: getDryRunPhaseDescription(phase.command),
+      gateStatus: getDryRunGateStatus(phase, plan),
+      timeEstimate: phase.estimatedTime,
+    },
+  }));
+
+  const warningLines: Array<string> = [];
+  if (plan.flags.force) {
+    warningLines.push("--force skips approval prompts");
+  }
+  if (plan.flags.review) {
+    warningLines.push("--review requires approval prompts");
+  }
+  if (plan.flags.validateFirst) {
+    warningLines.push("--validate-first runs pre-build queue validation");
+  }
+  if (plan.flags.calibrateEvery > 0) {
+    warningLines.push(
+      `--calibrate-every inserts calibration every ${plan.flags.calibrateEvery} iteration(s)`,
+    );
+  }
+
+  const estimatedMinutes = Number.parseInt(
+    plan.summary.totalEstimatedTime.replaceAll(/[^0-9]/g, ""),
+    10,
+  );
+
+  const outputLines = [
+    renderPipelineHeader({
+      approvalsStatus: getDryRunApprovalStatus(plan),
+      commandLine: formatDryRunCommandLine(plan),
+      milestone:
+        plan.runtime.milestonePath === null
+          ? undefined
+          : path.basename(plan.runtime.milestonePath),
+      mode: displayMode,
+      model: plan.runtime.model ?? undefined,
+      provider: plan.runtime.provider ?? "default",
+    }),
+    "",
+    ...renderPipelineTree(phaseNodes, {
+      force: plan.flags.force,
+      review: plan.flags.review,
+    }),
+    "",
+    ...renderPipelineFooter({
+      estimatedCost: "n/a",
+      estimatedMinutes: Number.isNaN(estimatedMinutes) ? 0 : estimatedMinutes,
+      gatesStatus: getDryRunApprovalStatus(plan),
+      nextStep: "dry-run",
+      phaseCount: plan.summary.phaseCount,
+      phaseGateCount: plan.summary.approvalGateCount,
+      warnings: warningLines,
+    }),
+  ];
+
+  console.log(outputLines.join("\n"));
 }
 
 /**
@@ -893,11 +1086,12 @@ ralphCommand.addCommand(
             validateFirst: options.validateFirst === true,
           },
           fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: options.cascade !== undefined,
           model: options.model,
           provider: options.provider,
           subtasksPath,
         });
-        console.log(JSON.stringify(plan, null, 2));
+        printDryRunPlan(plan);
         process.exit(0);
       }
 
@@ -2264,11 +2458,8 @@ function stopWatchdogTimerIfPossible(
 
 function toPlanCascadeTarget(
   value: string | undefined,
-): "build" | "calibrate" | undefined {
-  if (value === "build" || value === "calibrate") {
-    return value;
-  }
-  return undefined;
+): ReturnType<typeof toPlanFromLevel> {
+  return toPlanFromLevel(value);
 }
 
 function toPlanFromLevel(
@@ -2539,10 +2730,11 @@ planCommand.addCommand(
             review: options.review === true,
           },
           fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: options.cascade !== undefined,
           model: options.model,
           provider: options.provider,
         });
-        console.log(JSON.stringify(plan, null, 2));
+        printDryRunPlan(plan);
         process.exit(0);
       }
 
@@ -2628,11 +2820,12 @@ planCommand.addCommand(
             review: options.review === true,
           },
           fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: options.cascade !== undefined,
           milestonePath: options.milestone,
           model: options.model,
           provider: options.provider,
         });
-        console.log(JSON.stringify(plan, null, 2));
+        printDryRunPlan(plan);
         process.exit(0);
       }
 
@@ -2799,11 +2992,12 @@ planCommand.addCommand(
             review: options.review === true,
           },
           fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: options.cascade !== undefined,
           milestonePath: milestonePath ?? undefined,
           model: options.model,
           provider: options.provider,
         });
-        console.log(JSON.stringify(plan, null, 2));
+        printDryRunPlan(plan);
         process.exit(0);
       }
 
@@ -2971,12 +3165,13 @@ planCommand.addCommand(
             validateFirst: options.validateFirst === true,
           },
           fromLevel: toPlanFromLevel(getSubtasksCascadeFromLevel(options.from)),
+          includeEntryInCascade: options.cascade !== undefined,
           milestonePath: resolvedMilestonePath ?? undefined,
           model: options.model,
           provider: options.provider,
           subtasksPath: path.join(resolvedOutputDirectory, "subtasks.json"),
         });
-        console.log(JSON.stringify(plan, null, 2));
+        printDryRunPlan(plan);
         process.exit(0);
       }
 
@@ -3633,7 +3828,7 @@ async function runCalibrateSubcommand(
         provider: options.provider,
         subtasksPath: resolvedSubtasksPath,
       });
-      console.log(JSON.stringify(plan, null, 2));
+      printDryRunPlan(plan);
       process.exit(0);
     }
   }

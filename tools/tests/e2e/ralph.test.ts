@@ -178,7 +178,7 @@ describe("ralph E2E", () => {
     expect(stderr).not.toContain("Subtasks file not found");
   });
 
-  test("ralph build --dry-run exits 0 with parseable JSON", async () => {
+  test("ralph build --dry-run exits 0 with visual pipeline preview", async () => {
     const subtasksPath = join(temporaryDirectory, "dry-run-subtasks.json");
     writeFileSync(
       subtasksPath,
@@ -192,15 +192,12 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as {
-      command: string;
-      summary: { phaseCount: number };
-    };
-    expect(parsed.command).toBe("build");
-    expect(parsed.summary.phaseCount).toBeGreaterThan(0);
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("build");
+    expect(stdout).toContain("To execute: remove --dry-run flag");
   });
 
-  test("ralph build --dry-run --headless outputs parseable JSON", async () => {
+  test("ralph build --dry-run --headless renders visual preview by default", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
       ["run", "dev", "ralph", "build", "--dry-run", "--headless"],
@@ -208,11 +205,50 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as { flags: { headless: boolean } };
-    expect(parsed.flags.headless).toBe(true);
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("Mode:");
+    expect(stdout).toContain("headless");
+    expect(stdout).toContain("To execute: remove --dry-run flag");
   });
 
-  test("ralph plan roadmap --dry-run exits 0 with parseable JSON", async () => {
+  test("ralph build --dry-run outputs JSON when ralph.dryRun.format is json", async () => {
+    const projectRoot = join(temporaryDirectory, "dry-run-format-json");
+    mkdirSync(projectRoot, { recursive: true });
+    writeFileSync(
+      join(projectRoot, "aaa.config.json"),
+      JSON.stringify({ ralph: { dryRun: { format: "json" } } }, null, 2),
+    );
+
+    const subtasksPath = join(projectRoot, "subtasks.json");
+    writeFileSync(
+      subtasksPath,
+      JSON.stringify({ metadata: { scope: "milestone" }, subtasks: [] }),
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        CLI_ENTRY,
+        "ralph",
+        "build",
+        "--dry-run",
+        "--headless",
+        "--subtasks",
+        subtasksPath,
+      ],
+      { cwd: projectRoot },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout) as {
+      flags: { headless: boolean };
+      summary: { phaseCount: number };
+    };
+    expect(parsed.flags.headless).toBe(true);
+    expect(parsed.summary.phaseCount).toBeGreaterThan(0);
+  });
+
+  test("ralph plan roadmap --dry-run exits 0 with visual pipeline preview", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
       ["run", "dev", "ralph", "plan", "roadmap", "--dry-run"],
@@ -220,11 +256,11 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as { command: string };
-    expect(parsed.command).toBe("plan-roadmap");
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("plan roadmap");
   });
 
-  test("ralph plan stories --dry-run exits 0 with JSON without provider invocation", async () => {
+  test("ralph plan stories --dry-run exits 0 with visual output without provider invocation", async () => {
     const milestoneDirectory = join(temporaryDirectory, "dry-run-stories");
     mkdirSync(milestoneDirectory, { recursive: true });
 
@@ -246,8 +282,8 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as { command: string };
-    expect(parsed.command).toBe("plan-stories");
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("plan stories");
   });
 
   test("ralph plan stories --cascade build --dry-run --force includes gate status lines for gated levels", async () => {
@@ -276,13 +312,47 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    expect(stdout).toContain('"approvalGate"');
-    expect(stdout).toContain('"gate": "createTasks"');
-    expect(stdout).toContain('"gate": "createSubtasks"');
-    expect(stdout).toContain('"action": "write"');
+    expect(stdout).toContain("▾ stories");
+    expect(stdout).toContain("▾ tasks");
+    expect(stdout).toContain("▾ subtasks");
+    expect(stdout).toContain("▾ build");
+    expect(stdout).toContain("GATE createTasks -> SKIP");
+    expect(stdout).toContain("GATE createSubtasks -> SKIP");
+    expect(stdout).toContain("[force]");
   });
 
-  test("ralph plan tasks --milestone --dry-run exits 0 with parseable JSON", async () => {
+  test("ralph plan stories --milestone --cascade subtasks --dry-run includes entry and subtasks", async () => {
+    const milestoneDirectory = join(
+      temporaryDirectory,
+      "dry-run-stories-subtasks-cascade",
+    );
+    mkdirSync(milestoneDirectory, { recursive: true });
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        milestoneDirectory,
+        "--cascade",
+        "subtasks",
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("▾ stories");
+    expect(stdout).toContain("▾ tasks");
+    expect(stdout).toContain("▾ subtasks");
+    expect(stdout).toContain("Phases: 3");
+  });
+
+  test("ralph plan tasks --milestone --dry-run exits 0 with visual pipeline preview", async () => {
     const milestoneDirectory = join(temporaryDirectory, "dry-run-tasks");
     mkdirSync(milestoneDirectory, { recursive: true });
 
@@ -302,11 +372,11 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as { command: string };
-    expect(parsed.command).toBe("plan-tasks");
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("plan tasks");
   });
 
-  test("ralph plan subtasks --milestone --dry-run exits 0 with parseable JSON", async () => {
+  test("ralph plan subtasks --milestone --dry-run exits 0 with visual pipeline preview", async () => {
     const milestoneDirectory = join(temporaryDirectory, "dry-run-subtasks");
     mkdirSync(milestoneDirectory, { recursive: true });
 
@@ -326,11 +396,11 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as { command: string };
-    expect(parsed.command).toBe("plan-subtasks");
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("plan subtasks");
   });
 
-  test("ralph plan subtasks --milestone --cascade build --dry-run includes all cascade levels", async () => {
+  test("ralph plan subtasks --milestone --cascade build --dry-run includes rendered cascade level", async () => {
     const milestoneDirectory = join(
       temporaryDirectory,
       "dry-run-subtasks-cascade",
@@ -355,14 +425,12 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as {
-      summary: { levels: Array<string>; phaseCount: number };
-    };
-    expect(parsed.summary.levels).toEqual(["build"]);
-    expect(parsed.summary.phaseCount).toBe(1);
+    expect(stdout).toContain("▾ build");
+    expect(stdout).toContain("▾ subtasks");
+    expect(stdout).toContain("Phases: 2");
   });
 
-  test("ralph calibrate all --dry-run exits 0 with JSON plan", async () => {
+  test("ralph calibrate all --dry-run exits 0 with visual pipeline preview", async () => {
     const subtasksPath = join(
       temporaryDirectory,
       "dry-run-calibrate-all-subtasks.json",
@@ -390,11 +458,11 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as { command: string };
-    expect(parsed.command).toBe("calibrate-all");
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("calibrate all");
   });
 
-  test("ralph calibrate intention --dry-run exits 0 with JSON plan", async () => {
+  test("ralph calibrate intention --dry-run exits 0 with visual pipeline preview", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
       ["run", "dev", "ralph", "calibrate", "intention", "--dry-run"],
@@ -402,11 +470,11 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as { command: string };
-    expect(parsed.command).toBe("calibrate-intention");
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("calibrate intention");
   });
 
-  test("ralph calibrate technical --dry-run exits 0 with JSON plan", async () => {
+  test("ralph calibrate technical --dry-run exits 0 with visual pipeline preview", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
       ["run", "dev", "ralph", "calibrate", "technical", "--dry-run"],
@@ -414,8 +482,8 @@ describe("ralph E2E", () => {
     );
 
     expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as { command: string };
-    expect(parsed.command).toBe("calibrate-technical");
+    expect(stdout).toContain("Ralph Pipeline Plan");
+    expect(stdout).toContain("calibrate technical");
   });
 
   test("ralph calibrate all --help includes --dry-run", async () => {
