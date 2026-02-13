@@ -49,10 +49,17 @@ function __fish_aaa_model_completions
     set -l i 1
 
     while test $i -le $count
-        if test "$cmd[$i]" = "--provider"
+        set -l provider_arg "$cmd[$i]"
+
+        if test "$provider_arg" = "--provider"
             set -l next (math $i + 1)
             if test $next -le $count
                 set provider "$cmd[$next]"
+                break
+            end
+        else if string match -q -- '--provider=*' "$provider_arg"
+            set provider (string replace -- '--provider=' '' "$provider_arg")
+            if test -n "$provider"
                 break
             end
         end

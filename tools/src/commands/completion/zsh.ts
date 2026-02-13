@@ -688,9 +688,15 @@ _aaa_model() {
     # Extract --provider value from current command line
     local i=1
     while (( i < \${#words} )); do
-        if [[ "\${words[i]}" == "--provider" && i+1 -le \${#words} ]]; then
+        local provider_word="\${words[i]}"
+        if [[ "$provider_word" == "--provider" && i+1 -le \${#words} ]]; then
             provider_val="\${words[i+1]}"
             break
+        elif [[ "$provider_word" == --provider=* ]]; then
+            provider_val="\${provider_word#--provider=}"
+            if [[ -n "$provider_val" ]]; then
+                break
+            fi
         fi
         (( i++ ))
     done

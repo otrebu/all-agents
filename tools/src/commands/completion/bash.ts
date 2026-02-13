@@ -97,9 +97,16 @@ _aaa_completions() {
             local model_args="model"
             local j=1
             while [[ $j -lt $COMP_CWORD ]]; do
-                if [[ "\${COMP_WORDS[j]}" == "--provider" && $((j+1)) -lt $COMP_CWORD ]]; then
+                local provider_word="\${COMP_WORDS[j]}"
+                if [[ "$provider_word" == "--provider" && $((j+1)) -lt $COMP_CWORD ]]; then
                     model_args="model --provider \${COMP_WORDS[j+1]}"
                     break
+                elif [[ "$provider_word" == --provider=* ]]; then
+                    local provider_value="\${provider_word#--provider=}"
+                    if [[ -n "$provider_value" ]]; then
+                        model_args="model --provider $provider_value"
+                        break
+                    fi
                 fi
                 ((j++))
             done

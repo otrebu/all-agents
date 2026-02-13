@@ -51,6 +51,31 @@ describe("__complete model", () => {
     expect(stdout).not.toContain("claude-opus-4-6\t");
   });
 
+  test("returns only Cursor model IDs with --provider cursor", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "__complete", "model", "--provider", "cursor"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("gpt-5.3-codex");
+    expect(stdout).toContain("sonnet-4.5");
+    // Should NOT contain OpenCode/Claude IDs
+    expect(stdout).not.toContain("openai/");
+    expect(stdout).not.toContain("claude-sonnet-4-5\t");
+  });
+
+  test("supports --provider=cursor syntax for model completion", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "__complete", "model", "--provider=cursor"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("gpt-5.3-codex");
+    expect(stdout).not.toContain("openai/");
+  });
+
   test("returns empty output for unknown provider", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
@@ -178,6 +203,22 @@ describe("shell scripts include --provider and --model", () => {
     expect(stdout).toContain(
       "__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'",
     );
+  });
+
+  test("shell scripts support --provider=<value> model filtering", async () => {
+    const [bashResult, zshResult, fishResult] = await Promise.all([
+      execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+      execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+      execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+    ]);
+
+    expect(bashResult.stdout).toContain(
+      '[[ "$provider_word" == --provider=* ]]',
+    );
+    expect(zshResult.stdout).toContain(
+      '[[ "$provider_word" == --provider=* ]]',
+    );
+    expect(fishResult.stdout).toContain("string match -q -- '--provider=*'");
   });
 });
 
