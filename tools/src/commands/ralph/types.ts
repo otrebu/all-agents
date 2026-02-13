@@ -337,6 +337,30 @@ interface LoadedSubtasksFile extends SubtasksFile {
 }
 
 /**
+ * Metrics captured when a pipeline phase completes.
+ */
+interface PhaseMetrics {
+  /** Total estimated or actual cost in USD for this phase */
+  costUsd: number;
+  /** Total elapsed time for this phase in milliseconds */
+  elapsedMs: number;
+  /** Number of files changed during this phase */
+  filesChanged: number;
+}
+
+/**
+ * Runtime state of a pipeline phase in live execution rendering.
+ */
+type PhaseState =
+  | "approval-wait"
+  | "completed"
+  | "failed"
+  | "pending"
+  | "running"
+  | "stopped"
+  | "timed-wait";
+
+/**
  * Footer summary metadata rendered below a pipeline tree.
  */
 interface PipelineFooterData {
@@ -799,6 +823,8 @@ export {
   normalizeIterationDiaryEntry,
   normalizeIterationTiming,
   normalizeStatus,
+  type PhaseMetrics,
+  type PhaseState,
   type PipelineFooterData,
   type PipelineHeaderData,
   type PipelinePhaseNode,
