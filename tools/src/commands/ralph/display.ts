@@ -40,7 +40,15 @@ const MARKER_ADDED = "+";
 const MARKER_REPLACED = "~";
 const MARKER_STRUCK = "×";
 
-const STEP_FLAG_ALIGN_PADDING = 6;
+const STEP_INDENT_WIDTH = 3;
+const STEP_MARKER_WIDTH = 3;
+
+interface StepAnnotationFormatOptions {
+  flag: string;
+  indentWidth?: number;
+  marker: string;
+  stepText: string;
+}
 
 const annotationMarkerColors: Record<
   StepAnnotation["effect"],
@@ -391,6 +399,35 @@ function formatSourceInfo(
 }
 
 /**
+ * Render a pipeline step with optional annotation marker and right-aligned flag tag.
+ */
+function formatStepWithAnnotation(
+  options: StepAnnotationFormatOptions,
+): string {
+  const { flag, indentWidth = STEP_INDENT_WIDTH, marker, stepText } = options;
+  const indent = " ".repeat(indentWidth);
+  const markerPart = `${marker}  `;
+  const flagTag = chalk.dim(`[${flag}]`);
+
+  const maxStepTextWidth = Math.max(
+    1,
+    BOX_WIDTH - indentWidth - STEP_MARKER_WIDTH - stringWidth(flagTag) - 1,
+  );
+  const truncatedStepText = truncate(stepText, maxStepTextWidth);
+
+  const spacingWidth = Math.max(
+    1,
+    BOX_WIDTH -
+      indentWidth -
+      stringWidth(markerPart) -
+      stringWidth(truncatedStepText) -
+      stringWidth(flagTag),
+  );
+
+  return `${indent}${markerPart}${truncatedStepText}${" ".repeat(spacingWidth)}${flagTag}`;
+}
+
+/**
  * Format current time as HH:MM:SS for display in iteration boxes
  *
  * @returns Formatted string like "14:32:17"
@@ -505,6 +542,10 @@ function getColoredEventLabel(label: string, state: EventState): string {
   }
 }
 
+// =============================================================================
+// Markdown Rendering
+// =============================================================================
+
 /**
  * Apply color to status text based on iteration outcome
  *
@@ -532,7 +573,7 @@ function getColoredStatus(status: IterationStatus): string {
 }
 
 // =============================================================================
-// Markdown Rendering
+// Plan Subtasks Summary Helpers
 // =============================================================================
 
 /**
@@ -549,10 +590,6 @@ function getProviderLabel(provider: ProviderType): string {
   };
   return labels[provider];
 }
-
-// =============================================================================
-// Plan Subtasks Summary Helpers
-// =============================================================================
 
 /**
  * Get box border color based on iteration status
@@ -634,9 +671,6 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
   return displayPath;
 }
 
-/**
- * Render a pipeline step with optional annotation marker and right-aligned flag tag.
- */
 function renderAnnotatedStep(step: PipelineStep): string {
   if (step.annotation === undefined) {
     return step.text;
@@ -654,17 +688,12 @@ function renderAnnotatedStep(step: PipelineStep): string {
     step.annotation.effect === "struck"
       ? chalk.dim.strikethrough(step.text)
       : annotationMarkerColors[step.annotation.effect](step.text);
-  const base = `${marker}  ${styledStepText}`;
-  const flagTag = chalk.dim(`[${step.annotation.flag}]`);
 
-  const baseWidth = stringWidth(base);
-  const flagWidth = stringWidth(flagTag);
-  const spacing = Math.max(
-    2,
-    BOX_WIDTH - baseWidth - flagWidth - STEP_FLAG_ALIGN_PADDING,
-  );
-
-  return `${base}${" ".repeat(spacing)}${flagTag}`;
+  return formatStepWithAnnotation({
+    flag: step.annotation.flag,
+    marker,
+    stepText: styledStepText,
+  });
 }
 
 // =============================================================================
@@ -1549,6 +1578,7 @@ export {
   type EventLineData,
   type EventState,
   formatDuration,
+  formatStepWithAnnotation,
   formatTimestamp,
   formatTokenCount,
   getColoredStatus,

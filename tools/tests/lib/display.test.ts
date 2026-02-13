@@ -10,7 +10,9 @@ import type {
 } from "@tools/commands/ralph/types";
 
 import {
+  BOX_WIDTH,
   formatDuration,
+  formatStepWithAnnotation,
   formatTokenCount,
   MARKER_ADDED,
   MARKER_REPLACED,
@@ -33,6 +35,7 @@ import {
 } from "@tools/commands/ralph/display";
 import { describe, expect, test } from "bun:test";
 import chalk from "chalk";
+import stringWidth from "string-width";
 
 describe("display utilities", () => {
   describe("formatDuration", () => {
@@ -775,6 +778,58 @@ describe("display utilities", () => {
 
       expect(output).toContain("[force]");
       expect(output).toMatch(/\s\[force\]$/);
+    });
+  });
+
+  describe("formatStepWithAnnotation", () => {
+    test("right-aligns tag for short step text", () => {
+      const output = formatStepWithAnnotation({
+        flag: "force",
+        marker: chalk.green(MARKER_ADDED),
+        stepText: chalk.green("Short"),
+      });
+
+      expect(stringWidth(output)).toBe(BOX_WIDTH);
+      expect(output).toContain("[force]");
+      expect(output).toMatch(/^\s{3}/);
+    });
+
+    test("right-aligns tag for medium step text", () => {
+      const output = formatStepWithAnnotation({
+        flag: "headless",
+        marker: chalk.yellow(MARKER_REPLACED),
+        stepText: chalk.yellow("2. Single-pass autonomous generation"),
+      });
+
+      expect(stringWidth(output)).toBe(BOX_WIDTH);
+      expect(output).toContain("[headless]");
+    });
+
+    test("right-aligns tag for long step text", () => {
+      const output = formatStepWithAnnotation({
+        flag: "validate-first",
+        marker: chalk.yellow(MARKER_REPLACED),
+        stepText: chalk.yellow(
+          "3. Run plan validation before writing subtask queue and stories",
+        ),
+      });
+
+      expect(stringWidth(output)).toBe(BOX_WIDTH);
+      expect(output).toContain("[validate-first]");
+    });
+
+    test("truncates step text when step and flag exceed available width", () => {
+      const output = formatStepWithAnnotation({
+        flag: "very-long-flag-name",
+        marker: chalk.dim(MARKER_STRUCK),
+        stepText: chalk.dim.strikethrough(
+          "This is a very long step text that should be truncated to preserve right alignment",
+        ),
+      });
+
+      expect(output).toContain("...");
+      expect(output).toContain("[very-long-flag-name]");
+      expect(stringWidth(output)).toBe(BOX_WIDTH);
     });
   });
 

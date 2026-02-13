@@ -35,6 +35,11 @@
 - **Changes:** Added `PipelineStep` in `types.ts`, switched `ExpandedPhaseDetail.steps` to `PipelineStep[]`, and implemented `renderAnnotatedStep()` in `display.ts` with exported marker constants (`MARKER_ADDED`, `MARKER_REPLACED`, `MARKER_STRUCK`), effect styling (green, yellow, dim+strikethrough), and basic right-padded `[flag]` tags. Expanded `display.test.ts` with focused tests for added/replaced/struck rendering, unannotated fallback, and flag-tag placement while keeping existing display suites green.
 - **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-011
+- **Problem:** Annotation step lines still used fixed padding for flag tags, so `[flag]` alignment drifted with varying step lengths and long step text could overflow instead of truncating to fit the line width.
+- **Changes:** Added `formatStepWithAnnotation()` in `display.ts` to compute available width from `BOX_WIDTH`, indent, marker width, and ANSI-safe flag/tag widths via `string-width`; it now truncates styled step text with `truncate()` when needed and right-aligns the flag tag on a fixed line width. Updated `renderAnnotatedStep()` to use the new helper and expanded `display.test.ts` with short/medium/long right-alignment cases plus a truncation edge case while preserving existing SUB-010 annotation regression coverage.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001
