@@ -82,8 +82,8 @@ aaa story create "As a user, I want to login"
 | `story create <description>`  | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`)                                   | milestone `stories/` (or legacy global dir) |
 | `setup`                       | Install CLI (`--user`) or integrate project (`--project`)                                                            | -                                           |
 | `uninstall`                   | Remove CLI (`--user`) or project integration (`--project`)                                                           | -                                           |
-| `ralph plan <level>`          | Interactive planning (vision, roadmap, stories, tasks)                                                               | `docs/planning/`                            |
-| `ralph build`                 | Run subtask iteration loop (autonomous dev)                                                                          | `subtasks.json`                             |
+| `ralph plan <level>`          | Interactive planning (vision, roadmap, stories, tasks) with `--dry-run` pipeline preview                             | `docs/planning/`                            |
+| `ralph build`                 | Run subtask iteration loop (autonomous dev) with `--dry-run` pipeline preview                                        | `subtasks.json`                             |
 | `ralph subtasks <op>`         | Queue operations (`next`, `list`, `complete`, `append`, `prepend`, `diff`, `apply`) scoped to milestones/queue files | milestone `subtasks.json`                   |
 | `ralph status`                | Display build status and progress                                                                                    | -                                           |
 | `ralph calibrate <type>`      | Run drift checks (intention, technical, improve)                                                                     | -                                           |
@@ -366,19 +366,71 @@ aaa ralph build -p
 
 **Multi-provider support:** All ralph execution commands (`build`, `plan`, `calibrate`) accept `--provider <name>` and `--model <name>` flags for multi-provider execution.
 
-**Dry-run preview (`--dry-run`):** Pipeline commands can print an execution plan and exit without side effects.
+#### Dry-Run Preview
+
+Use `--dry-run` as a safety check before expensive or multi-phase runs: it shows the execution plan, renders the visual pipeline preview, and exits without executing. It works with all modes (`interactive`, `--supervised`, `--headless`) and with cascade/approval flags like `--cascade`, `--force`, and `--review`.
 
 ```bash
-# Build
-aaa ralph build --dry-run
+aaa ralph plan stories --milestone M1 --cascade build --headless --force --dry-run
 
-# Plan pipeline levels
+╔══════════════════════════════════════════════════════════════════════╗
+║                      Ralph Pipeline Plan                            ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Command:   plan stories --cascade build                            ║
+║  Milestone: M1                        Provider: opencode (gpt-5.3)  ║
+║  Mode:      headless                  Approvals: skipped (--force)  ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+┌─ PLAN ──────────────────────────────────────────────────────────────┐
+│                                                                    │
+│  [stories] ──→ [tasks] ──→ [subtasks] ──→ [build]                 │
+│                                                                    │
+│  ▾ stories    Generate story files from MILESTONE.md     ~3 min    │
+│  │  READS   milestones/M1/MILESTONE.md, ROADMAP.md                 │
+│  │  STEPS   1. Read milestone description                          │
+│  │       ~  2. Single-pass autonomous generation      [headless]   │
+│  │       ~  3. Generate without iteration             [headless]   │
+│  │          4. Number stories (S-001, S-002...)                    │
+│  │          5. Write each as separate file                         │
+│  │       +  6. Auto-approve all changes                  [force]   │
+│  │  WRITES  stories/S-NNN-*.md                                     │
+│  │  GATE    createStories -> SKIP (--force)                        │
+│  │                                                                   │
+│  ├─ tasks     Break stories into task files              ~5 min    │
+│  │  READS   stories/S-*.md                                         │
+│  │  WRITES  tasks/T-NNN-*.md                                       │
+│  │  GATE    createTasks -> SKIP (--force)                          │
+│  │                                                                   │
+│  ├─ subtasks  Slice tasks into atomic subtask queue      ~8 min    │
+│  │  READS   tasks/T-*.md                                           │
+│  │  WRITES  subtasks.json                                          │
+│  │  GATE    createSubtasks -> SKIP (--force)                       │
+│  │                                                                   │
+│  └─ build     Execute subtask queue                      ~45 min   │
+│     READS   subtasks.json, codebase                                │
+│     WRITES  code changes, git commits, iteration diary             │
+│     GATE    none                                                   │
+│                                                                    │
+│  Summary                                                           │
+│  ───────                                                           │
+│  Phases: 4       Gates: 3 skipped (--force)                        │
+│  Est. time: ~61 min    Est. cost: ~$0.20 - $0.60                  │
+│                                                                    │
+│  !  --force skips all approval gates                               │
+│  !  --headless disables interactive prompts                        │
+│                                                                    │
+│  To execute: remove --dry-run to execute                           │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+For more dry-run scenarios and rendering variants, see `docs/planning/milestones/007-pipeline-preview/MILESTONE.md`.
+
+```bash
+# Other pipeline levels support the same preview flow
+aaa ralph build --dry-run
 aaa ralph plan roadmap --dry-run
-aaa ralph plan stories --milestone 003-feature --dry-run
 aaa ralph plan tasks --milestone 003-feature --dry-run
 aaa ralph plan subtasks --milestone 003-feature --dry-run
-
-# Calibration pipeline levels
 aaa ralph calibrate all --dry-run
 aaa ralph calibrate intention --dry-run
 aaa ralph calibrate technical --dry-run

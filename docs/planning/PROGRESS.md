@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-046
+- **Problem:** `tools/README.md` documented `--dry-run` at a high level but did not include a full visual cascade preview example, so users could not quickly see the execution-plan diagram, annotation markers, and safe exit behavior before running multi-phase commands.
+- **Changes:** Updated the CLI commands table descriptions for `ralph plan <level>` and `ralph build` to explicitly mention `--dry-run` preview support. Replaced the short dry-run snippet in the Ralph section with a dedicated `Dry-Run Preview` subsection that explains purpose/behavior (safety check, works across modes, exits without execution) and added a full cascade example adapted from Milestone 007 Example 1 (header, expanded stories phase, collapsed downstream phases, annotation markers, summary footer, and the `remove --dry-run` execution hint). Added a short follow-up command block for other supported pipeline levels and a pointer to the milestone doc for more scenarios.
+- **Files:** `tools/README.md`, `docs/planning/PROGRESS.md`
+
 ### SUB-043
 - **Problem:** Ralph shell completions still used older `--dry-run` wording for pipeline commands, so zsh/fish did not surface the standardized preview description for build/plan/calibrate flows.
 - **Changes:** Updated `--dry-run` completion descriptions in `zsh.ts` and `fish.ts` for `ralph build`, `ralph plan roadmap|stories|tasks|subtasks`, and `ralph calibrate` to `Preview execution plan without running`. Added completion tests that verify preview entries are present for those sections and that existing non-pipeline dry-run descriptions (notify, subtasks append/prepend, refresh-models) remain unchanged. Also made completion tests resolve `tools/` from the local test file path so they validate the active worktree.
