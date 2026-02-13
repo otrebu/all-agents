@@ -3927,10 +3927,12 @@ ralphCommand.addCommand(
       "Discover available models from CLI providers and update dynamic registry",
     )
     .option("--dry-run", "Show what would be discovered without writing")
+    .option("--prune", "Remove models not found in the refreshed provider set")
     .option("--provider <name>", "Discover models from specific provider only")
     .action((options) => {
       runRefreshModels({
         isDryRun: options.dryRun === true,
+        isPrune: options.prune === true,
         provider: options.provider,
       });
     }),

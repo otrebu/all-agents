@@ -324,6 +324,7 @@ _aaa_ralph() {
                 refresh-models)
                     _arguments \\
                         '--dry-run[Show what would be discovered without writing]' \\
+                        '--prune[Remove models not found in the refreshed provider set]' \\
                         '--provider[Discover models from specific provider only]:provider:_aaa_provider'
                     ;;
             esac

@@ -416,6 +416,7 @@ function __fish_aaa_ralph_refresh_models
     test (count $cmd) -ge 3 -a "$cmd[2]" = ralph -a "$cmd[3]" = refresh-models
 end
 complete -c aaa -n __fish_aaa_ralph_refresh_models -l dry-run -d 'Show what would be discovered without writing'
+complete -c aaa -n __fish_aaa_ralph_refresh_models -l prune -d 'Remove models not found in the refreshed provider set'
 complete -c aaa -n __fish_aaa_ralph_refresh_models -l provider -d 'Discover models from specific provider only' -xa '(aaa __complete provider 2>/dev/null)'
 
 # ralph review subcommands
