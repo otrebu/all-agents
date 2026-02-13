@@ -138,7 +138,44 @@ describe("checkApprovalGate", () => {
     );
 
     expect(promptSpy).toHaveBeenCalledTimes(1);
+    expect(promptSpy).toHaveBeenCalledWith(
+      "createStories",
+      "Proceeding with stories level",
+      expect.objectContaining({ gateName: "createStories" }),
+    );
     expect(result).toBe("aborted");
+    promptSpy.mockRestore();
+  });
+
+  test("passes approval gate card data to promptApproval in always + tty mode", async () => {
+    const promptSpy = spyOn(approvals, "promptApproval").mockResolvedValue(
+      true,
+    );
+
+    const result = await checkApprovalGate(
+      "stories",
+      { createStories: "always" },
+      {
+        cascadeTarget: "build",
+        forceFlag: false,
+        isTTY: true,
+        milestonePath: "/tmp/milestone",
+        reviewFlag: false,
+      },
+    );
+
+    expect(result).toBe("continue");
+    expect(promptSpy).toHaveBeenCalledWith(
+      "createStories",
+      "Proceeding with stories level",
+      expect.objectContaining({
+        configMode: "always",
+        executionMode: "supervised",
+        gateName: "createStories",
+        resolvedAction: "prompt",
+      }),
+    );
+
     promptSpy.mockRestore();
   });
 
@@ -198,6 +235,11 @@ describe("checkApprovalGate", () => {
       "createStories",
       { createStories: "suggest" },
       "Proceeding with stories level",
+      expect.objectContaining({
+        executionMode: "headless",
+        gateName: "createStories",
+        resolvedAction: "notify-wait",
+      }),
     );
     notifyWaitSpy.mockRestore();
   });

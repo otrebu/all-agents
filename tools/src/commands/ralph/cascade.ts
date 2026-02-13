@@ -31,6 +31,8 @@ import {
 import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import {
+  type ApprovalGateCardData,
+  renderApprovalGateCard,
   renderCascadeProgress,
   renderEventLine,
   renderPhaseCard,
@@ -225,6 +227,29 @@ function buildApprovalContext(options: CascadeFromOptions): ApprovalContext {
 /**
  * Check approval gate before executing a cascade level.
  */
+function buildApprovalGateCardData(cardContext: {
+  approvalConfig: ApprovalsConfig | undefined;
+  context: CheckApprovalContext;
+  gate: ApprovalGate;
+  level: CascadeLevelName;
+  resolvedAction: ApprovalAction;
+}): ApprovalGateCardData {
+  const { approvalConfig, context, gate, level, resolvedAction } = cardContext;
+
+  return {
+    actionOptions: [
+      { color: "green", key: "Y", label: "Approve and continue" },
+      { color: "red", key: "n", label: "Abort cascade" },
+      { color: "yellow", key: "e", label: "Edit files first" },
+    ],
+    configMode: approvalConfig?.[gate] ?? "suggest",
+    executionMode: context.isTTY ? "supervised" : "headless",
+    gateName: gate,
+    resolvedAction,
+    summaryLines: [`Generated artifacts for ${level} level`],
+  };
+}
+
 // eslint-disable-next-line max-params -- callback hook is needed for renderer wait-state wiring
 async function checkApprovalGate(
   level: CascadeLevelName,
@@ -243,6 +268,13 @@ async function checkApprovalGate(
     approvalConfig,
     context,
   );
+  const gateCardData = buildApprovalGateCardData({
+    approvalConfig,
+    context,
+    gate,
+    level,
+    resolvedAction: action,
+  });
 
   if (onAction !== undefined) {
     onAction(action, gate);
@@ -250,6 +282,7 @@ async function checkApprovalGate(
 
   switch (action) {
     case "exit-unstaged": {
+      console.log(renderApprovalGateCard(gateCardData));
       console.log(
         `[Approval] exit-unstaged for ${gate} - manual review required`,
       );
@@ -269,17 +302,18 @@ async function checkApprovalGate(
 
     case "notify-wait": {
       const summary = `Proceeding with ${level} level`;
-      await handleNotifyWait(gate, approvalConfig, summary);
+      await handleNotifyWait(gate, approvalConfig, summary, gateCardData);
       return "continue";
     }
 
     case "prompt": {
       const summary = `Proceeding with ${level} level`;
-      const isApproved = await promptApproval(gate, summary);
+      const isApproved = await promptApproval(gate, summary, gateCardData);
       return isApproved ? "continue" : "aborted";
     }
 
     case "write": {
+      console.log(renderApprovalGateCard(gateCardData));
       return "continue";
     }
 

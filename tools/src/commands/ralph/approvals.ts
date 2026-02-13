@@ -9,6 +9,7 @@ import path from "node:path";
 import * as readline from "node:readline";
 
 import { sendNotification } from "../notify/client";
+import { type ApprovalGateCardData, renderApprovalGateCard } from "./display";
 
 /**
  * Approval evaluation logic for Ralph artifact creation.
@@ -185,15 +186,21 @@ function gitCheckpoint(gate: ApprovalGate): boolean {
   }
 }
 
+// eslint-disable-next-line max-params -- optional card data is threaded for live gate visibility
 async function handleNotifyWait(
   gate: ApprovalGate,
   config: ApprovalsConfig | undefined,
   summary: string,
+  cardData?: ApprovalGateCardData,
 ): Promise<void> {
   const waitSeconds =
     config?.suggestWaitSeconds ?? DEFAULT_SUGGEST_WAIT_SECONDS;
   const gateDisplay = formatGateName(gate);
   const { notify } = loadAaaConfig();
+
+  if (cardData !== undefined) {
+    console.log(renderApprovalGateCard(cardData));
+  }
 
   if (
     notify !== undefined &&
@@ -264,7 +271,12 @@ function printExitInstructions(
 async function promptApproval(
   gate: ApprovalGate,
   summary: string,
+  cardData?: ApprovalGateCardData,
 ): Promise<boolean> {
+  if (cardData !== undefined) {
+    console.log(renderApprovalGateCard(cardData));
+  }
+
   const gateDisplay = formatGateName(gate);
 
   console.log();

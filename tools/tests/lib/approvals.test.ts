@@ -17,6 +17,7 @@ import {
   sleep,
   writeFeedbackFile,
 } from "@tools/commands/ralph/approvals";
+import * as displayModule from "@tools/commands/ralph/display";
 import * as configModule from "@tools/lib/config";
 import {
   afterEach,
@@ -359,6 +360,45 @@ describe("promptApproval", () => {
       }),
     );
     expect(approvals).toEqual([false, false]);
+  });
+
+  test("renders approval gate card before prompting when card data is provided", async () => {
+    const renderedCard = "[approval-card]";
+    const renderCardSpy = spyOn(
+      displayModule,
+      "renderApprovalGateCard",
+    ).mockReturnValue(renderedCard);
+    const closeMock = mock(() => {});
+    let isCardLoggedBeforePrompt = false;
+
+    consoleLogSpy = spyOn(console, "log").mockImplementation(() => {});
+    createInterfaceSpy = spyOn(readline, "createInterface").mockReturnValue({
+      close: closeMock,
+      on: mock(() => undefined as unknown as readline.Interface),
+      question: (_questionPrompt: string, done: (value: string) => void) => {
+        isCardLoggedBeforePrompt =
+          consoleLogSpy?.mock.calls.some((call) => call[0] === renderedCard) ??
+          false;
+        done("");
+        return undefined as unknown as readline.Interface;
+      },
+    } as unknown as readline.Interface);
+
+    await promptApproval("createStories", "Creating 2 stories", {
+      actionOptions: [
+        { color: "green", key: "Y", label: "Approve and continue" },
+      ],
+      configMode: "always",
+      executionMode: "supervised",
+      gateName: "createStories",
+      resolvedAction: "prompt",
+      summaryLines: ["Generated artifacts for stories level"],
+    });
+
+    expect(renderCardSpy).toHaveBeenCalledTimes(1);
+    expect(isCardLoggedBeforePrompt).toBe(true);
+
+    renderCardSpy.mockRestore();
   });
 });
 

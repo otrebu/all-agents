@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-035
+- **Problem:** Live cascade approvals still showed minimal prompt text, so users could not see the full approval-gate context (gate, mode, resolved action, options) before interactive and headless decisions.
+- **Changes:** Wired approval gate cards into `checkApprovalGate()` by constructing `ApprovalGateCardData` from level/gate/config/runtime context and passing it to `promptApproval()` and `handleNotifyWait()`. Updated approvals flow to accept optional card data and render/log `renderApprovalGateCard()` before prompting or waiting. Added regression coverage in cascade + approvals unit tests to verify card data pass-through and card rendering before the `Approve? [Y/n]` prompt.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/src/commands/ralph/approvals.ts`, `tools/tests/lib/cascade.test.ts`, `tools/tests/lib/approvals.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-034
 - **Problem:** Live approval prompts lacked a dedicated approval-gate card renderer, so gate decisions did not show a structured snapshot of generated artifacts, execution context, and keyboard options.
 - **Changes:** Added `ApprovalGateCardData` and `renderApprovalGateCard()` in `display.ts` with round `boxen` styling (`BOX_WIDTH`, padding `1`), a formatted gate header, section dividers, summary truncation behavior (first 5 entries + `... and N more` when list size is greater than 10), context line (`Config/Mode/Action`), and colored option shortcuts (`[Y]`, `[n]`, `[e]`). Expanded `display.test.ts` with focused coverage for formatted gate names, all section content, truncation behavior, and line-width safety.
