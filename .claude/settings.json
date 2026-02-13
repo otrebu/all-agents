@@ -215,5 +215,6 @@
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }

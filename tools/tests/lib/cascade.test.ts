@@ -260,18 +260,21 @@ describe("getValidLevelNames", () => {
 
 describe("validateCascadeTarget", () => {
   test("returns null for executable forward cascades", () => {
+    expect(validateCascadeTarget("stories", "subtasks")).toBeNull();
+    expect(validateCascadeTarget("stories", "build")).toBeNull();
+    expect(validateCascadeTarget("tasks", "calibrate")).toBeNull();
     expect(validateCascadeTarget("subtasks", "build")).toBeNull();
     expect(validateCascadeTarget("build", "calibrate")).toBeNull();
     expect(validateCascadeTarget("subtasks", "calibrate")).toBeNull();
   });
 
-  test("returns actionable error for unsupported planning-level paths", () => {
-    const error = validateCascadeTarget("stories", "build");
+  test("returns actionable error for unsupported roadmap paths", () => {
+    const error = validateCascadeTarget("roadmap", "subtasks");
 
     expect(error).not.toBeNull();
     expect(error).toContain("not executable yet");
-    expect(error).toContain("Unsupported levels in path: tasks, subtasks");
-    expect(error).toContain("Supported targets from 'stories': none");
+    expect(error).toContain("Unsupported levels in path: stories");
+    expect(error).toContain("Supported targets from 'roadmap': none");
   });
 
   test("returns error for backward cascade", () => {
@@ -382,19 +385,72 @@ describe("runLevel", () => {
     expect(error).toContain("Valid levels:");
   });
 
-  test("returns error for planning levels (not yet implemented)", async () => {
+  test("returns error for roadmap/stories planning levels (not yet implemented)", async () => {
     const roadmapError = await runLevel("roadmap", options);
     expect(roadmapError).toContain("planning level");
     expect(roadmapError).toContain("not yet implemented");
 
     const storiesError = await runLevel("stories", options);
     expect(storiesError).toContain("planning level");
+    expect(storiesError).toContain("not yet implemented");
+  });
 
+  test("requires milestone path for tasks/subtasks planning levels", async () => {
     const tasksError = await runLevel("tasks", options);
-    expect(tasksError).toContain("planning level");
+    expect(tasksError).toContain("requires a milestone path");
 
     const subtasksError = await runLevel("subtasks", options);
-    expect(subtasksError).toContain("planning level");
+    expect(subtasksError).toContain("requires a milestone path");
+  });
+
+  test("requires planning-level runner for tasks/subtasks planning levels", async () => {
+    const tasksError = await runLevel("tasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+    });
+    expect(tasksError).toContain("planning-level runner");
+
+    const subtasksError = await runLevel("subtasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+    });
+    expect(subtasksError).toContain("planning-level runner");
+  });
+
+  test("delegates tasks/subtasks planning levels to runner", async () => {
+    const planningRunnerHost = {
+      runner: async () => await Promise.resolve(null as null | string),
+    };
+    const planningRunner = spyOn(planningRunnerHost, "runner");
+
+    const tasksError = await runLevel("tasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: planningRunner,
+    });
+    expect(tasksError).toBeNull();
+
+    const subtasksError = await runLevel("subtasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: planningRunner,
+    });
+    expect(subtasksError).toBeNull();
+
+    expect(planningRunner).toHaveBeenCalledWith("tasks", {
+      contextRoot: "/nonexistent/path",
+      milestonePath: "/tmp/milestone",
+      model: undefined,
+      provider: undefined,
+    });
+    expect(planningRunner).toHaveBeenCalledWith("subtasks", {
+      contextRoot: "/nonexistent/path",
+      milestonePath: "/tmp/milestone",
+      model: undefined,
+      provider: undefined,
+    });
+
+    planningRunner.mockRestore();
   });
 
   test("accepts options with contextRoot and subtasksPath", async () => {
@@ -475,8 +531,52 @@ describe("runCascadeFrom", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.stoppedAt).toBe("stories");
-    expect(result.error).toContain("not executable yet");
+    expect(result.stoppedAt).toBe("tasks");
+    expect(result.error).toContain("requires a milestone path");
+  });
+
+  test("executes tasks/subtasks when planning runner and milestone path are provided", async () => {
+    const planningRunnerHost = {
+      runner: async () => await Promise.resolve(null as null | string),
+    };
+    const planningRunner = spyOn(planningRunnerHost, "runner");
+
+    const result = await runCascadeFrom("stories", "subtasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: planningRunner,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.completedLevels).toEqual(["tasks", "subtasks"]);
+    expect(result.error).toBeNull();
+    expect(result.stoppedAt).toBeNull();
+    expect(planningRunner).toHaveBeenNthCalledWith(1, "tasks", {
+      contextRoot: "/nonexistent/path",
+      milestonePath: "/tmp/milestone",
+      model: undefined,
+      provider: undefined,
+    });
+    expect(planningRunner).toHaveBeenNthCalledWith(2, "subtasks", {
+      contextRoot: "/nonexistent/path",
+      milestonePath: "/tmp/milestone",
+      model: undefined,
+      provider: undefined,
+    });
+
+    planningRunner.mockRestore();
+  });
+
+  test("fails on tasks/subtasks cascade when planning runner is missing", async () => {
+    const result = await runCascadeFrom("stories", "subtasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.completedLevels).toEqual([]);
+    expect(result.stoppedAt).toBe("tasks");
+    expect(result.error).toContain("planning-level runner");
   });
 
   test("returns error for backward cascade", async () => {

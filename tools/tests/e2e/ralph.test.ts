@@ -1711,7 +1711,7 @@ kill -s INT $$
       expect(stderr).toContain("Cannot cascade backward");
     });
 
-    test("plan tasks --cascade build fails early with executable-target guidance", async () => {
+    test("plan tasks --cascade build fails early without milestone/story source", async () => {
       const { exitCode, stderr } = await execa(
         "bun",
         [
@@ -1729,12 +1729,11 @@ kill -s INT $$
       );
 
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("not executable yet");
-      expect(stderr).toContain("Supported targets from 'tasks': none");
+      expect(stderr).toContain("requires --milestone or --story source");
       expect(stderr).not.toContain("provider binary not found");
     });
 
-    test("plan stories --cascade build fails before milestone validation", async () => {
+    test("plan stories --cascade build validates milestone after cascade target", async () => {
       const { exitCode, stderr } = await execa(
         "bun",
         [
@@ -1752,9 +1751,7 @@ kill -s INT $$
       );
 
       expect(exitCode).toBe(1);
-      expect(stderr).toContain("not executable yet");
-      expect(stderr).toContain("Supported targets from 'stories': none");
-      expect(stderr).not.toContain("milestone not found");
+      expect(stderr).toContain("milestone not found");
     });
 
     test("plan roadmap --cascade stories fails early with supported target guidance", async () => {

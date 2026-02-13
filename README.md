@@ -1,301 +1,198 @@
 # all-agents
 
-If you use Claude Code across multiple projects, you're repeating yourself — same CLAUDE.md, same workflows, same prompts copied everywhere. all-agents gives you a single source of truth: one config, every project inherits it.
+Atomic docs + CLI toolkit + AI agents for agentic coding tools. One repo, every project inherits it.
 
-It includes `aaa`, a CLI toolkit with autonomous planning (Ralph), parallel code review, web research, and push notifications — plus 18 skills and 9 slash commands for Claude Code.
+📚 **Atomic docs** — reusable knowledge blocks (tools, principles, patterns) shared across projects via symlinks
+🛠️ **`aaa` CLI** — commands for planning, reviewing, researching, notifying
+🤖 **Skills & agents** — 18 skills, 17 sub-agents, 9 slash commands (Claude Code today, opencode WIP)
+🔄 **Ralph** — autonomous dev loop: vision → roadmap → milestones → build → calibrate, each iteration memoryless
+
+```
+you ──► ralph plan vision ──► roadmap ──► milestones
+                                              │
+                                        stories & tasks
+                                              │
+                                        ralph build (loop)
+                                          │         ▲
+                                          ▼         │
+                                       implement → validate
+                                          │
+                                        ralph calibrate
+                                          │
+                                          ▼
+                                       ship it 🚀
+```
 
 ## Prerequisites
 
 - [Bun](https://bun.sh) (required)
-- [Claude Code](https://claude.ai/download) (required for full value — skills, agents, slash commands)
+- [Claude Code](https://claude.ai/download) (primary — skills, agents, slash commands)
+- [opencode](https://opencode.ai) (supported — atomic docs, CLI, Ralph)
+- Cursor CLI (coming soon)
 - [gh CLI](https://cli.github.com) (optional, for GitHub search)
 
 ## Quickstart
 
 ```bash
+# Install
 git clone https://github.com/otrebu/all-agents ~/dev/all-agents
 cd ~/dev/all-agents/tools && bun install
 bun run dev setup --user
 
-# Now try it in any project:
+# Link to your project
 cd ~/your-project
-aaa setup --project              # Link shared config
-aaa review --base main --dry-run # Find issues in your changes (11 parallel reviewers)
+aaa setup --project
 ```
 
 **`command not found: bun`** — Install: `curl -fsSL https://bun.sh/install | bash`
-**`command not found: aaa`** — Add `~/.local/bin` to PATH: `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc`
-
-## What You Get
-
-| What | Command | Description |
-|------|---------|-------------|
-| Plan features with AI | `aaa ralph plan vision` | Interactive planning — vision, roadmap, stories, subtasks |
-| Build autonomously | `aaa ralph build` | Agents implement subtasks one by one with validation gates |
-| Review code (11 agents) | `aaa review --headless` | Security, data integrity, performance, accessibility, and more |
-| Research the web | `aaa parallel-search` | Multi-angle web research with up to 30K chars/result |
-| Get notified | `aaa notify "Done"` | Push notifications when Claude finishes work |
-| Search GitHub | `aaa gh-search "react hooks"` | Find real-world code examples with intent-based ranking |
-| Sync context | `aaa sync-context --target ~/project` | Share docs across projects with watch mode |
-
-**Ralph** is an autonomous dev framework: you define a vision, and agents plan, build, review, and calibrate — while you stay on the loop, not in it. Each iteration is memoryless (fresh context, no drift). Full docs: [docs/ralph/README.md](docs/ralph/README.md)
-
-Full CLI reference: [tools/README.md](tools/README.md)
 
 ## Setup
 
-| | Global (Recommended) | Project-Level |
-|---|---|---|
-| Use when | You want all-agents everywhere | You want it in one specific project |
-| What it does | All Claude Code sessions inherit config | Just that project gets shared docs |
-| Command | `bun run dev setup --user` | `aaa setup --project` |
-
-### Global User Config
+### Global (all projects inherit)
 
 ```bash
 git clone https://github.com/otrebu/all-agents ~/dev/all-agents
-cd ~/dev/all-agents/tools
-bun install
+cd ~/dev/all-agents/tools && bun install
 bun run dev setup --user
 ```
 
-The setup wizard builds the CLI binary, creates `~/.local/bin/aaa`, checks your PATH, and prompts to set `CLAUDE_CONFIG_DIR`.
+Builds CLI → `~/.local/bin/aaa`, checks PATH, prompts for `CLAUDE_CONFIG_DIR`.
 
-**Result:** All Claude Code sessions use this repo's commands, agents, and skills.
-
-> **Note:** `CLAUDE_CONFIG_DIR` is not officially documented. Claude may still create `.claude/settings.local.json` in workspaces.
-
-### Project-Level Setup
+### Project-level (one project)
 
 ```bash
 cd your-project
 aaa setup --project
 ```
 
-Links `context/` to all-agents shared docs, creates `docs/planning/` and `docs/research/` directories, and checks `CLAUDE_CONFIG_DIR`.
+Creates `docs/planning/` and `docs/research/`, then asks how to share `context/`:
 
-**Result:** Project gets shared standards via `context/`, keeps local planning/research in `docs/`.
+| Method | How it works | Trade-off |
+|--------|-------------|-----------|
+| **Symlink** | `context/` → all-agents source | Real-time updates, but some tools (Claude Code, Cursor) may not follow symlinks |
+| **Sync copy** (recommended) | Copies files into `context/` | Always works, but needs manual refresh |
 
-## Using with Claude Code
+To update a synced copy:
 
-Claude Code extends with three mechanisms:
+```bash
+aaa sync-context              # one-time sync
+aaa sync-context --watch      # auto-sync while editing all-agents
+```
 
-- **Slash Commands** (`/name`) — Type in chat to trigger. Example: `/dev:git-commit`
-- **Skills** — Auto-detected from your request. Example: "what did I work on today?" triggers `dev-work-summary`
-- **Sub-agents** — Background workers spawned by skills. Rarely invoked directly.
+## 🔄 Ralph — Autonomous Dev Loop
 
-**Stability:** `stable` = battle-tested | `beta` = works, may evolve | `experimental` = may break
+Ralph turns a vague idea into shipped code through structured phases. You stay on the loop, not in it. Each build iteration starts fresh (memoryless — no context drift).
+
+```bash
+# 1. Plan — interactive, Socratic-style dialogue
+aaa ralph plan vision            # "what are we building and why?"
+aaa ralph plan roadmap           # break vision into milestones
+aaa ralph plan stories           # detail each milestone into user stories
+aaa ralph plan tasks             # generate implementable subtasks
+
+# 2. Build — agents implement one subtask at a time
+aaa ralph build                  # pick next task → implement → validate → repeat
+aaa ralph status                 # check queue progress & stats
+
+# 3. Calibrate — catch drift before it compounds
+aaa ralph calibrate              # intention drift, technical quality, self-improvement
+```
+
+**Ralph skills** (auto-detected in Claude Code):
+`ralph-plan` · `ralph-build` · `ralph-status` · `ralph-calibrate` · `ralph-review` · `ralph-prompt-audit`
+
+Full docs: [docs/ralph/README.md](docs/ralph/README.md)
+
+## 🧰 Skills, Agents & Commands
+
+Extend your coding tool. Claude Code fully supported, opencode WIP.
+
+- **Skills** auto-trigger from your request — "review my code" → `code-review`
+- **Slash commands** you type explicitly — `/dev:git-commit`
+- **Sub-agents** run in background — spawned by skills
+
+| | Name | What it does |
+|--|------|-------------|
+| 🔍 | `code-review` | 11 parallel reviewers → synthesize → triage |
+| 🧠 | `brainwriting` | 5 parallel agents explore an idea space |
+| 🔎 | `gh-search` | find real-world code on GitHub |
+| 🌐 | `parallel-search` | multi-angle web research, 30K chars/result |
+| 📊 | `dev-work-summary` | scan ~/dev for today's git activity |
+| ❓ | `interrogate-on-changes` | surface decisions & alternatives in diffs |
+| 📝 | `doc-analyze` | find doc gaps, tiered depth |
+| 📦 | `context-atomic-doc` | create/update atomic docs |
+| 📖 | `write-guide` | generate GUIDE.md for a milestone |
+| 🧪 | `run-guide-and-fix` | walk GUIDE.md with browser, fix as you go |
+| 👀 | `walkthrough` | present items one at a time interactively |
+| 🔧 | `setup-lint-staged` | add lint-staged to any project |
+| 🧙 | `aaa-feature-wizard` | scaffold new `aaa` CLI commands |
+
+**Slash commands:** `/dev:git-commit` · `/dev:git-multiple-commits` · `/dev:start-feature` · `/dev:complete-feature` · `/dev:consistency-check` · `/parallel-search` · `/context:plan-multi-agent` · `/meta:claude-code:create-skill` · `/meta:claude-code:create-agent` · `/meta:create-cursor-rule`
 
 <details>
-<summary><strong>Slash Commands</strong> (9 commands)</summary>
+<summary>🔔 Notification Integration</summary>
 
-| Command | Description | Stability |
-|:--------|:------------|:----------|
-| `/dev:git-commit` | Create conventional commits | stable |
-| `/dev:git-multiple-commits` | Create multiple commits | stable |
-| `/dev:start-feature` | Create/switch feature branches | stable |
-| `/dev:complete-feature` | Merge feature to main | stable |
-| `/dev:consistency-check` | Verify docs match code, find contradictions | beta |
-| `/parallel-search` | Multi-angle web research | beta |
-| `/context:plan-multi-agent` | Plan docs with Opus agents | experimental |
-| `/meta:claude-code:create-skill` | Create a new skill | beta |
-| `/meta:claude-code:create-agent` | Create a sub-agent | beta |
-| `/meta:create-cursor-rule` | Create .cursorrules file | experimental |
+Push notifications when your agent finishes or needs permission. Uses `aaa notify` + ntfy.sh.
+
+```bash
+aaa notify init                  # configure topic
+aaa notify "Build done"          # manual notification
+```
+
+Hooks in `.claude/settings.json` fire automatically on stop/permission events. Event routing configurable in `aaa.config.json`.
 
 </details>
 
-<details>
-<summary><strong>Sub-agents</strong> (17 agents)</summary>
-
-| Agent | Description | Stability |
-|:------|:------------|:----------|
-| `atomic-doc-creator` | Create missing atomic documentation | experimental |
-| `parallel-search` | Multi-angle web research | beta |
-| `subtask-reviewer` | Review subtasks using vertical slice test | experimental |
-| `task-generator` | Generate technical tasks from stories | experimental |
-| `accessibility-reviewer` | WCAG, keyboard nav, ARIA, color contrast | experimental |
-| `data-integrity-reviewer` | Null checks, race conditions, schema violations | experimental |
-| `dependency-reviewer` | Version compat, licenses, circular deps | experimental |
-| `documentation-reviewer` | Docstrings, API docs, README gaps | experimental |
-| `error-handling-reviewer` | Swallowed exceptions, missing catch, async issues | experimental |
-| `intent-alignment-reviewer` | Code matches specification | experimental |
-| `maintainability-reviewer` | Coupling, naming, DRY, SRP issues | experimental |
-| `over-engineering-reviewer` | YAGNI, premature abstraction | experimental |
-| `performance-reviewer` | O(n^2), memory leaks, N+1 queries | experimental |
-| `security-reviewer` | OWASP Top 10, injection, XSS, auth, secrets | experimental |
-| `test-coverage-reviewer` | Missing tests, untested branches, assertions | experimental |
-| `synthesizer` | Aggregate and dedupe findings from reviewers | experimental |
-| `triage` | Curate findings: select must-review, group by root cause, filter noise | experimental |
-
-</details>
-
-<details>
-<summary><strong>Skills</strong> (18 skills)</summary>
-
-| Skill | Description | Stability |
-|:------|:------------|:----------|
-| `aaa-feature-wizard` | Wizard for adding new aaa CLI commands | experimental |
-| `brainwriting` | 5 parallel idea explorations, then synthesize | beta |
-| `context-atomic-doc` | Create/update atomic docs (blocks, foundations, stacks) | experimental |
-| `dev-work-summary` | Scan ~/dev for today's git work | beta |
-| `doc-analyze` | Tiered doc analysis (T1: Haiku lookup, T2: Sonnet gaps, T3: Opus deep) | experimental |
-| `gh-search` | Search GitHub for code examples and patterns | experimental |
-| `interrogate-on-changes` | Surface decisions, alternatives, confidence | experimental |
-| `code-review` | Orchestrate 11 reviewers in parallel | experimental |
-| `ralph-build` | Autonomous build loop for subtasks | experimental |
-| `ralph-calibrate` | Check intention drift, technical quality | experimental |
-| `ralph-plan` | Interactive vision planning (Socratic method) | experimental |
-| `ralph-review` | Review auto-generated planning artifacts | experimental |
-| `ralph-status` | Display build progress and stats | experimental |
-| `ralph-prompt-audit` | Audit ralph command examples in prompts vs live CLI | experimental |
-| `run-guide-and-fix` | Walk through GUIDE.md with agent-browser, fix bugs | experimental |
-| `write-guide` | Generate comprehensive GUIDE.md for a milestone | experimental |
-| `setup-lint-staged` | Set up lint-staged for optimized pre-commit validation | experimental |
-| `walkthrough` | Present items one at a time interactively | experimental |
-
-</details>
-
-<details>
-<summary><strong>Notification Integration</strong> (Claude Code hooks)</summary>
-
-Get push notifications when Claude Code completes tasks or needs permission. Uses the `aaa notify` CLI with event routing.
-
-**Setup:**
-
-1. Configure your notify topic: `aaa notify init`
-2. The hooks in `.claude/settings.json` are pre-configured:
-
-```json
-{
-  "hooks": {
-    "Stop": [{
-      "hooks": [{ "type": "command", "command": "aaa notify --event claude:stop 'Task complete' --quiet" }]
-    }],
-    "Notification": [{
-      "matcher": "permission_prompt",
-      "hooks": [{ "type": "command", "command": "aaa notify --event claude:permissionPrompt 'Permission needed' --quiet" }]
-    }]
-  }
-}
-```
-
-**Event routing** uses `aaa.config.json` to customize notifications per event:
-
-```json
-{
-  "notify": {
-    "defaultTopic": "claude",
-    "events": {
-      "claude:stop": { "priority": "default" },
-      "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
-    }
-  }
-}
-```
-
-**Available events:** `claude:stop` (task completed), `claude:permissionPrompt` (permission required)
-
-**Note:** Hooks are safe before running `aaa notify init` — they exit silently when unconfigured.
-
-</details>
-
-<details>
-<summary><strong>Using with Cursor</strong></summary>
-
-Generate `.cursorrules` files using the `/meta:create-cursor-rule` command. The shared documentation in `context/` can be referenced by both Claude Code and Cursor.
-
-**`.cursorrules` (root-level)**
-
-```
-@context/blocks/principles/coding-style.md
-@context/blocks/principles/prompting.md
-```
-
-**`.cursor/rules/*.mdc` (modular rules)**
-
-```markdown
----
-description: TypeScript coding standards
-globs: ["**/*.ts", "**/*.tsx"]
----
-
-Follow guidelines in @context/stacks/ and @context/foundations/
-```
-
-</details>
 
 ## Configuration
 
-Minimal example — create `aaa.config.json` in your project root:
-
-```json
-{
-  "$schema": "./docs/planning/schemas/aaa-config.schema.json",
-  "notify": { "enabled": true, "defaultTopic": "my-project" },
-  "ralph": { "build": { "maxIterations": 3 } }
-}
-```
-
-| Section | What you can configure |
-|---------|----------------------|
-| `notify` | Push notifications via ntfy.sh — topics, priorities, quiet hours, event routing |
-| `ralph` | Autonomous build hooks, self-improvement mode, iteration limits |
-| `review` | Auto-fix threshold, diary location |
-| `research` | Output directory, result limits for GitHub/parallel search |
+All config lives in `aaa.config.json` in your project root. See [aaa.config.json](aaa.config.json) for a working example. For notifications: `aaa notify init` walks you through first-time setup.
 
 <details>
-<summary><strong>Full config example</strong></summary>
+<summary>📄 Config reference (<code>aaa.config.json</code>)</summary>
 
-```json
-{
-  "$schema": "./docs/planning/schemas/aaa-config.schema.json",
-
-  "notify": {
-    "enabled": true,
-    "server": "https://ntfy.sh",
-    "defaultTopic": "my-project",
-    "defaultPriority": "high",
-    "quietHours": { "enabled": true, "startHour": 22, "endHour": 8 },
-    "events": {
-      "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
-      "ralph:subtaskComplete": { "priority": "default" },
-      "claude:stop": { "enabled": false },
-      "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
-    }
-  },
-
-  "ralph": {
-    "hooks": {
-      "onIterationComplete": ["log"],
-      "onSubtaskComplete": ["log", "notify"],
-      "onMilestoneComplete": ["log", "notify"],
-      "onValidationFail": ["log", "notify"],
-      "onMaxIterationsExceeded": ["log", "notify", "pause"]
-    },
-    "selfImprovement": { "mode": "suggest" },
-    "build": { "maxIterations": 3, "calibrateEvery": 0 }
-  },
-
-  "review": { "autoFixThreshold": 3, "diaryPath": "logs/reviews.jsonl" },
-  "research": { "outputDir": "docs/research", "github": { "maxResults": 10 }, "parallel": { "maxResults": 15 } },
-  "debug": false
-}
-```
+| Section | Key | What it does |
+|---------|-----|-------------|
+| `notify` | `enabled` | toggle notifications globally |
+| | `server` | ntfy server URL (default: ntfy.sh) |
+| | `defaultTopic` | default ntfy topic |
+| | `defaultPriority` | min / low / default / high / max |
+| | `quietHours` | suppress sounds during hours (startHour, endHour) |
+| | `events` | per-event routing: topic, priority, tags, enabled |
+| `ralph` | `provider` | claude / opencode / gemini / codex / cursor / pi |
+| | `model` | default model override |
+| | `build.maxIterations` | max retries per subtask (0 = unlimited) |
+| | `build.calibrateEvery` | run calibration every N iterations (0 = off) |
+| | `approvals` | gates: createRoadmap, createStories, createTasks, createSubtasks, onDriftDetected, etc. Values: always / suggest / auto |
+| | `hooks` | lifecycle events: onIterationComplete, onMilestoneComplete, onValidationFail, onMaxIterationsExceeded. Actions: log / notify / pause |
+| | `selfImprovement.mode` | off / suggest / autofix |
+| | `timeouts` | stallMinutes (default 25), hardMinutes (default 60), graceSeconds (default 5) |
+| `review` | `autoFixThreshold` | severity threshold for auto-fix (1-5) |
+| | `diaryPath` | path to review diary file |
+| `research` | `outputDir` | where to save research results |
+| | `github.maxResults` | max GitHub search results |
+| | `parallel.maxResults` | max parallel search results |
+| `debug` | | enable verbose logging globally |
 
 </details>
 
-### Environment Variables
+<details>
+<summary>🔑 Environment variables</summary>
 
-Secrets go in environment variables, not the config file. Create `tools/.env` from `.env.dev`:
+Secrets via shell exports (no `.env` file needed):
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `NTFY_PASSWORD` | No | ntfy password for authenticated topics |
-| `NTFY_TOPIC` | No | Override default topic via environment |
-| `NTFY_SERVER` | No | Override server URL via environment |
-| `AAA_PARALLEL_API_KEY` | For parallel-search | [Get key](https://platform.parallel.ai/) |
-| `AAA_GITHUB_TOKEN` | No | Falls back to `gh auth` |
-| `AAA_DEBUG` | No | Enable verbose logging |
+| Variable | For | Notes |
+|----------|-----|-------|
+| `AAA_PARALLEL_API_KEY` | `parallel-search` | required for web research |
+| `AAA_GITHUB_TOKEN` | `gh-search` | falls back to `gh auth` |
+| `NTFY_PASSWORD` | `notify` | authenticated ntfy topics |
+| `NTFY_SERVER` | `notify` | overrides config file |
+| `NTFY_TOPIC` | `notify` | overrides config file |
+| `AAA_DEBUG` | all | verbose logging (`true`/`1`) |
+| `RALPH_PROVIDER` | ralph | override provider per-session |
+| `CLAUDE_CONFIG_DIR` | setup | Claude Code config directory |
+
+</details>
 
 ## Directory Structure
 
@@ -313,7 +210,7 @@ all-agents/
 ├── docs/                  # PROJECT-LOCAL (not shared)
 │   ├── planning/          # Tasks, stories
 │   └── research/          # Generated research outputs
-├── tools/                 # CLI source code
+├── tools/                 # CLI source code (see tools/README.md)
 │   ├── src/cli.ts         # Entry point
 │   ├── src/commands/      # Command implementations
 │   └── lib/               # Shared utilities
@@ -329,21 +226,15 @@ all-agents/
 
 ## Development
 
+Dependencies live in `tools/`. Install once, then run everything from repo root with `--cwd`:
+
 ```bash
-cd tools
-
-bun install           # Install dependencies
-bun run build         # Build CLI -> bin/aaa
-bun run dev <cmd>     # Dev mode
-bun run test          # E2E tests (requires API keys)
-bun run lint          # Linting
-bun run lint:fix      # Auto-fix
+bun install --cwd tools          # install deps
+bun run --cwd tools dev <cmd>    # dev mode (no build needed)
+bun run --cwd tools build        # compile CLI → bin/aaa
+bun run --cwd tools test         # E2E tests (needs API keys)
+bun run --cwd tools check        # lint + typecheck + test
 ```
-
-### Testing Requirements
-
-- `gh-search`: GitHub token via `gh auth login` or `GITHUB_TOKEN`
-- `parallel-search`: `AAA_PARALLEL_API_KEY` env var
 
 ## Troubleshooting
 
@@ -357,16 +248,16 @@ Install Bun: `curl -fsSL https://bun.sh/install | bash`
 Set `CLAUDE_CONFIG_DIR` environment variable to point to all-agents root directory.
 
 **API commands fail silently**
-Check `tools/.env` exists with required keys. Run with `AAA_DEBUG=true` for verbose output.
+Check env vars are set (`AAA_PARALLEL_API_KEY`, `AAA_GITHUB_TOKEN`). Run with `AAA_DEBUG=true` for verbose output.
 
 ## Uninstall
 
 ```bash
-aaa uninstall --user    # Remove global installation
-aaa uninstall --project # Remove project integration
+aaa uninstall --user    # removes ~/.local/bin/aaa, ~/.agents/skills symlink, warns about CLAUDE_CONFIG_DIR
+aaa uninstall --project # removes context/ symlink
 ```
 
-Or manually: remove `~/.local/bin/aaa` symlink and unset `CLAUDE_CONFIG_DIR`.
+Or manually: remove `~/.local/bin/aaa` and `~/.agents/skills` symlinks, unset `CLAUDE_CONFIG_DIR` from your shell config.
 
 See **[docs/planning/ROADMAP.md](docs/planning/ROADMAP.md)** for project vision and planned features.
 

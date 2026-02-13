@@ -65,6 +65,8 @@ interface CascadeFromOptions {
   milestonePath?: string;
   /** Provider model identifier to propagate across cascaded levels */
   model?: string;
+  /** Optional runner used to execute planning levels inside cascade */
+  planningLevelRunner?: PlanningLevelRunner;
   /** Provider selection to propagate across cascaded levels */
   provider?: ProviderType;
   /** Require approvals by forcing gate review behavior (`--review`) */
@@ -112,6 +114,28 @@ interface CheckApprovalContext extends ApprovalContext {
 }
 
 /**
+ * Callback used by cascade orchestration to execute planning levels.
+ */
+type PlanningLevelRunner = (
+  level: "subtasks" | "tasks",
+  options: PlanningLevelRunnerOptions,
+) => Promise<null | string>;
+
+/**
+ * Options passed to a planning-level runner invoked by runLevel().
+ */
+interface PlanningLevelRunnerOptions {
+  /** Repository root path */
+  contextRoot: string;
+  /** Resolved milestone root path */
+  milestonePath: string;
+  /** Provider model identifier to pass through to build/calibrate */
+  model?: string;
+  /** Provider selection for planning invocation */
+  provider?: ProviderType;
+}
+
+/**
  * Options for runLevel dispatcher
  *
  * Contains the minimum context needed to execute any cascade level.
@@ -124,8 +148,12 @@ interface RunLevelOptions {
   contextRoot: string;
   /** Skip approvals by forcing write actions at all gates (`--force`) */
   forceFlag?: boolean;
+  /** Resolved milestone root path for milestone-scoped planning levels */
+  milestonePath?: string;
   /** Provider model identifier to pass through to build/calibrate */
   model?: string;
+  /** Optional runner used to execute planning levels inside cascade */
+  planningLevelRunner?: PlanningLevelRunner;
   /** Provider selection to pass through to build/calibrate */
   provider?: ProviderType;
   /** Require approvals by forcing gate review behavior (`--review`) */
@@ -169,11 +197,13 @@ type CascadeLevelName =
 /**
  * Cascade levels with runnable adapters in runLevel().
  *
- * Planning levels are intentionally excluded until adapters are implemented.
+ * tasks/subtasks run through an injected planning runner.
  */
 const EXECUTABLE_LEVELS: ReadonlySet<CascadeLevelName> = new Set([
   "build",
   "calibrate",
+  "subtasks",
+  "tasks",
 ]);
 
 // =============================================================================
@@ -498,7 +528,9 @@ async function runCascadeFrom(
     calibrateEvery: options.calibrateEvery,
     contextRoot: options.contextRoot,
     forceFlag: options.forceFlag,
+    milestonePath: options.milestonePath,
     model: options.model,
+    planningLevelRunner: options.planningLevelRunner,
     provider: options.provider,
     reviewFlag: options.reviewFlag,
     subtasksPath: options.subtasksPath,
@@ -659,11 +691,9 @@ async function runCascadeFrom(
  * Execute a single cascade level
  *
  * Dispatches to the appropriate function based on level name:
+ * - 'tasks'/'subtasks' → planningLevelRunner() when provided
  * - 'build' → runBuild()
  * - 'calibrate' → runCalibrate('all')
- *
- * Note: Planning levels (roadmap, stories, tasks, subtasks) are not yet
- * implemented as they require interactive Claude sessions.
  *
  * @param level - Level name to execute
  * @param options - Options containing contextRoot and subtasksPath
@@ -683,7 +713,9 @@ async function runLevel(
     calibrateEvery = 0,
     contextRoot,
     forceFlag: isForceFlag,
+    milestonePath,
     model,
+    planningLevelRunner,
     provider,
     reviewFlag: isReviewFlag,
     subtasksPath,
@@ -722,6 +754,24 @@ async function runLevel(
       }
     }
 
+    case "subtasks":
+    case "tasks": {
+      if (milestonePath === undefined || milestonePath === "") {
+        return `Level '${level}' requires a milestone path for cascade execution`;
+      }
+
+      if (planningLevelRunner === undefined) {
+        return `Level '${level}' requires a planning-level runner for cascade execution`;
+      }
+
+      return planningLevelRunner(level, {
+        contextRoot,
+        milestonePath,
+        model,
+        provider,
+      });
+    }
+
     case "calibrate": {
       const calibrateSubcommand: CalibrateSubcommand = "all";
       const didSucceed = await runCalibrate(calibrateSubcommand, {
@@ -736,9 +786,7 @@ async function runLevel(
     }
 
     case "roadmap":
-    case "stories":
-    case "subtasks":
-    case "tasks": {
+    case "stories": {
       // Planning levels require interactive Claude sessions
       // They will be implemented when the cascade CLI integration is done
       return `Level '${level}' is a planning level and is not yet implemented for cascade execution`;
@@ -826,6 +874,8 @@ export {
   isValidLevelName,
   LEVELS,
   levelToGate,
+  type PlanningLevelRunner,
+  type PlanningLevelRunnerOptions,
   promptContinue,
   runCascadeFrom,
   runLevel,

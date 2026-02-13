@@ -34,15 +34,14 @@ describe("cascade E2E - validateCascadeTarget", () => {
     expect(validateCascadeTarget("build", "calibrate")).toBeNull();
   });
 
-  test("forward cascade through planning levels returns error (not executable)", () => {
-    const storiesError = validateCascadeTarget("stories", "calibrate");
-    expect(storiesError).not.toBeNull();
-    expect(storiesError).toContain("not executable yet");
-    expect(storiesError).toContain("tasks, subtasks");
+  test("forward cascade through executable planning levels returns null (valid)", () => {
+    expect(validateCascadeTarget("stories", "subtasks")).toBeNull();
+    expect(validateCascadeTarget("stories", "calibrate")).toBeNull();
 
     const roadmapError = validateCascadeTarget("roadmap", "subtasks");
     expect(roadmapError).not.toBeNull();
     expect(roadmapError).toContain("not executable yet");
+    expect(roadmapError).toContain("Unsupported levels in path: stories");
   });
 
   test("same level cascade returns error", () => {
