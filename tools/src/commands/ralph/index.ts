@@ -1,5 +1,6 @@
 import { Command } from "@commander-js/extra-typings";
 import { discoverMilestones, getMilestonePaths } from "@lib/milestones";
+import { loadAaaConfig } from "@tools/lib/config";
 import { findProjectRoot, getContextRoot } from "@tools/utils/paths";
 import chalk from "chalk";
 import {
@@ -43,8 +44,12 @@ import {
   renderEventLine,
   renderInvocationHeader,
   renderPhaseCard,
+  renderPipelineFooter,
+  renderPipelineHeader,
+  renderPipelineTree,
   renderPlanSubtasksSummary,
 } from "./display";
+import { computeExecutionPlan, type ExecutionPlan } from "./plan-preview";
 import {
   buildPrompt,
   invokeClaudeChat as invokeClaudeChatFromModule,
@@ -84,8 +89,99 @@ function extractTaskReference(taskPath: string): string {
   return path.basename(taskPath, ".md");
 }
 
+function formatDryRunCommandLine(plan: ExecutionPlan): string {
+  const commandByType: Record<ExecutionPlan["command"], string> = {
+    build: "build",
+    "calibrate-all": "calibrate all",
+    "calibrate-intention": "calibrate intention",
+    "calibrate-technical": "calibrate technical",
+    "plan-roadmap": "plan roadmap",
+    "plan-stories": "plan stories",
+    "plan-subtasks": "plan subtasks",
+    "plan-tasks": "plan tasks",
+  };
+
+  const parts = [commandByType[plan.command]];
+  if (plan.runtime.milestonePath !== null) {
+    parts.push(`--milestone ${path.basename(plan.runtime.milestonePath)}`);
+  }
+  if (plan.cascadeTarget !== null) {
+    parts.push(`--cascade ${plan.cascadeTarget}`);
+  }
+  if (plan.fromLevel !== null) {
+    parts.push(`--from ${plan.fromLevel}`);
+  }
+  if (plan.flags.force) {
+    parts.push("--force");
+  }
+  if (plan.flags.review) {
+    parts.push("--review");
+  }
+  if (plan.flags.validateFirst) {
+    parts.push("--validate-first");
+  }
+  if (plan.flags.calibrateEvery > 0) {
+    parts.push(`--calibrate-every ${plan.flags.calibrateEvery}`);
+  }
+
+  return parts.join(" ");
+}
+
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getDryRunApprovalStatus(plan: ExecutionPlan): string {
+  if (plan.summary.approvalGateCount === 0) {
+    return "none";
+  }
+  if (plan.flags.force) {
+    return "skipped (--force)";
+  }
+  if (plan.flags.review) {
+    return "required (--review)";
+  }
+  return "default";
+}
+
+function getDryRunGateStatus(
+  phase: ExecutionPlan["phases"][number],
+  plan: ExecutionPlan,
+): "APPROVAL" | "auto" | "SKIP" | undefined {
+  if (phase.approvalGate === undefined) {
+    return undefined;
+  }
+  if (phase.approvalGate.action === "prompt") {
+    return "APPROVAL";
+  }
+  if (phase.approvalGate.action === "write") {
+    return plan.flags.force ? "SKIP" : "auto";
+  }
+  return "APPROVAL";
+}
+
+function getDryRunOutputFormat(): "json" | "pretty" {
+  try {
+    const configuredFormat = loadAaaConfig().ralph?.dryRun?.format;
+    return configuredFormat === "json" ? "json" : "pretty";
+  } catch {
+    return "pretty";
+  }
+}
+
+function getDryRunPhaseDescription(command: ExecutionPlan["command"]): string {
+  const descriptionByCommand: Record<ExecutionPlan["command"], string> = {
+    build: "Run subtask implementation loop",
+    "calibrate-all": "Run intention and technical drift analysis",
+    "calibrate-intention": "Run intention drift analysis",
+    "calibrate-technical": "Run technical drift analysis",
+    "plan-roadmap": "Generate roadmap milestones",
+    "plan-stories": "Generate story files",
+    "plan-subtasks": "Generate executable subtask queue",
+    "plan-tasks": "Generate task files",
+  };
+
+  return descriptionByCommand[command];
 }
 
 function getMilestoneRootFromPath(candidatePath: string): string {
@@ -105,6 +201,104 @@ function getMilestoneRootFromPath(candidatePath: string): string {
   }
 
   return candidatePath;
+}
+
+function printDryRunPlan(plan: ExecutionPlan): void {
+  const shouldRenderAsJson = getDryRunOutputFormat() === "json";
+
+  if (shouldRenderAsJson) {
+    console.log(JSON.stringify(plan, null, 2));
+    return;
+  }
+
+  const displayMode = plan.flags.headless ? "headless" : "supervised";
+
+  const phaseNodes = plan.phases.map((phase) => ({
+    expanded: true,
+    expandedDetail: {
+      gate:
+        phase.approvalGate === undefined
+          ? undefined
+          : {
+              configValue: "resolved",
+              gateName: phase.approvalGate.gate,
+              resolvedAction: phase.approvalGate.action,
+            },
+      reads: phase.reads,
+      steps: phase.steps.map((step) => {
+        const primaryFlagEffect = step.flagEffects[0];
+        if (primaryFlagEffect === undefined) {
+          return { text: step.text };
+        }
+        return {
+          annotation: {
+            effect: primaryFlagEffect.type,
+            flag: primaryFlagEffect.flag.replace(/^--/, ""),
+          },
+          text: step.text,
+        };
+      }),
+      writes: phase.writes,
+    },
+    name: phase.level,
+    summary: {
+      description: getDryRunPhaseDescription(phase.command),
+      gateStatus: getDryRunGateStatus(phase, plan),
+      timeEstimate: phase.estimatedTime,
+    },
+  }));
+
+  const warningLines: Array<string> = [];
+  if (plan.flags.force) {
+    warningLines.push("--force skips approval prompts");
+  }
+  if (plan.flags.review) {
+    warningLines.push("--review requires approval prompts");
+  }
+  if (plan.flags.validateFirst) {
+    warningLines.push("--validate-first runs pre-build queue validation");
+  }
+  if (plan.flags.calibrateEvery > 0) {
+    warningLines.push(
+      `--calibrate-every inserts calibration every ${plan.flags.calibrateEvery} iteration(s)`,
+    );
+  }
+
+  const estimatedMinutes = Number.parseInt(
+    plan.summary.totalEstimatedTime.replaceAll(/[^0-9]/g, ""),
+    10,
+  );
+
+  const outputLines = [
+    renderPipelineHeader({
+      approvalsStatus: getDryRunApprovalStatus(plan),
+      commandLine: formatDryRunCommandLine(plan),
+      milestone:
+        plan.runtime.milestonePath === null
+          ? undefined
+          : path.basename(plan.runtime.milestonePath),
+      mode: displayMode,
+      model: plan.runtime.model ?? undefined,
+      provider: plan.runtime.provider ?? "default",
+    }),
+    "",
+    ...renderPipelineTree(phaseNodes, {
+      force: plan.flags.force,
+      review: plan.flags.review,
+    }),
+    "",
+    ...renderPipelineFooter({
+      estimatedCost: "n/a",
+      estimatedMinutes: Number.isNaN(estimatedMinutes) ? 0 : estimatedMinutes,
+      gatesStatus: getDryRunApprovalStatus(plan),
+      nextStep: "dry-run",
+      phaseCount: plan.summary.phaseCount,
+      phaseGateCount: plan.summary.approvalGateCount,
+      warnings: warningLines,
+    }),
+  ];
+
+  console.log(outputLines.join("\n"));
 }
 
 /**
@@ -859,13 +1053,49 @@ ralphCommand.addCommand(
       "--cascade <target>",
       "Chain forward to target level after build (e.g. calibrate). Levels: build, calibrate",
     )
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
-      const contextRoot = getContextRoot();
-
-      // Resolve subtasks path
+      // Determine execution mode: headless or supervised (default)
+      const mode = options.headless === true ? "headless" : "supervised";
       const subtasksPath = path.resolve(options.subtasks);
+      const calibrateEvery = Number.parseInt(options.calibrateEvery, 10);
+
+      // Validate cascade target early (before running build)
+      if (options.cascade !== undefined) {
+        const validationError = validateCascadeTarget("build", options.cascade);
+        if (validationError !== null) {
+          console.error(`Error: ${validationError}`);
+          process.exit(1);
+        }
+      }
+
+      if (options.dryRun === true) {
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "build",
+          flags: {
+            calibrateEvery,
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+            validateFirst: options.validateFirst === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: options.cascade !== undefined,
+          model: options.model,
+          provider: options.provider,
+          subtasksPath,
+        });
+        printDryRunPlan(plan);
+        process.exit(0);
+      }
+
+      const contextRoot = getContextRoot();
 
       // For --print mode, render the effective runtime prompt for next assignment.
       if (options.print) {
@@ -915,22 +1145,10 @@ ralphCommand.addCommand(
         return;
       }
 
-      // Determine execution mode: headless or supervised (default)
-      const mode = options.headless === true ? "headless" : "supervised";
-
-      // Validate cascade target early (before running build)
-      if (options.cascade !== undefined) {
-        const validationError = validateCascadeTarget("build", options.cascade);
-        if (validationError !== null) {
-          console.error(`Error: ${validationError}`);
-          process.exit(1);
-        }
-      }
-
       // Map CLI options to BuildOptions and call runBuild()
       await runBuild(
         {
-          calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+          calibrateEvery,
           force: options.force === true,
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),
@@ -1016,6 +1234,8 @@ interface HandleCascadeOptions {
   forceFlag?: boolean;
   /** Optional level to resume from; overrides the cascade start argument */
   fromLevel?: string;
+  /** Preserve headless mode for cascade execution */
+  headless?: boolean;
   /** Provider model identifier to propagate across cascaded levels */
   model?: string;
   /** Provider selection to propagate across cascaded levels */
@@ -1467,6 +1687,7 @@ async function handleCascadeExecution(
     contextRoot,
     forceFlag: isForceFlag,
     fromLevel,
+    headless: isHeadless,
     model,
     provider,
     resolvedMilestonePath,
@@ -1631,6 +1852,7 @@ async function handleCascadeExecution(
     contextRoot,
     forceFlag: isForceFlag,
     fromLevel,
+    headless: isHeadless,
     milestonePath: resolvedMilestonePath ?? undefined,
     model,
     planningLevelRunner: runPlanningLevelFromCascade,
@@ -1817,7 +2039,7 @@ function renderSubtasksHeadlessStartBanner(options: {
 function resolveMilestoneFromOptions(
   milestoneOption: string | undefined,
   storyOption: string | undefined,
-  outputDirectory: string | undefined,
+  outputDirectory?: string,
 ): null | string | undefined {
   if (milestoneOption !== undefined) {
     // Explicit milestone flag
@@ -2234,6 +2456,35 @@ function stopWatchdogTimerIfPossible(
   }
 }
 
+function toPlanCascadeTarget(
+  value: string | undefined,
+): ReturnType<typeof toPlanFromLevel> {
+  return toPlanFromLevel(value);
+}
+
+function toPlanFromLevel(
+  value: string | undefined,
+):
+  | "build"
+  | "calibrate"
+  | "roadmap"
+  | "stories"
+  | "subtasks"
+  | "tasks"
+  | undefined {
+  if (
+    value === "roadmap" ||
+    value === "stories" ||
+    value === "tasks" ||
+    value === "subtasks" ||
+    value === "build" ||
+    value === "calibrate"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
 function tryMergeSubtaskFragments(options: {
   beforeQueueRaw: null | string;
   expectedFragmentCount?: number;
@@ -2449,6 +2700,10 @@ planCommand.addCommand(
     )
     .option("--model <name>", "Model to use for planning invocation")
     .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
+    .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
     )
@@ -2464,6 +2719,23 @@ planCommand.addCommand(
           console.error(`Error: ${validationError}`);
           process.exit(1);
         }
+      }
+
+      if (options.dryRun === true) {
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-roadmap",
+          flags: {
+            force: options.force === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: options.cascade !== undefined,
+          model: options.model,
+          provider: options.provider,
+        });
+        printDryRunPlan(plan);
+        process.exit(0);
       }
 
       const contextRoot = getContextRoot();
@@ -2517,6 +2789,10 @@ planCommand.addCommand(
     )
     .option("--model <name>", "Model to use for planning invocation")
     .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
+    .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
     )
@@ -2532,6 +2808,25 @@ planCommand.addCommand(
           console.error(`Error: ${validationError}`);
           process.exit(1);
         }
+      }
+
+      if (options.dryRun === true) {
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-stories",
+          flags: {
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: options.cascade !== undefined,
+          milestonePath: options.milestone,
+          model: options.model,
+          provider: options.provider,
+        });
+        printDryRunPlan(plan);
+        process.exit(0);
       }
 
       const contextRoot = getContextRoot();
@@ -2592,6 +2887,7 @@ planCommand.addCommand(
           contextRoot,
           forceFlag: options.force === true,
           fromLevel: options.from ?? "stories",
+          headless: options.headless === true,
           model: planningModel,
           provider: planningProvider as ProviderType,
           resolvedMilestonePath: milestonePath,
@@ -2627,6 +2923,10 @@ planCommand.addCommand(
     .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
+    )
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
     )
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
@@ -2678,6 +2978,29 @@ planCommand.addCommand(
         }
       }
 
+      if (options.dryRun === true) {
+        const milestonePath = resolveMilestoneFromOptions(
+          options.milestone,
+          options.story,
+        );
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-tasks",
+          flags: {
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: options.cascade !== undefined,
+          milestonePath: milestonePath ?? undefined,
+          model: options.model,
+          provider: options.provider,
+        });
+        printDryRunPlan(plan);
+        process.exit(0);
+      }
+
       const contextRoot = getContextRoot();
       const isAutoMode =
         options.supervised === true || options.headless === true;
@@ -2725,6 +3048,7 @@ planCommand.addCommand(
           contextRoot,
           forceFlag: options.force === true,
           fromLevel: options.from ?? "tasks",
+          headless: options.headless === true,
           model: options.model,
           provider: options.provider as ProviderType,
           resolvedMilestonePath,
@@ -2788,6 +3112,10 @@ planCommand.addCommand(
       "AI provider to use for planning (default: claude)",
     )
     .option("--model <name>", "Model to use for planning invocation")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
@@ -2815,6 +3143,37 @@ planCommand.addCommand(
         sourceCount,
       });
       validateSubtasksCascadeOption(options.cascade, options.from);
+
+      if (options.dryRun === true) {
+        const resolvedMilestonePath = resolveMilestoneFromOptions(
+          options.milestone,
+          options.story,
+          options.outputDir,
+        );
+        const resolvedOutputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          resolvedMilestonePath,
+        );
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-subtasks",
+          flags: {
+            calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+            validateFirst: options.validateFirst === true,
+          },
+          fromLevel: toPlanFromLevel(getSubtasksCascadeFromLevel(options.from)),
+          includeEntryInCascade: options.cascade !== undefined,
+          milestonePath: resolvedMilestonePath ?? undefined,
+          model: options.model,
+          provider: options.provider,
+          subtasksPath: path.join(resolvedOutputDirectory, "subtasks.json"),
+        });
+        printDryRunPlan(plan);
+        process.exit(0);
+      }
 
       const contextRoot = getContextRoot();
 
@@ -2984,6 +3343,7 @@ planCommand.addCommand(
           contextRoot,
           forceFlag: options.force === true,
           fromLevel: getSubtasksCascadeFromLevel(options.from),
+          headless: options.headless === true,
           model: options.model,
           provider: options.provider as ProviderType,
           resolvedMilestonePath: resolvedMilestonePath ?? null,
@@ -3416,6 +3776,7 @@ function resolveCalibrateSubtasksPath(
 async function runCalibrateSubcommand(
   subcommand: CalibrateSubcommand,
   options: {
+    dryRun?: boolean;
     force?: boolean;
     model?: string;
     provider?: string;
@@ -3430,6 +3791,47 @@ async function runCalibrateSubcommand(
   );
 
   validateApprovalFlags(options.force, options.review);
+
+  if (options.dryRun === true) {
+    let command:
+      | "calibrate-all"
+      | "calibrate-intention"
+      | "calibrate-technical"
+      | null = null;
+    switch (subcommand) {
+      case "all": {
+        command = "calibrate-all";
+        break;
+      }
+      case "intention": {
+        command = "calibrate-intention";
+        break;
+      }
+      case "technical": {
+        command = "calibrate-technical";
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+
+    if (command !== null) {
+      const plan = computeExecutionPlan({
+        command,
+        flags: {
+          force: options.force === true,
+          review: options.review === true,
+        },
+        milestonePath: path.dirname(path.resolve(resolvedSubtasksPath)),
+        model: options.model,
+        provider: options.provider,
+        subtasksPath: resolvedSubtasksPath,
+      });
+      printDryRunPlan(plan);
+      process.exit(0);
+    }
+  }
 
   const didSucceed = await runCalibrate(subcommand, {
     contextRoot,
@@ -3948,6 +4350,10 @@ calibrateCommand.addCommand(
   new Command("intention")
     .description("Check for intention drift (code vs planning docs)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
@@ -3962,6 +4368,10 @@ calibrateCommand.addCommand(
   new Command("technical")
     .description("Check for technical drift (code quality issues)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
@@ -3990,6 +4400,10 @@ calibrateCommand.addCommand(
   new Command("all")
     .description("Run all calibration checks sequentially")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")

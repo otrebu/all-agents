@@ -23,6 +23,16 @@ This will:
 - Install shell tab completion (zsh, bash, or fish)
 - Prompt to set `CLAUDE_CONFIG_DIR` for global Claude Code integration
 
+Switch the active `aaa` symlink to your current all-agents git worktree:
+
+```bash
+# Use current git worktree root
+aaa setup --user --worktree
+
+# Or point to a specific all-agents worktree path
+aaa setup --user --worktree ~/dev/all-agents-worktrees/feature-x
+```
+
 ### Project Integration
 
 Set up all-agents integration in another project:
@@ -80,10 +90,10 @@ aaa story create "As a user, I want to login"
 | `parallel-search <query>`     | Multi-angle web research with configurable depth                                                                     | `docs/research/parallel/`                   |
 | `task create <description>`   | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)                                    | milestone `tasks/` (or legacy global dir)   |
 | `story create <description>`  | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`)                                   | milestone `stories/` (or legacy global dir) |
-| `setup`                       | Install CLI (`--user`) or integrate project (`--project`)                                                            | -                                           |
+| `setup`                       | Install CLI (`--user`), switch active worktree (`--user --worktree [path]`), or integrate project (`--project`)      | -                                           |
 | `uninstall`                   | Remove CLI (`--user`) or project integration (`--project`)                                                           | -                                           |
-| `ralph plan <level>`          | Interactive planning (vision, roadmap, stories, tasks)                                                               | `docs/planning/`                            |
-| `ralph build`                 | Run subtask iteration loop (autonomous dev)                                                                          | `subtasks.json`                             |
+| `ralph plan <level>`          | Interactive planning (vision, roadmap, stories, tasks) with `--dry-run` pipeline preview                             | `docs/planning/`                            |
+| `ralph build`                 | Run subtask iteration loop (autonomous dev) with `--dry-run` pipeline preview                                        | `subtasks.json`                             |
 | `ralph subtasks <op>`         | Queue operations (`next`, `list`, `complete`, `append`, `prepend`, `diff`, `apply`) scoped to milestones/queue files | milestone `subtasks.json`                   |
 | `ralph status`                | Display build status and progress                                                                                    | -                                           |
 | `ralph calibrate <type>`      | Run drift checks (intention, technical, improve)                                                                     | -                                           |
@@ -365,6 +375,94 @@ aaa ralph build -p
 ```
 
 **Multi-provider support:** All ralph execution commands (`build`, `plan`, `calibrate`) accept `--provider <name>` and `--model <name>` flags for multi-provider execution.
+
+#### Dry-Run Preview
+
+Use `--dry-run` as a safety check before expensive or multi-phase runs: it shows a visual execution plan and exits without executing. This now pretty-prints in all modes (including `--headless`) by default. It works with cascade/approval flags like `--cascade`, `--force`, and `--review`.
+
+```bash
+aaa ralph plan stories --milestone M1 --cascade build --headless --force --dry-run
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                      Ralph Pipeline Plan                            ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Command:   plan stories --cascade build                            ║
+║  Milestone: M1                        Provider: opencode (gpt-5.3)  ║
+║  Mode:      headless                  Approvals: skipped (--force)  ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+┌─ PLAN ──────────────────────────────────────────────────────────────┐
+│                                                                    │
+│  [stories] ──→ [tasks] ──→ [subtasks] ──→ [build]                 │
+│                                                                    │
+│  ▾ stories    Generate story files from MILESTONE.md     ~3 min    │
+│  │  READS   milestones/M1/MILESTONE.md, ROADMAP.md                 │
+│  │  STEPS   1. Read milestone description                          │
+│  │       ~  2. Single-pass autonomous generation      [headless]   │
+│  │       ~  3. Generate without iteration             [headless]   │
+│  │          4. Number stories (S-001, S-002...)                    │
+│  │          5. Write each as separate file                         │
+│  │       +  6. Auto-approve all changes                  [force]   │
+│  │  WRITES  stories/S-NNN-*.md                                     │
+│  │  GATE    createStories -> SKIP (--force)                        │
+│  │                                                                   │
+│  ├─ tasks     Break stories into task files              ~5 min    │
+│  │  READS   stories/S-*.md                                         │
+│  │  WRITES  tasks/T-NNN-*.md                                       │
+│  │  GATE    createTasks -> SKIP (--force)                          │
+│  │                                                                   │
+│  ├─ subtasks  Slice tasks into atomic subtask queue      ~8 min    │
+│  │  READS   tasks/T-*.md                                           │
+│  │  WRITES  subtasks.json                                          │
+│  │  GATE    createSubtasks -> SKIP (--force)                       │
+│  │                                                                   │
+│  └─ build     Execute subtask queue                      ~45 min   │
+│     READS   subtasks.json, codebase                                │
+│     WRITES  code changes, git commits, iteration diary             │
+│     GATE    none                                                   │
+│                                                                    │
+│  Summary                                                           │
+│  ───────                                                           │
+│  Phases: 4       Gates: 3 skipped (--force)                        │
+│  Est. time: ~61 min    Est. cost: ~$0.20 - $0.60                  │
+│                                                                    │
+│  !  --force skips all approval gates                               │
+│  !  --headless disables interactive prompts                        │
+│                                                                    │
+│  To execute: remove --dry-run flag                                 │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+For more dry-run scenarios and rendering variants, see `docs/planning/milestones/007-pipeline-preview/MILESTONE.md`.
+
+```bash
+# Default behavior (pretty output)
+aaa ralph build --headless --dry-run
+
+# Opt into JSON output via aaa.config.json
+cat > aaa.config.json <<'EOF'
+{
+  "ralph": {
+    "dryRun": {
+      "format": "json"
+    }
+  }
+}
+EOF
+
+aaa ralph build --headless --dry-run
+```
+
+```bash
+# Other pipeline levels support the same preview flow
+aaa ralph build --dry-run
+aaa ralph plan roadmap --dry-run
+aaa ralph plan tasks --milestone 003-feature --dry-run
+aaa ralph plan subtasks --milestone 003-feature --dry-run
+aaa ralph calibrate all --dry-run
+aaa ralph calibrate intention --dry-run
+aaa ralph calibrate technical --dry-run
+```
 
 Queue mutation behavior in build mode:
 

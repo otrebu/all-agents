@@ -32,6 +32,16 @@ describe("aaa CLI", () => {
     expect(stdout).toMatch(/\d+\.\d+\.\d+/);
   });
 
+  test("setup --help includes --worktree option", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "setup", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--worktree [path]");
+  });
+
   test("unknown command fails with error", async () => {
     const { exitCode, stderr } = await execa(
       "bun",

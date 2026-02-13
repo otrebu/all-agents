@@ -21,10 +21,30 @@ const AAA_SYMLINK = resolve(LOCAL_BIN, "aaa");
  * Unlike getContextRoot() (runtime), this validates the complete repo structure.
  */
 type AllAgentsRootStrategy = "binary-path" | "symlink-resolution";
-
 type ShellType = "bash" | "fish" | "zsh";
+type WorktreeSelection = boolean | string;
 
 let cachedAllAgentsRoot: null | string = null;
+
+/**
+ * Finds nearest git root by walking up from a starting directory.
+ * Works for both normal repos and git worktrees (.git directory or file).
+ */
+function findGitRoot(startDirectory: string): null | string {
+  let candidate = resolve(startDirectory);
+
+  for (let depth = 0; depth < 20; depth += 1) {
+    if (existsSync(resolve(candidate, ".git"))) {
+      return candidate;
+    }
+
+    const parent = resolve(candidate, "..");
+    if (parent === candidate) break;
+    candidate = parent;
+  }
+
+  return null;
+}
 
 /**
  * Finds the all-agents repository root directory
@@ -214,6 +234,16 @@ function installCompletion(): void {
 }
 
 /**
+ * Validates that a directory looks like an all-agents repository root.
+ */
+function isAllAgentsRoot(directory: string): boolean {
+  return (
+    existsSync(resolve(directory, "context")) &&
+    existsSync(resolve(directory, "tools"))
+  );
+}
+
+/**
  * Checks if CLI is installed (symlink exists at ~/.local/bin/aaa)
  */
 function isCliInstalled(): boolean {
@@ -287,6 +317,34 @@ function isInPath(directory: string): boolean {
   return pathDirectories.some(
     (p) => p === directory || p === directory.replace(homedir(), "~"),
   );
+}
+
+/**
+ * Resolves worktree target for `aaa setup --user --worktree [path]`.
+ *
+ * - `--worktree <path>`: resolves from the provided path
+ * - `--worktree` (no value): resolves to current git worktree root
+ */
+function resolveWorktreeRoot(
+  worktree: WorktreeSelection,
+  cwd: string = process.cwd(),
+): string {
+  const fromCurrentGitRoot =
+    typeof worktree === "string" ? resolve(cwd, worktree) : findGitRoot(cwd);
+
+  if (fromCurrentGitRoot === null) {
+    throw new Error(
+      "Cannot resolve current git worktree. Run inside a git worktree or pass --worktree <path>.",
+    );
+  }
+
+  if (!isAllAgentsRoot(fromCurrentGitRoot)) {
+    throw new Error(
+      `Invalid all-agents worktree: ${fromCurrentGitRoot}. Expected both context/ and tools/ directories.`,
+    );
+  }
+
+  return fromCurrentGitRoot;
 }
 
 /**
@@ -385,6 +443,7 @@ function tryResolveFromSymlink(): null | string {
 
 export {
   AAA_SYMLINK,
+  findGitRoot,
   getAllAgentsRoot,
   getClaudeConfigStatus,
   getCompletionLine,
@@ -394,9 +453,11 @@ export {
   getShellType,
   getSymlinkTarget,
   installCompletion,
+  isAllAgentsRoot,
   isCliInstalled,
   isCompletionInstalled,
   isInPath,
   LOCAL_BIN,
+  resolveWorktreeRoot,
 };
-export type { ShellType };
+export type { ShellType, WorktreeSelection };

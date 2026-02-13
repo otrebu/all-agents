@@ -8,7 +8,164 @@
 
 ## Session Notes
 
+## 2026-02-13
+
+### SUB-046
+- **Problem:** `tools/README.md` documented `--dry-run` at a high level but did not include a full visual cascade preview example, so users could not quickly see the execution-plan diagram, annotation markers, and safe exit behavior before running multi-phase commands.
+- **Changes:** Updated the CLI commands table descriptions for `ralph plan <level>` and `ralph build` to explicitly mention `--dry-run` preview support. Replaced the short dry-run snippet in the Ralph section with a dedicated `Dry-Run Preview` subsection that explains purpose/behavior (safety check, works across modes, exits without execution) and added a full cascade example adapted from Milestone 007 Example 1 (header, expanded stories phase, collapsed downstream phases, annotation markers, summary footer, and the `remove --dry-run` execution hint). Added a short follow-up command block for other supported pipeline levels and a pointer to the milestone doc for more scenarios.
+- **Files:** `tools/README.md`, `docs/planning/PROGRESS.md`
+
+### SUB-043
+- **Problem:** Ralph shell completions still used older `--dry-run` wording for pipeline commands, so zsh/fish did not surface the standardized preview description for build/plan/calibrate flows.
+- **Changes:** Updated `--dry-run` completion descriptions in `zsh.ts` and `fish.ts` for `ralph build`, `ralph plan roadmap|stories|tasks|subtasks`, and `ralph calibrate` to `Preview execution plan without running`. Added completion tests that verify preview entries are present for those sections and that existing non-pipeline dry-run descriptions (notify, subtasks append/prepend, refresh-models) remain unchanged. Also made completion tests resolve `tools/` from the local test file path so they validate the active worktree.
+- **Files:** `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `tools/tests/completion/model-completion.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-038
+- **Problem:** Cascade approval gates did not render an explicit waiting (`‖`) phase in the cascade progress line before interactive/timed gate handling, so users could not see a clear paused-at-gate transition before prompt/notify/exit flows.
+- **Changes:** Updated `cascade.ts` to track per-level phase states and render cascade progress via `renderCascadeProgressWithStates()`; each level now transitions through running (`◉`) -> waiting (`‖`) before `promptApproval()`/`handleNotifyWait()` (and `exit-unstaged`), then back to running and completed (`✓`) as execution proceeds. Refined `checkApprovalGate()` to invoke a waiting callback immediately before gate interaction calls, and added unit coverage that asserts waiting-state rendering happens before prompt/notify handlers. Added E2E coverage in `cascade.test.ts` that runs a review-gated cascade and verifies `‖` appears and later transitions to running/completed output after approval.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/cascade.test.ts`, `tools/tests/e2e/cascade.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-037
+- **Problem:** Cascade progress rendering only represented completed/running/pending levels, so approval-gate waiting could not be shown with a distinct symbol or color.
+- **Changes:** Added exported cascade phase-state contracts in `display.ts` (`CascadePhaseState` plus per-state symbol constants) and introduced `renderCascadeProgressWithStates(levels, phaseStates)` to render all six states with explicit symbol/color mappings: completed (`✓` green), running (`◉` cyan), waiting (`‖` yellow), timed wait (`~` yellow), failed (`✗` red), pending (`○` dim). Kept existing `renderCascadeProgress()` behavior unchanged for regression safety while reusing shared symbol constants for completed/running output. Expanded `display.test.ts` with new coverage for waiting rendering, all six symbol/color combinations, and visual distinctness between waiting vs running/pending.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-035
+- **Problem:** Live cascade approvals still showed minimal prompt text, so users could not see the full approval-gate context (gate, mode, resolved action, options) before interactive and headless decisions.
+- **Changes:** Wired approval gate cards into `checkApprovalGate()` by constructing `ApprovalGateCardData` from level/gate/config/runtime context and passing it to `promptApproval()` and `handleNotifyWait()`. Updated approvals flow to accept optional card data and render/log `renderApprovalGateCard()` before prompting or waiting. Added regression coverage in cascade + approvals unit tests to verify card data pass-through and card rendering before the `Approve? [Y/n]` prompt.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/src/commands/ralph/approvals.ts`, `tools/tests/lib/cascade.test.ts`, `tools/tests/lib/approvals.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-034
+- **Problem:** Live approval prompts lacked a dedicated approval-gate card renderer, so gate decisions did not show a structured snapshot of generated artifacts, execution context, and keyboard options.
+- **Changes:** Added `ApprovalGateCardData` and `renderApprovalGateCard()` in `display.ts` with round `boxen` styling (`BOX_WIDTH`, padding `1`), a formatted gate header, section dividers, summary truncation behavior (first 5 entries + `... and N more` when list size is greater than 10), context line (`Config/Mode/Action`), and colored option shortcuts (`[Y]`, `[n]`, `[e]`). Expanded `display.test.ts` with focused coverage for formatted gate names, all section content, truncation behavior, and line-width safety.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-032
+- **Problem:** Dry-run pipeline preview did not render approval gates with the milestone's required status vocabulary (`SKIP`, `PROMPT`, `NOTIFY-WAIT`, `EXIT-UNSTAGED`) and flag annotations, so approval behavior was still hard to read at a glance.
+- **Changes:** Reworked `renderApprovalGatePreview()` to accept `(gateName, resolvedAction, options)` and render `GATE <name> -> <STATUS>` with the requested styles: `SKIP` (dim green + `[force]`), `PROMPT` (yellow + `[review]`), `NOTIFY-WAIT` (cyan), and `⚠ EXIT-UNSTAGED` (yellow warning). Moved gate-line injection from `renderExpandedPhase()` into `renderPipelineTree()` so each expanded phase appends gate status at the end of its detail block. Updated `ApprovalGatePreview.resolvedAction` to runtime actions (`write|prompt|notify-wait|exit-unstaged`), refreshed display unit tests for all new behaviors, and added an E2E assertion that `--dry-run --force` output includes approval gate entries for gated cascade levels.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/display.test.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-031
+- **Problem:** `computeExecutionPlan()` still exposed gate/action as split fields and always emitted `approvalGate` as `null` for non-gated levels, so dry-run output could not represent per-level approval resolution as `{ gate, action }` only where gates actually exist.
+- **Changes:** Updated `ExecutionPhase.approvalGate` in `plan-preview.ts` to an optional object shape (`{ gate, action }`), kept existing `approvalAction` for backward compatibility, and changed plan computation to populate gate objects only for gated levels while omitting the field for ungated levels (`build`, `calibrate`). Expanded `plan-preview` unit coverage for gate-presence semantics, force/review/suggest approval resolution matrices (TTY vs headless), and updated existing assertions to the new gate object contract.
+- **Files:** `tools/src/commands/ralph/plan-preview.ts`, `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-029
+- **Problem:** `cascade.test.ts` only covered pure validation helpers, so there was no CLI-level E2E regression coverage proving cascade live header progression/checkmark rendering or process cleanup behavior.
+- **Changes:** Added the first CLI E2E cascade pipeline-header test in `cascade.test.ts` using `execa` + tracked-process cleanup (`afterEach`) with a minimal temp milestone fixture and mock `claude` binary; the test executes a fast headless cascade path and asserts multi-phase header transitions (`→`) plus completed-phase checkmark output. Also fixed cascade handoff wiring so planning commands now propagate `headless` into `runCascadeFrom`, preventing interactive prompts and enabling deterministic headless cascade runs in E2E.
+- **Files:** `tools/tests/e2e/cascade.test.ts`, `tools/src/commands/ralph/index.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-028
+- **Problem:** `ralph build` lacked E2E coverage for the live `PipelineRenderer` header contract, so regressions in headless TTY rendering and non-TTY degradation (including ANSI cursor-control leakage) could slip through.
+- **Changes:** Added two focused E2E tests in `ralph.test.ts` that run `ralph build` with a minimal mocked-provider fixture: one test exercises headless TTY output via `script` and asserts phase symbols/progress-bar formatting plus repeated header renders, and one test exercises non-TTY behavior (`TERM=dumb`) and asserts phase transition lines with explicit absence of cursor-control escape codes. Added process-tracking cleanup in `afterEach` to kill any lingering spawned commands (timer/process leak safety).
+- **Files:** `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-025
+- **Problem:** `types.ts` lacked the PipelineRenderer-specific shared contracts requested by TASK-013 (`PhaseStatus`, `PhaseMetrics`, `PhaseState`, `PipelineRendererOptions`, `SubtaskProgress`), so renderer/build/cascade typing could not use the milestone’s canonical shape.
+- **Changes:** Added the five required type definitions with JSDoc in `tools/src/commands/ralph/types.ts`, exported them from the module export block, and aligned live renderer metric usage to the new `timeElapsedMs` field across renderer wiring and targeted tests.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/pipeline-renderer.ts`, `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/pipeline-renderer.test.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-016
+- **Problem:** Pipeline preview rendering lacked a dedicated approval-gate preview contract and formatter, so gate action outcomes (skip/prompt/auto/wait/exit) were not consistently represented in dry-run/live plan output utilities.
+- **Changes:** Added `ApprovalGatePreview` to Ralph shared types with `gateName`, `configValue`, `resolvedAction`, and optional `reason`; implemented and exported `renderApprovalGatePreview()` in `display.ts` to render `<gateName> → <ACTION> (<reason>)` with action-specific coloring (`skip` yellow with reason, `prompt` yellow bold, `auto-proceed` green as `AUTO`, `notify-wait` yellow, `exit-unstaged` red). Added focused `display.test.ts` coverage under `describe("renderApprovalGatePreview")` for all five actions and format/color assertions, including the Example 1 style `createStories → SKIP (--force)` line.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-017
+- **Problem:** Collapsed and expanded pipeline phase output still lacked a dedicated gate-status indicator helper and typed gate wiring, so Example 4 one-liner gate tags (`[APPROVAL]`, `auto`) and ApprovalGatePreview-based GATE rows were not consistently rendered from shared contracts.
+- **Changes:** Added `renderGateStatusIndicator()` in `display.ts` for `APPROVAL`/`auto`/`SKIP` statuses with required yellow/green coloring, updated `CollapsedPhaseSummary` to `gateStatus?: "APPROVAL" | "SKIP" | "auto"`, and switched `ExpandedPhaseDetail.gate` to optional `ApprovalGatePreview`. Wired `renderCollapsedPhase()` to append the indicator via the new helper and `renderExpandedPhase()` to render `GATE` lines using `renderApprovalGatePreview()` after `WRITES`. Expanded `display.test.ts` with a new `describe("renderGateStatusIndicator")` suite and updated expanded/collapsed integration fixtures to use typed gate objects/statuses matching Milestone Example 4 format.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-020
+- **Problem:** `PipelineRenderer` only rendered a phase bar, so live execution output was missing the required second header line for current subtask progress and the collapsible execution tree that distinguishes completed, active, and pending work.
+- **Changes:** Extended `PipelineRenderer` with `updateSubtask(id, description, current, total)` and `setApprovalWait(gateName)`, added tracked subtask runtime state, and upgraded rendering to output: (1) phase bar, (2) subtask progress line with `id/title/current/total/[bar]/percent`, and (3) execution tree where completed phases collapse to one-line metric rows while the active phase expands with done/in-progress/pending subtask rows. Added focused unit coverage for subtask tracking/progress rendering, approval-wait symbol rendering, and mixed completed+expanded tree output.
+- **Files:** `tools/src/commands/ralph/pipeline-renderer.ts`, `tools/tests/lib/pipeline-renderer.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-021
+- **Problem:** Live pipeline rendering did not differentiate TTY/non-TTY behavior by mode, so headless updates could not safely render in-place, supervised output lacked explicit reprint-mode regression checks, and CI/piped output still emitted full-frame content instead of log-style phase transitions.
+- **Changes:** Implemented three render modes in `PipelineRenderer.render()`: (1) headless + TTY now uses ANSI cursor control for in-place updates (`\x1b[H`, `\x1b[2K`, `\x1b[<N>A`) while preserving the two-line header/tree output; (2) supervised + TTY keeps full-frame reprint behavior on every render call without cursor controls; (3) non-TTY now degrades to transition-only log lines (`[PIPELINE] phase=... state=...`) with duplicate suppression. Added unit tests for ANSI control emission in headless TTY, cursor-code absence in headless non-TTY, supervised header reprint behavior across renders, and non-TTY phase-transition markers.
+- **Files:** `tools/src/commands/ralph/pipeline-renderer.ts`, `tools/tests/lib/pipeline-renderer.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-022
+- **Problem:** `runBuild()` did not wire the new `PipelineRenderer` lifecycle, so live build runs lacked phase start/subtask update/phase completion calls and had no guaranteed renderer cleanup path across early returns and signal exits.
+- **Changes:** Integrated `PipelineRenderer` into `build.ts` with `phases=["build"]`, mode-matched `headless` flag, and TTY detection from `process.stdin.isTTY && process.stdout.isTTY`; added `renderer.startPhase("build")` before the loop, `renderer.updateSubtask(id, title, currentIndex, total)` before each provider invocation, and `renderer.completePhase()` on queue completion using summary metrics (`filesChanged`, `durationMs`, `costUsd`). Wrapped the main loop in `try/finally` to ensure `renderer.stop()` runs on completion/errors/early exits, and registered signal handlers with renderer cleanup callback. Added build integration assertions covering renderer import/wiring/lifecycle/finally cleanup.
+- **Files:** `tools/src/commands/ralph/build.ts`, `tools/tests/lib/build-validation-integration.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-023
+- **Problem:** `runCascadeFrom()` did not wire `PipelineRenderer`, so cascade runs lacked phase lifecycle rendering, approval-wait state signaling, and guaranteed renderer cleanup on abort/error/exit-unstaged paths.
+- **Changes:** Integrated `PipelineRenderer` into `cascade.ts` by instantiating it from `levelsToExecute` with `headless`/TTY mode flags, starting each phase with `renderer.startPhase(currentLevel)`, wiring approval decisions so `notify-wait`/`prompt` set gate wait state via `renderer.setApprovalWait(gateName)`, completing each successful level with `renderer.completePhase()` metrics, and wrapping the cascade loop in `try/finally` to always call `renderer.stop()`. Extended cascade unit coverage to verify prompt-action callbacks and end-to-end renderer lifecycle wiring (constructor-derived phase set, start/wait/complete/stop behavior) without regressing existing cascade tests.
+- **Files:** `tools/src/commands/ralph/cascade.ts`, `tools/tests/lib/cascade.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-006
+- **Problem:** Ralph pipeline command completions and docs were missing explicit `--dry-run` coverage across build/plan/calibrate flows, and help-output regression checks were incomplete for the required commands.
+- **Changes:** Added `--dry-run` completion entries in zsh and fish for all eight Ralph pipeline commands (`build`, `plan roadmap|stories|tasks|subtasks`, `calibrate all|intention|technical`), updated the Ralph README section with a dedicated dry-run preview block and examples, and extended Ralph E2E help assertions so `ralph build --help` and `ralph plan stories --help` require `--dry-run` (while preserving existing `ralph calibrate all --help` coverage). Verified targeted help tests and completion E2E regressions pass.
+- **Files:** `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `tools/README.md`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-007
+- **Problem:** Pipeline preview rendering lacked foundational tree-node contracts and a collapsed-node renderer, so downstream tree rendering could not consistently format connector symbols, summaries, and gate indicators.
+- **Changes:** Added new pipeline tree types in `types.ts` (`PipelinePhaseNode`, `CollapsedPhaseSummary`, `ExpandedPhaseDetail`, `StepAnnotation`) and exported them for downstream renderers. Implemented `renderCollapsedPhase(node, isLast)` in `display.ts` to emit a single-line tree row with `├─`/`└─` connector selection, cyan phase name, dim description/time estimate, and optional yellow gate indicator. Added focused `display.test.ts` coverage for with-gate vs without-gate output and last-node vs non-last-node connector selection.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-008
+- **Problem:** Expanded pipeline nodes were not yet renderable, so dry-run/cascade previews could not show per-phase READS/STEPS/WRITES detail with tree continuation formatting or optional gate rows.
+- **Changes:** Implemented `renderExpandedPhase(node)` in `display.ts` to return a multi-line string array with `▾` phase header, `│` continuation lines, aligned dim section labels (`READS`, `STEPS`, `WRITES`), and optional yellow `GATE` output when gate data exists (omitted for `undefined`/`null`). Added focused unit tests in `display.test.ts` for full four-section output, gate omission behavior, and empty reads/writes arrays with style assertions for cyan phase names, dim section labels, and yellow gate text.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-009
+- **Problem:** Pipeline preview output still lacked a tree orchestrator, so mixed expanded/collapsed phases could not render as one coherent connector-based tree.
+- **Changes:** Implemented `renderPipelineTree()` in `display.ts` to iterate `PipelinePhaseNode[]`, delegate node body rendering to `renderExpandedPhase()` or `renderCollapsedPhase()`, apply connector rules (`├─` for non-last, `└─` for last), and insert `│` continuation lines between sibling phases. Added unit tests in `display.test.ts` for single expanded-only, 2-phase mixed, and 4-phase mixed trees aligned to Milestone Example 1 structure.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-010
+- **Problem:** Pipeline preview step rendering had no reusable annotation shape or renderer for flag-driven step deltas, so `added`/`replaced`/`struck` effects could not be displayed with marker symbols and flag tags.
+- **Changes:** Added `PipelineStep` in `types.ts`, switched `ExpandedPhaseDetail.steps` to `PipelineStep[]`, and implemented `renderAnnotatedStep()` in `display.ts` with exported marker constants (`MARKER_ADDED`, `MARKER_REPLACED`, `MARKER_STRUCK`), effect styling (green, yellow, dim+strikethrough), and basic right-padded `[flag]` tags. Expanded `display.test.ts` with focused tests for added/replaced/struck rendering, unannotated fallback, and flag-tag placement while keeping existing display suites green.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-011
+- **Problem:** Annotation step lines still used fixed padding for flag tags, so `[flag]` alignment drifted with varying step lengths and long step text could overflow instead of truncating to fit the line width.
+- **Changes:** Added `formatStepWithAnnotation()` in `display.ts` to compute available width from `BOX_WIDTH`, indent, marker width, and ANSI-safe flag/tag widths via `string-width`; it now truncates styled step text with `truncate()` when needed and right-aligns the flag tag on a fixed line width. Updated `renderAnnotatedStep()` to use the new helper and expanded `display.test.ts` with short/medium/long right-alignment cases plus a truncation edge case while preserving existing SUB-010 annotation regression coverage.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-012
+- **Problem:** `renderExpandedPhase()` still rendered STEPS from raw `step.text`, so phase-level output could not display mixed annotated and unannotated steps in the Milestone Example 1 marker/tag style.
+- **Changes:** Updated `renderExpandedPhase()` to render `ExpandedPhaseDetail.steps` via `renderAnnotatedStep()` so annotated entries show marker color + right-aligned `[flag]` tags while unannotated entries keep standard indentation. Added an integration-level `display.test.ts` case that verifies the full STEPS block for mixed replaced/added/unannotated lines against Example 1 style patterns and confirms READS/WRITES remain unannotated.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-013
+- **Problem:** Pipeline preview output lacked a dedicated header renderer, so dry-run plan output could not show the Example 1 context box with aligned Command/Milestone/Provider/Mode/Approvals metadata.
+- **Changes:** Added `PipelineHeaderData` in `types.ts`, implemented ANSI-width-safe `formatTwoColumnRow()` in `display.ts` using `string-width`, and added `renderPipelineHeader()` with a double-border `boxen` layout (`BOX_WIDTH`, centered `Ralph Pipeline Plan` title). The header now handles missing optional milestone/model fields by omitting the milestone segment and provider model parenthetical without crashing. Expanded `display.test.ts` coverage for full-header rendering, missing-field behavior, and two-column alignment with both plain and ANSI-styled strings.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-014
+- **Problem:** Pipeline previews still lacked a reusable footer section and the compact single-level build banner, so dry-run/full preview output could not show consistent totals/warnings/next-step guidance or Example 3-style build context.
+- **Changes:** Added `PipelineFooterData` and `CompactPreviewData` contracts in `types.ts`, implemented `renderPipelineFooter()` in `display.ts` with summary separator + totals (Phases/Gates/Est. time/Est. cost), optional yellow warning lines, and next-step mapping (`dry-run` -> remove flag, `prompt` -> confirmation prompt), and implemented `renderCompactPreview()` as a double-border `BOX_WIDTH` banner using `formatTwoColumnRow()` for Provider/Model and Mode/Validate alignment plus Queue/Next/Pipeline/Gates rows. Expanded `display.test.ts` with footer-with-warnings, footer-without-warnings, and compact-preview rendering coverage.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
+
+### SUB-001
+- **Problem:** Pipeline dry-run preview lacked a shared execution-plan data layer, so there was no typed way to compute per-level reads/steps/writes, cascade-expanded phases, or approval-gate actions without running commands.
+- **Changes:** Added `plan-preview.ts` with foundational dry-run types (`ExecutionPlan`, `ExecutionPhase`, `PhaseStep`, `FlagEffect`), an 8-command `LEVEL_FLOWS` template map, and `computeExecutionPlan()` that expands cascade phases via `getLevelsInRange()`, resolves gate actions with `evaluateApproval()`, and returns JSON-serializable summary metadata. Added focused unit coverage for single-level build plans, cascade expansion (`build` and `calibrate`), `--from` override behavior, force/review approval resolution, map completeness, and JSON serialization.
+- **Files:** `tools/src/commands/ralph/plan-preview.ts`, `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-002
+- **Problem:** Dry-run plan computation still lacked flag-composition annotations, runtime filesystem/queue enrichment, and per-phase time estimates, so previews could not explain flag-driven flow edits or reflect real milestone context.
+- **Changes:** Extended `plan-preview.ts` with declarative `FLOW_MODS` rules for `--validate-first` (added), `--headless` (replaced), `--force` (struck), and `--calibrate-every` (added), wired rule application into `computeExecutionPlan()`, added `RuntimeContext` plus `collectRuntimeContext()` to read `stories/` and `tasks/` file counts and queue stats from `subtasks.json` via `loadSubtasksFile()`, enriched read/write lines with runtime metadata, and added per-level `~N min` estimates plus aggregate `summary.totalEstimatedTime`. Expanded `plan-preview.test.ts` to cover each required flag effect, multi-flag composition, runtime file-count/queue enrichment from fixture directories, and estimate-format assertions while preserving prior SUB-001 behavior.
+- **Files:** `tools/src/commands/ralph/plan-preview.ts`, `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-003
+- **Problem:** The execution-plan layer lacked an end-to-end fixture test proving realistic milestone counts, queue stats, cascade phase resolution, and external module importability for downstream dry-run rendering/CLI consumers.
+- **Changes:** Added a realistic integration fixture (3 stories, 5 tasks, 12 subtasks with 8 pending/4 done) and new `computeExecutionPlan()` assertions for cascade `subtasks -> calibrate`, runtime enrichment counts, approval action/gate resolution, flag-effect composition (`--validate-first`, `--calibrate-every`), and JSON round-trip stability. Added a type-import smoke test that imports and uses `ExecutionPlan`, `ExecutionPhase`, `RuntimeContext`, `FlagEffect`, and `PhaseStep` from `plan-preview.ts` to lock module export compatibility.
+- **Files:** `tools/tests/lib/plan-preview.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-004
+- **Problem:** Ralph CLI pipeline entrypoints (`build` + `plan roadmap/stories/tasks/subtasks`) lacked a consistent `--dry-run` early-exit path, so users could not preview execution plans as machine-parseable JSON before runtime side effects.
+- **Changes:** Added `--dry-run` flag wiring to `ralph build` and all four `ralph plan` subcommands, added command-level early exits that compute and print `computeExecutionPlan()` JSON before normal execution, and added normalization helpers for cascade/from-level mapping. Updated Ralph shared types so `BuildOptions` and `CascadeOptions` include `dryRun?: boolean`. Expanded E2E coverage to assert JSON dry-run behavior for build, build headless dry-run, and plan roadmap/stories/tasks/subtasks dry-runs.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
+### SUB-005
+- **Problem:** Calibrate CLI flows (`all`, `intention`, `technical`) still lacked `--dry-run` preview support, so users could not inspect calibration execution plans without triggering provider invocations.
+- **Changes:** Added `--dry-run` to `ralph calibrate all|intention|technical`, wired a shared early-exit path in `runCalibrateSubcommand()` that computes `computeExecutionPlan()` with calibration command mapping and prints JSON before invoking providers, and expanded Ralph E2E coverage for calibrate dry-run JSON output, calibrate help flag visibility, and subtasks cascade dry-run level output assertions.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
 
 ### SUB-041
 - **Problem:** Queue create operations expose `atIndex` for positional insertion, but this subtask required explicit verification that create-at-index behavior (prepend and middle insert) is covered and that out-of-range index errors are actionable.
@@ -49,6 +206,11 @@
 - **Problem:** Legacy runtime compatibility shims still read `blockedBy` in build/config/index/status, which kept dependency-aware behavior alive despite WS-06 requiring queue-order-only runtime selection.
 - **Changes:** Removed all `blockedBy` runtime reads and messaging from the four command modules, kept `getNextSubtask()` as first-pending queue-order selection, simplified no-runnable and status/print pending previews to plain queue-order output, and retained legacy normalization only for `status` field stripping.
 - **Files:** `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/status.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+### SUB-040
+- **Problem:** `--dry-run` help text was inconsistent and generic across Ralph pipeline commands, reducing discoverability of safe preview behavior in `--help` output.
+- **Changes:** Updated all 8 Ralph pipeline command `.option("--dry-run", ...)` descriptions in `index.ts` to a single shared sentence: `Preview execution plan without running (exits after showing pipeline diagram)`. Strengthened E2E help assertions in `ralph.test.ts` to verify this exact wording (whitespace-normalized) for `ralph build`, `ralph plan stories`, and `ralph calibrate all`.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
 
 ## 2026-02-11
 
@@ -1174,3 +1336,10 @@
 - **Problem:** Needed end-to-end verification that the refactored calibration flow runs in bounded batches/signals without context-window crashes across intention, technical, self-improvement, and full-suite modes.
 - **Changes:** Ran dry-run calibration checks with `--review` for milestone 006 (`intention`, `technical`, `improve`, and `all`) and captured logs showing per-batch progress plus signal-based self-improvement filtering (`offTrackScore` gating). Ran cross-milestone intention check on milestone 003: full queue surfaced an existing invalid commit-evidence blocker (`SUB-155`), then verified file-based `TASK-* -> STORY-*` resolution path using a focused temp queue (`subtasks.sub-038-temp.json`). Verified periodic build calibration wiring via targeted integration test plus build-loop gating checks (`calibrateEvery > 0 && iteration % calibrateEvery === 0` triggers `runCalibrate("all", ...)`).
 - **Files:** `docs/planning/milestones/006-cascade-mode-for-good/feedback/sub-038-intention-review.log`, `docs/planning/milestones/006-cascade-mode-for-good/feedback/sub-038-technical-review.log`, `docs/planning/milestones/006-cascade-mode-for-good/feedback/sub-038-improve-review.log`, `docs/planning/milestones/006-cascade-mode-for-good/feedback/sub-038-all-review.log`, `docs/planning/milestones/003-ralph-workflow/feedback/sub-038-intention-review.log`, `docs/planning/milestones/003-ralph-workflow/feedback/sub-038-intention-review-temp.log`, `tools/tests/lib/build-validation-integration.test.ts`, `tools/src/commands/ralph/build.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
+
+## 2026-02-13
+
+### SUB-019
+- **Problem:** Live execution preview lacked a dedicated stateful renderer to track phase transitions and draw the phase-bar header with milestone-defined symbols while safely managing timer lifecycle.
+- **Changes:** Added `PipelineRenderer` in `pipeline-renderer.ts` with constructor inputs `(phases, headless, isTTY)`, phase-state tracking, and lifecycle methods `startPhase()`, `completePhase()`, and `stop()`. Implemented timer start/cleanup using `setInterval` + centralized `clearInterval` teardown to prevent leaks, and added private phase-bar rendering using `BOX_WIDTH` with symbol/color mapping (`✓`, `●`, `‖`, `~`, `✗`, dim pending). Extended shared Ralph types with `PhaseMetrics` and `PhaseState`, then added focused unit tests covering instantiation, phase activation + timer start, completion metrics + timer stop, stop cleanup, and symbol rendering.
+- **Files:** `tools/src/commands/ralph/pipeline-renderer.ts`, `tools/src/commands/ralph/types.ts`, `tools/tests/lib/pipeline-renderer.test.ts`, `docs/planning/PROGRESS.md`

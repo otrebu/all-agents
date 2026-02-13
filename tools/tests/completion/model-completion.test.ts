@@ -1,9 +1,8 @@
-import { getContextRoot } from "@tools/utils/paths";
 import { describe, expect, test } from "bun:test";
 import { execa } from "execa";
 import { join } from "node:path";
 
-const TOOLS_DIR = join(getContextRoot(), "tools");
+const TOOLS_DIR = join(import.meta.dir, "..", "..");
 
 // =============================================================================
 // __complete model handler
@@ -178,6 +177,76 @@ describe("shell scripts include --provider and --model", () => {
     );
     expect(stdout).toContain(
       "__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'",
+    );
+  });
+});
+
+describe("ralph --dry-run completion entries", () => {
+  test("zsh includes preview dry-run entries for build, plan, and calibrate", async () => {
+    const { stdout } = await execa("bun", ["run", "dev", "completion", "zsh"], {
+      cwd: TOOLS_DIR,
+    });
+
+    const previewCount =
+      stdout.split("Preview execution plan without running").length - 1;
+    expect(previewCount).toBe(6);
+
+    expect(stdout).toContain("build)");
+    expect(stdout).toContain("calibrate)");
+    expect(stdout).toContain("roadmap)");
+    expect(stdout).toContain("stories)");
+    expect(stdout).toContain("tasks)");
+    expect(stdout).toContain("subtasks)");
+  });
+
+  test("fish includes preview dry-run entries for build, plan, and calibrate", async () => {
+    const { stdout } = await execa(
+      "bun",
+      ["run", "dev", "completion", "fish"],
+      { cwd: TOOLS_DIR },
+    );
+
+    const previewCount =
+      stdout.split("Preview execution plan without running").length - 1;
+    expect(previewCount).toBe(6);
+
+    expect(stdout).toContain("__fish_aaa_using_subsubcommand ralph build");
+    expect(stdout).toContain("__fish_aaa_ralph_plan_roadmap");
+    expect(stdout).toContain("__fish_aaa_ralph_plan_stories");
+    expect(stdout).toContain("__fish_aaa_ralph_plan_tasks");
+    expect(stdout).toContain("__fish_aaa_ralph_plan_subtasks");
+    expect(stdout).toContain("__fish_aaa_using_subsubcommand ralph calibrate");
+  });
+
+  test("keeps existing non-ralph dry-run completion descriptions unchanged", async () => {
+    const { stdout: zshOut } = await execa(
+      "bun",
+      ["run", "dev", "completion", "zsh"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(zshOut).toContain(
+      "--dry-run[Show what would be sent without sending]",
+    );
+    expect(zshOut).toContain(
+      "--dry-run[Show JSON preview without writing queue file]",
+    );
+    expect(zshOut).toContain(
+      "--dry-run[Show what would be discovered without writing]",
+    );
+
+    const { stdout: fishOut } = await execa(
+      "bun",
+      ["run", "dev", "completion", "fish"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(fishOut).toContain(
+      "-l dry-run -d 'Show what would be sent without sending'",
+    );
+    expect(fishOut).toContain(
+      "-l dry-run -d 'Show JSON preview without writing queue file'",
+    );
+    expect(fishOut).toContain(
+      "-l dry-run -d 'Show what would be discovered without writing'",
     );
   });
 });

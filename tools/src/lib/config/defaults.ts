@@ -1,6 +1,7 @@
 import type {
   AaaConfig,
   ApprovalsConfig,
+  DryRunConfig,
   NotifySection,
   RalphSection,
   ResearchSection,
@@ -67,11 +68,17 @@ export const DEFAULT_TIMEOUTS: TimeoutsConfig = {
 };
 
 /**
+ * Default dry-run rendering behavior.
+ */
+export const DEFAULT_DRY_RUN: DryRunConfig = { format: "pretty" };
+
+/**
  * Default ralph section configuration
  */
 export const DEFAULT_RALPH: RalphSection = {
   approvals: DEFAULT_APPROVALS,
   build: { calibrateEvery: 0, maxIterations: 3 },
+  dryRun: DEFAULT_DRY_RUN,
   hooks: {
     onIterationComplete: ["log"],
     onMaxIterationsExceeded: ["log", "notify", "pause"],

@@ -1,5 +1,5 @@
 /**
- * E2E tests for cascade module validation functions
+ * E2E tests for cascade validation and CLI pipeline behavior
  *
  * Tests cascade validation logic through direct module imports.
  * Since cascade functions are internal utilities (not CLI commands),
@@ -14,7 +14,15 @@ import {
   getLevelsInRange,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
-import { describe, expect, test } from "bun:test";
+import { getContextRoot } from "@tools/utils/paths";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { execa, type ResultPromise } from "execa";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const TOOLS_DIR = join(getContextRoot(), "tools");
+const CLI_ENTRY = join(import.meta.dir, "../../src/cli.ts");
 
 // =============================================================================
 // validateCascadeTarget E2E Tests
@@ -107,4 +115,154 @@ describe("cascade E2E - getLevelsInRange", () => {
     expect(getLevelsInRange("invalid", "build")).toEqual([]);
     expect(getLevelsInRange("tasks", "invalid")).toEqual([]);
   });
+});
+
+describe("cascade E2E - CLI pipeline header", () => {
+  let temporaryDirectory = "";
+  const runningProcesses = new Set<ResultPromise>();
+
+  function trackProcess(process: ResultPromise): ResultPromise {
+    runningProcesses.add(process);
+    return process;
+  }
+
+  beforeEach(() => {
+    temporaryDirectory = join(
+      tmpdir(),
+      `cascade-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    for (const process of runningProcesses) {
+      if (process.exitCode === null && process.pid !== undefined) {
+        try {
+          process.kill("SIGKILL");
+        } catch {
+          // Ignore cleanup failures.
+        }
+      }
+    }
+    runningProcesses.clear();
+
+    if (temporaryDirectory !== "" && existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("cascade shows phase transitions in header", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "test-milestone");
+    const storiesDirectory = join(milestoneDirectory, "stories");
+    const tasksDirectory = join(milestoneDirectory, "tasks");
+    mkdirSync(storiesDirectory, { recursive: true });
+    mkdirSync(tasksDirectory, { recursive: true });
+
+    writeFileSync(
+      join(storiesDirectory, "001-story.md"),
+      "# Story\n\nPipeline header test story\n",
+    );
+    writeFileSync(
+      join(tasksDirectory, "001-task.md"),
+      "# Task\n\nPipeline header test task\n",
+    );
+    writeFileSync(
+      join(milestoneDirectory, "subtasks.json"),
+      JSON.stringify(
+        {
+          metadata: { milestoneRef: "test-milestone", scope: "milestone" },
+          subtasks: [
+            {
+              acceptanceCriteria: ["Already complete"],
+              description: "Existing subtask keeps build phase fast",
+              done: true,
+              filesToRead: [],
+              id: "SUB-001",
+              taskRef: "001-task",
+              title: "Completed seed",
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"ok","duration_ms":5,"total_cost_usd":0.0,"session_id":"sess-cascade-header"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const command = `PATH="${temporaryDirectory}:${process.env.PATH ?? ""}" bun "${CLI_ENTRY}" ralph plan stories --milestone "${milestoneDirectory}" --from subtasks --cascade calibrate --headless --force`;
+    const childProcess = trackProcess(
+      execa("script", ["-qec", command, "/dev/null"], {
+        cwd: TOOLS_DIR,
+        env: { ...process.env, TERM: "xterm-256color" },
+        reject: false,
+        timeout: 10_000,
+      }),
+    );
+
+    const { exitCode, stdout } = await childProcess;
+    const output = typeof stdout === "string" ? stdout : String(stdout ?? "");
+
+    expect(exitCode).toBe(0);
+    expect(output).toContain("[build]");
+    expect(output).toContain("[calibrate]");
+    expect(output).toContain("→");
+    expect(output).toMatch(/\[build\][^\n]*✓/);
+  }, 20_000);
+
+  test("cascade shows waiting symbol at approval gate and transitions after approval", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "prompt-milestone");
+    const storiesDirectory = join(milestoneDirectory, "stories");
+    mkdirSync(storiesDirectory, { recursive: true });
+
+    writeFileSync(
+      join(storiesDirectory, "001-story.md"),
+      "# Story\n\nPrompt approval gate waiting symbol test\n",
+    );
+
+    const mockClaudePath = join(temporaryDirectory, "claude");
+    writeFileSync(
+      mockClaudePath,
+      `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"ok","duration_ms":5,"total_cost_usd":0.0,"session_id":"sess-cascade-wait"}]
+JSON
+`,
+      { mode: 0o755 },
+    );
+
+    const command = `PATH="${temporaryDirectory}:${process.env.PATH ?? ""}" bun "${CLI_ENTRY}" ralph plan stories --milestone "${milestoneDirectory}" --cascade tasks --review`;
+    const childProcess = trackProcess(
+      execa("script", ["-qec", command, "/dev/null"], {
+        cwd: TOOLS_DIR,
+        env: { ...process.env, TERM: "xterm-256color" },
+        input: "y\n",
+        reject: false,
+        timeout: 20_000,
+      }),
+    );
+
+    const { exitCode, stdout } = await childProcess;
+    const output = typeof stdout === "string" ? stdout : String(stdout ?? "");
+
+    expect(exitCode).toBe(0);
+    expect(output).toMatch(/\[tasks\][^\n]*‖/);
+    expect(output).toMatch(/\[tasks\][^\n]*(?:◉|✓)/);
+
+    const waitingIndex = output.search(/\[tasks\][^\n]*‖/);
+    const resumedAfterWaiting = output
+      .slice(waitingIndex + 1)
+      .search(/\[tasks\][^\n]*(?:◉|✓)/);
+    expect(waitingIndex).toBeGreaterThanOrEqual(0);
+    expect(resumedAfterWaiting).toBeGreaterThanOrEqual(0);
+  }, 30_000);
 });

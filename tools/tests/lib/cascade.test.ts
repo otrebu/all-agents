@@ -24,6 +24,8 @@ import {
   runLevel,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
+import * as display from "@tools/commands/ralph/display";
+import PipelineRenderer from "@tools/commands/ralph/pipeline-renderer";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
 
@@ -137,7 +139,75 @@ describe("checkApprovalGate", () => {
     );
 
     expect(promptSpy).toHaveBeenCalledTimes(1);
+    expect(promptSpy).toHaveBeenCalledWith(
+      "createStories",
+      "Proceeding with stories level",
+      expect.objectContaining({ gateName: "createStories" }),
+    );
     expect(result).toBe("aborted");
+    promptSpy.mockRestore();
+  });
+
+  test("passes approval gate card data to promptApproval in always + tty mode", async () => {
+    const promptSpy = spyOn(approvals, "promptApproval").mockResolvedValue(
+      true,
+    );
+
+    const result = await checkApprovalGate(
+      "stories",
+      { createStories: "always" },
+      {
+        cascadeTarget: "build",
+        forceFlag: false,
+        isTTY: true,
+        milestonePath: "/tmp/milestone",
+        reviewFlag: false,
+      },
+    );
+
+    expect(result).toBe("continue");
+    expect(promptSpy).toHaveBeenCalledWith(
+      "createStories",
+      "Proceeding with stories level",
+      expect.objectContaining({
+        configMode: "always",
+        executionMode: "supervised",
+        gateName: "createStories",
+        resolvedAction: "prompt",
+      }),
+    );
+
+    promptSpy.mockRestore();
+  });
+
+  test("notifies waiting callback when prompt action is selected", async () => {
+    const evaluateSpy = spyOn(approvals, "evaluateApproval").mockReturnValue(
+      "prompt",
+    );
+    const promptSpy = spyOn(approvals, "promptApproval").mockResolvedValue(
+      true,
+    );
+    const waitingEvents: Array<string> = [];
+
+    const result = await checkApprovalGate(
+      "tasks",
+      { createTasks: "always" },
+      {
+        cascadeTarget: "build",
+        forceFlag: false,
+        isTTY: true,
+        milestonePath: "/tmp/milestone",
+        reviewFlag: false,
+      },
+      (gateName) => {
+        waitingEvents.push(gateName);
+      },
+    );
+
+    expect(result).toBe("continue");
+    expect(waitingEvents).toEqual(["createTasks"]);
+
+    evaluateSpy.mockRestore();
     promptSpy.mockRestore();
   });
 
@@ -164,6 +234,11 @@ describe("checkApprovalGate", () => {
       "createStories",
       { createStories: "suggest" },
       "Proceeding with stories level",
+      expect.objectContaining({
+        executionMode: "headless",
+        gateName: "createStories",
+        resolvedAction: "notify-wait",
+      }),
     );
     notifyWaitSpy.mockRestore();
   });
@@ -643,5 +718,195 @@ describe("runCascadeFrom", () => {
       subtasksPath: "/nonexistent/subtasks.json",
     });
     expect(result.stoppedAt).toBe("roadmap");
+  });
+
+  test("wires PipelineRenderer lifecycle across cascade levels", async () => {
+    interface RendererSnapshot {
+      headless: boolean;
+      isTTY: boolean;
+      phases: Array<{ name: string }>;
+    }
+    let capturedRenderer: unknown = null;
+
+    const startPhaseSpy = spyOn(
+      PipelineRenderer.prototype,
+      "startPhase",
+    ).mockImplementation(function captureRendererSnapshot(
+      this: unknown,
+      _level: string,
+    ): void {
+      const renderer = this as {
+        headless: boolean;
+        isTTY: boolean;
+        phases: Array<{ name: string }>;
+      };
+      capturedRenderer ??= {
+        headless: renderer.headless,
+        isTTY: renderer.isTTY,
+        phases: renderer.phases,
+      };
+      void _level;
+    });
+    const completePhaseSpy = spyOn(
+      PipelineRenderer.prototype,
+      "completePhase",
+    ).mockImplementation(() => {});
+    const setApprovalWaitSpy = spyOn(
+      PipelineRenderer.prototype,
+      "setApprovalWait",
+    ).mockImplementation(() => {});
+    const stopSpy = spyOn(
+      PipelineRenderer.prototype,
+      "stop",
+    ).mockImplementation(() => {});
+    const evaluateApprovalSpy = spyOn(
+      approvals,
+      "evaluateApproval",
+    ).mockReturnValue("notify-wait");
+    const notifyWaitSpy = spyOn(
+      approvals,
+      "handleNotifyWait",
+    ).mockResolvedValue();
+
+    const result = await runCascadeFrom("stories", "subtasks", {
+      contextRoot: "/repo",
+      headless: true,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: async () => await Promise.resolve(null),
+      subtasksPath: "/repo/subtasks.json",
+    });
+
+    expect(result).toEqual({
+      completedLevels: ["tasks", "subtasks"],
+      error: null,
+      stoppedAt: null,
+      success: true,
+    });
+
+    if (capturedRenderer === null) {
+      throw new Error("Expected renderer snapshot");
+    }
+    const rendererSnapshot = capturedRenderer as RendererSnapshot;
+    expect(rendererSnapshot.headless).toBe(true);
+    expect(rendererSnapshot.isTTY).toBe(false);
+    expect(
+      rendererSnapshot.phases.map((phase: { name: string }) => phase.name),
+    ).toEqual(["tasks", "subtasks"]);
+
+    expect(startPhaseSpy).toHaveBeenNthCalledWith(1, "tasks");
+    expect(startPhaseSpy).toHaveBeenNthCalledWith(2, "subtasks");
+    expect(setApprovalWaitSpy).toHaveBeenNthCalledWith(1, "createTasks");
+    expect(setApprovalWaitSpy).toHaveBeenNthCalledWith(2, "createSubtasks");
+    expect(completePhaseSpy).toHaveBeenCalledTimes(2);
+    expect(completePhaseSpy.mock.calls[0]?.[0]).toMatchObject({
+      costUsd: 0,
+      filesChanged: 0,
+    });
+    expect(completePhaseSpy.mock.calls[1]?.[0]).toMatchObject({
+      costUsd: 0,
+      filesChanged: 0,
+    });
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+    expect(evaluateApprovalSpy).toHaveBeenCalledTimes(2);
+    expect(notifyWaitSpy).toHaveBeenCalledTimes(2);
+
+    startPhaseSpy.mockRestore();
+    completePhaseSpy.mockRestore();
+    setApprovalWaitSpy.mockRestore();
+    stopSpy.mockRestore();
+    evaluateApprovalSpy.mockRestore();
+    notifyWaitSpy.mockRestore();
+  });
+
+  test("renders waiting cascade state before promptApproval", async () => {
+    const evaluateApprovalSpy = spyOn(
+      approvals,
+      "evaluateApproval",
+    ).mockReturnValue("prompt");
+    const eventOrder: Array<string> = [];
+    const renderProgressSpy = spyOn(
+      display,
+      "renderCascadeProgressWithStates",
+    ).mockImplementation((_, states) => {
+      if (states.tasks === "waiting") {
+        eventOrder.push("render-waiting");
+      }
+      return "progress";
+    });
+
+    const promptSpy = spyOn(approvals, "promptApproval").mockImplementation(
+      async () => {
+        eventOrder.push("prompt");
+        await Promise.resolve();
+        return true;
+      },
+    );
+
+    const result = await runCascadeFrom("stories", "tasks", {
+      contextRoot: "/repo",
+      headless: true,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: async () => await Promise.resolve(null),
+      subtasksPath: "/repo/subtasks.json",
+    });
+
+    expect(result.success).toBe(true);
+
+    const waitingRenderIndex = eventOrder.indexOf("render-waiting");
+    const promptIndex = eventOrder.indexOf("prompt");
+
+    expect(waitingRenderIndex).toBeGreaterThanOrEqual(0);
+    expect(promptIndex).toBeGreaterThanOrEqual(0);
+    expect(waitingRenderIndex).toBeLessThan(promptIndex);
+
+    evaluateApprovalSpy.mockRestore();
+    renderProgressSpy.mockRestore();
+    promptSpy.mockRestore();
+  });
+
+  test("renders waiting cascade state before handleNotifyWait", async () => {
+    const evaluateApprovalSpy = spyOn(
+      approvals,
+      "evaluateApproval",
+    ).mockReturnValue("notify-wait");
+    const eventOrder: Array<string> = [];
+    const renderProgressSpy = spyOn(
+      display,
+      "renderCascadeProgressWithStates",
+    ).mockImplementation((_, states) => {
+      if (states.tasks === "waiting") {
+        eventOrder.push("render-waiting");
+      }
+      return "progress";
+    });
+
+    const notifyWaitSpy = spyOn(
+      approvals,
+      "handleNotifyWait",
+    ).mockImplementation(async () => {
+      eventOrder.push("notify");
+      await Promise.resolve();
+    });
+
+    const result = await runCascadeFrom("stories", "tasks", {
+      contextRoot: "/repo",
+      headless: true,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: async () => await Promise.resolve(null),
+      subtasksPath: "/repo/subtasks.json",
+    });
+
+    expect(result.success).toBe(true);
+
+    const waitingRenderIndex = eventOrder.indexOf("render-waiting");
+    const notifyIndex = eventOrder.indexOf("notify");
+
+    expect(waitingRenderIndex).toBeGreaterThanOrEqual(0);
+    expect(notifyIndex).toBeGreaterThanOrEqual(0);
+    expect(waitingRenderIndex).toBeLessThan(notifyIndex);
+
+    evaluateApprovalSpy.mockRestore();
+    renderProgressSpy.mockRestore();
+    notifyWaitSpy.mockRestore();
   });
 });

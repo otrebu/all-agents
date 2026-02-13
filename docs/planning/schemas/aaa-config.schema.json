@@ -95,8 +95,16 @@
           },
           "examples": [
             {
-              "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
-              "ralph:maxIterationsExceeded": { "topic": "critical", "priority": "max", "tags": ["warning"] },
+              "ralph:milestoneComplete": {
+                "topic": "builds",
+                "priority": "high",
+                "tags": ["tada"]
+              },
+              "ralph:maxIterationsExceeded": {
+                "topic": "critical",
+                "priority": "max",
+                "tags": ["warning"]
+              },
               "claude:stop": { "priority": "default" }
             }
           ]
@@ -123,6 +131,19 @@
               "minimum": 0,
               "description": "Run calibration every N iterations (0 = disabled)",
               "default": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "dryRun": {
+          "type": "object",
+          "description": "Dry-run preview rendering behavior",
+          "properties": {
+            "format": {
+              "type": "string",
+              "enum": ["pretty", "json"],
+              "description": "Output format for --dry-run previews",
+              "default": "pretty"
             }
           },
           "additionalProperties": false
@@ -246,8 +267,16 @@
           "endHour": 8
         },
         "events": {
-          "ralph:maxIterationsExceeded": { "topic": "critical", "priority": "max", "tags": ["warning", "sos"] },
-          "ralph:milestoneComplete": { "topic": "builds", "priority": "high", "tags": ["tada"] },
+          "ralph:maxIterationsExceeded": {
+            "topic": "critical",
+            "priority": "max",
+            "tags": ["warning", "sos"]
+          },
+          "ralph:milestoneComplete": {
+            "topic": "builds",
+            "priority": "high",
+            "tags": ["tada"]
+          },
           "ralph:subtaskComplete": { "priority": "default" },
           "claude:stop": { "topic": "claude", "priority": "default" },
           "claude:permissionPrompt": { "topic": "critical", "priority": "max" }
@@ -267,6 +296,9 @@
         "build": {
           "maxIterations": 3,
           "calibrateEvery": 0
+        },
+        "dryRun": {
+          "format": "pretty"
         }
       },
       "review": {

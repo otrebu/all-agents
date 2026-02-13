@@ -1,6 +1,6 @@
 {
   "name": "all-agents-tools",
-  "version": "1.21.3",
+  "version": "1.21.2",
   "type": "module",
   "scripts": {
     "build": "bun build --compile --outfile ../bin/aaa ./src/cli.ts",

@@ -280,6 +280,22 @@ describe("completion E2E", () => {
       );
     });
 
+    test("completion scripts include setup --worktree option", async () => {
+      const [bashResult, zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      expect(bashResult.stdout).toContain("--user --project --worktree");
+      expect(zshResult.stdout).toContain(
+        "--worktree[Switch active aaa symlink to all-agents worktree]",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_using_subcommand setup' -l worktree",
+      );
+    });
+
     test("completion scripts include ralph models and subtasks options", async () => {
       const [bashResult, zshResult, fishResult] = await Promise.all([
         execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),

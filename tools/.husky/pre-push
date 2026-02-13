@@ -17,3 +17,6 @@ do
         fi
     fi
 done
+
+# Keep CLI binary in sync before pushing.
+bun --cwd tools run build

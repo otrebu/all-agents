@@ -29,11 +29,14 @@ import {
   isCompletionInstalled,
   isInPath,
   LOCAL_BIN,
+  resolveWorktreeRoot,
+  type WorktreeSelection,
 } from "./utils";
 
 interface SetupOptions {
   project?: boolean;
   user?: boolean;
+  worktree?: WorktreeSelection;
 }
 
 async function handleClaudeConfigDirectory(): Promise<void> {
@@ -105,7 +108,7 @@ async function setup(options: SetupOptions): Promise<void> {
   }
 
   if (options.user === true) {
-    await setupUser();
+    await setupUser(options);
   }
 
   if (options.project === true) {
@@ -114,12 +117,19 @@ async function setup(options: SetupOptions): Promise<void> {
 }
 
 async function setupCommand(options: SetupOptions): Promise<void> {
-  if (options.user !== true && options.project !== true) {
+  const isWorktreeSwitch = options.worktree !== undefined;
+
+  if (isWorktreeSwitch && options.project === true && options.user !== true) {
+    log.error("--worktree can only be used with --user");
+    process.exit(1);
+  }
+
+  if (options.user !== true && options.project !== true && !isWorktreeSwitch) {
     log.error("Specify --user or --project");
     process.exit(1);
   }
 
-  await setup(options);
+  await setup({ ...options, user: options.user === true || isWorktreeSwitch });
 }
 
 async function setupProject(): Promise<void> {
@@ -254,7 +264,12 @@ async function setupProject(): Promise<void> {
   p.outro("Project setup complete");
 }
 
-async function setupUser(): Promise<void> {
+async function setupUser(options: SetupOptions): Promise<void> {
+  if (options.worktree !== undefined) {
+    switchActiveWorktree(options.worktree);
+    return;
+  }
+
   p.intro("aaa setup --user");
 
   const root = getAllAgentsRoot();
@@ -346,6 +361,64 @@ async function setupUser(): Promise<void> {
   }
 
   p.outro("User setup complete");
+}
+
+function switchActiveWorktree(worktreeOption: WorktreeSelection): void {
+  p.intro("aaa setup --user --worktree");
+
+  let root = "";
+  try {
+    root = resolveWorktreeRoot(worktreeOption);
+  } catch (error) {
+    log.error(error instanceof Error ? error.message : "Unknown error");
+    process.exit(1);
+  }
+
+  const binPath = resolve(root, "bin/aaa");
+  const toolsDir = resolve(root, "tools");
+  const previousTarget = getSymlinkTarget(AAA_SYMLINK);
+
+  const s = p.spinner();
+  s.start(`Building CLI from ${root}...`);
+  try {
+    execSync("bun run build", { cwd: toolsDir, stdio: "pipe" });
+    s.stop("CLI built");
+  } catch (error) {
+    s.stop("Build failed");
+    log.error(error instanceof Error ? error.message : "Unknown error");
+    process.exit(1);
+  }
+
+  if (!existsSync(binPath)) {
+    log.error(`Binary not found at ${binPath}`);
+    process.exit(1);
+  }
+
+  if (!existsSync(LOCAL_BIN)) {
+    mkdirSync(LOCAL_BIN, { recursive: true });
+    log.info(`Created ${LOCAL_BIN}`);
+  }
+
+  if (existsSync(AAA_SYMLINK)) {
+    execSync(`rm "${AAA_SYMLINK}"`);
+  }
+  symlinkSync(binPath, AAA_SYMLINK);
+  log.success(`Symlink: ${AAA_SYMLINK} -> ${binPath}`);
+
+  if (!isInPath(LOCAL_BIN)) {
+    log.warn(`${LOCAL_BIN} not in PATH`);
+    p.note(
+      `Add to ${getShellConfigPath()}:\n\n  ${getExportLine("PATH", "$HOME/.local/bin:$PATH")}`,
+      "PATH setup",
+    );
+  }
+
+  if (previousTarget !== null && previousTarget !== binPath) {
+    log.info(`Previous target: ${previousTarget}`);
+  }
+  log.info(`Active target: ${binPath}`);
+
+  p.outro("Worktree switch complete");
 }
 
 export default setupCommand;

@@ -20,14 +20,80 @@ import stringWidth from "string-width";
 import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
+import type { ApprovalGate } from "./approvals";
 import type { ProviderType } from "./providers/types";
 import type { BuildPracticalSummary } from "./summary";
-import type { CascadeResult, IterationStatus, TokenUsage } from "./types";
+import type {
+  ApprovalGatePreview,
+  CascadeResult,
+  CompactPreviewData,
+  IterationStatus,
+  PipelineFooterData,
+  PipelineHeaderData,
+  PipelinePhaseNode,
+  PipelineStep,
+  StepAnnotation,
+  TokenUsage,
+} from "./types";
 
 // Box width for iteration displays (defined early for marked config)
 const BOX_WIDTH = 68;
 // 64 = BOX_WIDTH minus borders and padding
 const BOX_INNER_WIDTH = BOX_WIDTH - 4;
+
+const MARKER_ADDED = "+";
+const MARKER_REPLACED = "~";
+const MARKER_STRUCK = "×";
+
+const STEP_INDENT_WIDTH = 3;
+const STEP_MARKER_WIDTH = 3;
+
+type CascadePhaseState =
+  | "completed"
+  | "failed"
+  | "pending"
+  | "running"
+  | "timed-wait"
+  | "waiting";
+
+const CASCADE_SYMBOL_COMPLETED = "✓";
+const CASCADE_SYMBOL_RUNNING = "◉";
+const CASCADE_SYMBOL_WAITING = "‖";
+const CASCADE_SYMBOL_TIMED_WAIT = "~";
+const CASCADE_SYMBOL_FAILED = "✗";
+const CASCADE_SYMBOL_PENDING = "○";
+
+interface ApprovalGateActionOption {
+  color: "green" | "red" | "yellow";
+  key: string;
+  label: string;
+}
+
+interface ApprovalGateCardData {
+  actionOptions: Array<ApprovalGateActionOption>;
+  configMode: string;
+  executionMode: "headless" | "supervised";
+  gateName: ApprovalGate;
+  resolvedAction: string;
+  summaryLines: Array<string>;
+}
+
+interface ApprovalGateRenderOptions {
+  force?: boolean;
+  review?: boolean;
+}
+
+interface StepAnnotationFormatOptions {
+  flag: string;
+  indentWidth?: number;
+  marker: string;
+  stepText: string;
+}
+
+const annotationMarkerColors: Record<
+  StepAnnotation["effect"],
+  (text: string) => string
+> = { added: chalk.green, replaced: chalk.yellow, struck: chalk.dim };
 
 // Configure marked with terminal renderer
 const markedTerminalFactory = markedTerminal as unknown as (options: {
@@ -270,6 +336,19 @@ function formatDuration(ms: number): string {
   return `${hours}h ${remainingMinutes}m ${remainingSeconds}s`;
 }
 
+function formatGateName(gate: ApprovalGate): string {
+  const gateBody = gate.replace(/^create/, "").replace(/^on/, "");
+  const spaced = gateBody
+    .replaceAll(/(?<capital>[A-Z])/g, " $<capital>")
+    .trim();
+
+  if (gate.startsWith("create")) {
+    return `Create ${spaced}`;
+  }
+
+  return `${spaced[0]?.toUpperCase() ?? ""}${spaced.slice(1)}`;
+}
+
 /**
  * Generate clickable path lines for session and diary paths
  *
@@ -373,6 +452,35 @@ function formatSourceInfo(
 }
 
 /**
+ * Render a pipeline step with optional annotation marker and right-aligned flag tag.
+ */
+function formatStepWithAnnotation(
+  options: StepAnnotationFormatOptions,
+): string {
+  const { flag, indentWidth = STEP_INDENT_WIDTH, marker, stepText } = options;
+  const indent = " ".repeat(indentWidth);
+  const markerPart = `${marker}  `;
+  const flagTag = chalk.dim(`[${flag}]`);
+
+  const maxStepTextWidth = Math.max(
+    1,
+    BOX_WIDTH - indentWidth - STEP_MARKER_WIDTH - stringWidth(flagTag) - 1,
+  );
+  const truncatedStepText = truncate(stepText, maxStepTextWidth);
+
+  const spacingWidth = Math.max(
+    1,
+    BOX_WIDTH -
+      indentWidth -
+      stringWidth(markerPart) -
+      stringWidth(truncatedStepText) -
+      stringWidth(flagTag),
+  );
+
+  return `${indent}${markerPart}${truncatedStepText}${" ".repeat(spacingWidth)}${flagTag}`;
+}
+
+/**
  * Format current time as HH:MM:SS for display in iteration boxes
  *
  * @returns Formatted string like "14:32:17"
@@ -461,6 +569,48 @@ function formatTokenLine(tokenUsage: TokenUsage | undefined): null | string {
   return `${ctxLabel} ${ctxValue}`;
 }
 
+function formatTwoColumnRow(
+  leftText: string,
+  rightText: string,
+  innerWidth: number,
+): string {
+  let safeRight = rightText;
+  if (stringWidth(safeRight) > innerWidth) {
+    safeRight = truncate(safeRight, innerWidth);
+  }
+
+  const rightWidth = stringWidth(safeRight);
+  if (leftText === "") {
+    return `${" ".repeat(Math.max(0, innerWidth - rightWidth))}${safeRight}`;
+  }
+
+  if (safeRight === "") {
+    return stringWidth(leftText) > innerWidth
+      ? truncate(leftText, innerWidth)
+      : leftText;
+  }
+
+  const availableLeftWidth = innerWidth - rightWidth - 1;
+  if (availableLeftWidth <= 0) {
+    return safeRight;
+  }
+
+  const safeLeft =
+    stringWidth(leftText) > availableLeftWidth
+      ? truncate(leftText, availableLeftWidth)
+      : leftText;
+
+  const spacingWidth = Math.max(
+    1,
+    innerWidth - stringWidth(safeLeft) - rightWidth,
+  );
+  return `${safeLeft}${" ".repeat(spacingWidth)}${safeRight}`;
+}
+
+// =============================================================================
+// Markdown Rendering
+// =============================================================================
+
 function getColoredEventLabel(label: string, state: EventState): string {
   switch (state) {
     case "DONE": {
@@ -486,6 +636,10 @@ function getColoredEventLabel(label: string, state: EventState): string {
     }
   }
 }
+
+// =============================================================================
+// Plan Subtasks Summary Helpers
+// =============================================================================
 
 /**
  * Apply color to status text based on iteration outcome
@@ -513,10 +667,6 @@ function getColoredStatus(status: IterationStatus): string {
   }
 }
 
-// =============================================================================
-// Markdown Rendering
-// =============================================================================
-
 /**
  * Get display label for a provider key.
  */
@@ -531,10 +681,6 @@ function getProviderLabel(provider: ProviderType): string {
   };
   return labels[provider];
 }
-
-// =============================================================================
-// Plan Subtasks Summary Helpers
-// =============================================================================
 
 /**
  * Get box border color based on iteration status
@@ -615,6 +761,115 @@ function makeClickablePath(fullPath: string, maxLength?: number): string {
   // Fallback: plain path (user can cmd+click in some terminals)
   return displayPath;
 }
+
+function renderAnnotatedStep(step: PipelineStep): string {
+  if (step.annotation === undefined) {
+    return step.text;
+  }
+
+  const markerByEffect: Record<StepAnnotation["effect"], string> = {
+    added: MARKER_ADDED,
+    replaced: MARKER_REPLACED,
+    struck: MARKER_STRUCK,
+  };
+
+  const markerText = markerByEffect[step.annotation.effect];
+  const marker = annotationMarkerColors[step.annotation.effect](markerText);
+  const styledStepText =
+    step.annotation.effect === "struck"
+      ? chalk.dim.strikethrough(step.text)
+      : annotationMarkerColors[step.annotation.effect](step.text);
+
+  return formatStepWithAnnotation({
+    flag: step.annotation.flag,
+    marker,
+    stepText: styledStepText,
+  });
+}
+
+function renderApprovalGateCard(data: ApprovalGateCardData): string {
+  const maxSummaryLines = data.summaryLines.length > 10 ? 5 : 10;
+  const visibleSummary = data.summaryLines.slice(0, maxSummaryLines);
+  const remainingSummaryCount =
+    data.summaryLines.length - visibleSummary.length;
+  const sectionSeparator = chalk.dim("─".repeat(BOX_INNER_WIDTH));
+  const colorByOption: Record<
+    ApprovalGateActionOption["color"],
+    typeof chalk.green
+  > = {
+    green: chalk.green.bold,
+    red: chalk.red.bold,
+    yellow: chalk.yellow.bold,
+  };
+
+  const lines: Array<string> = [
+    chalk.cyan.bold(`APPROVE: ${formatGateName(data.gateName)}`),
+    sectionSeparator,
+    ...visibleSummary.map((line) => `  ${truncate(line, BOX_INNER_WIDTH - 2)}`),
+    ...(remainingSummaryCount > 0
+      ? [chalk.dim(`  ... and ${remainingSummaryCount} more`)]
+      : []),
+    sectionSeparator,
+    truncate(
+      `${chalk.dim("Config:")} ${chalk.cyan(data.configMode)}    ${chalk.dim("Mode:")} ${chalk.cyan(data.executionMode)}    ${chalk.dim("Action:")} ${chalk.cyan(data.resolvedAction)}`,
+      BOX_INNER_WIDTH,
+    ),
+    sectionSeparator,
+    ...data.actionOptions.map((option) => {
+      const color = colorByOption[option.color];
+      return `${color(`[${option.key}]`)} ${option.label}`;
+    }),
+  ];
+
+  return renderSafeBox(lines.join("\n"), {
+    borderStyle: "round",
+    padding: 1,
+    width: BOX_WIDTH,
+  });
+}
+
+/**
+ * Render a one-line approval gate preview.
+ */
+function renderApprovalGatePreview(
+  gateName: string,
+  resolvedAction: ApprovalGatePreview["resolvedAction"],
+  options: ApprovalGateRenderOptions = {},
+): string {
+  const actionLabel = (() => {
+    switch (resolvedAction) {
+      case "exit-unstaged": {
+        return chalk.yellow("⚠ EXIT-UNSTAGED");
+      }
+      case "notify-wait": {
+        return chalk.cyan("NOTIFY-WAIT");
+      }
+      case "prompt": {
+        return chalk.yellow("PROMPT");
+      }
+      case "write": {
+        return chalk.green.dim("SKIP");
+      }
+      default: {
+        return resolvedAction;
+      }
+    }
+  })();
+
+  let marker = "";
+  if (resolvedAction === "write" && options.force === true) {
+    marker = ` ${chalk.dim("[force]")}`;
+  }
+  if (resolvedAction === "prompt" && options.review === true) {
+    marker = ` ${chalk.dim("[review]")}`;
+  }
+
+  return `GATE ${gateName} -> ${actionLabel}${marker}`;
+}
+
+// =============================================================================
+// Status Box Rendering
+// =============================================================================
 
 /**
  * Render practical build summary box (at end of build run or on interrupt)
@@ -724,7 +979,7 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
 }
 
 // =============================================================================
-// Status Box Rendering
+// Iteration Box Types
 // =============================================================================
 
 /**
@@ -773,10 +1028,6 @@ function renderBuildSummary(data: BuildSummaryData): string {
   });
 }
 
-// =============================================================================
-// Iteration Box Types
-// =============================================================================
-
 /**
  * Render cascade progress line showing level progression
  *
@@ -803,11 +1054,11 @@ function renderCascadeProgress(
 
   // Completed levels: [level] ✓ in green
   for (const level of completed) {
-    parts.push(chalk.green(`[${level}] ✓`));
+    parts.push(chalk.green(`[${level}] ${CASCADE_SYMBOL_COMPLETED}`));
   }
 
   // Current level: [level] ◉ in cyan bold
-  parts.push(chalk.cyan.bold(`[${current}] ◉`));
+  parts.push(chalk.cyan.bold(`[${current}] ${CASCADE_SYMBOL_RUNNING}`));
 
   // Remaining levels: just the name in dim
   for (const level of remaining) {
@@ -815,6 +1066,45 @@ function renderCascadeProgress(
   }
 
   // Join with arrows
+  return parts.join(chalk.dim(" → "));
+}
+
+/**
+ * Render cascade progress for explicit phase states.
+ */
+function renderCascadeProgressWithStates(
+  levels: Array<string>,
+  phaseStates: Partial<Record<string, CascadePhaseState>>,
+): string {
+  const parts = levels.map((level) => {
+    const state = phaseStates[level] ?? "pending";
+    const label = `[${level}]`;
+
+    switch (state) {
+      case "completed": {
+        return chalk.green(`${label} ${CASCADE_SYMBOL_COMPLETED}`);
+      }
+      case "failed": {
+        return chalk.red(`${label} ${CASCADE_SYMBOL_FAILED}`);
+      }
+      case "pending": {
+        return chalk.dim(`${label} ${CASCADE_SYMBOL_PENDING}`);
+      }
+      case "running": {
+        return chalk.cyan.bold(`${label} ${CASCADE_SYMBOL_RUNNING}`);
+      }
+      case "timed-wait": {
+        return chalk.yellow(`${label} ${CASCADE_SYMBOL_TIMED_WAIT}`);
+      }
+      case "waiting": {
+        return chalk.yellow(`${label} ${CASCADE_SYMBOL_WAITING}`);
+      }
+      default: {
+        return chalk.dim(`${label} ${CASCADE_SYMBOL_PENDING}`);
+      }
+    }
+  });
+
   return parts.join(chalk.dim(" → "));
 }
 
@@ -881,6 +1171,22 @@ function renderCascadeSummary(result: CascadeResult): string {
   });
 }
 
+/**
+ * Render a collapsed pipeline phase as a one-line tree row.
+ */
+function renderCollapsedPhase(
+  node: PipelinePhaseNode,
+  isLast: boolean,
+): string {
+  const connector = isLast ? "└─" : "├─";
+  const gatePart =
+    node.summary.gateStatus === undefined
+      ? ""
+      : `  ${renderGateStatusIndicator(node.summary.gateStatus)}`;
+
+  return `${connector} ${chalk.cyan(node.name)}  ${chalk.dim(node.summary.description)}  ${chalk.dim(node.summary.timeEstimate)}${gatePart}`;
+}
+
 function renderCommandBanner(data: CommandBannerData): string {
   const { lines, title, tone = "info" } = data;
   return renderSafeBox(lines.join("\n"), {
@@ -893,11 +1199,99 @@ function renderCommandBanner(data: CommandBannerData): string {
   });
 }
 
+/**
+ * Render compact single-level preview banner.
+ */
+function renderCompactPreview(data: CompactPreviewData): string {
+  const lines = [
+    `${chalk.dim("  Milestone")}   ${chalk.cyan(data.milestone)}`,
+    formatTwoColumnRow(
+      `${chalk.dim("  Provider")}    ${chalk.cyan(data.provider)}`,
+      `${chalk.dim("Model")}   ${chalk.cyan(data.model)}`,
+      BOX_INNER_WIDTH,
+    ),
+    `${chalk.dim("  Queue")}       ${chalk.cyan(data.queueStats)}`,
+    `${chalk.dim("  Next")}        ${chalk.cyan(data.nextSubtask)}`,
+    formatTwoColumnRow(
+      `${chalk.dim("  Mode")}        ${chalk.cyan(data.mode)}`,
+      `${chalk.dim("Validate")}  ${chalk.cyan(data.validateStatus)}`,
+      BOX_INNER_WIDTH,
+    ),
+    "─".repeat(BOX_INNER_WIDTH),
+    `${chalk.dim("  Pipeline")}    ${chalk.cyan(data.pipelineSummary)}`,
+    `${chalk.dim("  Gates")}       ${chalk.cyan(data.gatesSummary)}`,
+  ];
+
+  return renderSafeBox(lines.join("\n"), {
+    borderColor: "white",
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: data.title ?? "Ralph Build",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
 function renderEventLine(data: EventLineData): string {
   const { domain, message, state } = data;
   const label = `[${domain}] [${state}]`;
   const coloredLabel = getColoredEventLabel(label, state);
   return `${coloredLabel} ${message}`;
+}
+
+/**
+ * Render an expanded pipeline phase with section detail lines.
+ */
+function renderExpandedPhase(node: PipelinePhaseNode): Array<string> {
+  const sectionLabelWidth = 7;
+  const sectionPrefix = "│  ";
+  const continuationPrefix = `${sectionPrefix}${" ".repeat(sectionLabelWidth)}`;
+
+  function renderSection(label: string, entries: Array<string>): Array<string> {
+    if (entries.length === 0) {
+      return [`${sectionPrefix}${chalk.dim(label.padEnd(sectionLabelWidth))}`];
+    }
+
+    const [firstEntry, ...restEntries] = entries;
+    return [
+      `${sectionPrefix}${chalk.dim(label.padEnd(sectionLabelWidth))} ${firstEntry}`,
+      ...restEntries.map((entry) => `${continuationPrefix} ${entry}`),
+    ];
+  }
+
+  const lines = [
+    `▾ ${chalk.cyan(node.name)}  ${chalk.dim(node.summary.description)}  ${chalk.dim(node.summary.timeEstimate)}`,
+    ...renderSection("READS", node.expandedDetail.reads),
+    ...renderSection(
+      "STEPS",
+      node.expandedDetail.steps.map((step) => renderAnnotatedStep(step)),
+    ),
+    ...renderSection("WRITES", node.expandedDetail.writes),
+  ];
+
+  return lines;
+}
+
+/**
+ * Render a short gate status tag for collapsed phase summaries.
+ */
+function renderGateStatusIndicator(
+  status: "APPROVAL" | "auto" | "SKIP",
+): string {
+  switch (status) {
+    case "APPROVAL": {
+      return chalk.yellow("[APPROVAL]");
+    }
+    case "auto": {
+      return chalk.green("auto");
+    }
+    case "SKIP": {
+      return chalk.yellow("[SKIP]");
+    }
+    default: {
+      return status;
+    }
+  }
 }
 
 /**
@@ -1066,6 +1460,10 @@ function renderIterationStart(data: IterationDisplayData): string {
   });
 }
 
+// =============================================================================
+// Text Formatting
+// =============================================================================
+
 /**
  * Render markdown content for terminal display
  *
@@ -1077,10 +1475,6 @@ function renderIterationStart(data: IterationDisplayData): string {
 function renderMarkdown(markdown: string): string {
   return marked(markdown) as string;
 }
-
-// =============================================================================
-// Text Formatting
-// =============================================================================
 
 function renderPhaseCard(data: PhaseCardData): string {
   const { domain, lines = [], state, title, tone } = data;
@@ -1116,6 +1510,126 @@ function renderPhaseCard(data: PhaseCardData): string {
     padding: { bottom: 0, left: 1, right: 1, top: 0 },
     width: BOX_WIDTH,
   });
+}
+
+/**
+ * Render pipeline footer lines (to embed inside an existing plan box).
+ */
+function renderPipelineFooter(data: PipelineFooterData): Array<string> {
+  const gatesRight =
+    data.gatesStatus === undefined || data.gatesStatus === ""
+      ? `${chalk.dim("Gates:")} ${chalk.cyan(String(data.phaseGateCount))}`
+      : `${chalk.dim("Gates:")} ${chalk.cyan(String(data.phaseGateCount))} ${chalk.dim(data.gatesStatus)}`;
+  const costText = `${chalk.dim("Est. cost:")} ${chalk.magenta(data.estimatedCost)}`;
+  const nextStepText =
+    data.nextStep === "dry-run"
+      ? "To execute: remove --dry-run flag"
+      : "Proceed? [Y/n]:";
+  const lines = [
+    "─".repeat(BOX_INNER_WIDTH),
+    formatTwoColumnRow(
+      `${chalk.dim("Phases:")} ${chalk.cyan(String(data.phaseCount))}`,
+      gatesRight,
+      BOX_INNER_WIDTH,
+    ),
+    formatTwoColumnRow(
+      `${chalk.dim("Est. time:")} ${chalk.cyan(`~${data.estimatedMinutes} min`)}`,
+      costText,
+      BOX_INNER_WIDTH,
+    ),
+  ];
+
+  if (data.warnings !== undefined && data.warnings.length > 0) {
+    lines.push("");
+    for (const warning of data.warnings) {
+      lines.push(`${chalk.yellow("⚠")} ${chalk.yellow(warning)}`);
+    }
+  }
+
+  lines.push("");
+  lines.push(nextStepText);
+  return lines;
+}
+
+/**
+ * Render a pipeline preview header box.
+ */
+function renderPipelineHeader(data: PipelineHeaderData): string {
+  const providerWithModel =
+    data.model === undefined
+      ? data.provider
+      : `${data.provider} (${data.model})`;
+
+  const commandRow = `${chalk.dim("  Command:   ")}${chalk.cyan(data.commandLine)}`;
+  const milestoneLeft =
+    data.milestone === undefined
+      ? ""
+      : `${chalk.dim("  Milestone: ")}${chalk.cyan(data.milestone)}`;
+  const providerRight = `${chalk.dim("Provider: ")}${chalk.cyan(providerWithModel)}`;
+  const modeLeft = `${chalk.dim("  Mode:      ")}${chalk.cyan(data.mode)}`;
+  const approvalsRight = `${chalk.dim("Approvals: ")}${chalk.cyan(data.approvalsStatus)}`;
+
+  const lines = [
+    commandRow,
+    formatTwoColumnRow(milestoneLeft, providerRight, BOX_INNER_WIDTH),
+    formatTwoColumnRow(modeLeft, approvalsRight, BOX_INNER_WIDTH),
+  ];
+
+  return renderSafeBox(lines.join("\n"), {
+    borderColor: "white",
+    borderStyle: "double",
+    padding: { bottom: 0, left: 1, right: 1, top: 0 },
+    title: "Ralph Pipeline Plan",
+    titleAlignment: "center",
+    width: BOX_WIDTH,
+  });
+}
+
+/**
+ * Render the full pipeline tree for mixed expanded/collapsed phases.
+ */
+function renderPipelineTree(
+  nodes: Array<PipelinePhaseNode>,
+  gateOptions: ApprovalGateRenderOptions = {},
+): Array<string> {
+  const lines: Array<string> = [];
+
+  for (const [index, node] of nodes.entries()) {
+    const isLast = index === nodes.length - 1;
+
+    if (node.expanded) {
+      const expandedLines = renderExpandedPhase(node);
+      const connector = isLast ? "└─" : "├─";
+      const [firstLine, ...detailLines] = expandedLines;
+
+      if (firstLine !== undefined) {
+        lines.push(`${connector} ${firstLine}`);
+      }
+
+      const detailPrefix = isLast ? "   " : "│  ";
+      for (const detailLine of detailLines) {
+        lines.push(`${detailPrefix}${detailLine}`);
+      }
+
+      if (node.expandedDetail.gate !== undefined) {
+        lines.push(
+          `${detailPrefix}│  ${renderApprovalGatePreview(
+            node.expandedDetail.gate.gateName,
+            node.expandedDetail.gate.resolvedAction,
+            gateOptions,
+          )}`,
+        );
+      }
+    } else {
+      lines.push(renderCollapsedPhase(node, isLast));
+    }
+
+    if (!isLast) {
+      lines.push("│");
+    }
+  }
+
+  return lines;
 }
 
 // =============================================================================
@@ -1401,32 +1915,56 @@ function wrapText(text: string, width: number): Array<string> {
 const colorStatus = getColoredStatus;
 
 export {
+  type ApprovalGateCardData,
   BOX_WIDTH,
   type BuildSummaryData,
+  CASCADE_SYMBOL_COMPLETED,
+  CASCADE_SYMBOL_FAILED,
+  CASCADE_SYMBOL_PENDING,
+  CASCADE_SYMBOL_RUNNING,
+  CASCADE_SYMBOL_TIMED_WAIT,
+  CASCADE_SYMBOL_WAITING,
+  type CascadePhaseState,
   colorStatus,
   type CommandBannerData,
   type EventDomain,
   type EventLineData,
   type EventState,
   formatDuration,
+  formatStepWithAnnotation,
   formatTimestamp,
   formatTokenCount,
+  formatTwoColumnRow,
   getColoredStatus,
   type IterationDisplayData,
   makeClickablePath,
+  MARKER_ADDED,
+  MARKER_REPLACED,
+  MARKER_STRUCK,
   type PhaseCardData,
   type PlanSubtasksSummaryData,
+  renderAnnotatedStep,
+  renderApprovalGateCard,
+  renderApprovalGatePreview,
   renderBuildPracticalSummary,
   renderBuildSummary,
   renderCascadeProgress,
+  renderCascadeProgressWithStates,
   renderCascadeSummary,
+  renderCollapsedPhase,
   renderCommandBanner,
+  renderCompactPreview,
   renderEventLine,
+  renderExpandedPhase,
+  renderGateStatusIndicator,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
   renderMarkdown,
   renderPhaseCard,
+  renderPipelineFooter,
+  renderPipelineHeader,
+  renderPipelineTree,
   renderPlanSubtasksSummary,
   renderProgressBar,
   renderResponseHeader,

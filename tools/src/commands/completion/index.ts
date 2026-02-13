@@ -221,7 +221,14 @@ function handleCompletion(): void {
       case "cascade": {
         // Valid cascade targets (forward-only from any starting level)
         console.log(
-          ["stories", "tasks", "subtasks", "build", "calibrate"].join("\n"),
+          [
+            "stories",
+            "tasks",
+            "subtasks",
+            "build",
+            "calibrate",
+            "roadmap",
+          ].join("\n"),
         );
         break;
       }

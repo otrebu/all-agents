@@ -238,6 +238,9 @@ function mergeRalph(
     build: userValue.build
       ? { ...defaultValue.build, ...userValue.build }
       : defaultValue.build,
+    dryRun: userValue.dryRun
+      ? { ...defaultValue.dryRun, ...userValue.dryRun }
+      : defaultValue.dryRun,
     hooks: userValue.hooks
       ? { ...defaultValue.hooks, ...userValue.hooks }
       : defaultValue.hooks,

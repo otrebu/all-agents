@@ -1,6 +1,8 @@
 import {
   type AaaConfig,
   aaaConfigSchema,
+  type DryRunConfig,
+  dryRunConfigSchema,
   type EventConfig,
   eventConfigSchema,
   type HooksConfig,
@@ -223,6 +225,30 @@ describe("hooksConfigSchema", () => {
 });
 
 // =============================================================================
+// Dry-Run Config Tests
+// =============================================================================
+
+describe("dryRunConfigSchema", () => {
+  test("accepts pretty format", () => {
+    const config: DryRunConfig = { format: "pretty" };
+    expect(dryRunConfigSchema.parse(config)).toEqual(config);
+  });
+
+  test("accepts json format", () => {
+    const config: DryRunConfig = { format: "json" };
+    expect(dryRunConfigSchema.parse(config)).toEqual(config);
+  });
+
+  test("accepts empty config", () => {
+    expect(dryRunConfigSchema.parse({})).toEqual({});
+  });
+
+  test("rejects invalid format", () => {
+    expect(() => dryRunConfigSchema.parse({ format: "xml" })).toThrow();
+  });
+});
+
+// =============================================================================
 // Ralph Section Tests
 // =============================================================================
 
@@ -248,6 +274,11 @@ describe("ralphSectionSchema", () => {
     expect(ralphSectionSchema.parse(config)).toEqual(config);
   });
 
+  test("accepts ralph config with dryRun settings", () => {
+    const config: RalphSection = { dryRun: { format: "json" } };
+    expect(ralphSectionSchema.parse(config)).toEqual(config);
+  });
+
   test("accepts provider and model defaults in ralph config", () => {
     const config: RalphSection = {
       lightweightModel: "claude-3-5-haiku-latest",
@@ -265,6 +296,12 @@ describe("ralphSectionSchema", () => {
 
   test("rejects invalid provider value", () => {
     expect(() => ralphSectionSchema.parse({ provider: "invalid" })).toThrow();
+  });
+
+  test("rejects invalid dryRun format", () => {
+    expect(() =>
+      ralphSectionSchema.parse({ dryRun: { format: "invalid" } }),
+    ).toThrow();
   });
 
   test("accepts zero for calibrateEvery (disabled)", () => {

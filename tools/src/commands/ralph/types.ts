@@ -15,6 +15,20 @@ import { createHash } from "node:crypto";
 
 import type { ProviderType } from "./providers/types";
 
+/**
+ * Render metadata for an approval gate preview line.
+ */
+interface ApprovalGatePreview {
+  /** Raw approval config value for this gate (for example: suggest, always, auto) */
+  configValue: string;
+  /** Approval gate key name (for example: createStories) */
+  gateName: string;
+  /** Optional reason suffix shown in parentheses */
+  reason?: string;
+  /** Resolved action for current mode/flags */
+  resolvedAction: "exit-unstaged" | "notify-wait" | "prompt" | "write";
+}
+
 // =============================================================================
 // Build State Types
 // =============================================================================
@@ -23,6 +37,8 @@ import type { ProviderType } from "./providers/types";
  * Build options that control provider execution behavior.
  */
 interface BuildExecutionOptions {
+  /** Preview execution plan without running providers */
+  dryRun?: boolean;
   /** Pause between iterations for user confirmation */
   interactive: boolean;
   /** Execution mode: supervised (watch) or headless (JSON capture) */
@@ -101,6 +117,8 @@ interface CascadeLevel {
 interface CascadeOptions {
   /** Interval for running calibration (e.g., every N subtasks completed) */
   calibrateEvery: number;
+  /** Preview execution plan without running providers */
+  dryRun?: boolean;
   /** Skip confirmation prompts between cascade levels */
   force: boolean;
   /** Run without TTY prompts (for CI/automation) */
@@ -129,6 +147,48 @@ interface CascadeResult {
   success: boolean;
 }
 
+// =============================================================================
+// Pipeline Preview Rendering Types
+// =============================================================================
+
+/**
+ * One-line summary rendered for a collapsed pipeline phase.
+ */
+interface CollapsedPhaseSummary {
+  /** One-line phase description */
+  description: string;
+  /** Optional gate status indicator for collapsed one-line display */
+  gateStatus?: "APPROVAL" | "auto" | "SKIP";
+  /** Estimated duration text (for example: "~5 min") */
+  timeEstimate: string;
+}
+
+/**
+ * Compact single-level pipeline preview banner data.
+ */
+interface CompactPreviewData {
+  /** Gates summary text */
+  gatesSummary: string;
+  /** Milestone label */
+  milestone: string;
+  /** Mode text */
+  mode: string;
+  /** Model label */
+  model: string;
+  /** Next subtask summary (ID + title) */
+  nextSubtask: string;
+  /** Pipeline summary text */
+  pipelineSummary: string;
+  /** Provider label */
+  provider: string;
+  /** Queue summary text */
+  queueStats: string;
+  /** Optional title (defaults to "Ralph Build") */
+  title?: string;
+  /** Validation mode/status text */
+  validateStatus: string;
+}
+
 /**
  * Entry type discriminator for milestone daily JSONL logs.
  */
@@ -140,6 +200,20 @@ type DailyLogEntryType =
   | "queue-proposal"
   | "subtask-review"
   | "validation";
+
+/**
+ * Full section detail rendered for an expanded pipeline phase.
+ */
+interface ExpandedPhaseDetail {
+  /** Optional approval gate detail shown for this phase */
+  gate?: ApprovalGatePreview;
+  /** Inputs consumed by this phase */
+  reads: Array<string>;
+  /** Process steps performed by this phase */
+  steps: Array<PipelineStep>;
+  /** Outputs produced by this phase */
+  writes: Array<string>;
+}
 
 /** Hook action types */
 type HookAction = "log" | "notify" | "pause";
@@ -255,6 +329,116 @@ interface IterationTiming {
 interface LoadedSubtasksFile extends SubtasksFile {
   /** Current queue replay fingerprint computed from id+done snapshot */
   fingerprint: QueueFingerprint;
+}
+
+/**
+ * Metrics captured when a pipeline phase completes.
+ */
+interface PhaseMetrics {
+  /** Total estimated or actual cost in USD for this phase */
+  costUsd?: number;
+  /** Number of files changed during this phase */
+  filesChanged?: number;
+  /** Number of lines added during this phase */
+  linesAdded?: number;
+  /** Number of lines removed during this phase */
+  linesRemoved?: number;
+  /** Total elapsed time for this phase in milliseconds */
+  timeElapsedMs?: number;
+}
+
+/**
+ * Runtime state of a pipeline phase in live execution rendering.
+ */
+interface PhaseState {
+  /** Metrics snapshot for this phase when available */
+  metrics?: PhaseMetrics;
+  /** Display name of the phase */
+  name: string;
+  /** Timestamp (ms) when phase became active */
+  startTimeMs?: number;
+  /** Current phase status */
+  status: PhaseStatus;
+}
+
+/**
+ * Runtime status labels used for live pipeline phase rendering.
+ */
+// eslint-disable-next-line perfectionist/sort-union-types -- status order follows milestone contract wording
+type PhaseStatus = "pending" | "active" | "completed" | "waiting" | "failed";
+
+/**
+ * Footer summary metadata rendered below a pipeline tree.
+ */
+interface PipelineFooterData {
+  /** Estimated cost display text (for example: "$0.20 - $0.60 (planning only)") */
+  estimatedCost: string;
+  /** Total estimated duration in minutes */
+  estimatedMinutes: number;
+  /** Optional gate status text (for example: "skipped (--force)") */
+  gatesStatus?: string;
+  /** Next-step mode used to render final guidance line */
+  nextStep: "dry-run" | "prompt";
+  /** Number of phases in the plan */
+  phaseCount: number;
+  /** Number of approval gates in the plan */
+  phaseGateCount: number;
+  /** Optional warnings shown below totals */
+  warnings?: Array<string>;
+}
+
+/**
+ * Header metadata rendered above a pipeline preview diagram.
+ */
+interface PipelineHeaderData {
+  /** Approval-mode summary text */
+  approvalsStatus: string;
+  /** Human-readable command line (without `aaa ralph`) */
+  commandLine: string;
+  /** Optional milestone label */
+  milestone?: string;
+  /** Execution mode text */
+  mode: string;
+  /** Optional model name shown in provider field */
+  model?: string;
+  /** Provider label */
+  provider: string;
+}
+
+/**
+ * Tree node model for pipeline phase rendering.
+ */
+interface PipelinePhaseNode {
+  /** Expanded vs collapsed rendering mode for this phase */
+  expanded: boolean;
+  /** Expanded mode detail sections */
+  expandedDetail: ExpandedPhaseDetail;
+  /** Display name of the phase */
+  name: string;
+  /** Collapsed mode one-line summary */
+  summary: CollapsedPhaseSummary;
+}
+
+/**
+ * Constructor options for PipelineRenderer.
+ */
+interface PipelineRendererOptions {
+  /** Run without interactive prompts */
+  headless: boolean;
+  /** Whether output supports ANSI cursor control */
+  isTTY: boolean;
+  /** Ordered phase names rendered in the phase bar */
+  phases: Array<string>;
+}
+
+/**
+ * Renderable pipeline step entry with optional flag annotation metadata.
+ */
+interface PipelineStep {
+  /** Optional annotation describing a flag-induced mutation */
+  annotation?: StepAnnotation;
+  /** Step text shown in the phase STEPS section */
+  text: string;
 }
 
 /**
@@ -424,6 +608,16 @@ interface SelfImprovementConfig {
 }
 
 /**
+ * Annotation metadata for a single pipeline step.
+ */
+interface StepAnnotation {
+  /** Annotation effect to render in the pipeline diagram */
+  effect: "added" | "replaced" | "struck";
+  /** Flag responsible for this annotation effect */
+  flag: string;
+}
+
+/**
  * Individual subtask in the work queue
  * Represents atomic work units for Ralph iterations
  */
@@ -468,6 +662,20 @@ interface SubtaskMetadata {
   scope?: "milestone" | "story";
   /** Reference to parent story. Required when scope is 'story'. */
   storyRef?: string;
+}
+
+/**
+ * Progress snapshot for the currently active subtask.
+ */
+interface SubtaskProgress {
+  /** Completed subtask count (1-based position) */
+  current: number;
+  /** Human-readable subtask title/description */
+  description: string;
+  /** Subtask ID (for example: SUB-025) */
+  id: string;
+  /** Total subtasks in the active phase */
+  total: number;
 }
 
 /**
@@ -624,6 +832,7 @@ function normalizeStatus(raw: string): IterationStatus {
 // =============================================================================
 
 export {
+  type ApprovalGatePreview,
   type BuildExecutionOptions,
   type BuildOptions,
   type BuildQueueOptions,
@@ -631,8 +840,11 @@ export {
   type CascadeLevel,
   type CascadeOptions,
   type CascadeResult,
+  type CollapsedPhaseSummary,
+  type CompactPreviewData,
   computeFingerprint,
   type DailyLogEntryType,
+  type ExpandedPhaseDetail,
   getProviderTimingMs,
   type HookAction,
   type HookConfig,
@@ -644,6 +856,14 @@ export {
   normalizeIterationDiaryEntry,
   normalizeIterationTiming,
   normalizeStatus,
+  type PhaseMetrics,
+  type PhaseState,
+  type PhaseStatus,
+  type PipelineFooterData,
+  type PipelineHeaderData,
+  type PipelinePhaseNode,
+  type PipelineRendererOptions,
+  type PipelineStep,
   type PostIterationHookConfig,
   type QueueApplyLogEntry,
   type QueueFingerprint,
@@ -653,8 +873,10 @@ export {
   type QueueSubtaskDraft,
   type RalphConfig,
   type SelfImprovementConfig,
+  type StepAnnotation,
   type Subtask,
   type SubtaskMetadata,
+  type SubtaskProgress,
   type SubtasksFile,
   type TokenUsage,
   type ValidationLogEntry,
