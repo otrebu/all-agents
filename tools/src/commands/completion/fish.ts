@@ -118,6 +118,7 @@ complete -c aaa -n '__fish_aaa_using_subcommand parallel-search' -s v -l verbose
 
 # setup options
 complete -c aaa -n '__fish_aaa_using_subcommand setup' -l user -d 'Setup CLI globally'
+complete -c aaa -n '__fish_aaa_using_subcommand setup' -l worktree -d 'Switch active aaa symlink to all-agents worktree' -ra '(__fish_complete_directories)'
 complete -c aaa -n '__fish_aaa_using_subcommand setup' -l project -d 'Setup current project'
 
 # uninstall options

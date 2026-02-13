@@ -23,6 +23,16 @@ This will:
 - Install shell tab completion (zsh, bash, or fish)
 - Prompt to set `CLAUDE_CONFIG_DIR` for global Claude Code integration
 
+Switch the active `aaa` symlink to your current all-agents git worktree:
+
+```bash
+# Use current git worktree root
+aaa setup --user --worktree
+
+# Or point to a specific all-agents worktree path
+aaa setup --user --worktree ~/dev/all-agents-worktrees/feature-x
+```
+
 ### Project Integration
 
 Set up all-agents integration in another project:
@@ -80,7 +90,7 @@ aaa story create "As a user, I want to login"
 | `parallel-search <query>`     | Multi-angle web research with configurable depth                                                                     | `docs/research/parallel/`                   |
 | `task create <description>`   | Create auto-numbered task file (recommended: milestone-scoped with `--milestone`)                                    | milestone `tasks/` (or legacy global dir)   |
 | `story create <description>`  | Create auto-numbered story file (recommended: milestone-scoped with `--milestone`)                                   | milestone `stories/` (or legacy global dir) |
-| `setup`                       | Install CLI (`--user`) or integrate project (`--project`)                                                            | -                                           |
+| `setup`                       | Install CLI (`--user`), switch active worktree (`--user --worktree [path]`), or integrate project (`--project`)      | -                                           |
 | `uninstall`                   | Remove CLI (`--user`) or project integration (`--project`)                                                           | -                                           |
 | `ralph plan <level>`          | Interactive planning (vision, roadmap, stories, tasks) with `--dry-run` pipeline preview                             | `docs/planning/`                            |
 | `ralph build`                 | Run subtask iteration loop (autonomous dev) with `--dry-run` pipeline preview                                        | `subtasks.json`                             |
@@ -368,7 +378,7 @@ aaa ralph build -p
 
 #### Dry-Run Preview
 
-Use `--dry-run` as a safety check before expensive or multi-phase runs: it shows the execution plan, renders the visual pipeline preview, and exits without executing. It works with all modes (`interactive`, `--supervised`, `--headless`) and with cascade/approval flags like `--cascade`, `--force`, and `--review`.
+Use `--dry-run` as a safety check before expensive or multi-phase runs: it shows a visual execution plan and exits without executing. This now pretty-prints in all modes (including `--headless`) by default. It works with cascade/approval flags like `--cascade`, `--force`, and `--review`.
 
 ```bash
 aaa ralph plan stories --milestone M1 --cascade build --headless --force --dry-run
@@ -419,11 +429,29 @@ aaa ralph plan stories --milestone M1 --cascade build --headless --force --dry-r
 │  !  --force skips all approval gates                               │
 │  !  --headless disables interactive prompts                        │
 │                                                                    │
-│  To execute: remove --dry-run to execute                           │
+│  To execute: remove --dry-run flag                                 │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
 For more dry-run scenarios and rendering variants, see `docs/planning/milestones/007-pipeline-preview/MILESTONE.md`.
+
+```bash
+# Default behavior (pretty output)
+aaa ralph build --headless --dry-run
+
+# Opt into JSON output via aaa.config.json
+cat > aaa.config.json <<'EOF'
+{
+  "ralph": {
+    "dryRun": {
+      "format": "json"
+    }
+  }
+}
+EOF
+
+aaa ralph build --headless --dry-run
+```
 
 ```bash
 # Other pipeline levels support the same preview flow

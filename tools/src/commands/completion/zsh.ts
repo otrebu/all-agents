@@ -76,6 +76,7 @@ _aaa() {
                 setup)
                     _arguments \\
                         '--user[Setup CLI globally]' \\
+                        '--worktree[Switch active aaa symlink to all-agents worktree]:directory:_files -/' \\
                         '--project[Setup current project]'
                     ;;
                 uninstall)

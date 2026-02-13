@@ -21,6 +21,7 @@
 export {
   DEFAULT_AAA_CONFIG,
   DEFAULT_APPROVALS,
+  DEFAULT_DRY_RUN,
   DEFAULT_NOTIFY,
   DEFAULT_RALPH,
   DEFAULT_RESEARCH,
@@ -46,6 +47,10 @@ export {
   approvalsConfigSchema,
   type BuildConfig,
   buildConfigSchema,
+  type DryRunConfig,
+  dryRunConfigSchema,
+  type DryRunFormat,
+  dryRunFormatSchema,
   type EventConfig,
   eventConfigSchema,
   type GithubResearchConfig,

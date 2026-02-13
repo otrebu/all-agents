@@ -1,0 +1,914 @@
+{
+  "$schema": "../../schemas/subtasks.schema.json",
+  "metadata": {
+    "milestoneRef": "007-pipeline-preview",
+    "scope": "milestone"
+  },
+  "subtasks": [
+    {
+      "id": "SUB-001",
+      "taskRef": "001-TASK-execution-plan-computation",
+      "storyRef": "001-STORY-dry-run-preview",
+      "title": "Core types, LEVEL_FLOWS constant, and computeExecutionPlan() for single and cascade levels",
+      "description": "Create tools/src/commands/ralph/plan-preview.ts with the foundational types (ExecutionPlan, ExecutionPhase, PhaseStep, FlagEffect) and the LEVEL_FLOWS constant that defines static reads/process/produces templates for all 8 pipeline levels. Implement computeExecutionPlan() that calls getLevelsInRange() from cascade.ts to expand cascade targets, iterates each level to build ExecutionPhase objects from LEVEL_FLOWS, and calls evaluateApproval() from approvals.ts to resolve each level's approval gate action. The function must accept command name, cascade target, from-level override, and flag context (headless, force, review, validateFirst, calibrateEvery) and return a typed ExecutionPlan with phases array, summary metadata, and JSON-serializable output. Unit tests cover single-level plan (ralph build), cascade plan (--cascade build from subtasks), --from flag adjustment, and approval gate resolution for --force and --review flags.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] computeExecutionPlan() for single-level 'ralph build' returns an ExecutionPlan with exactly 1 phase containing reads, steps, and writes arrays from LEVEL_FLOWS",
+        "[Behavioral] computeExecutionPlan() with cascade target 'build' from 'subtasks' returns phases for ['build'] via getLevelsInRange()",
+        "[Behavioral] computeExecutionPlan() with cascade target 'calibrate' from 'subtasks' returns phases for ['build', 'calibrate']",
+        "[Behavioral] --from flag overrides cascade start point and adjusts returned phases accordingly",
+        "[Behavioral] Approval gate resolves to 'write' when forceFlag is true, and to 'prompt' when reviewFlag is true in TTY context",
+        "[Behavioral] LEVEL_FLOWS map contains entries for all 8 pipeline commands (plan roadmap/stories/tasks/subtasks, build, calibrate all/intention/technical)",
+        "[Behavioral] ExecutionPlan is JSON-serializable (no functions, no circular refs) for --headless --dry-run output",
+        "[Evidence] tests/lib/plan-preview.test.ts passes via bun test tools/tests/lib/plan-preview.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/tests/lib/cascade.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/001-TASK-execution-plan-computation.md"
+      ],
+      "completedAt": "2026-02-12T22:50:48.423Z",
+      "commitHash": "bec3193bcd6784123e96d86daa60ca3e00ab2759",
+      "sessionId": "ses_3abfb4c59ffeeIm9LwjjqcMegd",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-002",
+      "taskRef": "001-TASK-execution-plan-computation",
+      "storyRef": "001-STORY-dry-run-preview",
+      "title": "Flag composition (FLOW_MODS), runtime enrichment, and time estimation",
+      "description": "Extend plan-preview.ts with three capabilities: (1) FLOW_MODS declarative rules that annotate how flags modify the default pipeline - each rule maps a flag to steps that are added, replaced, or struck, producing FlagEffect annotations on each affected PhaseStep. (2) RuntimeContext interface and a collectRuntimeContext() function that reads the filesystem to populate actual file counts from docs/planning/milestones/<milestone>/{stories,tasks}/ directories, queue stats (total, pending, completed) from subtasks.json via loadSubtasksFile(), and provider/model config. (3) Time estimation heuristics as simple per-level constants with ~ prefix. Update computeExecutionPlan() to invoke FLOW_MODS composition and runtime enrichment. Unit tests verify flag composition for --headless, --force, --validate-first, and --calibrate-every flags, runtime enrichment populates real file counts from test fixtures, and multiple flags compose correctly together.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] FlagEffect annotations with type 'added' are produced for --validate-first adding a validation step before build",
+        "[Behavioral] FlagEffect annotations with type 'replaced' are produced for --headless replacing interactive approval with auto-write",
+        "[Behavioral] FlagEffect annotations with type 'struck' are produced for --force striking approval prompt steps",
+        "[Behavioral] Multiple flags compose correctly: --headless --force --validate-first applies all three effects without conflict",
+        "[Behavioral] collectRuntimeContext() populates file counts by reading stories/ and tasks/ directories from a milestone path",
+        "[Behavioral] collectRuntimeContext() populates queue stats (total, pending, completed) from subtasks.json via loadSubtasksFile()",
+        "[Behavioral] Time estimation produces per-phase estimate strings with ~ prefix (e.g., '~5 min')",
+        "[Regression] Existing computeExecutionPlan() tests from SUB-001 continue to pass after enrichment integration",
+        "[Evidence] tests/lib/plan-preview.test.ts passes via bun test tools/tests/lib/plan-preview.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/plan-preview.ts",
+        "tools/src/commands/ralph/config.ts",
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/tests/lib/plan-preview.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/001-TASK-execution-plan-computation.md"
+      ],
+      "completedAt": "2026-02-12T23:02:41.649Z",
+      "commitHash": "d96038f171f550c817f66c078a10c380765123ed",
+      "sessionId": "ses_3abf32564ffexGXaLCHFTN4liA",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-003",
+      "taskRef": "001-TASK-execution-plan-computation",
+      "storyRef": "001-STORY-dry-run-preview",
+      "title": "Integration test with realistic milestone fixture and module exports",
+      "description": "Create an integration test that sets up a realistic test milestone fixture with 3 stories, 5 tasks, and 12 subtasks (mix of done/pending). Run computeExecutionPlan() against this fixture for a cascade from subtasks to calibrate and verify the plan reflects actual file counts, queue stats, approval gate resolutions, and flag effects. Ensure all types (ExecutionPlan, ExecutionPhase, RuntimeContext, FlagEffect, PhaseStep) and functions (computeExecutionPlan, collectRuntimeContext) are properly exported from the plan-preview.ts module so downstream rendering and CLI integration modules can import them. Verify the plan is fully JSON-serializable for headless output.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] Integration test creates temp milestone with 3 story files, 5 task files, and subtasks.json containing 12 subtasks (8 pending, 4 done)",
+        "[Behavioral] computeExecutionPlan() against the fixture returns plan with correct story count (3), task count (5), and queue stats (total: 12, pending: 8, completed: 4)",
+        "[Behavioral] Cascade plan from subtasks to calibrate includes phases for build and calibrate levels with correct approval gate actions",
+        "[Behavioral] JSON.stringify(plan) produces valid JSON that can be parsed back to the same structure (no data loss)",
+        "[Behavioral] All public types (ExecutionPlan, ExecutionPhase, RuntimeContext, FlagEffect) can be imported from plan-preview.ts by external modules",
+        "[Evidence] tests/lib/plan-preview.test.ts integration test section passes via bun test tools/tests/lib/plan-preview.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/plan-preview.ts",
+        "tools/tests/lib/plan-preview.test.ts",
+        "tools/tests/e2e/ralph.test.ts",
+        "tools/src/commands/ralph/config.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/001-TASK-execution-plan-computation.md"
+      ],
+      "completedAt": "2026-02-12T23:10:31.388Z",
+      "commitHash": "9318b0ff294d497bd5b80fced8dc368a8c56591c",
+      "sessionId": "ses_3abe842abffe68Bs4gDkJYQpNa",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-004",
+      "taskRef": "002-TASK-cli-dry-run-flag",
+      "storyRef": "001-STORY-dry-run-preview",
+      "title": "Add --dry-run flag to ralph build and all plan subcommands with early-exit wiring",
+      "description": "Add the `--dry-run` boolean flag to `ralph build` and all 4 `ralph plan` subcommands (roadmap, stories, tasks, subtasks) in `tools/src/commands/ralph/index.ts`. Update `BuildOptions` and `CascadeOptions` types in `types.ts` to include `dryRun?: boolean`. For each command's action handler, implement the early-exit pattern: if `options.dryRun` is true, call `computeExecutionPlan()` from `plan-preview.ts` with resolved options, output the plan as JSON via `console.log(JSON.stringify(plan, null, 2))`, and `process.exit(0)`. The early-exit must occur before any filesystem operations or provider invocations. For `--headless --dry-run`, output valid JSON to stdout. Add E2E tests verifying `ralph build --dry-run` and `ralph plan stories --dry-run` exit 0 and output parseable JSON.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] `aaa ralph build --dry-run` exits with code 0 and outputs JSON that parses via JSON.parse()",
+        "[Behavioral] `aaa ralph plan roadmap --dry-run` exits with code 0 and outputs JSON plan",
+        "[Behavioral] `aaa ralph plan stories --milestone <test-milestone> --dry-run` exits 0 and outputs JSON without invoking any provider",
+        "[Behavioral] `aaa ralph plan tasks --milestone <test-milestone> --dry-run` exits 0 with JSON output",
+        "[Behavioral] `aaa ralph plan subtasks --milestone <test-milestone> --dry-run` exits 0 with JSON output",
+        "[Behavioral] `aaa ralph build --dry-run --headless` outputs valid JSON to stdout parseable by JSON.parse()",
+        "[Behavioral] Existing `aaa ralph build` (no --dry-run) still executes normally (no regression)",
+        "[Behavioral] `BuildOptions` and `CascadeOptions` types include `dryRun?: boolean` field",
+        "[Evidence] E2E tests in tools/tests/e2e/ralph.test.ts pass via `bun test tools/tests/e2e/ralph.test.ts`"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/plan-preview.ts",
+        "tools/tests/e2e/ralph.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/002-TASK-cli-dry-run-flag.md"
+      ],
+      "completedAt": "2026-02-12T23:28:04.424Z",
+      "commitHash": "0596750cab750b880b463367350ee9197cb4ec63",
+      "sessionId": "ses_3abe1195fffe4OgnWk6X7kgMKQ",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-005",
+      "taskRef": "002-TASK-cli-dry-run-flag",
+      "storyRef": "001-STORY-dry-run-preview",
+      "title": "Add --dry-run flag to all 3 calibrate subcommands with early-exit wiring and E2E tests",
+      "description": "Add the `--dry-run` boolean flag to `ralph calibrate all`, `ralph calibrate intention`, and `ralph calibrate technical` in `tools/src/commands/ralph/index.ts`. Wire the early-exit pattern: if `options.dryRun` is true, call `computeExecutionPlan()` with calibration-specific parameters (single-level, no cascade), output JSON plan, and exit 0 before any provider invocations. Also add E2E test for `ralph calibrate all --dry-run` verifying exit 0 and JSON output, and a cascade test verifying `ralph plan subtasks --milestone <test> --cascade build --dry-run` shows all cascade levels in the plan output.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] `aaa ralph calibrate all --dry-run` exits with code 0 and outputs JSON plan",
+        "[Behavioral] `aaa ralph calibrate intention --dry-run` exits 0 with JSON output",
+        "[Behavioral] `aaa ralph calibrate technical --dry-run` exits 0 with JSON output",
+        "[Behavioral] `aaa ralph plan subtasks --milestone <test-milestone> --cascade build --dry-run` outputs plan with all cascade levels",
+        "[Behavioral] Existing calibrate commands without --dry-run are unchanged (no regression)",
+        "[Regression] `aaa ralph calibrate all --help` shows --dry-run in help text",
+        "[Evidence] E2E tests in tools/tests/e2e/ralph.test.ts pass via `bun test tools/tests/e2e/ralph.test.ts`"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/calibrate.ts",
+        "tools/src/commands/ralph/plan-preview.ts",
+        "tools/tests/e2e/ralph.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/002-TASK-cli-dry-run-flag.md"
+      ],
+      "completedAt": "2026-02-12T23:57:40.601Z",
+      "commitHash": "d2df54eaa3ad69aebfe20aa3c66dc7d73cfaca1c",
+      "sessionId": "ses_3abbe92a5ffeA7tpYkHBqTt52t",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-006",
+      "taskRef": "002-TASK-cli-dry-run-flag",
+      "storyRef": "001-STORY-dry-run-preview",
+      "title": "Add --dry-run shell completion and help text documentation for all 8 pipeline commands",
+      "description": "Update shell completion scripts (`tools/src/commands/completion/zsh.ts` and `tools/src/commands/completion/fish.ts`) to offer `--dry-run` tab completion for all 8 Ralph pipeline commands: build, plan roadmap, plan stories, plan tasks, plan subtasks, calibrate all, calibrate intention, calibrate technical. Verify help text for each command documents the `--dry-run` flag (already added by `.option()` in previous subtasks). Update `tools/README.md` to document the `--dry-run` flag in the Ralph CLI section. Add E2E tests verifying `--help` output contains `--dry-run` for `ralph build` and `ralph calibrate all`.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] `aaa ralph build --help` output contains '--dry-run'",
+        "[Behavioral] `aaa ralph calibrate all --help` output contains '--dry-run'",
+        "[Behavioral] `aaa ralph plan stories --help` output contains '--dry-run'",
+        "[Behavioral] Zsh completion script includes '--dry-run' for ralph build, plan roadmap, plan stories, plan tasks, plan subtasks, calibrate all, calibrate intention, calibrate technical",
+        "[Behavioral] Fish completion script includes '--dry-run' for all 8 ralph pipeline commands",
+        "[Regression] Existing completion for other flags remains intact",
+        "[Evidence] E2E tests in tools/tests/e2e/ralph.test.ts pass via `bun test tools/tests/e2e/ralph.test.ts`",
+        "README.md CLI Tools section documents the --dry-run flag for Ralph pipeline commands"
+      ],
+      "filesToRead": [
+        "tools/src/commands/completion/zsh.ts",
+        "tools/src/commands/completion/fish.ts",
+        "tools/src/commands/ralph/index.ts",
+        "tools/README.md",
+        "tools/tests/e2e/ralph.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/002-TASK-cli-dry-run-flag.md"
+      ],
+      "completedAt": "2026-02-13T00:10:33.774Z",
+      "commitHash": "7ebe6e2a2fc815e02fb2e3966d64fc78a256d39a",
+      "sessionId": "ses_3abb5eb3affeI42pG7km6b1SPT",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-007",
+      "taskRef": "006-TASK-tree-rendering-core",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Add pipeline tree types and collapsed phase renderer",
+      "description": "Add the foundational type definitions for pipeline tree rendering to types.ts (PipelinePhaseNode, CollapsedPhaseSummary, ExpandedPhaseDetail, StepAnnotation) and implement renderCollapsedPhase() in display.ts. A collapsed phase renders as a single line with tree connector (either bracket-dash or L-dash), phase name, one-line description, time estimate, and optional gate indicator. The connector symbol depends on whether the phase is the last in the tree. This subtask ships the types that all subsequent tree rendering depends on, plus the simpler of the two rendering modes, with unit tests proving correct connector assignment and output format.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderCollapsedPhase() returns a single-line string containing tree connector, cyan phase name, dim description, time estimate, and yellow gate indicator when present",
+        "[Behavioral] Last phase in tree uses L-connector (└─), non-last phases use T-connector (├─)",
+        "[Behavioral] Unit tests cover: collapsed phase with gate, collapsed phase without gate, last-node vs non-last-node connector selection",
+        "[Regression] Existing display.ts exports and tests remain unchanged and passing",
+        "[Evidence] bun test tools/tests/lib/display.test.ts passes with new collapsed phase tests"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/006-TASK-tree-rendering-core.md"
+      ],
+      "completedAt": "2026-02-13T00:19:00.434Z",
+      "commitHash": "104e62fe3d69430866aa4247dac9930067be4df9",
+      "sessionId": "ses_3abaa1f6bffefj1ckGtMHlaK7Y",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-008",
+      "taskRef": "006-TASK-tree-rendering-core",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Implement expanded phase renderer with section detail",
+      "description": "Implement renderExpandedPhase() in display.ts that renders a phase with the expand symbol (▾), followed by indented READS, STEPS, WRITES, and optional GATE sections using tree continuation lines (│). Each section label is dim, phase name is cyan, gate text is yellow. The function accepts a PipelinePhaseNode (from SUB-007 types) and returns a string array (one element per output line). This matches the expanded node format from Example 1 in MILESTONE.md (lines 36-46) but without annotation markers (those belong to TASK-007). Add unit tests verifying section layout, indentation, and optional GATE omission.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderExpandedPhase() returns string array with ▾ symbol on first line followed by READS, STEPS, WRITES sections indented under │ continuation lines",
+        "[Behavioral] GATE section renders in yellow when present, is omitted when gate is undefined/null",
+        "[Behavioral] Section labels (READS, STEPS, WRITES, GATE) are chalk.dim, phase name is chalk.cyan",
+        "[Behavioral] Unit tests cover: expanded phase with all 4 sections, expanded phase without GATE, empty reads/writes arrays",
+        "[Evidence] bun test tools/tests/lib/display.test.ts passes with new expanded phase tests"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md"
+      ],
+      "completedAt": "2026-02-13T00:27:16.165Z",
+      "commitHash": "bc28e7c9fb50215395616215b9a21550067f6aa6",
+      "sessionId": "ses_3aba263eaffeObI65pv2HusUTP",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-009",
+      "taskRef": "006-TASK-tree-rendering-core",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Implement renderPipelineTree orchestrator for mixed expanded/collapsed phases",
+      "description": "Implement renderPipelineTree() in display.ts that accepts an array of PipelinePhaseNode[] and produces the full tree output by delegating to renderExpandedPhase() and renderCollapsedPhase() based on each node's expanded flag. The function handles: correct connector assignment (last node gets └─, others get ├─), proper tree continuation lines (│) between nodes, and returns a flat string array of all output lines. Export renderPipelineTree from display.ts. Add unit tests covering: a 2-phase tree (1 expanded + 1 collapsed), a 4-phase mixed tree, and a single expanded-only phase. The visual output should match the tree structure from MILESTONE.md Example 1.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderPipelineTree() produces correct tree with connectors for a 4-phase pipeline (1 expanded entry + 3 collapsed downstream)",
+        "[Behavioral] Mixed expanded/collapsed rendering delegates correctly: expanded nodes show full section detail, collapsed nodes show one-liners",
+        "[Behavioral] Last node in array uses └─ connector, all others use ├─, with │ continuation lines between phases",
+        "[Behavioral] Unit tests cover: single expanded phase, 2-phase mixed tree, 4-phase pipeline matching Example 1 structure",
+        "[Regression] Existing display.ts exports remain unchanged; all prior display.test.ts tests still pass",
+        "[Evidence] bun test tools/tests/lib/display.test.ts passes with new pipeline tree tests"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/006-TASK-tree-rendering-core.md"
+      ],
+      "completedAt": "2026-02-13T00:34:04.307Z",
+      "commitHash": "eafda4d3f2241a6b46bb91dadd69eb3123fb15b6",
+      "sessionId": "ses_3ab9ad2f4ffeAqLPp3eT8ACUXC",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-010",
+      "taskRef": "007-TASK-annotation-markers",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Add annotation types, marker constants, and renderAnnotatedStep",
+      "description": "Define StepAnnotation and PipelineStep types in types.ts, add visual marker constants (MARKER_ADDED, MARKER_REPLACED, MARKER_STRUCK) and chalk color bindings in display.ts, and implement renderAnnotatedStep() that applies the correct marker symbol, color, and styling (green for added, yellow for replaced, dim+strikethrough for struck) to a step line. Include a right-aligned [flag-name] tag using basic padding (full width-calculation helper comes in SUB-011). Add unit tests covering each annotation effect and the unannotated fallback.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderAnnotatedStep with 'added' effect returns string containing '+' marker and green chalk styling",
+        "[Behavioral] renderAnnotatedStep with 'replaced' effect returns string containing '~' marker and yellow chalk styling",
+        "[Behavioral] renderAnnotatedStep with 'struck' effect returns string containing '×' marker with dim+strikethrough styling on step text",
+        "[Behavioral] renderAnnotatedStep with no annotation returns plain step text with normal indentation (no marker, no flag tag)",
+        "[Behavioral] renderAnnotatedStep includes right-aligned [flag-name] tag for annotated steps",
+        "[Evidence] StepAnnotation type exported from types.ts with effect: 'added' | 'replaced' | 'struck' and flag: string fields",
+        "[Evidence] PipelineStep type exported from types.ts with text: string and annotation?: StepAnnotation fields",
+        "[Evidence] MARKER_ADDED, MARKER_REPLACED, MARKER_STRUCK constants exported from display.ts",
+        "[Evidence] Unit tests in tools/tests/lib/display.test.ts pass via bun test tools/tests/lib/display.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/007-TASK-annotation-markers.md"
+      ],
+      "completedAt": "2026-02-13T00:43:31.704Z",
+      "commitHash": "adb980cfdf2ff8c6741c45e41dcac2a5776c2b6e",
+      "sessionId": "ses_3ab949970ffePRcZcBz7L6rfTJ",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-011",
+      "taskRef": "007-TASK-annotation-markers",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Add formatStepWithAnnotation helper with width-aware right-alignment and truncation",
+      "description": "Implement formatStepWithAnnotation() in display.ts that calculates available width (BOX_WIDTH - indent - marker space - flag tag length), truncates step text via existing truncate() when it would overflow, and right-aligns the [flag-name] tag with proper spacing. Uses string-width for ANSI-safe width calculations. This helper is called by renderAnnotatedStep() to produce the final formatted line: '   ~  Step text...   [flag-name]'. Add unit tests for right-alignment at various step text lengths and truncation when step text + flag tag exceed line width.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] formatStepWithAnnotation right-aligns [flag-name] tag so it ends at BOX_WIDTH minus indent regardless of step text length",
+        "[Behavioral] formatStepWithAnnotation truncates step text with ellipsis when step text + flag tag + marker exceed available width",
+        "[Behavioral] formatStepWithAnnotation produces correct spacing: marker(3 chars) + step text + padding + [flag-name]",
+        "[Behavioral] Steps without annotation produce no flag tag and no extra right-padding",
+        "[Regression] Existing truncate() and renderAnnotatedStep() tests from SUB-010 continue to pass",
+        "[Evidence] Unit tests in tools/tests/lib/display.test.ts cover right-alignment with short, medium, and long step text, and truncation edge case; pass via bun test tools/tests/lib/display.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/007-TASK-annotation-markers.md"
+      ],
+      "completedAt": "2026-02-13T00:51:41.509Z",
+      "commitHash": "dfd46ba95a10213208e85995d559cfdcd69aa46e",
+      "sessionId": "ses_3ab8bf018ffeVjGoKVxDEKCCrB",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-012",
+      "taskRef": "007-TASK-annotation-markers",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Wire annotation rendering into renderExpandedPhase for STEPS section",
+      "description": "Update renderExpandedPhase() (from TASK-006) to accept PipelineStep[] for its STEPS section and call renderAnnotatedStep()/formatStepWithAnnotation() for each step. Annotated steps render with their marker and right-aligned flag tag; unannotated steps render with normal indentation. READS/WRITES sections remain unchanged (no annotations). Add integration-level unit tests verifying the full expanded phase output matches the MILESTONE.md Example 1 annotation style (lines 38-43), including mixed annotated and unannotated steps within the same phase.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderExpandedPhase renders PipelineStep with 'added' annotation showing '+' marker, green color, and [flag] tag in STEPS section",
+        "[Behavioral] renderExpandedPhase renders PipelineStep with 'replaced' annotation showing '~' marker, yellow color, and [flag] tag in STEPS section",
+        "[Behavioral] renderExpandedPhase renders mixed annotated and unannotated steps with consistent indentation alignment",
+        "[Behavioral] renderExpandedPhase READS and WRITES sections render without annotation markers or flag tags",
+        "[Regression] Existing renderExpandedPhase tests (from TASK-006) pass with PipelineStep[] input format",
+        "[Evidence] Visual output of a multi-step phase with annotations matches MILESTONE.md Example 1 lines 38-43 annotation style",
+        "[Evidence] Integration tests in tools/tests/lib/display.test.ts pass via bun test tools/tests/lib/display.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/007-TASK-annotation-markers.md"
+      ],
+      "completedAt": "2026-02-13T01:00:00.402Z",
+      "commitHash": "549396fbb43845e0f79af167bd6d67e46ef2dcde",
+      "sessionId": "ses_3ab8476c2ffehc0UurZdFe7nF5",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-013",
+      "taskRef": "008-TASK-header-footer-rendering",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Add pipeline header rendering with two-column layout helper",
+      "description": "Add PipelineHeaderData type to types.ts and implement renderPipelineHeader() and formatTwoColumnRow() in display.ts. The header uses boxen with borderStyle 'double' and BOX_WIDTH to render a double-border box matching MILESTONE.md Example 1 (lines 24-30): title 'Ralph Pipeline Plan' centered, then rows for Command, Milestone/Provider, and Mode/Approvals. The two-column helper uses string-width for ANSI-safe alignment. Missing optional fields (milestone, model) are omitted gracefully. Unit tests in display.test.ts cover full header, missing fields, and two-column alignment.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderPipelineHeader() produces double-border boxen output containing 'Ralph Pipeline Plan' title, Command/Milestone/Provider/Mode/Approvals fields matching Example 1 layout",
+        "[Behavioral] formatTwoColumnRow() right-aligns the second value within inner width using string-width for ANSI-safe measurement",
+        "[Behavioral] renderPipelineHeader() omits Milestone row segment when milestone is undefined, omits model parenthetical when model is undefined, without crashing",
+        "[Evidence] tests in tools/tests/lib/display.test.ts pass via 'bun test tools/tests/lib/display.test.ts' covering: header with all fields, header with missing milestone/model, two-column alignment with plain and ANSI strings"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/008-TASK-header-footer-rendering.md"
+      ],
+      "completedAt": "2026-02-13T01:13:10.679Z",
+      "commitHash": "2d7efadd56b29158cd587bd5fa21ce556c04be22",
+      "sessionId": "ses_3ab7cd9a1ffe0vTmRVKLb0l21o",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-014",
+      "taskRef": "008-TASK-header-footer-rendering",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Add pipeline footer and compact preview rendering",
+      "description": "Add PipelineFooterData and CompactPreviewData types to types.ts. Implement renderPipelineFooter() in display.ts: renders summary section (not a separate boxen) with separator line, totals (Phases/Gates/Est. time/Est. cost), optional warning lines in yellow, and next-step line. Implement renderCompactPreview() in display.ts: uses boxen with double border and BOX_WIDTH for single-level command banner matching MILESTONE.md Example 3 (lines 139-150) with milestone, provider/model, queue stats, next subtask, mode/validate, pipeline summary, and gates summary. Uses formatTwoColumnRow() from SUB-013 for aligned rows. Unit tests cover footer with/without warnings and compact preview rendering.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderPipelineFooter() returns formatted lines containing Phases count, Gates status, Est. time, Est. cost with correct chalk colors (dim labels, cyan counts, magenta costs, yellow warnings)",
+        "[Behavioral] renderPipelineFooter() includes warning lines prefixed with yellow warning symbol when warnings array is non-empty, and omits them when empty or undefined",
+        "[Behavioral] renderPipelineFooter() shows 'To execute: remove --dry-run flag' or 'Proceed? [Y/n]:' based on nextStep value",
+        "[Behavioral] renderCompactPreview() produces double-border boxen output with 6-8 content lines matching Example 3 structure: milestone, provider/model, queue stats, next subtask, mode/validate, pipeline, gates",
+        "[Evidence] tests in tools/tests/lib/display.test.ts pass via 'bun test tools/tests/lib/display.test.ts' covering: footer with warnings, footer without warnings, compact preview for build command"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/008-TASK-header-footer-rendering.md"
+      ],
+      "completedAt": "2026-02-13T01:20:12.578Z",
+      "commitHash": "5e97c2c4aa19e6a0c1b66330a7fa02d8bb26e9b8",
+      "sessionId": "ses_3ab70cd00ffeY8JeqzA5I6u2KM",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-016",
+      "taskRef": "009-TASK-approval-gate-rendering",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Add ApprovalGatePreview type and renderApprovalGatePreview function with color-coded actions",
+      "description": "Define the ApprovalGatePreview interface in types.ts with fields for gateName, configValue, resolvedAction (skip | prompt | auto-proceed | notify-wait | exit-unstaged), and optional reason string. Implement renderApprovalGatePreview() in display.ts that formats gate preview as '<gateName> → <ACTION> (<reason>)' with color coding: skip=yellow with reason in parens (e.g. 'SKIP (--force)'), prompt=yellow bold, auto-proceed=green, notify-wait=yellow, exit-unstaged=red. Export the type and function. Add unit tests covering each action type's format and color output, matching the MILESTONE.md Example 1 line 45 format: 'createStories → SKIP (--force)'.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderApprovalGatePreview() with resolvedAction 'skip' and reason '--force' returns string containing 'SKIP' and '(--force)'",
+        "[Behavioral] renderApprovalGatePreview() with resolvedAction 'prompt' returns string containing 'PROMPT'",
+        "[Behavioral] renderApprovalGatePreview() with resolvedAction 'auto-proceed' returns string containing 'AUTO'",
+        "[Behavioral] renderApprovalGatePreview() with resolvedAction 'exit-unstaged' returns string containing 'EXIT-UNSTAGED'",
+        "[Evidence] ApprovalGatePreview type exists in tools/src/commands/ralph/types.ts with gateName, configValue, resolvedAction, and optional reason fields",
+        "[Evidence] renderApprovalGatePreview is exported from tools/src/commands/ralph/display.ts",
+        "[Evidence] tests/lib/display.test.ts contains describe block 'renderApprovalGatePreview' with tests for skip, prompt, auto-proceed, notify-wait, and exit-unstaged actions"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/009-TASK-approval-gate-rendering.md",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md"
+      ],
+      "completedAt": "2026-02-13T01:27:11.903Z",
+      "commitHash": "e872652f3baab6caeaa600396d784e70624c7361",
+      "sessionId": "ses_3ab6a5c8effeif7sLlHbNi0pOc",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-017",
+      "taskRef": "009-TASK-approval-gate-rendering",
+      "storyRef": "002-STORY-visual-pipeline-diagram",
+      "title": "Add renderGateStatusIndicator and wire gate rendering into expanded/collapsed phase output",
+      "description": "Implement renderGateStatusIndicator() in display.ts that accepts a gate status ('APPROVAL' | 'auto' | 'SKIP') and returns a short colored tag for collapsed phase one-liners: '[APPROVAL]' in yellow, 'auto' in green, '[SKIP]' in yellow. Update ExpandedPhaseDetail type in types.ts to include optional gate field (ApprovalGatePreview). Update CollapsedPhaseSummary type to include optional gateStatus field. Wire gate rendering into renderExpandedPhase() (GATE section after WRITES with '│  GATE    <output>' indentation, only if gate defined) and renderCollapsedPhase() (append gate indicator to one-liner). Add unit tests for the indicator function and for expanded/collapsed phase integration, matching MILESTONE.md Example 4 lines 170-173 format.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderGateStatusIndicator('APPROVAL') returns string containing '[APPROVAL]'",
+        "[Behavioral] renderGateStatusIndicator('auto') returns string containing 'auto'",
+        "[Behavioral] renderGateStatusIndicator('SKIP') returns string containing '[SKIP]'",
+        "[Behavioral] Expanded phase with gate defined renders a GATE section line containing the gate preview output",
+        "[Behavioral] Collapsed phase with gateStatus defined appends the gate indicator at the end of the one-liner",
+        "[Evidence] renderGateStatusIndicator is exported from tools/src/commands/ralph/display.ts",
+        "[Evidence] tests/lib/display.test.ts contains describe block 'renderGateStatusIndicator' with tests for APPROVAL, auto, and SKIP statuses"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/009-TASK-approval-gate-rendering.md",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md"
+      ],
+      "completedAt": "2026-02-13T01:35:11.922Z",
+      "commitHash": "2220982849ab28454131fccfde643fe424d958d8",
+      "sessionId": "ses_3ab63f3d0ffeJfwsokrZ0NpBnE",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-019",
+      "taskRef": "011-TASK-pipeline-renderer-class",
+      "storyRef": "003-STORY-live-execution-progress",
+      "title": "PipelineRenderer class with types, state management, and phase bar rendering",
+      "description": "Create pipeline-renderer.ts with the PipelineRenderer class and supporting types. Implement the PhaseMetrics interface and PhaseState enum/type in types.ts. The class constructor accepts a phases array, headless flag, and isTTY flag. Implement startPhase(), completePhase(), stop() methods with timer lifecycle management (start timer on startPhase, stop on completePhase/stop, no leaks). Implement a private render() method that outputs the phase bar line (line 1 of the 2-line header) using phase symbols from MILESTONE.md (checkmark green for completed, bullet cyan for running, double-bar yellow for approval wait, tilde yellow for timed wait, x red for stopped/failed). Use BOX_WIDTH from display.ts. Include unit tests covering: instantiation with mock phases, startPhase marks phase active and starts timer, completePhase stores metrics and stops timer, stop() cleans up all timers (mock setTimeout/clearTimeout), and phase bar renders with correct symbols.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] PipelineRenderer class exists in tools/src/commands/ralph/pipeline-renderer.ts with constructor accepting phases array, headless boolean, and isTTY boolean",
+        "[Behavioral] PhaseMetrics interface added to types.ts with fields for elapsed time, cost, and files changed",
+        "[Behavioral] startPhase(name) marks the named phase as active and begins a timer; completePhase(metrics) marks phase done and stores PhaseMetrics",
+        "[Behavioral] stop() cleans up all active timers - verified by mocking setInterval/clearInterval and asserting cleanup",
+        "[Behavioral] Phase bar renders with correct symbols: checkmark (green) for completed, bullet (cyan) for running, dim text for pending phases",
+        "[Evidence] tools/tests/lib/pipeline-renderer.test.ts passes via bun test tools/tests/lib/pipeline-renderer.test.ts"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/types.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/011-TASK-pipeline-renderer-class.md",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md"
+      ],
+      "completedAt": "2026-02-13T01:46:58.173Z",
+      "commitHash": "5ec53bcb64524210d26417e64e1d85863eac41d7",
+      "sessionId": "ses_3ab5ca459ffe38RigCm6DN5bPX",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-020",
+      "taskRef": "011-TASK-pipeline-renderer-class",
+      "storyRef": "003-STORY-live-execution-progress",
+      "title": "Subtask progress bar, collapsible execution tree, and approval gate display",
+      "description": "Extend PipelineRenderer with updateSubtask(id, description, current, total) to track current subtask progress and setApprovalWait(gateName) to set approval gate symbol on current phase. Add the second header line rendering: current subtask ID, title, and progress bar (reusing renderProgressBar pattern from display.ts). Implement the collapsible execution tree below the header: completed phases show one-liner with metrics (triangle-right symbol, phase name, files, time, cost, checkmark), active phase expands (triangle-down symbol) to show individual subtask statuses (done/in-progress/pending). Add unit tests covering: updateSubtask tracks progress correctly, setApprovalWait sets double-bar symbol on current phase, progress bar line renders with subtask info, collapsible tree shows completed phases as one-liners and active phase expanded with subtask list.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] updateSubtask(id, description, current, total) updates tracked subtask progress and triggers re-render of progress bar line",
+        "[Behavioral] setApprovalWait(gateName) changes current phase symbol to double-bar (yellow) in the phase bar",
+        "[Behavioral] Second header line shows subtask ID, truncated title, and progress bar (e.g., 'SUB-015  Add login endpoint  3/12  [######..........] 25%')",
+        "[Behavioral] Collapsible tree renders completed phases as one-liners with metrics and active phase expanded with subtask list",
+        "[Evidence] bun test tools/tests/lib/pipeline-renderer.test.ts passes with tests covering updateSubtask, setApprovalWait, and tree rendering"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/pipeline-renderer.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/pipeline-renderer.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md"
+      ],
+      "completedAt": "2026-02-13T02:00:55.017Z",
+      "commitHash": "7b433389adac186ab2e3049a653e414cea9c0771",
+      "sessionId": "ses_3ab51d93bffextJTnHh5ffQekp",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-021",
+      "taskRef": "011-TASK-pipeline-renderer-class",
+      "storyRef": "003-STORY-live-execution-progress",
+      "title": "TTY-aware rendering modes: headless in-place, supervised reprint, and non-TTY degradation",
+      "description": "Implement the three rendering modes in PipelineRenderer's render() method based on headless and isTTY flags. Headless + TTY mode: use ANSI cursor control (cursor-home, clear-line, move-up-N-lines) for in-place updates so the header stays persistent at the top. Supervised mode: reprint the full header on each render() call since Claude TUI takes over between iterations. Non-TTY mode (piped/CI output): degrade gracefully to log-style phase headers without any cursor manipulation - print phase transitions as log lines instead of overwriting. Add unit tests covering: headless+TTY output contains ANSI cursor codes (escape-bracket-H, escape-bracket-2K), headless+non-TTY output does NOT contain cursor codes, supervised mode output reprints full header each time, and non-TTY mode produces log-style output with phase change markers.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] Headless + isTTY=true mode uses ANSI cursor control codes (escape-bracket-H for cursor home, escape-bracket-2K for clear line) for in-place header updates",
+        "[Behavioral] Supervised mode reprints the full header + tree on each render() call without cursor manipulation",
+        "[Behavioral] Non-TTY mode (isTTY=false) outputs log-style phase headers without any ANSI cursor codes",
+        "[Regression] Existing display.ts exports and renderCascadeProgress function remain unchanged and tests still pass",
+        "[Evidence] bun test tools/tests/lib/pipeline-renderer.test.ts passes with tests for all three rendering modes (headless-TTY, supervised, non-TTY)"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/pipeline-renderer.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/pipeline-renderer.test.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md"
+      ],
+      "completedAt": "2026-02-13T02:11:51.672Z",
+      "commitHash": "6afcebb2181901d4afbf99ebe6fea47a0048d088",
+      "sessionId": "ses_3ab451681ffeeD9vmZp5SqA717",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-022",
+      "taskRef": "012-TASK-wire-renderer-into-build-cascade",
+      "storyRef": "003-STORY-live-execution-progress",
+      "title": "Wire PipelineRenderer into runBuild() with lifecycle calls and cleanup",
+      "description": "Import PipelineRenderer into build.ts and integrate it into the runBuild() function. Instantiate the renderer after loading subtasks with a single 'build' phase. Detect TTY via process.stdin.isTTY and process.stdout.isTTY. Call renderer.startPhase('build') before the iteration loop. Inside the loop, after picking the next subtask, call renderer.updateSubtask() with the subtask id, title, current index, and total count. On loop completion (all subtasks done), call renderer.completePhase() with metrics extracted from the build summary data (files changed, duration, cost). Wrap the main loop body in a try/finally to ensure renderer.stop() is called on error, early exit, or SIGINT/SIGTERM. Ensure the renderer coexists with existing renderIterationStart/renderIterationEnd output without duplicating progress indicators.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] PipelineRenderer is instantiated in runBuild() with phases=['build'], headless flag matching mode, and isTTY flag from process.stdin/stdout",
+        "[Behavioral] renderer.updateSubtask() is called with current subtask id, title, completed count, and total count before each iteration's provider invocation",
+        "[Behavioral] renderer.startPhase('build') is called before the iteration loop begins",
+        "[Behavioral] renderer.completePhase() is called with metrics (filesCreated, timeElapsed, cost) when the build loop completes all subtasks",
+        "[Behavioral] renderer.stop() is called in a finally block wrapping the main iteration loop to prevent timer leaks on error or early exit",
+        "[Regression] Existing E2E tests in tools/tests/e2e/ralph.test.ts continue to pass without modification",
+        "[Evidence] bun test tools/tests/e2e/ralph.test.ts passes; TypeScript compiles via bun run typecheck in tools/"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/types.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/011-TASK-pipeline-renderer-class.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/012-TASK-wire-renderer-into-build-cascade.md"
+      ],
+      "completedAt": "2026-02-13T02:23:22.704Z",
+      "commitHash": "2af769e13a08184a2c9031317eabdb1e01b121f9",
+      "sessionId": "ses_3ab3b1233ffeH53OzCB9nVrU21",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-023",
+      "taskRef": "012-TASK-wire-renderer-into-build-cascade",
+      "storyRef": "003-STORY-live-execution-progress",
+      "title": "Wire PipelineRenderer into runCascadeFrom() with phase transitions and approval gates",
+      "description": "Import PipelineRenderer into cascade.ts and integrate it into the runCascadeFrom() function. Instantiate the renderer before the level execution loop with the full set of cascade phases derived from levelsToExecute. At the start of each cascade level, call renderer.startPhase(currentLevel). When an approval gate triggers a 'notify-wait' or 'prompt' action, call renderer.setApprovalWait(gateName). After each level completes successfully via runLevel(), call renderer.completePhase() with level-specific metrics. Wrap the cascade loop in a try/finally to ensure renderer.stop() is called on cascade error, user abort, or exit-unstaged outcomes. Ensure the renderer works alongside existing renderCascadeProgress() and renderPhaseCard() output in cascade.ts.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] PipelineRenderer is instantiated in runCascadeFrom() with phases matching levelsToExecute array, headless flag from options, and isTTY from process.stdin",
+        "[Behavioral] renderer.startPhase(currentLevel) is called at the beginning of each cascade level before runLevel() dispatches",
+        "[Behavioral] renderer.setApprovalWait() is called when checkApprovalGate returns a 'notify-wait' or 'prompt' action indicating an approval wait state",
+        "[Behavioral] renderer.completePhase() is called after each level completes successfully with available metrics",
+        "[Behavioral] renderer.stop() is called in a finally block wrapping the cascade level loop to prevent timer leaks on abort, error, or exit-unstaged",
+        "[Regression] Existing tests in tools/tests/e2e/cascade.test.ts and tools/tests/lib/cascade.test.ts continue to pass without modification",
+        "[Evidence] bun test tools/tests/e2e/cascade.test.ts and bun test tools/tests/lib/cascade.test.ts pass; TypeScript compiles via bun run typecheck in tools/"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/display.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/011-TASK-pipeline-renderer-class.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/012-TASK-wire-renderer-into-build-cascade.md"
+      ],
+      "completedAt": "2026-02-13T02:34:12.031Z",
+      "commitHash": "3ff10631cd44e0f3db63e52264e3409a64425ace",
+      "sessionId": "ses_3ab3087ddffeQ0GvP0NRvmbnDO",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-025",
+      "taskRef": "013-TASK-add-types-for-renderer",
+      "storyRef": "003-STORY-live-execution-progress",
+      "title": "Add PipelineRenderer type definitions to types.ts",
+      "description": "Add PhaseStatus, PhaseMetrics, PhaseState, PipelineRendererOptions, and SubtaskProgress type definitions to tools/src/commands/ralph/types.ts. PhaseStatus is a union of 5 string literals (pending, active, completed, waiting, failed). PhaseMetrics has optional numeric fields for timeElapsedMs, costUsd, filesChanged, linesAdded, linesRemoved. PhaseState tracks per-phase runtime state with name, status, optional startTimeMs, and optional metrics. PipelineRendererOptions provides constructor args: phases (string array), headless (boolean), isTTY (boolean). SubtaskProgress tracks progress bar state with id, description, current, and total. All types get JSDoc comments following existing patterns and are exported from the module.",
+      "done": true,
+      "acceptanceCriteria": [
+        "PhaseStatus type is defined as 'pending' | 'active' | 'completed' | 'waiting' | 'failed' in tools/src/commands/ralph/types.ts",
+        "PhaseMetrics interface is defined with optional fields: timeElapsedMs (number), costUsd (number), filesChanged (number), linesAdded (number), linesRemoved (number)",
+        "PhaseState interface is defined with fields: name (string), status (PhaseStatus), startTimeMs? (number), metrics? (PhaseMetrics)",
+        "PipelineRendererOptions interface is defined with fields: phases (string[]), headless (boolean), isTTY (boolean)",
+        "SubtaskProgress interface is defined with fields: id (string), description (string), current (number), total (number)",
+        "All five types are exported in the export block at the bottom of types.ts",
+        "JSDoc comments are present on each new type following existing file conventions",
+        "[Evidence] bun run typecheck in tools/ exits 0 with no errors"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/013-TASK-add-types-for-renderer.md",
+        "docs/planning/milestones/007-pipeline-preview/stories/003-STORY-live-execution-progress.md"
+      ],
+      "completedAt": "2026-02-13T02:44:04.240Z",
+      "commitHash": "31ba5a62616c014d1c7390994a2029ba0955bfd3",
+      "sessionId": "ses_3ab269f32ffemLdSEpwpI8oZ3B",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-028",
+      "taskRef": "014-TASK-e2e-tests-pipeline-renderer",
+      "storyRef": "003-STORY-live-execution-progress",
+      "title": "E2E tests for build command pipeline header (headless + non-TTY)",
+      "description": "Add E2E tests to tools/tests/e2e/ralph.test.ts verifying PipelineRenderer output during `ralph build`. Two test cases: (1) headless mode shows pipeline header with phase symbols and progress bar, verifying header reprints multiple times during execution; (2) non-TTY/piped mode degrades gracefully, containing phase names but no ANSI cursor control codes. Use minimal subtask fixtures (1-2 items) with mock Claude provider for speed. Add afterEach cleanup to kill hanging processes (timer leak safety). Use `{ reject: false }` pattern from existing tests. For non-TTY test, pipe through `cat` or set `TERM=dumb` to disable TTY detection. Verify stdout contains expected symbols (checkmark, dot) and progress bar format (e.g. `[###...]`) in headless mode, and verify stdout does NOT contain ANSI cursor codes (`\\x1b[H`, `\\x1b[2K`, `\\x1b[<N>A`) in non-TTY mode.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] E2E test 'build shows live progress header in headless mode' passes: stdout contains pipeline phase symbols and progress bar pattern",
+        "[Behavioral] E2E test verifies header reprints multiple times during build execution (stdout contains >1 occurrence of header pattern)",
+        "[Behavioral] E2E test 'build degrades gracefully when piped (non-TTY)' passes: stdout contains phase names but NOT ANSI cursor codes (\\x1b[H, \\x1b[2K)",
+        "[Regression] Existing ralph E2E tests continue to pass after adding new test cases",
+        "[Evidence] `bun test tools/tests/e2e/ralph.test.ts` passes with new tests completing in <60s and leaving no hanging processes"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/ralph.test.ts",
+        "tools/src/commands/ralph/build.ts",
+        "tools/src/commands/ralph/pipeline-renderer.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/014-TASK-e2e-tests-pipeline-renderer.md",
+        "context/foundations/test/test-e2e-cli-bun.md"
+      ],
+      "completedAt": "2026-02-13T03:00:01.788Z",
+      "commitHash": "679ca5d87731135584d2e7fa140a40a30f21fbc2",
+      "sessionId": "ses_3ab1d946fffe5oRn36eCCztbfM",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-029",
+      "taskRef": "014-TASK-e2e-tests-pipeline-renderer",
+      "storyRef": "003-STORY-live-execution-progress",
+      "title": "E2E tests for cascade command multi-phase pipeline header",
+      "description": "Add E2E tests to tools/tests/e2e/cascade.test.ts verifying PipelineRenderer output during cascade execution. Run `aaa ralph plan stories --cascade build --headless --dry-run` (dry-run for speed, lower timeout of 10s) and verify: (1) header shows multiple phases with transition arrows (e.g. `[stories] -> [tasks] -> [subtasks] -> [build]`); (2) completed phases show checkmark symbol (e.g. `[stories] checkmark`). Use minimal fixture setup with mock Claude provider. Add afterEach cleanup to kill hanging processes. Use `{ reject: false }` pattern. Verify the multi-phase progression is visible in stdout. Since cascade.test.ts currently only tests validation functions (not CLI commands), this adds the first CLI-level E2E test to that file, following the execa patterns from ralph.test.ts.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] E2E test 'cascade shows phase transitions in header' passes: stdout contains multiple phase names with transition indicators",
+        "[Behavioral] E2E test verifies completed phases show checkmark symbol in cascade output",
+        "[Behavioral] Tests complete within 10s timeout (dry-run mode, no AI invocation)",
+        "[Regression] Existing cascade E2E validation tests continue to pass after adding new CLI test cases",
+        "[Evidence] `bun test tools/tests/e2e/cascade.test.ts` passes with new tests and leaves no hanging processes"
+      ],
+      "filesToRead": [
+        "tools/tests/e2e/cascade.test.ts",
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/pipeline-renderer.ts",
+        "tools/src/commands/ralph/index.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/014-TASK-e2e-tests-pipeline-renderer.md",
+        "context/foundations/test/test-e2e-cli-bun.md"
+      ],
+      "completedAt": "2026-02-13T03:10:12.116Z",
+      "commitHash": "1aa85a2c6d243195f753739caf9a151f20272d99",
+      "sessionId": "ses_3ab0ef503ffeMWdhEqk3DTPdNs",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-031",
+      "taskRef": "016-TASK-approval-gate-preview-rendering",
+      "storyRef": "004-STORY-approval-gate-visibility",
+      "title": "Integrate approval gate resolution into ExecutionPlan computation",
+      "description": "Extend the ExecutionPlan type in types.ts to include a per-level approvalGate field ({ gate: ApprovalGate, action: ApprovalAction }). Modify computeExecutionPlan() in plan-preview.ts to call evaluateApproval() for each cascade level that has a gate (using levelToGate() from cascade.ts). Build the ApprovalContext from the command options (forceFlag, isTTY, reviewFlag). Store the resolved { gate, action } in each level's execution plan entry. Add unit tests covering --force (all gates resolve to SKIP/write), --review (gates resolve to PROMPT or EXIT-UNSTAGED depending on TTY), and suggest mode (WRITE or NOTIFY-WAIT depending on TTY).",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] computeExecutionPlan() returns approvalGate field for levels that have gates (stories, tasks, subtasks, roadmap) and omits it for levels without gates (build, calibrate)",
+        "[Behavioral] With --force flag, all gate actions resolve to 'write' (SKIP in preview terminology)",
+        "[Behavioral] With --review flag in supervised mode, all gate actions resolve to 'prompt'; in headless mode they resolve to 'exit-unstaged'",
+        "[Behavioral] With suggest mode (default) in headless mode, gate actions resolve to 'notify-wait'",
+        "[Regression] Existing computeExecutionPlan() output structure remains intact for consumers that don't read approvalGate",
+        "[Evidence] tests/lib/plan-preview.test.ts (or equivalent) passes via bun test tests/lib/plan-preview"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/types.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/plan-preview.ts",
+        "tools/tests/lib/approvals.test.ts"
+      ],
+      "completedAt": "2026-02-13T03:17:54.491Z",
+      "commitHash": "4349ce96019151baea6b226968368875c67c1e15",
+      "sessionId": "ses_3ab05a900ffetekpPKl3ikpcBe",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-032",
+      "taskRef": "016-TASK-approval-gate-preview-rendering",
+      "storyRef": "004-STORY-approval-gate-visibility",
+      "title": "Render approval gate status in dry-run pipeline preview",
+      "description": "Add renderApprovalGatePreview() to display.ts that takes a gate name and resolved action, and returns a styled string (e.g., 'GATE createTasks -> SKIP (--force)') using the color scheme: SKIP (dim green), PROMPT (yellow), NOTIFY-WAIT (cyan), EXIT-UNSTAGED (yellow with warning symbol). Add flag annotations: --force shows [force] marker on SKIP actions, --review shows [review] marker on PROMPT actions. Integrate renderApprovalGatePreview() into renderPipelineTree() at the end of each level's expanded detail, so the dry-run preview shows gate status inline for each cascade level. Add unit tests for the rendering function and an E2E test that --dry-run output includes gate status lines.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] renderApprovalGatePreview('createTasks', 'write', { force: true }) returns a string containing 'SKIP' and '[force]' with dim green coloring",
+        "[Behavioral] renderApprovalGatePreview('createStories', 'prompt', { review: true }) returns a string containing 'PROMPT' and '[review]' with yellow coloring",
+        "[Behavioral] renderApprovalGatePreview('createSubtasks', 'notify-wait', {}) returns a string containing 'NOTIFY-WAIT' with cyan coloring",
+        "[Behavioral] renderApprovalGatePreview('createRoadmap', 'exit-unstaged', {}) returns a string containing 'EXIT-UNSTAGED' with yellow coloring and warning symbol",
+        "[Behavioral] Dry-run preview output includes gate status line for each level that has an approval gate",
+        "[Evidence] tests/lib/display.test.ts includes tests for renderApprovalGatePreview and passes via bun test tests/lib/display"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/plan-preview.ts",
+        "tools/tests/lib/display.test.ts",
+        "tools/src/commands/ralph/types.ts"
+      ],
+      "completedAt": "2026-02-13T03:30:13.909Z",
+      "commitHash": "1bf659573f27d6e0fbb277ec6a150764b13c2415",
+      "sessionId": "ses_3aafe9b91ffec42c7ni1hZP0me",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-034",
+      "taskRef": "017-TASK-live-approval-gate-card",
+      "storyRef": "004-STORY-approval-gate-visibility",
+      "title": "Add renderApprovalGateCard() rendering function with unit tests",
+      "description": "Create a new renderApprovalGateCard() function in tools/src/commands/ralph/display.ts that renders a styled boxen card for approval gates during execution. The function accepts a data object with: gateName (string), summaryLines (string array of artifact paths), configMode (string), executionMode ('supervised' | 'headless'), resolvedAction (string), and actionOptions (array of {key, label, color} objects). It returns a formatted boxen string using borderStyle 'round', BOX_WIDTH, and padding 1. Card layout has four sections separated by chalk.dim horizontal rules: (1) header with formatted gate name via formatGateName(), (2) summary listing generated artifacts with truncation at 5 items + '... and N more', (3) context line showing Config/Mode/Action, (4) action options with colored keyboard shortcuts ([Y] green, [n] red, [e] yellow). Define an ApprovalGateCardData interface for the input. Export both the interface and function. Add unit tests in tools/tests/lib/display.test.ts covering: card with createStories gate returns valid boxen string, card content includes all four sections, summary truncation at >10 files, card width does not exceed BOX_WIDTH, and various gate name formatting.",
+      "done": true,
+      "acceptanceCriteria": [
+        "ApprovalGateCardData interface is defined in display.ts with fields: gateName (ApprovalGate), summaryLines (string[]), configMode (string), executionMode (string), resolvedAction (string), actionOptions ({key: string, label: string, color: 'green' | 'red' | 'yellow'}[])",
+        "renderApprovalGateCard() function exists in display.ts, accepts ApprovalGateCardData, returns string",
+        "Card output contains gate name formatted via formatGateName() (e.g. 'Create Stories' not 'createStories')",
+        "Card output contains summary section with artifact paths, truncated to first 5 items with '... and N more' when list exceeds 10",
+        "Card output contains context line with config mode, execution mode, and resolved action",
+        "Card output contains action options with [Y], [n], [e] labels",
+        "Card uses boxen with borderStyle 'round', width BOX_WIDTH, padding 1",
+        "renderApprovalGateCard and ApprovalGateCardData are exported from display.ts",
+        "[Behavioral] Unit test: renderApprovalGateCard with createStories gate returns non-empty string containing 'Create Stories'",
+        "[Behavioral] Unit test: card with >10 summary lines truncates and shows '... and N more'",
+        "[Evidence] bun test tools/tests/lib/display.test.ts passes with all new tests green"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/017-TASK-live-approval-gate-card.md"
+      ],
+      "completedAt": "2026-02-13T03:44:04.420Z",
+      "commitHash": "163d668de42e6c6acf55cd125b52332393e8362e",
+      "sessionId": "ses_3aaf35187ffeFMp4HaaDttYOFu",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-035",
+      "taskRef": "017-TASK-live-approval-gate-card",
+      "storyRef": "004-STORY-approval-gate-visibility",
+      "title": "Integrate approval gate card into live cascade execution flow",
+      "description": "Wire renderApprovalGateCard() into the live approval flow so it displays before prompting the user. In approvals.ts, update promptApproval() to accept an optional ApprovalGateCardData parameter and render the card (via renderApprovalGateCard from display.ts) before showing the 'Approve? [Y/n]' prompt. In cascade.ts, update checkApprovalGate() to build the card data from available context: use levelToGate() for gate name, build summaryLines from the level name (e.g. 'Generated artifacts for stories level'), set configMode from the approval config, executionMode from context.isTTY, resolvedAction from evaluateApproval(), and provide default actionOptions ([Y] Approve and continue, [n] Abort cascade, [e] Edit files first). Pass this card data to promptApproval() in the 'prompt' case and to handleNotifyWait() for logging in the 'notify-wait' case. For headless modes (notify-wait, exit-unstaged, write), log the card output via console.log so it appears in CI logs even when auto-proceeding. Add tests in tools/tests/lib/cascade.test.ts verifying checkApprovalGate passes card data through, and in tools/tests/lib/approvals.test.ts verifying promptApproval renders the card when provided.",
+      "done": true,
+      "acceptanceCriteria": [
+        "promptApproval() in approvals.ts accepts an optional ApprovalGateCardData parameter and calls renderApprovalGateCard() before the readline prompt when provided",
+        "checkApprovalGate() in cascade.ts builds ApprovalGateCardData with gate name, config mode, execution mode, resolved action, and default action options",
+        "Card is displayed before the interactive prompt in 'prompt' action case",
+        "Card is logged via console.log in headless cases (notify-wait, exit-unstaged, write) so it appears in CI logs",
+        "Existing approval flow (promptApproval return value, evaluateApproval logic) is not broken -- all existing approvals.test.ts and cascade.test.ts tests still pass",
+        "[Behavioral] Test: checkApprovalGate with 'always' config + TTY context calls promptApproval with card data containing gate name",
+        "[Behavioral] Test: promptApproval with card data logs the rendered card before prompting",
+        "[Regression] All existing tests in tools/tests/lib/approvals.test.ts and tools/tests/lib/cascade.test.ts continue to pass",
+        "[Evidence] bun test tools/tests/lib/approvals.test.ts tools/tests/lib/cascade.test.ts passes with all tests green"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/cascade.test.ts",
+        "tools/tests/lib/approvals.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/017-TASK-live-approval-gate-card.md"
+      ],
+      "completedAt": "2026-02-13T03:57:17.991Z",
+      "commitHash": "3e2a35c4ab0767eb14cdbd2f39f42de44449ad46",
+      "sessionId": "ses_3aae6a673ffeVJy4ws56mrR8Sz",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-037",
+      "taskRef": "018-TASK-pipeline-header-gate-symbols",
+      "storyRef": "004-STORY-approval-gate-visibility",
+      "title": "Add waiting phase state and gate symbol rendering to cascade progress display",
+      "description": "Extend `renderCascadeProgress()` in `display.ts` to support a `\"waiting\"` phase state that renders the `‖` (U+2016) symbol in yellow, distinguishing approval-waiting phases from running (`◉` cyan), completed (`✓` green), and pending (dim). Add a new `renderCascadeProgressWithStates()` function (or extend the existing one) that accepts a phase-state map so callers can mark specific levels as waiting. Export the phase state type and symbol constants for reuse by the future `PipelineRenderer` class. Add unit tests covering all symbol/color combinations including the new waiting state.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] Unit test confirms renderCascadeProgress (or new variant) renders `‖` symbol for levels in waiting state with yellow chalk color",
+        "[Behavioral] Unit test confirms all six symbol states are rendered correctly: ✓ green (completed), ● or ◉ cyan (running), ‖ yellow (waiting), ~ yellow (timed-wait), ✗ red (failed/stopped), ○ dim (pending)",
+        "[Behavioral] Unit test confirms waiting state is visually distinct from running and pending states (different symbol and color)",
+        "[Regression] Existing renderCascadeProgress tests continue to pass unchanged",
+        "[Evidence] Tests in tools/tests/lib/display.test.ts pass via `bun test tools/tests/lib/display.test.ts`"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/lib/display.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/018-TASK-pipeline-header-gate-symbols.md"
+      ],
+      "completedAt": "2026-02-13T04:08:30.278Z",
+      "commitHash": "9cdfa17cb8ce28983a35c00f9a61c5690a41fbf9",
+      "sessionId": "ses_3aada8a54ffeZnmfjugVP6IwWY",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-038",
+      "taskRef": "018-TASK-pipeline-header-gate-symbols",
+      "storyRef": "004-STORY-approval-gate-visibility",
+      "title": "Wire waiting symbol into cascade approval gate flow",
+      "description": "Integrate the waiting phase symbol into `checkApprovalGate()` and `runCascadeFrom()` in `cascade.ts`. When a cascade level reaches an approval gate that results in `prompt` or `notify-wait` action, update the cascade progress display to show that level's symbol as `‖` (waiting) before the approval interaction, then transition back to `◉` (running) or `✓` (completed) after approval is granted. For `exit-unstaged` action, show `‖` before the exit instructions. Update the cascade loop to pass phase state information to the progress renderer. Add E2E tests that verify the waiting symbol appears in cascade output when approval gates are active.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] E2E test confirms cascade output contains `‖` symbol when a level has an active approval gate in prompt mode",
+        "[Behavioral] E2E test confirms the waiting symbol transitions to running/completed symbol after approval is granted",
+        "[Behavioral] cascade.ts calls the waiting-state renderer before promptApproval() and handleNotifyWait() calls",
+        "[Regression] Existing cascade E2E tests in tools/tests/e2e/cascade.test.ts continue to pass",
+        "[Evidence] Tests pass via `bun test tools/tests/e2e/cascade.test.ts`"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/cascade.ts",
+        "tools/src/commands/ralph/approvals.ts",
+        "tools/src/commands/ralph/display.ts",
+        "tools/tests/e2e/cascade.test.ts",
+        "tools/tests/lib/cascade.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/018-TASK-pipeline-header-gate-symbols.md"
+      ],
+      "completedAt": "2026-02-13T04:19:26.721Z",
+      "commitHash": "bac070058d5abcb22ff777c65fed0574044595c4",
+      "sessionId": "ses_3aad048fcffe31WzGskyruVLL2",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-040",
+      "taskRef": "021-TASK-cli-help-text",
+      "storyRef": "005-STORY-docs-and-completions",
+      "title": "Update --dry-run help text to consistent description across all 8 pipeline commands",
+      "description": "Update the `.option('--dry-run', ...)` help text string on all 8 Ralph pipeline commands in `tools/src/commands/ralph/index.ts` to use a consistent, clear description: \"Preview execution plan without running (exits after showing pipeline diagram)\". The 8 commands are: `ralph build`, `ralph plan roadmap`, `ralph plan stories`, `ralph plan tasks`, `ralph plan subtasks`, `ralph calibrate all`, `ralph calibrate intention`, `ralph calibrate technical`. The `--dry-run` flag is expected to be added by task 002-TASK-cli-dry-run-flag (Story 001); this subtask refines its help text for discoverability. Also add an E2E test assertion that verifies the help text appears in `--help` output for at least `ralph build`, one `plan` subcommand, and one `calibrate` subcommand.",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] `bun run dev ralph build --help` output contains '--dry-run' and the word 'Preview' or 'preview' in the flag description",
+        "[Behavioral] `bun run dev ralph plan stories --help` output contains '--dry-run' with the same description as ralph build",
+        "[Behavioral] `bun run dev ralph calibrate all --help` output contains '--dry-run' with the same description as ralph build",
+        "[Content] All 8 --dry-run .option() calls in index.ts use identical help text string (grep confirms exactly 8 occurrences of the chosen description)",
+        "[Content] Help text description mentions both 'preview' and 'without' to convey safety/non-execution semantics",
+        "[Evidence] E2E test in tools/tests/e2e/ralph.test.ts verifies --dry-run appears in --help output for ralph build, passes via `bun test tools/tests/e2e/ralph.test.ts`"
+      ],
+      "filesToRead": [
+        "tools/src/commands/ralph/index.ts",
+        "tools/tests/e2e/ralph.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/021-TASK-cli-help-text.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/002-TASK-cli-dry-run-flag.md"
+      ],
+      "completedAt": "2026-02-13T04:27:48.526Z",
+      "commitHash": "06ad81498630bac5c1a3dd7756d6106ea6c68cc2",
+      "sessionId": "ses_3aac64506ffe1QHIDOZpFYE4Q5",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-043",
+      "taskRef": "022-TASK-shell-completions",
+      "storyRef": "005-STORY-docs-and-completions",
+      "title": "Add --dry-run completion to zsh and fish for 8 ralph commands",
+      "description": "Add --dry-run flag completion entries to both zsh.ts and fish.ts for the 8 ralph commands that support dry-run: ralph build, ralph plan stories, ralph plan tasks, ralph plan subtasks, ralph plan roadmap, and ralph calibrate (covering all/intention/technical subcommands). Follow existing patterns: zsh uses '--dry-run[Preview execution plan without running]' in _arguments blocks; fish uses 'complete -c aaa -n <condition> -l dry-run -d \"Preview execution plan without running\"'. The flag is a simple boolean (no argument required). For ralph calibrate, add to the existing calibrate section since all subcommands support it. Verify by generating completion scripts and confirming --dry-run appears exactly 8 times in each (6 distinct command sections, with calibrate covering 3 subcommands via the parent section).",
+      "done": true,
+      "acceptanceCriteria": [
+        "[Behavioral] Generated zsh completion (`bun --cwd tools run dev completion zsh`) contains '--dry-run' for ralph build, ralph plan stories, ralph plan tasks, ralph plan subtasks, ralph plan roadmap, and ralph calibrate sections",
+        "[Behavioral] Generated fish completion (`bun --cwd tools run dev completion fish`) contains '-l dry-run' for ralph build, ralph plan stories, ralph plan tasks, ralph plan subtasks, ralph plan roadmap, and ralph calibrate sections",
+        "[Behavioral] Description text is 'Preview execution plan without running' in both shells, consistent across all command sections",
+        "[Regression] Existing --dry-run completions for notify, ralph subtasks append/prepend, and ralph refresh-models remain unchanged",
+        "[Evidence] bun test tools/tests/completion/ passes; new or updated test in tools/tests/completion/ verifies --dry-run appears in generated zsh and fish output for ralph build, plan, and calibrate commands"
+      ],
+      "filesToRead": [
+        "tools/src/commands/completion/zsh.ts",
+        "tools/src/commands/completion/fish.ts",
+        "tools/tests/completion/model-completion.test.ts",
+        "docs/planning/milestones/007-pipeline-preview/tasks/022-TASK-shell-completions.md"
+      ],
+      "completedAt": "2026-02-13T04:37:43.097Z",
+      "commitHash": "9ff2fc7cfec586673d7dacdee1a7d5577be3c550",
+      "sessionId": "ses_3aabe9a86ffeEmLxxw4gHPcUCA",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    },
+    {
+      "id": "SUB-046",
+      "taskRef": "023-TASK-readme-examples",
+      "storyRef": "005-STORY-docs-and-completions",
+      "title": "Add --dry-run visual preview examples to tools/README.md",
+      "description": "Update tools/README.md to document the --dry-run flag: add a 'Dry-Run Preview' subsection after the ralph commands section with an introductory paragraph explaining the flag's purpose (shows execution plan, exits without executing, works with all modes). Include one full cascade example (adapted from MILESTONE.md Example 1) showing command invocation + visual pipeline diagram output with header, expanded entry phase, collapsed downstream phases, annotation markers, summary footer, and the 'remove --dry-run to execute' message. Update the commands table descriptions for ralph build and ralph plan to mention --dry-run support. Preserve box-drawing characters and formatting in code blocks.",
+      "done": true,
+      "acceptanceCriteria": [
+        "README includes a 'Dry-Run Preview' or similar subsection in the ralph section (grep -q 'dry-run' tools/README.md returns match in a heading context)",
+        "At least one full example shows command invocation + visual pipeline diagram output (code block with box-drawing characters present)",
+        "Example demonstrates a cascade scenario with multiple phases visible (stories -> tasks -> subtasks -> build)",
+        "Introductory text explains when and why to use --dry-run (safety check before execution, exits without running)",
+        "Example output preserves visual formatting in fenced code blocks with proper indentation",
+        "Commands table mentions --dry-run availability for ralph build and/or ralph plan commands",
+        "Example includes the 'remove --dry-run' footer message (grep -q 'remove --dry-run' tools/README.md)",
+        "README renders correctly in markdown preview (no broken formatting, code blocks properly fenced)"
+      ],
+      "filesToRead": [
+        "tools/README.md",
+        "docs/planning/milestones/007-pipeline-preview/MILESTONE.md",
+        "docs/planning/milestones/007-pipeline-preview/tasks/023-TASK-readme-examples.md"
+      ],
+      "completedAt": "2026-02-13T04:43:50.963Z",
+      "commitHash": "e11927135ef272bf094e33619bff417275e8ec7e",
+      "sessionId": "ses_3aab58970ffe83BBt4MFxiBbkz",
+      "sessionRepoRoot": "/home/otrebu/dev/all-agents-worktrees/feature-ralph-dry-run-preview"
+    }
+  ]
+}

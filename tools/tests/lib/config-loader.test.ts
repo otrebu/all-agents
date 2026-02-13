@@ -115,6 +115,33 @@ describe("loadAaaConfig", () => {
     expect(loaded.ralph?.lightweightModel).toBe("claude-3-5-haiku-latest");
   });
 
+  test("defaults ralph.dryRun.format to pretty", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: { build: { maxIterations: 5 } },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    expect(loaded.ralph?.dryRun?.format).toBe("pretty");
+  });
+
+  test("merges user ralph.dryRun.format with defaults", () => {
+    const configPath = join(temporaryDirectory, CONFIG_FILENAME);
+    const customConfig: Partial<AaaConfig> = {
+      ralph: { dryRun: { format: "json" } },
+    };
+    writeFileSync(configPath, JSON.stringify(customConfig, null, 2));
+
+    const loaded = loadAaaConfig(configPath);
+
+    expect(loaded.ralph?.dryRun?.format).toBe("json");
+    expect(loaded.ralph?.build?.maxIterations).toBe(
+      DEFAULT_AAA_CONFIG.ralph?.build?.maxIterations,
+    );
+  });
+
   test("logs warning and returns defaults for invalid JSON", () => {
     const configPath = join(temporaryDirectory, CONFIG_FILENAME);
     writeFileSync(configPath, "{ invalid json }");

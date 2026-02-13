@@ -256,6 +256,25 @@ const buildConfigSchema = z.object({
 });
 
 /**
+ * Dry-run rendering format.
+ * - pretty: visual pipeline preview
+ * - json: machine-readable JSON plan
+ */
+type DryRunFormat = "json" | "pretty";
+
+const dryRunFormatSchema = z.enum(["json", "pretty"]);
+
+/**
+ * Dry-run behavior configuration.
+ */
+interface DryRunConfig {
+  /** Output format for --dry-run previews */
+  format?: DryRunFormat;
+}
+
+const dryRunConfigSchema = z.object({ format: dryRunFormatSchema.optional() });
+
+/**
  * Ralph section of the unified config
  */
 /** Valid provider values for Ralph config */
@@ -272,6 +291,8 @@ interface RalphSection {
   approvals?: ApprovalsConfig;
   /** Build configuration */
   build?: BuildConfig;
+  /** Dry-run preview behavior */
+  dryRun?: DryRunConfig;
   /** Hook configuration */
   hooks?: HooksConfig;
   /** Lightweight model for summary tasks */
@@ -298,6 +319,7 @@ const ralphProviderSchema = z.enum([
 const ralphSectionSchema = z.object({
   approvals: approvalsConfigSchema.optional(),
   build: buildConfigSchema.optional(),
+  dryRun: dryRunConfigSchema.optional(),
   hooks: hooksConfigSchema.optional(),
   lightweightModel: z.string().optional(),
   model: z.string().optional(),
@@ -418,6 +440,10 @@ export {
   approvalsConfigSchema,
   type BuildConfig,
   buildConfigSchema,
+  type DryRunConfig,
+  dryRunConfigSchema,
+  type DryRunFormat,
+  dryRunFormatSchema,
   type EventConfig,
   eventConfigSchema,
   type GithubResearchConfig,

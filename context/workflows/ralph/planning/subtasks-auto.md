@@ -166,6 +166,7 @@ Include files that:
 - Show patterns to follow
 - Contain types to import
 - Have tests to update or extend
+- Are listed in the parent task's `Related Documentation` section (context atomic docs like `@context/blocks/construct/*.md` provide library patterns and conventions the builder agent needs)
 
 Use paths relative to project root:
 - `src/services/auth.ts`

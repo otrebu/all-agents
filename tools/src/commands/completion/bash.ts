@@ -126,6 +126,11 @@ _aaa_completions() {
             COMPREPLY=($(compgen -d -- "$cur"))
             return
             ;;
+        --worktree)
+            # Directory completion
+            COMPREPLY=($(compgen -d -- "$cur"))
+            return
+            ;;
         -l|--limit|-s|--skip|--max-results|--max-chars|--max-iterations)
             # Numeric values - no completion
             return
@@ -195,7 +200,11 @@ _aaa_completions() {
                 COMPREPLY=($(compgen -W "--objective --queries --processor --max-results --max-chars -v --verbose" -- "$cur"))
                 return
                 ;;
-            setup|uninstall)
+            setup)
+                COMPREPLY=($(compgen -W "--user --project --worktree" -- "$cur"))
+                return
+                ;;
+            uninstall)
                 COMPREPLY=($(compgen -W "--user --project" -- "$cur"))
                 return
                 ;;

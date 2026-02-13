@@ -119,6 +119,10 @@ program.addCommand(
     .description("Setup all-agents for user or project")
     .option("--user", "Setup CLI globally (build, symlink, env vars)")
     .option(
+      "--worktree [path]",
+      "With --user: switch aaa symlink to an all-agents worktree (default: current git worktree)",
+    )
+    .option(
       "--project",
       "Setup current project (symlink context/, create docs/)",
     )
