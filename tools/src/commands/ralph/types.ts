@@ -162,8 +162,8 @@ interface CascadeResult {
 interface CollapsedPhaseSummary {
   /** One-line phase description */
   description: string;
-  /** Optional gate indicator tag for collapsed one-line display */
-  gateIndicator?: string;
+  /** Optional gate status indicator for collapsed one-line display */
+  gateStatus?: "APPROVAL" | "auto" | "SKIP";
   /** Estimated duration text (for example: "~5 min") */
   timeEstimate: string;
 }
@@ -211,7 +211,7 @@ type DailyLogEntryType =
  */
 interface ExpandedPhaseDetail {
   /** Optional approval gate detail shown for this phase */
-  gate?: string;
+  gate?: ApprovalGatePreview;
   /** Inputs consumed by this phase */
   reads: Array<string>;
   /** Process steps performed by this phase */

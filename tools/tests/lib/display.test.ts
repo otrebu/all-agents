@@ -30,6 +30,7 @@ import {
   renderCompactPreview,
   renderEventLine,
   renderExpandedPhase,
+  renderGateStatusIndicator,
   renderInvocationHeader,
   renderPhaseCard,
   renderPipelineFooter,
@@ -320,7 +321,7 @@ describe("display utilities", () => {
 
   describe("renderCollapsedPhase", () => {
     function createCollapsedNode(
-      gateIndicator?: string,
+      gateStatus?: "APPROVAL" | "auto" | "SKIP",
       name = "tasks",
     ): PipelinePhaseNode {
       return {
@@ -329,7 +330,7 @@ describe("display utilities", () => {
         name,
         summary: {
           description: "Break stories into task files",
-          gateIndicator,
+          gateStatus,
           timeEstimate: "~5 min",
         },
       };
@@ -337,7 +338,7 @@ describe("display utilities", () => {
 
     test("renders non-last connector with gate indicator", () => {
       const output = renderCollapsedPhase(
-        createCollapsedNode("[APPROVAL]"),
+        createCollapsedNode("APPROVAL"),
         false,
       );
 
@@ -358,6 +359,29 @@ describe("display utilities", () => {
       expect(output).toContain("~5 min");
       expect(output).not.toContain("[APPROVAL]");
       expect(output.includes("\n")).toBe(false);
+    });
+  });
+
+  describe("renderGateStatusIndicator", () => {
+    test("returns [APPROVAL] indicator in yellow", () => {
+      const output = renderGateStatusIndicator("APPROVAL");
+
+      expect(output).toContain("[APPROVAL]");
+      expect(output).toContain(chalk.yellow("[APPROVAL]"));
+    });
+
+    test("returns auto indicator in green", () => {
+      const output = renderGateStatusIndicator("auto");
+
+      expect(output).toContain("auto");
+      expect(output).toContain(chalk.green("auto"));
+    });
+
+    test("returns [SKIP] indicator in yellow", () => {
+      const output = renderGateStatusIndicator("SKIP");
+
+      expect(output).toContain("[SKIP]");
+      expect(output).toContain(chalk.yellow("[SKIP]"));
     });
   });
 
@@ -414,8 +438,20 @@ describe("display utilities", () => {
   });
 
   describe("renderExpandedPhase", () => {
+    function createGate(
+      resolvedAction: ApprovalGatePreview["resolvedAction"],
+      reason?: string,
+    ): ApprovalGatePreview {
+      return {
+        configValue: "suggest",
+        gateName: "createStories",
+        reason,
+        resolvedAction,
+      };
+    }
+
     function createExpandedNode(overrides?: {
-      gate?: null | string;
+      gate?: ApprovalGatePreview;
       reads?: Array<string>;
       steps?: Array<PipelineStep>;
       writes?: Array<string>;
@@ -441,7 +477,7 @@ describe("display utilities", () => {
 
     test("renders expanded layout with READS, STEPS, WRITES, and GATE sections", () => {
       const output = renderExpandedPhase(
-        createExpandedNode({ gate: "createStories → SKIP (--force)" }),
+        createExpandedNode({ gate: createGate("skip", "--force") }),
       );
 
       expect(output[0]).toContain("▾");
@@ -454,17 +490,19 @@ describe("display utilities", () => {
       expect(output[5]).toContain("createStories → SKIP (--force)");
     });
 
-    test("omits GATE section when gate is undefined or null", () => {
+    test("omits GATE section when gate is undefined", () => {
       const withoutGate = renderExpandedPhase(createExpandedNode());
-      const nullGate = renderExpandedPhase(createExpandedNode({ gate: null }));
 
       expect(withoutGate.some((line) => line.includes("GATE"))).toBe(false);
-      expect(nullGate.some((line) => line.includes("GATE"))).toBe(false);
     });
 
     test("applies chalk styles and handles empty reads/writes arrays", () => {
       const output = renderExpandedPhase(
-        createExpandedNode({ gate: "none", reads: [], writes: [] }),
+        createExpandedNode({
+          gate: createGate("auto-proceed"),
+          reads: [],
+          writes: [],
+        }),
       );
 
       expect(output[0]).toContain(chalk.cyan("stories"));
@@ -472,7 +510,8 @@ describe("display utilities", () => {
       expect(output[2]).toContain(chalk.dim("STEPS"));
       expect(output[4]).toContain(chalk.dim("WRITES"));
       expect(output[5]).toContain(chalk.dim("GATE"));
-      expect(output[5]).toContain(chalk.yellow("none"));
+      expect(output[5]).toContain("createStories");
+      expect(output[5]).toContain(chalk.green("AUTO"));
     });
 
     test("renders mixed annotated and unannotated steps in Example 1 style", () => {
@@ -558,11 +597,23 @@ describe("display utilities", () => {
   });
 
   describe("renderPipelineTree", () => {
+    function createGate(
+      resolvedAction: ApprovalGatePreview["resolvedAction"],
+      reason?: string,
+    ): ApprovalGatePreview {
+      return {
+        configValue: "suggest",
+        gateName: "createStories",
+        reason,
+        resolvedAction,
+      };
+    }
+
     function createPhaseNode(options: {
       description: string;
       expanded: boolean;
-      gate?: string;
-      gateIndicator?: string;
+      gate?: ApprovalGatePreview;
+      gateStatus?: "APPROVAL" | "auto" | "SKIP";
       name: string;
       reads?: Array<string>;
       steps?: Array<string>;
@@ -580,7 +631,7 @@ describe("display utilities", () => {
         name: options.name,
         summary: {
           description: options.description,
-          gateIndicator: options.gateIndicator,
+          gateStatus: options.gateStatus,
           timeEstimate: options.timeEstimate,
         },
       };
@@ -620,7 +671,7 @@ describe("display utilities", () => {
         createPhaseNode({
           description: "Break stories into task files",
           expanded: false,
-          gateIndicator: "[APPROVAL]",
+          gateStatus: "APPROVAL",
           name: "tasks",
           timeEstimate: "~5 min",
         }),
@@ -639,7 +690,7 @@ describe("display utilities", () => {
         createPhaseNode({
           description: "Generate story files from MILESTONE.md",
           expanded: true,
-          gate: "createStories → SKIP (--force)",
+          gate: createGate("skip", "--force"),
           name: "stories",
           reads: ["milestones/M1/MILESTONE.md", "ROADMAP.md"],
           steps: ["1. Read milestone description", "2. Generate story files"],
@@ -649,21 +700,21 @@ describe("display utilities", () => {
         createPhaseNode({
           description: "Break stories into task files",
           expanded: false,
-          gateIndicator: "[APPROVAL]",
+          gateStatus: "APPROVAL",
           name: "tasks",
           timeEstimate: "~5 min",
         }),
         createPhaseNode({
           description: "Slice tasks into atomic subtask queue",
           expanded: false,
-          gateIndicator: "[APPROVAL]",
+          gateStatus: "APPROVAL",
           name: "subtasks",
           timeEstimate: "~8 min",
         }),
         createPhaseNode({
           description: "Execute subtask queue",
           expanded: false,
-          gateIndicator: "auto",
+          gateStatus: "auto",
           name: "build",
           timeEstimate: "~45 min",
         }),

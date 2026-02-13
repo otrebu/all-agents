@@ -1056,9 +1056,9 @@ function renderCollapsedPhase(
 ): string {
   const connector = isLast ? "└─" : "├─";
   const gatePart =
-    node.summary.gateIndicator === undefined
+    node.summary.gateStatus === undefined
       ? ""
-      : `  ${chalk.yellow(node.summary.gateIndicator)}`;
+      : `  ${renderGateStatusIndicator(node.summary.gateStatus)}`;
 
   return `${connector} ${chalk.cyan(node.name)}  ${chalk.dim(node.summary.description)}  ${chalk.dim(node.summary.timeEstimate)}${gatePart}`;
 }
@@ -1145,13 +1145,35 @@ function renderExpandedPhase(node: PipelinePhaseNode): Array<string> {
     ...renderSection("WRITES", node.expandedDetail.writes),
   ];
 
-  if (typeof node.expandedDetail.gate === "string") {
+  if (node.expandedDetail.gate !== undefined) {
     lines.push(
-      `${sectionPrefix}${chalk.dim("GATE".padEnd(sectionLabelWidth))} ${chalk.yellow(node.expandedDetail.gate)}`,
+      `${sectionPrefix}${chalk.dim("GATE".padEnd(sectionLabelWidth))} ${renderApprovalGatePreview(node.expandedDetail.gate)}`,
     );
   }
 
   return lines;
+}
+
+/**
+ * Render a short gate status tag for collapsed phase summaries.
+ */
+function renderGateStatusIndicator(
+  status: "APPROVAL" | "auto" | "SKIP",
+): string {
+  switch (status) {
+    case "APPROVAL": {
+      return chalk.yellow("[APPROVAL]");
+    }
+    case "auto": {
+      return chalk.green("auto");
+    }
+    case "SKIP": {
+      return chalk.yellow("[SKIP]");
+    }
+    default: {
+      return status;
+    }
+  }
 }
 
 /**
@@ -1793,6 +1815,7 @@ export {
   renderCompactPreview,
   renderEventLine,
   renderExpandedPhase,
+  renderGateStatusIndicator,
   renderInvocationHeader,
   renderIterationEnd,
   renderIterationStart,
