@@ -29,8 +29,8 @@ import {
   invokeClaudeChat,
   invokeClaudeHeadlessAsync,
 } from "./claude";
-import { invokeCursor } from "./cursor";
 import { invokeCodex, mapCodexInvocationError } from "./codex";
+import { invokeCursor } from "./cursor";
 import { invokeOpencode, mapOpencodeInvocationError } from "./opencode";
 import { PROVIDER_BINARIES } from "./types";
 

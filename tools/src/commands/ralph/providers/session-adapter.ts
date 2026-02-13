@@ -5,8 +5,8 @@ import {
   CLAUDE_SESSION_ADAPTER,
   type DiscoveredSession,
 } from "./session-claude";
-import { CURSOR_SESSION_ADAPTER } from "./session-cursor";
 import { CODEX_SESSION_ADAPTER } from "./session-codex";
+import { CURSOR_SESSION_ADAPTER } from "./session-cursor";
 import { OPENCODE_SESSION_ADAPTER } from "./session-opencode";
 
 interface ProviderSession {

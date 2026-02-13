@@ -730,7 +730,7 @@ describe("validateProviderInvocationPreflight", () => {
     Object.assign(Bun, { spawn: spawnMock });
 
     try {
-      await validateProviderInvocationPreflight("cursor", "headless");
+      await validateProviderInvocationPreflight("gemini", "headless");
       expect(true).toBe(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

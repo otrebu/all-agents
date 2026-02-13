@@ -1,8 +1,8 @@
 import type { ProviderType } from "./types";
 
 import { invokeClaudeHaiku } from "./claude";
-import { invokeCursorHeadless } from "./cursor";
 import { invokeCodexHeadless } from "./codex";
+import { invokeCursorHeadless } from "./cursor";
 import { invokeOpencodeHeadless } from "./opencode";
 
 interface ProviderSummaryOptions {
@@ -21,8 +21,8 @@ interface SummaryInvokers {
 
 const DEFAULT_LIGHTWEIGHT_MODELS: Partial<Record<ProviderType, string>> = {
   claude: "claude-3-5-haiku-latest",
-  cursor: "auto",
   codex: "openai/gpt-5.1-codex-mini",
+  cursor: "auto",
   opencode: "anthropic/claude-3-5-haiku-latest",
 };
 
@@ -47,6 +47,15 @@ async function invokeProviderSummary(
         });
         return normalizeSummaryResultText(result);
       }
+      case "codex": {
+        const result = await invokeCodex({
+          config: { model, provider: "codex", timeoutMs },
+          mode: "headless-async",
+          prompt,
+        });
+        const text = result.result.trim();
+        return text === "" ? null : text;
+      }
       case "cursor": {
         const result = await invokeCursor({
           config: {
@@ -59,15 +68,6 @@ async function invokeProviderSummary(
           prompt,
         });
         return normalizeSummaryResultText(result.result);
-      }
-      case "codex": {
-        const result = await invokeCodex({
-          config: { model, provider: "codex", timeoutMs },
-          mode: "headless-async",
-          prompt,
-        });
-        const text = result.result.trim();
-        return text === "" ? null : text;
       }
       case "opencode": {
         const result = await invokeOpencode({
