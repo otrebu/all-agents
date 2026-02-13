@@ -124,6 +124,93 @@ describe("PipelineRenderer", () => {
     expect(requireSpy(clearIntervalSpy)).toHaveBeenCalledTimes(1);
   });
 
+  test("updateSubtask tracks progress and triggers progress line render", () => {
+    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const internal = renderer as unknown as {
+      render: () => string;
+      subtaskState: {
+        current: number;
+        description: string;
+        id: string;
+        knownSubtasks: Array<{
+          description: string;
+          id: string;
+          position: number;
+        }>;
+        total: number;
+      } | null;
+    };
+
+    renderer.startPhase("build");
+    renderer.updateSubtask("SUB-015", "Add login endpoint", 3, 12);
+
+    const rendered = internal.render();
+
+    expect(internal.subtaskState).not.toBeNull();
+    expect(internal.subtaskState?.id).toBe("SUB-015");
+    expect(internal.subtaskState?.current).toBe(3);
+    expect(internal.subtaskState?.total).toBe(12);
+    expect(rendered).toContain("SUB-015");
+    expect(rendered).toContain("Add login endpoint");
+    expect(rendered).toContain("3/12");
+    expect(rendered).toContain("25%");
+    expect(rendered).toContain("[");
+    expect(rendered).toContain("]");
+  });
+
+  test("setApprovalWait applies double-bar symbol to active phase", () => {
+    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const internal = renderer as unknown as {
+      phases: Array<{ approvalGateName?: string; state: string }>;
+      render: () => string;
+    };
+
+    renderer.startPhase("tasks");
+    renderer.setApprovalWait("createTasks");
+
+    const rendered = internal.render();
+
+    expect(internal.phases[1]?.state).toBe("approval-wait");
+    expect(internal.phases[1]?.approvalGateName).toBe("createTasks");
+    expect(rendered).toContain("[tasks] ‖");
+    expect(rendered).toContain("Awaiting approval: createTasks");
+  });
+
+  test("collapsible tree shows completed phases one-line and active phase expanded", () => {
+    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const completedStories: PhaseMetrics = {
+      costUsd: 0.15,
+      elapsedMs: 192_000,
+      filesChanged: 5,
+    };
+    const completedTasks: PhaseMetrics = {
+      costUsd: 0.22,
+      elapsedMs: 344_000,
+      filesChanged: 12,
+    };
+
+    renderer.startPhase("stories");
+    renderer.completePhase(completedStories);
+    renderer.startPhase("tasks");
+    renderer.completePhase(completedTasks);
+    renderer.startPhase("build");
+    renderer.updateSubtask("SUB-013", "Add auth middleware", 1, 3);
+    renderer.updateSubtask("SUB-014", "Create JWT token service", 2, 3);
+
+    const rendered = (renderer as unknown as { render: () => string }).render();
+
+    expect(rendered).toContain("▸ stories");
+    expect(rendered).toContain("5 files");
+    expect(rendered).toContain("$0.15");
+    expect(rendered).toContain("▸ tasks");
+    expect(rendered).toContain("12 files");
+    expect(rendered).toContain("$0.22");
+    expect(rendered).toContain("▾ build");
+    expect(rendered).toContain("✓ SUB-013");
+    expect(rendered).toContain("● SUB-014");
+    expect(rendered).toContain("○ 1 pending");
+  });
+
   test("phase bar renders expected symbols for states", () => {
     const renderer = new PipelineRenderer(mockPhases, true, true);
     const internal = renderer as unknown as {
