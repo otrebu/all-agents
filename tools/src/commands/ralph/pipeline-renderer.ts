@@ -30,7 +30,11 @@ class PipelineRenderer {
 
   private readonly isTTY: boolean;
 
+  private lastNonTtyTransitionLine = "";
+
   private readonly phases: Array<PhaseRuntimeState>;
+
+  private previousRenderLineCount = 0;
 
   private subtaskState: null | SubtaskRuntimeState = null;
 
@@ -185,12 +189,33 @@ class PipelineRenderer {
         : [phaseBarLine, subtaskLine, "", ...treeLines];
     const output = lines.join("\n");
 
-    if (this.headless && this.isTTY) {
-      process.stdout.write(`\x1b[H\x1b[J${output}\n`);
+    if (!this.isTTY) {
+      const transitionLine = this.renderNonTtyTransitionLine();
+      if (transitionLine !== this.lastNonTtyTransitionLine) {
+        process.stdout.write(`${transitionLine}\n`);
+        this.lastNonTtyTransitionLine = transitionLine;
+      }
+      return output;
+    }
+
+    if (this.headless) {
+      const maxLineCount = Math.max(this.previousRenderLineCount, lines.length);
+      const moveUp =
+        this.previousRenderLineCount > 0
+          ? `\x1b[${this.previousRenderLineCount}A`
+          : "";
+      const clearLines = Array.from({ length: maxLineCount }, () => "\x1b[2K")
+        .join("\n")
+        .concat("\n");
+      const body = lines.map((line) => `\x1b[2K${line}`).join("\n");
+
+      process.stdout.write(`${moveUp}\x1b[H${clearLines}\x1b[H${body}\n`);
+      this.previousRenderLineCount = lines.length;
       return output;
     }
 
     process.stdout.write(`${output}\n`);
+    this.previousRenderLineCount = lines.length;
     return output;
   }
 
@@ -230,6 +255,22 @@ class PipelineRenderer {
 
       return `▾ ${phase.name}  running  ${chalk.cyan("●")}`;
     });
+  }
+
+  private renderNonTtyTransitionLine(): string {
+    if (this.activePhaseIndex === null) {
+      const completedCount = this.phases.filter(
+        (phase) => phase.state === "completed",
+      ).length;
+      return `[PIPELINE] phase=idle completed=${completedCount}/${this.phases.length}`;
+    }
+
+    const activePhase = this.phases[this.activePhaseIndex];
+    if (activePhase === undefined) {
+      return "[PIPELINE] phase=unknown";
+    }
+
+    return `[PIPELINE] phase=${activePhase.name} state=${activePhase.state}`;
   }
 
   private renderPhaseBarLine(): string {

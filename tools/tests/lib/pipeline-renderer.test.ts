@@ -239,4 +239,71 @@ describe("PipelineRenderer", () => {
     expect(line).toContain("subtasks");
     expect(line).toContain("[build] ✗");
   });
+
+  test("headless + TTY renders in-place with ANSI cursor controls", () => {
+    const renderer = new PipelineRenderer(mockPhases, true, true);
+
+    renderer.startPhase("stories");
+
+    const output = requireSpy(stdoutWriteSpy)
+      .mock.calls.map(([chunk]) => String(chunk))
+      .join("");
+
+    expect(output).toContain("\x1b[H");
+    expect(output).toContain("\x1b[2K");
+  });
+
+  test("headless + non-TTY does not emit cursor controls", () => {
+    const renderer = new PipelineRenderer(mockPhases, true, false);
+
+    renderer.startPhase("stories");
+
+    const output = requireSpy(stdoutWriteSpy)
+      .mock.calls.map(([chunk]) => String(chunk))
+      .join("");
+
+    expect(output).toContain("[PIPELINE]");
+    expect(output).not.toContain("\x1b[H");
+    expect(output).not.toContain("\x1b[2K");
+  });
+
+  test("supervised mode reprints full header on each render", () => {
+    const renderer = new PipelineRenderer(mockPhases, false, true);
+
+    renderer.startPhase("build");
+    renderer.updateSubtask("SUB-021", "TTY rendering modes", 1, 3);
+
+    const output = requireSpy(stdoutWriteSpy)
+      .mock.calls.map(([chunk]) => String(chunk))
+      .join("");
+
+    expect(output.match(/\[build\] ●/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(output).toContain("SUB-021");
+    expect(output).not.toContain("\x1b[H");
+    expect(output).not.toContain("\x1b[2K");
+  });
+
+  test("non-TTY mode logs phase transition markers", () => {
+    const renderer = new PipelineRenderer(mockPhases, false, false);
+    const metrics: PhaseMetrics = {
+      costUsd: 0.1,
+      elapsedMs: 10_000,
+      filesChanged: 2,
+    };
+
+    renderer.startPhase("tasks");
+    renderer.updateSubtask("SUB-001", "No-op for transition log", 1, 3);
+    renderer.setApprovalWait("createTasks");
+    renderer.completePhase(metrics);
+
+    const calls = requireSpy(stdoutWriteSpy).mock.calls.map(([chunk]) =>
+      String(chunk),
+    );
+    const output = calls.join("");
+
+    expect(calls).toHaveLength(3);
+    expect(output).toContain("[PIPELINE] phase=tasks state=running");
+    expect(output).toContain("[PIPELINE] phase=tasks state=approval-wait");
+    expect(output).toContain("[PIPELINE] phase=idle completed=1/4");
+  });
 });
