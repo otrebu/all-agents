@@ -25,6 +25,11 @@
 - **Changes:** Implemented `renderExpandedPhase(node)` in `display.ts` to return a multi-line string array with `▾` phase header, `│` continuation lines, aligned dim section labels (`READS`, `STEPS`, `WRITES`), and optional yellow `GATE` output when gate data exists (omitted for `undefined`/`null`). Added focused unit tests in `display.test.ts` for full four-section output, gate omission behavior, and empty reads/writes arrays with style assertions for cyan phase names, dim section labels, and yellow gate text.
 - **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-009
+- **Problem:** Pipeline preview output still lacked a tree orchestrator, so mixed expanded/collapsed phases could not render as one coherent connector-based tree.
+- **Changes:** Implemented `renderPipelineTree()` in `display.ts` to iterate `PipelinePhaseNode[]`, delegate node body rendering to `renderExpandedPhase()` or `renderCollapsedPhase()`, apply connector rules (`├─` for non-last, `└─` for last), and insert `│` continuation lines between sibling phases. Added unit tests in `display.test.ts` for single expanded-only, 2-phase mixed, and 4-phase mixed trees aligned to Milestone Example 1 structure.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001

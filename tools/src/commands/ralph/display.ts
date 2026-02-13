@@ -1175,6 +1175,40 @@ function renderPhaseCard(data: PhaseCardData): string {
   });
 }
 
+/**
+ * Render the full pipeline tree for mixed expanded/collapsed phases.
+ */
+function renderPipelineTree(nodes: Array<PipelinePhaseNode>): Array<string> {
+  const lines: Array<string> = [];
+
+  for (const [index, node] of nodes.entries()) {
+    const isLast = index === nodes.length - 1;
+
+    if (node.expanded) {
+      const expandedLines = renderExpandedPhase(node);
+      const connector = isLast ? "└─" : "├─";
+      const [firstLine, ...detailLines] = expandedLines;
+
+      if (firstLine !== undefined) {
+        lines.push(`${connector} ${firstLine}`);
+      }
+
+      const detailPrefix = isLast ? "   " : "│  ";
+      for (const detailLine of detailLines) {
+        lines.push(`${detailPrefix}${detailLine}`);
+      }
+    } else {
+      lines.push(renderCollapsedPhase(node, isLast));
+    }
+
+    if (!isLast) {
+      lines.push("│");
+    }
+  }
+
+  return lines;
+}
+
 // =============================================================================
 // Clickable Paths
 // =============================================================================
@@ -1486,6 +1520,7 @@ export {
   renderIterationStart,
   renderMarkdown,
   renderPhaseCard,
+  renderPipelineTree,
   renderPlanSubtasksSummary,
   renderProgressBar,
   renderResponseHeader,

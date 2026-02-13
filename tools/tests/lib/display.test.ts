@@ -21,6 +21,7 @@ import {
   renderExpandedPhase,
   renderInvocationHeader,
   renderPhaseCard,
+  renderPipelineTree,
   renderPlanSubtasksSummary,
   renderResponseHeader,
   truncate,
@@ -406,6 +407,131 @@ describe("display utilities", () => {
       expect(output[4]).toContain(chalk.dim("WRITES"));
       expect(output[5]).toContain(chalk.dim("GATE"));
       expect(output[5]).toContain(chalk.yellow("none"));
+    });
+  });
+
+  describe("renderPipelineTree", () => {
+    function createPhaseNode(options: {
+      description: string;
+      expanded: boolean;
+      gate?: string;
+      gateIndicator?: string;
+      name: string;
+      reads?: Array<string>;
+      steps?: Array<string>;
+      timeEstimate: string;
+      writes?: Array<string>;
+    }): PipelinePhaseNode {
+      return {
+        expanded: options.expanded,
+        expandedDetail: {
+          gate: options.gate,
+          reads: options.reads ?? [],
+          steps: options.steps ?? [],
+          writes: options.writes ?? [],
+        },
+        name: options.name,
+        summary: {
+          description: options.description,
+          gateIndicator: options.gateIndicator,
+          timeEstimate: options.timeEstimate,
+        },
+      };
+    }
+
+    test("renders a single expanded-only phase", () => {
+      const output = renderPipelineTree([
+        createPhaseNode({
+          description: "Generate story files from MILESTONE.md",
+          expanded: true,
+          name: "stories",
+          reads: ["milestones/M1/MILESTONE.md"],
+          steps: ["1. Read milestone description"],
+          timeEstimate: "~3 min",
+          writes: ["stories/S-NNN-*.md"],
+        }),
+      ]);
+
+      expect(output[0]).toContain("└─");
+      expect(output[0]).toContain("▾");
+      expect(output[0]).toContain("stories");
+      expect(output.some((line) => line.includes("READS"))).toBe(true);
+      expect(output.some((line) => line === "│")).toBe(false);
+    });
+
+    test("renders a 2-phase mixed tree with continuation line", () => {
+      const output = renderPipelineTree([
+        createPhaseNode({
+          description: "Generate story files from MILESTONE.md",
+          expanded: true,
+          name: "stories",
+          reads: ["milestones/M1/MILESTONE.md"],
+          steps: ["1. Read milestone description"],
+          timeEstimate: "~3 min",
+          writes: ["stories/S-NNN-*.md"],
+        }),
+        createPhaseNode({
+          description: "Break stories into task files",
+          expanded: false,
+          gateIndicator: "[APPROVAL]",
+          name: "tasks",
+          timeEstimate: "~5 min",
+        }),
+      ]);
+
+      expect(output[0]).toContain("├─");
+      expect(output[0]).toContain("▾ stories");
+      expect(output.some((line) => line === "│")).toBe(true);
+      expect(output.at(-1)).toContain("└─");
+      expect(output.at(-1)).toContain("tasks");
+      expect(output.at(-1)).toContain("[APPROVAL]");
+    });
+
+    test("renders a 4-phase mixed tree matching Example 1 structure", () => {
+      const output = renderPipelineTree([
+        createPhaseNode({
+          description: "Generate story files from MILESTONE.md",
+          expanded: true,
+          gate: "createStories → SKIP (--force)",
+          name: "stories",
+          reads: ["milestones/M1/MILESTONE.md", "ROADMAP.md"],
+          steps: ["1. Read milestone description", "2. Generate story files"],
+          timeEstimate: "~3 min",
+          writes: ["stories/S-NNN-*.md"],
+        }),
+        createPhaseNode({
+          description: "Break stories into task files",
+          expanded: false,
+          gateIndicator: "[APPROVAL]",
+          name: "tasks",
+          timeEstimate: "~5 min",
+        }),
+        createPhaseNode({
+          description: "Slice tasks into atomic subtask queue",
+          expanded: false,
+          gateIndicator: "[APPROVAL]",
+          name: "subtasks",
+          timeEstimate: "~8 min",
+        }),
+        createPhaseNode({
+          description: "Execute subtask queue",
+          expanded: false,
+          gateIndicator: "auto",
+          name: "build",
+          timeEstimate: "~45 min",
+        }),
+      ]);
+
+      expect(output[0]).toContain("├─");
+      expect(output[0]).toContain("▾ stories");
+      expect(output.some((line) => line.includes("│  │  READS"))).toBe(true);
+      expect(
+        output.some((line) => line.includes("createStories → SKIP (--force)")),
+      ).toBe(true);
+      expect(output.some((line) => line.includes("├─ tasks"))).toBe(true);
+      expect(output.some((line) => line.includes("├─ subtasks"))).toBe(true);
+      expect(output.at(-1)).toContain("└─ build");
+      expect(output.at(-1)).toContain("auto");
     });
   });
 
