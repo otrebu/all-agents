@@ -35,6 +35,7 @@ import {
   renderEventLine,
   renderPhaseCard,
 } from "./display";
+import PipelineRenderer from "./pipeline-renderer";
 
 // =============================================================================
 // Types
@@ -65,6 +66,8 @@ interface CascadeFromOptions {
   milestonePath?: string;
   /** Provider model identifier to propagate across cascaded levels */
   model?: string;
+  /** Optional runner used to execute planning levels inside cascade */
+  planningLevelRunner?: PlanningLevelRunner;
   /** Provider selection to propagate across cascaded levels */
   provider?: ProviderType;
   /** Require approvals by forcing gate review behavior (`--review`) */
@@ -112,6 +115,28 @@ interface CheckApprovalContext extends ApprovalContext {
 }
 
 /**
+ * Callback used by cascade orchestration to execute planning levels.
+ */
+type PlanningLevelRunner = (
+  level: "subtasks" | "tasks",
+  options: PlanningLevelRunnerOptions,
+) => Promise<null | string>;
+
+/**
+ * Options passed to a planning-level runner invoked by runLevel().
+ */
+interface PlanningLevelRunnerOptions {
+  /** Repository root path */
+  contextRoot: string;
+  /** Resolved milestone root path */
+  milestonePath: string;
+  /** Provider model identifier to pass through to build/calibrate */
+  model?: string;
+  /** Provider selection for planning invocation */
+  provider?: ProviderType;
+}
+
+/**
  * Options for runLevel dispatcher
  *
  * Contains the minimum context needed to execute any cascade level.
@@ -124,8 +149,12 @@ interface RunLevelOptions {
   contextRoot: string;
   /** Skip approvals by forcing write actions at all gates (`--force`) */
   forceFlag?: boolean;
+  /** Resolved milestone root path for milestone-scoped planning levels */
+  milestonePath?: string;
   /** Provider model identifier to pass through to build/calibrate */
   model?: string;
+  /** Optional runner used to execute planning levels inside cascade */
+  planningLevelRunner?: PlanningLevelRunner;
   /** Provider selection to pass through to build/calibrate */
   provider?: ProviderType;
   /** Require approvals by forcing gate review behavior (`--review`) */
@@ -169,11 +198,13 @@ type CascadeLevelName =
 /**
  * Cascade levels with runnable adapters in runLevel().
  *
- * Planning levels are intentionally excluded until adapters are implemented.
+ * tasks/subtasks run through an injected planning runner.
  */
 const EXECUTABLE_LEVELS: ReadonlySet<CascadeLevelName> = new Set([
   "build",
   "calibrate",
+  "subtasks",
+  "tasks",
 ]);
 
 // =============================================================================
@@ -194,10 +225,12 @@ function buildApprovalContext(options: CascadeFromOptions): ApprovalContext {
 /**
  * Check approval gate before executing a cascade level.
  */
+// eslint-disable-next-line max-params -- callback hook is needed for renderer wait-state wiring
 async function checkApprovalGate(
   level: CascadeLevelName,
   approvalConfig: ApprovalsConfig | undefined,
   context: CheckApprovalContext,
+  onAction?: (action: ApprovalAction, gateName: ApprovalGate) => void,
 ): Promise<ApprovalResult> {
   const gate = levelToGate(level);
 
@@ -210,6 +243,10 @@ async function checkApprovalGate(
     approvalConfig,
     context,
   );
+
+  if (onAction !== undefined) {
+    onAction(action, gate);
+  }
 
   switch (action) {
     case "exit-unstaged": {
@@ -498,7 +535,9 @@ async function runCascadeFrom(
     calibrateEvery: options.calibrateEvery,
     contextRoot: options.contextRoot,
     forceFlag: options.forceFlag,
+    milestonePath: options.milestonePath,
     model: options.model,
+    planningLevelRunner: options.planningLevelRunner,
     provider: options.provider,
     reviewFlag: options.reviewFlag,
     subtasksPath: options.subtasksPath,
@@ -527,143 +566,166 @@ async function runCascadeFrom(
     };
   }
 
+  const isTTY = Boolean(process.stdin.isTTY && process.stdout.isTTY);
+  const renderer = new PipelineRenderer(
+    levelsToExecute,
+    options.headless === true,
+    isTTY,
+  );
+
   // Step 3: Execute each level in sequence
   const completedLevels: Array<string> = [];
   let lastCompletedLevel = effectiveStart;
   let isFirstLevel = true;
 
-  for (const currentLevel of levelsToExecute) {
-    // Prompt for continuation between levels (unless headless or first level)
-    if (!isFirstLevel && options.headless !== true) {
-      // eslint-disable-next-line no-await-in-loop -- Must await user prompt before proceeding
-      const shouldContinue = await promptContinue(
-        lastCompletedLevel,
+  try {
+    for (const currentLevel of levelsToExecute) {
+      // Prompt for continuation between levels (unless headless or first level)
+      if (!isFirstLevel && options.headless !== true) {
+        // eslint-disable-next-line no-await-in-loop -- Must await user prompt before proceeding
+        const shouldContinue = await promptContinue(
+          lastCompletedLevel,
+          currentLevel,
+        );
+        if (!shouldContinue) {
+          return {
+            completedLevels,
+            error: "User aborted cascade",
+            stoppedAt: currentLevel,
+            success: false,
+          };
+        }
+      }
+      isFirstLevel = false;
+
+      if (!isValidLevelName(currentLevel)) {
+        return {
+          completedLevels,
+          error: `Invalid level '${currentLevel}'. Valid levels: ${getValidLevelNames()}`,
+          stoppedAt: currentLevel,
+          success: false,
+        };
+      }
+
+      renderer.startPhase(currentLevel);
+      const phaseStartedAt = Date.now();
+
+      const approvalGate = levelToGate(currentLevel);
+
+      // eslint-disable-next-line no-await-in-loop -- Approval must be checked per level before execution
+      const approvalResult = await checkApprovalGate(
         currentLevel,
-      );
-      if (!shouldContinue) {
-        return {
-          completedLevels,
-          error: "User aborted cascade",
-          stoppedAt: currentLevel,
-          success: false,
-        };
-      }
-    }
-    isFirstLevel = false;
-
-    if (!isValidLevelName(currentLevel)) {
-      return {
-        completedLevels,
-        error: `Invalid level '${currentLevel}'. Valid levels: ${getValidLevelNames()}`,
-        stoppedAt: currentLevel,
-        success: false,
-      };
-    }
-
-    const approvalGate = levelToGate(currentLevel);
-
-    // eslint-disable-next-line no-await-in-loop -- Approval must be checked per level before execution
-    const approvalResult = await checkApprovalGate(
-      currentLevel,
-      approvalConfig,
-      {
-        ...approvalContext,
-        cascadeTarget: target,
-        milestonePath: resolvedMilestonePath,
-      },
-    );
-
-    if (approvalResult === "aborted") {
-      return {
-        completedLevels,
-        error: "Aborted by user at approval prompt",
-        stoppedAt: currentLevel,
-        success: false,
-      };
-    }
-
-    const remainingLevels = levelsToExecute.slice(completedLevels.length + 1);
-    console.log();
-    console.log(
-      renderCascadeProgress(currentLevel, completedLevels, remainingLevels),
-    );
-    console.log(
-      renderPhaseCard({
-        domain: "CASCADE",
-        lines: [
-          `Target: ${target}`,
-          `Completed so far: ${completedLevels.length}/${levelsToExecute.length}`,
-        ],
-        state: "START",
-        title: `Running level: ${currentLevel}`,
-      }),
-    );
-
-    // Execute the level
-    // eslint-disable-next-line no-await-in-loop -- Levels must execute sequentially
-    const levelError = await runLevel(currentLevel, runOptions);
-    if (levelError !== null) {
-      return {
-        completedLevels,
-        error: levelError,
-        stoppedAt: currentLevel,
-        success: false,
-      };
-    }
-
-    if (approvalResult === "exit-unstaged") {
-      if (approvalGate === null) {
-        return {
-          completedLevels,
-          error: "Internal error: exit-unstaged without approval gate",
-          stoppedAt: currentLevel,
-          success: false,
-        };
-      }
-
-      finalizeExitUnstaged(
+        approvalConfig,
         {
+          ...approvalContext,
           cascadeTarget: target,
-          gate: approvalGate,
-          level: currentLevel,
           milestonePath: resolvedMilestonePath,
         },
-        `Generated artifacts for ${currentLevel} level.`,
+        (action, gateName) => {
+          if (action === "notify-wait" || action === "prompt") {
+            renderer.setApprovalWait(gateName);
+          }
+        },
       );
 
-      return {
-        completedLevels,
-        error: null,
-        stoppedAt: currentLevel,
-        success: false,
-      };
+      if (approvalResult === "aborted") {
+        return {
+          completedLevels,
+          error: "Aborted by user at approval prompt",
+          stoppedAt: currentLevel,
+          success: false,
+        };
+      }
+
+      const remainingLevels = levelsToExecute.slice(completedLevels.length + 1);
+      console.log();
+      console.log(
+        renderCascadeProgress(currentLevel, completedLevels, remainingLevels),
+      );
+      console.log(
+        renderPhaseCard({
+          domain: "CASCADE",
+          lines: [
+            `Target: ${target}`,
+            `Completed so far: ${completedLevels.length}/${levelsToExecute.length}`,
+          ],
+          state: "START",
+          title: `Running level: ${currentLevel}`,
+        }),
+      );
+
+      // Execute the level
+      // eslint-disable-next-line no-await-in-loop -- Levels must execute sequentially
+      const levelError = await runLevel(currentLevel, runOptions);
+      if (levelError !== null) {
+        return {
+          completedLevels,
+          error: levelError,
+          stoppedAt: currentLevel,
+          success: false,
+        };
+      }
+
+      renderer.completePhase({
+        costUsd: 0,
+        elapsedMs: Math.max(0, Date.now() - phaseStartedAt),
+        filesChanged: 0,
+      });
+
+      if (approvalResult === "exit-unstaged") {
+        if (approvalGate === null) {
+          return {
+            completedLevels,
+            error: "Internal error: exit-unstaged without approval gate",
+            stoppedAt: currentLevel,
+            success: false,
+          };
+        }
+
+        finalizeExitUnstaged(
+          {
+            cascadeTarget: target,
+            gate: approvalGate,
+            level: currentLevel,
+            milestonePath: resolvedMilestonePath,
+          },
+          `Generated artifacts for ${currentLevel} level.`,
+        );
+
+        return {
+          completedLevels,
+          error: null,
+          stoppedAt: currentLevel,
+          success: false,
+        };
+      }
+
+      // Track completion
+      completedLevels.push(currentLevel);
+      lastCompletedLevel = currentLevel;
+      console.log(
+        renderEventLine({
+          domain: "CASCADE",
+          message: `Completed level: ${currentLevel}`,
+          state: "DONE",
+        }),
+      );
     }
 
-    // Track completion
-    completedLevels.push(currentLevel);
-    lastCompletedLevel = currentLevel;
-    console.log(
-      renderEventLine({
-        domain: "CASCADE",
-        message: `Completed level: ${currentLevel}`,
-        state: "DONE",
-      }),
-    );
+    // All levels completed successfully
+    return { completedLevels, error: null, stoppedAt: null, success: true };
+  } finally {
+    renderer.stop();
   }
-
-  // All levels completed successfully
-  return { completedLevels, error: null, stoppedAt: null, success: true };
 }
 
 /**
  * Execute a single cascade level
  *
  * Dispatches to the appropriate function based on level name:
+ * - 'tasks'/'subtasks' → planningLevelRunner() when provided
  * - 'build' → runBuild()
  * - 'calibrate' → runCalibrate('all')
- *
- * Note: Planning levels (roadmap, stories, tasks, subtasks) are not yet
- * implemented as they require interactive Claude sessions.
  *
  * @param level - Level name to execute
  * @param options - Options containing contextRoot and subtasksPath
@@ -683,7 +745,9 @@ async function runLevel(
     calibrateEvery = 0,
     contextRoot,
     forceFlag: isForceFlag,
+    milestonePath,
     model,
+    planningLevelRunner,
     provider,
     reviewFlag: isReviewFlag,
     subtasksPath,
@@ -722,6 +786,24 @@ async function runLevel(
       }
     }
 
+    case "subtasks":
+    case "tasks": {
+      if (milestonePath === undefined || milestonePath === "") {
+        return `Level '${level}' requires a milestone path for cascade execution`;
+      }
+
+      if (planningLevelRunner === undefined) {
+        return `Level '${level}' requires a planning-level runner for cascade execution`;
+      }
+
+      return planningLevelRunner(level, {
+        contextRoot,
+        milestonePath,
+        model,
+        provider,
+      });
+    }
+
     case "calibrate": {
       const calibrateSubcommand: CalibrateSubcommand = "all";
       const didSucceed = await runCalibrate(calibrateSubcommand, {
@@ -736,9 +818,7 @@ async function runLevel(
     }
 
     case "roadmap":
-    case "stories":
-    case "subtasks":
-    case "tasks": {
+    case "stories": {
       // Planning levels require interactive Claude sessions
       // They will be implemented when the cascade CLI integration is done
       return `Level '${level}' is a planning level and is not yet implemented for cascade execution`;
@@ -826,6 +906,8 @@ export {
   isValidLevelName,
   LEVELS,
   levelToGate,
+  type PlanningLevelRunner,
+  type PlanningLevelRunnerOptions,
   promptContinue,
   runCascadeFrom,
   runLevel,

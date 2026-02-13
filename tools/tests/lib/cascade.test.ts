@@ -24,6 +24,7 @@ import {
   runLevel,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
+import PipelineRenderer from "@tools/commands/ralph/pipeline-renderer";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
 
@@ -138,6 +139,39 @@ describe("checkApprovalGate", () => {
 
     expect(promptSpy).toHaveBeenCalledTimes(1);
     expect(result).toBe("aborted");
+    promptSpy.mockRestore();
+  });
+
+  test("notifies callback when prompt action is selected", async () => {
+    const evaluateSpy = spyOn(approvals, "evaluateApproval").mockReturnValue(
+      "prompt",
+    );
+    const promptSpy = spyOn(approvals, "promptApproval").mockResolvedValue(
+      true,
+    );
+    const actionEvents: Array<{ action: string; gateName: string }> = [];
+
+    const result = await checkApprovalGate(
+      "tasks",
+      { createTasks: "always" },
+      {
+        cascadeTarget: "build",
+        forceFlag: false,
+        isTTY: true,
+        milestonePath: "/tmp/milestone",
+        reviewFlag: false,
+      },
+      (action, gateName) => {
+        actionEvents.push({ action, gateName });
+      },
+    );
+
+    expect(result).toBe("continue");
+    expect(actionEvents).toEqual([
+      { action: "prompt", gateName: "createTasks" },
+    ]);
+
+    evaluateSpy.mockRestore();
     promptSpy.mockRestore();
   });
 
@@ -260,18 +294,21 @@ describe("getValidLevelNames", () => {
 
 describe("validateCascadeTarget", () => {
   test("returns null for executable forward cascades", () => {
+    expect(validateCascadeTarget("stories", "subtasks")).toBeNull();
+    expect(validateCascadeTarget("stories", "build")).toBeNull();
+    expect(validateCascadeTarget("tasks", "calibrate")).toBeNull();
     expect(validateCascadeTarget("subtasks", "build")).toBeNull();
     expect(validateCascadeTarget("build", "calibrate")).toBeNull();
     expect(validateCascadeTarget("subtasks", "calibrate")).toBeNull();
   });
 
-  test("returns actionable error for unsupported planning-level paths", () => {
-    const error = validateCascadeTarget("stories", "build");
+  test("returns actionable error for unsupported roadmap paths", () => {
+    const error = validateCascadeTarget("roadmap", "subtasks");
 
     expect(error).not.toBeNull();
     expect(error).toContain("not executable yet");
-    expect(error).toContain("Unsupported levels in path: tasks, subtasks");
-    expect(error).toContain("Supported targets from 'stories': none");
+    expect(error).toContain("Unsupported levels in path: stories");
+    expect(error).toContain("Supported targets from 'roadmap': none");
   });
 
   test("returns error for backward cascade", () => {
@@ -382,19 +419,72 @@ describe("runLevel", () => {
     expect(error).toContain("Valid levels:");
   });
 
-  test("returns error for planning levels (not yet implemented)", async () => {
+  test("returns error for roadmap/stories planning levels (not yet implemented)", async () => {
     const roadmapError = await runLevel("roadmap", options);
     expect(roadmapError).toContain("planning level");
     expect(roadmapError).toContain("not yet implemented");
 
     const storiesError = await runLevel("stories", options);
     expect(storiesError).toContain("planning level");
+    expect(storiesError).toContain("not yet implemented");
+  });
 
+  test("requires milestone path for tasks/subtasks planning levels", async () => {
     const tasksError = await runLevel("tasks", options);
-    expect(tasksError).toContain("planning level");
+    expect(tasksError).toContain("requires a milestone path");
 
     const subtasksError = await runLevel("subtasks", options);
-    expect(subtasksError).toContain("planning level");
+    expect(subtasksError).toContain("requires a milestone path");
+  });
+
+  test("requires planning-level runner for tasks/subtasks planning levels", async () => {
+    const tasksError = await runLevel("tasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+    });
+    expect(tasksError).toContain("planning-level runner");
+
+    const subtasksError = await runLevel("subtasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+    });
+    expect(subtasksError).toContain("planning-level runner");
+  });
+
+  test("delegates tasks/subtasks planning levels to runner", async () => {
+    const planningRunnerHost = {
+      runner: async () => await Promise.resolve(null as null | string),
+    };
+    const planningRunner = spyOn(planningRunnerHost, "runner");
+
+    const tasksError = await runLevel("tasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: planningRunner,
+    });
+    expect(tasksError).toBeNull();
+
+    const subtasksError = await runLevel("subtasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: planningRunner,
+    });
+    expect(subtasksError).toBeNull();
+
+    expect(planningRunner).toHaveBeenCalledWith("tasks", {
+      contextRoot: "/nonexistent/path",
+      milestonePath: "/tmp/milestone",
+      model: undefined,
+      provider: undefined,
+    });
+    expect(planningRunner).toHaveBeenCalledWith("subtasks", {
+      contextRoot: "/nonexistent/path",
+      milestonePath: "/tmp/milestone",
+      model: undefined,
+      provider: undefined,
+    });
+
+    planningRunner.mockRestore();
   });
 
   test("accepts options with contextRoot and subtasksPath", async () => {
@@ -475,8 +565,52 @@ describe("runCascadeFrom", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.stoppedAt).toBe("stories");
-    expect(result.error).toContain("not executable yet");
+    expect(result.stoppedAt).toBe("tasks");
+    expect(result.error).toContain("requires a milestone path");
+  });
+
+  test("executes tasks/subtasks when planning runner and milestone path are provided", async () => {
+    const planningRunnerHost = {
+      runner: async () => await Promise.resolve(null as null | string),
+    };
+    const planningRunner = spyOn(planningRunnerHost, "runner");
+
+    const result = await runCascadeFrom("stories", "subtasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: planningRunner,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.completedLevels).toEqual(["tasks", "subtasks"]);
+    expect(result.error).toBeNull();
+    expect(result.stoppedAt).toBeNull();
+    expect(planningRunner).toHaveBeenNthCalledWith(1, "tasks", {
+      contextRoot: "/nonexistent/path",
+      milestonePath: "/tmp/milestone",
+      model: undefined,
+      provider: undefined,
+    });
+    expect(planningRunner).toHaveBeenNthCalledWith(2, "subtasks", {
+      contextRoot: "/nonexistent/path",
+      milestonePath: "/tmp/milestone",
+      model: undefined,
+      provider: undefined,
+    });
+
+    planningRunner.mockRestore();
+  });
+
+  test("fails on tasks/subtasks cascade when planning runner is missing", async () => {
+    const result = await runCascadeFrom("stories", "subtasks", {
+      ...options,
+      milestonePath: "/tmp/milestone",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.completedLevels).toEqual([]);
+    expect(result.stoppedAt).toBe("tasks");
+    expect(result.error).toContain("planning-level runner");
   });
 
   test("returns error for backward cascade", async () => {
@@ -543,5 +677,103 @@ describe("runCascadeFrom", () => {
       subtasksPath: "/nonexistent/subtasks.json",
     });
     expect(result.stoppedAt).toBe("roadmap");
+  });
+
+  test("wires PipelineRenderer lifecycle across cascade levels", async () => {
+    interface RendererSnapshot {
+      headless: boolean;
+      isTTY: boolean;
+      phases: Array<{ name: string }>;
+    }
+    let capturedRenderer: unknown = null;
+
+    const startPhaseSpy = spyOn(
+      PipelineRenderer.prototype,
+      "startPhase",
+    ).mockImplementation(function captureRendererSnapshot(
+      this: unknown,
+      _level: string,
+    ): void {
+      const renderer = this as {
+        headless: boolean;
+        isTTY: boolean;
+        phases: Array<{ name: string }>;
+      };
+      capturedRenderer ??= {
+        headless: renderer.headless,
+        isTTY: renderer.isTTY,
+        phases: renderer.phases,
+      };
+      void _level;
+    });
+    const completePhaseSpy = spyOn(
+      PipelineRenderer.prototype,
+      "completePhase",
+    ).mockImplementation(() => {});
+    const setApprovalWaitSpy = spyOn(
+      PipelineRenderer.prototype,
+      "setApprovalWait",
+    ).mockImplementation(() => {});
+    const stopSpy = spyOn(
+      PipelineRenderer.prototype,
+      "stop",
+    ).mockImplementation(() => {});
+    const evaluateApprovalSpy = spyOn(
+      approvals,
+      "evaluateApproval",
+    ).mockReturnValue("notify-wait");
+    const notifyWaitSpy = spyOn(
+      approvals,
+      "handleNotifyWait",
+    ).mockResolvedValue();
+
+    const result = await runCascadeFrom("stories", "subtasks", {
+      contextRoot: "/repo",
+      headless: true,
+      milestonePath: "/tmp/milestone",
+      planningLevelRunner: async () => await Promise.resolve(null),
+      subtasksPath: "/repo/subtasks.json",
+    });
+
+    expect(result).toEqual({
+      completedLevels: ["tasks", "subtasks"],
+      error: null,
+      stoppedAt: null,
+      success: true,
+    });
+
+    if (capturedRenderer === null) {
+      throw new Error("Expected renderer snapshot");
+    }
+    const rendererSnapshot = capturedRenderer as RendererSnapshot;
+    expect(rendererSnapshot.headless).toBe(true);
+    expect(rendererSnapshot.isTTY).toBe(false);
+    expect(
+      rendererSnapshot.phases.map((phase: { name: string }) => phase.name),
+    ).toEqual(["tasks", "subtasks"]);
+
+    expect(startPhaseSpy).toHaveBeenNthCalledWith(1, "tasks");
+    expect(startPhaseSpy).toHaveBeenNthCalledWith(2, "subtasks");
+    expect(setApprovalWaitSpy).toHaveBeenNthCalledWith(1, "createTasks");
+    expect(setApprovalWaitSpy).toHaveBeenNthCalledWith(2, "createSubtasks");
+    expect(completePhaseSpy).toHaveBeenCalledTimes(2);
+    expect(completePhaseSpy.mock.calls[0]?.[0]).toMatchObject({
+      costUsd: 0,
+      filesChanged: 0,
+    });
+    expect(completePhaseSpy.mock.calls[1]?.[0]).toMatchObject({
+      costUsd: 0,
+      filesChanged: 0,
+    });
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+    expect(evaluateApprovalSpy).toHaveBeenCalledTimes(2);
+    expect(notifyWaitSpy).toHaveBeenCalledTimes(2);
+
+    startPhaseSpy.mockRestore();
+    completePhaseSpy.mockRestore();
+    setApprovalWaitSpy.mockRestore();
+    stopSpy.mockRestore();
+    evaluateApprovalSpy.mockRestore();
+    notifyWaitSpy.mockRestore();
   });
 });
