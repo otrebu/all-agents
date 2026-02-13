@@ -151,6 +151,7 @@ Version, release, publish.
 - husky.md - Git hooks
 - commitlint.md - Commit linting
 - semantic-release.md - Automated releases
+- git-gtr.md - Git worktree management (git-worktree-runner)
 
 ### observe/
 
@@ -298,9 +299,9 @@ Complete project setups organized by **artifact type** (not domain—stacks span
 Development processes.
 
 - dev-lifecycle.md - Complete development workflow
-- start-feature.md - Feature branch creation
+- start-feature.md - Feature worktree creation
 - commit.md - Conventional commits
-- complete-feature.md - Merge to main
+- complete-feature.md - Merge to main and clean up worktree
 - code-review.md - Review checklist
 - refactoring.md - Refactoring patterns
 - consistency-checker.md - Consistency validation
