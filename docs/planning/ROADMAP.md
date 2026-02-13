@@ -1,201 +1,132 @@
 # Product Roadmap
 
-> Generated from [VISION.md](VISION.md) on 2026-01-14
+> Synced with current runtime reality on 2026-02-13.
+>
+> This roadmap now separates delivered baseline from forward deltas.
 
 ## Overview
 
-This roadmap transforms Ralph from a complete framework design into a fully operational autonomous development system. The journey progresses from core building capabilities to full planning automation, and culminates with self-improving calibration features.
+Ralph has moved from foundational build/planning experiments into an operational autonomous workflow platform.
 
-## Milestones
+Roadmap policy from this point forward:
 
-### 1. [ralph](milestones/ralph/): Core Building Loop
+- Keep completed baseline concise in this file.
+- Keep implementation depth in each milestone `MILESTONE.md`.
+- Treat this roadmap as the delta plan for what changes next.
 
-**Status:** ✅ Complete
+## Delivered Baseline
 
-**Outcome:** Users can run autonomous code iterations against a manually-created subtasks.json queue
+Current subtask completion snapshot:
 
-**Why this first:** The build loop is the heart of Ralph. Without it, planning artifacts have no consumer. This validates the memoryless iteration pattern and establishes the foundation for all other features.
+| Milestone | Status | Evidence |
+|-----------|--------|----------|
+| `001-ralph` | ✅ Historical foundation | Pre-consolidation milestone artifacts (no canonical subtask count) |
+| `002-ralph-💪` | ✅ Complete | `70/70` subtasks done |
+| `003-ralph-workflow` | ✅ Complete | `95/95` subtasks done |
+| `004-MULTI-CLI` | ✅ Complete | `20/20` subtasks done |
+| `005-consolidate-simplify` | 🟨 In progress | `21/22` subtasks done |
+| `006-cascade-mode-for-good` | ✅ Complete | `47/47` subtasks done |
+| `007-pipeline-preview` | ✅ Complete on branch | `33/33` subtasks done |
 
-**Key deliverables:**
-- `ralph-iteration.md` prompt for autonomous building
-- `build.sh` script for iteration orchestration
-- Progress file writing and subtasks.json status updates
-- Session ID capture for debugging
-- Three-mode execution system (Interactive, Supervised, Headless) - see VISION.md Section 3.1
-- `--supervised` and `--headless` CLI flags with consistent invocation patterns
+Baseline capabilities now in place:
+
+- Planning pipeline from `vision/roadmap` into milestone-scoped `stories -> tasks -> subtasks` artifacts.
+- Autonomous build loop with validation, queue operations, and hooks.
+- Calibration loop (`intention`, `technical`, `improve`, `all`) with corrective queue proposals.
+- Multi-provider abstraction with active `claude` and `opencode` runtime support.
+- Session traceability (`cc-session-id`, `aaa session`) and review workflows.
+- Pipeline dry-run preview and live workflow phase rendering.
+
+---
+
+## Line In The Sand
+
+Everything above is considered baseline (plus one explicit carry-over subtask in milestone 005).
+
+Everything below is forward work and should be planned as net-new deltas, not re-litigation of shipped behavior.
+
+---
+
+## Active Carry-Over
+
+### 005. [005-consolidate-simplify](milestones/005-consolidate-simplify/): Final Closure
+
+**Status:** 🟨 In progress (`21/22`)
+
+**Outcome:** Close remaining consolidation debt so all core planning/build contracts are fully normalized.
 
 **Success criteria:**
-- Agent completes subtask, commits with ID reference, marks `done: true`
-- Progress file contains date, subtask ID, problem, changes, files
-- Session ID is captured and stored in subtasks.json
+
+- Milestone reaches `22/22` complete.
+- No regressions in queue operations or review workflows.
 
 **Dependencies:** none
 
 ---
 
-### 2. [planning-automation](milestones/planning-automation/): Automated Planning Pipeline
+## Forward Milestones
 
-**Status:** ✅ Complete
-
-**Outcome:** Users can generate subtasks automatically from stories/tasks, enabling full planning-to-building pipeline
-
-**Why this second:** Manual subtasks.json creation is tedious. Automating the planning pipeline means humans design at higher levels (stories, tasks) while agents handle decomposition.
-
-**Key deliverables:**
-- `tasks-auto.md` and `subtasks-auto.md` prompts
-- `stories-auto.md` and `roadmap-auto.md` prompts
-- `vision-interactive.md` for guided vision creation
-- `plan.sh` script for planning mode entry
-- Pre-build validation prompt for alignment checks
-
-**Success criteria:**
-- `ralph plan subtasks --auto` generates valid subtasks.json from tasks
-- `ralph plan stories --auto` generates story files from vision
-- Pre-build validation catches scope creep before building
-
-**Dependencies:** ralph (milestone 1)
-
----
-
-### 3. [calibration](milestones/calibration/): Self-Improving Governance
-
-**Status:** ✅ Complete
-
-**Outcome:** Users can detect intention drift, technical violations, and inefficiencies in agent behavior
-
-**Why third:** Calibration is governance. It only makes sense once there's substantial agent output to analyze. Building on milestones 1 and 2 provides the data (commits, session logs) needed for meaningful calibration.
-
-**Key deliverables:**
-- `intention-drift.md` prompt (Vision → code alignment)
-- `technical-drift.md` prompt (docs → code compliance)
-- `self-improvement.md` prompt (session log analysis)
-- `calibrate.sh` script for LLM-as-judge execution
-- Iteration diary (`<project>/logs/iterations.jsonl`) stored in target project
-
-**Success criteria:**
-- `ralph calibrate intention` detects when code diverges from story intent
-- `ralph calibrate improve` identifies tool misuse patterns in session logs
-- Calibration outputs task files for human review
-
-**Dependencies:** planning-automation (milestone 2)
-
----
-
-### 4. [004-full-integration](milestones/004-full-integration/): End-to-End Autonomous Workflow
-
-**Status:** ✅ Complete (with cascade mode)
-
-**Outcome:** Users can run complete Vision → ROADMAP → Stories → Tasks → Subtasks → Build → Calibrate cycles with minimal intervention
-
-**Why last:** This is the "polish" milestone. It integrates hooks, notifications, and the status dashboard. Requires all previous milestones to be functional.
-
-**Key deliverables:**
-- Skills for Claude Code integration (`/ralph-plan`, `/ralph-build`, `/ralph-calibrate`, `/ralph-status`, `/ralph-review`)
-- `/ralph-plan subtasks` subcommand (currently CLI-only via `aaa ralph plan subtasks`)
-- Hooks system (onIterationComplete, onMilestoneComplete, etc.)
-- ntfy notifications for human-on-the-loop awareness
-- `status.sh` for progress visibility
-- Interactive mode (`-i`) for human checkpoints
-- Review commands completion:
-  - `ralph review subtasks` - review subtask queue before build
-  - `ralph review tasks` - review tasks for a story (currently stub)
-  - Milestone review prompt (detailed walkthrough after roadmap draft)
-  - Gap analyzer subagent for cold analysis of artifacts
-  - Chunked presentation in review prompts (one finding at a time)
-- Skills documentation in VISION.md (what skills exist, what they do)
-- **Cascade mode** (`--cascade <target>`) for chaining levels through build/calibrate
-- **Artifact-centric approval gates** for human-in-the-loop control at each planning/build stage (see VISION.md Section 2)
-  - Git-based approval workflow: unstaged changes = pending, `git checkout` to reject
-  - `--from <level>` flag for resuming cascade after manual approval
-  - Headless suggest mode with notification + configurable wait (default 3 min)
-- **Session tracking** (`aaa session` command) with automatic `cc-session-id` commit trailers
-- **Enhanced notifications** with build metrics (files changed, lines added/removed, cost, session)
-- **Per-event `enabled` flag** for notification control in aaa.config.json
-
-**Success criteria:**
-- `/ralph build` in Claude Code triggers full iteration loop
-- Hooks fire and diary entries are created automatically
-- `ralph status` shows accurate counts and recent activity
-- `ralph review subtasks` validates queue before building
-- `ralph review gap roadmap` provides cold analysis with fresh eyes
-- `ralph plan subtasks --cascade calibrate` chains through build and calibrate
-- Cascade with `"always"` gate exits with unstaged changes and feedback file
-- `--from build` resumes cascade after manual approval via git commit
-- Headless `"suggest"` mode sends notification and waits before continuing
-- Commits include `cc-session-id` trailer for interrogation
-- `aaa session cat --commit HEAD` retrieves session context from any commit
-- Notification messages include build metrics when available
-
-**Dependencies:** 003-calibration (milestone 3)
-
----
-
-### 5. [code-review](milestones/002-ralph-💪/stories/STORY-001-parallel-code-review.md): Parallel Multi-Agent Review System
-
-**Status:** ✅ Complete
-
-**Outcome:** Users can run comprehensive code review with 12 specialized agents in parallel, with trust gradient modes matching Ralph's execution patterns
-
-**Why fifth:** Code review complements Ralph's build-time quality with pre-merge verification. Reuses patterns established in earlier milestones (trust gradient, diary logging, CLI structure) and applies them to a new domain.
-
-**Key deliverables:**
-- 12 reviewer agents (`security`, `data-integrity`, `error-handling`, `test-coverage`, `over-engineering`, `performance`, `accessibility`, `documentation`, `maintainability`, `dependency`, `intent-alignment`) + `synthesizer`
-- `aaa review` CLI with `--supervised` and `--headless` modes
-- `/dev:code-review` skill for interactive mode in Claude Code
-- `/dev:interrogate` workflow for surfacing assumptions and confidence levels
-- Diary logging to `logs/reviews.jsonl`
-
-**Success criteria:**
-- `/dev:code-review` spawns parallel reviewers, synthesizes findings, presents for triage
-- `aaa review --headless` auto-triages and fixes based on severity × confidence
-- `/dev:interrogate changes` outputs structured table with hardest decisions, rejected alternatives, lowest confidence areas
-- Review diary captures all triage decisions for analysis
-
-**Dependencies:** full-integration (milestone 4) for hooks and notification patterns; ralph (milestone 1) for trust gradient and display utilities
-
----
-
-### 7. [007-pipeline-preview](milestones/007-pipeline-preview/): Pipeline Preview & Dry-Run
+### 009. [009-doc-drift-guardrails](milestones/009-doc-drift-guardrails/): Workflow Contract Hardening
 
 **Status:** 🔲 Not started
 
-**Outcome:** Users can see exactly what a Ralph command will do before it runs, via `--dry-run` on every pipeline command and an always-on lightweight preview in supervised mode
-
-**Why seventh:** With the full pipeline operational (plan, build, calibrate, cascade, review), users need confidence in what a command will execute before committing to it. Preview is a safety and productivity multiplier — especially for long-running cascades and headless CI runs.
+**Outcome:** Docs/prompts and pipeline preview/execution mappings stay synchronized as one contract.
 
 **Key deliverables:**
-- `computeExecutionPlan()` function reusing existing executor internals (`getLevelsInRange`, `evaluateApproval`, queue stats) — preview cannot drift from reality
-- `renderPipelinePlan()` detailed dry-run card and `renderLightweightPreview()` 3-5 line supervised auto-preview in display.ts
-- `--dry-run` flag on all 8 pipeline commands (`ralph build`, `ralph plan stories/tasks/subtasks/roadmap`, `ralph calibrate all/intention/technical`)
-- Two-tier display: lightweight auto-preview in supervised mode, detailed per-phase breakdown with `--dry-run`
-- `--headless --dry-run` JSON output for CI consumption
-- Updated CLI help text, shell completions (zsh, fish), and README examples
+
+- Command-table-backed drift checks for `aaa ralph` examples in prompts and skills.
+- Shared `pipeline-spec` module for levels, steps, labels, and flag effects.
+- State-model decision gate: define typed FSM contract (XState-compatible) and choose implementation engine in milestone tasks.
+- Refactor plan computation + dry-run rendering to consume shared spec.
+- Replacement of brittle enrichment heuristics with explicit metadata tags.
+- CI parity tests for command/flag/spec coverage and drift.
 
 **Success criteria:**
-- `aaa ralph build --dry-run` shows accurate execution plan and exits 0 without executing anything
-- `aaa ralph plan stories --cascade build --dry-run` shows all cascade levels with approval gates
-- Supervised mode shows lightweight pipeline summary and prompts `Proceed? [Y/n]` before first action
-- `--headless --dry-run` outputs JSON plan for CI pipelines
-- Preview uses the same functions as execution — zero drift possible
-- Zero new dependencies added (chalk + boxen + string-width from existing display.ts)
 
-**Dependencies:** code-review (milestone 5) for established CLI patterns and display utilities
+- Drift checks run in CI and block merges on contract mismatch.
+- Prompt/skill examples stay in lockstep with current Commander metadata.
+- Adding/changing pipeline commands fails fast when spec mappings are incomplete.
+- Dry-run narrative and execution paths remain synchronized over time.
+
+**Dependencies:** 005 completion
 
 ---
 
-## Future Considerations
+### 010. [010-pipeline-spec-convergence](milestones/010-pipeline-spec-convergence/): Operator Confidence Hardening
 
-Features from VISION.md that are explicitly deferred beyond these milestones:
+**Status:** 🔲 Not started
 
-- **Multiple agent orchestration**: Current design is single-agent per iteration
-- **Parallel subtask execution**: Sequential execution only for now
-- **Custom validation hooks**: Build/lint/test are hardcoded, not pluggable
-- **Alternative LLM providers**: Claude Code only (no OpenAI, etc.)
-- **Web dashboard**: CLI and skills only, no GUI
+**Outcome:** Workflow visualization becomes reliable and high-signal for operators across all runtime contexts.
+
+**Key deliverables:**
+
+- Renderer hardening for phase/gate/timed-wait states across terminal contexts.
+- Explicit boundary: consume the state contract from 009 and do not redesign orchestration engine in this milestone.
+- Stable output contract for machine-readable and human-readable views.
+- Visualization regression fixtures/snapshots for critical pipeline flows.
+- Operator runbook for interpreting gate states and resume paths.
+
+**Success criteria:**
+
+- Pipeline state is unambiguous during long cascades and CI runs.
+- Visual output regressions are detected automatically in tests.
+- Resume/review actions are consistently discoverable from rendered output.
+- Test ownership is clear: parity/contract tests in 009, renderer snapshots + runbook checks in 010.
+
+**Dependencies:** 009
+
+---
+
+## Deferred / Watchlist
+
+- Enabling runtime support for declared-but-disabled providers (`codex`, `cursor`, `gemini`, `pi`).
+- Full executable cascade support for `roadmap` and `stories` runtime adapters.
+- Dynamic model discovery beyond `opencode`.
+- Full runtime wiring for schema-declared approval gates not currently active.
 
 ## Notes
 
-- This roadmap is a living document that evolves as milestones complete
-- Milestone ordering is based on dependency and value delivery, not calendar dates
-- Stories and tasks within each milestone are planned separately
-- Milestone headings link to their respective folders in `docs/planning/milestones/`
+- This roadmap is now delta-first: active and future milestones only.
+- Historical detail remains in milestone folders and git history.
+- Milestone headings link to `docs/planning/milestones/<slug>/`.
+- Draft split milestone `011-workflow-visualization-hardening` is consolidated into milestone 010.
