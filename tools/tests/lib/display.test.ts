@@ -416,6 +416,87 @@ describe("display utilities", () => {
       expect(output[5]).toContain(chalk.dim("GATE"));
       expect(output[5]).toContain(chalk.yellow("none"));
     });
+
+    test("renders mixed annotated and unannotated steps in Example 1 style", () => {
+      const output = renderExpandedPhase(
+        createExpandedNode({
+          reads: ["milestones/M1/MILESTONE.md, ROADMAP.md"],
+          steps: [
+            { text: "1. Read milestone description" },
+            {
+              annotation: { effect: "replaced", flag: "headless" },
+              text: "2. Single-pass autonomous generation",
+            },
+            {
+              annotation: { effect: "replaced", flag: "headless" },
+              text: "3. Generate without iteration",
+            },
+            { text: "4. Number stories (S-001, S-002...)" },
+            { text: "5. Write each as separate file" },
+            {
+              annotation: { effect: "added", flag: "force" },
+              text: "6. Auto-approve all changes",
+            },
+          ],
+          writes: ["stories/S-NNN-*.md"],
+        }),
+      );
+      const step1Line = output.find((line) =>
+        line.includes("1. Read milestone description"),
+      );
+      const step2Line = output.find((line) =>
+        line.includes("2. Single-pass autonomous generation"),
+      );
+      const step3Line = output.find((line) =>
+        line.includes("3. Generate without iteration"),
+      );
+      const step4Line = output.find((line) =>
+        line.includes("4. Number stories (S-001, S-002...)"),
+      );
+      const step5Line = output.find((line) =>
+        line.includes("5. Write each as separate file"),
+      );
+      const step6Line = output.find((line) =>
+        line.includes("6. Auto-approve all changes"),
+      );
+      const readsLine = output.find((line) => line.includes("READS"));
+      const writesLine = output.find((line) => line.includes("WRITES"));
+
+      expect(step1Line).toBeDefined();
+      expect(step1Line).toContain(chalk.dim("STEPS"));
+
+      expect(step2Line).toBeDefined();
+      expect(step2Line).toContain(chalk.yellow(MARKER_REPLACED));
+      expect(step2Line).toContain("[headless]");
+
+      expect(step3Line).toBeDefined();
+      expect(step3Line).toContain(chalk.yellow(MARKER_REPLACED));
+      expect(step3Line).toContain("[headless]");
+
+      expect(step4Line).toBeDefined();
+      expect(step4Line).not.toContain("[");
+
+      expect(step5Line).toBeDefined();
+      expect(step5Line).not.toContain("[");
+
+      expect(step6Line).toBeDefined();
+      expect(step6Line).toContain(chalk.green(MARKER_ADDED));
+      expect(step6Line).toContain("[force]");
+
+      expect(readsLine).toBeDefined();
+      expect(readsLine).not.toContain(MARKER_ADDED);
+      expect(readsLine).not.toContain(MARKER_REPLACED);
+      expect(readsLine).not.toContain(MARKER_STRUCK);
+      expect(readsLine).not.toContain("[headless]");
+      expect(readsLine).not.toContain("[force]");
+
+      expect(writesLine).toBeDefined();
+      expect(writesLine).not.toContain(MARKER_ADDED);
+      expect(writesLine).not.toContain(MARKER_REPLACED);
+      expect(writesLine).not.toContain(MARKER_STRUCK);
+      expect(writesLine).not.toContain("[headless]");
+      expect(writesLine).not.toContain("[force]");
+    });
   });
 
   describe("renderPipelineTree", () => {

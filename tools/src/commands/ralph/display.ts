@@ -1021,7 +1021,7 @@ function renderExpandedPhase(node: PipelinePhaseNode): Array<string> {
     ...renderSection("READS", node.expandedDetail.reads),
     ...renderSection(
       "STEPS",
-      node.expandedDetail.steps.map((step) => step.text),
+      node.expandedDetail.steps.map((step) => renderAnnotatedStep(step)),
     ),
     ...renderSection("WRITES", node.expandedDetail.writes),
   ];

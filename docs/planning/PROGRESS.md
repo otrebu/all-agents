@@ -40,6 +40,11 @@
 - **Changes:** Added `formatStepWithAnnotation()` in `display.ts` to compute available width from `BOX_WIDTH`, indent, marker width, and ANSI-safe flag/tag widths via `string-width`; it now truncates styled step text with `truncate()` when needed and right-aligns the flag tag on a fixed line width. Updated `renderAnnotatedStep()` to use the new helper and expanded `display.test.ts` with short/medium/long right-alignment cases plus a truncation edge case while preserving existing SUB-010 annotation regression coverage.
 - **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-012
+- **Problem:** `renderExpandedPhase()` still rendered STEPS from raw `step.text`, so phase-level output could not display mixed annotated and unannotated steps in the Milestone Example 1 marker/tag style.
+- **Changes:** Updated `renderExpandedPhase()` to render `ExpandedPhaseDetail.steps` via `renderAnnotatedStep()` so annotated entries show marker color + right-aligned `[flag]` tags while unannotated entries keep standard indentation. Added an integration-level `display.test.ts` case that verifies the full STEPS block for mixed replaced/added/unannotated lines against Example 1 style patterns and confirms READS/WRITES remain unannotated.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001
