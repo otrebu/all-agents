@@ -1224,6 +1224,9 @@ function resolveSessionLogPath(input: {
   }
 
   const fallbackPath = getSessionJsonlPath(sessionId, repoRoot);
+  if (fallbackPath === null) {
+    return null;
+  }
   return existsSync(fallbackPath) ? fallbackPath : null;
 }
 
@@ -1506,12 +1509,12 @@ async function runImproveCheck(
   }
 
   const completedWithSession = getCompletedWithSessionId(subtasksFile);
-  const preflight = buildSessionLogPreflight(
-    completedWithSession,
+  const preflight = buildSessionLogPreflight({
+    completedSubtasks: completedWithSession,
     contextRoot,
-    3,
-    provider,
-  );
+    maxAttempts: 3,
+    preferredProvider: provider,
+  });
   const uniqueSessions = mergeSessionAnalysisTargets(preflight.available);
   const analyzableSessionIds = uniqueSessions
     .map((entry) => entry.sessionId)

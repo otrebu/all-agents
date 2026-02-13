@@ -19,20 +19,40 @@ import {
   test,
 } from "bun:test";
 
+type BunSpawnResult = ReturnType<typeof Bun.spawn>;
+interface MockSpawnProcess {
+  exitCode: null | number;
+  exited: Promise<number>;
+  kill: ReturnType<typeof mock>;
+  pid: number;
+  signalCode: null | string;
+  stderr: ReadableStream<Uint8Array>;
+  stdout: ReadableStream<Uint8Array>;
+}
+
+function parseSpawnCommand(command: unknown): Array<string> {
+  if (Array.isArray(command)) {
+    return command;
+  }
+
+  if (
+    command !== null &&
+    typeof command === "object" &&
+    "cmd" in command &&
+    Array.isArray((command as { cmd: unknown }).cmd)
+  ) {
+    return (command as { cmd: Array<string> }).cmd;
+  }
+
+  return [];
+}
+
 // =============================================================================
 // Mock Utilities
 // =============================================================================
 
 function createMockProcess(): {
-  proc: {
-    exitCode: null | number;
-    exited: Promise<number>;
-    kill: ReturnType<typeof mock>;
-    pid: number;
-    signalCode: null | string;
-    stderr: ReadableStream<Uint8Array>;
-    stdout: ReadableStream<Uint8Array>;
-  };
+  proc: MockSpawnProcess;
   resolveExited: (code: number) => void;
   stderr: ReturnType<typeof createMockStream>;
   stdout: ReturnType<typeof createMockStream>;
@@ -54,7 +74,7 @@ function createMockProcess(): {
     signalCode: null as null | string,
     stderr: stderrCtrl.stream,
     stdout: stdoutCtrl.stream,
-  };
+  } as MockSpawnProcess;
 
   return {
     proc,
@@ -102,9 +122,7 @@ function createMockStream(): {
   };
 }
 
-function createWhichMockProcess(): ReturnType<
-  typeof createMockProcess
->["proc"] {
+function createWhichMockProcess(): ReturnType<typeof Bun.spawn> {
   const stdoutCtrl = createMockStream();
   const stderrCtrl = createMockStream();
 
@@ -120,7 +138,7 @@ function createWhichMockProcess(): ReturnType<
     signalCode: null,
     stderr: stderrCtrl.stream,
     stdout: stdoutCtrl.stream,
-  };
+  } as unknown as ReturnType<typeof Bun.spawn>;
 }
 
 function makeOptions(overrides?: {
@@ -245,12 +263,12 @@ describe("headless lifecycle", () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
 
-    Bun.spawn = mock((command: unknown) => {
-      const args = command as Array<string>;
+    Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
+      const args = parseSpawnCommand(command);
       if (args[0] === "which") {
         return createWhichMockProcess();
       }
-      return mockProc.proc;
+      return mockProc.proc as unknown as BunSpawnResult;
     });
 
     mockProc.proc.kill = mock((signal?: number | string) => {
@@ -275,12 +293,12 @@ describe("headless lifecycle", () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
 
-    Bun.spawn = mock((command: unknown) => {
-      const args = command as Array<string>;
+    Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
+      const args = parseSpawnCommand(command);
       if (args[0] === "which") {
         return createWhichMockProcess();
       }
-      return mockProc.proc;
+      return mockProc.proc as unknown as BunSpawnResult;
     });
 
     const exitTimer = setTimeout(() => {
@@ -302,12 +320,12 @@ describe("headless lifecycle", () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
 
-    Bun.spawn = mock((command: unknown) => {
-      const args = command as Array<string>;
+    Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
+      const args = parseSpawnCommand(command);
       if (args[0] === "which") {
         return createWhichMockProcess();
       }
-      return mockProc.proc;
+      return mockProc.proc as unknown as BunSpawnResult;
     });
 
     const exitTimer = setTimeout(() => {
@@ -331,12 +349,12 @@ describe("headless lifecycle", () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
 
-    Bun.spawn = mock((command: unknown) => {
-      const args = command as Array<string>;
+    Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
+      const args = parseSpawnCommand(command);
       if (args[0] === "which") {
         return createWhichMockProcess();
       }
-      return mockProc.proc;
+      return mockProc.proc as unknown as BunSpawnResult;
     });
 
     const exitTimer = setTimeout(() => {
@@ -362,7 +380,9 @@ describe("supervised lifecycle", () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
 
-    Bun.spawn = mock(() => createWhichMockProcess());
+    Bun.spawn = mock(
+      (): ReturnType<typeof Bun.spawn> => createWhichMockProcess(),
+    );
 
     try {
       await invokeCodex({
@@ -379,7 +399,7 @@ describe("supervised lifecycle", () => {
 
     const spawnCalls = (Bun.spawn as ReturnType<typeof mock>).mock.calls;
     const didSpawnInteractive = spawnCalls.some((call: Array<unknown>) => {
-      const args = call as Array<string>;
+      const args = parseSpawnCommand(call.at(0));
       return args[0] === "codex" && args[1] !== "resume";
     });
     expect(didSpawnInteractive).toBe(false);
@@ -391,12 +411,12 @@ describe("supervised lifecycle", () => {
     activeMockProcesses.push(mockProc);
     const signals: Array<string> = [];
 
-    Bun.spawn = mock((command: unknown) => {
-      const args = command as Array<string>;
+    Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
+      const args = parseSpawnCommand(command);
       if (args[0] === "which") {
         return createWhichMockProcess();
       }
-      return mockProc.proc;
+      return mockProc.proc as unknown as ReturnType<typeof Bun.spawn>;
     });
 
     mockProc.proc.kill = mock((signal?: number | string) => {

@@ -154,8 +154,8 @@ describe("buildSessionLogPreflight", () => {
     writeFileSync(availableLogPath, '{"type":"user"}\n', "utf8");
 
     try {
-      const preflight = buildSessionLogPreflight(
-        [
+      const preflight = buildSessionLogPreflight({
+        completedSubtasks: [
           {
             acceptanceCriteria: ["done"],
             commitHash: "abc1234",
@@ -184,8 +184,8 @@ describe("buildSessionLogPreflight", () => {
             title: "Missing",
           },
         ],
-        rootDirectory,
-      );
+        contextRoot: rootDirectory,
+      });
 
       expect(preflight.available).toHaveLength(1);
       expect(preflight.available[0]).toMatchObject({

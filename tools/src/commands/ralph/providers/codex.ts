@@ -437,9 +437,13 @@ async function invokeCodexHeadless(
   const stdoutPromise = new Response(proc.stdout).text();
   const stderrPromise = collectStreamText(proc.stderr);
 
-  const exitPromise: Promise<ExitOutcome> = (async () => {
-    await proc.exited;
-    return "exited";
+  const exitPromise: Promise<ExitOutcome> = (async (): Promise<ExitOutcome> => {
+    try {
+      await proc.exited;
+      return "exited";
+    } catch {
+      return "exited";
+    }
   })();
 
   const hardTimeoutPromise = new Promise<ExitOutcome>((resolve): void => {
