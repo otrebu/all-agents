@@ -8,6 +8,13 @@
 
 ## Session Notes
 
+## 2026-02-13
+
+### SUB-006
+- **Problem:** Ralph pipeline command completions and docs were missing explicit `--dry-run` coverage across build/plan/calibrate flows, and help-output regression checks were incomplete for the required commands.
+- **Changes:** Added `--dry-run` completion entries in zsh and fish for all eight Ralph pipeline commands (`build`, `plan roadmap|stories|tasks|subtasks`, `calibrate all|intention|technical`), updated the Ralph README section with a dedicated dry-run preview block and examples, and extended Ralph E2E help assertions so `ralph build --help` and `ralph plan stories --help` require `--dry-run` (while preserving existing `ralph calibrate all --help` coverage). Verified targeted help tests and completion E2E regressions pass.
+- **Files:** `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `tools/README.md`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001

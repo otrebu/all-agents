@@ -211,6 +211,7 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l calibrate-eve
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l force -d 'Approval mode: auto-apply validation/calibration queue proposals'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l review -d 'Approval mode: require explicit approval for validation/calibration queue proposals'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l from -d 'Resume cascade from this level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l dry-run -d 'Show execution plan without executing'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph build' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 
@@ -241,6 +242,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l force -d 'Skip all approval 
 complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l review -d 'Require all approval prompts'
 complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l from -d 'Resume cascade from this level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l dry-run -d 'Show execution plan without executing'
 complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_roadmap -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 
@@ -258,6 +260,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_stories -l from -d 'Resume cascade from
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l dry-run -d 'Show execution plan without executing'
 
 # ralph plan tasks options
 function __fish_aaa_ralph_plan_tasks
@@ -276,6 +279,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_tasks -l from -d 'Resume cascade from t
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l dry-run -d 'Show execution plan without executing'
 
 # ralph plan subtasks options
 function __fish_aaa_ralph_plan_subtasks
@@ -296,6 +300,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s H -l headless -d 'Headless 
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l cascade -d 'Cascade to target level' -xa '(aaa __complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l calibrate-every -d 'Run calibration every N iterations' -r
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l validate-first -d 'Run pre-build validation before cascading build'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l dry-run -d 'Show execution plan without executing'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l provider -d 'AI provider' -xa '(aaa __complete provider 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l file -d 'Source file path' -ra '(__fish_complete_path)'
@@ -390,6 +395,7 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a improve -
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a all -d 'Run all checks'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l force -d 'Skip approval'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l review -d 'Require approval'
+complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l dry-run -d 'Show execution plan without executing'
 
 # ralph archive subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph archive' -a subtasks -d 'Archive completed subtasks'

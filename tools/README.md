@@ -366,6 +366,24 @@ aaa ralph build -p
 
 **Multi-provider support:** All ralph execution commands (`build`, `plan`, `calibrate`) accept `--provider <name>` and `--model <name>` flags for multi-provider execution.
 
+**Dry-run preview (`--dry-run`):** Pipeline commands can print an execution plan and exit without side effects.
+
+```bash
+# Build
+aaa ralph build --dry-run
+
+# Plan pipeline levels
+aaa ralph plan roadmap --dry-run
+aaa ralph plan stories --milestone 003-feature --dry-run
+aaa ralph plan tasks --milestone 003-feature --dry-run
+aaa ralph plan subtasks --milestone 003-feature --dry-run
+
+# Calibration pipeline levels
+aaa ralph calibrate all --dry-run
+aaa ralph calibrate intention --dry-run
+aaa ralph calibrate technical --dry-run
+```
+
 Queue mutation behavior in build mode:
 
 - `--validate-first` can apply queue proposals that create, update, remove, reorder, or split pending subtasks before iteration selection.
@@ -378,12 +396,15 @@ Cascade chains planning levels forward through execution. The level sequence is:
 
 `roadmap → stories → tasks → subtasks → build → calibrate`
 
-Planning levels (`roadmap`, `stories`, `tasks`, `subtasks`) serve as **entry points** where the cascade begins. Only `build` and `calibrate` are autonomous execution targets. Use `--from` to resume a cascade from a specific level (must be at or after the current command's level).
+Planning levels (`roadmap`, `stories`, `tasks`, `subtasks`) serve as **entry points** where the cascade begins. Cascade execution currently auto-runs `tasks`, `subtasks`, `build`, and `calibrate`; `roadmap` and `stories` remain entry-only. Use `--from` to resume a cascade from a specific level (must be at or after the current command's level).
 
 ```bash
 # Chain from stories through to calibrate
 aaa ralph plan stories --milestone docs/planning/milestones/003-feature --cascade calibrate
 aaa ralph plan stories --milestone docs/planning/milestones/003-feature --cascade calibrate --from stories
+
+# Chain from stories through tasks + subtasks only
+aaa ralph plan stories --milestone docs/planning/milestones/003-feature --cascade subtasks
 
 # Chain from subtasks to build only
 aaa ralph plan subtasks --milestone 003-feature --cascade build

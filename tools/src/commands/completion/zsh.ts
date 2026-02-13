@@ -289,6 +289,7 @@ _aaa_ralph() {
                         '--force[Approval mode: auto-apply validation/calibration queue proposals]' \\
                         '--review[Approval mode: require explicit approval for validation/calibration queue proposals]' \\
                         '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
+                        '--dry-run[Show execution plan without executing]' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model'
                     ;;
@@ -316,6 +317,7 @@ _aaa_ralph() {
                     _arguments \\
                         '--force[Skip approval]' \\
                         '--review[Require approval]' \\
+                        '--dry-run[Show execution plan without executing]' \\
                         '1:subcommand:(intention technical improve all)'
                     ;;
                 archive)
@@ -362,6 +364,7 @@ _aaa_ralph_plan() {
                         '--review[Require all approval prompts]' \\
                         '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
+                        '--dry-run[Show execution plan without executing]' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model'
                     ;;
@@ -375,7 +378,8 @@ _aaa_ralph_plan() {
                         '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model' \\
-                        '--cascade[Cascade to target level]:target:_aaa_cascade_target'
+                        '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
+                        '--dry-run[Show execution plan without executing]'
                     ;;
                 tasks)
                     _arguments \\
@@ -390,7 +394,8 @@ _aaa_ralph_plan() {
                         '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model' \\
-                        '--cascade[Cascade to target level]:target:_aaa_cascade_target'
+                        '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
+                        '--dry-run[Show execution plan without executing]'
                     ;;
                 subtasks)
                     _arguments \\
@@ -409,6 +414,7 @@ _aaa_ralph_plan() {
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--calibrate-every[Run calibration every N iterations]:number:' \\
                         '--validate-first[Run pre-build validation before cascading build]' \\
+                        '--dry-run[Show execution plan without executing]' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model' \\
                         '--file[Source file path]:file:_files' \\

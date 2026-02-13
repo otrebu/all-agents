@@ -110,6 +110,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("Approval mode: stage");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
+    expect(stdout).toContain("--dry-run");
   });
 
   test("ralph build rejects --force with --review before running build logic", async () => {
@@ -386,6 +387,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("Require all approval prompts");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
+    expect(stdout).toContain("--dry-run");
   });
 
   test("ralph plan stories rejects --force with --review before main logic", async () => {
