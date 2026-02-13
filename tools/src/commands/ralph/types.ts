@@ -133,6 +133,22 @@ interface CascadeResult {
   success: boolean;
 }
 
+// =============================================================================
+// Pipeline Preview Rendering Types
+// =============================================================================
+
+/**
+ * One-line summary rendered for a collapsed pipeline phase.
+ */
+interface CollapsedPhaseSummary {
+  /** One-line phase description */
+  description: string;
+  /** Optional gate indicator tag for collapsed one-line display */
+  gateIndicator?: string;
+  /** Estimated duration text (for example: "~5 min") */
+  timeEstimate: string;
+}
+
 /**
  * Entry type discriminator for milestone daily JSONL logs.
  */
@@ -144,6 +160,20 @@ type DailyLogEntryType =
   | "queue-proposal"
   | "subtask-review"
   | "validation";
+
+/**
+ * Full section detail rendered for an expanded pipeline phase.
+ */
+interface ExpandedPhaseDetail {
+  /** Optional approval gate detail shown for this phase */
+  gate?: string;
+  /** Inputs consumed by this phase */
+  reads: Array<string>;
+  /** Process steps performed by this phase */
+  steps: Array<string>;
+  /** Outputs produced by this phase */
+  writes: Array<string>;
+}
 
 /** Hook action types */
 type HookAction = "log" | "notify" | "pause";
@@ -262,6 +292,20 @@ interface LoadedSubtasksFile extends SubtasksFile {
 }
 
 /**
+ * Tree node model for pipeline phase rendering.
+ */
+interface PipelinePhaseNode {
+  /** Expanded vs collapsed rendering mode for this phase */
+  expanded: boolean;
+  /** Expanded mode detail sections */
+  expandedDetail: ExpandedPhaseDetail;
+  /** Display name of the phase */
+  name: string;
+  /** Collapsed mode one-line summary */
+  summary: CollapsedPhaseSummary;
+}
+
+/**
  * Extended configuration for post-iteration hooks
  */
 interface PostIterationHookConfig extends HookConfig {
@@ -330,10 +374,6 @@ interface QueueProposal {
   timestamp: string;
 }
 
-// =============================================================================
-// Subtask Types (matches subtasks.schema.json)
-// =============================================================================
-
 /**
  * Queue proposal event emitted from validation or calibration.
  */
@@ -347,15 +387,15 @@ interface QueueProposalLogEntry {
   type: "queue-proposal";
 }
 
+// =============================================================================
+// Subtask Types (matches subtasks.schema.json)
+// =============================================================================
+
 /** Remove a pending subtask by ID. */
 interface QueueRemoveOperation {
   id: string;
   type: "remove";
 }
-
-// =============================================================================
-// Queue Operation Types
-// =============================================================================
 
 /** Move an existing subtask to an exact queue index. */
 interface QueueReorderOperation {
@@ -363,6 +403,10 @@ interface QueueReorderOperation {
   toIndex: number;
   type: "reorder";
 }
+
+// =============================================================================
+// Queue Operation Types
+// =============================================================================
 
 /** Replace one subtask with multiple deterministic children. */
 interface QueueSplitOperation {
@@ -425,6 +469,16 @@ interface RalphConfig {
 interface SelfImprovementConfig {
   /** Mode for handling self-improvement suggestions */
   mode: "autofix" | "off" | "suggest";
+}
+
+/**
+ * Annotation metadata for a single pipeline step.
+ */
+interface StepAnnotation {
+  /** Annotation effect to render in the pipeline diagram */
+  effect: "added" | "replaced" | "struck";
+  /** Flag responsible for this annotation effect */
+  flag: string;
 }
 
 /**
@@ -635,8 +689,10 @@ export {
   type CascadeLevel,
   type CascadeOptions,
   type CascadeResult,
+  type CollapsedPhaseSummary,
   computeFingerprint,
   type DailyLogEntryType,
+  type ExpandedPhaseDetail,
   getProviderTimingMs,
   type HookAction,
   type HookConfig,
@@ -648,6 +704,7 @@ export {
   normalizeIterationDiaryEntry,
   normalizeIterationTiming,
   normalizeStatus,
+  type PipelinePhaseNode,
   type PostIterationHookConfig,
   type QueueApplyLogEntry,
   type QueueFingerprint,
@@ -657,6 +714,7 @@ export {
   type QueueSubtaskDraft,
   type RalphConfig,
   type SelfImprovementConfig,
+  type StepAnnotation,
   type Subtask,
   type SubtaskMetadata,
   type SubtasksFile,

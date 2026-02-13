@@ -15,6 +15,11 @@
 - **Changes:** Added `--dry-run` completion entries in zsh and fish for all eight Ralph pipeline commands (`build`, `plan roadmap|stories|tasks|subtasks`, `calibrate all|intention|technical`), updated the Ralph README section with a dedicated dry-run preview block and examples, and extended Ralph E2E help assertions so `ralph build --help` and `ralph plan stories --help` require `--dry-run` (while preserving existing `ralph calibrate all --help` coverage). Verified targeted help tests and completion E2E regressions pass.
 - **Files:** `tools/src/commands/completion/zsh.ts`, `tools/src/commands/completion/fish.ts`, `tools/README.md`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
 
+### SUB-007
+- **Problem:** Pipeline preview rendering lacked foundational tree-node contracts and a collapsed-node renderer, so downstream tree rendering could not consistently format connector symbols, summaries, and gate indicators.
+- **Changes:** Added new pipeline tree types in `types.ts` (`PipelinePhaseNode`, `CollapsedPhaseSummary`, `ExpandedPhaseDetail`, `StepAnnotation`) and exported them for downstream renderers. Implemented `renderCollapsedPhase(node, isLast)` in `display.ts` to emit a single-line tree row with `├─`/`└─` connector selection, cyan phase name, dim description/time estimate, and optional yellow gate indicator. Added focused `display.test.ts` coverage for with-gate vs without-gate output and last-node vs non-last-node connector selection.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-12
 
 ### SUB-001

@@ -3,7 +3,10 @@
  */
 
 import type { BuildPracticalSummary } from "@tools/commands/ralph/summary";
-import type { CascadeResult } from "@tools/commands/ralph/types";
+import type {
+  CascadeResult,
+  PipelinePhaseNode,
+} from "@tools/commands/ralph/types";
 
 import {
   formatDuration,
@@ -12,6 +15,7 @@ import {
   renderBuildPracticalSummary,
   renderCascadeProgress,
   renderCascadeSummary,
+  renderCollapsedPhase,
   renderCommandBanner,
   renderEventLine,
   renderInvocationHeader,
@@ -294,6 +298,49 @@ describe("display utilities", () => {
       expect(result).toContain("[tasks]");
       expect(result).toContain("[subtasks]");
       expect(result).toContain("build");
+    });
+  });
+
+  describe("renderCollapsedPhase", () => {
+    function createCollapsedNode(
+      gateIndicator?: string,
+      name = "tasks",
+    ): PipelinePhaseNode {
+      return {
+        expanded: false,
+        expandedDetail: { reads: [], steps: [], writes: [] },
+        name,
+        summary: {
+          description: "Break stories into task files",
+          gateIndicator,
+          timeEstimate: "~5 min",
+        },
+      };
+    }
+
+    test("renders non-last connector with gate indicator", () => {
+      const output = renderCollapsedPhase(
+        createCollapsedNode("[APPROVAL]"),
+        false,
+      );
+
+      expect(output).toContain("├─");
+      expect(output).toContain("tasks");
+      expect(output).toContain("Break stories into task files");
+      expect(output).toContain("~5 min");
+      expect(output).toContain("[APPROVAL]");
+      expect(output.includes("\n")).toBe(false);
+    });
+
+    test("renders last connector without gate indicator", () => {
+      const output = renderCollapsedPhase(createCollapsedNode(), true);
+
+      expect(output).toContain("└─");
+      expect(output).toContain("tasks");
+      expect(output).toContain("Break stories into task files");
+      expect(output).toContain("~5 min");
+      expect(output).not.toContain("[APPROVAL]");
+      expect(output.includes("\n")).toBe(false);
     });
   });
 

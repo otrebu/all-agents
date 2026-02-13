@@ -22,7 +22,12 @@ import wrapAnsi from "wrap-ansi";
 
 import type { ProviderType } from "./providers/types";
 import type { BuildPracticalSummary } from "./summary";
-import type { CascadeResult, IterationStatus, TokenUsage } from "./types";
+import type {
+  CascadeResult,
+  IterationStatus,
+  PipelinePhaseNode,
+  TokenUsage,
+} from "./types";
 
 // Box width for iteration displays (defined early for marked config)
 const BOX_WIDTH = 68;
@@ -881,6 +886,22 @@ function renderCascadeSummary(result: CascadeResult): string {
   });
 }
 
+/**
+ * Render a collapsed pipeline phase as a one-line tree row.
+ */
+function renderCollapsedPhase(
+  node: PipelinePhaseNode,
+  isLast: boolean,
+): string {
+  const connector = isLast ? "└─" : "├─";
+  const gatePart =
+    node.summary.gateIndicator === undefined
+      ? ""
+      : `  ${chalk.yellow(node.summary.gateIndicator)}`;
+
+  return `${connector} ${chalk.cyan(node.name)}  ${chalk.dim(node.summary.description)}  ${chalk.dim(node.summary.timeEstimate)}${gatePart}`;
+}
+
 function renderCommandBanner(data: CommandBannerData): string {
   const { lines, title, tone = "info" } = data;
   return renderSafeBox(lines.join("\n"), {
@@ -1420,6 +1441,7 @@ export {
   renderBuildSummary,
   renderCascadeProgress,
   renderCascadeSummary,
+  renderCollapsedPhase,
   renderCommandBanner,
   renderEventLine,
   renderInvocationHeader,
