@@ -17,6 +17,12 @@ import { join } from "node:path";
 const TOOLS_DIR = join(getContextRoot(), "tools");
 const CONTEXT_ROOT = getContextRoot();
 const CLI_ENTRY = join(import.meta.dir, "../../src/cli.ts");
+const DRY_RUN_HELP_TEXT =
+  "Preview execution plan without running (exits after showing pipeline diagram)";
+
+function normalizeCliHelpOutput(output: string): string {
+  return output.replaceAll(/\s+/g, " ").trim();
+}
 
 describe("ralph E2E", () => {
   let temporaryDirectory = "";
@@ -148,6 +154,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
     expect(stdout).toContain("--dry-run");
+    expect(normalizeCliHelpOutput(stdout)).toContain(DRY_RUN_HELP_TEXT);
   });
 
   test("ralph build rejects --force with --review before running build logic", async () => {
@@ -420,6 +427,7 @@ describe("ralph E2E", () => {
 
     expect(exitCode).toBe(0);
     expect(stdout).toContain("--dry-run");
+    expect(normalizeCliHelpOutput(stdout)).toContain(DRY_RUN_HELP_TEXT);
   });
 
   test("ralph plan roadmap rejects --force with --review before main logic", async () => {
@@ -457,6 +465,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
     expect(stdout).toContain("--dry-run");
+    expect(normalizeCliHelpOutput(stdout)).toContain(DRY_RUN_HELP_TEXT);
   });
 
   test("ralph plan stories rejects --force with --review before main logic", async () => {

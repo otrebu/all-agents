@@ -197,6 +197,11 @@
 - **Changes:** Removed all `blockedBy` runtime reads and messaging from the four command modules, kept `getNextSubtask()` as first-pending queue-order selection, simplified no-runnable and status/print pending previews to plain queue-order output, and retained legacy normalization only for `status` field stripping.
 - **Files:** `tools/src/commands/ralph/build.ts`, `tools/src/commands/ralph/config.ts`, `tools/src/commands/ralph/index.ts`, `tools/src/commands/ralph/status.ts`, `docs/planning/milestones/006-cascade-mode-for-good/subtasks.json`, `docs/planning/PROGRESS.md`
 
+### SUB-040
+- **Problem:** `--dry-run` help text was inconsistent and generic across Ralph pipeline commands, reducing discoverability of safe preview behavior in `--help` output.
+- **Changes:** Updated all 8 Ralph pipeline command `.option("--dry-run", ...)` descriptions in `index.ts` to a single shared sentence: `Preview execution plan without running (exits after showing pipeline diagram)`. Strengthened E2E help assertions in `ralph.test.ts` to verify this exact wording (whitespace-normalized) for `ralph build`, `ralph plan stories`, and `ralph calibrate all`.
+- **Files:** `tools/src/commands/ralph/index.ts`, `tools/tests/e2e/ralph.test.ts`, `docs/planning/PROGRESS.md`
+
 ## 2026-02-11
 
 ### SUB-031

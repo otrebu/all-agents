@@ -860,7 +860,10 @@ ralphCommand.addCommand(
       "--cascade <target>",
       "Chain forward to target level after build (e.g. calibrate). Levels: build, calibrate",
     )
-    .option("--dry-run", "Show execution plan without executing")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
@@ -2505,7 +2508,10 @@ planCommand.addCommand(
       "AI provider to use for planning (default: claude)",
     )
     .option("--model <name>", "Model to use for planning invocation")
-    .option("--dry-run", "Show execution plan without executing")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
@@ -2590,7 +2596,10 @@ planCommand.addCommand(
       "AI provider to use for planning (default: claude)",
     )
     .option("--model <name>", "Model to use for planning invocation")
-    .option("--dry-run", "Show execution plan without executing")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
@@ -2722,7 +2731,10 @@ planCommand.addCommand(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
     )
-    .option("--dry-run", "Show execution plan without executing")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
@@ -2906,7 +2918,10 @@ planCommand.addCommand(
       "AI provider to use for planning (default: claude)",
     )
     .option("--model <name>", "Model to use for planning invocation")
-    .option("--dry-run", "Show execution plan without executing")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
@@ -4140,7 +4155,10 @@ calibrateCommand.addCommand(
   new Command("intention")
     .description("Check for intention drift (code vs planning docs)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
-    .option("--dry-run", "Show execution plan without executing")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
@@ -4155,7 +4173,10 @@ calibrateCommand.addCommand(
   new Command("technical")
     .description("Check for technical drift (code quality issues)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
-    .option("--dry-run", "Show execution plan without executing")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
@@ -4184,7 +4205,10 @@ calibrateCommand.addCommand(
   new Command("all")
     .description("Run all calibration checks sequentially")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
-    .option("--dry-run", "Show execution plan without executing")
+    .option(
+      "--dry-run",
+      "Preview execution plan without running (exits after showing pipeline diagram)",
+    )
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
