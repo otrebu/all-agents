@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-034
+- **Problem:** Live approval prompts lacked a dedicated approval-gate card renderer, so gate decisions did not show a structured snapshot of generated artifacts, execution context, and keyboard options.
+- **Changes:** Added `ApprovalGateCardData` and `renderApprovalGateCard()` in `display.ts` with round `boxen` styling (`BOX_WIDTH`, padding `1`), a formatted gate header, section dividers, summary truncation behavior (first 5 entries + `... and N more` when list size is greater than 10), context line (`Config/Mode/Action`), and colored option shortcuts (`[Y]`, `[n]`, `[e]`). Expanded `display.test.ts` with focused coverage for formatted gate names, all section content, truncation behavior, and line-width safety.
+- **Files:** `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-032
 - **Problem:** Dry-run pipeline preview did not render approval gates with the milestone's required status vocabulary (`SKIP`, `PROMPT`, `NOTIFY-WAIT`, `EXIT-UNSTAGED`) and flag annotations, so approval behavior was still hard to read at a glance.
 - **Changes:** Reworked `renderApprovalGatePreview()` to accept `(gateName, resolvedAction, options)` and render `GATE <name> -> <STATUS>` with the requested styles: `SKIP` (dim green + `[force]`), `PROMPT` (yellow + `[review]`), `NOTIFY-WAIT` (cyan), and `⚠ EXIT-UNSTAGED` (yellow warning). Moved gate-line injection from `renderExpandedPhase()` into `renderPipelineTree()` so each expanded phase appends gate status at the end of its detail block. Updated `ApprovalGatePreview.resolvedAction` to runtime actions (`write|prompt|notify-wait|exit-unstaged`), refreshed display unit tests for all new behaviors, and added an E2E assertion that `--dry-run --force` output includes approval gate entries for gated cascade levels.

@@ -20,6 +20,7 @@ import stringWidth from "string-width";
 import supportsHyperlinks from "supports-hyperlinks";
 import wrapAnsi from "wrap-ansi";
 
+import type { ApprovalGate } from "./approvals";
 import type { ProviderType } from "./providers/types";
 import type { BuildPracticalSummary } from "./summary";
 import type {
@@ -46,6 +47,21 @@ const MARKER_STRUCK = "×";
 
 const STEP_INDENT_WIDTH = 3;
 const STEP_MARKER_WIDTH = 3;
+
+interface ApprovalGateActionOption {
+  color: "green" | "red" | "yellow";
+  key: string;
+  label: string;
+}
+
+interface ApprovalGateCardData {
+  actionOptions: Array<ApprovalGateActionOption>;
+  configMode: string;
+  executionMode: "headless" | "supervised";
+  gateName: ApprovalGate;
+  resolvedAction: string;
+  summaryLines: Array<string>;
+}
 
 interface ApprovalGateRenderOptions {
   force?: boolean;
@@ -303,6 +319,19 @@ function formatDuration(ms: number): string {
     return `${hours}h ${remainingMinutes}m`;
   }
   return `${hours}h ${remainingMinutes}m ${remainingSeconds}s`;
+}
+
+function formatGateName(gate: ApprovalGate): string {
+  const gateBody = gate.replace(/^create/, "").replace(/^on/, "");
+  const spaced = gateBody
+    .replaceAll(/(?<capital>[A-Z])/g, " $<capital>")
+    .trim();
+
+  if (gate.startsWith("create")) {
+    return `Create ${spaced}`;
+  }
+
+  return `${spaced[0]?.toUpperCase() ?? ""}${spaced.slice(1)}`;
 }
 
 /**
@@ -563,6 +592,10 @@ function formatTwoColumnRow(
   return `${safeLeft}${" ".repeat(spacingWidth)}${safeRight}`;
 }
 
+// =============================================================================
+// Markdown Rendering
+// =============================================================================
+
 function getColoredEventLabel(label: string, state: EventState): string {
   switch (state) {
     case "DONE": {
@@ -590,7 +623,7 @@ function getColoredEventLabel(label: string, state: EventState): string {
 }
 
 // =============================================================================
-// Markdown Rendering
+// Plan Subtasks Summary Helpers
 // =============================================================================
 
 /**
@@ -618,10 +651,6 @@ function getColoredStatus(status: IterationStatus): string {
     }
   }
 }
-
-// =============================================================================
-// Plan Subtasks Summary Helpers
-// =============================================================================
 
 /**
  * Get display label for a provider key.
@@ -740,6 +769,47 @@ function renderAnnotatedStep(step: PipelineStep): string {
     flag: step.annotation.flag,
     marker,
     stepText: styledStepText,
+  });
+}
+
+function renderApprovalGateCard(data: ApprovalGateCardData): string {
+  const maxSummaryLines = data.summaryLines.length > 10 ? 5 : 10;
+  const visibleSummary = data.summaryLines.slice(0, maxSummaryLines);
+  const remainingSummaryCount =
+    data.summaryLines.length - visibleSummary.length;
+  const sectionSeparator = chalk.dim("─".repeat(BOX_INNER_WIDTH));
+  const colorByOption: Record<
+    ApprovalGateActionOption["color"],
+    typeof chalk.green
+  > = {
+    green: chalk.green.bold,
+    red: chalk.red.bold,
+    yellow: chalk.yellow.bold,
+  };
+
+  const lines: Array<string> = [
+    chalk.cyan.bold(`APPROVE: ${formatGateName(data.gateName)}`),
+    sectionSeparator,
+    ...visibleSummary.map((line) => `  ${truncate(line, BOX_INNER_WIDTH - 2)}`),
+    ...(remainingSummaryCount > 0
+      ? [chalk.dim(`  ... and ${remainingSummaryCount} more`)]
+      : []),
+    sectionSeparator,
+    truncate(
+      `${chalk.dim("Config:")} ${chalk.cyan(data.configMode)}    ${chalk.dim("Mode:")} ${chalk.cyan(data.executionMode)}    ${chalk.dim("Action:")} ${chalk.cyan(data.resolvedAction)}`,
+      BOX_INNER_WIDTH,
+    ),
+    sectionSeparator,
+    ...data.actionOptions.map((option) => {
+      const color = colorByOption[option.color];
+      return `${color(`[${option.key}]`)} ${option.label}`;
+    }),
+  ];
+
+  return renderSafeBox(lines.join("\n"), {
+    borderStyle: "round",
+    padding: 1,
+    width: BOX_WIDTH,
   });
 }
 
@@ -1791,6 +1861,7 @@ function wrapText(text: string, width: number): Array<string> {
 const colorStatus = getColoredStatus;
 
 export {
+  type ApprovalGateCardData,
   BOX_WIDTH,
   type BuildSummaryData,
   colorStatus,
@@ -1812,6 +1883,7 @@ export {
   type PhaseCardData,
   type PlanSubtasksSummaryData,
   renderAnnotatedStep,
+  renderApprovalGateCard,
   renderApprovalGatePreview,
   renderBuildPracticalSummary,
   renderBuildSummary,

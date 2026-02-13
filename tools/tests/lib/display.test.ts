@@ -21,6 +21,7 @@ import {
   MARKER_STRUCK,
   type PlanSubtasksSummaryData,
   renderAnnotatedStep,
+  renderApprovalGateCard,
   renderApprovalGatePreview,
   renderBuildPracticalSummary,
   renderCascadeProgress,
@@ -423,6 +424,83 @@ describe("display utilities", () => {
       expect(output).toContain("EXIT-UNSTAGED");
       expect(output).toContain("⚠");
       expect(output).toContain(chalk.yellow("⚠ EXIT-UNSTAGED"));
+    });
+  });
+
+  describe("renderApprovalGateCard", () => {
+    const baseData = {
+      actionOptions: [
+        { color: "green" as const, key: "Y", label: "Approve and continue" },
+        { color: "red" as const, key: "n", label: "Abort cascade" },
+        { color: "yellow" as const, key: "e", label: "Edit files first" },
+      ],
+      configMode: "suggest",
+      executionMode: "supervised" as const,
+      gateName: "createStories" as const,
+      resolvedAction: "prompt",
+      summaryLines: [
+        "stories/001-STORY-preview.md",
+        "stories/002-STORY-flow.md",
+      ],
+    };
+
+    test("returns a non-empty boxen string with formatted gate name", () => {
+      const output = renderApprovalGateCard(baseData);
+
+      expect(output.length).toBeGreaterThan(0);
+      expect(output).toContain("Create Stories");
+      expect(output).toContain("╭");
+      expect(output).toContain("╯");
+    });
+
+    test("includes summary, context, and action options sections", () => {
+      const output = renderApprovalGateCard(baseData);
+
+      expect(output).toContain("stories/001-STORY-preview.md");
+      expect(output).toContain("Config:");
+      expect(output).toContain("Mode:");
+      expect(output).toContain("Action:");
+      expect(output).toContain("[Y]");
+      expect(output).toContain("[n]");
+      expect(output).toContain("[e]");
+    });
+
+    test("truncates summary list for more than 10 files", () => {
+      const output = renderApprovalGateCard({
+        ...baseData,
+        summaryLines: Array.from(
+          { length: 12 },
+          (_, index) => `stories/${String(index + 1).padStart(3, "0")}.md`,
+        ),
+      });
+
+      expect(output).toContain("stories/001.md");
+      expect(output).toContain("stories/005.md");
+      expect(output).not.toContain("stories/006.md");
+      expect(output).toContain("... and 7 more");
+    });
+
+    test("ensures rendered card lines do not exceed BOX_WIDTH", () => {
+      const output = renderApprovalGateCard({
+        ...baseData,
+        summaryLines: [
+          "stories/001-STORY-this-is-an-intentionally-very-long-file-name-to-check-width-truncation-and-safety.md",
+        ],
+      });
+
+      for (const line of output.split("\n")) {
+        expect(stringWidth(line)).toBeLessThanOrEqual(BOX_WIDTH);
+      }
+    });
+
+    test.each([
+      ["createStories", "Create Stories"],
+      ["createSubtasks", "Create Subtasks"],
+      ["onDriftDetected", "Drift Detected"],
+    ] as const)("formats gate name %s as %s", (gateName, expectedLabel) => {
+      const output = renderApprovalGateCard({ ...baseData, gateName });
+
+      expect(output).toContain(expectedLabel);
     });
   });
 
