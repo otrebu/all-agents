@@ -23,6 +23,7 @@ import wrapAnsi from "wrap-ansi";
 import type { ProviderType } from "./providers/types";
 import type { BuildPracticalSummary } from "./summary";
 import type {
+  ApprovalGatePreview,
   CascadeResult,
   CompactPreviewData,
   IterationStatus,
@@ -735,6 +736,50 @@ function renderAnnotatedStep(step: PipelineStep): string {
     marker,
     stepText: styledStepText,
   });
+}
+
+/**
+ * Render a one-line approval gate preview.
+ */
+function renderApprovalGatePreview(gate: ApprovalGatePreview): string {
+  const actionLabel = (() => {
+    switch (gate.resolvedAction) {
+      case "auto-proceed": {
+        const autoText =
+          gate.reason === undefined ? "AUTO" : `AUTO (${gate.reason})`;
+        return chalk.green(autoText);
+      }
+      case "exit-unstaged": {
+        const exitText =
+          gate.reason === undefined
+            ? "EXIT-UNSTAGED"
+            : `EXIT-UNSTAGED (${gate.reason})`;
+        return chalk.red(exitText);
+      }
+      case "notify-wait": {
+        const waitText =
+          gate.reason === undefined
+            ? "NOTIFY-WAIT"
+            : `NOTIFY-WAIT (${gate.reason})`;
+        return chalk.yellow(waitText);
+      }
+      case "prompt": {
+        const promptText =
+          gate.reason === undefined ? "PROMPT" : `PROMPT (${gate.reason})`;
+        return chalk.yellow.bold(promptText);
+      }
+      case "skip": {
+        const skipText =
+          gate.reason === undefined ? "SKIP" : `SKIP (${gate.reason})`;
+        return chalk.yellow(skipText);
+      }
+      default: {
+        return gate.resolvedAction;
+      }
+    }
+  })();
+
+  return `${gate.gateName} → ${actionLabel}`;
 }
 
 // =============================================================================
@@ -1738,6 +1783,7 @@ export {
   type PhaseCardData,
   type PlanSubtasksSummaryData,
   renderAnnotatedStep,
+  renderApprovalGatePreview,
   renderBuildPracticalSummary,
   renderBuildSummary,
   renderCascadeProgress,

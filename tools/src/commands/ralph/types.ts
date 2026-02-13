@@ -15,6 +15,25 @@ import { createHash } from "node:crypto";
 
 import type { ProviderType } from "./providers/types";
 
+/**
+ * Render metadata for an approval gate preview line.
+ */
+interface ApprovalGatePreview {
+  /** Raw approval config value for this gate (for example: suggest, always, auto) */
+  configValue: string;
+  /** Approval gate key name (for example: createStories) */
+  gateName: string;
+  /** Optional reason suffix shown in parentheses */
+  reason?: string;
+  /** Resolved action for current mode/flags */
+  resolvedAction:
+    | "auto-proceed"
+    | "exit-unstaged"
+    | "notify-wait"
+    | "prompt"
+    | "skip";
+}
+
 // =============================================================================
 // Build State Types
 // =============================================================================
@@ -756,6 +775,7 @@ function normalizeStatus(raw: string): IterationStatus {
 // =============================================================================
 
 export {
+  type ApprovalGatePreview,
   type BuildExecutionOptions,
   type BuildOptions,
   type BuildQueueOptions,

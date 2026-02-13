@@ -10,6 +10,11 @@
 
 ## 2026-02-13
 
+### SUB-016
+- **Problem:** Pipeline preview rendering lacked a dedicated approval-gate preview contract and formatter, so gate action outcomes (skip/prompt/auto/wait/exit) were not consistently represented in dry-run/live plan output utilities.
+- **Changes:** Added `ApprovalGatePreview` to Ralph shared types with `gateName`, `configValue`, `resolvedAction`, and optional `reason`; implemented and exported `renderApprovalGatePreview()` in `display.ts` to render `<gateName> → <ACTION> (<reason>)` with action-specific coloring (`skip` yellow with reason, `prompt` yellow bold, `auto-proceed` green as `AUTO`, `notify-wait` yellow, `exit-unstaged` red). Added focused `display.test.ts` coverage under `describe("renderApprovalGatePreview")` for all five actions and format/color assertions, including the Example 1 style `createStories → SKIP (--force)` line.
+- **Files:** `tools/src/commands/ralph/types.ts`, `tools/src/commands/ralph/display.ts`, `tools/tests/lib/display.test.ts`, `docs/planning/PROGRESS.md`
+
 ### SUB-006
 - **Problem:** Ralph pipeline command completions and docs were missing explicit `--dry-run` coverage across build/plan/calibrate flows, and help-output regression checks were incomplete for the required commands.
 - **Changes:** Added `--dry-run` completion entries in zsh and fish for all eight Ralph pipeline commands (`build`, `plan roadmap|stories|tasks|subtasks`, `calibrate all|intention|technical`), updated the Ralph README section with a dedicated dry-run preview block and examples, and extended Ralph E2E help assertions so `ralph build --help` and `ralph plan stories --help` require `--dry-run` (while preserving existing `ralph calibrate all --help` coverage). Verified targeted help tests and completion E2E regressions pass.

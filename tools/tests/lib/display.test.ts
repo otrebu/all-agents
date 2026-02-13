@@ -4,6 +4,7 @@
 
 import type { BuildPracticalSummary } from "@tools/commands/ralph/summary";
 import type {
+  ApprovalGatePreview,
   CascadeResult,
   PipelinePhaseNode,
   PipelineStep,
@@ -20,6 +21,7 @@ import {
   MARKER_STRUCK,
   type PlanSubtasksSummaryData,
   renderAnnotatedStep,
+  renderApprovalGatePreview,
   renderBuildPracticalSummary,
   renderCascadeProgress,
   renderCascadeSummary,
@@ -356,6 +358,58 @@ describe("display utilities", () => {
       expect(output).toContain("~5 min");
       expect(output).not.toContain("[APPROVAL]");
       expect(output.includes("\n")).toBe(false);
+    });
+  });
+
+  describe("renderApprovalGatePreview", () => {
+    function createGate(
+      resolvedAction: ApprovalGatePreview["resolvedAction"],
+      reason?: string,
+    ): ApprovalGatePreview {
+      return {
+        configValue: "suggest",
+        gateName: "createStories",
+        reason,
+        resolvedAction,
+      };
+    }
+
+    test("renders skip action with reason in yellow", () => {
+      const output = renderApprovalGatePreview(createGate("skip", "--force"));
+
+      expect(output).toContain("createStories");
+      expect(output).toContain("SKIP");
+      expect(output).toContain("(--force)");
+      expect(output).toContain(chalk.yellow("SKIP (--force)"));
+    });
+
+    test("renders prompt action in yellow bold", () => {
+      const output = renderApprovalGatePreview(createGate("prompt"));
+
+      expect(output).toContain("PROMPT");
+      expect(output).toContain(chalk.yellow.bold("PROMPT"));
+    });
+
+    test("renders auto-proceed action as AUTO in green", () => {
+      const output = renderApprovalGatePreview(createGate("auto-proceed"));
+
+      expect(output).toContain("AUTO");
+      expect(output).toContain(chalk.green("AUTO"));
+    });
+
+    test("renders notify-wait action in yellow", () => {
+      const output = renderApprovalGatePreview(createGate("notify-wait", "5m"));
+
+      expect(output).toContain("NOTIFY-WAIT");
+      expect(output).toContain("(5m)");
+      expect(output).toContain(chalk.yellow("NOTIFY-WAIT (5m)"));
+    });
+
+    test("renders exit-unstaged action in red", () => {
+      const output = renderApprovalGatePreview(createGate("exit-unstaged"));
+
+      expect(output).toContain("EXIT-UNSTAGED");
+      expect(output).toContain(chalk.red("EXIT-UNSTAGED"));
     });
   });
 
