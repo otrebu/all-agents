@@ -35,6 +35,7 @@ bin/aaa
 .claude/cache/
 .claude/tasks/
 .claude/usage-data/
+.claude/telemetry/
 
 docs/research/downloads/
 
