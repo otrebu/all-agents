@@ -10,7 +10,9 @@
     ["@semantic-release/npm", { "npmPublish": false, "pkgRoot": "tools" }],
     [
       "@semantic-release/exec",
-      { "prepareCmd": "bunx prettier --write CHANGELOG.md tools/package.json" }
+      {
+        "prepareCmd": "cd tools && ./node_modules/.bin/prettier --write ../CHANGELOG.md package.json"
+      }
     ],
     [
       "@semantic-release/git",
