@@ -24,7 +24,6 @@ jobs:
         run: bun install
 
       - name: Run semantic-release
-        working-directory: tools
-        run: bunx semantic-release
+        run: ./tools/node_modules/.bin/semantic-release --extends ./tools/.releaserc.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
