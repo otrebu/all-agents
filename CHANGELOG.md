@@ -1,3 +1,11 @@
+## [1.22.1](https://github.com/otrebu/all-agents/compare/v1.22.0...v1.22.1) (2026-02-14)
+
+### Bug Fixes
+
+- **dev:** upgrade commitlint for parser compatibility ([b22ae48](https://github.com/otrebu/all-agents/commit/b22ae48c8884c2a31752a496ee836392fb9d40ee))
+- **release:** restore changelog tracking and backfill history ([e485c8b](https://github.com/otrebu/all-agents/commit/e485c8bbeb384e2af7f4818778cbc62ebf304275))
+- **release:** run prepare formatter from tools cwd ([e12c79d](https://github.com/otrebu/all-agents/commit/e12c79df456f8880bfaff3d28ba327159a0716e7))
+
 # 1.22.0 (2026-02-13)
 
 ### Features
