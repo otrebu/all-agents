@@ -5,6 +5,57 @@ import { join } from "node:path";
 
 const TOOLS_DIR = join(getContextRoot(), "tools");
 
+function escapeSingleQuotes(value: string): string {
+  return value.replaceAll("'", "'\\''");
+}
+
+function formatZshWordArray(words: Array<string>): string {
+  return words.map((word) => `'${escapeSingleQuotes(word)}'`).join(" ");
+}
+
+async function runZshCompletionProbe(
+  words: Array<string>,
+  probeFunction: "_aaa_model" | "_aaa_provider",
+): Promise<Array<string>> {
+  const { stdout: completionScript } = await execa(
+    "bun",
+    ["run", "dev", "completion", "zsh"],
+    { cwd: TOOLS_DIR },
+  );
+
+  const toolPath = escapeSingleQuotes(TOOLS_DIR);
+  const wordsLiteral = formatZshWordArray(words);
+
+  const probeScript = `${completionScript}
+
+function aaa() { (cd '${toolPath}' && bun run dev "$@"); }
+
+_describe() {
+    local _label="$1"
+    local _array_name="$2"
+    local -a _entries
+    _entries=("\${(@P)_array_name}")
+    local _entry
+    for _entry in "\${_entries[@]}"; do
+        print -r -- "\${_entry}"
+    done
+}
+
+words=(${wordsLiteral})
+CURRENT=\${#words}
+${probeFunction}
+`;
+
+  const { stdout } = await execa("zsh", ["-fc", "source /dev/stdin"], {
+    input: probeScript,
+  });
+
+  return stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
 describe("completion E2E", () => {
   // Script generation tests
   describe("script generation", () => {
@@ -445,7 +496,7 @@ describe("completion E2E", () => {
         { cwd: TOOLS_DIR },
       );
       expect(stdout).toContain("--output-dir)");
-      expect(stdout).toContain("local output_dirs=$(aaa __complete milestone");
+      expect(stdout).toContain("local output_dirs=$(_aaa_complete milestone)");
       expect(stdout).toContain("--file)");
       expect(stdout).toContain('COMPREPLY=($(compgen -f -- "$cur"))');
       expect(stdout).toContain("--validate-first");
@@ -473,17 +524,66 @@ describe("completion E2E", () => {
       ]);
 
       expect(bashResult.stdout).toContain("--id)");
-      expect(bashResult.stdout).toContain("aaa __complete session-id");
+      expect(bashResult.stdout).toContain(
+        "local session_ids=$(_aaa_complete session-id)",
+      );
       expect(bashResult.stdout).toContain("--commit --id");
 
       expect(zshResult.stdout).toContain("_aaa_session_id");
-      expect(zshResult.stdout).toContain("aaa __complete session-id");
+      expect(zshResult.stdout).toContain("$(_aaa_complete session-id)");
       expect(zshResult.stdout).toContain("--id[Session ID to look up]");
 
       expect(fishResult.stdout).toContain(
         "__fish_aaa_session_path_or_cat -l id",
       );
-      expect(fishResult.stdout).toContain("aaa __complete session-id");
+      expect(fishResult.stdout).toContain("__fish_aaa_complete session-id");
+    });
+
+    test("zsh runtime provider completion resolves providers in plan stories context", async () => {
+      const providers = await runZshCompletionProbe(
+        ["aaa", "ralph", "plan", "stories", "--provider", ""],
+        "_aaa_provider",
+      );
+
+      expect(providers).toContain("claude");
+      expect(providers).toContain("codex");
+      expect(providers).toContain("cursor");
+      expect(providers).toContain("opencode");
+    });
+
+    test("zsh runtime provider completion falls back to aaa when resolved command fails", async () => {
+      const providers = await runZshCompletionProbe(
+        ["not-a-real-command", "ralph", "plan", "stories", "--provider", ""],
+        "_aaa_provider",
+      );
+
+      expect(providers).toContain("claude");
+      expect(providers).toContain("codex");
+      expect(providers).toContain("cursor");
+      expect(providers).toContain("opencode");
+    });
+
+    test("zsh runtime model completion stays provider-aware in plan stories context", async () => {
+      const models = await runZshCompletionProbe(
+        [
+          "not-a-real-command",
+          "ralph",
+          "plan",
+          "stories",
+          "--provider",
+          "codex",
+          "--model",
+          "",
+        ],
+        "_aaa_model",
+      );
+
+      expect(
+        models.some((entry) => entry.includes("openai/gpt-5.2-codex")),
+      ).toBe(true);
+      expect(
+        models.some((entry) => entry.includes("openai/gpt-5.3-codex")),
+      ).toBe(true);
     });
   });
 });

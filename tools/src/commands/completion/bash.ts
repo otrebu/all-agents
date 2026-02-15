@@ -5,7 +5,7 @@
  * - Self-contained (no _init_completion dependency)
  * - While-loop to find subcommand chain (skips flags)
  * - $prev check for flag value completion (highest priority)
- * - Dynamic completions via `aaa __complete <type>`
+ * - Dynamic completions via `<invoked-command> __complete <type>`
  * - Falls back to file completion via -o bashdefault -o default
  */
 export default function generateBashCompletion(): string {
@@ -18,6 +18,14 @@ _aaa_completions() {
     local cur prev
     cur="\${COMP_WORDS[COMP_CWORD]}"
     prev="\${COMP_WORDS[COMP_CWORD-1]}"
+    local completion_cmd="\${COMP_WORDS[0]}"
+    if [[ -z "$completion_cmd" ]]; then
+        completion_cmd="aaa"
+    fi
+
+    _aaa_complete() {
+        "$completion_cmd" __complete "$@" 2>/dev/null
+    }
 
     # PHASE 1: Flag value completion (highest priority)
     case "$prev" in
@@ -31,7 +39,7 @@ _aaa_completions() {
             ;;
         --milestone)
             # Dynamic milestone names + directory completion fallback
-            local milestones=$(aaa __complete milestone 2>/dev/null)
+            local milestones=$(_aaa_complete milestone)
             COMPREPLY=($(compgen -W "$milestones" -- "$cur"))
             # Also add directory completion
             COMPREPLY+=($(compgen -d -- "$cur"))
@@ -39,14 +47,14 @@ _aaa_completions() {
             ;;
         --output-dir)
             # Milestone names or directories
-            local output_dirs=$(aaa __complete milestone 2>/dev/null)
+            local output_dirs=$(_aaa_complete milestone)
             COMPREPLY=($(compgen -W "$output_dirs" -- "$cur"))
             COMPREPLY+=($(compgen -d -- "$cur"))
             return
             ;;
         --story)
             # Dynamic story names + file completion fallback
-            local stories=$(aaa __complete story 2>/dev/null)
+            local stories=$(_aaa_complete story)
             COMPREPLY=($(compgen -W "$stories" -- "$cur"))
             # Also add .md file completion
             COMPREPLY+=($(compgen -f -X '!*.md' -- "$cur"))
@@ -54,7 +62,7 @@ _aaa_completions() {
             ;;
         --task)
             # Dynamic task names + file completion fallback
-            local tasks=$(aaa __complete task 2>/dev/null)
+            local tasks=$(_aaa_complete task)
             COMPREPLY=($(compgen -W "$tasks" -- "$cur"))
             # Also add .md file completion
             COMPREPLY+=($(compgen -f -X '!*.md' -- "$cur"))
@@ -76,19 +84,19 @@ _aaa_completions() {
             ;;
         --cascade)
             # Dynamic cascade targets
-            local targets=$(aaa __complete cascade 2>/dev/null)
+            local targets=$(_aaa_complete cascade)
             COMPREPLY=($(compgen -W "$targets" -- "$cur"))
             return
             ;;
         --provider)
             # Dynamic provider names
-            local providers=$(aaa __complete provider 2>/dev/null)
+            local providers=$(_aaa_complete provider)
             COMPREPLY=($(compgen -W "$providers" -- "$cur"))
             return
             ;;
         --id)
             # Dynamic session IDs
-            local session_ids=$(aaa __complete session-id 2>/dev/null)
+            local session_ids=$(_aaa_complete session-id)
             COMPREPLY=($(compgen -W "$session_ids" -- "$cur"))
             return
             ;;
@@ -110,7 +118,7 @@ _aaa_completions() {
                 fi
                 ((j++))
             done
-            local models=$(aaa __complete $model_args 2>/dev/null | cut -f1)
+            local models=$(_aaa_complete $model_args | cut -f1)
             COMPREPLY=($(compgen -W "$models" -- "$cur"))
             return
             ;;

@@ -187,10 +187,19 @@ function getFilteredModelCompletions(
   if (providerArgument === undefined) {
     return getModelCompletions();
   }
+
   if (providerArgument in REGISTRY) {
-    return getModelCompletionsForProvider(providerArgument as ProviderType);
+    const providerModels = getModelCompletionsForProvider(
+      providerArgument as ProviderType,
+    );
+    if (providerModels.length > 0) {
+      return providerModels;
+    }
   }
-  return [];
+
+  // Fallback avoids empty completion sets when provider lookup fails or
+  // provider-specific registry data is currently unavailable.
+  return getModelCompletions();
 }
 
 /** Parse provider argument from completion argv (supports --provider and --provider=value) */

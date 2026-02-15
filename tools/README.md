@@ -705,6 +705,26 @@ Shell completion is **automatically offered** during `aaa setup --user`. If you 
 aaa setup --user
 ```
 
+### Worktree Switch Troubleshooting
+
+If tab completion looks stale (for example, provider/model suggestions are missing), ensure your active `aaa` symlink points to the intended worktree and reload completion:
+
+```bash
+# Point aaa to the current all-agents worktree
+aaa setup --user --worktree
+
+# Reload shell config so completion uses the updated command
+source ~/.zshrc   # or ~/.bashrc / fish config
+```
+
+Quick check:
+
+```bash
+aaa __complete model --provider codex
+```
+
+If this returns no rows unexpectedly, the active binary/completion source is likely not the worktree you expect.
+
 ### Manual Installation
 
 If you prefer to set up completion manually:

@@ -6,7 +6,7 @@
  * - #compdef aaa header for automatic loading
  * - _arguments with state machine for nested commands
  * - _describe for command descriptions
- * - Dynamic completions via `aaa __complete <type>`
+ * - Dynamic completions via `<invoked-command> __complete <type>`
  */
 export default function generateZshCompletion(): string {
   return `#compdef aaa
@@ -634,10 +634,41 @@ _aaa_review() {
     esac
 }
 
+# Helper: resolve completion command from current invocation
+_aaa_completion_cmd() {
+    if [[ -n "\${words[1]}" ]]; then
+        print -r -- "\${words[1]}"
+    else
+        print -r -- "aaa"
+    fi
+}
+
+# Helper: invoke dynamic completion handler using active command path
+_aaa_complete() {
+    local completion_cmd="$(_aaa_completion_cmd)"
+    local output=""
+
+    output="$("$completion_cmd" __complete "$@" 2>/dev/null)"
+    if [[ -n "$output" ]]; then
+        print -r -- "$output"
+        return 0
+    fi
+
+    if [[ "$completion_cmd" != "aaa" ]]; then
+        output="$(aaa __complete "$@" 2>/dev/null)"
+        if [[ -n "$output" ]]; then
+            print -r -- "$output"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 # Helper: complete story names (dynamic) + .md files
 _aaa_story_or_file() {
     local -a stories
-    stories=(\${(f)"$(aaa __complete story 2>/dev/null)"})
+    stories=(\${(f)"$(_aaa_complete story)"})
     if (( \${#stories} )); then
         _describe 'story' stories
     fi
@@ -647,7 +678,7 @@ _aaa_story_or_file() {
 # Helper: complete milestone names (dynamic) + directories
 _aaa_milestone_or_dir() {
     local -a milestones
-    milestones=(\${(f)"$(aaa __complete milestone 2>/dev/null)"})
+    milestones=(\${(f)"$(_aaa_complete milestone)"})
     if (( \${#milestones} )); then
         _describe 'milestone' milestones
     fi
@@ -657,7 +688,7 @@ _aaa_milestone_or_dir() {
 # Helper: complete task names (dynamic) + .md files
 _aaa_task_or_file() {
     local -a tasks
-    tasks=(\${(f)"$(aaa __complete task 2>/dev/null)"})
+    tasks=(\${(f)"$(_aaa_complete task)"})
     if (( \${#tasks} )); then
         _describe 'task' tasks
     fi
@@ -667,7 +698,7 @@ _aaa_task_or_file() {
 # Helper: complete cascade targets
 _aaa_cascade_target() {
     local -a targets
-    targets=(\${(f)"$(aaa __complete cascade 2>/dev/null)"})
+    targets=(\${(f)"$(_aaa_complete cascade)"})
     if (( \${#targets} )); then
         _describe 'target' targets
     fi
@@ -676,7 +707,7 @@ _aaa_cascade_target() {
 # Helper: complete provider names
 _aaa_provider() {
     local -a providers
-    providers=(\${(f)"$(aaa __complete provider 2>/dev/null)"})
+    providers=(\${(f)"$(_aaa_complete provider)"})
     if (( \${#providers} )); then
         _describe 'provider' providers
     fi
@@ -704,9 +735,9 @@ _aaa_model() {
 
     local raw
     if [[ -n "$provider_val" ]]; then
-        raw="$(aaa __complete model --provider "$provider_val" 2>/dev/null)"
+        raw="$(_aaa_complete model --provider "$provider_val")"
     else
-        raw="$(aaa __complete model 2>/dev/null)"
+        raw="$(_aaa_complete model)"
     fi
 
     # Parse tab-separated "id\\tcostHint" into zsh completion descriptions
@@ -729,7 +760,7 @@ _aaa_model() {
 # Helper: complete session IDs
 _aaa_session_id() {
     local -a session_ids
-    session_ids=(\${(f)"$(aaa __complete session-id 2>/dev/null)"})
+    session_ids=(\${(f)"$(_aaa_complete session-id)"})
     if (( \${#session_ids} )); then
         _describe 'session-id' session_ids
     fi
