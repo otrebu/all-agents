@@ -66,6 +66,28 @@ Everything below is forward work and should be planned as net-new deltas, not re
 
 ## Forward Milestones
 
+### 008. [008-prelude-aaa-ralph-load-screen](milestones/008-prelude-aaa-ralph-load-screen/): Cute ASCII Logos & Mascots
+
+**Status:** 🔲 Not started
+
+**Outcome:** Define and select a tiny, terminal-safe startup logo/mascot intro for first-run command execution.
+
+**Key deliverables:**
+
+- Two alternate logo-and-mascot variants (AAA-led and Ralph-led), both readable in plain-terminal environments.
+- Shared rendering constraints (size, fallback behavior, optional color strategy).
+- Explicit default choice and rationale documented in milestone artifact.
+
+**Success criteria:**
+
+- Both variants are documented with concise concept notes.
+- The selected variant has no blocking terminal-compatibility risks (size, wrapping, non-ASCII dependency).
+- Scope stays limited to intro-screen exploration and selection.
+
+**Dependencies:** none
+
+---
+
 ### 009. [009-doc-drift-guardrails](milestones/009-doc-drift-guardrails/): Workflow Contract Hardening
 
 **Status:** 🔲 Not started
