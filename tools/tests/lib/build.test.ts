@@ -188,6 +188,26 @@ describe("resolveValidationProposalMode", () => {
   });
 });
 
+describe("signal handler ownership", () => {
+  test("registers build signal handlers via owned references", () => {
+    const source = readFileSync(
+      path.join(import.meta.dir, "../../src/commands/ralph/build.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("let registeredSigintHandler");
+    expect(source).toContain("let registeredSigtermHandler");
+    expect(source).toContain('process.removeListener("SIGINT"');
+    expect(source).toContain('process.removeListener("SIGTERM"');
+    expect(source).not.toContain('process.removeAllListeners("SIGINT")');
+    expect(source).not.toContain('process.removeAllListeners("SIGTERM")');
+    expect(source).toContain(
+      "const unregisterSignalHandlers = registerSignalHandlers(() => {",
+    );
+    expect(source).toContain("unregisterSignalHandlers();");
+  });
+});
+
 describe("resolveApprovalForValidationProposal", () => {
   const stdinTtyDescriptor = Object.getOwnPropertyDescriptor(
     process.stdin,

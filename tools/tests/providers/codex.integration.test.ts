@@ -60,7 +60,6 @@ function createMockProcess(): {
   const stdoutCtrl = createMockStream();
   const stderrCtrl = createMockStream();
 
-  // eslint-disable-next-line @typescript-eslint/init-declarations -- assigned in Promise ctor
   let resolveExited!: (code: number) => void;
   const exitedPromise = new Promise<number>((resolve) => {
     resolveExited = resolve;
@@ -160,6 +159,7 @@ function makeOptions(overrides?: {
 const originalSpawn = Bun.spawn;
 const originalPrependListener = process.prependListener;
 const originalRemoveListener = process.removeListener;
+const originalProcessKill = process.kill;
 const originalStderrWrite = process.stderr.write;
 const originalConsoleError = console.error;
 const originalStdinIsTTYDescriptor = Object.getOwnPropertyDescriptor(
@@ -178,6 +178,11 @@ const VALID_JSONL = [
 ].join("\n");
 
 const MALFORMED_JSONL = '{"type":"thread.started"}\n{bad json}';
+const FAILED_JSONL = [
+  '{"type":"thread.started","thread_id":"thread-err","timestamp":1700000000000}',
+  '{"type":"error","message":"{\\"detail\\":\\"The requested model is unavailable.\\"}"}',
+  '{"type":"turn.failed","error":{"message":"{\\"detail\\":\\"The requested model is unavailable.\\"}"}}',
+].join("\n");
 
 function restoreTtyState(): void {
   if (originalStdinIsTTYDescriptor === undefined) {
@@ -219,6 +224,7 @@ beforeEach(() => {
   activeTimers = [];
   process.prependListener = originalPrependListener;
   process.removeListener = originalRemoveListener;
+  process.kill = originalProcessKill;
   process.stderr.write = mock(() => true) as typeof process.stderr.write;
   console.error = mock(() => {});
   restoreTtyState();
@@ -240,6 +246,7 @@ afterEach(() => {
   Bun.spawn = originalSpawn;
   process.prependListener = originalPrependListener;
   process.removeListener = originalRemoveListener;
+  process.kill = originalProcessKill;
   process.stderr.write = originalStderrWrite;
   console.error = originalConsoleError;
   restoreTtyState();
@@ -249,6 +256,7 @@ afterAll(() => {
   Bun.spawn = originalSpawn;
   process.prependListener = originalPrependListener;
   process.removeListener = originalRemoveListener;
+  process.kill = originalProcessKill;
   process.stderr.write = originalStderrWrite;
   console.error = originalConsoleError;
   restoreTtyState();
@@ -345,6 +353,40 @@ describe("headless lifecycle", () => {
     }
   });
 
+  test("prefers structured stdout failure details over noisy stderr", async () => {
+    const mockProc = createMockProcess();
+    activeMockProcesses.push(mockProc);
+
+    Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
+      const args = parseSpawnCommand(command);
+      if (args[0] === "which") {
+        return createWhichMockProcess();
+      }
+      return mockProc.proc as unknown as BunSpawnResult;
+    });
+
+    const exitTimer = setTimeout(() => {
+      mockProc.stdout.push(FAILED_JSONL);
+      mockProc.stderr.push(
+        "ERROR codex_core::rollout::list: state db missing rollout path",
+      );
+      mockProc.stdout.close();
+      mockProc.stderr.close();
+      mockProc.resolveExited(1);
+    }, 5);
+    activeTimers.push(exitTimer);
+
+    try {
+      await invokeCodex(makeOptions({ timeoutMs: 2000 }));
+      throw new Error("Expected invokeCodex to throw");
+    } catch (error: unknown) {
+      expect((error as Error).message).toContain(
+        "The requested model is unavailable.",
+      );
+      expect((error as Error).message).not.toContain("rollout::list");
+    }
+  });
+
   test("throws on malformed JSON lines", async () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
@@ -405,11 +447,11 @@ describe("supervised lifecycle", () => {
     expect(didSpawnInteractive).toBe(false);
   });
 
-  test("handles interrupt in supervised mode by propagating error", async () => {
+  test("propagates supervised SIGINT interruptions to parent process handlers", async () => {
     setTtyState(true, true);
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
-    const signals: Array<string> = [];
+    const propagatedSignals: Array<string> = [];
 
     Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
       const args = parseSpawnCommand(command);
@@ -419,32 +461,20 @@ describe("supervised lifecycle", () => {
       return mockProc.proc as unknown as ReturnType<typeof Bun.spawn>;
     });
 
-    mockProc.proc.kill = mock((signal?: number | string) => {
-      signals.push(String(signal));
-      if (signal === "SIGKILL") {
-        mockProc.stdout.close();
-        mockProc.stderr.close();
-        mockProc.resolveExited(137);
-      }
-    });
-
-    const signalListeners = new Map<string, () => void>();
-    process.prependListener = mock((event: string, listener: () => void) => {
-      signalListeners.set(event, listener);
-      return process;
-    }) as typeof process.prependListener;
-    process.removeListener = mock((event: string, listener: () => void) => {
-      const current = signalListeners.get(event);
-      if (current === listener) {
-        signalListeners.delete(event);
-      }
-      return process;
-    }) as typeof process.removeListener;
-
     const interruptTimer = setTimeout(() => {
-      signalListeners.get("SIGINT")?.();
+      mockProc.proc.signalCode = "SIGINT";
+      mockProc.stdout.close();
+      mockProc.stderr.close();
+      mockProc.resolveExited(130);
     }, 5);
     activeTimers.push(interruptTimer);
+
+    process.kill = mock((pid: number, signal?: number | string) => {
+      if (pid === process.pid && typeof signal === "string") {
+        propagatedSignals.push(signal);
+      }
+      return true;
+    }) as typeof process.kill;
 
     try {
       await invokeCodex({
@@ -457,7 +487,6 @@ describe("supervised lifecycle", () => {
       expect((error as Error).message).toContain("interrupted by SIGINT");
     }
 
-    expect(signals).toContain("SIGTERM");
-    expect(signals).toContain("SIGKILL");
+    expect(propagatedSignals).toContain("SIGINT");
   });
 });

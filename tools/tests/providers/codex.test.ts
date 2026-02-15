@@ -102,6 +102,8 @@ describe("buildCodexHeadlessArguments", () => {
 
     expect(args[0]).toBe("exec");
     expect(args).toContain("--json");
+    expect(args).toContain("--sandbox");
+    expect(args).toContain("workspace-write");
     expect(args).toContain("--skip-git-repo-check");
   });
 
@@ -114,7 +116,7 @@ describe("buildCodexHeadlessArguments", () => {
 
     const modelIndex = args.indexOf("--model");
     expect(modelIndex).not.toBe(-1);
-    expect(args[modelIndex + 1]).toBe("openai/gpt-5.2-codex");
+    expect(args[modelIndex + 1]).toBe("gpt-5.2-codex");
   });
 
   test("places prompt after double-dash separator", () => {
@@ -145,7 +147,7 @@ describe("buildCodexSupervisedArguments", () => {
 
     const modelIndex = args.indexOf("--model");
     expect(modelIndex).not.toBe(-1);
-    expect(args[modelIndex + 1]).toBe("openai/gpt-5.1-codex-mini");
+    expect(args[modelIndex + 1]).toBe("gpt-5.1-codex-mini");
   });
 });
 
@@ -215,6 +217,19 @@ describe("normalizeCodexResult", () => {
       output: 2,
       reasoning: undefined,
     });
+  });
+
+  test("extracts final message from item.completed payloads", () => {
+    const jsonl = [
+      '{"type":"thread.started","thread_id":"thread_item","timestamp":2000}',
+      '{"type":"item.completed","item":{"type":"reasoning","text":"internal"}}',
+      '{"type":"item.completed","item":{"type":"agent_message","text":"Final answer"}}',
+      '{"type":"turn.completed","timestamp":2600}',
+    ].join("\n");
+
+    const result = normalizeCodexResult(jsonl, 600);
+
+    expect(result.result).toBe("Final answer");
   });
 
   test("throws when no final completion event exists", () => {

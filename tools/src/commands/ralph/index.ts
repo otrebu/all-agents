@@ -1715,6 +1715,17 @@ async function handleCascadeExecution(
     (resolvedMilestonePath === null
       ? path.join(contextRoot, "subtasks.json")
       : path.join(resolvedMilestonePath, "subtasks.json"));
+  const cascadePath = [
+    fromLevel,
+    ...getLevelsInRange(fromLevel, cascadeTarget),
+  ];
+  console.log(
+    renderEventLine({
+      domain: "CASCADE",
+      message: `Cascade path: ${cascadePath.join(" -> ")}`,
+      state: "INFO",
+    }),
+  );
 
   const handoffLines = [chalk.dim(`Subtasks queue: ${subtasksPath}`)];
   if (shouldValidateFirst === true) {
@@ -2424,7 +2435,7 @@ async function runTasksStoryMode(
   const extraContext = `Planning tasks for story: ${storyPath}`;
 
   if (isHeadless) {
-    const logFile = getPlanningLogPath();
+    const logFile = getPlanningLogPath(resolvedMilestonePath ?? undefined);
     await invokeClaudeHeadless({
       extraContext,
       logFile,

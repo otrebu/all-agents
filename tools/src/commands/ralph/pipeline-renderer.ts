@@ -39,6 +39,8 @@ class PipelineRenderer {
 
   private previousRenderLineCount = 0;
 
+  private renderSuspended = false;
+
   private subtaskState: null | SubtaskRuntimeState = null;
 
   private readonly timers = new Set<ReturnType<typeof setInterval>>();
@@ -65,6 +67,15 @@ class PipelineRenderer {
     this.subtaskState = null;
     this.clearTimers();
     this.render();
+  }
+
+  resume(): void {
+    if (!this.headless || !this.isTTY || !this.renderSuspended) {
+      return;
+    }
+
+    this.renderSuspended = false;
+    this.previousRenderLineCount = 0;
   }
 
   setApprovalWait(gateName: string): void {
@@ -131,6 +142,14 @@ class PipelineRenderer {
     this.subtaskState = null;
     this.clearTimers();
     this.render();
+  }
+
+  suspend(): void {
+    if (!this.headless || !this.isTTY) {
+      return;
+    }
+
+    this.renderSuspended = true;
   }
 
   // eslint-disable-next-line max-params -- public API shape is part of milestone contract
@@ -201,18 +220,26 @@ class PipelineRenderer {
       return output;
     }
 
+    if (this.headless && this.renderSuspended) {
+      return output;
+    }
+
     if (this.headless) {
       const maxLineCount = Math.max(this.previousRenderLineCount, lines.length);
-      const moveUp =
+      const moveToRenderStart =
         this.previousRenderLineCount > 0
-          ? `\x1b[${this.previousRenderLineCount}A`
-          : "";
-      const clearLines = Array.from({ length: maxLineCount }, () => "\x1b[2K")
-        .join("\n")
-        .concat("\n");
-      const body = lines.map((line) => `\x1b[2K${line}`).join("\n");
+          ? `\x1b[${this.previousRenderLineCount}F`
+          : "\r";
+      const paddedLines =
+        maxLineCount === lines.length
+          ? lines
+          : [
+              ...lines,
+              ...Array.from({ length: maxLineCount - lines.length }, () => ""),
+            ];
+      const body = paddedLines.map((line) => `\x1b[2K${line}`).join("\n");
 
-      process.stdout.write(`${moveUp}\x1b[H${clearLines}\x1b[H${body}\n`);
+      process.stdout.write(`${moveToRenderStart}${body}\n`);
       this.previousRenderLineCount = lines.length;
       return output;
     }

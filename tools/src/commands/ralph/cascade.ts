@@ -39,6 +39,7 @@ import {
   renderPhaseCard,
 } from "./display";
 import PipelineRenderer from "./pipeline-renderer";
+import raiseSigint from "./signal";
 
 // =============================================================================
 // Types
@@ -508,7 +509,7 @@ async function promptContinue(
     // Handle Ctrl+C explicitly - propagate to process-level handler
     rl.on("SIGINT", () => {
       rl.close();
-      process.emit("SIGINT");
+      raiseSigint();
     });
 
     rl.question(

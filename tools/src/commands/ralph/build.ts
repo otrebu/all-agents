@@ -68,6 +68,7 @@ import {
 } from "./providers/session-adapter";
 import { applyAndSaveProposal } from "./queue-ops";
 import { getSessionJsonlPath } from "./session";
+import raiseSigint from "./signal";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
 import {
@@ -233,6 +234,9 @@ let hasSummaryBeenGenerated = false;
  * Null until runBuild initializes it
  */
 let summaryContext: null | SummaryContext = null;
+
+let registeredSigintHandler: (() => void) | null = null;
+let registeredSigtermHandler: (() => void) | null = null;
 
 // =============================================================================
 // Build Helpers
@@ -1122,7 +1126,7 @@ async function promptContinue(): Promise<boolean> {
     // Handle Ctrl+C explicitly - propagate to process-level handler
     rl.on("SIGINT", () => {
       rl.close();
-      process.emit("SIGINT");
+      raiseSigint();
     });
 
     rl.question(
@@ -1154,20 +1158,41 @@ async function promptContinue(): Promise<boolean> {
  * Removes existing handlers first to prevent accumulation
  * when runBuild() is called multiple times (e.g., cascade mode).
  */
-function registerSignalHandlers(onSignal?: () => void): void {
-  // Remove existing handlers to prevent accumulation
-  process.removeAllListeners("SIGINT");
-  process.removeAllListeners("SIGTERM");
+function registerSignalHandlers(onSignal?: () => void): () => void {
+  if (registeredSigintHandler !== null) {
+    process.removeListener("SIGINT", registeredSigintHandler);
+    registeredSigintHandler = null;
+  }
+  if (registeredSigtermHandler !== null) {
+    process.removeListener("SIGTERM", registeredSigtermHandler);
+    registeredSigtermHandler = null;
+  }
 
-  process.on("SIGINT", () => {
+  function handleSigint(): void {
     onSignal?.();
     generateSummaryAndExit(130);
-  });
+  }
 
-  process.on("SIGTERM", () => {
+  function handleSigterm(): void {
     onSignal?.();
     generateSummaryAndExit(143);
-  });
+  }
+
+  registeredSigintHandler = handleSigint;
+  registeredSigtermHandler = handleSigterm;
+  process.on("SIGINT", handleSigint);
+  process.on("SIGTERM", handleSigterm);
+
+  return () => {
+    if (registeredSigintHandler === handleSigint) {
+      process.removeListener("SIGINT", handleSigint);
+      registeredSigintHandler = null;
+    }
+    if (registeredSigtermHandler === handleSigterm) {
+      process.removeListener("SIGTERM", handleSigterm);
+      registeredSigtermHandler = null;
+    }
+  };
 }
 
 async function resolveApprovalForValidationProposal(options: {
@@ -1207,7 +1232,7 @@ async function resolveApprovalForValidationProposal(options: {
 
     rl.on("SIGINT", () => {
       rl.close();
-      process.emit("SIGINT");
+      raiseSigint();
       resolve(false);
     });
 
@@ -1466,7 +1491,7 @@ async function runBuild(
   summaryContext = null;
 
   // Register signal handlers for graceful summary + renderer cleanup on interrupt
-  registerSignalHandlers(() => {
+  const unregisterSignalHandlers = registerSignalHandlers(() => {
     renderer.stop();
   });
 
@@ -1561,6 +1586,7 @@ async function runBuild(
       // Reload subtasks file to get latest state
       const subtasksFile = loadSubtasksFile(subtasksPath);
       const remaining = countRemaining(subtasksFile.subtasks);
+      renderer.resume();
 
       // Check if all subtasks are complete
       if (remaining === 0) {
@@ -1647,6 +1673,7 @@ async function runBuild(
       }
 
       // Display iteration start box
+      renderer.suspend();
       console.log("\n");
       console.log(
         renderIterationStart({
@@ -1780,6 +1807,7 @@ async function runBuild(
       iteration += 1;
     }
   } finally {
+    unregisterSignalHandlers();
     renderer.stop();
   }
 }

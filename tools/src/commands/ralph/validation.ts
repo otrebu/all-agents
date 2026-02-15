@@ -16,6 +16,7 @@ import { appendMilestoneLogEntry } from "./config";
 import { executeHook } from "./hooks";
 import { invokeProviderSummary } from "./providers/summary";
 import { parseQueueOperations } from "./queue-ops";
+import raiseSigint from "./signal";
 
 interface BatchValidationResult {
   aligned: number;
@@ -544,7 +545,7 @@ async function promptSkipOrContinue(
 
     rl.on("SIGINT", () => {
       rl.close();
-      process.emit("SIGINT");
+      raiseSigint();
       resolve("skip");
     });
 

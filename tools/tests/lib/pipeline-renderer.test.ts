@@ -244,13 +244,16 @@ describe("PipelineRenderer", () => {
     const renderer = new PipelineRenderer(mockPhases, true, true);
 
     renderer.startPhase("stories");
+    renderer.setApprovalWait("createStories");
 
     const output = requireSpy(stdoutWriteSpy)
       .mock.calls.map(([chunk]) => String(chunk))
       .join("");
 
-    expect(output).toContain("\x1b[H");
+    expect(output).toContain("\r");
+    expect(output).toContain("\x1b[6F");
     expect(output).toContain("\x1b[2K");
+    expect(output).not.toContain("\x1b[H");
   });
 
   test("headless + non-TTY does not emit cursor controls", () => {
@@ -265,6 +268,40 @@ describe("PipelineRenderer", () => {
     expect(output).toContain("[PIPELINE]");
     expect(output).not.toContain("\x1b[H");
     expect(output).not.toContain("\x1b[2K");
+  });
+
+  test("headless + TTY suspend stops in-place rewrites until resumed", () => {
+    const renderer = new PipelineRenderer(mockPhases, true, true);
+
+    renderer.startPhase("stories");
+    const writeCallsBeforeSuspend =
+      requireSpy(stdoutWriteSpy).mock.calls.length;
+
+    renderer.suspend();
+    renderer.setApprovalWait("createStories");
+
+    expect(requireSpy(stdoutWriteSpy).mock.calls.length).toBe(
+      writeCallsBeforeSuspend,
+    );
+  });
+
+  test("headless + TTY resume resets rewind offset before next render", () => {
+    const renderer = new PipelineRenderer(mockPhases, true, true);
+
+    renderer.startPhase("stories");
+    renderer.suspend();
+    renderer.setApprovalWait("createStories");
+    requireSpy(stdoutWriteSpy).mock.calls.length = 0;
+
+    renderer.resume();
+    renderer.updateSubtask("SUB-301", "resume rendering", 1, 2);
+
+    const output = requireSpy(stdoutWriteSpy)
+      .mock.calls.map(([chunk]) => String(chunk))
+      .join("");
+
+    expect(output).toContain("\r");
+    expect(output).not.toContain("\x1b[6F");
   });
 
   test("supervised mode reprints full header on each render", () => {

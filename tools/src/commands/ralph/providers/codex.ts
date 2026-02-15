@@ -32,6 +32,8 @@ interface CodexEvent {
   cost?: unknown;
   /** Failure metadata */
   error?: unknown;
+  /** Nested item payload emitted by newer Codex JSONL streams */
+  item?: { message?: unknown; text?: unknown; type?: string };
   /** Message or content payload */
   message?: unknown;
   /** Legacy/alternate text payload */
@@ -85,6 +87,7 @@ const CODEX_DISCOVERY_MODEL_PATTERN =
 
 /** Codex signal exit codes (128 + signal number) */
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
+const OPENAI_MODEL_PREFIX = "openai/";
 
 /** Failure heuristics for Codex output and error surfaces */
 const CODEX_FAILURE_REASON_RULES: Array<{
@@ -152,10 +155,19 @@ function buildCodexHeadlessArguments(
   config: CodexConfig,
   prompt: string,
 ): Array<string> {
-  const args = ["exec", "--json", "--skip-git-repo-check"];
+  const args = [
+    "exec",
+    "--json",
+    "--sandbox",
+    "workspace-write",
+    "--skip-git-repo-check",
+  ];
 
   if (config.model !== undefined && config.model !== "") {
-    args.push("--model", config.model);
+    const normalizedModel = normalizeCodexModel(config.model);
+    if (normalizedModel !== "") {
+      args.push("--model", normalizedModel);
+    }
   }
 
   args.push("--", prompt);
@@ -172,7 +184,10 @@ function buildCodexSupervisedArguments(
   const args = ["exec", "--skip-git-repo-check"];
 
   if (config.model !== undefined && config.model !== "") {
-    args.push("--model", config.model);
+    const normalizedModel = normalizeCodexModel(config.model);
+    if (normalizedModel !== "") {
+      args.push("--model", normalizedModel);
+    }
   }
 
   args.push("--", prompt);
@@ -320,6 +335,13 @@ function extractCodexModelRecords(
 }
 
 function extractFailureMessage(event: CodexEvent): string {
+  if (isRecord(event.error)) {
+    const nestedMessage = getNested(event.error, "message");
+    if (typeof nestedMessage === "string" && nestedMessage.trim() !== "") {
+      return parseStructuredErrorMessage(nestedMessage);
+    }
+  }
+
   const candidates = [
     event.message,
     event.reason,
@@ -328,7 +350,7 @@ function extractFailureMessage(event: CodexEvent): string {
   ];
   for (const candidate of candidates) {
     if (typeof candidate === "string" && candidate.trim() !== "") {
-      return candidate.trim();
+      return parseStructuredErrorMessage(candidate);
     }
   }
 
@@ -336,6 +358,19 @@ function extractFailureMessage(event: CodexEvent): string {
 }
 
 function extractTextFromEvent(event: CodexEvent): string {
+  if (event.item !== undefined) {
+    const itemType = typeof event.item.type === "string" ? event.item.type : "";
+    if (itemType === "reasoning") {
+      return "";
+    }
+    if (typeof event.item.text === "string" && event.item.text !== "") {
+      return event.item.text;
+    }
+    if (typeof event.item.message === "string" && event.item.message !== "") {
+      return event.item.message;
+    }
+  }
+
   if (typeof event.text === "string" && event.text !== "") {
     return event.text;
   }
@@ -388,14 +423,33 @@ function getCodexFailureReason(
   return undefined;
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
+function getFailureMessageFromStdout(stdout: string): string {
+  if (stdout.trim() === "") {
+    return "";
+  }
+
+  try {
+    const events = parseCodexEvents(stdout);
+    const failedEvent = events.find(
+      (event) => event.type === "turn.failed" || event.type === "error",
+    );
+    if (failedEvent === undefined) {
+      return "";
+    }
+    return extractFailureMessage(failedEvent);
+  } catch {
+    return "";
+  }
+}
 
 function getNested(record: Record<string, unknown>, key: string): unknown {
   const value = record[key];
   return value ?? undefined;
 }
+
+// =============================================================================
+// Helpers
+// =============================================================================
 
 /**
  * Registry-compatible Codex invoker.
@@ -464,8 +518,14 @@ async function invokeCodexHeadless(
   const stderr = await stderrPromise;
 
   if (proc.exitCode !== 0) {
+    const failureFromStdout = getFailureMessageFromStdout(stdout);
     const trimmedStderr = stderr.trim();
-    const details = trimmedStderr === "" ? stdout.trim() : trimmedStderr;
+    const details =
+      failureFromStdout === ""
+        ? trimmedStderr === ""
+          ? stdout.trim()
+          : trimmedStderr
+        : failureFromStdout;
     throw new Error(
       `Codex exited with code ${String(proc.exitCode)}: ${details || "(no output)"}`,
     );
@@ -499,63 +559,17 @@ async function invokeCodexSupervised(
     stdout: "inherit",
   });
 
-  const signalState: { interruptedBy: null | TerminationSignal } = {
-    interruptedBy: null,
-  };
-
-  let didRequestTermination = false;
-
-  function handleInterrupt(signal: TerminationSignal): void {
-    signalState.interruptedBy = signal;
-    if (didRequestTermination) {
-      return;
-    }
-    didRequestTermination = true;
-
-    try {
-      proc.kill("SIGTERM");
-    } finally {
-      proc.kill("SIGKILL");
-    }
-  }
-
-  function handleSigint(): void {
-    handleInterrupt("SIGINT");
-  }
-
-  function handleSigterm(): void {
-    handleInterrupt("SIGTERM");
-  }
-
-  process.prependListener("SIGINT", handleSigint);
-  process.prependListener("SIGTERM", handleSigterm);
-
-  try {
-    await proc.exited;
-  } finally {
-    process.removeListener("SIGINT", handleSigint);
-    process.removeListener("SIGTERM", handleSigterm);
-  }
+  await proc.exited;
 
   const durationMs = Date.now() - startTime;
 
-  if (signalState.interruptedBy !== null) {
-    throw new Error(
-      `Codex supervised session interrupted by ${signalState.interruptedBy}`,
-    );
-  }
-
   if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
-    throw new Error(
-      `Codex supervised session interrupted by ${proc.signalCode}`,
-    );
+    return propagateInterruptToParent(proc.signalCode);
   }
 
   const interruptionFromExit = exitCodeToSignal(proc.exitCode);
   if (interruptionFromExit !== null) {
-    throw new Error(
-      `Codex supervised session interrupted by ${interruptionFromExit}`,
-    );
+    return propagateInterruptToParent(interruptionFromExit);
   }
 
   if (proc.exitCode !== 0) {
@@ -609,6 +623,16 @@ function mapCodexInvocationError(error: unknown): ProviderFailureOutcome {
       : "fatal";
 
   return { message, provider: "codex", reason: reasonFromMessage, status };
+}
+
+function normalizeCodexModel(model: string): string {
+  const trimmed = model.trim();
+  if (!trimmed.startsWith(OPENAI_MODEL_PREFIX)) {
+    return trimmed;
+  }
+
+  const normalized = trimmed.slice(OPENAI_MODEL_PREFIX.length).trim();
+  return normalized === "" ? trimmed : normalized;
 }
 
 /**
@@ -769,6 +793,42 @@ function parseCodexModelLine(
     });
   }
   return models;
+}
+
+function parseStructuredErrorMessage(rawMessage: string): string {
+  const trimmed = rawMessage.trim();
+  if (!trimmed.startsWith("{")) {
+    return trimmed;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (isRecord(parsed)) {
+      const detail = getNested(parsed, "detail");
+      if (typeof detail === "string" && detail.trim() !== "") {
+        return detail.trim();
+      }
+
+      const message = getNested(parsed, "message");
+      if (typeof message === "string" && message.trim() !== "") {
+        return message.trim();
+      }
+    }
+  } catch {
+    return trimmed;
+  }
+
+  return trimmed;
+}
+
+function propagateInterruptToParent(signal: TerminationSignal): never {
+  try {
+    process.kill(process.pid, signal);
+  } catch {
+    // Ignore kill failures and surface a descriptive fallback error.
+  }
+
+  throw new Error(`Codex supervised session interrupted by ${signal}`);
 }
 
 function readNestedCost(

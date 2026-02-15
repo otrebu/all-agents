@@ -240,6 +240,16 @@ function getNestedValue(
   return current;
 }
 
+function handleSupervisedInterrupt(signal: CursorSignal): never {
+  try {
+    process.kill(process.pid, signal);
+  } catch {
+    // Ignore kill failures and surface a descriptive fallback error.
+  }
+
+  throw new Error(`Cursor supervised session interrupted by ${signal}`);
+}
+
 async function invokeCursor(options: InvocationOptions): Promise<AgentResult> {
   if (options.mode === "supervised") {
     return invokeCursorSupervised(options);
@@ -326,16 +336,12 @@ async function invokeCursorSupervised(
   const durationMs = Date.now() - startTime;
 
   if (proc.signalCode === "SIGINT" || proc.signalCode === "SIGTERM") {
-    throw new Error(
-      `Cursor supervised session interrupted by ${proc.signalCode}`,
-    );
+    return handleSupervisedInterrupt(proc.signalCode);
   }
 
   const interruptionFromExit = exitCodeToSignal(proc.exitCode);
   if (interruptionFromExit !== null) {
-    throw new Error(
-      `Cursor supervised session interrupted by ${interruptionFromExit}`,
-    );
+    return handleSupervisedInterrupt(interruptionFromExit);
   }
 
   if (proc.exitCode !== 0) {
