@@ -345,6 +345,21 @@ function isInPath(directory: string): boolean {
 }
 
 /**
+ * Checks if a symlink resolves to the expected target path.
+ *
+ * Supports both absolute and relative symlink targets.
+ */
+function isSymlinkTargetingPath(
+  linkPath: string,
+  expectedTargetPath: string,
+): boolean {
+  const linkTarget = getSymlinkTarget(linkPath);
+  if (linkTarget === null) return false;
+
+  return resolve(dirname(linkPath), linkTarget) === resolve(expectedTargetPath);
+}
+
+/**
  * Resolves worktree target for `aaa setup --user --worktree [path]`.
  *
  * - `--worktree <path>`: resolves from the provided path
@@ -482,6 +497,7 @@ export {
   isCliInstalled,
   isCompletionInstalled,
   isInPath,
+  isSymlinkTargetingPath,
   LOCAL_BIN,
   resolveWorktreeRoot,
 };

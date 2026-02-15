@@ -28,6 +28,7 @@ import {
   isCliInstalled,
   isCompletionInstalled,
   isInPath,
+  isSymlinkTargetingPath,
   LOCAL_BIN,
   resolveWorktreeRoot,
   type WorktreeSelection,
@@ -161,10 +162,11 @@ async function setupProject(): Promise<void> {
 
   // Check existing state (handle both old absolute and new relative symlinks)
   const existingSymlinkTarget = getSymlinkTarget(contextLink);
-  const isExistingSymlink =
-    existingSymlinkTarget !== null &&
-    resolve(dirname(contextLink), existingSymlinkTarget) ===
-      contextTargetAbsolute;
+  const isExistingSymlink = isSymlinkTargetingPath(
+    contextLink,
+    contextTargetAbsolute,
+  );
+  const isCanonicalRelativeSymlink = existingSymlinkTarget === contextTarget;
   const isExistingDirectory =
     existsSync(contextLink) &&
     existingSymlinkTarget === null &&
@@ -213,7 +215,15 @@ async function setupProject(): Promise<void> {
         log.success(`Symlink: context/ -> ${contextTarget}`);
       }
     } else if (isExistingSymlink) {
-      log.info("context/ symlink already exists");
+      if (isCanonicalRelativeSymlink) {
+        log.info("context/ symlink already exists");
+      } else {
+        unlinkSync(contextLink);
+        symlinkSync(contextTarget, contextLink);
+        log.success(
+          `Updated context/ symlink to relative target: ${contextTarget}`,
+        );
+      }
     } else {
       symlinkSync(contextTarget, contextLink);
       log.success(`Symlink: context/ -> ${contextTarget}`);

@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import { unlinkSync } from "node:fs";
 import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import {
   AAA_SYMLINK,
@@ -56,7 +56,9 @@ function removeProjectInstallation(): void {
     return;
   }
 
-  if (actualTarget !== expectedTarget) {
+  const resolvedActualTarget = resolve(dirname(contextLink), actualTarget);
+
+  if (resolvedActualTarget !== expectedTarget) {
     p.log.error("context/ is not a symlink to all-agents");
     p.outro("Skipped");
     return;
