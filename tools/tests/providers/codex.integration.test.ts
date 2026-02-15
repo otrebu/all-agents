@@ -297,6 +297,75 @@ describe("headless lifecycle", () => {
     expect(mockProc.proc.kill).toHaveBeenCalledWith("SIGTERM");
   });
 
+  test("propagates SIGINT interruptions to parent process handlers", async () => {
+    const mockProc = createMockProcess();
+    activeMockProcesses.push(mockProc);
+    const signalHandlers = new Map<string, () => void>();
+    const propagatedSignals: Array<string> = [];
+
+    process.prependListener = mock((event, listener) => {
+      if (
+        (event === "SIGINT" || event === "SIGTERM") &&
+        typeof listener === "function"
+      ) {
+        signalHandlers.set(event, listener as () => void);
+      }
+      return process;
+    }) as typeof process.prependListener;
+
+    process.removeListener = mock((event, listener) => {
+      if (
+        (event === "SIGINT" || event === "SIGTERM") &&
+        typeof listener === "function"
+      ) {
+        const current = signalHandlers.get(event);
+        if (current === listener) {
+          signalHandlers.delete(event);
+        }
+      }
+      return process;
+    }) as typeof process.removeListener;
+
+    process.kill = mock((pid: number, signal?: number | string) => {
+      if (pid === process.pid && typeof signal === "string") {
+        propagatedSignals.push(signal);
+      }
+      return true;
+    }) as typeof process.kill;
+
+    Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
+      const args = parseSpawnCommand(command);
+      if (args[0] === "which") {
+        return createWhichMockProcess();
+      }
+      return mockProc.proc as unknown as BunSpawnResult;
+    });
+
+    mockProc.proc.kill = mock((signal?: number | string) => {
+      if (signal === "SIGTERM" || signal === "SIGKILL") {
+        mockProc.stdout.close();
+        mockProc.stderr.close();
+        mockProc.resolveExited(130);
+      }
+    });
+
+    const invocationPromise = invokeCodex(makeOptions({ timeoutMs: 2000 }));
+    const interruptTimer = setTimeout(() => {
+      signalHandlers.get("SIGINT")?.();
+    }, 5);
+    activeTimers.push(interruptTimer);
+
+    try {
+      await invocationPromise;
+      throw new Error("Expected invokeCodex to throw");
+    } catch (error: unknown) {
+      expect((error as Error).message).toContain("interrupted by SIGINT");
+    }
+
+    expect(propagatedSignals).toContain("SIGINT");
+    expect(mockProc.proc.kill).toHaveBeenCalledWith("SIGTERM");
+  });
+
   test("returns AgentResult after valid JSONL completion", async () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);

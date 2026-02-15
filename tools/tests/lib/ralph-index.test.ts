@@ -7,7 +7,7 @@ import {
   validateApprovalFlags,
 } from "@tools/commands/ralph/index";
 import { describe, expect, spyOn, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -147,6 +147,19 @@ describe("resolveMilestoneFromOptions", () => {
       path.join(resolvedMilestonePath, "logs", `${utcDate}.jsonl`),
     );
     expect(planningLogPath).not.toContain("_orphan");
+  });
+});
+
+describe("plan tasks cascade preview", () => {
+  test("prints workflow preview for non-dry-run cascade runs", () => {
+    const source = readFileSync(
+      path.join(import.meta.dir, "../../src/commands/ralph/index.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain('message: "Workflow preview"');
+    expect(source).toContain("if (options.cascade !== undefined)");
+    expect(source).toContain("printDryRunPlan(plan);");
   });
 });
 

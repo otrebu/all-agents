@@ -155,13 +155,7 @@ function buildCodexHeadlessArguments(
   config: CodexConfig,
   prompt: string,
 ): Array<string> {
-  const args = [
-    "exec",
-    "--json",
-    "--sandbox",
-    "workspace-write",
-    "--skip-git-repo-check",
-  ];
+  const args = ["exec", "--json", "--full-auto", "--skip-git-repo-check"];
 
   if (config.model !== undefined && config.model !== "") {
     const normalizedModel = normalizeCodexModel(config.model);
@@ -491,6 +485,31 @@ async function invokeCodexHeadless(
   const stdoutPromise = new Response(proc.stdout).text();
   const stderrPromise = collectStreamText(proc.stderr);
 
+  const signalState: { interruptedBy: null | TerminationSignal } = {
+    interruptedBy: null,
+  };
+  let didRequestTermination = false;
+
+  function handleInterrupt(signal: TerminationSignal): void {
+    signalState.interruptedBy = signal;
+    if (didRequestTermination) {
+      return;
+    }
+    didRequestTermination = true;
+    void killProcessGracefully(proc, 0);
+  }
+
+  function handleSigint(): void {
+    handleInterrupt("SIGINT");
+  }
+
+  function handleSigterm(): void {
+    handleInterrupt("SIGTERM");
+  }
+
+  process.prependListener("SIGINT", handleSigint);
+  process.prependListener("SIGTERM", handleSigterm);
+
   const exitPromise: Promise<ExitOutcome> = (async (): Promise<ExitOutcome> => {
     try {
       await proc.exited;
@@ -507,7 +526,17 @@ async function invokeCodexHeadless(
     markTimerAsNonBlocking(timer);
   });
 
-  const outcome = await Promise.race([exitPromise, hardTimeoutPromise]);
+  const outcome = await Promise.race([exitPromise, hardTimeoutPromise]).finally(
+    () => {
+      process.removeListener("SIGINT", handleSigint);
+      process.removeListener("SIGTERM", handleSigterm);
+    },
+  );
+
+  if (signalState.interruptedBy !== null) {
+    return propagateInterruptToParent(signalState.interruptedBy);
+  }
+
   if (outcome === "hard_timeout") {
     const elapsed = Date.now() - startTime;
     await killProcessGracefully(proc, 0);

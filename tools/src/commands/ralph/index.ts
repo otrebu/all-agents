@@ -1087,7 +1087,7 @@ ralphCommand.addCommand(
             validateFirst: options.validateFirst === true,
           },
           fromLevel: toPlanFromLevel(options.from),
-          includeEntryInCascade: options.cascade !== undefined,
+          includeEntryInCascade: true,
           model: options.model,
           provider: options.provider,
           subtasksPath,
@@ -3004,13 +3004,42 @@ planCommand.addCommand(
             review: options.review === true,
           },
           fromLevel: toPlanFromLevel(options.from),
-          includeEntryInCascade: options.cascade !== undefined,
+          includeEntryInCascade: true,
           milestonePath: milestonePath ?? undefined,
           model: options.model,
           provider: options.provider,
         });
         printDryRunPlan(plan);
         process.exit(0);
+      }
+
+      if (options.cascade !== undefined) {
+        const milestonePath = resolveMilestoneFromOptions(
+          options.milestone,
+          options.story,
+        );
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-tasks",
+          flags: {
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: true,
+          milestonePath: milestonePath ?? undefined,
+          model: options.model,
+          provider: options.provider,
+        });
+        console.log(
+          renderEventLine({
+            domain: "CASCADE",
+            message: "Workflow preview",
+            state: "INFO",
+          }),
+        );
+        printDryRunPlan(plan);
       }
 
       const contextRoot = getContextRoot();
