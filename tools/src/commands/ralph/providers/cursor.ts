@@ -28,6 +28,10 @@ interface CursorEvent extends Record<string, unknown> {
 type CursorSignal = "SIGINT" | "SIGTERM";
 
 const CURSOR_BINARY_CANDIDATES = ["agent", "cursor-agent"] as const;
+const CURSOR_TRUST_PROMPT_MARKERS = [
+  "workspace trust required",
+  "do you trust the contents of this directory",
+] as const;
 const DEFAULT_CURSOR_TIMEOUT_MS = 3_600_000;
 const OPENAI_MODEL_PREFIX = "openai/";
 const RALPH_CURSOR_SESSION_DIR = ".ralph/sessions/cursor";
@@ -46,6 +50,7 @@ function buildCursorHeadlessArguments(
     }
   }
 
+  args.push("--trust", "--yolo");
   args.push("--", prompt);
   return args;
 }
@@ -231,6 +236,16 @@ function extractCursorTokenUsage(payload: CursorEvent): TokenUsage | undefined {
   };
 }
 
+function formatCursorExecutionDetails(options: {
+  stderr: string;
+  stdout: string;
+}): string {
+  const { stderr, stdout } = options;
+  return [stdout.trim(), stderr.trim()]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
 function getNestedValue(
   payload: Record<string, unknown>,
   pathParts: Array<string>,
@@ -309,7 +324,16 @@ async function invokeCursorHeadless(
   }
 
   if (execution.exitCode !== 0) {
-    const details = execution.stdout.trim();
+    const details = formatCursorExecutionDetails({
+      stderr: execution.stderr,
+      stdout: execution.stdout,
+    });
+    if (isCursorTrustPrompt(details)) {
+      throw new Error(
+        "Cursor workspace trust prompt blocked headless execution. " +
+          "Enable trust (`--trust`) and full permissive mode (`--yolo`).",
+      );
+    }
     throw new Error(
       `Cursor exited with code ${String(execution.exitCode)}: ${details || "(no output)"}`,
     );
@@ -385,6 +409,16 @@ function isCursorResultError(payload: CursorEvent): boolean {
   }
 
   return payload.error !== undefined;
+}
+
+function isCursorTrustPrompt(details: string): boolean {
+  if (details.trim() === "") {
+    return false;
+  }
+  const normalized = details.toLowerCase();
+  return CURSOR_TRUST_PROMPT_MARKERS.some((marker) =>
+    normalized.includes(marker),
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

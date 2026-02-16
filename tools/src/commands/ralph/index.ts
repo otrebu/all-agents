@@ -550,6 +550,10 @@ const DEFAULT_SUBTASKS_PATH = "subtasks.json";
 const SUBTASK_FRAGMENT_FILENAME_PATTERN = /^\.subtasks-task-.*\.json$/;
 const SUBTASK_FRAGMENT_POLL_INTERVAL_MS = 15_000;
 const SUBTASK_FRAGMENT_STABLE_WINDOW_MS = 75_000;
+const TASK_STORY_MARKDOWN_REF_PATTERN =
+  /\*\*Story:\*\*\s*\[(?<storyReference>[^\]]+)\]\([^)]+\)/i;
+const TASK_STORY_REF_FIELD_PATTERN =
+  /^\s*storyRef\s*:\s*(?<storyReference>[^\n]+)\s*$/im;
 
 // =============================================================================
 // Three-Mode Execution System
@@ -1300,6 +1304,8 @@ interface SubtasksPreCheckResult {
   shouldSkip: boolean;
   /** Array of taskRefs that were skipped */
   skippedTasks: Array<string>;
+  /** Total number of tasks discovered before story filtering */
+  totalDiscoveredTasks: number;
   /** Total number of tasks discovered */
   totalTasks: number;
 }
@@ -1443,12 +1449,15 @@ function buildSubtasksSourceContext(
  *
  * @param milestonePath - Resolved milestone path
  * @param outputDirectory - Directory where subtasks.json is/will be
+ * @param storyPath - Optional story path; when provided, only linked tasks are considered
  * @returns Pre-check result with counts and skip info
  */
-function checkSubtasksPreCheck(
-  milestonePath: string,
-  outputDirectory: string,
-): SubtasksPreCheckResult {
+function checkSubtasksPreCheck(options: {
+  milestonePath: string;
+  outputDirectory: string;
+  storyPath?: string;
+}): SubtasksPreCheckResult {
+  const { milestonePath, outputDirectory, storyPath } = options;
   const subtasksPath = path.join(outputDirectory, "subtasks.json");
 
   // Capture before count for later delta calculation
@@ -1457,12 +1466,16 @@ function checkSubtasksPreCheck(
   // Get existing taskRefs from the subtasks file
   const existingTaskReferences = getExistingTaskReferences(subtasksPath);
 
-  // Discover tasks from milestone
-  const allTasks = discoverTasksFromMilestone(milestonePath);
+  // Discover tasks from milestone, then optionally filter to a single story's linked tasks.
+  const discoveredTasks = discoverTasksFromMilestone(milestonePath);
+  const relevantTasks =
+    storyPath === undefined
+      ? discoveredTasks
+      : discoverStoryLinkedTasks(discoveredTasks, storyPath);
 
   // Filter tasks and track skipped ones
   const skippedTasks: Array<string> = [];
-  for (const taskPath of allTasks) {
+  for (const taskPath of relevantTasks) {
     const taskReference = extractTaskReference(taskPath);
     if (existingTaskReferences.has(taskReference)) {
       skippedTasks.push(taskReference);
@@ -1471,9 +1484,15 @@ function checkSubtasksPreCheck(
 
   // Determine if all tasks already have subtasks
   const shouldSkip =
-    allTasks.length > 0 && skippedTasks.length === allTasks.length;
+    relevantTasks.length > 0 && skippedTasks.length === relevantTasks.length;
 
-  return { beforeCount, shouldSkip, skippedTasks, totalTasks: allTasks.length };
+  return {
+    beforeCount,
+    shouldSkip,
+    skippedTasks,
+    totalDiscoveredTasks: discoveredTasks.length,
+    totalTasks: relevantTasks.length,
+  };
 }
 
 /**
@@ -1509,6 +1528,29 @@ function checkTaskHasSubtasks(
   const existingTaskReferences =
     getExistingTaskReferences(preCheckSubtasksPath);
   return existingTaskReferences.has(taskReference);
+}
+
+function discoverStoryLinkedTasks(
+  allTasks: Array<string>,
+  storyPath: string,
+): Array<string> {
+  const storyReference = normalizeStoryReference(
+    path.basename(storyPath, ".md"),
+  );
+  if (storyReference === "") {
+    return [];
+  }
+
+  return allTasks.filter((taskPath) => {
+    try {
+      const taskContent = readFileSync(taskPath, "utf8");
+      return extractStoryReferencesFromTaskContent(taskContent).has(
+        storyReference,
+      );
+    } catch {
+      return false;
+    }
+  });
 }
 
 function exitWithSubtasksQueueOutcomeFailure(options: {
@@ -1549,6 +1591,17 @@ function exitWithSubtasksQueueOutcomeFailure(options: {
       renderEventLine({
         domain: "PLAN",
         message: `Queue load error: ${loadResult.error}`,
+        state: "FAIL",
+      }),
+    );
+  }
+
+  const providerSnippet = formatProviderResultSnippet(providerResult);
+  if (providerSnippet !== null) {
+    console.error(
+      renderEventLine({
+        domain: "PLAN",
+        message: `Provider output snippet: ${providerSnippet}`,
         state: "FAIL",
       }),
     );
@@ -1609,6 +1662,61 @@ function exitWithTasksSourceError(): never {
   console.log("  aaa ralph plan tasks --file <path>        # File → tasks");
   console.log('  aaa ralph plan tasks --text "Add auth"    # Text → tasks');
   process.exit(1);
+}
+
+function extractStoryReferencesFromTaskContent(
+  taskContent: string,
+): Set<string> {
+  const storyReferences = new Set<string>();
+  const markdownPattern = new RegExp(
+    TASK_STORY_MARKDOWN_REF_PATTERN.source,
+    "gi",
+  );
+  const storyFieldPattern = new RegExp(
+    TASK_STORY_REF_FIELD_PATTERN.source,
+    "gim",
+  );
+
+  for (const match of taskContent.matchAll(markdownPattern)) {
+    const storyReference = match.groups?.storyReference;
+    if (storyReference !== undefined) {
+      const normalized = normalizeStoryReference(storyReference);
+      if (normalized !== "") {
+        storyReferences.add(normalized);
+      }
+    }
+  }
+
+  for (const match of taskContent.matchAll(storyFieldPattern)) {
+    const storyReference = match.groups?.storyReference;
+    if (storyReference !== undefined) {
+      const normalized = normalizeStoryReference(storyReference);
+      if (normalized !== "") {
+        storyReferences.add(normalized);
+      }
+    }
+  }
+
+  return storyReferences;
+}
+
+function formatProviderResultSnippet(
+  providerResult: HeadlessWithLoggingResult | null,
+): null | string {
+  if (providerResult === null) {
+    return null;
+  }
+  const normalized = providerResult.result.replaceAll(/\s+/g, " ").trim();
+  if (normalized === "") {
+    return null;
+  }
+
+  const maxLength = 220;
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength - 3)}...`;
 }
 
 // Helper to get prompt path based on session type and auto mode
@@ -1779,10 +1887,10 @@ async function handleCascadeExecution(
             undefined,
             milestonePath,
           );
-          const preCheckResult = checkSubtasksPreCheck(
+          const preCheckResult = checkSubtasksPreCheck({
             milestonePath,
             outputDirectory,
-          );
+          });
           const { beforeCount, shouldSkip, skippedTasks, totalTasks } =
             preCheckResult;
           const expectedFragmentCount = totalTasks - skippedTasks.length;
@@ -1986,6 +2094,14 @@ function listSubtaskFragmentFiles(outputDirectory: string): Array<string> {
   } catch {
     return [];
   }
+}
+
+function normalizeStoryReference(storyReference: string): string {
+  const trimmed = storyReference.trim().replaceAll(/^['"]|['"]$/g, "");
+  const withoutExtension = trimmed.endsWith(".md")
+    ? trimmed.slice(0, -3)
+    : trimmed;
+  return path.basename(withoutExtension).toLowerCase();
 }
 
 function readQueueStateBeforeSubtasksRun(
@@ -3163,6 +3279,7 @@ planCommand.addCommand(
       "--dry-run",
       "Preview execution plan without running (exits after showing pipeline diagram)",
     )
+    // eslint-disable-next-line complexity -- Supports multiple source selectors plus precheck/cascade branches.
     .action(async (options) => {
       validateApprovalFlags(options.force, options.review);
 
@@ -3223,6 +3340,10 @@ planCommand.addCommand(
       }
 
       const contextRoot = getContextRoot();
+      const resolvedStoryPath =
+        hasStory && options.story !== undefined
+          ? requireStory(options.story)
+          : undefined;
 
       // Pre-check for --task mode: skip if task already has subtasks
       if (hasTask && options.task !== undefined) {
@@ -3265,7 +3386,7 @@ planCommand.addCommand(
       // This is used for log file location and to determine output directory for subtasks.json
       const resolvedMilestonePath = resolveMilestoneFromOptions(
         options.milestone,
-        options.story,
+        resolvedStoryPath ?? options.story,
         options.outputDir,
       );
 
@@ -3286,16 +3407,35 @@ planCommand.addCommand(
         );
         const preCheckResult = (() => {
           try {
-            return checkSubtasksPreCheck(
-              resolvedMilestonePath,
+            return checkSubtasksPreCheck({
+              milestonePath: resolvedMilestonePath,
               outputDirectory,
-            );
+              storyPath: hasStory ? resolvedStoryPath : undefined,
+            });
           } catch (error) {
             console.error(formatErrorMessage(error));
             process.exit(1);
             throw new Error("unreachable");
           }
         })();
+
+        if (
+          hasStory &&
+          resolvedStoryPath !== undefined &&
+          preCheckResult.totalTasks === 0
+        ) {
+          const storyReference = path.basename(resolvedStoryPath, ".md");
+          console.error(
+            `Error: No tasks linked to story '${storyReference}' in milestone '${path.basename(resolvedMilestonePath)}'.`,
+          );
+          console.error(
+            `Scanned ${preCheckResult.totalDiscoveredTasks} task file(s) in ${path.join(resolvedMilestonePath, "tasks")}.`,
+          );
+          console.error(
+            "Link tasks with a matching story reference (`**Story:** [<story-ref>](...)` or `storyRef: <story-ref>`), then rerun.",
+          );
+          process.exit(1);
+        }
 
         ({ beforeCount } = preCheckResult);
         ({ skippedTasks } = preCheckResult);
@@ -3327,7 +3467,7 @@ planCommand.addCommand(
           file: options.file,
           milestone: options.milestone,
           resolvedMilestonePath,
-          story: options.story,
+          story: resolvedStoryPath ?? options.story,
           task: options.task,
           text: options.text,
         },
@@ -3362,7 +3502,7 @@ planCommand.addCommand(
             sizeMode,
             skippedTasks,
             sourceInfo,
-            storyRef: options.story,
+            storyRef: resolvedStoryPath ?? options.story,
           })
         : invokePlanningSupervised({
             extraContext,

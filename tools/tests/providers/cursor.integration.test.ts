@@ -349,6 +349,37 @@ describe("headless lifecycle", () => {
     }
   });
 
+  test("maps workspace trust prompt to targeted guidance", async () => {
+    const mockProc = createMockProcess();
+    activeMockProcesses.push(mockProc);
+
+    Bun.spawn = mock((command: unknown): BunSpawnResult => {
+      const args = parseSpawnCommand(command);
+      if (args[0] === "which") {
+        return createWhichMockProcess(true);
+      }
+      return mockProc.proc as unknown as BunSpawnResult;
+    });
+
+    const completionTimer = setTimeout(() => {
+      mockProc.stderr.push("Workspace Trust Required\n");
+      mockProc.stderr.push("Do you trust the contents of this directory?\n");
+      mockProc.stdout.close();
+      mockProc.stderr.close();
+      mockProc.resolveExited(1);
+    }, 5);
+    activeTimers.push(completionTimer);
+
+    try {
+      await invokeCursor(makeOptions({ timeoutMs: 2000 }));
+      throw new Error("Expected invokeCursor to throw");
+    } catch (error: unknown) {
+      const message = (error as Error).message;
+      expect(message).toContain("workspace trust prompt blocked");
+      expect(message).toContain("--yolo");
+    }
+  });
+
   test("propagates malformed-output parse failure", async () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);

@@ -40,6 +40,8 @@ describe("buildCursorHeadlessArguments", () => {
       "stream-json",
       "--model",
       "cursor-fast",
+      "--trust",
+      "--yolo",
       "--",
       "Implement feature X",
     ]);
@@ -63,6 +65,8 @@ describe("buildCursorHeadlessArguments", () => {
       "-p",
       "--output-format",
       "stream-json",
+      "--trust",
+      "--yolo",
       "--",
       "ping",
     ]);

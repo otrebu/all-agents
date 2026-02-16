@@ -195,20 +195,16 @@ async function executeWithTimeout(
   let lastActivityAt = Date.now();
 
   const stderrChunks: Array<string> = [];
-  const stderrForwarder = readStderrWithActivityTracking(proc.stderr, () => {
-    lastActivityAt = Date.now();
-    onStderrActivity?.();
-  });
-
-  // Capture stderr for the result by tapping the forwarder's output
-  // We rewrite the forwarder to also collect chunks
-  // Actually, we can't intercept the existing forwarder. Let's use
-  // a wrapper approach instead.
-  // NOTE: The readStderrWithActivityTracking already writes to process.stderr.
-  // We need stderr in the result, so we'll collect via the activity callback
-  // by re-reading. But that's not ideal. For now, stderr in the result will
-  // be empty - callers that need stderr content should parse stdout (most
-  // CLI tools output JSON to stdout). This matches the existing claude.ts pattern.
+  const stderrForwarder = readStderrWithActivityTracking(
+    proc.stderr,
+    () => {
+      lastActivityAt = Date.now();
+      onStderrActivity?.();
+    },
+    (chunk) => {
+      stderrChunks.push(chunk);
+    },
+  );
 
   type ExitOutcome = "exited" | "hard_timeout" | "stall_timeout";
 
@@ -364,6 +360,7 @@ function parseJsonl<T>(jsonl: string): Array<T> {
 async function readStderrWithActivityTracking(
   stderr: ReadableStream<Uint8Array>,
   onActivity: () => void,
+  onChunk?: (chunk: string) => void,
 ): Promise<void> {
   const reader = stderr.getReader();
   const decoder = new TextDecoder();
@@ -373,7 +370,9 @@ async function readStderrWithActivityTracking(
       const { done: isDone, value } = await reader.read();
       if (isDone) break;
       onActivity();
-      process.stderr.write(decoder.decode(value, { stream: true }));
+      const chunk = decoder.decode(value, { stream: true });
+      onChunk?.(chunk);
+      process.stderr.write(chunk);
     }
   } catch {
     // Ignore read errors (process may have been killed)

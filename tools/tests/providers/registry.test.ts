@@ -921,17 +921,20 @@ describe("validateProviderInvocationPreflight", () => {
 describe("invokeWithProvider model forwarding", () => {
   const originalSpawn = Bun.spawn;
   const originalCodexInvoke = REGISTRY.codex.invoke;
+  const originalCursorInvoke = REGISTRY.cursor.invoke;
   const originalOpencodeInvoke = REGISTRY.opencode.invoke;
 
   afterAll(() => {
     Bun.spawn = originalSpawn;
     REGISTRY.codex.invoke = originalCodexInvoke;
+    REGISTRY.cursor.invoke = originalCursorInvoke;
     REGISTRY.opencode.invoke = originalOpencodeInvoke;
   });
 
   beforeEach(() => {
     Bun.spawn = originalSpawn;
     REGISTRY.codex.invoke = originalCodexInvoke;
+    REGISTRY.cursor.invoke = originalCursorInvoke;
     REGISTRY.opencode.invoke = originalOpencodeInvoke;
   });
 
@@ -965,6 +968,52 @@ describe("invokeWithProvider model forwarding", () => {
     REGISTRY.opencode.invoke = invokeSpy;
 
     const result = await invokeWithProvider("opencode", {
+      mode: "headless",
+      model: "openai/gpt-4o",
+      prompt: "test prompt",
+    });
+
+    expect(invokeSpy).toHaveBeenCalledTimes(1);
+    expect(result?.result).toBe("ok");
+  });
+
+  test("passes selected model into cursor config", async () => {
+    Object.assign(Bun, {
+      spawn: mock((command: ReadonlyArray<string>) => {
+        const binary = command[1];
+        const exitCode = binary === "agent" ? 0 : 1;
+        return {
+          exited: Promise.resolve(exitCode),
+          stderr: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+          stdout: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+        };
+      }),
+    });
+
+    const invokeSpy = mock(async (options: InvocationOptions) => {
+      await Promise.resolve();
+      expect(options.config).toEqual({
+        model: "openai/gpt-4o",
+        provider: "cursor",
+      });
+      return {
+        costUsd: 0,
+        durationMs: 1,
+        result: "ok",
+        sessionId: "cursor-sess-1",
+      };
+    });
+    REGISTRY.cursor.invoke = invokeSpy;
+
+    const result = await invokeWithProvider("cursor", {
       mode: "headless",
       model: "openai/gpt-4o",
       prompt: "test prompt",

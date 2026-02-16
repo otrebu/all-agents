@@ -2406,6 +2406,64 @@ A test task for pre-check verification.
       expect(stdout).toContain("nothing to generate");
     });
 
+    test("plan subtasks --story fails early when no tasks link to the story", async () => {
+      const projectRoot = join(temporaryDirectory, "story-no-linked-tasks");
+      mkdirSync(join(projectRoot, ".git"), { recursive: true });
+
+      const milestoneDirectory = join(
+        projectRoot,
+        "docs/planning/milestones/feature-no-links",
+      );
+      const storiesDirectory = join(milestoneDirectory, "stories");
+      const tasksDirectory = join(milestoneDirectory, "tasks");
+      mkdirSync(storiesDirectory, { recursive: true });
+      mkdirSync(tasksDirectory, { recursive: true });
+
+      const storyPath = join(
+        storiesDirectory,
+        "002-STORY-configurable-structure-layers.md",
+      );
+      writeFileSync(
+        storyPath,
+        "## Story: Configurable structure layers\n\nAcceptance criteria...\n",
+      );
+      writeFileSync(
+        join(tasksDirectory, "001-TASK-other-story.md"),
+        [
+          "## Task: Unrelated task",
+          "",
+          "**Story:** [001-STORY-unrelated](../stories/001-STORY-unrelated.md)",
+          "",
+          "### Goal",
+          "Unrelated goal",
+        ].join("\n"),
+      );
+
+      const { exitCode, stderr, stdout } = await execa(
+        "bun",
+        [
+          CLI_ENTRY,
+          "ralph",
+          "plan",
+          "subtasks",
+          "--story",
+          storyPath,
+          "--headless",
+          "--provider",
+          "nope",
+        ],
+        { cwd: projectRoot, reject: false },
+      );
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain(
+        "No tasks linked to story '002-STORY-configurable-structure-layers'",
+      );
+      expect(stderr).toContain("Link tasks with a matching story reference");
+      expect(stderr).not.toContain("Unknown provider: nope");
+      expect(stdout).not.toContain("Invoking");
+    });
+
     // Note: Testing "partial coverage proceeds with filtered task list" requires Claude
     // to be available, which isn't possible in E2E tests. The pre-check logic is tested
     // thoroughly in unit tests (SUB-191). The key behaviors verified above are:

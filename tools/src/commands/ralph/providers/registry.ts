@@ -477,10 +477,6 @@ function isProviderModeSupported(
   );
 }
 
-/**
- * Load provider from config file (best effort).
- * Returns undefined if config loading fails.
- */
 function loadConfigProvider(): string | undefined {
   try {
     const config = loadRalphConfig();
@@ -500,6 +496,12 @@ function makeProviderConfig(
     return workingDirectory === undefined
       ? { provider }
       : { provider, workingDirectory };
+  }
+
+  if (provider === "cursor") {
+    return workingDirectory === undefined
+      ? { model, provider }
+      : { model, provider, workingDirectory };
   }
 
   return workingDirectory === undefined
