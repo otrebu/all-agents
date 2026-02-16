@@ -376,7 +376,7 @@ async function setupUser(options: SetupOptions): Promise<void> {
 
   // Step 8: Setup ~/.agents/skills symlink (universal agent skills)
   const agentsSkillsDirectory = resolve(homedir(), ".agents/skills");
-  const skillsSource = resolve(root, ".claude/skills");
+  const skillsSource = resolve(root, ".agents/skills");
 
   if (!existsSync(resolve(homedir(), ".agents"))) {
     mkdirSync(resolve(homedir(), ".agents"), { recursive: true });
