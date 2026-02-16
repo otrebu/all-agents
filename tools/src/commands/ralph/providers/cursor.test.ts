@@ -28,7 +28,7 @@ function loadCursorStreamJsonFixtures(): Array<CursorFixtureScenario> {
 }
 
 describe("buildCursorHeadlessArguments", () => {
-  test("includes headless flags, model, and prompt separator", () => {
+  test("includes headless flags, yolo, model, and prompt separator", () => {
     const args = buildCursorHeadlessArguments(
       { model: "cursor-fast", provider: "cursor" },
       "Implement feature X",
@@ -38,11 +38,23 @@ describe("buildCursorHeadlessArguments", () => {
       "-p",
       "--output-format",
       "stream-json",
+      "--yolo",
       "--model",
       "cursor-fast",
       "--",
       "Implement feature X",
     ]);
+  });
+
+  test("normalizes openai/ model prefix for cursor CLI", () => {
+    const args = buildCursorHeadlessArguments(
+      { model: "openai/gpt-5.3-codex", provider: "cursor" },
+      "ping",
+    );
+
+    const modelIndex = args.indexOf("--model");
+    expect(modelIndex).not.toBe(-1);
+    expect(args[modelIndex + 1]).toBe("gpt-5.3-codex");
   });
 
   test("omits model when unset", () => {
@@ -52,6 +64,7 @@ describe("buildCursorHeadlessArguments", () => {
       "-p",
       "--output-format",
       "stream-json",
+      "--yolo",
       "--",
       "ping",
     ]);

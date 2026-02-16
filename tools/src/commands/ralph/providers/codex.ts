@@ -155,7 +155,15 @@ function buildCodexHeadlessArguments(
   config: CodexConfig,
   prompt: string,
 ): Array<string> {
-  const args = ["exec", "--json", "--full-auto", "--skip-git-repo-check"];
+  const args = [
+    "exec",
+    "--json",
+    "--ask-for-approval",
+    "never",
+    "--sandbox",
+    "workspace-write",
+    "--skip-git-repo-check",
+  ];
 
   if (config.model !== undefined && config.model !== "") {
     const normalizedModel = normalizeCodexModel(config.model);

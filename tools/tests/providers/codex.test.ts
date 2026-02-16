@@ -96,13 +96,16 @@ afterEach(() => {
 });
 
 describe("buildCodexHeadlessArguments", () => {
-  test("includes exec, json, full-auto, and skip-git-repo-check flags", () => {
+  test("includes exec, json, yolo-equivalent approval policy, and skip-git-repo-check flags", () => {
     const config: CodexConfig = { provider: "codex" };
     const args = buildCodexHeadlessArguments(config, "hello");
 
     expect(args[0]).toBe("exec");
     expect(args).toContain("--json");
-    expect(args).toContain("--full-auto");
+    expect(args).toContain("--ask-for-approval");
+    expect(args).toContain("never");
+    expect(args).toContain("--sandbox");
+    expect(args).toContain("workspace-write");
     expect(args).toContain("--skip-git-repo-check");
   });
 

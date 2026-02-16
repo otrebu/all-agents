@@ -29,6 +29,7 @@ type CursorSignal = "SIGINT" | "SIGTERM";
 
 const CURSOR_BINARY_CANDIDATES = ["agent", "cursor-agent"] as const;
 const DEFAULT_CURSOR_TIMEOUT_MS = 3_600_000;
+const OPENAI_MODEL_PREFIX = "openai/";
 const RALPH_CURSOR_SESSION_DIR = ".ralph/sessions/cursor";
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 
@@ -36,10 +37,13 @@ function buildCursorHeadlessArguments(
   config: CursorConfig,
   prompt: string,
 ): Array<string> {
-  const args = ["-p", "--output-format", "stream-json"];
+  const args = ["-p", "--output-format", "stream-json", "--yolo"];
 
   if (config.model !== undefined && config.model !== "") {
-    args.push("--model", config.model);
+    const normalizedModel = normalizeCursorModel(config.model);
+    if (normalizedModel !== "") {
+      args.push("--model", normalizedModel);
+    }
   }
 
   args.push("--", prompt);
@@ -53,7 +57,10 @@ function buildCursorSupervisedArguments(
   const args: Array<string> = [];
 
   if (config.model !== undefined && config.model !== "") {
-    args.push("--model", config.model);
+    const normalizedModel = normalizeCursorModel(config.model);
+    if (normalizedModel !== "") {
+      args.push("--model", normalizedModel);
+    }
   }
 
   if (prompt !== "") {
@@ -368,6 +375,16 @@ function isCursorResultError(payload: CursorEvent): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function normalizeCursorModel(model: string): string {
+  const trimmed = model.trim();
+  if (!trimmed.startsWith(OPENAI_MODEL_PREFIX)) {
+    return trimmed;
+  }
+
+  const normalized = trimmed.slice(OPENAI_MODEL_PREFIX.length).trim();
+  return normalized === "" ? trimmed : normalized;
 }
 
 function normalizeCursorResult(rawOutput: string): AgentResult {
