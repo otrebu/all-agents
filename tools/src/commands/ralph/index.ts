@@ -1243,10 +1243,12 @@ interface HandleCascadeOptions {
   contextRoot: string;
   /** Skip approvals by forcing write actions at all gates (`--force`) */
   forceFlag?: boolean;
-  /** Optional level to resume from; overrides the cascade start argument */
-  fromLevel?: string;
+  /** Level to resume from; overrides the cascade start argument */
+  fromLevel: string;
   /** Preserve headless mode for cascade execution */
   headless?: boolean;
+  /** Run review + gap checks before build when cascading */
+  isWithReviews?: boolean;
   /** Provider model identifier to propagate across cascaded levels */
   model?: string;
   /** Provider selection to propagate across cascaded levels */
@@ -1254,10 +1256,37 @@ interface HandleCascadeOptions {
   resolvedMilestonePath: null | string;
   /** Require approvals by forcing gate review behavior (`--review`) */
   reviewFlag?: boolean;
+  /** Optional resolved story path for tasks-level review flow */
+  reviewStoryPath?: string;
   /** Override subtasks path (used when different from milestone default) */
   subtasksPath?: string;
   /** Run pre-build validation before cascading into build level */
   validateFirst?: boolean;
+}
+
+interface RunReviewFlowForLevelOptions {
+  contextRoot: string;
+  isDryRun?: boolean;
+  isHeadless?: boolean;
+  level: "stories" | "subtasks" | "tasks";
+  milestonePath: null | string;
+  model?: string;
+  provider?: string;
+  reviewStoryPath?: string;
+  subtasksPath: string;
+}
+
+interface RunReviewWorkflowOptions {
+  contextRoot: string;
+  extraContext: string;
+  isDryRun?: boolean;
+  isGapAnalysis: boolean;
+  isHeadless?: boolean;
+  logMilestonePath?: string;
+  model?: string;
+  provider?: string;
+  reviewType: "roadmap" | "stories" | "subtasks" | "tasks";
+  sessionName: string;
 }
 
 /** Options for running subtasks in headless mode */
@@ -1528,6 +1557,18 @@ function checkTaskHasSubtasks(
   const existingTaskReferences =
     getExistingTaskReferences(preCheckSubtasksPath);
   return existingTaskReferences.has(taskReference);
+}
+
+function discoverStoriesForMilestone(milestonePath: string): Array<string> {
+  const storiesDirectory = path.join(milestonePath, "stories");
+  if (!existsSync(storiesDirectory)) {
+    return [];
+  }
+
+  return readdirSync(storiesDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .map((entry) => path.join(storiesDirectory, entry.name))
+    .sort((a, b) => a.localeCompare(b));
 }
 
 function discoverStoryLinkedTasks(
@@ -1802,19 +1843,16 @@ async function handleCascadeExecution(
     contextRoot,
     forceFlag: isForceFlag,
     fromLevel,
-    headless: isHeadless,
+    headless: isHeadless = false,
+    isWithReviews = false,
     model,
     provider,
     resolvedMilestonePath,
     reviewFlag: isReviewFlag,
+    reviewStoryPath,
     subtasksPath: explicitSubtasksPath,
     validateFirst: shouldValidateFirst,
   } = options;
-
-  if (fromLevel === undefined) {
-    console.error("Error: missing cascade starting level");
-    process.exit(1);
-  }
 
   // Validate cascade target
   const validationError = validateCascadeTarget(fromLevel, cascadeTarget);
@@ -1842,6 +1880,15 @@ async function handleCascadeExecution(
   );
 
   const handoffLines = [chalk.dim(`Subtasks queue: ${subtasksPath}`)];
+  const shouldRunReviewFlow =
+    isWithReviews && hasBuildInCascadePath(fromLevel, cascadeTarget);
+  if (shouldRunReviewFlow) {
+    handoffLines.push(
+      chalk.dim(
+        "Review flow: stories/tasks/subtasks quality + gap checks run before build",
+      ),
+    );
+  }
   if (shouldValidateFirst === true) {
     handoffLines.push(
       chalk.dim("Pre-build validation: runs before build iteration phase"),
@@ -1949,6 +1996,19 @@ async function handleCascadeExecution(
             sourceInfo,
             storyRef: undefined,
           });
+
+          if (shouldRunReviewFlow) {
+            await runReviewFlowForLevel({
+              contextRoot: planningContextRoot,
+              isDryRun: false,
+              isHeadless,
+              level: "subtasks",
+              milestonePath,
+              model: planningModel,
+              provider: planningProvider,
+              subtasksPath: path.join(outputDirectory, "subtasks.json"),
+            });
+          }
           return null;
         }
 
@@ -1961,6 +2021,19 @@ async function handleCascadeExecution(
             model: planningModel,
             provider: planningProvider,
           });
+
+          if (shouldRunReviewFlow) {
+            await runReviewFlowForLevel({
+              contextRoot: planningContextRoot,
+              isDryRun: false,
+              isHeadless,
+              level: "tasks",
+              milestonePath,
+              model: planningModel,
+              provider: planningProvider,
+              subtasksPath,
+            });
+          }
           return null;
         }
 
@@ -1971,6 +2044,24 @@ async function handleCascadeExecution(
     } catch (error) {
       return `Failed to execute planning level '${level}': ${formatErrorMessage(error)}`;
     }
+  }
+
+  const reviewEntryLevel =
+    fromLevel === "stories" || fromLevel === "subtasks" || fromLevel === "tasks"
+      ? fromLevel
+      : null;
+  if (shouldRunReviewFlow && reviewEntryLevel !== null) {
+    await runReviewFlowForLevel({
+      contextRoot,
+      isDryRun: false,
+      isHeadless,
+      level: reviewEntryLevel,
+      milestonePath: resolvedMilestonePath,
+      model,
+      provider,
+      reviewStoryPath,
+      subtasksPath,
+    });
   }
 
   const result = await runCascadeFrom(fromLevel, cascadeTarget, {
@@ -2017,6 +2108,17 @@ async function handleCascadeExecution(
       state: "DONE",
     }),
   );
+}
+
+function hasBuildInCascadePath(
+  fromLevel: string,
+  cascadeTarget: string,
+): boolean {
+  const cascadeLevels = [
+    fromLevel,
+    ...getLevelsInRange(fromLevel, cascadeTarget),
+  ];
+  return cascadeLevels.includes("build");
 }
 
 // Helper to invoke Claude with a prompt file for interactive session
@@ -2208,6 +2310,208 @@ function resolveMilestoneFromOptions(
   }
 
   return undefined;
+}
+
+async function runReviewFlowForLevel(
+  options: RunReviewFlowForLevelOptions,
+): Promise<void> {
+  const {
+    contextRoot,
+    isDryRun = false,
+    isHeadless = false,
+    level,
+    milestonePath,
+    model,
+    provider,
+    reviewStoryPath,
+    subtasksPath,
+  } = options;
+
+  if (level === "stories") {
+    if (milestonePath === null) {
+      console.log(
+        renderEventLine({
+          domain: "CASCADE",
+          message: "Skipping stories review flow (no milestone path available)",
+          state: "SKIP",
+        }),
+      );
+      return;
+    }
+
+    await runReviewWorkflow({
+      contextRoot,
+      extraContext: `Reviewing stories for milestone: ${milestonePath}`,
+      isDryRun,
+      isGapAnalysis: false,
+      isHeadless,
+      logMilestonePath: milestonePath,
+      model,
+      provider,
+      reviewType: "stories",
+      sessionName: "stories-review",
+    });
+    await runReviewWorkflow({
+      contextRoot,
+      extraContext: `Gap analysis of stories for milestone: ${milestonePath}`,
+      isDryRun,
+      isGapAnalysis: true,
+      isHeadless,
+      logMilestonePath: milestonePath,
+      model,
+      provider,
+      reviewType: "stories",
+      sessionName: "stories-gap",
+    });
+    return;
+  }
+
+  if (level === "tasks") {
+    let storyPaths: Array<string> = [];
+    if (reviewStoryPath !== undefined && reviewStoryPath !== "") {
+      storyPaths = [reviewStoryPath];
+    } else if (milestonePath !== null) {
+      storyPaths = discoverStoriesForMilestone(milestonePath);
+    }
+
+    if (storyPaths.length === 0) {
+      console.log(
+        renderEventLine({
+          domain: "CASCADE",
+          message: "Skipping tasks review flow (no stories found)",
+          state: "SKIP",
+        }),
+      );
+      return;
+    }
+
+    await Promise.all(
+      storyPaths.map(async (storyPath) => {
+        const storyMilestoneRoot = getMilestoneRootFromPath(storyPath);
+        await runReviewWorkflow({
+          contextRoot,
+          extraContext: `Reviewing tasks for story: ${storyPath}`,
+          isDryRun,
+          isGapAnalysis: false,
+          isHeadless,
+          logMilestonePath: storyMilestoneRoot,
+          model,
+          provider,
+          reviewType: "tasks",
+          sessionName: "tasks-review",
+        });
+        await runReviewWorkflow({
+          contextRoot,
+          extraContext: `Gap analysis of tasks for story: ${storyPath}`,
+          isDryRun,
+          isGapAnalysis: true,
+          isHeadless,
+          logMilestonePath: storyMilestoneRoot,
+          model,
+          provider,
+          reviewType: "tasks",
+          sessionName: "tasks-gap",
+        });
+      }),
+    );
+    return;
+  }
+
+  const resolvedSubtasksPath = path.resolve(subtasksPath);
+  if (!existsSync(resolvedSubtasksPath)) {
+    console.log(
+      renderEventLine({
+        domain: "CASCADE",
+        message: `Skipping subtasks review flow (subtasks file not found: ${resolvedSubtasksPath})`,
+        state: "SKIP",
+      }),
+    );
+    return;
+  }
+
+  const subtasksMilestoneRoot = getMilestoneRootFromPath(
+    path.dirname(resolvedSubtasksPath),
+  );
+
+  await runReviewWorkflow({
+    contextRoot,
+    extraContext: `Reviewing subtasks file: ${resolvedSubtasksPath}`,
+    isDryRun,
+    isGapAnalysis: false,
+    isHeadless,
+    logMilestonePath: subtasksMilestoneRoot,
+    model,
+    provider,
+    reviewType: "subtasks",
+    sessionName: "subtasks-review",
+  });
+  await runReviewWorkflow({
+    contextRoot,
+    extraContext: `Gap analysis of subtasks file: ${resolvedSubtasksPath}`,
+    isDryRun,
+    isGapAnalysis: true,
+    isHeadless,
+    logMilestonePath: subtasksMilestoneRoot,
+    model,
+    provider,
+    reviewType: "subtasks",
+    sessionName: "subtasks-gap",
+  });
+}
+
+async function runReviewWorkflow(
+  options: RunReviewWorkflowOptions,
+): Promise<void> {
+  const {
+    contextRoot,
+    extraContext,
+    isDryRun = false,
+    isGapAnalysis,
+    isHeadless = false,
+    logMilestonePath,
+    model,
+    provider,
+    reviewType,
+    sessionName,
+  } = options;
+
+  const promptPath = getReviewPromptPath(
+    contextRoot,
+    reviewType,
+    isGapAnalysis,
+  );
+
+  if (isDryRun) {
+    console.log(
+      renderEventLine({
+        domain: "CASCADE",
+        message: `[dry-run] Would run ${sessionName} (${path.relative(contextRoot, promptPath)})`,
+        state: "INFO",
+      }),
+    );
+    return;
+  }
+
+  if (isHeadless) {
+    const logFile = getPlanningLogPath(logMilestonePath);
+    await invokeClaudeHeadless({
+      extraContext,
+      logFile,
+      model,
+      promptPath,
+      provider,
+      sessionName,
+    });
+    return;
+  }
+
+  await invokePlanningSupervised({
+    extraContext,
+    model,
+    promptPath,
+    provider,
+    sessionName,
+  });
 }
 
 /**
@@ -2762,6 +3066,75 @@ function validateSubtasksSourceSelection(options: {
   }
 }
 
+function validateTasksCascadeOptionsOrExit(options: {
+  cascadeTarget?: string;
+  fromLevel?: string;
+  hasMilestone: boolean;
+  hasStory: boolean;
+}): void {
+  const { cascadeTarget, fromLevel, hasMilestone, hasStory } = options;
+  if (cascadeTarget === undefined) {
+    return;
+  }
+
+  const cascadeStartLevel = fromLevel ?? "tasks";
+  const validationError = validateCascadeTarget(
+    cascadeStartLevel,
+    cascadeTarget,
+  );
+  if (validationError !== null) {
+    console.error(`Error: ${validationError}`);
+    process.exit(1);
+  }
+
+  const cascadeLevels = getLevelsInRange(cascadeStartLevel, cascadeTarget);
+  const planningLevelsInPath = cascadeLevels.filter(
+    (level) => level === "subtasks" || level === "tasks",
+  );
+
+  if (planningLevelsInPath.length > 0 && !hasMilestone && !hasStory) {
+    const planningList = planningLevelsInPath.join(", ");
+    console.error(
+      `Error: Cascading through planning levels (${planningList}) requires --milestone or --story source for 'ralph plan tasks'.`,
+    );
+    process.exit(1);
+  }
+}
+
+function validateTasksSourceSelection(sourceCount: number): void {
+  if (sourceCount === 0) {
+    exitWithTasksSourceError();
+  }
+  if (sourceCount > 1) {
+    console.error(
+      "Error: Cannot combine multiple sources. Provide exactly one of: --story, --milestone, --file, --text",
+    );
+    process.exit(1);
+  }
+}
+
+function validateWithReviewsOrExit(
+  fromLevel: string,
+  cascadeTarget: string | undefined,
+  isWithReviews: boolean,
+): void {
+  if (!isWithReviews) {
+    return;
+  }
+
+  if (cascadeTarget === undefined) {
+    console.error("Error: --with-reviews requires --cascade.");
+    process.exit(1);
+  }
+
+  if (!hasBuildInCascadePath(fromLevel, cascadeTarget)) {
+    console.error(
+      "Error: --with-reviews requires a cascade path that includes build (e.g. --cascade build or --cascade calibrate).",
+    );
+    process.exit(1);
+  }
+}
+
 function verifySubtasksQueueOutcome(options: {
   beforeQueueRaw: null | string;
   fragmentMergeState: SubtaskFragmentMergeState;
@@ -2923,6 +3296,10 @@ planCommand.addCommand(
     )
     .option("--model <name>", "Model to use for planning invocation")
     .option(
+      "--with-reviews",
+      "Run stories/tasks/subtasks review + gap checks before cascading into build",
+    )
+    .option(
       "--dry-run",
       "Preview execution plan without running (exits after showing pipeline diagram)",
     )
@@ -2943,6 +3320,11 @@ planCommand.addCommand(
           process.exit(1);
         }
       }
+      validateWithReviewsOrExit(
+        options.from ?? "stories",
+        options.cascade,
+        options.withReviews === true,
+      );
 
       if (options.dryRun === true) {
         const plan = computeExecutionPlan({
@@ -3022,6 +3404,7 @@ planCommand.addCommand(
           forceFlag: options.force === true,
           fromLevel: options.from ?? "stories",
           headless: options.headless === true,
+          isWithReviews: options.withReviews === true,
           model: planningModel,
           provider: planningProvider as ProviderType,
           resolvedMilestonePath: milestonePath,
@@ -3055,6 +3438,10 @@ planCommand.addCommand(
     )
     .option("--model <name>", "Model to use for planning invocation")
     .option(
+      "--with-reviews",
+      "Run stories/tasks/subtasks review + gap checks before cascading into build",
+    )
+    .option(
       "--cascade <target>",
       "Continue to target level after completion (validated against executable cascade levels)",
     )
@@ -3069,48 +3456,27 @@ planCommand.addCommand(
       const hasMilestone = options.milestone !== undefined;
       const hasFile = options.file !== undefined;
       const hasText = options.text !== undefined;
+      const resolvedStoryPath =
+        hasStory && options.story !== undefined
+          ? requireStory(options.story)
+          : undefined;
 
       // Validate: require exactly one source
       const sourceCount = [hasStory, hasMilestone, hasFile, hasText].filter(
         Boolean,
       ).length;
-      if (sourceCount === 0) {
-        exitWithTasksSourceError();
-      }
-      if (sourceCount > 1) {
-        console.error(
-          "Error: Cannot combine multiple sources. Provide exactly one of: --story, --milestone, --file, --text",
-        );
-        process.exit(1);
-      }
-
-      if (options.cascade !== undefined) {
-        const cascadeStartLevel = options.from ?? "tasks";
-        const validationError = validateCascadeTarget(
-          cascadeStartLevel,
-          options.cascade,
-        );
-        if (validationError !== null) {
-          console.error(`Error: ${validationError}`);
-          process.exit(1);
-        }
-
-        const cascadeLevels = getLevelsInRange(
-          cascadeStartLevel,
-          options.cascade,
-        );
-        const planningLevelsInPath = cascadeLevels.filter(
-          (level) => level === "subtasks" || level === "tasks",
-        );
-
-        if (planningLevelsInPath.length > 0 && !hasMilestone && !hasStory) {
-          const planningList = planningLevelsInPath.join(", ");
-          console.error(
-            `Error: Cascading through planning levels (${planningList}) requires --milestone or --story source for 'ralph plan tasks'.`,
-          );
-          process.exit(1);
-        }
-      }
+      validateTasksSourceSelection(sourceCount);
+      validateTasksCascadeOptionsOrExit({
+        cascadeTarget: options.cascade,
+        fromLevel: options.from,
+        hasMilestone,
+        hasStory,
+      });
+      validateWithReviewsOrExit(
+        options.from ?? "tasks",
+        options.cascade,
+        options.withReviews === true,
+      );
 
       if (options.dryRun === true) {
         const milestonePath = resolveMilestoneFromOptions(
@@ -3189,7 +3555,7 @@ planCommand.addCommand(
           isSupervised: options.supervised === true,
           model: options.model,
           provider: options.provider,
-          story: options.story,
+          story: resolvedStoryPath ?? options.story,
         });
       } else {
         await runTasksSourceMode({
@@ -3212,10 +3578,12 @@ planCommand.addCommand(
           forceFlag: options.force === true,
           fromLevel: options.from ?? "tasks",
           headless: options.headless === true,
+          isWithReviews: options.withReviews === true,
           model: options.model,
           provider: options.provider as ProviderType,
           resolvedMilestonePath,
           reviewFlag: options.review === true,
+          reviewStoryPath: resolvedStoryPath,
         });
       }
     }),
@@ -3257,6 +3625,10 @@ planCommand.addCommand(
     .option("--force", "Skip all approval prompts")
     .option("--review", "Require all approval prompts")
     .option("--from <level>", "Resume cascade from this level")
+    .option(
+      "--with-reviews",
+      "Run stories/tasks/subtasks review + gap checks before cascading into build",
+    )
     .option(
       "--cascade <target>",
       "Continue to target level after completion (build, calibrate)",
@@ -3307,6 +3679,11 @@ planCommand.addCommand(
         sourceCount,
       });
       validateSubtasksCascadeOption(options.cascade, options.from);
+      validateWithReviewsOrExit(
+        getSubtasksCascadeFromLevel(options.from),
+        options.cascade,
+        options.withReviews === true,
+      );
 
       if (options.dryRun === true) {
         const resolvedMilestonePath = resolveMilestoneFromOptions(
@@ -3531,6 +3908,7 @@ planCommand.addCommand(
           forceFlag: options.force === true,
           fromLevel: getSubtasksCascadeFromLevel(options.from),
           headless: options.headless === true,
+          isWithReviews: options.withReviews === true,
           model: options.model,
           provider: options.provider as ProviderType,
           resolvedMilestonePath: resolvedMilestonePath ?? null,
@@ -3565,6 +3943,22 @@ function getReviewPromptPath(
   );
 }
 
+function validateReviewCommandFlags(options: {
+  dryRun?: boolean;
+  headless?: boolean;
+  supervised?: boolean;
+}): void {
+  if (options.supervised === true && options.headless === true) {
+    console.error("Error: Cannot specify both --supervised and --headless");
+    process.exit(1);
+  }
+
+  if (options.dryRun === true && options.headless !== true) {
+    console.error("Error: --dry-run requires --headless mode");
+    process.exit(1);
+  }
+}
+
 // ralph review stories --milestone <path> - review stories for a milestone
 reviewCommand.addCommand(
   new Command("stories")
@@ -3573,24 +3967,31 @@ reviewCommand.addCommand(
       "--milestone <path>",
       "Milestone path to review stories for",
     )
+    .option("-s, --supervised", "Supervised mode: watch review, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--provider <name>", "AI provider to use for review")
+    .option("--model <name>", "Model to use for review invocation")
+    .option(
+      "--dry-run",
+      "Preview review invocation without running provider (requires --headless)",
+    )
     .action(async (options) => {
+      validateReviewCommandFlags(options);
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
-      const promptPath = getReviewPromptPath(contextRoot, "stories", false);
       const extraContext = `Reviewing stories for milestone: ${milestonePath}`;
-
-      if (options.headless === true) {
-        const logFile = getPlanningLogPath(milestonePath);
-        await invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "stories-review",
-        });
-      } else {
-        invokeClaudeChat(promptPath, "stories-review", { extraContext });
-      }
+      await runReviewWorkflow({
+        contextRoot,
+        extraContext,
+        isDryRun: options.dryRun === true,
+        isGapAnalysis: false,
+        isHeadless: options.headless === true,
+        logMilestonePath: milestonePath,
+        model: options.model,
+        provider: options.provider,
+        reviewType: "stories",
+        sessionName: "stories-review",
+      });
     }),
 );
 
@@ -3598,23 +3999,29 @@ reviewCommand.addCommand(
 reviewCommand.addCommand(
   new Command("roadmap")
     .description("Review roadmap milestones for quality and completeness")
+    .option("-s, --supervised", "Supervised mode: watch review, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--provider <name>", "AI provider to use for review")
+    .option("--model <name>", "Model to use for review invocation")
+    .option(
+      "--dry-run",
+      "Preview review invocation without running provider (requires --headless)",
+    )
     .action(async (options) => {
+      validateReviewCommandFlags(options);
       const contextRoot = getContextRoot();
-      const promptPath = getReviewPromptPath(contextRoot, "roadmap", false);
       const extraContext = "Reviewing roadmap for quality and completeness";
-
-      if (options.headless === true) {
-        const logFile = getPlanningLogPath();
-        await invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "roadmap-review",
-        });
-      } else {
-        invokeClaudeChat(promptPath, "roadmap-review", { extraContext });
-      }
+      await runReviewWorkflow({
+        contextRoot,
+        extraContext,
+        isDryRun: options.dryRun === true,
+        isGapAnalysis: false,
+        isHeadless: options.headless === true,
+        model: options.model,
+        provider: options.provider,
+        reviewType: "roadmap",
+        sessionName: "roadmap-review",
+      });
     }),
 );
 
@@ -3627,23 +4034,29 @@ const gapCommand = new Command("gap").description(
 gapCommand.addCommand(
   new Command("roadmap")
     .description("Cold analysis of roadmap for gaps and risks")
+    .option("-s, --supervised", "Supervised mode: watch review, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--provider <name>", "AI provider to use for review")
+    .option("--model <name>", "Model to use for review invocation")
+    .option(
+      "--dry-run",
+      "Preview review invocation without running provider (requires --headless)",
+    )
     .action(async (options) => {
+      validateReviewCommandFlags(options);
       const contextRoot = getContextRoot();
-      const promptPath = getReviewPromptPath(contextRoot, "roadmap", true);
       const extraContext = "Gap analysis of roadmap for risks and blind spots";
-
-      if (options.headless === true) {
-        const logFile = getPlanningLogPath();
-        await invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "roadmap-gap",
-        });
-      } else {
-        invokeClaudeChat(promptPath, "roadmap-gap", { extraContext });
-      }
+      await runReviewWorkflow({
+        contextRoot,
+        extraContext,
+        isDryRun: options.dryRun === true,
+        isGapAnalysis: true,
+        isHeadless: options.headless === true,
+        model: options.model,
+        provider: options.provider,
+        reviewType: "roadmap",
+        sessionName: "roadmap-gap",
+      });
     }),
 );
 
@@ -3655,24 +4068,31 @@ gapCommand.addCommand(
       "--milestone <path>",
       "Milestone path to analyze stories for",
     )
+    .option("-s, --supervised", "Supervised mode: watch review, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--provider <name>", "AI provider to use for review")
+    .option("--model <name>", "Model to use for review invocation")
+    .option(
+      "--dry-run",
+      "Preview review invocation without running provider (requires --headless)",
+    )
     .action(async (options) => {
+      validateReviewCommandFlags(options);
       const contextRoot = getContextRoot();
       const milestonePath = requireMilestone(options.milestone);
-      const promptPath = getReviewPromptPath(contextRoot, "stories", true);
       const extraContext = `Gap analysis of stories for milestone: ${milestonePath}`;
-
-      if (options.headless === true) {
-        const logFile = getPlanningLogPath(milestonePath);
-        await invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "stories-gap",
-        });
-      } else {
-        invokeClaudeChat(promptPath, "stories-gap", { extraContext });
-      }
+      await runReviewWorkflow({
+        contextRoot,
+        extraContext,
+        isDryRun: options.dryRun === true,
+        isGapAnalysis: true,
+        isHeadless: options.headless === true,
+        logMilestonePath: milestonePath,
+        model: options.model,
+        provider: options.provider,
+        reviewType: "stories",
+        sessionName: "stories-gap",
+      });
     }),
 );
 
@@ -3681,25 +4101,31 @@ gapCommand.addCommand(
   new Command("tasks")
     .description("Cold analysis of tasks for gaps and risks")
     .requiredOption("--story <path>", "Story path to analyze tasks for")
+    .option("-s, --supervised", "Supervised mode: watch review, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--provider <name>", "AI provider to use for review")
+    .option("--model <name>", "Model to use for review invocation")
+    .option(
+      "--dry-run",
+      "Preview review invocation without running provider (requires --headless)",
+    )
     .action(async (options) => {
+      validateReviewCommandFlags(options);
       const contextRoot = getContextRoot();
       const storyPath = requireStory(options.story);
-      const promptPath = getReviewPromptPath(contextRoot, "tasks", true);
       const extraContext = `Gap analysis of tasks for story: ${storyPath}`;
-
-      if (options.headless === true) {
-        // Story mode doesn't have direct milestone, use orphan fallback
-        const logFile = getPlanningLogPath();
-        await invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "tasks-gap",
-        });
-      } else {
-        invokeClaudeChat(promptPath, "tasks-gap", { extraContext });
-      }
+      await runReviewWorkflow({
+        contextRoot,
+        extraContext,
+        isDryRun: options.dryRun === true,
+        isGapAnalysis: true,
+        isHeadless: options.headless === true,
+        logMilestonePath: getMilestoneRootFromPath(storyPath),
+        model: options.model,
+        provider: options.provider,
+        reviewType: "tasks",
+        sessionName: "tasks-gap",
+      });
     }),
 );
 
@@ -3708,24 +4134,31 @@ gapCommand.addCommand(
   new Command("subtasks")
     .description("Cold analysis of subtask queue for gaps and risks")
     .requiredOption("--subtasks <path>", "Subtasks file path to analyze")
+    .option("-s, --supervised", "Supervised mode: watch review, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--provider <name>", "AI provider to use for review")
+    .option("--model <name>", "Model to use for review invocation")
+    .option(
+      "--dry-run",
+      "Preview review invocation without running provider (requires --headless)",
+    )
     .action(async (options) => {
+      validateReviewCommandFlags(options);
       const contextRoot = getContextRoot();
-      const promptPath = getReviewPromptPath(contextRoot, "subtasks", true);
-      const extraContext = `Gap analysis of subtasks file: ${options.subtasks}`;
-
-      if (options.headless === true) {
-        // Subtasks mode doesn't have direct milestone, use orphan fallback
-        const logFile = getPlanningLogPath();
-        await invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "subtasks-gap",
-        });
-      } else {
-        invokeClaudeChat(promptPath, "subtasks-gap", { extraContext });
-      }
+      const subtasksPath = path.resolve(options.subtasks);
+      const extraContext = `Gap analysis of subtasks file: ${subtasksPath}`;
+      await runReviewWorkflow({
+        contextRoot,
+        extraContext,
+        isDryRun: options.dryRun === true,
+        isGapAnalysis: true,
+        isHeadless: options.headless === true,
+        logMilestonePath: getMilestoneRootFromPath(path.dirname(subtasksPath)),
+        model: options.model,
+        provider: options.provider,
+        reviewType: "subtasks",
+        sessionName: "subtasks-gap",
+      });
     }),
 );
 
@@ -3736,25 +4169,31 @@ reviewCommand.addCommand(
   new Command("tasks")
     .description("Review tasks for a story")
     .requiredOption("--story <path>", "Story path to review tasks for")
+    .option("-s, --supervised", "Supervised mode: watch review, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--provider <name>", "AI provider to use for review")
+    .option("--model <name>", "Model to use for review invocation")
+    .option(
+      "--dry-run",
+      "Preview review invocation without running provider (requires --headless)",
+    )
     .action(async (options) => {
+      validateReviewCommandFlags(options);
       const contextRoot = getContextRoot();
       const storyPath = requireStory(options.story);
-      const promptPath = getReviewPromptPath(contextRoot, "tasks", false);
       const extraContext = `Reviewing tasks for story: ${storyPath}`;
-
-      if (options.headless === true) {
-        // Story mode doesn't have direct milestone, use orphan fallback
-        const logFile = getPlanningLogPath();
-        await invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "tasks-review",
-        });
-      } else {
-        invokeClaudeChat(promptPath, "tasks-review", { extraContext });
-      }
+      await runReviewWorkflow({
+        contextRoot,
+        extraContext,
+        isDryRun: options.dryRun === true,
+        isGapAnalysis: false,
+        isHeadless: options.headless === true,
+        logMilestonePath: getMilestoneRootFromPath(storyPath),
+        model: options.model,
+        provider: options.provider,
+        reviewType: "tasks",
+        sessionName: "tasks-review",
+      });
     }),
 );
 
@@ -3763,27 +4202,31 @@ reviewCommand.addCommand(
   new Command("subtasks")
     .description("Review subtask queue before building")
     .requiredOption("--subtasks <path>", "Subtasks file path to review")
+    .option("-s, --supervised", "Supervised mode: watch review, can intervene")
     .option("-H, --headless", "Headless mode: JSON output + file logging")
+    .option("--provider <name>", "AI provider to use for review")
+    .option("--model <name>", "Model to use for review invocation")
+    .option(
+      "--dry-run",
+      "Preview review invocation without running provider (requires --headless)",
+    )
     .action(async (options) => {
+      validateReviewCommandFlags(options);
       const contextRoot = getContextRoot();
-      const promptPath = path.join(
+      const subtasksPath = path.resolve(options.subtasks);
+      const extraContext = `Reviewing subtasks file: ${subtasksPath}`;
+      await runReviewWorkflow({
         contextRoot,
-        "context/workflows/ralph/review/subtasks-review-auto.md",
-      );
-      const extraContext = `Reviewing subtasks file: ${options.subtasks}`;
-
-      if (options.headless === true) {
-        // Subtasks review doesn't have direct milestone, use orphan fallback
-        const logFile = getPlanningLogPath();
-        await invokeClaudeHeadless({
-          extraContext,
-          logFile,
-          promptPath,
-          sessionName: "subtasks-review",
-        });
-      } else {
-        invokeClaudeChat(promptPath, "subtasks-review", { extraContext });
-      }
+        extraContext,
+        isDryRun: options.dryRun === true,
+        isGapAnalysis: false,
+        isHeadless: options.headless === true,
+        logMilestonePath: getMilestoneRootFromPath(path.dirname(subtasksPath)),
+        model: options.model,
+        provider: options.provider,
+        reviewType: "subtasks",
+        sessionName: "subtasks-review",
+      });
     }),
 );
 

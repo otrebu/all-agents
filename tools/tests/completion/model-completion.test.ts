@@ -181,7 +181,7 @@ describe("shell scripts include --provider and --model", () => {
       'COMPREPLY=($(compgen -W "--provider --model" -- "$cur"))',
     );
     expect(stdout).toContain(
-      "--milestone -s --supervised -H --headless --force --review --from --provider --model --cascade",
+      "--milestone -s --supervised -H --headless --force --review --from --provider --model --with-reviews --cascade",
     );
     expect(stdout).toContain(
       "--force --review --from --cascade --provider --model",

@@ -4,8 +4,6 @@
  * Verifies the --provider flag is recognized by both
  * ralph build and review commands.
  */
-/* eslint-disable */
-
 import { describe, expect, test } from "bun:test";
 import { execa } from "execa";
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -116,6 +114,7 @@ describe("--provider CLI flag", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("--provider");
     expect(stdout).toContain("--model");
+    expect(stdout).toContain("--with-reviews");
   });
 
   test("ralph plan subtasks --help shows --provider and --model options", async () => {
@@ -127,12 +126,25 @@ describe("--provider CLI flag", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("--provider");
     expect(stdout).toContain("--model");
+    expect(stdout).toContain("--with-reviews");
   });
 
   test("ralph plan tasks --help shows --provider and --model options", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
       ["run", "dev", "ralph", "plan", "tasks", "--help"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--provider");
+    expect(stdout).toContain("--model");
+    expect(stdout).toContain("--with-reviews");
+  });
+
+  test("ralph review tasks --help shows --provider and --model options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "review", "tasks", "--help"],
       { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(0);

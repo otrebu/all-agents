@@ -344,12 +344,9 @@ describe("promptSkipOrContinue", () => {
 
   test("propagates SIGINT to process", async () => {
     setTtyState(true, true);
-    const emitSpy = spyOn(process, "emit").mockImplementation(((
-      eventName: string | symbol,
-    ): boolean => {
-      void eventName;
-      return true;
-    }) as typeof process.emit);
+    const killSpy = spyOn(process, "kill").mockImplementation(
+      (() => true) as typeof process.kill,
+    );
 
     /* eslint-disable promise/prefer-await-to-callbacks -- readline mock intentionally uses callbacks */
     createInterfaceSpy = spyOn(readline, "createInterface").mockReturnValue({
@@ -374,8 +371,8 @@ describe("promptSkipOrContinue", () => {
     const action = await promptSkipOrContinue("SUB-406");
 
     expect(action).toBe("skip");
-    expect(emitSpy).toHaveBeenCalledWith("SIGINT");
-    emitSpy.mockRestore();
+    expect(killSpy).toHaveBeenCalledWith(process.pid, "SIGINT");
+    killSpy.mockRestore();
   });
 });
 

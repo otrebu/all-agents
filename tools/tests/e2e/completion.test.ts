@@ -1,6 +1,8 @@
 import { getContextRoot } from "@tools/utils/paths";
 import { describe, expect, test } from "bun:test";
 import { execa } from "execa";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const TOOLS_DIR = join(getContextRoot(), "tools");
@@ -46,8 +48,14 @@ CURRENT=\${#words}
 ${probeFunction}
 `;
 
-  const { stdout } = await execa("zsh", ["-fc", "source /dev/stdin"], {
-    input: probeScript,
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), "aaa-zsh-completion-"));
+  const probePath = join(temporaryDirectory, "probe.zsh");
+  writeFileSync(probePath, probeScript, "utf8");
+
+  const { stdout } = await execa("zsh", [probePath], {
+    cwd: TOOLS_DIR,
+  }).finally(() => {
+    rmSync(temporaryDirectory, { force: true, recursive: true });
   });
 
   return stdout

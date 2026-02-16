@@ -256,15 +256,15 @@ _aaa_completions() {
                                 return
                                 ;;
                             stories)
-                                COMPREPLY=($(compgen -W "--milestone -s --supervised -H --headless --force --review --from --provider --model --cascade" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--milestone -s --supervised -H --headless --force --review --from --provider --model --with-reviews --cascade" -- "$cur"))
                                 return
                                 ;;
                             tasks)
-                                COMPREPLY=($(compgen -W "--story --milestone --file --text -s --supervised -H --headless --force --review --from --provider --model --cascade" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--story --milestone --file --text -s --supervised -H --headless --force --review --from --provider --model --with-reviews --cascade" -- "$cur"))
                                 return
                                 ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--force --review --review-diary --from --task --story --milestone --output-dir --size -s --supervised -H --headless --cascade --calibrate-every --validate-first --provider --model --file --text" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--force --review --review-diary --from --task --story --milestone --output-dir --size -s --supervised -H --headless --with-reviews --cascade --calibrate-every --validate-first --provider --model --file --text" -- "$cur"))
                                 return
                                 ;;
                         esac
@@ -304,14 +304,20 @@ _aaa_completions() {
                         ;;
                     review)
                         case "$subsubcmd" in
+                            roadmap)
+                                COMPREPLY=($(compgen -W "-s --supervised -H --headless --provider --model --dry-run" -- "$cur"))
+                                ;;
                             subtasks)
-                                COMPREPLY=($(compgen -W "--subtasks -H --headless" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--subtasks -s --supervised -H --headless --provider --model --dry-run" -- "$cur"))
                                 ;;
                             tasks)
-                                COMPREPLY=($(compgen -W "--story -H --headless" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--story -s --supervised -H --headless --provider --model --dry-run" -- "$cur"))
                                 ;;
                             stories)
-                                COMPREPLY=($(compgen -W "--milestone" -- "$cur"))
+                                COMPREPLY=($(compgen -W "--milestone -s --supervised -H --headless --provider --model --dry-run" -- "$cur"))
+                                ;;
+                            gap)
+                                COMPREPLY=($(compgen -W "roadmap stories tasks subtasks" -- "$cur"))
                                 ;;
                         esac
                         return

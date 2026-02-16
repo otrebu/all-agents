@@ -100,7 +100,8 @@ describe("buildCodexHeadlessArguments", () => {
     const config: CodexConfig = { provider: "codex" };
     const args = buildCodexHeadlessArguments(config, "hello");
 
-    expect(args[0]).toBe("exec");
+    expect(args[0]).toBe("--ask-for-approval");
+    expect(args).toContain("exec");
     expect(args).toContain("--json");
     expect(args).toContain("--ask-for-approval");
     expect(args).toContain("never");

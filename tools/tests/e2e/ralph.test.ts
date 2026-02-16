@@ -532,6 +532,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("Require all approval prompts");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
+    expect(stdout).toContain("--with-reviews");
     expect(stdout).toContain("--dry-run");
     expect(normalizeCliHelpOutput(stdout)).toContain(DRY_RUN_HELP_TEXT);
   });
@@ -558,6 +559,50 @@ describe("ralph E2E", () => {
     expect(stderr).not.toContain("milestone not found");
   });
 
+  test("ralph plan stories --with-reviews requires --cascade", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        "nonexistent",
+        "--with-reviews",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("--with-reviews requires --cascade");
+    expect(stderr).not.toContain("milestone not found");
+  });
+
+  test("ralph plan stories --with-reviews requires build in cascade path", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        "nonexistent",
+        "--cascade",
+        "tasks",
+        "--with-reviews",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("requires a cascade path that includes build");
+    expect(stderr).not.toContain("milestone not found");
+  });
+
   test("ralph plan tasks --help shows approval and resume flags", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
@@ -571,6 +616,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("Require all approval prompts");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
+    expect(stdout).toContain("--with-reviews");
   });
 
   test("ralph plan tasks rejects --force with --review before main logic", async () => {
@@ -599,6 +645,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
     expect(stdout).toContain("--validate-first");
+    expect(stdout).toContain("--with-reviews");
   });
 
   test("ralph plan subtasks --help shows --review-diary source selector", async () => {
@@ -1978,7 +2025,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("milestone");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review roadmap --help shows options", async () => {
@@ -1988,7 +2039,11 @@ kill -s INT $$
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review gap --help shows gap subcommands", async () => {
@@ -2011,7 +2066,11 @@ kill -s INT $$
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review gap stories --help shows options", async () => {
@@ -2022,7 +2081,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("milestone");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review stories requires milestone option", async () => {
@@ -2063,7 +2126,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--subtasks");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review tasks --help shows options", async () => {
@@ -2074,7 +2141,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--story");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review tasks requires --story option", async () => {
@@ -2095,7 +2166,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--story");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review gap tasks requires --story option", async () => {
@@ -2116,7 +2191,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--subtasks");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review gap subtasks requires --subtasks option", async () => {
@@ -2127,6 +2206,47 @@ kill -s INT $$
       );
       expect(exitCode).toBe(1);
       expect(stderr).toContain("required option '--subtasks <path>'");
+    });
+
+    test("ralph review tasks rejects --dry-run without --headless", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "review",
+          "tasks",
+          "--story",
+          "some-story.md",
+          "--dry-run",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("--dry-run requires --headless mode");
+    });
+
+    test("ralph review tasks rejects --supervised with --headless", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "review",
+          "tasks",
+          "--story",
+          "some-story.md",
+          "--supervised",
+          "--headless",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain(
+        "Cannot specify both --supervised and --headless",
+      );
     });
   });
 

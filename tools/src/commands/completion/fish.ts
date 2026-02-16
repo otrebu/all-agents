@@ -281,6 +281,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_stories -l review -d 'Require all appro
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l from -d 'Resume cascade from this level' -xa '(__fish_aaa_complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_plan_stories -l with-reviews -d 'Run stories/tasks/subtasks review + gap checks before build'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l cascade -d 'Cascade to target level' -xa '(__fish_aaa_complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_stories -l dry-run -d 'Preview execution plan without running'
 
@@ -300,6 +301,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_tasks -l review -d 'Require all approva
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l from -d 'Resume cascade from this level' -xa '(__fish_aaa_complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_plan_tasks -l with-reviews -d 'Run stories/tasks/subtasks review + gap checks before build'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l cascade -d 'Cascade to target level' -xa '(__fish_aaa_complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_tasks -l dry-run -d 'Preview execution plan without running'
 
@@ -319,6 +321,7 @@ complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l output-dir -d 'Output direc
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l size -d 'Slice thickness' -xa 'small medium large'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s s -l supervised -d 'Supervised mode (default)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l with-reviews -d 'Run stories/tasks/subtasks review + gap checks before build'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l cascade -d 'Cascade to target level' -xa '(__fish_aaa_complete cascade 2>/dev/null)'
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l calibrate-every -d 'Run calibration every N iterations' -r
 complete -c aaa -n __fish_aaa_ralph_plan_subtasks -l validate-first -d 'Run pre-build validation before cascading build'
@@ -460,7 +463,11 @@ function __fish_aaa_ralph_review_tasks
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = tasks
 end
 complete -c aaa -n __fish_aaa_ralph_review_tasks -l story -d 'Story path to review tasks for' -xa '(__fish_aaa_complete story 2>/dev/null; __fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_review_tasks -s s -l supervised -d 'Supervised mode: watch review'
 complete -c aaa -n __fish_aaa_ralph_review_tasks -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_review_tasks -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_tasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_review_tasks -l dry-run -d 'Preview review invocation without running provider (requires --headless)'
 
 # ralph review subtasks options
 function __fish_aaa_ralph_review_subtasks
@@ -468,7 +475,11 @@ function __fish_aaa_ralph_review_subtasks
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = subtasks
 end
 complete -c aaa -n __fish_aaa_ralph_review_subtasks -l subtasks -d 'Subtasks file path to review' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_review_subtasks -s s -l supervised -d 'Supervised mode: watch review'
 complete -c aaa -n __fish_aaa_ralph_review_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_review_subtasks -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_subtasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_review_subtasks -l dry-run -d 'Preview review invocation without running provider (requires --headless)'
 
 # ralph review stories needs milestone argument
 function __fish_aaa_ralph_review_stories
@@ -476,8 +487,23 @@ function __fish_aaa_ralph_review_stories
     test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = stories
 end
 complete -c aaa -n __fish_aaa_ralph_review_stories -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_review_stories -l milestone -d 'Milestone path' -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_review_stories -s s -l supervised -d 'Supervised mode: watch review'
+complete -c aaa -n __fish_aaa_ralph_review_stories -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_review_stories -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_stories -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_review_stories -l dry-run -d 'Preview review invocation without running provider (requires --headless)'
 
-# ralph review roadmap - no additional options
+# ralph review roadmap options
+function __fish_aaa_ralph_review_roadmap
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = roadmap
+end
+complete -c aaa -n __fish_aaa_ralph_review_roadmap -s s -l supervised -d 'Supervised mode: watch review'
+complete -c aaa -n __fish_aaa_ralph_review_roadmap -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_review_roadmap -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_roadmap -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_review_roadmap -l dry-run -d 'Preview review invocation without running provider (requires --headless)'
 
 # ralph review gap subcommands
 function __fish_aaa_ralph_review_gap
@@ -495,6 +521,11 @@ function __fish_aaa_ralph_review_gap_tasks
     test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = tasks
 end
 complete -c aaa -n __fish_aaa_ralph_review_gap_tasks -l story -d 'Story path' -xa '(__fish_aaa_complete story 2>/dev/null; __fish_complete_suffix .md)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_tasks -s s -l supervised -d 'Supervised mode: watch review'
+complete -c aaa -n __fish_aaa_ralph_review_gap_tasks -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_review_gap_tasks -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_tasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_tasks -l dry-run -d 'Preview review invocation without running provider (requires --headless)'
 
 # ralph review gap subtasks options
 function __fish_aaa_ralph_review_gap_subtasks
@@ -502,6 +533,22 @@ function __fish_aaa_ralph_review_gap_subtasks
     test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = subtasks
 end
 complete -c aaa -n __fish_aaa_ralph_review_gap_subtasks -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_subtasks -s s -l supervised -d 'Supervised mode: watch review'
+complete -c aaa -n __fish_aaa_ralph_review_gap_subtasks -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_review_gap_subtasks -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_subtasks -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_subtasks -l dry-run -d 'Preview review invocation without running provider (requires --headless)'
+
+# ralph review gap roadmap options
+function __fish_aaa_ralph_review_gap_roadmap
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = roadmap
+end
+complete -c aaa -n __fish_aaa_ralph_review_gap_roadmap -s s -l supervised -d 'Supervised mode: watch review'
+complete -c aaa -n __fish_aaa_ralph_review_gap_roadmap -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_review_gap_roadmap -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_roadmap -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_roadmap -l dry-run -d 'Preview review invocation without running provider (requires --headless)'
 
 # ralph review gap stories needs milestone argument
 function __fish_aaa_ralph_review_gap_stories
@@ -509,6 +556,12 @@ function __fish_aaa_ralph_review_gap_stories
     test (count $cmd) -ge 5 -a "$cmd[2]" = ralph -a "$cmd[3]" = review -a "$cmd[4]" = gap -a "$cmd[5]" = stories
 end
 complete -c aaa -n __fish_aaa_ralph_review_gap_stories -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_stories -l milestone -d 'Milestone path' -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_stories -s s -l supervised -d 'Supervised mode: watch review'
+complete -c aaa -n __fish_aaa_ralph_review_gap_stories -s H -l headless -d 'Headless mode: JSON output + logging'
+complete -c aaa -n __fish_aaa_ralph_review_gap_stories -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_stories -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_review_gap_stories -l dry-run -d 'Preview review invocation without running provider (requires --headless)'
 
 # review options and subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand review' -s s -l supervised -d 'Supervised mode: watch execution'

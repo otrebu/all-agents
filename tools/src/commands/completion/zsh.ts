@@ -380,6 +380,7 @@ _aaa_ralph_plan() {
                         '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model' \\
+                        '--with-reviews[Run stories/tasks/subtasks review + gap checks before build]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--dry-run[Preview execution plan without running]'
                     ;;
@@ -396,6 +397,7 @@ _aaa_ralph_plan() {
                         '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model' \\
+                        '--with-reviews[Run stories/tasks/subtasks review + gap checks before build]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--dry-run[Preview execution plan without running]'
                     ;;
@@ -413,6 +415,7 @@ _aaa_ralph_plan() {
                         '--size[Slice thickness]:size:(small medium large)' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--with-reviews[Run stories/tasks/subtasks review + gap checks before build]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--calibrate-every[Run calibration every N iterations]:number:' \\
                         '--validate-first[Run pre-build validation before cascading build]' \\
@@ -549,10 +552,21 @@ _aaa_ralph_review() {
         args)
             case $words[1] in
                 stories)
-                    _arguments '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir'
+                    _arguments \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 roadmap)
-                    # No additional arguments
+                    _arguments \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 gap)
                     _aaa_ralph_review_gap
@@ -560,12 +574,20 @@ _aaa_ralph_review() {
                 tasks)
                     _arguments \\
                         '--story[Story path to review tasks for]:story:_aaa_story_or_file' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 subtasks)
                     _arguments \\
                         '--subtasks[Subtasks file path to review]:file:_files -g "*.json"' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
             esac
             ;;
@@ -592,16 +614,39 @@ _aaa_ralph_review_gap() {
         args)
             case $words[1] in
                 roadmap)
-                    # Gap analysis is supervised-only (no headless)
+                    _arguments \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 stories)
-                    _arguments '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir'
+                    _arguments \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 tasks)
-                    _arguments '--story[Story path]:story:_aaa_story_or_file'
+                    _arguments \\
+                        '--story[Story path]:story:_aaa_story_or_file' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 subtasks)
-                    _arguments '--subtasks[Subtasks file path]:file:_files -g "*.json"'
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
             esac
             ;;

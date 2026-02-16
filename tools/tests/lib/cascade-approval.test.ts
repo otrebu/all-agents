@@ -124,7 +124,14 @@ describe("checkApprovalGate", () => {
       reviewFlag: false,
     });
 
-    expect(promptSpy).toHaveBeenCalledWith("createTasks", expect.any(String));
+    expect(promptSpy).toHaveBeenCalledWith(
+      "createTasks",
+      "Proceeding with tasks level",
+      expect.objectContaining({
+        gateName: "createTasks",
+        resolvedAction: "prompt",
+      }),
+    );
     expect(result).toBe("aborted");
     promptSpy.mockRestore();
     evaluateSpy.mockRestore();
