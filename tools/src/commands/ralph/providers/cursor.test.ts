@@ -28,7 +28,7 @@ function loadCursorStreamJsonFixtures(): Array<CursorFixtureScenario> {
 }
 
 describe("buildCursorHeadlessArguments", () => {
-  test("includes headless flags, yolo, model, and prompt separator", () => {
+  test("includes headless flags, model, and prompt separator", () => {
     const args = buildCursorHeadlessArguments(
       { model: "cursor-fast", provider: "cursor" },
       "Implement feature X",
@@ -38,7 +38,6 @@ describe("buildCursorHeadlessArguments", () => {
       "-p",
       "--output-format",
       "stream-json",
-      "--yolo",
       "--model",
       "cursor-fast",
       "--",
@@ -64,7 +63,6 @@ describe("buildCursorHeadlessArguments", () => {
       "-p",
       "--output-format",
       "stream-json",
-      "--yolo",
       "--",
       "ping",
     ]);

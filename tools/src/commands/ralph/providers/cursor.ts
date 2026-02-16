@@ -37,7 +37,7 @@ function buildCursorHeadlessArguments(
   config: CursorConfig,
   prompt: string,
 ): Array<string> {
-  const args = ["-p", "--output-format", "stream-json", "--yolo"];
+  const args = ["-p", "--output-format", "stream-json"];
 
   if (config.model !== undefined && config.model !== "") {
     const normalizedModel = normalizeCursorModel(config.model);
