@@ -139,6 +139,60 @@ Everything below is forward work and should be planned as net-new deltas, not re
 
 ---
 
+### 011. 011-atomic-docs-coverage: Context Library Gap Fill
+
+**Status:** 🔲 Not started
+
+**Outcome:** Fill gaps in the atomic documentation library (`context/`) identified during BillingManager milestone analysis. Generic concept blocks and tool-specific foundations covering data modeling, API design, reporting, and import patterns.
+
+**Key deliverables:**
+
+New blocks (generic, tool-agnostic):
+
+- `blocks/construct/hierarchical-data.md` — Tree patterns in relational DBs (adjacency list, materialized path, recursive CTEs, depth constraints)
+- `blocks/construct/sql-aggregation.md` — GROUP BY, CTEs, ROLLUP, dynamic WHERE composition
+- `blocks/construct/drilldown-api.md` — Hierarchical drill-down API contract (hasChildren, breadcrumbs, groupBy dispatch)
+- `blocks/construct/report-table-ui.md` — Server-driven table wiring (sort/filter/page state drives API)
+- `blocks/construct/entity-ownership.md` — Multi-dimensional ownership, CASCADE vs SET NULL, tenant scoping, FK vs join table
+- `blocks/construct/rest-resources.md` — REST URL conventions (plural nouns, nesting, path vs query params)
+- `blocks/construct/api-responses.md` — Response envelopes, error shapes, HTTP status codes
+- `blocks/construct/pagination.md` — Cursor vs offset patterns, metadata shapes, limits
+- `blocks/construct/papaparse.md` — PapaParse library reference (CSV parsing)
+- `blocks/construct/preview-apply.md` — Dry-run + commit pattern (generic, reusable beyond imports)
+- `blocks/security/authorization.md` — Authz concepts (authn vs authz, RBAC/ABAC/ReBAC overview, decision matrix)
+- `blocks/security/rbac.md` — RBAC concepts and DB schema patterns (roles, permissions, assignments)
+- `blocks/security/zanzibar.md` — Google Zanzibar model (relationship tuples, namespaces, check/expand operations)
+- `blocks/security/openfga.md` — OpenFGA tool reference (setup, model DSL, TypeScript SDK, CLI)
+- `blocks/security/better-auth-oauth.md` — BetterAuth OAuth/OIDC plugin (provider + consumer, dedicated DB)
+
+New foundations (tool-specific compositions):
+
+- `foundations/construct/data-hierarchy-prisma.md` — Hierarchical data + Prisma + PostgreSQL
+- `foundations/construct/aggregate-prisma.md` — SQL aggregation via Prisma groupBy() and $queryRaw
+- `foundations/construct/drilldown-orpc.md` — Drilldown endpoint with oRPC + Prisma
+- `foundations/construct/report-table-tanstack.md` — TanStack Table + Query + Router wiring
+- `foundations/construct/parse-csv-zod.md` — CSV parse + validate pipeline (mirrors parse-xml-zod.md)
+- `foundations/construct/import-pipeline.md` — Format-agnostic import orchestration (diff → preview → apply)
+- `foundations/security/auth-oauth-server-better-auth.md` — BetterAuth as OAuth server with own DB, social provider consumption
+- `foundations/security/auth-authz-openfga.md` — Fine-grained authz with OpenFGA, combining with BetterAuth for authn
+
+Edits to existing docs:
+
+- `blocks/quality/coding-style.md` — Add "Enum & Union Type Conventions" section
+- `blocks/quality/error-handling.md` — Add error accumulation pattern
+- `foundations/construct/data-persist-prisma.md` — Cross-reference entity-ownership block
+
+**Success criteria:**
+
+- All 15 new blocks are reviewed and merged.
+- All 8 new foundations compose their dependent blocks correctly.
+- Existing docs updated without breaking current references.
+- Each doc follows atomic documentation naming and structure conventions.
+
+**Dependencies:** none (can run in parallel with other milestones)
+
+---
+
 ## Deferred / Watchlist
 
 - Enabling runtime support for declared-but-disabled providers (`codex`, `cursor`, `gemini`, `pi`).
