@@ -37,6 +37,8 @@ interface ProcessExecutionResult {
   durationMs: number;
   /** Process exit code (null if killed by signal) */
   exitCode: null | number;
+  /** Signal that interrupted execution, if interrupted by process signal */
+  interruptedBy?: ProcessSignal;
   /** Collected stderr output */
   stderr: string;
   /** Collected stdout as a string */
@@ -46,6 +48,8 @@ interface ProcessExecutionResult {
   /** Whether the process was killed due to a timeout */
   timedOut: boolean;
 }
+
+type ProcessSignal = "SIGINT" | "SIGTERM";
 
 /** Configuration for stall (inactivity) detection */
 interface StallDetectionConfig {
@@ -162,6 +166,31 @@ async function executeWithTimeout(
 
   const stdoutPromise = new Response(proc.stdout).text();
 
+  const signalState: { interruptedBy: null | ProcessSignal } = {
+    interruptedBy: null,
+  };
+  let didRequestTermination = false;
+
+  function handleInterrupt(signal: ProcessSignal): void {
+    signalState.interruptedBy = signal;
+    if (didRequestTermination) {
+      return;
+    }
+    didRequestTermination = true;
+    void killProcessGracefully(proc, gracePeriodMs);
+  }
+
+  function handleSigint(): void {
+    handleInterrupt("SIGINT");
+  }
+
+  function handleSigterm(): void {
+    handleInterrupt("SIGTERM");
+  }
+
+  process.prependListener("SIGINT", handleSigint);
+  process.prependListener("SIGTERM", handleSigterm);
+
   // Track last activity time for stall detection
   let lastActivityAt = Date.now();
 
@@ -202,10 +231,23 @@ async function executeWithTimeout(
   if (stallDetector !== null) racers.push(stallDetector.promise);
   if (hardTimeoutPromise !== null) racers.push(hardTimeoutPromise);
 
-  const outcome: ExitOutcome = await Promise.race(racers);
+  const outcome: ExitOutcome = await Promise.race(racers).finally(() => {
+    stallDetector?.cleanup();
+    process.removeListener("SIGINT", handleSigint);
+    process.removeListener("SIGTERM", handleSigterm);
+  });
 
-  // Clean up timers
-  stallDetector?.cleanup();
+  if (signalState.interruptedBy !== null) {
+    await stderrForwarder;
+    return {
+      durationMs: Date.now() - startTime,
+      exitCode: proc.exitCode,
+      interruptedBy: signalState.interruptedBy,
+      stderr: stderrChunks.join(""),
+      stdout: "",
+      timedOut: false,
+    };
+  }
 
   if (outcome === "stall_timeout" || outcome === "hard_timeout") {
     await killProcessGracefully(proc, gracePeriodMs);

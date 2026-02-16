@@ -1338,6 +1338,18 @@ describe("display utilities", () => {
       expect(lines.some((line) => line.includes("⚠"))).toBe(false);
       expect(lines.at(-1)).toBe("Proceed? [Y/n]:");
     });
+
+    test("renders continue next step for auto-run previews", () => {
+      const lines = renderPipelineFooter({
+        estimatedCost: "$0.05 - $0.12",
+        estimatedMinutes: 12,
+        nextStep: "continue",
+        phaseCount: 1,
+        phaseGateCount: 0,
+      });
+
+      expect(lines.at(-1)).toBe("Execution continues below...");
+    });
   });
 
   describe("renderCompactPreview", () => {

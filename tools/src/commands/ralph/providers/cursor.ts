@@ -247,6 +247,16 @@ function getNestedValue(
   return current;
 }
 
+function handleHeadlessInterrupt(signal: CursorSignal): never {
+  try {
+    process.kill(process.pid, signal);
+  } catch {
+    // Ignore kill failures and surface a descriptive fallback error.
+  }
+
+  throw new Error(`Cursor headless session interrupted by ${signal}`);
+}
+
 function handleSupervisedInterrupt(signal: CursorSignal): never {
   try {
     process.kill(process.pid, signal);
@@ -286,6 +296,10 @@ async function invokeCursorHeadless(
     gracePeriodMs: 0,
     stallDetection: { hardTimeoutMs: timeoutMs, stallTimeoutMs: 0 },
   });
+
+  if (execution.interruptedBy !== undefined) {
+    return handleHeadlessInterrupt(execution.interruptedBy);
+  }
 
   if (execution.timedOut) {
     throw new Error(

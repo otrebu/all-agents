@@ -1521,10 +1521,20 @@ function renderPipelineFooter(data: PipelineFooterData): Array<string> {
       ? `${chalk.dim("Gates:")} ${chalk.cyan(String(data.phaseGateCount))}`
       : `${chalk.dim("Gates:")} ${chalk.cyan(String(data.phaseGateCount))} ${chalk.dim(data.gatesStatus)}`;
   const costText = `${chalk.dim("Est. cost:")} ${chalk.magenta(data.estimatedCost)}`;
-  const nextStepText =
-    data.nextStep === "dry-run"
-      ? "To execute: remove --dry-run flag"
-      : "Proceed? [Y/n]:";
+  let nextStepText = "To execute: remove --dry-run flag";
+  switch (data.nextStep) {
+    case "continue": {
+      nextStepText = "Execution continues below...";
+      break;
+    }
+    case "prompt": {
+      nextStepText = "Proceed? [Y/n]:";
+      break;
+    }
+    default: {
+      break;
+    }
+  }
   const lines = [
     "─".repeat(BOX_INNER_WIDTH),
     formatTwoColumnRow(

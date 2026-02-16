@@ -159,7 +159,9 @@ describe("plan tasks cascade preview", () => {
 
     expect(source).toContain('message: "Workflow preview"');
     expect(source).toContain("if (options.cascade !== undefined)");
-    expect(source).toContain("printDryRunPlan(plan);");
+    expect(source).toContain(
+      'printDryRunPlan(plan, { nextStep: "continue" });',
+    );
   });
 });
 

@@ -393,6 +393,42 @@ describe("headless lifecycle", () => {
     expect(result.result).toContain("ok");
   });
 
+  test("places global approval flags before exec subcommand", async () => {
+    const mockProc = createMockProcess();
+    activeMockProcesses.push(mockProc);
+    let codexArgs: Array<string> = [];
+
+    Bun.spawn = mock((command: unknown): ReturnType<typeof Bun.spawn> => {
+      const args = parseSpawnCommand(command);
+      if (args[0] === "which") {
+        return createWhichMockProcess();
+      }
+      codexArgs = args;
+      return mockProc.proc as unknown as BunSpawnResult;
+    });
+
+    const exitTimer = setTimeout(() => {
+      mockProc.stdout.push(VALID_JSONL);
+      mockProc.stdout.close();
+      mockProc.stderr.close();
+      mockProc.resolveExited(0);
+    }, 5);
+    activeTimers.push(exitTimer);
+
+    await invokeCodex(makeOptions({ timeoutMs: 2000 }));
+
+    expect(codexArgs[0]).toBe("codex");
+    expect(codexArgs.slice(1, 8)).toEqual([
+      "--ask-for-approval",
+      "never",
+      "--sandbox",
+      "workspace-write",
+      "exec",
+      "--json",
+      "--skip-git-repo-check",
+    ]);
+  });
+
   test("maps non-zero exit to failure", async () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);

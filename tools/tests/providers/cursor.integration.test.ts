@@ -154,6 +154,8 @@ function makeOptions(overrides?: {
 }
 
 const originalSpawn = Bun.spawn;
+const originalPrependListener = process.prependListener;
+const originalRemoveListener = process.removeListener;
 const originalProcessKill = process.kill;
 const originalStderrWrite = process.stderr.write;
 const originalConsoleError = console.error;
@@ -205,6 +207,8 @@ let activeTimers: Array<ReturnType<typeof setTimeout>> = [];
 beforeEach(() => {
   activeMockProcesses = [];
   activeTimers = [];
+  process.prependListener = originalPrependListener;
+  process.removeListener = originalRemoveListener;
   process.kill = mock(() => true) as typeof process.kill;
   process.stderr.write = mock(() => true) as typeof process.stderr.write;
   console.error = mock(() => {});
@@ -225,6 +229,8 @@ afterEach(() => {
   activeTimers = [];
 
   Bun.spawn = originalSpawn;
+  process.prependListener = originalPrependListener;
+  process.removeListener = originalRemoveListener;
   process.kill = originalProcessKill;
   process.stderr.write = originalStderrWrite;
   console.error = originalConsoleError;
@@ -233,6 +239,8 @@ afterEach(() => {
 
 afterAll(() => {
   Bun.spawn = originalSpawn;
+  process.prependListener = originalPrependListener;
+  process.removeListener = originalRemoveListener;
   process.kill = originalProcessKill;
   process.stderr.write = originalStderrWrite;
   console.error = originalConsoleError;
@@ -388,6 +396,81 @@ describe("headless lifecycle", () => {
       .map((call: Array<unknown>) => parseSpawnCommand(call.at(0)).at(1))
       .filter((value): value is string => typeof value === "string");
     expect(whichTargets).toEqual(["agent", "cursor-agent"]);
+  });
+
+  test("propagates SIGINT interruptions to parent process handlers", async () => {
+    const mockProc = createMockProcess();
+    activeMockProcesses.push(mockProc);
+    const signalHandlers = new Map<string, () => void>();
+    const propagatedSignals: Array<string> = [];
+    const childSignals: Array<string> = [];
+
+    process.prependListener = mock((event, listener) => {
+      if (
+        (event === "SIGINT" || event === "SIGTERM") &&
+        typeof listener === "function"
+      ) {
+        signalHandlers.set(event, listener as () => void);
+      }
+      return process;
+    }) as typeof process.prependListener;
+
+    process.removeListener = mock((event, listener) => {
+      if (
+        (event === "SIGINT" || event === "SIGTERM") &&
+        typeof listener === "function"
+      ) {
+        const current = signalHandlers.get(event);
+        if (current === listener) {
+          signalHandlers.delete(event);
+        }
+      }
+      return process;
+    }) as typeof process.removeListener;
+
+    process.kill = mock((pid: number, signal?: number | string) => {
+      if (pid === process.pid && typeof signal === "string") {
+        propagatedSignals.push(signal);
+      }
+      return true;
+    }) as typeof process.kill;
+
+    Bun.spawn = mock((command: unknown): BunSpawnResult => {
+      const args = parseSpawnCommand(command);
+      if (args[0] === "which") {
+        return createWhichMockProcess(true);
+      }
+      return mockProc.proc as unknown as BunSpawnResult;
+    });
+
+    mockProc.proc.kill = mock((signal?: number | string) => {
+      if (typeof signal === "string") {
+        childSignals.push(signal);
+      }
+      if (signal === "SIGTERM" || signal === "SIGKILL") {
+        mockProc.stdout.close();
+        mockProc.stderr.close();
+        mockProc.resolveExited(130);
+      }
+    });
+
+    const invocationPromise = invokeCursor(makeOptions({ timeoutMs: 2000 }));
+    const interruptTimer = setTimeout(() => {
+      signalHandlers.get("SIGINT")?.();
+    }, 5);
+    activeTimers.push(interruptTimer);
+
+    try {
+      await invocationPromise;
+      throw new Error("Expected invokeCursor to throw");
+    } catch (error: unknown) {
+      expect((error as Error).message).toContain(
+        "headless session interrupted by SIGINT",
+      );
+    }
+
+    expect(propagatedSignals).toContain("SIGINT");
+    expect(childSignals).toContain("SIGTERM");
   });
 });
 

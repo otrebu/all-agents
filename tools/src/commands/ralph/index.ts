@@ -14,6 +14,7 @@ import {
 import path from "node:path";
 
 import type { ProviderType } from "./providers/types";
+import type { PipelineFooterData } from "./types";
 
 import { runArchive } from "./archive";
 import runBuild, { buildIterationPrompt } from "./build";
@@ -76,6 +77,8 @@ import {
   parseCliSubtaskDrafts,
   readQueueProposalFromFile,
 } from "./subtask-helpers";
+
+type PipelinePreviewNextStep = PipelineFooterData["nextStep"];
 
 /**
  * Extract task reference from a task path
@@ -204,7 +207,10 @@ function getMilestoneRootFromPath(candidatePath: string): string {
   return candidatePath;
 }
 
-function printDryRunPlan(plan: ExecutionPlan): void {
+function printDryRunPlan(
+  plan: ExecutionPlan,
+  options?: { nextStep?: PipelinePreviewNextStep },
+): void {
   const shouldRenderAsJson = getDryRunOutputFormat() === "json";
 
   if (shouldRenderAsJson) {
@@ -292,7 +298,7 @@ function printDryRunPlan(plan: ExecutionPlan): void {
       estimatedCost: "n/a",
       estimatedMinutes: Number.isNaN(estimatedMinutes) ? 0 : estimatedMinutes,
       gatesStatus: getDryRunApprovalStatus(plan),
-      nextStep: "dry-run",
+      nextStep: options?.nextStep ?? "dry-run",
       phaseCount: plan.summary.phaseCount,
       phaseGateCount: plan.summary.approvalGateCount,
       warnings: warningLines,
@@ -3039,7 +3045,7 @@ planCommand.addCommand(
             state: "INFO",
           }),
         );
-        printDryRunPlan(plan);
+        printDryRunPlan(plan, { nextStep: "continue" });
       }
 
       const contextRoot = getContextRoot();
