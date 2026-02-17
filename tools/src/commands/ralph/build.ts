@@ -528,7 +528,8 @@ function getSubtasksSizeGuidanceLines(options: {
       tone: "red",
     });
     lines.push({
-      message: "  Use jq for in-place updates of the assigned subtask only.",
+      message:
+        "  If manual completion is required, use: aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id> --commit <hash> --session <id>",
       tone: "dim",
     });
   }

@@ -106,6 +106,12 @@ describe("getSubtasksSizeGuidanceLines", () => {
         m.includes("Provider invocation may not be able to update this file"),
       ),
     ).toBe(true);
+    expect(
+      messages.some((m) =>
+        m.includes("aaa ralph subtasks complete --milestone"),
+      ),
+    ).toBe(true);
+    expect(messages.some((m) => m.includes("Use jq"))).toBe(false);
   });
 
   test("suppresses provider hard-limit warning when queue is already complete", () => {
