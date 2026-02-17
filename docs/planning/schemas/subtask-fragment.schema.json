@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "subtask-fragment.schema.json",
+  "title": "Subtask Fragment",
+  "description": "Schema for .subtasks-task-*.json fragments produced by hierarchy subtasks planning",
+  "type": "array",
+  "items": {
+    "$ref": "subtasks.schema.json#/$defs/subtask"
+  }
+}

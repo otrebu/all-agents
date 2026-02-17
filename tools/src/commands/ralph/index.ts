@@ -14,7 +14,7 @@ import {
 import path from "node:path";
 
 import type { ProviderType } from "./providers/types";
-import type { PipelineFooterData } from "./types";
+import type { PipelineFooterData, Subtask } from "./types";
 
 import { runArchive } from "./archive";
 import runBuild, { buildIterationPrompt } from "./build";
@@ -1489,6 +1489,9 @@ function checkSubtasksPreCheck(options: {
   const { milestonePath, outputDirectory, storyPath } = options;
   const subtasksPath = path.join(outputDirectory, "subtasks.json");
 
+  // Keep pre-check compatible with legacy array queues by normalizing once.
+  normalizeLegacySubtasksQueueIfNeeded(subtasksPath);
+
   // Capture before count for later delta calculation
   const beforeCount = countSubtasksInFile(subtasksPath);
 
@@ -1552,6 +1555,9 @@ function checkTaskHasSubtasks(
     preCheckOutputDirectory,
     "subtasks.json",
   );
+
+  // Keep task pre-check compatible with legacy array queues by normalizing once.
+  normalizeLegacySubtasksQueueIfNeeded(preCheckSubtasksPath);
 
   // Check if this task already has subtasks
   const existingTaskReferences =
@@ -1790,6 +1796,20 @@ function getSubtasksLoadResult(outputPath: string): {
       })),
     };
   } catch (error) {
+    if (normalizeLegacySubtasksQueueIfNeeded(outputPath)) {
+      try {
+        const normalizedFile = loadSubtasksFile(outputPath);
+        return {
+          subtasks: normalizedFile.subtasks.map((subtask) => ({
+            id: subtask.id,
+            title: subtask.title,
+          })),
+        };
+      } catch (normalizedError) {
+        return { error: formatErrorMessage(normalizedError), subtasks: [] };
+      }
+    }
+
     return { error: formatErrorMessage(error), subtasks: [] };
   }
 }
@@ -2198,6 +2218,45 @@ function listSubtaskFragmentFiles(outputDirectory: string): Array<string> {
   }
 }
 
+/**
+ * Normalize legacy queue files that use a top-level array into canonical schema shape.
+ *
+ * Returns true when a rewrite occurred.
+ */
+function normalizeLegacySubtasksQueueIfNeeded(subtasksPath: string): boolean {
+  if (!existsSync(subtasksPath)) {
+    return false;
+  }
+
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(readFileSync(subtasksPath, "utf8"));
+  } catch {
+    return false;
+  }
+
+  if (!Array.isArray(parsed)) {
+    return false;
+  }
+
+  const inferredMilestoneRoot = getMilestoneRootFromPath(
+    path.dirname(subtasksPath),
+  );
+  const inferredMilestonePath =
+    inferredMilestoneRoot === path.dirname(subtasksPath)
+      ? undefined
+      : inferredMilestoneRoot;
+
+  saveSubtasksFile(subtasksPath, {
+    metadata:
+      buildSubtasksMergeMetadata(inferredMilestonePath) ??
+      ({ scope: "milestone" } as const),
+    subtasks: parsed as Array<Subtask>,
+  });
+
+  return true;
+}
+
 function normalizeStoryReference(storyReference: string): string {
   const trimmed = storyReference.trim().replaceAll(/^['"]|['"]$/g, "");
   const withoutExtension = trimmed.endsWith(".md")
@@ -2210,6 +2269,8 @@ function readQueueStateBeforeSubtasksRun(
   beforeCount: number,
   outputPath: string,
 ): { beforeQueueCount: number; beforeQueueRaw: null | string } {
+  normalizeLegacySubtasksQueueIfNeeded(outputPath);
+
   const beforeQueueRaw = existsSync(outputPath)
     ? readFileSync(outputPath, "utf8")
     : null;

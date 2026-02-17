@@ -2526,6 +2526,65 @@ A test task for pre-check verification.
       expect(stdout).toContain("nothing to generate");
     });
 
+    test("plan subtasks --milestone auto-normalizes legacy top-level array queues", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "docs/planning/milestones/legacy-covered",
+      );
+      const tasksDirectory = join(milestoneDirectory, "tasks");
+      mkdirSync(tasksDirectory, { recursive: true });
+
+      writeFileSync(
+        join(tasksDirectory, "TASK-001-legacy-task.md"),
+        "# TASK-001 Legacy Task\n\n## Description\nLegacy queue compatibility test.",
+      );
+
+      const legacyQueue = [
+        {
+          acceptanceCriteria: ["Legacy entry still respected"],
+          description: "Legacy format queue entry",
+          done: false,
+          filesToRead: [],
+          id: "SUB-001",
+          taskRef: "TASK-001-legacy-task",
+          title: "Legacy subtask",
+        },
+      ];
+      const subtasksPath = join(milestoneDirectory, "subtasks.json");
+      writeFileSync(subtasksPath, JSON.stringify(legacyQueue, null, 2));
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--milestone",
+          milestoneDirectory,
+          "--headless",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("already have subtasks");
+
+      const normalizedQueue = JSON.parse(readFileSync(subtasksPath, "utf8")) as
+        | { subtasks: Array<{ id: string; taskRef?: string }> }
+        | Array<unknown>;
+      expect(Array.isArray(normalizedQueue)).toBe(false);
+      expect("subtasks" in normalizedQueue).toBe(true);
+      if ("subtasks" in normalizedQueue) {
+        expect(normalizedQueue.subtasks).toHaveLength(1);
+        expect(normalizedQueue.subtasks[0]?.id).toBe("SUB-001");
+        expect(normalizedQueue.subtasks[0]?.taskRef).toBe(
+          "TASK-001-legacy-task",
+        );
+      }
+    });
+
     test("plan subtasks --story fails early when no tasks link to the story", async () => {
       const projectRoot = join(temporaryDirectory, "story-no-linked-tasks");
       mkdirSync(join(projectRoot, ".git"), { recursive: true });
@@ -2781,6 +2840,72 @@ echo '[{"type":"result","result":"ok","duration_ms":12,"total_cost_usd":0.02,"se
       };
       expect(queueFile.subtasks.length).toBe(1);
       expect(queueFile.subtasks[0]?.id).toBe("SUB-001");
+    });
+
+    test("plan subtasks --headless auto-normalizes legacy top-level array output from provider", async () => {
+      const outputDirectory = join(temporaryDirectory, "headless-out-legacy");
+      mkdirSync(outputDirectory, { recursive: true });
+      const subtasksPath = join(outputDirectory, "subtasks.json");
+
+      const mockClaudePath = join(temporaryDirectory, "claude");
+      writeFileSync(
+        mockClaudePath,
+        `#!/bin/bash
+cat > "$OUTPUT_SUBTASKS_PATH" <<'JSON'
+[
+  {
+    "id": "SUB-001",
+    "title": "Legacy generated subtask",
+    "description": "Generated in legacy array format",
+    "taskRef": "TASK-001-test",
+    "done": false,
+    "acceptanceCriteria": ["Works"],
+    "filesToRead": []
+  }
+]
+JSON
+echo '[{"type":"result","result":"ok","duration_ms":12,"total_cost_usd":0.02,"session_id":"sess-legacy"}]'
+`,
+        { mode: 0o755 },
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--text",
+          "Create queue",
+          "--headless",
+          "--output-dir",
+          outputDirectory,
+        ],
+        {
+          cwd: TOOLS_DIR,
+          env: {
+            ...process.env,
+            OUTPUT_SUBTASKS_PATH: subtasksPath,
+            PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+          },
+          reject: false,
+        },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Phase 3/4: queue verified");
+
+      const normalizedQueue = JSON.parse(readFileSync(subtasksPath, "utf8")) as
+        | { subtasks: Array<{ id: string }> }
+        | Array<unknown>;
+      expect(Array.isArray(normalizedQueue)).toBe(false);
+      expect("subtasks" in normalizedQueue).toBe(true);
+      if ("subtasks" in normalizedQueue) {
+        expect(normalizedQueue.subtasks).toHaveLength(1);
+        expect(normalizedQueue.subtasks[0]?.id).toBe("SUB-001");
+      }
     });
   });
 });
@@ -5102,6 +5227,49 @@ describe("subtasks schema validation", () => {
 
       expect(isValid).toBe(true);
     }
+  });
+
+  test("subtask fragment schema validates bare array fragments", () => {
+    const queueSchemaPath = join(
+      CONTEXT_ROOT,
+      "docs/planning/schemas/subtasks.schema.json",
+    );
+    const fragmentSchemaPath = join(
+      CONTEXT_ROOT,
+      "docs/planning/schemas/subtask-fragment.schema.json",
+    );
+
+    const queueSchema = JSON.parse(readFileSync(queueSchemaPath, "utf8"));
+    const fragmentSchema = JSON.parse(readFileSync(fragmentSchemaPath, "utf8"));
+
+    const ajv = new Ajv2020({ allErrors: true, strict: false });
+    addFormats(ajv);
+    ajv.addSchema(queueSchema);
+    const validateFragment = ajv.compile(fragmentSchema);
+
+    const validFragment = [
+      {
+        acceptanceCriteria: ["Validation passes against fragment schema"],
+        description: "Example fragment entry",
+        done: false,
+        filesToRead: ["src/example.ts"],
+        id: "SUB-001",
+        taskRef: "001-example-task",
+        title: "Example fragment subtask",
+      },
+    ];
+
+    const isValidFragment = validateFragment(validFragment);
+    if (!isValidFragment) {
+      console.error(
+        "Fragment validation errors:",
+        JSON.stringify(validateFragment.errors, null, 2),
+      );
+    }
+    expect(isValidFragment).toBe(true);
+
+    const invalidWrappedFragment = { subtasks: validFragment };
+    expect(validateFragment(invalidWrappedFragment)).toBe(false);
   });
 });
 

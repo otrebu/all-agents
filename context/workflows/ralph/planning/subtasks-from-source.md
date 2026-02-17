@@ -120,6 +120,8 @@ After validation, write final subtasks to the destination directly:
 - If `--output-dir` is provided: `<output-dir>/subtasks.json`
 - Otherwise: `docs/planning/subtasks.json`
 
+Canonical output shape is required: `{ "subtasks": [ ... ] }` (optionally `"$schema"` and `"metadata"`), validated by `@docs/planning/schemas/subtasks.schema.json`.
+
 When `--output-dir` points to a milestone-shaped path (`docs/planning/milestones/<slug>`), both generated subtasks and planning logs resolve to that same milestone context.
 
 **IMPORTANT: Use `appendSubtasksToFile()` from `tools/src/commands/ralph/config.ts`**

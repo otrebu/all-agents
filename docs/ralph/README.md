@@ -189,3 +189,4 @@ docs/planning/
 - [VISION.md](../planning/VISION.md) - Full design specification
 - [ROADMAP.md](../planning/ROADMAP.md) - Implementation status
 - [subtasks.schema.json](../planning/schemas/subtasks.schema.json) - Queue format
+- [subtask-fragment.schema.json](../planning/schemas/subtask-fragment.schema.json) - Per-task fragment array format for hierarchy planning
