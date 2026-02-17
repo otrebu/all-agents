@@ -2248,6 +2248,53 @@ kill -s INT $$
         "Cannot specify both --supervised and --headless",
       );
     });
+
+    test("ralph review tasks --headless shows review workflow event lines", async () => {
+      const storyPath = join(temporaryDirectory, "001-story.md");
+      writeFileSync(storyPath, "# Story\n\nReview workflow output contract\n");
+
+      const mockClaudePath = join(temporaryDirectory, "claude");
+      writeFileSync(
+        mockClaudePath,
+        `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"ok","duration_ms":9,"total_cost_usd":0.01,"session_id":"sess-review-flow"}]
+JSON
+`,
+        { mode: 0o755 },
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "review",
+          "tasks",
+          "--story",
+          storyPath,
+          "--headless",
+          "--provider",
+          "claude",
+        ],
+        {
+          cwd: TOOLS_DIR,
+          env: {
+            ...process.env,
+            PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+          },
+        },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain(
+        "[REVIEW] [START] Phase 1/2: starting tasks-review",
+      );
+      expect(stdout).toContain(
+        "[REVIEW] [DONE] Phase 2/2: completed tasks-review",
+      );
+    });
   });
 
   // Cascade validation tests (SUB-177)
@@ -2824,12 +2871,15 @@ echo '[{"type":"result","result":"ok","duration_ms":12,"total_cost_usd":0.02,"se
       );
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("Phase 1/4: starting generation");
+      expect(stdout).toContain("[PLAN] [START] Phase 1/4: starting generation");
       expect(stdout).toContain(
-        "Phase 2/4: provider run complete, verifying queue",
+        "[PLAN] [WAIT] Phase 2/4: provider run in progress",
       );
-      expect(stdout).toContain("Phase 3/4: queue verified");
-      expect(stdout).toContain("Phase 4/4: summary complete");
+      expect(stdout).toContain(
+        "[PLAN] [DONE] Phase 2/4: provider run complete, verifying queue",
+      );
+      expect(stdout).toContain("[PLAN] [DONE] Phase 3/4: queue verified");
+      expect(stdout).toContain("[PLAN] [DONE] Phase 4/4: summary complete");
       expect(stdout).toContain("Created");
       expect(stdout).toContain("(Total:");
       expect(stdout).toContain("Output:");

@@ -182,6 +182,43 @@ describe("completion E2E", () => {
       );
     });
 
+    test("completion table keeps review/provider-model and subtasks/validate-first parity", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "table", "--format", "json"],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+
+      const rows = JSON.parse(stdout) as Array<{
+        command: string;
+        option: string;
+      }>;
+
+      expect(
+        rows.some(
+          (row) =>
+            row.command === "aaa ralph review tasks" &&
+            row.option === "--provider <name>",
+        ),
+      ).toBe(true);
+      expect(
+        rows.some(
+          (row) =>
+            row.command === "aaa ralph review tasks" &&
+            row.option === "--model <name>",
+        ),
+      ).toBe(true);
+      expect(
+        rows.some(
+          (row) =>
+            row.command === "aaa ralph plan subtasks" &&
+            row.option === "--validate-first",
+        ),
+      ).toBe(true);
+    });
+
     test("completion table rejects unknown format", async () => {
       const { exitCode, stderr } = await execa(
         "bun",
@@ -522,6 +559,28 @@ describe("completion E2E", () => {
       expect(fishResult.stdout).toContain("-l output-dir");
       expect(fishResult.stdout).toContain("__fish_complete_directories");
       expect(fishResult.stdout).toContain("-l validate-first");
+    });
+
+    test("bash, zsh, and fish include review tasks provider/model completions", async () => {
+      const [bashResult, zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      expect(bashResult.stdout).toContain(
+        "--story -s --supervised -H --headless --provider --model --dry-run",
+      );
+
+      expect(zshResult.stdout).toContain(
+        "--story[Story path to review tasks for]:story:_aaa_story_or_file",
+      );
+      expect(zshResult.stdout).toContain("--provider[AI provider]");
+      expect(zshResult.stdout).toContain("--model[Model to use]");
+
+      expect(fishResult.stdout).toContain("__fish_aaa_ralph_review_tasks");
+      expect(fishResult.stdout).toContain("-l provider -d 'AI provider'");
+      expect(fishResult.stdout).toContain("-l model -d 'Model to use'");
     });
 
     test("session path/cat completion includes --id and dynamic session IDs", async () => {

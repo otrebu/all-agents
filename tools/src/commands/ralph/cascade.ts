@@ -32,9 +32,7 @@ import runBuild from "./build";
 import { type CalibrateSubcommand, runCalibrate } from "./calibrate";
 import {
   type ApprovalGateCardData,
-  type CascadePhaseState,
   renderApprovalGateCard,
-  renderCascadeProgressWithStates,
   renderEventLine,
   renderPhaseCard,
 } from "./display";
@@ -613,12 +611,6 @@ async function runCascadeFrom(
     options.headless === true,
     isTTY,
   );
-  const phaseStates: Partial<Record<string, CascadePhaseState>> = {};
-
-  function renderProgress(): void {
-    console.log();
-    console.log(renderCascadeProgressWithStates(levelsToExecute, phaseStates));
-  }
 
   // Step 3: Execute each level in sequence
   const completedLevels: Array<string> = [];
@@ -656,8 +648,6 @@ async function runCascadeFrom(
 
       renderer.startPhase(currentLevel);
       const phaseStartedAt = Date.now();
-      phaseStates[currentLevel] = "running";
-      renderProgress();
 
       const approvalGate = levelToGate(currentLevel);
 
@@ -672,14 +662,10 @@ async function runCascadeFrom(
         },
         (gateName) => {
           renderer.setApprovalWait(gateName);
-          phaseStates[currentLevel] = "waiting";
-          renderProgress();
         },
       );
 
       if (approvalResult === "aborted") {
-        phaseStates[currentLevel] = "failed";
-        renderProgress();
         return {
           completedLevels,
           error: "Aborted by user at approval prompt",
@@ -688,8 +674,8 @@ async function runCascadeFrom(
         };
       }
 
-      phaseStates[currentLevel] = "running";
-      renderProgress();
+      renderer.startPhase(currentLevel);
+      renderer.suspend();
 
       console.log(
         renderPhaseCard({
@@ -705,10 +691,14 @@ async function runCascadeFrom(
 
       // Execute the level
       // eslint-disable-next-line no-await-in-loop -- Levels must execute sequentially
-      const levelError = await runLevel(currentLevel, runOptions);
+      const levelError = await (async () => {
+        try {
+          return await runLevel(currentLevel, runOptions);
+        } finally {
+          renderer.resume();
+        }
+      })();
       if (levelError !== null) {
-        phaseStates[currentLevel] = "failed";
-        renderProgress();
         return {
           completedLevels,
           error: levelError,
@@ -722,8 +712,6 @@ async function runCascadeFrom(
         filesChanged: 0,
         timeElapsedMs: Math.max(0, Date.now() - phaseStartedAt),
       });
-      phaseStates[currentLevel] = "completed";
-      renderProgress();
 
       if (approvalResult === "exit-unstaged") {
         if (approvalGate === null) {

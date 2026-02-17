@@ -24,7 +24,6 @@ import {
   runLevel,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
-import * as display from "@tools/commands/ralph/display";
 import PipelineRenderer from "@tools/commands/ralph/pipeline-renderer";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
@@ -793,8 +792,14 @@ describe("runCascadeFrom", () => {
       rendererSnapshot.phases.map((phase: { name: string }) => phase.name),
     ).toEqual(["tasks", "subtasks"]);
 
-    expect(startPhaseSpy).toHaveBeenNthCalledWith(1, "tasks");
-    expect(startPhaseSpy).toHaveBeenNthCalledWith(2, "subtasks");
+    expect(startPhaseSpy).toHaveBeenCalledWith("tasks");
+    expect(startPhaseSpy).toHaveBeenCalledWith("subtasks");
+    expect(
+      startPhaseSpy.mock.calls.filter((call) => call[0] === "tasks").length,
+    ).toBe(2);
+    expect(
+      startPhaseSpy.mock.calls.filter((call) => call[0] === "subtasks").length,
+    ).toBe(2);
     expect(setApprovalWaitSpy).toHaveBeenNthCalledWith(1, "createTasks");
     expect(setApprovalWaitSpy).toHaveBeenNthCalledWith(2, "createSubtasks");
     expect(completePhaseSpy).toHaveBeenCalledTimes(2);
@@ -824,14 +829,11 @@ describe("runCascadeFrom", () => {
       "evaluateApproval",
     ).mockReturnValue("prompt");
     const eventOrder: Array<string> = [];
-    const renderProgressSpy = spyOn(
-      display,
-      "renderCascadeProgressWithStates",
-    ).mockImplementation((_, states) => {
-      if (states.tasks === "waiting") {
-        eventOrder.push("render-waiting");
-      }
-      return "progress";
+    const waitingSpy = spyOn(
+      PipelineRenderer.prototype,
+      "setApprovalWait",
+    ).mockImplementation(() => {
+      eventOrder.push("render-waiting");
     });
 
     const promptSpy = spyOn(approvals, "promptApproval").mockImplementation(
@@ -860,7 +862,7 @@ describe("runCascadeFrom", () => {
     expect(waitingRenderIndex).toBeLessThan(promptIndex);
 
     evaluateApprovalSpy.mockRestore();
-    renderProgressSpy.mockRestore();
+    waitingSpy.mockRestore();
     promptSpy.mockRestore();
   });
 
@@ -870,14 +872,11 @@ describe("runCascadeFrom", () => {
       "evaluateApproval",
     ).mockReturnValue("notify-wait");
     const eventOrder: Array<string> = [];
-    const renderProgressSpy = spyOn(
-      display,
-      "renderCascadeProgressWithStates",
-    ).mockImplementation((_, states) => {
-      if (states.tasks === "waiting") {
-        eventOrder.push("render-waiting");
-      }
-      return "progress";
+    const waitingSpy = spyOn(
+      PipelineRenderer.prototype,
+      "setApprovalWait",
+    ).mockImplementation(() => {
+      eventOrder.push("render-waiting");
     });
 
     const notifyWaitSpy = spyOn(
@@ -906,7 +905,7 @@ describe("runCascadeFrom", () => {
     expect(waitingRenderIndex).toBeLessThan(notifyIndex);
 
     evaluateApprovalSpy.mockRestore();
-    renderProgressSpy.mockRestore();
+    waitingSpy.mockRestore();
     notifyWaitSpy.mockRestore();
   });
 });

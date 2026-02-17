@@ -25,13 +25,14 @@ The goal is not only correctness. The goal is confidence while the command runs.
 
 ## Visual Language
 
-Ralph output has five visual primitives:
+Ralph output has six visual primitives:
 
 1. Command banner (boxed, high-level context)
 2. Phase card (boxed, transition-level context)
 3. Event line (single-line runtime events)
 4. Heartbeat line (liveness during long operations)
 5. Final summary (boxed, outcome and next action)
+6. Pipeline renderer (live phase bar/tree for long-running execution)
 
 Use the same primitives in every command family.
 
@@ -64,6 +65,7 @@ All runtime lines use this grammar:
 Domains:
 
 - `PLAN`
+- `REVIEW`
 - `CASCADE`
 - `BUILD`
 - `VALIDATE`

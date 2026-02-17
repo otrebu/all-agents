@@ -145,6 +145,7 @@ type EventDomain =
   | "MILESTONES"
   | "MODELS"
   | "PLAN"
+  | "REVIEW"
   | "STATUS"
   | "SUBTASKS"
   | "VALIDATE";

@@ -2541,12 +2541,16 @@ async function runReviewWorkflow(
     reviewType,
     isGapAnalysis,
   );
+  const reviewLabel = isGapAnalysis
+    ? `${reviewType} gap analysis`
+    : `${reviewType} review`;
+  const promptRelativePath = path.relative(contextRoot, promptPath);
 
   if (isDryRun) {
     console.log(
       renderEventLine({
-        domain: "CASCADE",
-        message: `[dry-run] Would run ${sessionName} (${path.relative(contextRoot, promptPath)})`,
+        domain: "REVIEW",
+        message: `[dry-run] Would run ${sessionName} (${promptRelativePath})`,
         state: "INFO",
       }),
     );
@@ -2554,7 +2558,28 @@ async function runReviewWorkflow(
   }
 
   if (isHeadless) {
-    const logFile = getPlanningLogPath(logMilestonePath);
+    const reviewModeLines = [
+      chalk.dim(`Workflow: ${reviewLabel}`),
+      chalk.dim(`Prompt: ${promptRelativePath}`),
+      chalk.dim(`Provider: ${provider ?? "auto"}`),
+      chalk.dim(`Model: ${model ?? "default"}`),
+    ];
+    console.log(
+      renderPhaseCard({
+        domain: "REVIEW",
+        lines: reviewModeLines,
+        state: "START",
+        title: `Phase 1/2: starting ${sessionName}`,
+      }),
+    );
+
+    const safeLogMilestonePath =
+      logMilestonePath !== undefined &&
+      existsSync(logMilestonePath) &&
+      !statSync(logMilestonePath).isDirectory()
+        ? undefined
+        : logMilestonePath;
+    const logFile = getPlanningLogPath(safeLogMilestonePath);
     await invokeClaudeHeadless({
       extraContext,
       logFile,
@@ -2563,9 +2588,23 @@ async function runReviewWorkflow(
       provider,
       sessionName,
     });
+    console.log(
+      renderEventLine({
+        domain: "REVIEW",
+        message: `Phase 2/2: completed ${sessionName}`,
+        state: "DONE",
+      }),
+    );
     return;
   }
 
+  console.log(
+    renderEventLine({
+      domain: "REVIEW",
+      message: `Starting supervised ${sessionName} (${reviewLabel})`,
+      state: "START",
+    }),
+  );
   await invokePlanningSupervised({
     extraContext,
     model,
@@ -2573,6 +2612,13 @@ async function runReviewWorkflow(
     provider,
     sessionName,
   });
+  console.log(
+    renderEventLine({
+      domain: "REVIEW",
+      message: `Completed supervised ${sessionName}`,
+      state: "DONE",
+    }),
+  );
 }
 
 /**
@@ -2625,6 +2671,14 @@ async function runSubtasksHeadless(
     hasFragmentSignatureInitialized: false,
     shouldTerminateWatchdog: false,
   };
+
+  console.log(
+    renderEventLine({
+      domain: "PLAN",
+      message: "Phase 2/4: provider run in progress",
+      state: "WAIT",
+    }),
+  );
 
   const result = await runSubtasksProviderPhase({
     beforeQueueRaw,

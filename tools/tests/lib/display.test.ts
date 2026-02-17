@@ -1414,6 +1414,17 @@ describe("display utilities", () => {
       expect(result).toContain("Phase 2/4 complete");
     });
 
+    test("renders review domain event lines", () => {
+      const result = renderEventLine({
+        domain: "REVIEW",
+        message: "Phase 1/2 started",
+        state: "START",
+      });
+
+      expect(result).toContain("[REVIEW] [START]");
+      expect(result).toContain("Phase 1/2 started");
+    });
+
     test("renders phase card with event title and details", () => {
       const result = renderPhaseCard({
         domain: "CASCADE",
