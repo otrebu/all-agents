@@ -74,6 +74,7 @@ describe("__complete model", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("openai/gpt-5.2-codex");
     expect(stdout).toContain("openai/gpt-5.3-codex");
+    expect(stdout).toContain("openai/gpt-5.3-codex-spark");
     expect(stdout).not.toContain("claude-sonnet-4-5\t");
   });
 

@@ -307,6 +307,12 @@ const STATIC_MODELS: Array<ModelInfo> = [
     id: "openai/gpt-5.3-codex",
     provider: "opencode",
   },
+  {
+    cliFormat: "openai/gpt-5.3-codex-spark",
+    costHint: "expensive",
+    id: "openai/gpt-5.3-codex-spark",
+    provider: "opencode",
+  },
 ];
 
 // =============================================================================
