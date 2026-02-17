@@ -1308,9 +1308,15 @@ function renderInvocationHeader(
   const label = ` Invoking ${getProviderLabel(provider)} (${mode}) `;
   const lineChar = "─";
   const totalWidth = BOX_WIDTH;
-  const sideLength = Math.floor((totalWidth - label.length) / 2);
+  const labelWidth = stringWidth(label);
+  if (labelWidth >= totalWidth) {
+    return chalk.dim(truncate(label, totalWidth));
+  }
+  const totalSideWidth = totalWidth - labelWidth;
+  const leftSideLength = Math.floor(totalSideWidth / 2);
+  const rightSideLength = totalSideWidth - leftSideLength;
   return chalk.dim(
-    `${lineChar.repeat(sideLength)}${label}${lineChar.repeat(sideLength)}`,
+    `${lineChar.repeat(leftSideLength)}${label}${lineChar.repeat(rightSideLength)}`,
   );
 }
 

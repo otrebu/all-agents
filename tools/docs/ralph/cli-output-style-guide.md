@@ -93,6 +93,8 @@ Examples:
 - One event per line.
 - No embedded visual spacing tricks (`"\n...\n"`) for layout.
 - Keep output width aligned to shared display width (current baseline: 68 columns).
+- Live build visuals (phase bar, subtask line, execution tree rows, invocation separator) must render at exact baseline width; right-pad short lines as needed.
+- Non-TTY transition logs (`[PIPELINE] phase=...`) are exempt from exact-width padding.
 - Keep left alignment; avoid center alignment except in banner titles.
 
 ## Component Specs

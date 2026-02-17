@@ -201,6 +201,19 @@ class PipelineRenderer {
     this.timers.clear();
   }
 
+  private normalizeLineWidth(line: string): string {
+    const visualWidth = stringWidth(line);
+    if (visualWidth > BOX_WIDTH) {
+      return truncate(line, BOX_WIDTH);
+    }
+
+    if (visualWidth === BOX_WIDTH) {
+      return line;
+    }
+
+    return `${line}${" ".repeat(BOX_WIDTH - visualWidth)}`;
+  }
+
   private render(): string {
     const phaseBarLine = this.renderPhaseBarLine();
     const subtaskLine = this.renderSubtaskLine();
@@ -261,30 +274,36 @@ class PipelineRenderer {
   }
 
   private renderExecutionTree(): Array<string> {
-    return this.phases.map((phase, index) => {
+    const lines: Array<string> = [];
+
+    for (const [index, phase] of this.phases.entries()) {
+      let phaseRows: Array<string> = [];
+
       if (phase.state === "completed") {
-        return this.renderCompletedPhaseLine(phase);
+        phaseRows = [this.renderCompletedPhaseLine(phase)];
+      } else if (index === this.activePhaseIndex) {
+        if (phase.state === "approval-wait") {
+          const gateName = phase.approvalGateName ?? "approval";
+          phaseRows = [
+            `▾ ${phase.name}  Awaiting approval: ${gateName}  ${chalk.yellow("‖")}`,
+          ];
+        } else if (this.subtaskState === null) {
+          phaseRows = [`▾ ${phase.name}  running  ${chalk.cyan("●")}`];
+        } else {
+          const subtaskRows = this.renderSubtaskRows();
+          phaseRows = [
+            `▾ ${phase.name}  Subtask ${this.subtaskState.current}/${this.subtaskState.total}  ${chalk.cyan("●")}`,
+            ...subtaskRows,
+          ];
+        }
+      } else {
+        phaseRows = [`○ ${chalk.dim(phase.name)}`];
       }
 
-      if (index !== this.activePhaseIndex) {
-        return `○ ${chalk.dim(phase.name)}`;
-      }
+      lines.push(...phaseRows.map((row) => this.normalizeLineWidth(row)));
+    }
 
-      if (phase.state === "approval-wait") {
-        const gateName = phase.approvalGateName ?? "approval";
-        return `▾ ${phase.name}  Awaiting approval: ${gateName}  ${chalk.yellow("‖")}`;
-      }
-
-      if (this.subtaskState !== null) {
-        const subtaskRows = this.renderSubtaskRows();
-        return [
-          `▾ ${phase.name}  Subtask ${this.subtaskState.current}/${this.subtaskState.total}  ${chalk.cyan("●")}`,
-          ...subtaskRows,
-        ].join("\n");
-      }
-
-      return `▾ ${phase.name}  running  ${chalk.cyan("●")}`;
-    });
+    return lines;
   }
 
   private renderNonTtyTransitionLine(): string {
@@ -332,11 +351,7 @@ class PipelineRenderer {
     });
 
     const line = `── ${segments.join(chalk.dim(" → "))} ──`;
-    if (stringWidth(line) <= BOX_WIDTH) {
-      return line;
-    }
-
-    return truncate(line, BOX_WIDTH);
+    return this.normalizeLineWidth(line);
   }
 
   private renderSubtaskLine(): string {
@@ -357,7 +372,7 @@ class PipelineRenderer {
     const title = truncate(this.subtaskState.description, 24);
     const line = `   ${this.subtaskState.id}  ${title}  ${this.subtaskState.current}/${this.subtaskState.total}  ${progressBar} ${percentage}%`;
 
-    return stringWidth(line) > BOX_WIDTH ? truncate(line, BOX_WIDTH) : line;
+    return this.normalizeLineWidth(line);
   }
 
   private renderSubtaskProgressBar(current: number, total: number): string {

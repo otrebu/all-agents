@@ -1,5 +1,6 @@
 import type { PhaseMetrics } from "@tools/commands/ralph/types";
 
+import { BOX_WIDTH } from "@tools/commands/ralph/display";
 import PipelineRenderer from "@tools/commands/ralph/pipeline-renderer";
 import {
   afterEach,
@@ -10,9 +11,17 @@ import {
   spyOn,
   test,
 } from "bun:test";
+import stringWidth from "string-width";
 
 describe("PipelineRenderer", () => {
   const mockPhases = ["stories", "tasks", "subtasks", "build"];
+
+  function expectFixedWidthLines(output: string): void {
+    const nonEmptyLines = output.split("\n").filter((line) => line !== "");
+    for (const line of nonEmptyLines) {
+      expect(stringWidth(line)).toBe(BOX_WIDTH);
+    }
+  }
 
   function requireSpy<T>(spy: null | T): T {
     if (spy === null) {
@@ -156,6 +165,7 @@ describe("PipelineRenderer", () => {
     expect(rendered).toContain("25%");
     expect(rendered).toContain("[");
     expect(rendered).toContain("]");
+    expectFixedWidthLines(rendered);
   });
 
   test("setApprovalWait applies double-bar symbol to active phase", () => {
@@ -174,6 +184,7 @@ describe("PipelineRenderer", () => {
     expect(internal.phases[1]?.approvalGateName).toBe("createTasks");
     expect(rendered).toContain("[tasks] ‖");
     expect(rendered).toContain("Awaiting approval: createTasks");
+    expectFixedWidthLines(rendered);
   });
 
   test("collapsible tree shows completed phases one-line and active phase expanded", () => {
@@ -209,6 +220,7 @@ describe("PipelineRenderer", () => {
     expect(rendered).toContain("✓ SUB-013");
     expect(rendered).toContain("● SUB-014");
     expect(rendered).toContain("○ 1 pending");
+    expectFixedWidthLines(rendered);
   });
 
   test("phase bar renders expected symbols for states", () => {

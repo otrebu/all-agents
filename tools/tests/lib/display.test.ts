@@ -1081,12 +1081,21 @@ describe("display utilities", () => {
       const result = renderInvocationHeader("headless");
 
       expect(result).toContain("Invoking Claude (headless)");
+      expect(stringWidth(result)).toBe(BOX_WIDTH);
     });
 
     test("renders invocation header with OpenCode provider", () => {
       const result = renderInvocationHeader("headless", "opencode");
 
       expect(result).toContain("Invoking OpenCode (headless)");
+      expect(stringWidth(result)).toBe(BOX_WIDTH);
+    });
+
+    test("renders invocation header at exact width for odd divider splits", () => {
+      const result = renderInvocationHeader("supervised", "pi");
+
+      expect(result).toContain("Invoking Pi (supervised)");
+      expect(stringWidth(result)).toBe(BOX_WIDTH);
     });
 
     test("renders response header with default Claude provider", () => {
