@@ -13,6 +13,7 @@
  */
 
 import { type ApprovalsConfig, loadAaaConfig } from "@tools/lib/config";
+import path from "node:path";
 import * as readline from "node:readline";
 
 import type { ProviderType } from "./providers/types";
@@ -848,12 +849,13 @@ async function runLevel(
     case "calibrate": {
       const calibrateSubcommand: CalibrateSubcommand = "all";
       const didSucceed = await runCalibrate(calibrateSubcommand, {
-        contextRoot,
         force: isForceFlag,
         model,
         provider,
+        repoRoot: path.dirname(path.resolve(subtasksPath)),
         review: isReviewFlag,
         subtasksPath,
+        toolRoot: contextRoot,
       });
       return didSucceed ? null : "Calibration failed";
     }

@@ -4516,6 +4516,24 @@ function resolveCalibrateSubtasksPath(
 }
 
 /**
+ * Resolve the repository that owns the subtasks queue.
+ * We cannot rely on getContextRoot() here because users may run `aaa` from
+ * all-agents while calibrating a queue in another repo/worktree.
+ */
+function resolveGitRepoRoot(startDirectory: string): string {
+  const proc = Bun.spawnSync(
+    ["git", "-C", startDirectory, "rev-parse", "--show-toplevel"],
+    { stderr: "ignore", stdout: "pipe" },
+  );
+  if (proc.exitCode !== 0) {
+    return startDirectory;
+  }
+
+  const resolved = Buffer.from(proc.stdout).toString("utf8").trim();
+  return resolved === "" ? startDirectory : resolved;
+}
+
+/**
  * Helper to run calibrate subcommand and exit on failure
  */
 async function runCalibrateSubcommand(
@@ -4529,11 +4547,13 @@ async function runCalibrateSubcommand(
     subtasks: string;
   },
 ): Promise<void> {
-  const contextRoot = getContextRoot();
+  const toolRoot = getContextRoot();
   const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
     options.subtasks,
-    contextRoot,
+    toolRoot,
   );
+  const milestoneDirectory = path.dirname(path.resolve(resolvedSubtasksPath));
+  const repoRoot = resolveGitRepoRoot(milestoneDirectory);
 
   validateApprovalFlags(options.force, options.review);
 
@@ -4568,7 +4588,7 @@ async function runCalibrateSubcommand(
           force: options.force === true,
           review: options.review === true,
         },
-        milestonePath: path.dirname(path.resolve(resolvedSubtasksPath)),
+        milestonePath: milestoneDirectory,
         model: options.model,
         provider: options.provider,
         subtasksPath: resolvedSubtasksPath,
@@ -4579,12 +4599,13 @@ async function runCalibrateSubcommand(
   }
 
   const didSucceed = await runCalibrate(subcommand, {
-    contextRoot,
     force: options.force,
     model: options.model,
     provider: options.provider,
+    repoRoot,
     review: options.review,
     subtasksPath: resolvedSubtasksPath,
+    toolRoot,
   });
 
   if (!didSucceed) {

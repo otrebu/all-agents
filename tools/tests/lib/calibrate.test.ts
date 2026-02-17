@@ -184,7 +184,8 @@ describe("buildSessionLogPreflight", () => {
             title: "Missing",
           },
         ],
-        contextRoot: rootDirectory,
+        repoRoot: rootDirectory,
+        toolRoot: rootDirectory,
       });
 
       expect(preflight.available).toHaveLength(1);
@@ -245,7 +246,7 @@ describe("calibrate approval wiring", () => {
     );
 
     const matches = source.match(
-      /runCompletedCommitEvidenceValidation\(completedSubtasks, contextRoot\)/g,
+      /runCompletedCommitEvidenceValidation\(completedSubtasks, repoRoot\)/g,
     );
     expect(matches?.length).toBe(2);
   });
@@ -272,11 +273,9 @@ describe("calibrate approval wiring", () => {
       "utf8",
     );
 
-    expect(source).toContain("const BATCH_SIZE = 5");
+    expect(source).toContain("const BATCH_SIZE = 1");
     expect(source).toContain("buildTechnicalBatchPrompt(batchEntries");
-    expect(source).toContain(
-      "referencedFiles: resolveFilesToRead(subtask.filesToRead)",
-    );
+    expect(source).toContain("referencedFiles: resolveFilesToRead(");
     expect(source).toContain("mergeCalibrationResults(allFindings)");
     expect(source).toContain("resultText: JSON.stringify(mergedResult)");
     expect(source).not.toContain("resolvePlanningChain(subtask");

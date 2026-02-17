@@ -1851,12 +1851,13 @@ async function runPeriodicCalibration(
       }),
     );
     await runCalibrate("all", {
-      contextRoot,
       force: shouldForceProposalApply,
       model,
       provider,
+      repoRoot: path.dirname(path.resolve(subtasksPath)),
       review: shouldRequireProposalReview,
       subtasksPath,
+      toolRoot: contextRoot,
     });
   }
 }

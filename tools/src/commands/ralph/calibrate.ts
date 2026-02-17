@@ -14,7 +14,6 @@
 /* eslint-disable perfectionist/sort-modules, no-continue, unicorn/consistent-destructuring, perfectionist/sort-objects, perfectionist/sort-object-types */
 
 import { loadAaaConfig } from "@tools/lib/config";
-import { findProjectRoot } from "@tools/utils/paths";
 import chalk from "chalk";
 import { execSync } from "node:child_process";
 import {
@@ -72,21 +71,26 @@ import { validateDoneSubtaskCommitEvidence } from "./validation";
 // =============================================================================
 
 /**
- * Options for calibration checks
+ * Important: calibration has two roots.
+ * - toolRoot: all-agents install root (workflow prompts under context/workflows)
+ * - repoRoot: git repository that owns the provided subtasks queue
+ * Commit evidence MUST be validated in repoRoot, not toolRoot.
  */
 interface CalibrateOptions {
-  /** Context root path (repo root) */
-  contextRoot: string;
   /** Skip approval even if config says 'suggest' */
   force?: boolean;
   /** Model override for calibration invocation */
   model?: string;
   /** Provider override for calibration invocation */
   provider?: string;
+  /** Git repository root for commit evidence and implementation files */
+  repoRoot: string;
   /** Require approval even if config says 'autofix' */
   review?: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
+  /** all-agents tool root for workflow prompts and @context resolution */
+  toolRoot: string;
 }
 
 /**
@@ -541,16 +545,18 @@ ${promptContent}`;
 
 interface BuildSessionLogPreflightInput {
   completedSubtasks: Array<Subtask>;
-  contextRoot: string;
   maxAttempts?: number;
   preferredProvider?: ProviderType;
+  repoRoot: string;
+  toolRoot: string;
 }
 
 function buildSessionLogPreflight({
   completedSubtasks,
-  contextRoot,
   maxAttempts = 3,
   preferredProvider,
+  repoRoot,
+  toolRoot,
 }: BuildSessionLogPreflightInput): SessionLogPreflight {
   const providerPriority = getSessionProviderPriority(preferredProvider);
   const available: Array<SessionLogLocation> = [];
@@ -577,17 +583,21 @@ function buildSessionLogPreflight({
     const locatorRepoRoot =
       typeof sessionRepoRoot === "string" && sessionRepoRoot !== ""
         ? sessionRepoRoot
-        : contextRoot;
-    const candidateRepoRoots = getUniqueStrings([locatorRepoRoot, contextRoot]);
+        : repoRoot;
+    const candidateRepoRoots = getUniqueStrings([
+      locatorRepoRoot,
+      repoRoot,
+      toolRoot,
+    ]);
     const boundedRepoRoots = candidateRepoRoots.slice(0, maxAttempts);
     const attemptedRepoRoots: Array<string> = [];
     let resolvedPath: null | string = null;
 
-    for (const repoRoot of boundedRepoRoots) {
-      attemptedRepoRoots.push(repoRoot);
+    for (const candidateRepoRoot of boundedRepoRoots) {
+      attemptedRepoRoots.push(candidateRepoRoot);
       const candidatePath = resolveSessionLogPath({
         providerPriority,
-        repoRoot,
+        repoRoot: candidateRepoRoot,
         sessionId,
         explicitProvider: subtask.provider,
       });
@@ -704,9 +714,15 @@ function createProviderSearchOrder(
   return ordered;
 }
 
+/**
+ * Read commit diff/stat from the target implementation repo.
+ * `repoRoot` must point to the subtasks-owning git repo, otherwise commitHash
+ * may appear invalid even when correct.
+ */
 function extractDiffSummary(
   commitHash: string,
   subtaskId: string,
+  repoRoot: string,
 ): DiffSummary {
   const safeHash = commitHash.trim();
   if (safeHash === "") {
@@ -720,9 +736,11 @@ function extractDiffSummary(
   }
 
   const statSummary = execSync(`git show --stat --format=fuller ${safeHash}`, {
+    cwd: repoRoot,
     encoding: "utf8",
   });
   const patch = execSync(`git show --format=fuller ${safeHash}`, {
+    cwd: repoRoot,
     encoding: "utf8",
     maxBuffer: 32 * 1024 * 1024,
   });
@@ -1076,12 +1094,15 @@ function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
   return draft;
 }
 
-function resolveFilesToRead(filesToRead: Array<string>): Array<ResolvedFile> {
-  const projectRoot = findProjectRoot() ?? process.cwd();
+function resolveFilesToRead(
+  filesToRead: Array<string>,
+  repoRoot: string,
+  toolRoot: string,
+): Array<ResolvedFile> {
   const resolvedFiles: Array<ResolvedFile> = [];
 
   for (const filePath of filesToRead) {
-    const resolvedPath = resolveReadPath(filePath, projectRoot);
+    const resolvedPath = resolveReadPath(filePath, repoRoot, toolRoot);
     if (existsSync(resolvedPath)) {
       const content = readFileSync(resolvedPath, "utf8");
       const contentForPrompt =
@@ -1187,17 +1208,22 @@ function resolvePlanningFromTaskFile(
   return { storyContent, subtaskJson, taskContent };
 }
 
-function resolveReadPath(filePath: string, projectRoot: string): string {
+function resolveReadPath(
+  filePath: string,
+  repoRoot: string,
+  toolRoot: string,
+): string {
   if (path.isAbsolute(filePath)) {
     return filePath;
   }
+  // `@context/...` references all-agents docs; other relative paths are project files.
   if (filePath.startsWith("@context/")) {
-    return path.resolve(projectRoot, filePath.slice(1));
+    return path.resolve(toolRoot, filePath.slice(1));
   }
   if (filePath.startsWith("@")) {
-    return path.resolve(projectRoot, filePath.slice(1));
+    return path.resolve(repoRoot, filePath.slice(1));
   }
-  return path.resolve(projectRoot, filePath);
+  return path.resolve(repoRoot, filePath);
 }
 
 function resolveSessionLogPath(input: {
@@ -1276,11 +1302,25 @@ async function runCalibrate(
 ): Promise<boolean> {
   // Select provider (CLI flag > env var > config > auto-detect)
   const provider = await resolveProvider({ cliFlag: options.provider });
-  const { model, subtasksPath } = options;
+  const { model, repoRoot, subtasksPath, toolRoot } = options;
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
       message: `Using provider: ${provider}`,
+      state: "INFO",
+    }),
+  );
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Using repoRoot for evidence: ${repoRoot}`,
+      state: "INFO",
+    }),
+  );
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Using toolRoot for prompts: ${toolRoot}`,
       state: "INFO",
     }),
   );
@@ -1343,10 +1383,10 @@ async function runCalibrate(
 
 function runCompletedCommitEvidenceValidation(
   completedSubtasks: Array<Subtask>,
-  contextRoot: string,
+  repoRoot: string,
 ): boolean {
   const evidence = validateDoneSubtaskCommitEvidence(completedSubtasks, {
-    repoRoot: contextRoot,
+    repoRoot,
   });
   if (evidence.issues.length === 0) {
     return true;
@@ -1458,11 +1498,11 @@ async function runImproveCheck(
     }
   }
 
-  const { contextRoot, subtasksPath } = options;
+  const { repoRoot, subtasksPath, toolRoot } = options;
 
   // Verify prompt exists
   const promptPath = path.join(
-    contextRoot,
+    toolRoot,
     "context/workflows/ralph/calibration/self-improvement.md",
   );
   if (!existsSync(promptPath)) {
@@ -1511,9 +1551,10 @@ async function runImproveCheck(
   const completedWithSession = getCompletedWithSessionId(subtasksFile);
   const preflight = buildSessionLogPreflight({
     completedSubtasks: completedWithSession,
-    contextRoot,
+    repoRoot,
     maxAttempts: 3,
     preferredProvider: provider,
+    toolRoot,
   });
   const uniqueSessions = mergeSessionAnalysisTargets(preflight.available);
   const analyzableSessionIds = uniqueSessions
@@ -1713,11 +1754,11 @@ async function runIntentionCheck(
     }
   }
 
-  const { contextRoot, subtasksPath } = options;
+  const { repoRoot, subtasksPath, toolRoot } = options;
 
   // Verify prompt exists
   const promptPath = path.join(
-    contextRoot,
+    toolRoot,
     "context/workflows/ralph/calibration/intention-drift.md",
   );
   if (!existsSync(promptPath)) {
@@ -1743,7 +1784,7 @@ async function runIntentionCheck(
     return true;
   }
 
-  if (!runCompletedCommitEvidenceValidation(completedSubtasks, contextRoot)) {
+  if (!runCompletedCommitEvidenceValidation(completedSubtasks, repoRoot)) {
     return false;
   }
 
@@ -1797,7 +1838,11 @@ async function runIntentionCheck(
           }
 
           return {
-            diff: extractDiffSummary(subtask.commitHash ?? "", subtask.id),
+            diff: extractDiffSummary(
+              subtask.commitHash ?? "",
+              subtask.id,
+              repoRoot,
+            ),
             planningChain,
             subtask,
           };
@@ -1918,11 +1963,11 @@ async function runTechnicalCheck(
     }
   }
 
-  const { contextRoot, subtasksPath } = options;
+  const { repoRoot, subtasksPath, toolRoot } = options;
 
   // Verify prompt exists
   const promptPath = path.join(
-    contextRoot,
+    toolRoot,
     "context/workflows/ralph/calibration/technical-drift.md",
   );
   if (!existsSync(promptPath)) {
@@ -1961,7 +2006,7 @@ async function runTechnicalCheck(
     return true;
   }
 
-  if (!runCompletedCommitEvidenceValidation(completedSubtasks, contextRoot)) {
+  if (!runCompletedCommitEvidenceValidation(completedSubtasks, repoRoot)) {
     return false;
   }
 
@@ -2002,9 +2047,13 @@ async function runTechnicalCheck(
       const batchNumber = Math.floor(index / BATCH_SIZE) + 1;
       const batchEntries: Array<TechnicalBatchEntry> = batch.map((subtask) => ({
         diff: clipDiffPatchForTechnicalPrompt(
-          extractDiffSummary(subtask.commitHash ?? "", subtask.id),
+          extractDiffSummary(subtask.commitHash ?? "", subtask.id, repoRoot),
         ),
-        referencedFiles: resolveFilesToRead(subtask.filesToRead),
+        referencedFiles: resolveFilesToRead(
+          subtask.filesToRead,
+          repoRoot,
+          toolRoot,
+        ),
         subtask,
       }));
 
