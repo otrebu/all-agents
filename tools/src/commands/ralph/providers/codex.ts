@@ -156,10 +156,7 @@ function buildCodexHeadlessArguments(
   prompt: string,
 ): Array<string> {
   const args = [
-    "--ask-for-approval",
-    "never",
-    "--sandbox",
-    "workspace-write",
+    "--dangerously-bypass-approvals-and-sandbox",
     "exec",
     "--json",
     "--skip-git-repo-check",

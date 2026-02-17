@@ -393,7 +393,7 @@ describe("headless lifecycle", () => {
     expect(result.result).toContain("ok");
   });
 
-  test("places global approval flags before exec subcommand", async () => {
+  test("places global bypass flag before exec subcommand", async () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
     let codexArgs: Array<string> = [];
@@ -418,11 +418,8 @@ describe("headless lifecycle", () => {
     await invokeCodex(makeOptions({ timeoutMs: 2000 }));
 
     expect(codexArgs[0]).toBe("codex");
-    expect(codexArgs.slice(1, 8)).toEqual([
-      "--ask-for-approval",
-      "never",
-      "--sandbox",
-      "workspace-write",
+    expect(codexArgs.slice(1, 5)).toEqual([
+      "--dangerously-bypass-approvals-and-sandbox",
       "exec",
       "--json",
       "--skip-git-repo-check",
