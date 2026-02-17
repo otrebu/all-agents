@@ -96,15 +96,16 @@ afterEach(() => {
 });
 
 describe("buildCodexHeadlessArguments", () => {
-  test("includes exec, json, and bypass approvals+sandbox flag", () => {
+  test("includes exec, json, and yolo flag", () => {
     const config: CodexConfig = { provider: "codex" };
     const args = buildCodexHeadlessArguments(config, "hello");
 
-    expect(args[0]).toBe("--dangerously-bypass-approvals-and-sandbox");
+    expect(args[0]).toBe("--yolo");
     expect(args).toContain("exec");
     expect(args).toContain("--json");
-    expect(args).toContain("--dangerously-bypass-approvals-and-sandbox");
+    expect(args).toContain("--yolo");
     expect(args).toContain("--skip-git-repo-check");
+    expect(args).not.toContain("--dangerously-bypass-approvals-and-sandbox");
     expect(args).not.toContain("--ask-for-approval");
     expect(args).not.toContain("--sandbox");
   });

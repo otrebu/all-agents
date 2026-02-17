@@ -155,12 +155,7 @@ function buildCodexHeadlessArguments(
   config: CodexConfig,
   prompt: string,
 ): Array<string> {
-  const args = [
-    "--dangerously-bypass-approvals-and-sandbox",
-    "exec",
-    "--json",
-    "--skip-git-repo-check",
-  ];
+  const args = ["--yolo", "exec", "--json", "--skip-git-repo-check"];
 
   if (config.model !== undefined && config.model !== "") {
     const normalizedModel = normalizeCodexModel(config.model);

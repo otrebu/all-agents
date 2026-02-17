@@ -393,7 +393,7 @@ describe("headless lifecycle", () => {
     expect(result.result).toContain("ok");
   });
 
-  test("places global bypass flag before exec subcommand", async () => {
+  test("places global yolo flag before exec subcommand", async () => {
     const mockProc = createMockProcess();
     activeMockProcesses.push(mockProc);
     let codexArgs: Array<string> = [];
@@ -419,7 +419,7 @@ describe("headless lifecycle", () => {
 
     expect(codexArgs[0]).toBe("codex");
     expect(codexArgs.slice(1, 5)).toEqual([
-      "--dangerously-bypass-approvals-and-sandbox",
+      "--yolo",
       "exec",
       "--json",
       "--skip-git-repo-check",
