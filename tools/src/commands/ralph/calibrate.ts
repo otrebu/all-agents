@@ -11,7 +11,7 @@
  * @see context/workflows/ralph/calibration/technical-drift.md
  * @see context/workflows/ralph/calibration/self-improvement.md
  */
-/* eslint-disable perfectionist/sort-modules, no-continue, no-negated-condition, unicorn/consistent-destructuring, @typescript-eslint/no-unnecessary-condition, perfectionist/sort-objects, perfectionist/sort-object-types */
+/* eslint-disable perfectionist/sort-modules, no-continue, unicorn/consistent-destructuring, perfectionist/sort-objects, perfectionist/sort-object-types */
 
 import { loadAaaConfig } from "@tools/lib/config";
 import { findProjectRoot } from "@tools/utils/paths";
@@ -2038,7 +2038,6 @@ async function runTechnicalCheck(
               state: "SKIP",
             }),
           );
-          // eslint-disable-next-line no-continue -- skip oversized single-batch payloads and continue analysis
           continue;
         }
         throw error;

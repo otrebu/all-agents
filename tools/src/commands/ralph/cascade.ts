@@ -36,7 +36,7 @@ import {
   renderEventLine,
   renderPhaseCard,
 } from "./display";
-import PipelineRenderer from "./pipeline-renderer";
+import { createPipelineRenderer } from "./pipeline-renderer";
 import raiseSigint from "./signal";
 
 // =============================================================================
@@ -606,7 +606,7 @@ async function runCascadeFrom(
   }
 
   const isTTY = Boolean(process.stdin.isTTY && process.stdout.isTTY);
-  const renderer = new PipelineRenderer(
+  const renderer = createPipelineRenderer(
     levelsToExecute,
     options.headless === true,
     isTTY,

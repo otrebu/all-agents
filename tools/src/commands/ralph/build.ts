@@ -46,7 +46,7 @@ import {
   renderResponseHeader,
 } from "./display";
 import { executeHook } from "./hooks";
-import PipelineRenderer from "./pipeline-renderer";
+import { createPipelineRenderer } from "./pipeline-renderer";
 import {
   type PostIterationResult,
   runPostIterationHook,
@@ -1478,7 +1478,11 @@ async function runBuild(
   const initialQueueStats = getSubtaskQueueStats(initialSubtasksFile.subtasks);
   const hasPendingSubtasks = initialQueueStats.pending > 0;
   const isTTY = Boolean(process.stdin.isTTY && process.stdout.isTTY);
-  const renderer = new PipelineRenderer(["build"], mode === "headless", isTTY);
+  const renderer = createPipelineRenderer(
+    ["build"],
+    mode === "headless",
+    isTTY,
+  );
 
   // Select provider (CLI flag > env var > default)
   const provider = await resolveProviderOrExit(options.provider);

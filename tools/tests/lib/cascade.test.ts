@@ -24,9 +24,13 @@ import {
   runLevel,
   validateCascadeTarget,
 } from "@tools/commands/ralph/cascade";
-import PipelineRenderer from "@tools/commands/ralph/pipeline-renderer";
+import * as pipelineRenderer from "@tools/commands/ralph/pipeline-renderer";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
+
+type PipelineRenderer = ReturnType<
+  typeof pipelineRenderer.createPipelineRenderer
+>;
 
 // =============================================================================
 // Approval Integration Tests
@@ -720,44 +724,37 @@ describe("runCascadeFrom", () => {
   });
 
   test("wires PipelineRenderer lifecycle across cascade levels", async () => {
-    interface RendererSnapshot {
-      headless: boolean;
-      isTTY: boolean;
-      phases: Array<{ name: string }>;
-    }
-    let capturedRenderer: unknown = null;
+    const startPhaseCalls: Array<string> = [];
+    const setApprovalWaitCalls: Array<string> = [];
+    const completePhaseCalls: Array<unknown> = [];
+    let stopCallCount = 0;
 
-    const startPhaseSpy = spyOn(
-      PipelineRenderer.prototype,
-      "startPhase",
-    ).mockImplementation(function captureRendererSnapshot(
-      this: unknown,
-      _level: string,
-    ): void {
-      const renderer = this as {
-        headless: boolean;
-        isTTY: boolean;
-        phases: Array<{ name: string }>;
+    const rendererFactorySpy = spyOn(
+      pipelineRenderer,
+      "createPipelineRenderer",
+    ).mockImplementation(() => {
+      const rendererDouble: PipelineRenderer = {
+        completePhase: (metrics) => {
+          completePhaseCalls.push(metrics);
+        },
+        resume: () => {},
+        setApprovalWait: (gateName) => {
+          setApprovalWaitCalls.push(gateName);
+        },
+        startPhase: (name) => {
+          startPhaseCalls.push(name);
+        },
+        stop: () => {
+          stopCallCount += 1;
+        },
+        suspend: () => {},
+        updateSubtask: (...args: [string, string, number, number]) => {
+          void args;
+        },
       };
-      capturedRenderer ??= {
-        headless: renderer.headless,
-        isTTY: renderer.isTTY,
-        phases: renderer.phases,
-      };
-      void _level;
+
+      return rendererDouble;
     });
-    const completePhaseSpy = spyOn(
-      PipelineRenderer.prototype,
-      "completePhase",
-    ).mockImplementation(() => {});
-    const setApprovalWaitSpy = spyOn(
-      PipelineRenderer.prototype,
-      "setApprovalWait",
-    ).mockImplementation(() => {});
-    const stopSpy = spyOn(
-      PipelineRenderer.prototype,
-      "stop",
-    ).mockImplementation(() => {});
     const evaluateApprovalSpy = spyOn(
       approvals,
       "evaluateApproval",
@@ -782,43 +779,38 @@ describe("runCascadeFrom", () => {
       success: true,
     });
 
-    if (capturedRenderer === null) {
+    const rendererCall = rendererFactorySpy.mock.calls[0];
+    if (rendererCall === undefined) {
       throw new Error("Expected renderer snapshot");
     }
-    const rendererSnapshot = capturedRenderer as RendererSnapshot;
-    expect(rendererSnapshot.headless).toBe(true);
-    expect(rendererSnapshot.isTTY).toBe(false);
-    expect(
-      rendererSnapshot.phases.map((phase: { name: string }) => phase.name),
-    ).toEqual(["tasks", "subtasks"]);
+    const [phaseNames, isHeadless, isTTY] = rendererCall;
+    expect(isHeadless).toBe(true);
+    expect(isTTY).toBe(false);
+    expect(phaseNames).toEqual(["tasks", "subtasks"]);
 
-    expect(startPhaseSpy).toHaveBeenCalledWith("tasks");
-    expect(startPhaseSpy).toHaveBeenCalledWith("subtasks");
-    expect(
-      startPhaseSpy.mock.calls.filter((call) => call[0] === "tasks").length,
-    ).toBe(2);
-    expect(
-      startPhaseSpy.mock.calls.filter((call) => call[0] === "subtasks").length,
-    ).toBe(2);
-    expect(setApprovalWaitSpy).toHaveBeenNthCalledWith(1, "createTasks");
-    expect(setApprovalWaitSpy).toHaveBeenNthCalledWith(2, "createSubtasks");
-    expect(completePhaseSpy).toHaveBeenCalledTimes(2);
-    expect(completePhaseSpy.mock.calls[0]?.[0]).toMatchObject({
+    expect(startPhaseCalls).toContain("tasks");
+    expect(startPhaseCalls).toContain("subtasks");
+    expect(startPhaseCalls.filter((call) => call === "tasks").length).toBe(2);
+    expect(startPhaseCalls.filter((call) => call === "subtasks").length).toBe(
+      2,
+    );
+    expect(setApprovalWaitCalls[0]).toBe("createTasks");
+    expect(setApprovalWaitCalls[1]).toBe("createSubtasks");
+    expect(completePhaseCalls).toHaveLength(2);
+    expect(completePhaseCalls[0]).toMatchObject({
       costUsd: 0,
       filesChanged: 0,
     });
-    expect(completePhaseSpy.mock.calls[1]?.[0]).toMatchObject({
+    expect(completePhaseCalls[1]).toMatchObject({
       costUsd: 0,
       filesChanged: 0,
     });
-    expect(stopSpy).toHaveBeenCalledTimes(1);
+    expect(stopCallCount).toBe(1);
+    expect(rendererFactorySpy).toHaveBeenCalledTimes(1);
     expect(evaluateApprovalSpy).toHaveBeenCalledTimes(2);
     expect(notifyWaitSpy).toHaveBeenCalledTimes(2);
 
-    startPhaseSpy.mockRestore();
-    completePhaseSpy.mockRestore();
-    setApprovalWaitSpy.mockRestore();
-    stopSpy.mockRestore();
+    rendererFactorySpy.mockRestore();
     evaluateApprovalSpy.mockRestore();
     notifyWaitSpy.mockRestore();
   });
@@ -829,11 +821,24 @@ describe("runCascadeFrom", () => {
       "evaluateApproval",
     ).mockReturnValue("prompt");
     const eventOrder: Array<string> = [];
-    const waitingSpy = spyOn(
-      PipelineRenderer.prototype,
-      "setApprovalWait",
+    const rendererFactorySpy = spyOn(
+      pipelineRenderer,
+      "createPipelineRenderer",
     ).mockImplementation(() => {
-      eventOrder.push("render-waiting");
+      const rendererDouble: PipelineRenderer = {
+        completePhase: () => {},
+        resume: () => {},
+        setApprovalWait: () => {
+          eventOrder.push("render-waiting");
+        },
+        startPhase: () => {},
+        stop: () => {},
+        suspend: () => {},
+        updateSubtask: (...args: [string, string, number, number]) => {
+          void args;
+        },
+      };
+      return rendererDouble;
     });
 
     const promptSpy = spyOn(approvals, "promptApproval").mockImplementation(
@@ -862,7 +867,7 @@ describe("runCascadeFrom", () => {
     expect(waitingRenderIndex).toBeLessThan(promptIndex);
 
     evaluateApprovalSpy.mockRestore();
-    waitingSpy.mockRestore();
+    rendererFactorySpy.mockRestore();
     promptSpy.mockRestore();
   });
 
@@ -872,11 +877,24 @@ describe("runCascadeFrom", () => {
       "evaluateApproval",
     ).mockReturnValue("notify-wait");
     const eventOrder: Array<string> = [];
-    const waitingSpy = spyOn(
-      PipelineRenderer.prototype,
-      "setApprovalWait",
+    const rendererFactorySpy = spyOn(
+      pipelineRenderer,
+      "createPipelineRenderer",
     ).mockImplementation(() => {
-      eventOrder.push("render-waiting");
+      const rendererDouble: PipelineRenderer = {
+        completePhase: () => {},
+        resume: () => {},
+        setApprovalWait: () => {
+          eventOrder.push("render-waiting");
+        },
+        startPhase: () => {},
+        stop: () => {},
+        suspend: () => {},
+        updateSubtask: (...args: [string, string, number, number]) => {
+          void args;
+        },
+      };
+      return rendererDouble;
     });
 
     const notifyWaitSpy = spyOn(
@@ -905,7 +923,7 @@ describe("runCascadeFrom", () => {
     expect(waitingRenderIndex).toBeLessThan(notifyIndex);
 
     evaluateApprovalSpy.mockRestore();
-    waitingSpy.mockRestore();
+    rendererFactorySpy.mockRestore();
     notifyWaitSpy.mockRestore();
   });
 });

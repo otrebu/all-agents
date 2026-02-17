@@ -1,7 +1,7 @@
 import type { PhaseMetrics } from "@tools/commands/ralph/types";
 
 import { BOX_WIDTH } from "@tools/commands/ralph/display";
-import PipelineRenderer from "@tools/commands/ralph/pipeline-renderer";
+import { createPipelineRenderer } from "@tools/commands/ralph/pipeline-renderer";
 import {
   afterEach,
   beforeEach,
@@ -67,7 +67,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("instantiates with mock phases and pending initial state", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
     const internal = renderer as unknown as {
       activePhaseIndex: null | number;
       phases: Array<{ name: string; state: string }>;
@@ -82,7 +82,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("startPhase marks phase active and starts timer", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
     const internal = renderer as unknown as {
       activePhaseIndex: null | number;
       phases: Array<{ name: string; state: string }>;
@@ -101,7 +101,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("completePhase stores metrics and stops timer", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
     const internal = renderer as unknown as {
       activePhaseIndex: null | number;
       phases: Array<{ metrics?: PhaseMetrics; state: string }>;
@@ -124,7 +124,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("stop cleans up all timers", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
 
     renderer.startPhase("stories");
     renderer.stop();
@@ -134,7 +134,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("updateSubtask tracks progress and triggers progress line render", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
     const internal = renderer as unknown as {
       render: () => string;
       subtaskState: {
@@ -169,7 +169,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("setApprovalWait applies double-bar symbol to active phase", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
     const internal = renderer as unknown as {
       phases: Array<{ approvalGateName?: string; state: string }>;
       render: () => string;
@@ -188,7 +188,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("collapsible tree shows completed phases one-line and active phase expanded", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
     const completedStories: PhaseMetrics = {
       costUsd: 0.15,
       filesChanged: 5,
@@ -224,7 +224,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("phase bar renders expected symbols for states", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
     const internal = renderer as unknown as {
       phases: Array<{ state: string }>;
       render: () => string;
@@ -253,7 +253,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("headless + TTY renders in-place with ANSI cursor controls", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
 
     renderer.startPhase("stories");
     renderer.setApprovalWait("createStories");
@@ -269,7 +269,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("headless + non-TTY does not emit cursor controls", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, false);
+    const renderer = createPipelineRenderer(mockPhases, true, false);
 
     renderer.startPhase("stories");
 
@@ -283,7 +283,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("headless + TTY suspend stops in-place rewrites until resumed", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
 
     renderer.startPhase("stories");
     const writeCallsBeforeSuspend =
@@ -298,7 +298,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("headless + TTY resume resets rewind offset before next render", () => {
-    const renderer = new PipelineRenderer(mockPhases, true, true);
+    const renderer = createPipelineRenderer(mockPhases, true, true);
 
     renderer.startPhase("stories");
     renderer.suspend();
@@ -317,7 +317,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("supervised mode reprints full header on each render", () => {
-    const renderer = new PipelineRenderer(mockPhases, false, true);
+    const renderer = createPipelineRenderer(mockPhases, false, true);
 
     renderer.startPhase("build");
     renderer.updateSubtask("SUB-021", "TTY rendering modes", 1, 3);
@@ -333,7 +333,7 @@ describe("PipelineRenderer", () => {
   });
 
   test("non-TTY mode logs phase transition markers", () => {
-    const renderer = new PipelineRenderer(mockPhases, false, false);
+    const renderer = createPipelineRenderer(mockPhases, false, false);
     const metrics: PhaseMetrics = {
       costUsd: 0.1,
       filesChanged: 2,
