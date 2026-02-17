@@ -77,6 +77,17 @@ describe("validateModelSelection - valid model", () => {
       expect(result.cliFormat).toBe("openai/gpt-5.3-codex");
     }
   });
+
+  test("returns valid for codex pass-through model not in registry", () => {
+    const result = validateModelSelection(
+      "openai/gpt-5.3-codex-spark",
+      "codex",
+    );
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.cliFormat).toBe("openai/gpt-5.3-codex-spark");
+    }
+  });
 });
 
 // =============================================================================

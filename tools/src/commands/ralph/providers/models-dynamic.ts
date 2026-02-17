@@ -1,9 +1,10 @@
 /* eslint-disable perfectionist/sort-modules, no-continue, prefer-destructuring */
 import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 
 import type { ModelInfo } from "./models-static";
 import type { ProviderType } from "./types";
+
+import { resolveDynamicModelsReadPath } from "./models-dynamic-path";
 
 interface DynamicModelsPayload {
   generatedAt?: unknown;
@@ -62,20 +63,14 @@ function parseModelRecord(value: unknown): ModelInfo | null {
   return { cliFormat, costHint, discoveredAt, id, provider };
 }
 
-function loadDiscoveredModels(): Array<ModelInfo> {
-  const dynamicModelsPath = path.join(
-    import.meta.dirname,
-    "models-dynamic.json",
-  );
-  if (!existsSync(dynamicModelsPath)) {
-    return [];
-  }
-
+function parseDynamicModelsFile(
+  dynamicModelsPath: string,
+): Array<ModelInfo> | null {
   try {
     const raw = readFileSync(dynamicModelsPath, "utf8");
     const parsed = JSON.parse(raw) as DynamicModelsPayload;
     if (!isRecord(parsed) || !Array.isArray(parsed.models)) {
-      return [];
+      return null;
     }
 
     const models: Array<ModelInfo> = [];
@@ -90,8 +85,25 @@ function loadDiscoveredModels(): Array<ModelInfo> {
     }
     return models;
   } catch {
-    return [];
+    return null;
   }
+}
+
+function loadDiscoveredModels(): Array<ModelInfo> {
+  const candidatePaths = resolveDynamicModelsReadPath();
+
+  for (const dynamicModelsPath of candidatePaths) {
+    if (!existsSync(dynamicModelsPath)) {
+      continue;
+    }
+
+    const parsed = parseDynamicModelsFile(dynamicModelsPath);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return [];
 }
 
 const DISCOVERED_MODELS: Array<ModelInfo> = loadDiscoveredModels();

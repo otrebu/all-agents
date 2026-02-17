@@ -222,6 +222,14 @@ describe("validateModelForProvider", () => {
     expect(result).toBe("openai/gpt-5.2-codex");
   });
 
+  test("returns cliFormat for codex pass-through model not in registry", () => {
+    const result = validateModelForProvider(
+      "openai/gpt-5.3-codex-spark",
+      "codex",
+    );
+    expect(result).toBe("openai/gpt-5.3-codex-spark");
+  });
+
   test("throws with suggestions for unknown model", () => {
     expect(() =>
       validateModelForProvider("nonexistent-model", "opencode"),

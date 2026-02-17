@@ -9,7 +9,7 @@
  */
 /* eslint-disable perfectionist/sort-modules, no-continue, no-nested-ternary, unicorn/no-nested-ternary */
 
-import { existsSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { ModelInfo } from "./providers/models-static";
@@ -17,6 +17,7 @@ import type { ProviderType } from "./providers/types";
 
 import { discoverCodexModels } from "./providers/codex";
 import { DISCOVERED_MODELS } from "./providers/models-dynamic";
+import { resolveDynamicModelsWritePath } from "./providers/models-dynamic-path";
 import { STATIC_MODELS } from "./providers/models-static";
 import { REGISTRY, validateProvider } from "./providers/registry";
 
@@ -408,7 +409,7 @@ function generateDynamicFileContent(models: Array<ModelInfo>): string {
  * Get the path to models-dynamic.json
  */
 function getDynamicModelsPath(): string {
-  return path.join(import.meta.dirname, "providers", "models-dynamic.json");
+  return resolveDynamicModelsWritePath();
 }
 
 function parseCursorCostHint(
@@ -671,6 +672,13 @@ function runRefreshModels(options: RefreshOptions): void {
 
   for (const providerToRefresh of providersToRefresh) {
     if (!REGISTRY[providerToRefresh].supportsModelDiscovery) {
+      if (providerToRefresh === "codex") {
+        throw new Error(
+          "Provider 'codex' does not support model discovery. " +
+            "Use '--model <id>' directly with codex builds/reviews.",
+        );
+      }
+
       throw new Error(
         `Provider '${providerToRefresh}' does not support model discovery.`,
       );
@@ -733,9 +741,7 @@ function runRefreshModels(options: RefreshOptions): void {
 
   // Ensure the directory exists
   const directory = path.dirname(filePath);
-  if (!existsSync(directory)) {
-    throw new Error(`Providers directory not found: ${directory}`);
-  }
+  mkdirSync(directory, { recursive: true });
 
   writeFileSync(filePath, content, "utf8");
   console.log(

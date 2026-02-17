@@ -12,6 +12,9 @@ import {
   mock,
   test,
 } from "bun:test";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 void mock.module("../src/commands/ralph/config", () => ({
   loadRalphConfig: () => ({}),
@@ -44,13 +47,9 @@ const originalSpawnSync = Bun.spawnSync;
 const originalConsoleLog = console.log;
 const originalConsoleWarn = console.warn;
 const originalConsoleError = console.error;
+const DYNAMIC_MODELS_PATH_ENV = "AAA_RALPH_DYNAMIC_MODELS_PATH";
+const originalDynamicModelsPathEnv = process.env[DYNAMIC_MODELS_PATH_ENV];
 const consoleLines: Array<string> = [];
-
-function collectConsoleLines(): Array<string> {
-  const lines = [...consoleLines];
-  consoleLines.length = 0;
-  return lines;
-}
 
 function makeSpawnSyncResult(
   exitCode: number,
@@ -114,6 +113,28 @@ function setupCodexSpawnSyncMockWithOutputs(
   });
 }
 
+function setupCursorSpawnSyncMockWithOutput(output: string): void {
+  Object.assign(Bun, {
+    spawnSync: mock((command: Array<string>) => {
+      if (command[0] === "which") {
+        if (command[1] === "agent" || command[1] === "cursor-agent") {
+          return makeSpawnSyncResult(0, `/usr/local/bin/${command[1]}\n`);
+        }
+        return makeSpawnSyncResult(1, "", "not found");
+      }
+
+      if (
+        (command[0] === "agent" || command[0] === "cursor-agent") &&
+        command[1] === "--list-models"
+      ) {
+        return makeSpawnSyncResult(0, output);
+      }
+
+      return makeSpawnSyncResult(1, "", "unexpected command");
+    }),
+  });
+}
+
 afterEach(() => {
   DISCOVERED_MODELS.length = 0;
 });
@@ -133,6 +154,11 @@ afterEach(() => {
   console.log = originalConsoleLog;
   console.warn = originalConsoleWarn;
   console.error = originalConsoleError;
+  if (originalDynamicModelsPathEnv === undefined) {
+    Reflect.deleteProperty(process.env, DYNAMIC_MODELS_PATH_ENV);
+  } else {
+    process.env[DYNAMIC_MODELS_PATH_ENV] = originalDynamicModelsPathEnv;
+  }
 });
 
 // =============================================================================
@@ -574,6 +600,30 @@ describe("generateDynamicFileContent", () => {
 });
 
 // =============================================================================
+// getDynamicModelsPath
+// =============================================================================
+
+describe("getDynamicModelsPath", () => {
+  test("uses env override path when configured", () => {
+    const temporaryDirectory = mkdtempSync(path.join(tmpdir(), "ralph-path-"));
+    const overridePath = path.join(
+      temporaryDirectory,
+      "custom",
+      "dynamic.json",
+    );
+    process.env[DYNAMIC_MODELS_PATH_ENV] = overridePath;
+
+    try {
+      expect(getRefreshModelsModule().getDynamicModelsPath()).toBe(
+        overridePath,
+      );
+    } finally {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+});
+
+// =============================================================================
 // DISCOVERABLE_PROVIDERS
 // =============================================================================
 
@@ -582,8 +632,10 @@ describe("DISCOVERABLE_PROVIDERS", () => {
     expect(getRefreshModelsModule().DISCOVERABLE_PROVIDERS).toContain("cursor");
   });
 
-  test("includes codex", () => {
-    expect(getRefreshModelsModule().DISCOVERABLE_PROVIDERS).toContain("codex");
+  test("excludes codex", () => {
+    expect(getRefreshModelsModule().DISCOVERABLE_PROVIDERS).not.toContain(
+      "codex",
+    );
   });
 
   test("includes opencode", () => {
@@ -709,23 +761,37 @@ describe("buildNextDynamicModels", () => {
 // =============================================================================
 
 describe("runRefreshModels", () => {
-  test("discovers models for codex when provider is specified", () => {
-    const discovered = [
-      { id: "gpt-5.3-codex-unlisted", providerID: "openai" },
-      { id: "gpt-5-codex-bridge", providerID: "openai" },
-    ];
+  test("throws for codex provider because model discovery is unsupported", () => {
+    expect(() => {
+      getRefreshModelsModule().runRefreshModels({ provider: "codex" });
+    }).toThrow(/does not support model discovery/i);
+  });
 
-    setupCodexSpawnSyncMockWithOutput(JSON.stringify(discovered));
+  test("writes discovered models to env override path and creates directories", () => {
+    const temporaryDirectory = mkdtempSync(
+      path.join(tmpdir(), "ralph-refresh-"),
+    );
+    const dynamicModelsPath = path.join(
+      temporaryDirectory,
+      "nested",
+      "models-dynamic.json",
+    );
+    process.env[DYNAMIC_MODELS_PATH_ENV] = dynamicModelsPath;
 
-    getRefreshModelsModule().runRefreshModels({
-      isDryRun: true,
-      provider: "codex",
-    });
-    const lines = collectConsoleLines();
+    setupCursorSpawnSyncMockWithOutput(
+      ["Available models", "", "gpt-5.3-codex - GPT-5.3 Codex"].join("\n"),
+    );
 
-    expect(
-      lines.some((line) => line.includes("Discovered 2 new models (dry run):")),
-    ).toBe(true);
+    try {
+      getRefreshModelsModule().runRefreshModels({ provider: "cursor" });
+      expect(existsSync(dynamicModelsPath)).toBe(true);
+
+      const raw = readFileSync(dynamicModelsPath, "utf8");
+      const parsed = JSON.parse(raw) as { models: Array<{ id: string }> };
+      expect(parsed.models.map((model) => model.id)).toContain("gpt-5.3-codex");
+    } finally {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
   });
 
   test("discovers codex models via discoverFromProviders", () => {

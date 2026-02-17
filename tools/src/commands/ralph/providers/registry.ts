@@ -749,7 +749,7 @@ const REGISTRY: Record<ProviderType, ProviderCapabilities> = {
     ] satisfies Array<InvocationMode>,
     supportsHeadless: true,
     supportsInteractiveSupervised: true,
-    supportsModelDiscovery: true,
+    supportsModelDiscovery: false,
     supportsSessionExport: true,
   },
   cursor: {
