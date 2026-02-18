@@ -18,9 +18,9 @@ describe("build validation integration", () => {
     expect(buildContent).toContain(
       'import { createPipelineRenderer } from "./pipeline-renderer"',
     );
-    expect(buildContent).toContain(
-      'const renderer = createPipelineRenderer(["build"], mode === "headless", isTTY);',
-    );
+    expect(buildContent).toContain("const renderer = createPipelineRenderer(");
+    expect(buildContent).toContain('["build"],');
+    expect(buildContent).toContain('mode === "headless",');
     expect(buildContent).toContain(
       "const isTTY = Boolean(process.stdin.isTTY && process.stdout.isTTY);",
     );

@@ -62,6 +62,8 @@ import {
   type ModelInfo,
 } from "./providers/models";
 import {
+  createProviderInvocationFailure,
+  formatProviderFailureOutcome,
   invokeWithProvider,
   resolveProvider,
   validateProvider,
@@ -133,6 +135,36 @@ function formatDryRunCommandLine(plan: ExecutionPlan): string {
 
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+const CODEX_CHATGPT_ACCOUNT_MODEL_ERROR_PATTERN =
+  /not supported when using codex with a chatgpt account/i;
+const CODEX_UNSUPPORTED_MODEL_PATTERN =
+  /the ['"](?<model>[^'"]+)['"] model is not supported when using codex with a chatgpt account/i;
+const CODEX_MODEL_VARIANT_PATTERN =
+  /^(?:(?<provider>openai)\/)?(?<base>gpt-[0-9.]+-codex)(?:-.+)?$/i;
+
+function extractCodexUnsupportedModel(message: string): string | undefined {
+  const match = CODEX_UNSUPPORTED_MODEL_PATTERN.exec(message);
+  return match?.groups?.model;
+}
+
+function getCodexSuggestedModels(
+  requestedModel: string | undefined,
+): Array<string> {
+  const suggestions: Array<string> = [];
+  if (requestedModel !== undefined) {
+    const normalizedRequested = requestedModel.trim();
+    const variantMatch = CODEX_MODEL_VARIANT_PATTERN.exec(normalizedRequested);
+    if (variantMatch?.groups?.base !== undefined) {
+      const providerPrefix =
+        variantMatch.groups.provider === undefined ? "" : "openai/";
+      suggestions.push(`${providerPrefix}${variantMatch.groups.base}`);
+    }
+  }
+
+  suggestions.push("gpt-5.3-codex", "gpt-5.2-codex");
+  return [...new Set(suggestions)];
 }
 
 function getDryRunApprovalStatus(plan: ExecutionPlan): string {
@@ -306,6 +338,63 @@ function printDryRunPlan(
   ];
 
   console.log(outputLines.join("\n"));
+}
+
+function reportProviderInvocationFailureAndExit(options: {
+  domain: "PLAN" | "REVIEW";
+  error: unknown;
+  mode: "headless" | "supervised";
+  model?: string;
+  provider: ProviderType;
+}): never {
+  const { domain, error, mode, model, provider } = options;
+  const message = formatErrorMessage(error);
+  const outcome = createProviderInvocationFailure(provider, error);
+  const formatted = formatProviderFailureOutcome(outcome);
+
+  console.error(
+    renderEventLine({
+      domain,
+      message: `${mode} invocation failed: ${formatted}`,
+      state: "FAIL",
+    }),
+  );
+
+  if (
+    provider === "codex" &&
+    CODEX_CHATGPT_ACCOUNT_MODEL_ERROR_PATTERN.test(message)
+  ) {
+    const requestedModel = extractCodexUnsupportedModel(message) ?? model;
+    const modelSuggestions = getCodexSuggestedModels(requestedModel);
+    if (requestedModel !== undefined && requestedModel !== "") {
+      console.error(
+        renderEventLine({
+          domain,
+          message: `Model '${requestedModel}' is not available for Codex ChatGPT-account authentication.`,
+          state: "INFO",
+        }),
+      );
+    }
+    if (modelSuggestions.length > 0) {
+      console.error(
+        renderEventLine({
+          domain,
+          message: `Try: ${modelSuggestions.join(", ")}`,
+          state: "INFO",
+        }),
+      );
+    }
+    console.error(
+      renderEventLine({
+        domain,
+        message:
+          "See available Codex models: aaa ralph models --provider codex",
+        state: "INFO",
+      }),
+    );
+  }
+
+  process.exit(1);
 }
 
 /**
@@ -701,6 +790,10 @@ async function invokeClaudeHeadless(
   const fullPrompt = buildPrompt(promptContent, extraContext);
   const provider = await resolvePlanningProvider(providerOverride);
   const model = resolvePlanningModel(modelOverride);
+  const domain =
+    sessionName.includes("review") || sessionName.includes("gap")
+      ? "REVIEW"
+      : "PLAN";
 
   // Styled pre-execution header
   console.log(renderInvocationHeader("headless", provider));
@@ -765,43 +858,58 @@ async function invokeClaudeHeadless(
     }
   }
 
-  const result = await (async () => {
-    try {
-      return provider === "claude"
-        ? await invokeClaudeHeadlessAsyncFromModule({
-            gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-            model,
-            prompt: fullPrompt,
-            stallTimeoutMs: resolvedStallTimeoutMinutes * 60 * 1000,
-            timeout: timeoutConfig.hardMinutes * 60 * 1000,
-            watchdog:
-              watchdogShouldTerminate === undefined
-                ? undefined
-                : {
-                    checkIntervalMs: watchdogCheckIntervalMs,
-                    reason: watchdogReason,
-                    shouldTerminate: watchdogShouldTerminate,
-                  },
-          })
-        : await invokeWithProvider(provider, {
-            gracePeriodMs: timeoutConfig.graceSeconds * 1000,
-            mode: "headless",
-            model,
-            prompt: fullPrompt,
-            stallTimeoutMs: resolvedStallTimeoutMinutes * 60 * 1000,
-            timeout: timeoutConfig.hardMinutes * 60 * 1000,
-          });
-    } finally {
-      stopHeartbeat();
-    }
-  })();
+  let result: Awaited<ReturnType<typeof invokeWithProvider>> = null;
+  try {
+    result = await (async () => {
+      try {
+        return provider === "claude"
+          ? await invokeClaudeHeadlessAsyncFromModule({
+              gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+              model,
+              prompt: fullPrompt,
+              stallTimeoutMs: resolvedStallTimeoutMinutes * 60 * 1000,
+              timeout: timeoutConfig.hardMinutes * 60 * 1000,
+              watchdog:
+                watchdogShouldTerminate === undefined
+                  ? undefined
+                  : {
+                      checkIntervalMs: watchdogCheckIntervalMs,
+                      reason: watchdogReason,
+                      shouldTerminate: watchdogShouldTerminate,
+                    },
+            })
+          : await invokeWithProvider(provider, {
+              gracePeriodMs: timeoutConfig.graceSeconds * 1000,
+              mode: "headless",
+              model,
+              prompt: fullPrompt,
+              stallTimeoutMs: resolvedStallTimeoutMinutes * 60 * 1000,
+              timeout: timeoutConfig.hardMinutes * 60 * 1000,
+            });
+      } finally {
+        stopHeartbeat();
+      }
+    })();
+  } catch (error) {
+    reportProviderInvocationFailureAndExit({
+      domain,
+      error,
+      mode: "headless",
+      model,
+      provider,
+    });
+  }
 
   if (result === null) {
     if (shouldAllowNullResult) {
       return null;
     }
     console.error(
-      `${provider} headless invocation failed, was interrupted, or timed out`,
+      renderEventLine({
+        domain,
+        message: `${provider} headless invocation failed, was interrupted, or timed out`,
+        state: "FAIL",
+      }),
     );
     process.exit(1);
   }
@@ -856,22 +964,43 @@ async function invokePlanningSupervised(
 
   const provider = await resolvePlanningProvider(providerOverride);
   const model = resolvePlanningModel(modelOverride);
+  const domain =
+    sessionName.includes("review") || sessionName.includes("gap")
+      ? "REVIEW"
+      : "PLAN";
 
   if (provider === "claude") {
     invokeClaudeChat(promptPath, sessionName, { extraContext, model });
     return;
   }
 
-  const result = await invokeWithProvider(provider, {
-    context: extraContext,
-    mode: "supervised",
-    model,
-    promptPath,
-    sessionName,
-  });
+  let result: Awaited<ReturnType<typeof invokeWithProvider>> = null;
+  try {
+    result = await invokeWithProvider(provider, {
+      context: extraContext,
+      mode: "supervised",
+      model,
+      promptPath,
+      sessionName,
+    });
+  } catch (error) {
+    reportProviderInvocationFailureAndExit({
+      domain,
+      error,
+      mode: "supervised",
+      model,
+      provider,
+    });
+  }
 
   if (result === null) {
-    console.error(`${provider} supervised invocation failed`);
+    console.error(
+      renderEventLine({
+        domain,
+        message: `${provider} supervised invocation failed`,
+        state: "FAIL",
+      }),
+    );
     process.exit(1);
   }
 }
@@ -3368,6 +3497,29 @@ planCommand.addCommand(
       const planningModel = options.model;
       const planningProvider = options.provider;
 
+      if (options.cascade !== undefined) {
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-roadmap",
+          flags: {
+            force: options.force === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: true,
+          model: options.model,
+          provider: options.provider,
+        });
+        console.log(
+          renderEventLine({
+            domain: "CASCADE",
+            message: "Workflow preview",
+            state: "INFO",
+          }),
+        );
+        printDryRunPlan(plan, { nextStep: "continue" });
+      }
+
       await invokePlanningSupervised({
         model: planningModel,
         promptPath,
@@ -3470,6 +3622,31 @@ planCommand.addCommand(
       const extraContext = `Planning stories for milestone: ${milestonePath}`;
       const planningModel = options.model;
       const planningProvider = options.provider;
+
+      if (options.cascade !== undefined) {
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-stories",
+          flags: {
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+          },
+          fromLevel: toPlanFromLevel(options.from),
+          includeEntryInCascade: true,
+          milestonePath,
+          model: options.model,
+          provider: options.provider,
+        });
+        console.log(
+          renderEventLine({
+            domain: "CASCADE",
+            message: "Workflow preview",
+            state: "INFO",
+          }),
+        );
+        printDryRunPlan(plan, { nextStep: "continue" });
+      }
 
       // Determine execution mode
       if (options.headless === true) {
@@ -3799,10 +3976,14 @@ planCommand.addCommand(
         options.cascade,
         options.withReviews === true,
       );
+      const resolvedMilestoneFromFlag =
+        hasMilestone && options.milestone !== undefined
+          ? requireMilestone(options.milestone)
+          : undefined;
 
       if (options.dryRun === true) {
         const resolvedMilestonePath = resolveMilestoneFromOptions(
-          options.milestone,
+          resolvedMilestoneFromFlag ?? options.milestone,
           options.story,
           options.outputDir,
         );
@@ -3836,6 +4017,43 @@ planCommand.addCommand(
         hasStory && options.story !== undefined
           ? requireStory(options.story)
           : undefined;
+      const resolvedMilestonePath = resolveMilestoneFromOptions(
+        resolvedMilestoneFromFlag ?? options.milestone,
+        resolvedStoryPath ?? options.story,
+        options.outputDir,
+      );
+
+      if (options.cascade !== undefined) {
+        const resolvedOutputDirectory = resolveOutputDirectory(
+          options.outputDir,
+          resolvedMilestonePath,
+        );
+        const plan = computeExecutionPlan({
+          cascadeTarget: toPlanCascadeTarget(options.cascade),
+          command: "plan-subtasks",
+          flags: {
+            calibrateEvery: Number.parseInt(options.calibrateEvery, 10),
+            force: options.force === true,
+            headless: options.headless === true,
+            review: options.review === true,
+            validateFirst: options.validateFirst === true,
+          },
+          fromLevel: toPlanFromLevel(getSubtasksCascadeFromLevel(options.from)),
+          includeEntryInCascade: true,
+          milestonePath: resolvedMilestonePath ?? undefined,
+          model: options.model,
+          provider: options.provider,
+          subtasksPath: path.join(resolvedOutputDirectory, "subtasks.json"),
+        });
+        console.log(
+          renderEventLine({
+            domain: "CASCADE",
+            message: "Workflow preview",
+            state: "INFO",
+          }),
+        );
+        printDryRunPlan(plan, { nextStep: "continue" });
+      }
 
       // Pre-check for --task mode: skip if task already has subtasks
       if (hasTask && options.task !== undefined) {
@@ -3873,14 +4091,6 @@ planCommand.addCommand(
       };
 
       const promptPath = getSubtasksPromptPath(contextRoot, sourceFlags);
-
-      // Resolve milestone path - from explicit --milestone flag or inferred from story path
-      // This is used for log file location and to determine output directory for subtasks.json
-      const resolvedMilestonePath = resolveMilestoneFromOptions(
-        options.milestone,
-        resolvedStoryPath ?? options.story,
-        options.outputDir,
-      );
 
       // Pre-check for --milestone and --story modes: filter tasks that already have subtasks
       // Track skipped tasks and counts for summary display

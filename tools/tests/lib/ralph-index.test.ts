@@ -150,18 +150,32 @@ describe("resolveMilestoneFromOptions", () => {
   });
 });
 
-describe("plan tasks cascade preview", () => {
+describe("plan cascade preview", () => {
   test("prints workflow preview for non-dry-run cascade runs", () => {
     const source = readFileSync(
       path.join(import.meta.dir, "../../src/commands/ralph/index.ts"),
       "utf8",
     );
 
-    expect(source).toContain('message: "Workflow preview"');
-    expect(source).toContain("if (options.cascade !== undefined)");
-    expect(source).toContain(
-      'printDryRunPlan(plan, { nextStep: "continue" });',
-    );
+    const commands = ["roadmap", "stories", "tasks", "subtasks"];
+
+    for (const commandName of commands) {
+      const commandStart = source.indexOf(`new Command("${commandName}")`);
+      expect(commandStart).toBeGreaterThan(-1);
+      const nextCommandStart = source.indexOf(
+        'new Command("',
+        commandStart + 1,
+      );
+      const commandBlock =
+        nextCommandStart === -1
+          ? source.slice(commandStart)
+          : source.slice(commandStart, nextCommandStart);
+
+      expect(commandBlock).toContain('message: "Workflow preview"');
+      expect(commandBlock).toContain(
+        'printDryRunPlan(plan, { nextStep: "continue" });',
+      );
+    }
   });
 });
 

@@ -115,6 +115,7 @@ const CODEX_FAILURE_REASON_RULES: Array<{
       "invalid model",
       "model not found",
       "unsupported model",
+      "not supported when using codex",
     ],
     reason: "model",
   },

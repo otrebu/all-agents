@@ -774,6 +774,62 @@ describe("ralph E2E", () => {
     expect(stderr).not.toContain("provider binary not found");
   });
 
+  test("planning commands show actionable codex model guidance without stack traces", async () => {
+    const mockCodexPath = join(temporaryDirectory, "codex");
+    writeFileSync(
+      mockCodexPath,
+      `#!/usr/bin/env bash
+for arg in "$@"; do
+  if [ "$arg" = "exec" ]; then
+    cat <<'JSONL'
+{"type":"thread.started","thread_id":"thread_mock"}
+{"type":"turn.started"}
+{"type":"error","message":"{\\"detail\\":\\"The 'gpt-5.2-codex-xhigh-fast' model is not supported when using Codex with a ChatGPT account.\\"}"}
+{"type":"turn.failed","error":{"message":"{\\"detail\\":\\"The 'gpt-5.2-codex-xhigh-fast' model is not supported when using Codex with a ChatGPT account.\\"}"}}
+JSONL
+    exit 1
+  fi
+done
+echo "mock codex: unsupported invocation" >&2
+exit 1
+`,
+      { mode: 0o755 },
+    );
+
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "tasks",
+        "--text",
+        "test codex failure",
+        "--headless",
+        "--provider",
+        "codex",
+        "--model",
+        "gpt-5.2-codex-xhigh-fast",
+      ],
+      {
+        cwd: TOOLS_DIR,
+        env: {
+          ...process.env,
+          PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+        },
+        reject: false,
+      },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("headless invocation failed");
+    expect(stderr).toContain("ChatGPT account");
+    expect(stderr).toContain("aaa ralph models --provider codex");
+    expect(stderr).not.toContain("at invokeCodexHeadless");
+    expect(stderr).not.toContain("Bun v");
+  });
+
   test("ralph build with missing subtasks shows error", async () => {
     const subtasksPath = join(temporaryDirectory, "nonexistent.json");
 
@@ -1891,6 +1947,26 @@ kill -s INT $$
       ["run", "dev", "ralph", "plan", "stories", "--milestone", "nonexistent"],
       { cwd: TOOLS_DIR, reject: false },
     );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("milestone not found: nonexistent");
+  });
+
+  test("ralph plan subtasks --milestone nonexistent --dry-run shows not found error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "subtasks",
+        "--milestone",
+        "nonexistent",
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
     expect(exitCode).toBe(1);
     expect(stderr).toContain("milestone not found: nonexistent");
   });

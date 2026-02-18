@@ -12,6 +12,7 @@ import {
   buildCodexHeadlessArguments,
   buildCodexSupervisedArguments,
   discoverCodexModels,
+  mapCodexInvocationError,
   normalizeCodexResult,
   parseCodexEvents,
 } from "@tools/commands/ralph/providers/codex";
@@ -318,5 +319,18 @@ describe("discoverCodexModels", () => {
     });
 
     expect(discoverCodexModels()).toEqual([]);
+  });
+});
+
+describe("mapCodexInvocationError", () => {
+  test("classifies ChatGPT account model entitlement failures as model/fatal", () => {
+    const outcome = mapCodexInvocationError(
+      new Error(
+        "Codex exited with code 1: The 'gpt-5.2-codex-xhigh-fast' model is not supported when using Codex with a ChatGPT account.",
+      ),
+    );
+
+    expect(outcome.reason).toBe("model");
+    expect(outcome.status).toBe("fatal");
   });
 });

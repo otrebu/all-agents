@@ -12,7 +12,7 @@ import * as readline from "node:readline";
 import type { ProviderType } from "./providers/types";
 import type { QueueOperation, QueueProposal, Subtask } from "./types";
 
-import { appendMilestoneLogEntry } from "./config";
+import { appendMilestoneLogEntry, loadTimeoutConfig } from "./config";
 import { executeHook } from "./hooks";
 import { invokeProviderSummary } from "./providers/summary";
 import { parseQueueOperations } from "./queue-ops";
@@ -99,8 +99,6 @@ const VALID_ISSUE_TYPES = new Set<ValidationIssueType>([
 
 const VALIDATION_PROMPT_PATH =
   "context/workflows/ralph/building/pre-build-validation.md";
-const VALIDATION_TIMEOUT_MS = 60_000;
-const TIMEOUT_WARNING_THRESHOLD_MS = 1000;
 const STORY_REF_PATTERN =
   /\*\*Story:\*\*\s*\[(?<storyReference>[^\]]+)\]\([^)]+\)/;
 const MISSING_PARENT_TASK_REASON_PATTERN =
@@ -838,6 +836,9 @@ async function validateSubtask(
 
   console.log(`[Validation] Validating ${subtask.id}: ${subtask.title}`);
 
+  const timeoutConfig = loadTimeoutConfig();
+  const timeoutMs = timeoutConfig.hardMinutes * 60 * 1000;
+
   const prompt = buildValidationPromptWithParentTask(subtask, {
     contextRoot,
     milestonePath,
@@ -848,22 +849,26 @@ async function validateSubtask(
     configuredModel: model,
     prompt,
     provider,
-    timeoutMs: VALIDATION_TIMEOUT_MS,
+    timeoutMs,
   });
   const elapsedMs = Date.now() - startedAt;
 
   if (response === null) {
-    if (elapsedMs >= VALIDATION_TIMEOUT_MS - TIMEOUT_WARNING_THRESHOLD_MS) {
+    if (elapsedMs >= timeoutMs - 1000) {
+      const minutes = Math.round(elapsedMs / 60_000);
       console.warn(
-        `[Validation:${subtask.id}] Timed out after ${Math.round(elapsedMs / 1000)}s, proceeding as aligned`,
+        `[Validation:${subtask.id}] Timed out after ${minutes}m, failing closed`,
       );
-      return { aligned: true };
+      return {
+        aligned: false,
+        reason: `Validation timed out after ${minutes}m`,
+      };
     }
 
     console.warn(
-      `[Validation:${subtask.id}] Invocation failed, proceeding as aligned`,
+      `[Validation:${subtask.id}] Invocation failed, failing closed`,
     );
-    return { aligned: true };
+    return { aligned: false, reason: "Validation invocation failed" };
   }
 
   const parsed = parseValidationResponse(response, subtask.id);
@@ -991,7 +996,6 @@ export {
   validateAllSubtasks,
   validateDoneSubtaskCommitEvidence,
   validateSubtask,
-  VALIDATION_TIMEOUT_MS,
   type ValidationContext,
   type ValidationIssueType,
   type ValidationProposalArtifactOptions,
