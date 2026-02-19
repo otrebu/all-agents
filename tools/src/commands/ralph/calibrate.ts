@@ -1191,7 +1191,10 @@ function resolvePlanningFromTaskFile(
     (entry) =>
       entry.startsWith(taskReference) ||
       entry.includes(`-${taskReference}-`) ||
-      entry.includes(`${taskReference}.`),
+      entry.includes(`${taskReference}.`) ||
+      // Handle NNN-TASK-slug filenames when taskRef is NNN-slug
+      entry.replace(/-TASK-/, "-").startsWith(taskReference) ||
+      entry.replace(/-STORY-/, "-").startsWith(taskReference),
   );
   if (taskFileName === undefined) {
     return null;

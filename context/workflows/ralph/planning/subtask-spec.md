@@ -149,7 +149,7 @@ Before finalizing subtasks, verify:
 
 - [ ] Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)
 - [ ] All IDs follow SUB-NNN pattern and are unique
-- [ ] taskRef is set (NNN-slug pattern)
+- [ ] taskRef matches a task filename (NNN-TASK-slug or NNN-slug pattern)
 - [ ] storyRef is included if task has a parent story
 - [ ] Subtasks pass the 4-question vertical slice test (see Size Guidelines)
 - [ ] Acceptance criteria are concrete and verifiable
