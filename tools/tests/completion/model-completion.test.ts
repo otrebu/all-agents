@@ -262,14 +262,19 @@ describe("ralph --dry-run completion entries", () => {
 
     const previewCount =
       stdout.split("Preview execution plan without running").length - 1;
-    expect(previewCount).toBe(6);
+    // build(1) + plan roadmap/stories/tasks/subtasks(4) + calibrate intention/technical/all(3) = 8
+    expect(previewCount).toBe(8);
 
     expect(stdout).toContain("build)");
-    expect(stdout).toContain("calibrate)");
     expect(stdout).toContain("roadmap)");
     expect(stdout).toContain("stories)");
     expect(stdout).toContain("tasks)");
     expect(stdout).toContain("subtasks)");
+    // calibrate subcommands have per-subcommand dry-run
+    expect(stdout).toContain("_aaa_ralph_calibrate");
+    expect(stdout).toContain("intention)");
+    expect(stdout).toContain("technical)");
+    expect(stdout).toContain("all)");
   });
 
   test("fish includes preview dry-run entries for build, plan, and calibrate", async () => {
@@ -281,14 +286,17 @@ describe("ralph --dry-run completion entries", () => {
 
     const previewCount =
       stdout.split("Preview execution plan without running").length - 1;
-    expect(previewCount).toBe(6);
+    // build(1) + plan roadmap/stories/tasks/subtasks(4) + calibrate intention/technical/all(3) = 8
+    expect(previewCount).toBe(8);
 
     expect(stdout).toContain("__fish_aaa_using_subsubcommand ralph build");
     expect(stdout).toContain("__fish_aaa_ralph_plan_roadmap");
     expect(stdout).toContain("__fish_aaa_ralph_plan_stories");
     expect(stdout).toContain("__fish_aaa_ralph_plan_tasks");
     expect(stdout).toContain("__fish_aaa_ralph_plan_subtasks");
-    expect(stdout).toContain("__fish_aaa_using_subsubcommand ralph calibrate");
+    expect(stdout).toContain("__fish_aaa_ralph_calibrate_intention");
+    expect(stdout).toContain("__fish_aaa_ralph_calibrate_technical");
+    expect(stdout).toContain("__fish_aaa_ralph_calibrate_all");
   });
 
   test("keeps existing non-ralph dry-run completion descriptions unchanged", async () => {

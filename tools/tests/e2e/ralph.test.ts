@@ -1900,6 +1900,56 @@ kill -s INT $$
     expect(stdout).toContain("improve");
   });
 
+  test("ralph calibrate intention --help includes --milestone option", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "calibrate", "intention", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--milestone");
+    expect(stdout).toContain("mutually exclusive");
+  });
+
+  test("ralph calibrate intention rejects --milestone with --subtasks", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "calibrate",
+        "intention",
+        "--milestone",
+        "nonexistent",
+        "--subtasks",
+        "custom.json",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).not.toBe(0);
+    expect(stderr).toContain("mutually exclusive");
+  });
+
+  test("ralph calibrate intention --milestone with nonexistent milestone errors", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "calibrate",
+        "intention",
+        "--milestone",
+        "nonexistent-milestone-xyz",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).not.toBe(0);
+    // Should mention the milestone is not found or list available milestones
+    expect(stderr.length).toBeGreaterThan(0);
+  });
+
   // Milestones command tests
   test("ralph milestones lists available milestones", async () => {
     const { exitCode, stdout } = await execa(

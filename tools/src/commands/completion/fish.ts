@@ -413,14 +413,62 @@ end
 complete -c aaa -n __fish_aaa_ralph_subtasks_apply -l proposal -d 'Queue proposal JSON file' -ra '(__fish_complete_suffix .json)'
 complete -c aaa -n __fish_aaa_ralph_subtasks_apply -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
 
-# ralph calibrate options and subcommands
+# ralph calibrate subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a intention -d 'Check for intention drift'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a technical -d 'Check for technical drift'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a improve -d 'Self-improvement analysis'
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -a all -d 'Run all checks'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l force -d 'Skip approval'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l review -d 'Require approval'
-complete -c aaa -n '__fish_aaa_using_subsubcommand ralph calibrate' -l dry-run -d 'Preview execution plan without running'
+
+# ralph calibrate intention options
+function __fish_aaa_ralph_calibrate_intention
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = calibrate -a "$cmd[4]" = intention
+end
+complete -c aaa -n __fish_aaa_ralph_calibrate_intention -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_intention -l milestone -d 'Target milestone' -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_intention -l dry-run -d 'Preview execution plan without running'
+complete -c aaa -n __fish_aaa_ralph_calibrate_intention -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_intention -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_intention -l force -d 'Skip approval'
+complete -c aaa -n __fish_aaa_ralph_calibrate_intention -l review -d 'Require approval'
+
+# ralph calibrate technical options
+function __fish_aaa_ralph_calibrate_technical
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = calibrate -a "$cmd[4]" = technical
+end
+complete -c aaa -n __fish_aaa_ralph_calibrate_technical -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_technical -l milestone -d 'Target milestone' -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_technical -l dry-run -d 'Preview execution plan without running'
+complete -c aaa -n __fish_aaa_ralph_calibrate_technical -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_technical -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_technical -l force -d 'Skip approval'
+complete -c aaa -n __fish_aaa_ralph_calibrate_technical -l review -d 'Require approval'
+
+# ralph calibrate improve options
+function __fish_aaa_ralph_calibrate_improve
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = calibrate -a "$cmd[4]" = improve
+end
+complete -c aaa -n __fish_aaa_ralph_calibrate_improve -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_improve -l milestone -d 'Target milestone' -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_improve -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_improve -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_improve -l force -d 'Skip approval'
+complete -c aaa -n __fish_aaa_ralph_calibrate_improve -l review -d 'Require approval'
+
+# ralph calibrate all options
+function __fish_aaa_ralph_calibrate_all
+    set -l cmd (commandline -opc)
+    test (count $cmd) -ge 4 -a "$cmd[2]" = ralph -a "$cmd[3]" = calibrate -a "$cmd[4]" = all
+end
+complete -c aaa -n __fish_aaa_ralph_calibrate_all -l subtasks -d 'Subtasks file path' -ra '(__fish_complete_suffix .json)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_all -l milestone -d 'Target milestone' -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_all -l dry-run -d 'Preview execution plan without running'
+complete -c aaa -n __fish_aaa_ralph_calibrate_all -l provider -d 'AI provider' -xa '(__fish_aaa_complete provider 2>/dev/null)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_all -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'
+complete -c aaa -n __fish_aaa_ralph_calibrate_all -l force -d 'Skip approval'
+complete -c aaa -n __fish_aaa_ralph_calibrate_all -l review -d 'Require approval'
 
 # ralph archive subcommands
 complete -c aaa -n '__fish_aaa_using_subsubcommand ralph archive' -a subtasks -d 'Archive completed subtasks'

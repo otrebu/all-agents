@@ -4751,6 +4751,7 @@ async function runCalibrateSubcommand(
   options: {
     dryRun?: boolean;
     force?: boolean;
+    milestone?: string;
     model?: string;
     provider?: string;
     review?: boolean;
@@ -4758,10 +4759,21 @@ async function runCalibrateSubcommand(
   },
 ): Promise<void> {
   const toolRoot = getContextRoot();
-  const resolvedSubtasksPath = resolveCalibrateSubtasksPath(
-    options.subtasks,
-    toolRoot,
-  );
+
+  // --milestone and --subtasks are mutually exclusive
+  if (
+    options.milestone !== undefined &&
+    options.milestone !== "" &&
+    options.subtasks !== DEFAULT_SUBTASKS_PATH
+  ) {
+    console.error("Error: --milestone and --subtasks are mutually exclusive");
+    process.exit(1);
+  }
+
+  const resolvedSubtasksPath =
+    options.milestone !== undefined && options.milestone !== ""
+      ? requireMilestoneSubtasksPath(options.milestone)
+      : resolveCalibrateSubtasksPath(options.subtasks, toolRoot);
   const milestoneDirectory = path.dirname(path.resolve(resolvedSubtasksPath));
   const repoRoot = resolveGitRepoRoot(milestoneDirectory);
 
@@ -5339,6 +5351,10 @@ calibrateCommand.addCommand(
     .description("Check for intention drift (code vs planning docs)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option(
+      "--milestone <name>",
+      "Target milestone (mutually exclusive with --subtasks)",
+    )
+    .option(
       "--dry-run",
       "Preview execution plan without running (exits after showing pipeline diagram)",
     )
@@ -5357,6 +5373,10 @@ calibrateCommand.addCommand(
     .description("Check for technical drift (code quality issues)")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
     .option(
+      "--milestone <name>",
+      "Target milestone (mutually exclusive with --subtasks)",
+    )
+    .option(
       "--dry-run",
       "Preview execution plan without running (exits after showing pipeline diagram)",
     )
@@ -5374,6 +5394,10 @@ calibrateCommand.addCommand(
   new Command("improve")
     .description("Run self-improvement analysis on session logs")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option(
+      "--milestone <name>",
+      "Target milestone (mutually exclusive with --subtasks)",
+    )
     .option("--provider <name>", "AI provider to use for calibration")
     .option("--model <name>", "Model to use for calibration invocation")
     .option("--force", "Skip approval even if config says 'suggest'")
@@ -5388,6 +5412,10 @@ calibrateCommand.addCommand(
   new Command("all")
     .description("Run all calibration checks sequentially")
     .option("--subtasks <path>", "Subtasks file path", DEFAULT_SUBTASKS_PATH)
+    .option(
+      "--milestone <name>",
+      "Target milestone (mutually exclusive with --subtasks)",
+    )
     .option(
       "--dry-run",
       "Preview execution plan without running (exits after showing pipeline diagram)",

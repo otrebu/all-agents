@@ -630,6 +630,54 @@ describe("completion E2E", () => {
       expect(providers).toContain("opencode");
     });
 
+    test("calibrate subcommands have per-subcommand completions with --provider and --model", async () => {
+      const [bashResult, zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      // Zsh: has _aaa_ralph_calibrate function with per-subcommand args
+      expect(zshResult.stdout).toContain("_aaa_ralph_calibrate");
+      expect(zshResult.stdout).toContain(
+        "'--provider[AI provider]:provider:_aaa_provider'",
+      );
+      expect(zshResult.stdout).toContain(
+        "'--model[Model to use]:model:_aaa_model'",
+      );
+
+      // Bash: per-subcommand calibrate options include --provider and --model
+      expect(bashResult.stdout).toContain(
+        "--subtasks --milestone --dry-run --provider --model --force --review",
+      );
+
+      // Fish: per-subcommand condition functions with --provider and --model
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_intention",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_technical",
+      );
+      expect(fishResult.stdout).toContain("__fish_aaa_ralph_calibrate_improve");
+      expect(fishResult.stdout).toContain("__fish_aaa_ralph_calibrate_all");
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_intention -l provider",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_intention -l model",
+      );
+      // --milestone present in calibrate subcommands
+      expect(zshResult.stdout).toContain(
+        "'--milestone[Target milestone]:milestone:_aaa_milestone_or_dir'",
+      );
+      expect(bashResult.stdout).toContain(
+        "--subtasks --milestone --dry-run --provider --model --force --review",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_intention -l milestone",
+      );
+    });
+
     test("zsh runtime model completion stays provider-aware in plan stories context", async () => {
       const models = await runZshCompletionProbe(
         [

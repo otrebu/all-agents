@@ -299,7 +299,20 @@ _aaa_completions() {
                         return
                         ;;
                     calibrate)
-                        COMPREPLY=($(compgen -W "--force --review" -- "$cur"))
+                        case "$subsubcmd" in
+                            intention)
+                                COMPREPLY=($(compgen -W "--subtasks --milestone --dry-run --provider --model --force --review" -- "$cur"))
+                                ;;
+                            technical)
+                                COMPREPLY=($(compgen -W "--subtasks --milestone --dry-run --provider --model --force --review" -- "$cur"))
+                                ;;
+                            improve)
+                                COMPREPLY=($(compgen -W "--subtasks --milestone --provider --model --force --review" -- "$cur"))
+                                ;;
+                            all)
+                                COMPREPLY=($(compgen -W "--subtasks --milestone --dry-run --provider --model --force --review" -- "$cur"))
+                                ;;
+                        esac
                         return
                         ;;
                     review)

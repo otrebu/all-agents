@@ -315,11 +315,7 @@ _aaa_ralph() {
                     _aaa_ralph_subtasks
                     ;;
                 calibrate)
-                    _arguments \\
-                        '--force[Skip approval]' \\
-                        '--review[Require approval]' \\
-                        '--dry-run[Preview execution plan without running]' \\
-                        '1:subcommand:(intention technical improve all)'
+                    _aaa_ralph_calibrate
                     ;;
                 archive)
                     _aaa_ralph_archive
@@ -494,6 +490,69 @@ _aaa_ralph_subtasks() {
                     _arguments \\
                         '--proposal[Queue proposal JSON file]:file:_files -g "*.json"' \\
                         '--subtasks[Subtasks file path]:file:_files -g "*.json"'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_aaa_ralph_calibrate() {
+    local -a subcommands
+    subcommands=(
+        'intention:Check for intention drift (code vs planning docs)'
+        'technical:Check for technical drift (code quality issues)'
+        'improve:Run self-improvement analysis on session logs'
+        'all:Run all calibration checks sequentially'
+    )
+
+    _arguments -C \\
+        '1: :->subcmd' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                intention)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--dry-run[Preview execution plan without running]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--force[Skip approval]' \\
+                        '--review[Require approval]'
+                    ;;
+                technical)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--dry-run[Preview execution plan without running]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--force[Skip approval]' \\
+                        '--review[Require approval]'
+                    ;;
+                improve)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--force[Skip approval]' \\
+                        '--review[Require approval]'
+                    ;;
+                all)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--dry-run[Preview execution plan without running]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--force[Skip approval]' \\
+                        '--review[Require approval]'
                     ;;
             esac
             ;;
