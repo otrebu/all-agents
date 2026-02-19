@@ -4,9 +4,17 @@ import {
   getSubtasksSizeGuidanceLines,
   resolveApprovalForValidationProposal,
   resolveValidationProposalMode,
+  selectCompletionCommitHash,
 } from "@tools/commands/ralph/build";
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import * as readline from "node:readline";
 
@@ -34,6 +42,145 @@ describe("getSubtaskQueueStats", () => {
     ]);
 
     expect(stats).toEqual({ completed: 1, pending: 1, total: 2 });
+  });
+});
+
+describe("selectCompletionCommitHash", () => {
+  function runGit(cwd: string, args: Array<string>): string {
+    const proc = Bun.spawnSync(["git", ...args], {
+      cwd,
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+    if (proc.exitCode !== 0) {
+      throw new Error(Buffer.from(proc.stderr).toString("utf8"));
+    }
+    return Buffer.from(proc.stdout).toString("utf8").trim();
+  }
+
+  test("prefers implementation commit when HEAD is tracking-only", () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), "build-commit-select-"));
+
+    try {
+      runGit(repoRoot, ["init"]);
+      runGit(repoRoot, ["config", "user.name", "Ralph Tester"]);
+      runGit(repoRoot, ["config", "user.email", "ralph@example.com"]);
+
+      writeFileSync(path.join(repoRoot, "README.md"), "# test\n", "utf8");
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "chore: bootstrap"]);
+      const commitBefore = runGit(repoRoot, ["rev-parse", "HEAD"]);
+
+      mkdirSync(path.join(repoRoot, "src"), { recursive: true });
+      writeFileSync(path.join(repoRoot, "src", "feature.ts"), "export {};\n");
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "feat(SUB-123): implement feature"]);
+      const implementationHash = runGit(repoRoot, ["rev-parse", "HEAD"]);
+
+      mkdirSync(path.join(repoRoot, "docs/planning"), { recursive: true });
+      writeFileSync(
+        path.join(repoRoot, "docs/planning/PROGRESS.md"),
+        "updated tracking\n",
+        "utf8",
+      );
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, [
+        "commit",
+        "-m",
+        "chore(SUB-123): update tracking files",
+      ]);
+      const commitAfter = runGit(repoRoot, ["rev-parse", "HEAD"]);
+
+      const selected = selectCompletionCommitHash({
+        commitAfter,
+        commitBefore,
+        projectRoot: repoRoot,
+        subtaskId: "SUB-123",
+      });
+
+      expect(selected).toBe(implementationHash);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test("prefers subtask-tagged implementation commit over newer unrelated commits", () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), "build-commit-tagged-"));
+
+    try {
+      runGit(repoRoot, ["init"]);
+      runGit(repoRoot, ["config", "user.name", "Ralph Tester"]);
+      runGit(repoRoot, ["config", "user.email", "ralph@example.com"]);
+
+      writeFileSync(path.join(repoRoot, "README.md"), "# test\n", "utf8");
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "chore: bootstrap"]);
+      const commitBefore = runGit(repoRoot, ["rev-parse", "HEAD"]);
+
+      mkdirSync(path.join(repoRoot, "src"), { recursive: true });
+      writeFileSync(path.join(repoRoot, "src", "auth.ts"), "export {};\n");
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "feat(SUB-090): add auth helper"]);
+      const taggedHash = runGit(repoRoot, ["rev-parse", "HEAD"]);
+
+      writeFileSync(
+        path.join(repoRoot, "src", "cleanup.ts"),
+        "export const cleanup = true;\n",
+        "utf8",
+      );
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "fix: unrelated cleanup"]);
+      const commitAfter = runGit(repoRoot, ["rev-parse", "HEAD"]);
+
+      const selected = selectCompletionCommitHash({
+        commitAfter,
+        commitBefore,
+        projectRoot: repoRoot,
+        subtaskId: "SUB-090",
+      });
+
+      expect(selected).toBe(taggedHash);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test("falls back to HEAD when every commit in range is tracking-only", () => {
+    const repoRoot = mkdtempSync(
+      path.join(tmpdir(), "build-commit-tracking-only-"),
+    );
+
+    try {
+      runGit(repoRoot, ["init"]);
+      runGit(repoRoot, ["config", "user.name", "Ralph Tester"]);
+      runGit(repoRoot, ["config", "user.email", "ralph@example.com"]);
+
+      writeFileSync(path.join(repoRoot, "README.md"), "# test\n", "utf8");
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "chore: bootstrap"]);
+      const commitBefore = runGit(repoRoot, ["rev-parse", "HEAD"]);
+
+      mkdirSync(path.join(repoRoot, "docs/planning"), { recursive: true });
+      writeFileSync(
+        path.join(repoRoot, "docs/planning/PROGRESS.md"),
+        "tracking only\n",
+        "utf8",
+      );
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "chore(SUB-404): update tracking"]);
+      const commitAfter = runGit(repoRoot, ["rev-parse", "HEAD"]);
+
+      const selected = selectCompletionCommitHash({
+        commitAfter,
+        commitBefore,
+        projectRoot: repoRoot,
+        subtaskId: "SUB-404",
+      });
+
+      expect(selected).toBe(commitAfter);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
   });
 });
 

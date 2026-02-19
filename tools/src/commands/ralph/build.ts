@@ -91,10 +91,20 @@ import {
 /** Default prompt path relative to context root */
 const ITERATION_PROMPT_PATH =
   "context/workflows/ralph/building/ralph-iteration.md";
+const TRACKING_METADATA_PREFIXES = ["docs/planning/", ".claude/"];
 
 // =============================================================================
 // Types
 // =============================================================================
+
+/**
+ * Candidate commit metadata for subtask completion linkage.
+ */
+interface CompletionCommitCandidate {
+  hash: string;
+  isTrackingOnly: boolean;
+  referencesSubtask: boolean;
+}
 
 /**
  * Context for headless iteration processing
@@ -856,9 +866,15 @@ async function processHeadlessIteration(
   console.log();
 
   // Build loop owns completion: mark subtask done if a new commit was made
-  if (commitBefore !== commitAfter && commitAfter !== null) {
+  const completionCommitHash = selectCompletionCommitHash({
+    commitAfter,
+    commitBefore,
+    projectRoot,
+    subtaskId: currentSubtask.id,
+  });
+  if (commitBefore !== commitAfter && completionCommitHash !== null) {
     markSubtaskComplete({
-      commitHash: commitAfter,
+      commitHash: completionCommitHash,
       contextRoot,
       provider,
       sessionId: result.sessionId,
@@ -1028,9 +1044,15 @@ async function processSupervisedIteration(
   );
 
   // Build loop owns completion: mark subtask done if a new commit was made
-  if (commitBefore !== commitAfter && commitAfter !== null) {
+  const completionCommitHash = selectCompletionCommitHash({
+    commitAfter,
+    commitBefore,
+    projectRoot,
+    subtaskId: currentSubtask.id,
+  });
+  if (commitBefore !== commitAfter && completionCommitHash !== null) {
     markSubtaskComplete({
-      commitHash: commitAfter,
+      commitHash: completionCommitHash,
       contextRoot,
       provider,
       sessionId,
@@ -1878,6 +1900,132 @@ async function runProviderPreflightOrExit(
   }
 }
 
+function selectCompletionCommitHash(options: {
+  commitAfter: null | string;
+  commitBefore: null | string;
+  projectRoot: string;
+  subtaskId: string;
+}): null | string {
+  const { commitAfter, commitBefore, projectRoot, subtaskId } = options;
+  const safeAfter = commitAfter?.trim() ?? "";
+  if (safeAfter === "") {
+    return null;
+  }
+
+  function getCommitFiles(commitHash: string): Array<string> {
+    const proc = Bun.spawnSync(
+      ["git", "show", "--pretty=format:", "--name-only", commitHash],
+      { cwd: projectRoot, stderr: "ignore", stdout: "pipe" },
+    );
+    if (proc.exitCode !== 0) {
+      return [];
+    }
+
+    return Buffer.from(proc.stdout)
+      .toString("utf8")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== "");
+  }
+
+  function getCommitSubject(commitHash: string): string {
+    const proc = Bun.spawnSync(
+      ["git", "show", "-s", "--format=%s", commitHash],
+      { cwd: projectRoot, stderr: "ignore", stdout: "pipe" },
+    );
+    if (proc.exitCode !== 0) {
+      return "";
+    }
+
+    return Buffer.from(proc.stdout).toString("utf8").trim();
+  }
+
+  function hasSubtaskReferenceInCommitSubject(subject: string): boolean {
+    const normalizedSubject = subject.trim().toLowerCase();
+    const normalizedSubtaskId = subtaskId.trim().toLowerCase();
+    if (normalizedSubject === "" || normalizedSubtaskId === "") {
+      return false;
+    }
+    if (normalizedSubject.includes(normalizedSubtaskId)) {
+      return true;
+    }
+
+    const compactSubject = normalizedSubject.replaceAll(/[^a-z0-9]/g, "");
+    const compactSubtaskId = normalizedSubtaskId.replaceAll(/[^a-z0-9]/g, "");
+    if (compactSubject === "" || compactSubtaskId === "") {
+      return false;
+    }
+    return compactSubject.includes(compactSubtaskId);
+  }
+
+  function isTrackingMetadataPath(filePath: string): boolean {
+    const normalized = filePath.replaceAll("\\", "/").trim();
+    return TRACKING_METADATA_PREFIXES.some((prefix) =>
+      normalized.startsWith(prefix),
+    );
+  }
+
+  function listCommitsInRange(): Array<string> {
+    const safeBefore = commitBefore?.trim() ?? "";
+    if (safeBefore === "" || safeBefore === safeAfter) {
+      return [safeAfter];
+    }
+
+    const proc = Bun.spawnSync(
+      ["git", "rev-list", `${safeBefore}..${safeAfter}`],
+      { cwd: projectRoot, stderr: "ignore", stdout: "pipe" },
+    );
+    if (proc.exitCode !== 0) {
+      return [safeAfter];
+    }
+
+    const hashes = Buffer.from(proc.stdout)
+      .toString("utf8")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== "");
+    if (hashes.length === 0) {
+      return [safeAfter];
+    }
+    return hashes;
+  }
+
+  const candidates: Array<CompletionCommitCandidate> = listCommitsInRange().map(
+    (hash) => {
+      const changedFiles = getCommitFiles(hash);
+      const isTrackingOnly =
+        changedFiles.length > 0 &&
+        changedFiles.every((filePath) => isTrackingMetadataPath(filePath));
+      const subject = getCommitSubject(hash);
+
+      return {
+        hash,
+        isTrackingOnly,
+        referencesSubtask: hasSubtaskReferenceInCommitSubject(subject),
+      };
+    },
+  );
+  if (candidates.length === 0) {
+    return safeAfter;
+  }
+
+  const implementationCandidates = candidates.filter(
+    (candidate) => !candidate.isTrackingOnly,
+  );
+  if (implementationCandidates.length === 0) {
+    return safeAfter;
+  }
+
+  const subtaskTaggedCandidate = implementationCandidates.find(
+    (candidate) => candidate.referencesSubtask,
+  );
+  return (
+    subtaskTaggedCandidate?.hash ??
+    implementationCandidates[0]?.hash ??
+    safeAfter
+  );
+}
+
 /**
  * Start a periodic heartbeat log while waiting for a long-running operation.
  *
@@ -1941,5 +2089,6 @@ export {
   resolveApprovalForValidationProposal,
   resolveSkippedSubtaskIds,
   resolveValidationProposalMode,
+  selectCompletionCommitHash,
 };
 export default runBuild;
