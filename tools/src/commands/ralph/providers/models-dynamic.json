@@ -1,0 +1,237 @@
+{
+  "generatedAt": "2026-02-17T11:22:39.983Z",
+  "models": [
+    {
+      "cliFormat": "auto",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "auto",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "composer-1",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "composer-1",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "composer-1.5",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "composer-1.5",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gemini-3-flash",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gemini-3-flash",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gemini-3-pro",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "gemini-3-pro",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.1-codex-max",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.1-codex-max",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.1-codex-max-high",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.1-codex-max-high",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.1-high",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.1-high",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-codex",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-codex",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-codex-fast",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-codex-fast",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-codex-high",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-codex-high",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-codex-high-fast",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-codex-high-fast",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-codex-low",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-codex-low",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-codex-low-fast",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-codex-low-fast",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-codex-xhigh",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-codex-xhigh",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-codex-xhigh-fast",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-codex-xhigh-fast",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.2-high",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.2-high",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.3-codex",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex-fast",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.3-codex-fast",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex-high",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.3-codex-high",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex-high-fast",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.3-codex-high-fast",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex-low",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.3-codex-low",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex-low-fast",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.3-codex-low-fast",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex-xhigh",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.3-codex-xhigh",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex-xhigh-fast",
+      "costHint": "cheap",
+      "discoveredAt": "2026-02-17",
+      "id": "gpt-5.3-codex-xhigh-fast",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "grok",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "grok",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "opus-4.5",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "opus-4.5",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "opus-4.5-thinking",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "opus-4.5-thinking",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "opus-4.6",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "opus-4.6",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "opus-4.6-thinking",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "opus-4.6-thinking",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "sonnet-4.5",
+      "costHint": "standard",
+      "discoveredAt": "2026-02-17",
+      "id": "sonnet-4.5",
+      "provider": "cursor"
+    },
+    {
+      "cliFormat": "sonnet-4.5-thinking",
+      "costHint": "expensive",
+      "discoveredAt": "2026-02-17",
+      "id": "sonnet-4.5-thinking",
+      "provider": "cursor"
+    }
+  ],
+  "version": 1
+}

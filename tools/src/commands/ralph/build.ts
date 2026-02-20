@@ -46,22 +46,29 @@ import {
   renderResponseHeader,
 } from "./display";
 import { executeHook } from "./hooks";
-import PipelineRenderer from "./pipeline-renderer";
+import { createPipelineRenderer } from "./pipeline-renderer";
 import {
   type PostIterationResult,
   runPostIterationHook,
 } from "./post-iteration";
 import { buildPrompt } from "./providers/claude";
-import { validateModelSelection } from "./providers/models";
+import {
+  getModelsForProvider,
+  validateModelSelection,
+} from "./providers/models";
 import {
   formatProviderFailureOutcome,
   invokeWithProviderOutcome,
   resolveProvider,
   validateProviderInvocationPreflight,
 } from "./providers/registry";
-import { discoverRecentSessionForProvider } from "./providers/session-adapter";
+import {
+  discoverRecentSessionForProvider,
+  resolveSessionForProvider,
+} from "./providers/session-adapter";
 import { applyAndSaveProposal } from "./queue-ops";
 import { getSessionJsonlPath } from "./session";
+import raiseSigint from "./signal";
 import { getMilestoneLogsDirectory, readIterationDiary } from "./status";
 import { generateBuildSummary } from "./summary";
 import {
@@ -84,10 +91,20 @@ import {
 /** Default prompt path relative to context root */
 const ITERATION_PROMPT_PATH =
   "context/workflows/ralph/building/ralph-iteration.md";
+const TRACKING_METADATA_PREFIXES = ["docs/planning/", ".claude/"];
 
 // =============================================================================
 // Types
 // =============================================================================
+
+/**
+ * Candidate commit metadata for subtask completion linkage.
+ */
+interface CompletionCommitCandidate {
+  hash: string;
+  isTrackingOnly: boolean;
+  referencesSubtask: boolean;
+}
 
 /**
  * Context for headless iteration processing
@@ -227,6 +244,9 @@ let hasSummaryBeenGenerated = false;
  * Null until runBuild initializes it
  */
 let summaryContext: null | SummaryContext = null;
+
+let registeredSigintHandler: (() => void) | null = null;
+let registeredSigtermHandler: (() => void) | null = null;
 
 // =============================================================================
 // Build Helpers
@@ -518,7 +538,8 @@ function getSubtasksSizeGuidanceLines(options: {
       tone: "red",
     });
     lines.push({
-      message: "  Use jq for in-place updates of the assigned subtask only.",
+      message:
+        "  If manual completion is required, use: aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id> --commit <hash> --session <id>",
       tone: "dim",
     });
   }
@@ -573,6 +594,35 @@ function handleModelValidation(
   if (model === undefined) {
     return;
   }
+
+  if (provider === "cursor") {
+    const hasDiscoveredCursorModels = getModelsForProvider("cursor").length > 0;
+    if (hasDiscoveredCursorModels) {
+      const result = validateModelSelection(model, provider);
+      if (result.valid) {
+        console.log(chalk.dim(`Using model: ${model} (${result.cliFormat})`));
+        return;
+      }
+
+      console.error(chalk.red(`\nError: ${result.error}`));
+      if (result.suggestions.length > 0) {
+        console.error(chalk.yellow("\nDid you mean:"));
+        for (const suggestion of result.suggestions) {
+          console.error(chalk.yellow(`  - ${suggestion}`));
+        }
+      }
+      process.exit(1);
+    }
+
+    console.log(
+      chalk.yellow(
+        `Cursor model '${model}' is passed through without validation because no Cursor models are registered.\n` +
+          "Run 'aaa ralph refresh-models --provider cursor' to enable strict validation.",
+      ),
+    );
+    return;
+  }
+
   const result = validateModelSelection(model, provider);
   if (result.valid) {
     console.log(chalk.dim(`Using model: ${model} (${result.cliFormat})`));
@@ -697,12 +747,19 @@ function logSubtasksSizeGuidance(options: {
 function markSubtaskComplete(options: {
   commitHash: string;
   contextRoot: string;
+  provider?: ProviderType;
   sessionId: string;
   subtaskId: string;
   subtasksPath: string;
 }): void {
-  const { commitHash, contextRoot, sessionId, subtaskId, subtasksPath } =
-    options;
+  const {
+    commitHash,
+    contextRoot,
+    provider,
+    sessionId,
+    subtaskId,
+    subtasksPath,
+  } = options;
   const subtasksFile = loadSubtasksFile(subtasksPath);
   const target = subtasksFile.subtasks.find((s) => s.id === subtaskId);
   if (target === undefined || target.done) return;
@@ -711,9 +768,15 @@ function markSubtaskComplete(options: {
   target.completedAt = new Date().toISOString();
   target.commitHash = commitHash;
   target.sessionId = sessionId;
+  target.provider = provider;
   const repoRoot = findProjectRoot() ?? contextRoot;
   target.sessionRepoRoot = repoRoot;
-  const logPath = getSessionJsonlPath(sessionId, repoRoot);
+  const resolvedSession =
+    provider === undefined
+      ? null
+      : resolveSessionForProvider(provider, sessionId, repoRoot);
+  const logPath =
+    resolvedSession?.path ?? getSessionJsonlPath(sessionId, repoRoot);
   if (logPath === null) {
     delete target.sessionLogPath;
   } else {
@@ -774,6 +837,7 @@ async function processHeadlessIteration(
         prompt,
         stallTimeoutMs,
         timeout: hardTimeoutMs,
+        workingDirectory: projectRoot,
       });
     } finally {
       stopHeartbeat();
@@ -802,10 +866,17 @@ async function processHeadlessIteration(
   console.log();
 
   // Build loop owns completion: mark subtask done if a new commit was made
-  if (commitBefore !== commitAfter && commitAfter !== null) {
+  const completionCommitHash = selectCompletionCommitHash({
+    commitAfter,
+    commitBefore,
+    projectRoot,
+    subtaskId: currentSubtask.id,
+  });
+  if (commitBefore !== commitAfter && completionCommitHash !== null) {
     markSubtaskComplete({
-      commitHash: commitAfter,
+      commitHash: completionCommitHash,
       contextRoot,
+      provider,
       sessionId: result.sessionId,
       subtaskId: currentSubtask.id,
       subtasksPath,
@@ -936,6 +1007,7 @@ async function processSupervisedIteration(
     model,
     promptPath: path.join(contextRoot, ITERATION_PROMPT_PATH),
     sessionName: "build iteration",
+    workingDirectory: projectRoot,
   });
 
   if (invocationOutcome.status !== "success") {
@@ -972,10 +1044,17 @@ async function processSupervisedIteration(
   );
 
   // Build loop owns completion: mark subtask done if a new commit was made
-  if (commitBefore !== commitAfter && commitAfter !== null) {
+  const completionCommitHash = selectCompletionCommitHash({
+    commitAfter,
+    commitBefore,
+    projectRoot,
+    subtaskId: currentSubtask.id,
+  });
+  if (commitBefore !== commitAfter && completionCommitHash !== null) {
     markSubtaskComplete({
-      commitHash: commitAfter,
+      commitHash: completionCommitHash,
       contextRoot,
+      provider,
       sessionId,
       subtaskId: currentSubtask.id,
       subtasksPath,
@@ -1070,7 +1149,7 @@ async function promptContinue(): Promise<boolean> {
     // Handle Ctrl+C explicitly - propagate to process-level handler
     rl.on("SIGINT", () => {
       rl.close();
-      process.emit("SIGINT");
+      raiseSigint();
     });
 
     rl.question(
@@ -1102,20 +1181,41 @@ async function promptContinue(): Promise<boolean> {
  * Removes existing handlers first to prevent accumulation
  * when runBuild() is called multiple times (e.g., cascade mode).
  */
-function registerSignalHandlers(onSignal?: () => void): void {
-  // Remove existing handlers to prevent accumulation
-  process.removeAllListeners("SIGINT");
-  process.removeAllListeners("SIGTERM");
+function registerSignalHandlers(onSignal?: () => void): () => void {
+  if (registeredSigintHandler !== null) {
+    process.removeListener("SIGINT", registeredSigintHandler);
+    registeredSigintHandler = null;
+  }
+  if (registeredSigtermHandler !== null) {
+    process.removeListener("SIGTERM", registeredSigtermHandler);
+    registeredSigtermHandler = null;
+  }
 
-  process.on("SIGINT", () => {
+  function handleSigint(): void {
     onSignal?.();
     generateSummaryAndExit(130);
-  });
+  }
 
-  process.on("SIGTERM", () => {
+  function handleSigterm(): void {
     onSignal?.();
     generateSummaryAndExit(143);
-  });
+  }
+
+  registeredSigintHandler = handleSigint;
+  registeredSigtermHandler = handleSigterm;
+  process.on("SIGINT", handleSigint);
+  process.on("SIGTERM", handleSigterm);
+
+  return () => {
+    if (registeredSigintHandler === handleSigint) {
+      process.removeListener("SIGINT", handleSigint);
+      registeredSigintHandler = null;
+    }
+    if (registeredSigtermHandler === handleSigterm) {
+      process.removeListener("SIGTERM", handleSigterm);
+      registeredSigtermHandler = null;
+    }
+  };
 }
 
 async function resolveApprovalForValidationProposal(options: {
@@ -1155,7 +1255,7 @@ async function resolveApprovalForValidationProposal(options: {
 
     rl.on("SIGINT", () => {
       rl.close();
-      process.emit("SIGINT");
+      raiseSigint();
       resolve(false);
     });
 
@@ -1400,7 +1500,11 @@ async function runBuild(
   const initialQueueStats = getSubtaskQueueStats(initialSubtasksFile.subtasks);
   const hasPendingSubtasks = initialQueueStats.pending > 0;
   const isTTY = Boolean(process.stdin.isTTY && process.stdout.isTTY);
-  const renderer = new PipelineRenderer(["build"], mode === "headless", isTTY);
+  const renderer = createPipelineRenderer(
+    ["build"],
+    mode === "headless",
+    isTTY,
+  );
 
   // Select provider (CLI flag > env var > default)
   const provider = await resolveProviderOrExit(options.provider);
@@ -1414,7 +1518,7 @@ async function runBuild(
   summaryContext = null;
 
   // Register signal handlers for graceful summary + renderer cleanup on interrupt
-  registerSignalHandlers(() => {
+  const unregisterSignalHandlers = registerSignalHandlers(() => {
     renderer.stop();
   });
 
@@ -1509,6 +1613,7 @@ async function runBuild(
       // Reload subtasks file to get latest state
       const subtasksFile = loadSubtasksFile(subtasksPath);
       const remaining = countRemaining(subtasksFile.subtasks);
+      renderer.resume();
 
       // Check if all subtasks are complete
       if (remaining === 0) {
@@ -1595,6 +1700,7 @@ async function runBuild(
       }
 
       // Display iteration start box
+      renderer.suspend();
       console.log("\n");
       console.log(
         renderIterationStart({
@@ -1728,6 +1834,7 @@ async function runBuild(
       iteration += 1;
     }
   } finally {
+    unregisterSignalHandlers();
     renderer.stop();
   }
 }
@@ -1766,12 +1873,13 @@ async function runPeriodicCalibration(
       }),
     );
     await runCalibrate("all", {
-      contextRoot,
       force: shouldForceProposalApply,
       model,
       provider,
+      repoRoot: path.dirname(path.resolve(subtasksPath)),
       review: shouldRequireProposalReview,
       subtasksPath,
+      toolRoot: contextRoot,
     });
   }
 }
@@ -1790,6 +1898,132 @@ async function runProviderPreflightOrExit(
     console.error(chalk.red(`Error: ${message}`));
     process.exit(1);
   }
+}
+
+function selectCompletionCommitHash(options: {
+  commitAfter: null | string;
+  commitBefore: null | string;
+  projectRoot: string;
+  subtaskId: string;
+}): null | string {
+  const { commitAfter, commitBefore, projectRoot, subtaskId } = options;
+  const safeAfter = commitAfter?.trim() ?? "";
+  if (safeAfter === "") {
+    return null;
+  }
+
+  function getCommitFiles(commitHash: string): Array<string> {
+    const proc = Bun.spawnSync(
+      ["git", "show", "--pretty=format:", "--name-only", commitHash],
+      { cwd: projectRoot, stderr: "ignore", stdout: "pipe" },
+    );
+    if (proc.exitCode !== 0) {
+      return [];
+    }
+
+    return Buffer.from(proc.stdout)
+      .toString("utf8")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== "");
+  }
+
+  function getCommitSubject(commitHash: string): string {
+    const proc = Bun.spawnSync(
+      ["git", "show", "-s", "--format=%s", commitHash],
+      { cwd: projectRoot, stderr: "ignore", stdout: "pipe" },
+    );
+    if (proc.exitCode !== 0) {
+      return "";
+    }
+
+    return Buffer.from(proc.stdout).toString("utf8").trim();
+  }
+
+  function hasSubtaskReferenceInCommitSubject(subject: string): boolean {
+    const normalizedSubject = subject.trim().toLowerCase();
+    const normalizedSubtaskId = subtaskId.trim().toLowerCase();
+    if (normalizedSubject === "" || normalizedSubtaskId === "") {
+      return false;
+    }
+    if (normalizedSubject.includes(normalizedSubtaskId)) {
+      return true;
+    }
+
+    const compactSubject = normalizedSubject.replaceAll(/[^a-z0-9]/g, "");
+    const compactSubtaskId = normalizedSubtaskId.replaceAll(/[^a-z0-9]/g, "");
+    if (compactSubject === "" || compactSubtaskId === "") {
+      return false;
+    }
+    return compactSubject.includes(compactSubtaskId);
+  }
+
+  function isTrackingMetadataPath(filePath: string): boolean {
+    const normalized = filePath.replaceAll("\\", "/").trim();
+    return TRACKING_METADATA_PREFIXES.some((prefix) =>
+      normalized.startsWith(prefix),
+    );
+  }
+
+  function listCommitsInRange(): Array<string> {
+    const safeBefore = commitBefore?.trim() ?? "";
+    if (safeBefore === "" || safeBefore === safeAfter) {
+      return [safeAfter];
+    }
+
+    const proc = Bun.spawnSync(
+      ["git", "rev-list", `${safeBefore}..${safeAfter}`],
+      { cwd: projectRoot, stderr: "ignore", stdout: "pipe" },
+    );
+    if (proc.exitCode !== 0) {
+      return [safeAfter];
+    }
+
+    const hashes = Buffer.from(proc.stdout)
+      .toString("utf8")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line !== "");
+    if (hashes.length === 0) {
+      return [safeAfter];
+    }
+    return hashes;
+  }
+
+  const candidates: Array<CompletionCommitCandidate> = listCommitsInRange().map(
+    (hash) => {
+      const changedFiles = getCommitFiles(hash);
+      const isTrackingOnly =
+        changedFiles.length > 0 &&
+        changedFiles.every((filePath) => isTrackingMetadataPath(filePath));
+      const subject = getCommitSubject(hash);
+
+      return {
+        hash,
+        isTrackingOnly,
+        referencesSubtask: hasSubtaskReferenceInCommitSubject(subject),
+      };
+    },
+  );
+  if (candidates.length === 0) {
+    return safeAfter;
+  }
+
+  const implementationCandidates = candidates.filter(
+    (candidate) => !candidate.isTrackingOnly,
+  );
+  if (implementationCandidates.length === 0) {
+    return safeAfter;
+  }
+
+  const subtaskTaggedCandidate = implementationCandidates.find(
+    (candidate) => candidate.referencesSubtask,
+  );
+  return (
+    subtaskTaggedCandidate?.hash ??
+    implementationCandidates[0]?.hash ??
+    safeAfter
+  );
 }
 
 /**
@@ -1855,5 +2089,6 @@ export {
   resolveApprovalForValidationProposal,
   resolveSkippedSubtaskIds,
   resolveValidationProposalMode,
+  selectCompletionCommitHash,
 };
 export default runBuild;

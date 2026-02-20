@@ -1,6 +1,8 @@
 import type { ProviderType } from "./types";
 
 import { invokeClaudeHaiku } from "./claude";
+import { invokeCodexHeadless } from "./codex";
+import { invokeCursorHeadless } from "./cursor";
 import { invokeOpencodeHeadless } from "./opencode";
 
 interface ProviderSummaryOptions {
@@ -10,30 +12,70 @@ interface ProviderSummaryOptions {
   timeoutMs?: number;
 }
 
+interface SummaryInvokers {
+  invokeClaude: typeof invokeClaudeHaiku;
+  invokeCodex: typeof invokeCodexHeadless;
+  invokeCursor: typeof invokeCursorHeadless;
+  invokeOpencode: typeof invokeOpencodeHeadless;
+}
+
 const DEFAULT_LIGHTWEIGHT_MODELS: Partial<Record<ProviderType, string>> = {
   claude: "claude-3-5-haiku-latest",
+  codex: "openai/gpt-5.1-codex-mini",
+  cursor: "auto",
   opencode: "anthropic/claude-3-5-haiku-latest",
 };
 
 async function invokeProviderSummary(
   options: ProviderSummaryOptions,
+  invokers: Partial<SummaryInvokers> = {},
 ): Promise<null | string> {
   const { configuredModel, prompt, provider, timeoutMs = 30_000 } = options;
   const model = resolveLightweightModelForProvider(provider, configuredModel);
+  const invokeClaude = invokers.invokeClaude ?? invokeClaudeHaiku;
+  const invokeCodex = invokers.invokeCodex ?? invokeCodexHeadless;
+  const invokeCursor = invokers.invokeCursor ?? invokeCursorHeadless;
+  const invokeOpencode = invokers.invokeOpencode ?? invokeOpencodeHeadless;
 
   try {
     switch (provider) {
       case "claude": {
-        return await invokeClaudeHaiku({ model, prompt, timeout: timeoutMs });
+        const result = await invokeClaude({
+          model,
+          prompt,
+          timeout: timeoutMs,
+        });
+        return normalizeSummaryResultText(result);
       }
-      case "opencode": {
-        const result = await invokeOpencodeHeadless({
-          config: { model, provider: "opencode", timeoutMs },
+      case "codex": {
+        const result = await invokeCodex({
+          config: { model, provider: "codex", timeoutMs },
           mode: "headless-async",
           prompt,
         });
         const text = result.result.trim();
         return text === "" ? null : text;
+      }
+      case "cursor": {
+        const result = await invokeCursor({
+          config: {
+            model,
+            persistSession: false,
+            provider: "cursor",
+            timeoutMs,
+          },
+          mode: "headless-async",
+          prompt,
+        });
+        return normalizeSummaryResultText(result.result);
+      }
+      case "opencode": {
+        const result = await invokeOpencode({
+          config: { model, provider: "opencode", timeoutMs },
+          mode: "headless-async",
+          prompt,
+        });
+        return normalizeSummaryResultText(result.result);
       }
       default: {
         return null;
@@ -42,6 +84,15 @@ async function invokeProviderSummary(
   } catch {
     return null;
   }
+}
+
+function normalizeSummaryResultText(text: null | string): null | string {
+  if (text === null) {
+    return null;
+  }
+
+  const normalized = text.trim();
+  return normalized === "" ? null : normalized;
 }
 
 function resolveLightweightModelForProvider(
@@ -58,6 +109,7 @@ function resolveLightweightModelForProvider(
 export {
   DEFAULT_LIGHTWEIGHT_MODELS,
   invokeProviderSummary,
+  normalizeSummaryResultText,
   resolveLightweightModelForProvider,
 };
-export type { ProviderSummaryOptions };
+export type { ProviderSummaryOptions, SummaryInvokers };

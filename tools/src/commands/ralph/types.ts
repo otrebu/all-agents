@@ -378,7 +378,7 @@ interface PipelineFooterData {
   /** Optional gate status text (for example: "skipped (--force)") */
   gatesStatus?: string;
   /** Next-step mode used to render final guidance line */
-  nextStep: "dry-run" | "prompt";
+  nextStep: "continue" | "dry-run" | "prompt";
   /** Number of phases in the plan */
   phaseCount: number;
   /** Number of approval gates in the plan */
@@ -638,6 +638,8 @@ interface Subtask {
   filesToRead: Array<string>;
   /** Unique subtask identifier (e.g., 'SUB-001') */
   id: string;
+  /** Provider used to complete this subtask */
+  provider?: ProviderType;
   /** Provider session ID that completed this subtask */
   sessionId?: string;
   /** Absolute canonical path to session JSONL when known at completion time */

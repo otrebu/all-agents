@@ -344,20 +344,24 @@ Add an entry to PROGRESS.md documenting what was done:
 
 #### 2. Commit tracking changes
 
-**IMPORTANT:** Since the code was already validated and committed in Phase 6,
-use `--no-verify` for tracking-only commits to skip redundant validation:
+Do **not** create a second tracking-only commit.
+Keep the PROGRESS.md update in the same implementation commit from Phase 6.
 
 ```bash
-git add docs/planning/PROGRESS.md docs/planning/milestones/*/subtasks.json
-git commit --no-verify -m "chore(<subtask-id>): update tracking files
-
-Subtask: <subtask-id>"
+git add <implementation-files> docs/planning/PROGRESS.md
+git commit -m "feat(<subtask-id>): <brief description>"
 ```
 
-**Note:** Using `--no-verify` because:
-- Code was already validated in Phase 5 and committed in Phase 6
-- Tracking files (PROGRESS.md, subtasks.json) don't need lint/test
-- Saves ~3 minutes of redundant validation
+If the implementation commit was already created without PROGRESS.md, amend it
+instead of creating a follow-up tracking commit:
+
+```bash
+git add docs/planning/PROGRESS.md
+git commit --amend --no-edit
+```
+
+Tracking-only commits reduce traceability because the build loop records a single
+commit hash per completed subtask.
 
 ## Error Handling
 

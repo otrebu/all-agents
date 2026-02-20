@@ -1,6 +1,7 @@
 import {
   createStallDetector,
   createTimeoutPromise,
+  executeWithTimeout,
   killProcessGracefully,
   markTimerAsNonBlocking,
   parseJsonl,
@@ -82,6 +83,19 @@ describe("parseJsonl", () => {
 
   test("returns empty array when all lines are invalid", () => {
     expect(parseJsonl("bad\nworse\nterrible")).toEqual([]);
+  });
+});
+
+describe("executeWithTimeout stderr capture", () => {
+  test("captures stderr output while streaming", async () => {
+    const result = await executeWithTimeout({
+      args: ["-lc", "echo trust-prompt >&2; exit 7"],
+      command: "bash",
+      stallDetection: { hardTimeoutMs: 5000, stallTimeoutMs: 0 },
+    });
+
+    expect(result.exitCode).toBe(7);
+    expect(result.stderr).toContain("trust-prompt");
   });
 });
 

@@ -145,6 +145,7 @@ type EventDomain =
   | "MILESTONES"
   | "MODELS"
   | "PLAN"
+  | "REVIEW"
   | "STATUS"
   | "SUBTASKS"
   | "VALIDATE";
@@ -1307,9 +1308,15 @@ function renderInvocationHeader(
   const label = ` Invoking ${getProviderLabel(provider)} (${mode}) `;
   const lineChar = "─";
   const totalWidth = BOX_WIDTH;
-  const sideLength = Math.floor((totalWidth - label.length) / 2);
+  const labelWidth = stringWidth(label);
+  if (labelWidth >= totalWidth) {
+    return chalk.dim(truncate(label, totalWidth));
+  }
+  const totalSideWidth = totalWidth - labelWidth;
+  const leftSideLength = Math.floor(totalSideWidth / 2);
+  const rightSideLength = totalSideWidth - leftSideLength;
   return chalk.dim(
-    `${lineChar.repeat(sideLength)}${label}${lineChar.repeat(sideLength)}`,
+    `${lineChar.repeat(leftSideLength)}${label}${lineChar.repeat(rightSideLength)}`,
   );
 }
 
@@ -1521,10 +1528,20 @@ function renderPipelineFooter(data: PipelineFooterData): Array<string> {
       ? `${chalk.dim("Gates:")} ${chalk.cyan(String(data.phaseGateCount))}`
       : `${chalk.dim("Gates:")} ${chalk.cyan(String(data.phaseGateCount))} ${chalk.dim(data.gatesStatus)}`;
   const costText = `${chalk.dim("Est. cost:")} ${chalk.magenta(data.estimatedCost)}`;
-  const nextStepText =
-    data.nextStep === "dry-run"
-      ? "To execute: remove --dry-run flag"
-      : "Proceed? [Y/n]:";
+  let nextStepText = "To execute: remove --dry-run flag";
+  switch (data.nextStep) {
+    case "continue": {
+      nextStepText = "Execution continues below...";
+      break;
+    }
+    case "prompt": {
+      nextStepText = "Proceed? [Y/n]:";
+      break;
+    }
+    default: {
+      break;
+    }
+  }
   const lines = [
     "─".repeat(BOX_INNER_WIDTH),
     formatTwoColumnRow(

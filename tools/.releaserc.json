@@ -6,18 +6,16 @@
       { "releaseRules": [{ "type": "docs", "release": "patch" }] }
     ],
     "@semantic-release/release-notes-generator",
-    ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }],
-    ["@semantic-release/npm", { "npmPublish": false, "pkgRoot": "tools" }],
+    ["@semantic-release/changelog", { "changelogFile": "../CHANGELOG.md" }],
+    ["@semantic-release/npm", { "npmPublish": false }],
     [
       "@semantic-release/exec",
-      {
-        "prepareCmd": "cd tools && ./node_modules/.bin/prettier --write ../CHANGELOG.md package.json"
-      }
+      { "prepareCmd": "bunx prettier --write ../CHANGELOG.md package.json" }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["tools/package.json", "CHANGELOG.md"],
+        "assets": ["package.json", "../CHANGELOG.md"],
         "message": "chore(release): ${nextRelease.version} [skip ci]"
       }
     ],

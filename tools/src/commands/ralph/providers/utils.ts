@@ -37,6 +37,8 @@ interface ProcessExecutionResult {
   durationMs: number;
   /** Process exit code (null if killed by signal) */
   exitCode: null | number;
+  /** Signal that interrupted execution, if interrupted by process signal */
+  interruptedBy?: ProcessSignal;
   /** Collected stderr output */
   stderr: string;
   /** Collected stdout as a string */
@@ -46,6 +48,8 @@ interface ProcessExecutionResult {
   /** Whether the process was killed due to a timeout */
   timedOut: boolean;
 }
+
+type ProcessSignal = "SIGINT" | "SIGTERM";
 
 /** Configuration for stall (inactivity) detection */
 interface StallDetectionConfig {
@@ -162,24 +166,45 @@ async function executeWithTimeout(
 
   const stdoutPromise = new Response(proc.stdout).text();
 
+  const signalState: { interruptedBy: null | ProcessSignal } = {
+    interruptedBy: null,
+  };
+  let didRequestTermination = false;
+
+  function handleInterrupt(signal: ProcessSignal): void {
+    signalState.interruptedBy = signal;
+    if (didRequestTermination) {
+      return;
+    }
+    didRequestTermination = true;
+    void killProcessGracefully(proc, gracePeriodMs);
+  }
+
+  function handleSigint(): void {
+    handleInterrupt("SIGINT");
+  }
+
+  function handleSigterm(): void {
+    handleInterrupt("SIGTERM");
+  }
+
+  process.prependListener("SIGINT", handleSigint);
+  process.prependListener("SIGTERM", handleSigterm);
+
   // Track last activity time for stall detection
   let lastActivityAt = Date.now();
 
   const stderrChunks: Array<string> = [];
-  const stderrForwarder = readStderrWithActivityTracking(proc.stderr, () => {
-    lastActivityAt = Date.now();
-    onStderrActivity?.();
-  });
-
-  // Capture stderr for the result by tapping the forwarder's output
-  // We rewrite the forwarder to also collect chunks
-  // Actually, we can't intercept the existing forwarder. Let's use
-  // a wrapper approach instead.
-  // NOTE: The readStderrWithActivityTracking already writes to process.stderr.
-  // We need stderr in the result, so we'll collect via the activity callback
-  // by re-reading. But that's not ideal. For now, stderr in the result will
-  // be empty - callers that need stderr content should parse stdout (most
-  // CLI tools output JSON to stdout). This matches the existing claude.ts pattern.
+  const stderrForwarder = readStderrWithActivityTracking(
+    proc.stderr,
+    () => {
+      lastActivityAt = Date.now();
+      onStderrActivity?.();
+    },
+    (chunk) => {
+      stderrChunks.push(chunk);
+    },
+  );
 
   type ExitOutcome = "exited" | "hard_timeout" | "stall_timeout";
 
@@ -202,10 +227,23 @@ async function executeWithTimeout(
   if (stallDetector !== null) racers.push(stallDetector.promise);
   if (hardTimeoutPromise !== null) racers.push(hardTimeoutPromise);
 
-  const outcome: ExitOutcome = await Promise.race(racers);
+  const outcome: ExitOutcome = await Promise.race(racers).finally(() => {
+    stallDetector?.cleanup();
+    process.removeListener("SIGINT", handleSigint);
+    process.removeListener("SIGTERM", handleSigterm);
+  });
 
-  // Clean up timers
-  stallDetector?.cleanup();
+  if (signalState.interruptedBy !== null) {
+    await stderrForwarder;
+    return {
+      durationMs: Date.now() - startTime,
+      exitCode: proc.exitCode,
+      interruptedBy: signalState.interruptedBy,
+      stderr: stderrChunks.join(""),
+      stdout: "",
+      timedOut: false,
+    };
+  }
 
   if (outcome === "stall_timeout" || outcome === "hard_timeout") {
     await killProcessGracefully(proc, gracePeriodMs);
@@ -322,6 +360,7 @@ function parseJsonl<T>(jsonl: string): Array<T> {
 async function readStderrWithActivityTracking(
   stderr: ReadableStream<Uint8Array>,
   onActivity: () => void,
+  onChunk?: (chunk: string) => void,
 ): Promise<void> {
   const reader = stderr.getReader();
   const decoder = new TextDecoder();
@@ -331,7 +370,9 @@ async function readStderrWithActivityTracking(
       const { done: isDone, value } = await reader.read();
       if (isDone) break;
       onActivity();
-      process.stderr.write(decoder.decode(value, { stream: true }));
+      const chunk = decoder.decode(value, { stream: true });
+      onChunk?.(chunk);
+      process.stderr.write(chunk);
     }
   } catch {
     // Ignore read errors (process may have been killed)

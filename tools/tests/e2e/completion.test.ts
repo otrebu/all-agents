@@ -1,9 +1,68 @@
 import { getContextRoot } from "@tools/utils/paths";
 import { describe, expect, test } from "bun:test";
 import { execa } from "execa";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const TOOLS_DIR = join(getContextRoot(), "tools");
+
+function escapeSingleQuotes(value: string): string {
+  return value.replaceAll("'", "'\\''");
+}
+
+function formatZshWordArray(words: Array<string>): string {
+  return words.map((word) => `'${escapeSingleQuotes(word)}'`).join(" ");
+}
+
+async function runZshCompletionProbe(
+  words: Array<string>,
+  probeFunction: "_aaa_model" | "_aaa_provider",
+): Promise<Array<string>> {
+  const { stdout: completionScript } = await execa(
+    "bun",
+    ["run", "dev", "completion", "zsh"],
+    { cwd: TOOLS_DIR },
+  );
+
+  const toolPath = escapeSingleQuotes(TOOLS_DIR);
+  const wordsLiteral = formatZshWordArray(words);
+
+  const probeScript = `${completionScript}
+
+function aaa() { (cd '${toolPath}' && bun run dev "$@"); }
+
+_describe() {
+    local _label="$1"
+    local _array_name="$2"
+    local -a _entries
+    _entries=("\${(@P)_array_name}")
+    local _entry
+    for _entry in "\${_entries[@]}"; do
+        print -r -- "\${_entry}"
+    done
+}
+
+words=(${wordsLiteral})
+CURRENT=\${#words}
+${probeFunction}
+`;
+
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), "aaa-zsh-completion-"));
+  const probePath = join(temporaryDirectory, "probe.zsh");
+  writeFileSync(probePath, probeScript, "utf8");
+
+  const { stdout } = await execa("zsh", [probePath], {
+    cwd: TOOLS_DIR,
+  }).finally(() => {
+    rmSync(temporaryDirectory, { force: true, recursive: true });
+  });
+
+  return stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
 
 describe("completion E2E", () => {
   // Script generation tests
@@ -121,6 +180,43 @@ describe("completion E2E", () => {
       expect(rows.some((row) => row.command.includes("__complete"))).toBe(
         false,
       );
+    });
+
+    test("completion table keeps review/provider-model and subtasks/validate-first parity", async () => {
+      const { exitCode, stdout } = await execa(
+        "bun",
+        ["run", "dev", "completion", "table", "--format", "json"],
+        { cwd: TOOLS_DIR },
+      );
+
+      expect(exitCode).toBe(0);
+
+      const rows = JSON.parse(stdout) as Array<{
+        command: string;
+        option: string;
+      }>;
+
+      expect(
+        rows.some(
+          (row) =>
+            row.command === "aaa ralph review tasks" &&
+            row.option === "--provider <name>",
+        ),
+      ).toBe(true);
+      expect(
+        rows.some(
+          (row) =>
+            row.command === "aaa ralph review tasks" &&
+            row.option === "--model <name>",
+        ),
+      ).toBe(true);
+      expect(
+        rows.some(
+          (row) =>
+            row.command === "aaa ralph plan subtasks" &&
+            row.option === "--validate-first",
+        ),
+      ).toBe(true);
     });
 
     test("completion table rejects unknown format", async () => {
@@ -445,7 +541,7 @@ describe("completion E2E", () => {
         { cwd: TOOLS_DIR },
       );
       expect(stdout).toContain("--output-dir)");
-      expect(stdout).toContain("local output_dirs=$(aaa __complete milestone");
+      expect(stdout).toContain("local output_dirs=$(_aaa_complete milestone)");
       expect(stdout).toContain("--file)");
       expect(stdout).toContain('COMPREPLY=($(compgen -f -- "$cur"))');
       expect(stdout).toContain("--validate-first");
@@ -465,6 +561,28 @@ describe("completion E2E", () => {
       expect(fishResult.stdout).toContain("-l validate-first");
     });
 
+    test("bash, zsh, and fish include review tasks provider/model completions", async () => {
+      const [bashResult, zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      expect(bashResult.stdout).toContain(
+        "--story -s --supervised -H --headless --provider --model --dry-run",
+      );
+
+      expect(zshResult.stdout).toContain(
+        "--story[Story path to review tasks for]:story:_aaa_story_or_file",
+      );
+      expect(zshResult.stdout).toContain("--provider[AI provider]");
+      expect(zshResult.stdout).toContain("--model[Model to use]");
+
+      expect(fishResult.stdout).toContain("__fish_aaa_ralph_review_tasks");
+      expect(fishResult.stdout).toContain("-l provider -d 'AI provider'");
+      expect(fishResult.stdout).toContain("-l model -d 'Model to use'");
+    });
+
     test("session path/cat completion includes --id and dynamic session IDs", async () => {
       const [bashResult, zshResult, fishResult] = await Promise.all([
         execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
@@ -473,17 +591,114 @@ describe("completion E2E", () => {
       ]);
 
       expect(bashResult.stdout).toContain("--id)");
-      expect(bashResult.stdout).toContain("aaa __complete session-id");
+      expect(bashResult.stdout).toContain(
+        "local session_ids=$(_aaa_complete session-id)",
+      );
       expect(bashResult.stdout).toContain("--commit --id");
 
       expect(zshResult.stdout).toContain("_aaa_session_id");
-      expect(zshResult.stdout).toContain("aaa __complete session-id");
+      expect(zshResult.stdout).toContain("$(_aaa_complete session-id)");
       expect(zshResult.stdout).toContain("--id[Session ID to look up]");
 
       expect(fishResult.stdout).toContain(
         "__fish_aaa_session_path_or_cat -l id",
       );
-      expect(fishResult.stdout).toContain("aaa __complete session-id");
+      expect(fishResult.stdout).toContain("__fish_aaa_complete session-id");
+    });
+
+    test("zsh runtime provider completion resolves providers in plan stories context", async () => {
+      const providers = await runZshCompletionProbe(
+        ["aaa", "ralph", "plan", "stories", "--provider", ""],
+        "_aaa_provider",
+      );
+
+      expect(providers).toContain("claude");
+      expect(providers).toContain("codex");
+      expect(providers).toContain("cursor");
+      expect(providers).toContain("opencode");
+    });
+
+    test("zsh runtime provider completion falls back to aaa when resolved command fails", async () => {
+      const providers = await runZshCompletionProbe(
+        ["not-a-real-command", "ralph", "plan", "stories", "--provider", ""],
+        "_aaa_provider",
+      );
+
+      expect(providers).toContain("claude");
+      expect(providers).toContain("codex");
+      expect(providers).toContain("cursor");
+      expect(providers).toContain("opencode");
+    });
+
+    test("calibrate subcommands have per-subcommand completions with --provider and --model", async () => {
+      const [bashResult, zshResult, fishResult] = await Promise.all([
+        execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+        execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+      ]);
+
+      // Zsh: has _aaa_ralph_calibrate function with per-subcommand args
+      expect(zshResult.stdout).toContain("_aaa_ralph_calibrate");
+      expect(zshResult.stdout).toContain(
+        "'--provider[AI provider]:provider:_aaa_provider'",
+      );
+      expect(zshResult.stdout).toContain(
+        "'--model[Model to use]:model:_aaa_model'",
+      );
+
+      // Bash: per-subcommand calibrate options include --provider and --model
+      expect(bashResult.stdout).toContain(
+        "--subtasks --milestone --dry-run --provider --model --force --review",
+      );
+
+      // Fish: per-subcommand condition functions with --provider and --model
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_intention",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_technical",
+      );
+      expect(fishResult.stdout).toContain("__fish_aaa_ralph_calibrate_improve");
+      expect(fishResult.stdout).toContain("__fish_aaa_ralph_calibrate_all");
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_intention -l provider",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_intention -l model",
+      );
+      // --milestone present in calibrate subcommands
+      expect(zshResult.stdout).toContain(
+        "'--milestone[Target milestone]:milestone:_aaa_milestone_or_dir'",
+      );
+      expect(bashResult.stdout).toContain(
+        "--subtasks --milestone --dry-run --provider --model --force --review",
+      );
+      expect(fishResult.stdout).toContain(
+        "__fish_aaa_ralph_calibrate_intention -l milestone",
+      );
+    });
+
+    test("zsh runtime model completion stays provider-aware in plan stories context", async () => {
+      const models = await runZshCompletionProbe(
+        [
+          "not-a-real-command",
+          "ralph",
+          "plan",
+          "stories",
+          "--provider",
+          "codex",
+          "--model",
+          "",
+        ],
+        "_aaa_model",
+      );
+
+      expect(
+        models.some((entry) => entry.includes("openai/gpt-5.2-codex")),
+      ).toBe(true);
+      expect(
+        models.some((entry) => entry.includes("openai/gpt-5.3-codex")),
+      ).toBe(true);
     });
   });
 });

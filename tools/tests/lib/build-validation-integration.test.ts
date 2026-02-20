@@ -14,13 +14,13 @@ describe("build validation integration", () => {
     expect(buildContent).toContain("writeValidationProposalArtifact");
   });
 
-  test("imports and instantiates PipelineRenderer for build phase", () => {
+  test("imports and creates PipelineRenderer for build phase", () => {
     expect(buildContent).toContain(
-      'import PipelineRenderer from "./pipeline-renderer"',
+      'import { createPipelineRenderer } from "./pipeline-renderer"',
     );
-    expect(buildContent).toContain(
-      'const renderer = new PipelineRenderer(["build"], mode === "headless", isTTY);',
-    );
+    expect(buildContent).toContain("const renderer = createPipelineRenderer(");
+    expect(buildContent).toContain('["build"],');
+    expect(buildContent).toContain('mode === "headless",');
     expect(buildContent).toContain(
       "const isTTY = Boolean(process.stdin.isTTY && process.stdout.isTTY);",
     );

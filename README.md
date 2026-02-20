@@ -32,6 +32,7 @@ aaa review --base main --dry-run # Find issues in your changes (11 parallel revi
 |------|---------|-------------|
 | Plan features with AI | `aaa ralph plan vision` | Interactive planning — vision, roadmap, stories, subtasks |
 | Build autonomously | `aaa ralph build` | Agents implement subtasks one by one with validation gates |
+| Refresh model registry | `aaa ralph refresh-models` | Discover provider models and update the dynamic registry |
 | Review code (11 agents) | `aaa review --headless` | Security, data integrity, performance, accessibility, and more |
 | Research the web | `aaa parallel-search` | Multi-angle web research with up to 30K chars/result |
 | Get notified | `aaa notify "Done"` | Push notifications when Claude finishes work |
@@ -39,6 +40,12 @@ aaa review --base main --dry-run # Find issues in your changes (11 parallel revi
 | Sync context | `aaa sync-context --target ~/project` | Share docs across projects with watch mode |
 
 **Ralph** is an autonomous dev framework: you define a vision, and agents plan, build, review, and calibrate — while you stay on the loop, not in it. Each iteration is memoryless (fresh context, no drift). Full docs: [docs/ralph/README.md](docs/ralph/README.md)
+
+```bash
+aaa ralph build --provider opencode --model openai/gpt-5.3-codex
+aaa ralph build --provider cursor
+aaa ralph build --provider codex --model gpt-5.3-codex
+```
 
 Full CLI reference: [tools/README.md](tools/README.md)
 
@@ -203,6 +210,7 @@ Get push notifications when Claude Code completes tasks or needs permission. Use
 <summary><strong>Using with Cursor</strong></summary>
 
 Generate `.cursorrules` files using the `/meta:create-cursor-rule` command. The shared documentation in `context/` can be referenced by both Claude Code and Cursor.
+Cursor is also a Ralph provider via `aaa ralph build --provider cursor`; this is separate from `.cursorrules` generation.
 
 **`.cursorrules` (root-level)**
 
@@ -296,6 +304,7 @@ Secrets go in environment variables, not the config file. Create `tools/.env` fr
 | `AAA_PARALLEL_API_KEY` | For parallel-search | [Get key](https://platform.parallel.ai/) |
 | `AAA_GITHUB_TOKEN` | No | Falls back to `gh auth` |
 | `AAA_DEBUG` | No | Enable verbose logging |
+| `RALPH_PROVIDER` | No | Override default provider (`claude`, `codex`, `cursor`, `opencode`) |
 
 ## Directory Structure
 

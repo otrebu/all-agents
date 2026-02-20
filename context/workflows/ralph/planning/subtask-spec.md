@@ -6,6 +6,19 @@ Shared conventions and guidelines for all subtask generation workflows. Referenc
 
 For source-driven planning runs, `--output-dir` milestone-shaped paths (`docs/planning/milestones/<slug>`) set both the subtasks destination and the planning log directory. See `subtasks-from-source.md` for parameter details.
 
+## Queue Shape By Output Type
+
+Use the schema that matches the output file type:
+
+- **Canonical queue file** (`subtasks.json`):
+  - Shape: JSON object with top-level `"subtasks"` array (optionally `"$schema"` and `"metadata"`).
+  - Schema: `@docs/planning/schemas/subtasks.schema.json`
+- **Per-task fragment file** (`.subtasks-task-*.json`):
+  - Shape: bare JSON array of subtask objects (no wrapper object).
+  - Schema: `@docs/planning/schemas/subtask-fragment.schema.json`
+
+The subtask object fields below apply in both shapes.
+
 ## Subtask Schema
 
 Each subtask MUST have these fields:
@@ -136,12 +149,12 @@ Before finalizing subtasks, verify:
 
 - [ ] Each subtask has all required fields (id, taskRef, title, description, done, acceptanceCriteria, filesToRead)
 - [ ] All IDs follow SUB-NNN pattern and are unique
-- [ ] taskRef is set (NNN-slug pattern)
+- [ ] taskRef matches a task filename (NNN-TASK-slug or NNN-slug pattern)
 - [ ] storyRef is included if task has a parent story
 - [ ] Subtasks pass the 4-question vertical slice test (see Size Guidelines)
 - [ ] Acceptance criteria are concrete and verifiable
 - [ ] filesToRead contains relevant context files
-- [ ] Output is valid JSON matching the schema
+- [ ] Output matches the applicable schema (`subtasks.schema.json` for canonical queues, `subtask-fragment.schema.json` for fragments)
 
 ## Acceptance Criteria Quality Gate
 

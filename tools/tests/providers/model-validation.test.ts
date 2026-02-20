@@ -1,9 +1,21 @@
 import {
+  DISCOVERED_MODELS,
   getModelById,
   REFRESH_HINT,
   validateModelSelection,
 } from "@tools/commands/ralph/providers/models";
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+
+const DISCOVERED_MODELS_SNAPSHOT = [...DISCOVERED_MODELS];
+
+beforeEach(() => {
+  DISCOVERED_MODELS.length = 0;
+});
+
+afterAll(() => {
+  DISCOVERED_MODELS.length = 0;
+  DISCOVERED_MODELS.push(...DISCOVERED_MODELS_SNAPSHOT);
+});
 
 // =============================================================================
 // validateModelSelection - Valid Models
@@ -55,6 +67,25 @@ describe("validateModelSelection - valid model", () => {
     expect(result.valid).toBe(true);
     if (result.valid) {
       expect(result.cliFormat).toBe("openai/gpt-5.3-codex");
+    }
+  });
+
+  test("returns valid for codex-compatible model", () => {
+    const result = validateModelSelection("openai/gpt-5.3-codex", "codex");
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.cliFormat).toBe("openai/gpt-5.3-codex");
+    }
+  });
+
+  test("returns valid for codex pass-through model not in registry", () => {
+    const result = validateModelSelection(
+      "openai/gpt-5.3-codex-spark",
+      "codex",
+    );
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.cliFormat).toBe("openai/gpt-5.3-codex-spark");
     }
   });
 });
@@ -195,8 +226,16 @@ describe("REFRESH_HINT", () => {
 // =============================================================================
 
 describe("validateModelSelection - edge cases", () => {
-  test("returns empty suggestions for provider with no models", () => {
+  test("returns suggestions for codex provider", () => {
     const result = validateModelSelection("some-model", "codex");
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.suggestions.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("returns empty suggestions for cursor while registry is empty", () => {
+    const result = validateModelSelection("cursor-model", "cursor");
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.suggestions).toEqual([]);

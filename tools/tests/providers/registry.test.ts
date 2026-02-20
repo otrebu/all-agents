@@ -49,15 +49,14 @@ describe("REGISTRY", () => {
   });
 
   test("non-implemented providers have available: false", () => {
-    const stubProviders: Array<ProviderType> = [
-      "codex",
-      "cursor",
-      "gemini",
-      "pi",
-    ];
+    const stubProviders: Array<ProviderType> = ["gemini", "pi"];
     for (const provider of stubProviders) {
       expect(REGISTRY[provider].available).toBe(false);
     }
+  });
+
+  test("cursor has available: true", () => {
+    expect(REGISTRY.cursor.available).toBe(true);
   });
 
   test("opencode has available: true", () => {
@@ -66,6 +65,10 @@ describe("REGISTRY", () => {
 
   test("claude has available: true", () => {
     expect(REGISTRY.claude.available).toBe(true);
+  });
+
+  test("codex has available: true", () => {
+    expect(REGISTRY.codex.available).toBe(true);
   });
 
   test("all providers have invoke function", () => {
@@ -86,15 +89,21 @@ describe("REGISTRY", () => {
     expect(REGISTRY.opencode.supportedModes).toContain("headless-async");
   });
 
-  test("capability booleans are set for claude and opencode", () => {
+  test("codex has supervised, headless-sync, headless-async modes", () => {
+    expect(REGISTRY.codex.supportedModes).toContain("supervised");
+    expect(REGISTRY.codex.supportedModes).toContain("headless-sync");
+    expect(REGISTRY.codex.supportedModes).toContain("headless-async");
+  });
+
+  test("capability booleans are set for claude, opencode, codex, and cursor", () => {
     expect(REGISTRY.claude.supportsHeadless).toBe(true);
     expect(REGISTRY.claude.supportsInteractiveSupervised).toBe(true);
     expect(REGISTRY.opencode.supportsHeadless).toBe(true);
     expect(REGISTRY.opencode.supportsInteractiveSupervised).toBe(true);
-  });
-
-  test("codex has empty supportedModes", () => {
-    expect(REGISTRY.codex.supportedModes).toEqual([]);
+    expect(REGISTRY.codex.supportsHeadless).toBe(true);
+    expect(REGISTRY.codex.supportsInteractiveSupervised).toBe(true);
+    expect(REGISTRY.cursor.supportsHeadless).toBe(true);
+    expect(REGISTRY.cursor.supportsInteractiveSupervised).toBe(true);
   });
 
   test("gemini has empty supportedModes", () => {
@@ -105,8 +114,10 @@ describe("REGISTRY", () => {
     expect(REGISTRY.pi.supportedModes).toEqual([]);
   });
 
-  test("cursor has empty supportedModes", () => {
-    expect(REGISTRY.cursor.supportedModes).toEqual([]);
+  test("cursor has supervised, headless-sync, headless-async modes", () => {
+    expect(REGISTRY.cursor.supportedModes).toContain("supervised");
+    expect(REGISTRY.cursor.supportedModes).toContain("headless-sync");
+    expect(REGISTRY.cursor.supportedModes).toContain("headless-async");
   });
 });
 
@@ -719,13 +730,60 @@ describe("validateProviderInvocationPreflight", () => {
     Object.assign(Bun, { spawn: spawnMock });
 
     try {
-      await validateProviderInvocationPreflight("codex", "headless");
+      await validateProviderInvocationPreflight("gemini", "headless");
       expect(true).toBe(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       expect(message).toContain("not enabled in this Ralph runtime");
     }
     expect(spawnMock).not.toHaveBeenCalled();
+  });
+
+  test("throws for codex when supported mode binary is missing", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    try {
+      await validateProviderInvocationPreflight("codex", "headless");
+      expect(true).toBe(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).toContain("not found in PATH");
+      expect(message).toContain("Install: npm install -g @openai/codex");
+    }
+  });
+
+  test("passes for codex headless when binary is available", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(0),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    await validateProviderInvocationPreflight("codex", "headless");
   });
 
   test("passes for opencode headless when binary is available", async () => {
@@ -746,6 +804,87 @@ describe("validateProviderInvocationPreflight", () => {
     });
 
     await validateProviderInvocationPreflight("opencode", "headless");
+  });
+
+  test("passes for cursor headless when primary binary is available", async () => {
+    const spawnMock = mock((command: ReadonlyArray<string>) => {
+      const binary = command[1];
+      const exitCode = binary === "agent" ? 0 : 1;
+      return {
+        exited: Promise.resolve(exitCode),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      };
+    });
+
+    Object.assign(Bun, { spawn: spawnMock });
+    await validateProviderInvocationPreflight("cursor", "headless");
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    expect(spawnMock.mock.calls[0]?.[0]).toEqual(["which", "agent"]);
+  });
+
+  test("passes for cursor headless when fallback binary is available", async () => {
+    const spawnMock = mock((command: ReadonlyArray<string>) => {
+      const binary = command[1];
+      const exitCode = binary === "cursor-agent" ? 0 : 1;
+      return {
+        exited: Promise.resolve(exitCode),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      };
+    });
+
+    Object.assign(Bun, { spawn: spawnMock });
+    await validateProviderInvocationPreflight("cursor", "headless");
+
+    expect(spawnMock).toHaveBeenCalledTimes(2);
+    expect(spawnMock.mock.calls[0]?.[0]).toEqual(["which", "agent"]);
+    expect(spawnMock.mock.calls[1]?.[0]).toEqual(["which", "cursor-agent"]);
+  });
+
+  test("fails with install guidance when all cursor binaries are missing", async () => {
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(1),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    try {
+      await validateProviderInvocationPreflight("cursor", "headless");
+      expect(true).toBe(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).toContain("agent");
+      expect(message).toContain("cursor-agent");
+      expect(message).toContain("Install Cursor");
+    }
   });
 
   test("fails with install guidance when supported mode binary is missing", async () => {
@@ -781,15 +920,21 @@ describe("validateProviderInvocationPreflight", () => {
 
 describe("invokeWithProvider model forwarding", () => {
   const originalSpawn = Bun.spawn;
+  const originalCodexInvoke = REGISTRY.codex.invoke;
+  const originalCursorInvoke = REGISTRY.cursor.invoke;
   const originalOpencodeInvoke = REGISTRY.opencode.invoke;
 
   afterAll(() => {
     Bun.spawn = originalSpawn;
+    REGISTRY.codex.invoke = originalCodexInvoke;
+    REGISTRY.cursor.invoke = originalCursorInvoke;
     REGISTRY.opencode.invoke = originalOpencodeInvoke;
   });
 
   beforeEach(() => {
     Bun.spawn = originalSpawn;
+    REGISTRY.codex.invoke = originalCodexInvoke;
+    REGISTRY.cursor.invoke = originalCursorInvoke;
     REGISTRY.opencode.invoke = originalOpencodeInvoke;
   });
 
@@ -823,6 +968,96 @@ describe("invokeWithProvider model forwarding", () => {
     REGISTRY.opencode.invoke = invokeSpy;
 
     const result = await invokeWithProvider("opencode", {
+      mode: "headless",
+      model: "openai/gpt-4o",
+      prompt: "test prompt",
+    });
+
+    expect(invokeSpy).toHaveBeenCalledTimes(1);
+    expect(result?.result).toBe("ok");
+  });
+
+  test("passes selected model into cursor config", async () => {
+    Object.assign(Bun, {
+      spawn: mock((command: ReadonlyArray<string>) => {
+        const binary = command[1];
+        const exitCode = binary === "agent" ? 0 : 1;
+        return {
+          exited: Promise.resolve(exitCode),
+          stderr: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+          stdout: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+        };
+      }),
+    });
+
+    const invokeSpy = mock(async (options: InvocationOptions) => {
+      await Promise.resolve();
+      expect(options.config).toEqual({
+        model: "openai/gpt-4o",
+        provider: "cursor",
+      });
+      return {
+        costUsd: 0,
+        durationMs: 1,
+        result: "ok",
+        sessionId: "cursor-sess-1",
+      };
+    });
+    REGISTRY.cursor.invoke = invokeSpy;
+
+    const result = await invokeWithProvider("cursor", {
+      mode: "headless",
+      model: "openai/gpt-4o",
+      prompt: "test prompt",
+    });
+
+    expect(invokeSpy).toHaveBeenCalledTimes(1);
+    expect(result?.result).toBe("ok");
+  });
+
+  test("passes selected model into codex config", async () => {
+    // Mock binary as available
+    Object.assign(Bun, {
+      spawn: mock(() => ({
+        exited: Promise.resolve(0),
+        stderr: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+        stdout: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })),
+    });
+
+    const invokeSpy = mock(async (options: InvocationOptions) => {
+      await Promise.resolve();
+      expect(options.config).toEqual({
+        model: "openai/gpt-4o",
+        provider: "codex",
+      });
+      return {
+        costUsd: 0,
+        durationMs: 1,
+        result: "ok",
+        sessionId: "codex-sess-1",
+      };
+    });
+
+    REGISTRY.codex.invoke = invokeSpy;
+
+    const result = await invokeWithProvider("codex", {
       mode: "headless",
       model: "openai/gpt-4o",
       prompt: "test prompt",
@@ -875,6 +1110,60 @@ describe("invokeWithProvider model forwarding", () => {
       expect(result?.sessionId).toBe("sess-2");
       expect(invokeSpy).toHaveBeenCalledTimes(1);
       // `which opencode` preflight check
+      expect(spawnMock).toHaveBeenCalledTimes(1);
+    } finally {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("invokes codex supervised mode with composed prompt", async () => {
+    // Mock binary as available (preflight `which codex`).
+    const spawnMock = mock(() => ({
+      exited: Promise.resolve(0),
+      stderr: new ReadableStream({
+        start(c) {
+          c.close();
+        },
+      }),
+      stdout: new ReadableStream({
+        start(c) {
+          c.close();
+        },
+      }),
+    }));
+    Object.assign(Bun, { spawn: spawnMock });
+
+    const temporaryDirectory = mkdtempSync(
+      join(tmpdir(), "aaa-registry-codex-supervised-"),
+    );
+    const promptPath = join(temporaryDirectory, "prompt.md");
+    writeFileSync(promptPath, "Prompt body", "utf8");
+
+    const invokeSpy = mock(async (options: InvocationOptions) => {
+      await Promise.resolve();
+      expect(options.mode).toBe("supervised");
+      expect(options.prompt).toContain("SUPERVISED_CONTEXT");
+      expect(options.prompt).toContain("Prompt body");
+      return {
+        costUsd: 0,
+        durationMs: 1,
+        result: "",
+        sessionId: "codex-sess-2",
+      };
+    });
+    REGISTRY.codex.invoke = invokeSpy;
+
+    try {
+      const result = await invokeWithProvider("codex", {
+        context: "SUPERVISED_CONTEXT",
+        mode: "supervised",
+        promptPath,
+        sessionName: "test-session",
+      });
+
+      expect(result?.sessionId).toBe("codex-sess-2");
+      expect(invokeSpy).toHaveBeenCalledTimes(1);
+      // `which codex` preflight check
       expect(spawnMock).toHaveBeenCalledTimes(1);
     } finally {
       rmSync(temporaryDirectory, { force: true, recursive: true });
@@ -961,7 +1250,7 @@ describe("invokeWithProvider error handling", () => {
     }
   });
 
-  test("throws for codex when provider is not enabled", async () => {
+  test("throws for codex when binary is missing", async () => {
     Object.assign(Bun, {
       spawn: mock(() => ({
         exited: Promise.resolve(1),
@@ -985,36 +1274,8 @@ describe("invokeWithProvider error handling", () => {
       expect(error).toBeInstanceOf(ProviderError);
       const pe = error as ProviderError;
       expect(pe.provider).toBe("codex");
-      expect(pe.message).toContain("not enabled in this Ralph runtime");
-    }
-  });
-
-  test("throws for codex before binary checks even when binary exists", async () => {
-    // Mock binary as available
-    Object.assign(Bun, {
-      spawn: mock(() => ({
-        exited: Promise.resolve(0),
-        stderr: new ReadableStream({
-          start(c) {
-            c.close();
-          },
-        }),
-        stdout: new ReadableStream({
-          start(c) {
-            c.close();
-          },
-        }),
-      })),
-    });
-
-    try {
-      await invokeWithProvider("codex", { mode: "headless", prompt: "test" });
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(ProviderError);
-      const pe = error as ProviderError;
-      expect(pe.provider).toBe("codex");
-      expect(pe.message).toContain("not enabled in this Ralph runtime");
+      expect(pe.message).toContain("not found in PATH");
+      expect(pe.message).toContain("Install: npm install -g @openai/codex");
     }
   });
 

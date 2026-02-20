@@ -1,10 +1,11 @@
 import {
   findGitRoot,
   isAllAgentsRoot,
+  isSymlinkTargetingPath,
   resolveWorktreeRoot,
 } from "@tools/commands/setup/utils";
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -98,5 +99,33 @@ describe("setup worktree utils", () => {
     expect(() => resolveWorktreeRoot(true, root)).toThrow(
       "Invalid all-agents worktree",
     );
+  });
+
+  test("isSymlinkTargetingPath matches absolute symlink target", () => {
+    const root = createTemporaryDirectory("setup-utils-absolute-symlink");
+    const source = join(root, "source");
+    const target = join(root, "target");
+    mkdirSync(source, { recursive: true });
+    mkdirSync(target, { recursive: true });
+    const linkPath = join(root, "context");
+
+    symlinkSync(source, linkPath);
+
+    expect(isSymlinkTargetingPath(linkPath, source)).toBe(true);
+    expect(isSymlinkTargetingPath(linkPath, target)).toBe(false);
+  });
+
+  test("isSymlinkTargetingPath matches relative symlink target", () => {
+    const root = createTemporaryDirectory("setup-utils-relative-symlink");
+    const source = join(root, "all-agents", "context");
+    mkdirSync(source, { recursive: true });
+    const projectDirectory = join(root, "project");
+    mkdirSync(projectDirectory, { recursive: true });
+    const linkPath = join(projectDirectory, "context");
+    const relativeTarget = "../all-agents/context";
+
+    symlinkSync(relativeTarget, linkPath);
+
+    expect(isSymlinkTargetingPath(linkPath, source)).toBe(true);
   });
 });

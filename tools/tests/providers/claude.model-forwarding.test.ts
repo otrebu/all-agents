@@ -87,6 +87,11 @@ describe("Claude provider model forwarding", () => {
 
   test("invokeClaudeHeadlessAsync passes --model when model is provided", async () => {
     let capturedArguments: Array<string> = [];
+    const stdinMock = {
+      end: mock(() => {}),
+      flush: mock(() => {}),
+      write: mock(() => 0),
+    };
     (Bun as { spawn: typeof Bun.spawn }).spawn = ((args) => {
       capturedArguments = [...(args as Array<string>)];
       return {
@@ -94,6 +99,7 @@ describe("Claude provider model forwarding", () => {
         exited: Promise.resolve(0),
         signalCode: null,
         stderr: toTextStream(""),
+        stdin: stdinMock,
         stdout: toTextStream(
           '[{"type":"result","result":"ok","duration_ms":1,"total_cost_usd":0.1,"session_id":"ses_1"}]',
         ),
@@ -108,5 +114,9 @@ describe("Claude provider model forwarding", () => {
     expect(result?.result).toBe("ok");
     expect(capturedArguments).toContain("--model");
     expect(capturedArguments).toContain("claude-sonnet-4");
+    // Prompt should be piped via stdin, not in CLI args
+    expect(capturedArguments).not.toContain("hello");
+    expect(stdinMock.write).toHaveBeenCalledWith("hello");
+    expect(stdinMock.end).toHaveBeenCalled();
   });
 });

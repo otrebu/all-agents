@@ -107,15 +107,16 @@ function getAllAgentsRoot(): string {
 /**
  * Checks CLAUDE_CONFIG_DIR environment variable status
  *
- * Compares current value against expected value (all-agents/.claude).
- * Used by setup to guide user in configuring their shell.
+ * Compares current value against expected value (main repo's .claude).
+ * Always resolves to the main repo, not a worktree, since CLAUDE_CONFIG_DIR
+ * should persist across worktree switches.
  */
 function getClaudeConfigStatus(): {
   current?: string;
   expected: string;
   status: "correct" | "different" | "unset";
 } {
-  const root = getAllAgentsRoot();
+  const root = getMainRepoRoot(getAllAgentsRoot());
   const expected = resolve(root, ".claude");
   const current = env.CLAUDE_CONFIG_DIR;
 
@@ -153,6 +154,30 @@ function getCompletionLine(shell: ShellType): string {
  */
 function getExportLine(variableName: string, value: string): string {
   return `export ${variableName}="${value}"`;
+}
+
+/**
+ * Resolves the main repo root from any worktree.
+ *
+ * In a worktree, `.git` is a file containing `gitdir: <path>`.
+ * The `commondir` file inside that gitdir points back to the main `.git`.
+ * Returns the worktreeRoot unchanged if already in the main repo.
+ */
+function getMainRepoRoot(worktreeRoot: string): string {
+  const gitPath = resolve(worktreeRoot, ".git");
+  if (!existsSync(gitPath)) return worktreeRoot;
+
+  const stat = lstatSync(gitPath);
+  if (stat.isDirectory()) return worktreeRoot;
+
+  // Worktree: .git is a file with "gitdir: <path>"
+  const gitdir = readFileSync(gitPath, "utf8").trim().replace("gitdir: ", "");
+  const commondirFile = resolve(gitdir, "commondir");
+  if (!existsSync(commondirFile)) return worktreeRoot;
+
+  const commondir = readFileSync(commondirFile, "utf8").trim();
+  const mainGitDirectory = resolve(gitdir, commondir);
+  return resolve(mainGitDirectory, "..");
 }
 
 /**
@@ -320,6 +345,21 @@ function isInPath(directory: string): boolean {
 }
 
 /**
+ * Checks if a symlink resolves to the expected target path.
+ *
+ * Supports both absolute and relative symlink targets.
+ */
+function isSymlinkTargetingPath(
+  linkPath: string,
+  expectedTargetPath: string,
+): boolean {
+  const linkTarget = getSymlinkTarget(linkPath);
+  if (linkTarget === null) return false;
+
+  return resolve(dirname(linkPath), linkTarget) === resolve(expectedTargetPath);
+}
+
+/**
  * Resolves worktree target for `aaa setup --user --worktree [path]`.
  *
  * - `--worktree <path>`: resolves from the provided path
@@ -457,6 +497,7 @@ export {
   isCliInstalled,
   isCompletionInstalled,
   isInPath,
+  isSymlinkTargetingPath,
   LOCAL_BIN,
   resolveWorktreeRoot,
 };

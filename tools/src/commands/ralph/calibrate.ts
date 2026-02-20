@@ -11,9 +11,9 @@
  * @see context/workflows/ralph/calibration/technical-drift.md
  * @see context/workflows/ralph/calibration/self-improvement.md
  */
+/* eslint-disable perfectionist/sort-modules, no-continue, unicorn/consistent-destructuring, perfectionist/sort-objects, perfectionist/sort-object-types */
 
 import { loadAaaConfig } from "@tools/lib/config";
-import { findProjectRoot } from "@tools/utils/paths";
 import chalk from "chalk";
 import { execSync } from "node:child_process";
 import {
@@ -55,7 +55,12 @@ import {
   renderInvocationHeader,
   renderPhaseCard,
 } from "./display";
-import { invokeWithProvider, resolveProvider } from "./providers/registry";
+import {
+  invokeWithProvider,
+  REGISTRY,
+  resolveProvider,
+} from "./providers/registry";
+import { resolveSessionForProvider } from "./providers/session-adapter";
 import { applyAndSaveProposal } from "./queue-ops";
 import { getSessionJsonlPath } from "./session";
 import { extractSignals, type OffTrackReport } from "./session-analysis";
@@ -66,21 +71,26 @@ import { validateDoneSubtaskCommitEvidence } from "./validation";
 // =============================================================================
 
 /**
- * Options for calibration checks
+ * Important: calibration has two roots.
+ * - toolRoot: all-agents install root (workflow prompts under context/workflows)
+ * - repoRoot: git repository that owns the provided subtasks queue
+ * Commit evidence MUST be validated in repoRoot, not toolRoot.
  */
 interface CalibrateOptions {
-  /** Context root path (repo root) */
-  contextRoot: string;
   /** Skip approval even if config says 'suggest' */
   force?: boolean;
   /** Model override for calibration invocation */
   model?: string;
   /** Provider override for calibration invocation */
   provider?: string;
+  /** Git repository root for commit evidence and implementation files */
+  repoRoot: string;
   /** Require approval even if config says 'autofix' */
   review?: boolean;
   /** Path to subtasks.json file */
   subtasksPath: string;
+  /** all-agents tool root for workflow prompts and @context resolution */
+  toolRoot: string;
 }
 
 /**
@@ -396,6 +406,69 @@ function buildCalibrationCreateOperations(
   }));
 }
 
+function buildIntentionBatchPrompt(
+  batchEntries: Array<IntentionBatchEntry>,
+  promptContent: string,
+  pendingSubtaskTitles: Array<{ id: string; title: string }> = [],
+): string {
+  const batchPayload = batchEntries.map((entry) => ({
+    diff: entry.diff,
+    planningChain: entry.planningChain,
+    subtask: {
+      acceptanceCriteria: entry.subtask.acceptanceCriteria,
+      description: entry.subtask.description,
+      done: entry.subtask.done,
+      filesToRead: entry.subtask.filesToRead,
+      id: entry.subtask.id,
+      taskRef: entry.subtask.taskRef,
+      title: entry.subtask.title,
+    },
+  }));
+
+  const pendingQueueSection =
+    pendingSubtaskTitles.length > 0
+      ? `\nPending subtask queue (use this to verify deferred-work claims):
+\`\`\`json
+${JSON.stringify(pendingSubtaskTitles, null, 2)}
+\`\`\`
+`
+      : "\nPending subtask queue: (empty — no pending subtasks in queue)\n";
+
+  return `Execute intention drift analysis for a single batch.
+
+You are given ${batchEntries.length} completed subtasks with pre-gathered diffs and planning chain context.
+DO NOT read additional files. All required context is provided below.
+
+Output contract:
+- Return JSON only (optionally in a \`\`\`json code fence)
+- Provide corrective subtasks, not standalone task files
+- Default insertion mode should be "prepend" so corrective work runs first
+
+JSON schema:
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
+${pendingQueueSection}
+Batch data:
+\`\`\`json
+${JSON.stringify(batchPayload, null, 2)}
+\`\`\`
+
+${promptContent}`;
+}
+
 function buildSelfImproveFallbackResult(preflight: SessionLogPreflight): {
   correctiveSubtasks: Array<QueueSubtaskDraft>;
   insertionMode: "prepend";
@@ -416,11 +489,76 @@ function buildSelfImproveFallbackResult(preflight: SessionLogPreflight): {
   };
 }
 
-function buildSessionLogPreflight(
-  completedSubtasks: Array<Subtask>,
-  contextRoot: string,
+function buildSessionAnalysisPrompt(
+  target: SessionSignalAnalysisTarget,
+  signals: OffTrackReport,
+  promptContent: string,
+): string {
+  return `Execute self-improvement analysis for a single session.
+
+You are given pre-extracted session signals for one unique session.
+DO NOT read the raw session log unless targeted verification is required by the workflow prompt.
+
+Output contract:
+- Return JSON only (optionally in a \`\`\`json code fence)
+- Provide corrective subtasks, not standalone task files
+- Default insertion mode should be "prepend" so corrective work runs first
+
+JSON schema:
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
+
+Session context:
+\`\`\`json
+${JSON.stringify(
+  {
+    sessionId: target.sessionId,
+    sessionLogPath: target.sessionLogPath,
+    subtaskIds: target.subtaskIds,
+  },
+  null,
+  2,
+)}
+\`\`\`
+
+<session-signals>
+\`\`\`json
+${JSON.stringify(signals, null, 2)}
+\`\`\`
+</session-signals>
+
+${promptContent}`;
+}
+
+interface BuildSessionLogPreflightInput {
+  completedSubtasks: Array<Subtask>;
+  maxAttempts?: number;
+  preferredProvider?: ProviderType;
+  repoRoot: string;
+  toolRoot: string;
+}
+
+function buildSessionLogPreflight({
+  completedSubtasks,
   maxAttempts = 3,
-): SessionLogPreflight {
+  preferredProvider,
+  repoRoot,
+  toolRoot,
+}: BuildSessionLogPreflightInput): SessionLogPreflight {
+  const providerPriority = getSessionProviderPriority(preferredProvider);
   const available: Array<SessionLogLocation> = [];
   const missing: Array<SessionLogMissing> = [];
 
@@ -432,7 +570,6 @@ function buildSessionLogPreflight(
       sessionRepoRoot,
     } = subtask;
     if (sessionId === undefined || sessionId === "") {
-      // eslint-disable-next-line no-continue -- completedSubtasks may come from broader callers
       continue;
     }
 
@@ -440,44 +577,103 @@ function buildSessionLogPreflight(
       typeof sessionLogPath === "string" ? sessionLogPath : "";
     if (metadataPath !== "" && existsSync(metadataPath)) {
       available.push({ sessionId, sessionLogPath: metadataPath, subtaskId });
-      // eslint-disable-next-line no-continue -- canonical path already available
       continue;
     }
 
     const locatorRepoRoot =
       typeof sessionRepoRoot === "string" && sessionRepoRoot !== ""
         ? sessionRepoRoot
-        : contextRoot;
-    const candidateRepoRoots = getUniqueStrings([locatorRepoRoot, contextRoot]);
+        : repoRoot;
+    const candidateRepoRoots = getUniqueStrings([
+      locatorRepoRoot,
+      repoRoot,
+      toolRoot,
+    ]);
     const boundedRepoRoots = candidateRepoRoots.slice(0, maxAttempts);
     const attemptedRepoRoots: Array<string> = [];
     let resolvedPath: null | string = null;
 
-    for (const repoRoot of boundedRepoRoots) {
-      attemptedRepoRoots.push(repoRoot);
-      const candidatePath = getSessionJsonlPath(sessionId, repoRoot);
+    for (const candidateRepoRoot of boundedRepoRoots) {
+      attemptedRepoRoots.push(candidateRepoRoot);
+      const candidatePath = resolveSessionLogPath({
+        providerPriority,
+        repoRoot: candidateRepoRoot,
+        sessionId,
+        explicitProvider: subtask.provider,
+      });
       if (candidatePath !== null) {
         resolvedPath = candidatePath;
         break;
       }
     }
 
-    if (resolvedPath !== null) {
+    if (resolvedPath === null) {
+      missing.push({
+        attemptedRepoRoots,
+        attempts: attemptedRepoRoots.length,
+        sessionId,
+        sessionRepoRoot: locatorRepoRoot,
+        subtaskId,
+      });
+    } else {
       available.push({ sessionId, sessionLogPath: resolvedPath, subtaskId });
-      // eslint-disable-next-line no-continue -- session resolved successfully
-      continue;
     }
-
-    missing.push({
-      attemptedRepoRoots,
-      attempts: attemptedRepoRoots.length,
-      sessionId,
-      sessionRepoRoot: locatorRepoRoot,
-      subtaskId,
-    });
   }
 
   return { available, maxAttempts, missing };
+}
+
+function buildTechnicalBatchPrompt(
+  batchEntries: Array<TechnicalBatchEntry>,
+  promptContent: string,
+): string {
+  const batchPayload = batchEntries.map((entry) => ({
+    diff: entry.diff,
+    referencedFiles: entry.referencedFiles,
+    subtask: {
+      acceptanceCriteria: entry.subtask.acceptanceCriteria,
+      description: entry.subtask.description,
+      done: entry.subtask.done,
+      filesToRead: entry.subtask.filesToRead,
+      id: entry.subtask.id,
+      taskRef: entry.subtask.taskRef,
+      title: entry.subtask.title,
+    },
+  }));
+
+  return `Execute technical drift analysis for a single batch.
+
+You are given ${batchEntries.length} completed subtasks with pre-gathered commit diffs and all files referenced in each subtask's filesToRead list.
+DO NOT read additional files beyond what is provided.
+
+Output contract:
+- Return JSON only (optionally in a \`\`\`json code fence)
+- Provide corrective subtasks, not standalone task files
+- Default insertion mode should be "prepend" so corrective work runs first
+
+JSON schema:
+\`\`\`json
+{
+  "summary": "short summary",
+  "insertionMode": "prepend",
+  "correctiveSubtasks": [
+    {
+      "title": "string",
+      "description": "string",
+      "taskRef": "string",
+      "filesToRead": ["path"],
+      "acceptanceCriteria": ["criterion"]
+    }
+  ]
+}
+\`\`\`
+
+Batch data:
+\`\`\`json
+${JSON.stringify(batchPayload, null, 2)}
+\`\`\`
+
+${promptContent}`;
 }
 
 function calculateTokenEstimate(content: string): number {
@@ -498,9 +694,35 @@ function clipDiffPatchForTechnicalPrompt(diff: DiffSummary): DiffSummary {
   };
 }
 
+function createProviderSearchOrder(
+  providerPriority: Array<ProviderType>,
+  explicitProvider: ProviderType | undefined,
+): Array<ProviderType> {
+  if (explicitProvider === undefined) {
+    return providerPriority;
+  }
+
+  const seen = new Set<ProviderType>([explicitProvider]);
+  const ordered = [explicitProvider];
+  for (const provider of providerPriority) {
+    if (!seen.has(provider)) {
+      seen.add(provider);
+      ordered.push(provider);
+    }
+  }
+
+  return ordered;
+}
+
+/**
+ * Read commit diff/stat from the target implementation repo.
+ * `repoRoot` must point to the subtasks-owning git repo, otherwise commitHash
+ * may appear invalid even when correct.
+ */
 function extractDiffSummary(
   commitHash: string,
   subtaskId: string,
+  repoRoot: string,
 ): DiffSummary {
   const safeHash = commitHash.trim();
   if (safeHash === "") {
@@ -514,9 +736,11 @@ function extractDiffSummary(
   }
 
   const statSummary = execSync(`git show --stat --format=fuller ${safeHash}`, {
+    cwd: repoRoot,
     encoding: "utf8",
   });
   const patch = execSync(`git show --format=fuller ${safeHash}`, {
+    cwd: repoRoot,
     encoding: "utf8",
     maxBuffer: 32 * 1024 * 1024,
   });
@@ -681,6 +905,24 @@ function getMilestonePath(subtasksPath: string): string {
   return path.dirname(path.resolve(subtasksPath));
 }
 
+function getSessionProviderPriority(
+  preferredProvider: ProviderType | undefined,
+): Array<ProviderType> {
+  const providers: Array<ProviderType> = [];
+  for (const [provider, capabilities] of Object.entries(REGISTRY)) {
+    if (capabilities.supportsSessionExport) {
+      providers.push(provider as ProviderType);
+    }
+  }
+
+  if (preferredProvider === undefined) {
+    return providers;
+  }
+
+  const next = providers.filter((provider) => provider !== preferredProvider);
+  return [preferredProvider, ...next];
+}
+
 function getUniqueStrings(values: Array<string>): Array<string> {
   return [...new Set(values.filter((value) => value !== ""))];
 }
@@ -819,178 +1061,6 @@ function parseCalibrationResult(resultText: string): CalibrationParseResult {
   return { correctiveSubtasks, insertionMode, summary };
 }
 
-// eslint-disable-next-line perfectionist/sort-modules -- colocated near parse/format calibration prompt helpers
-function buildIntentionBatchPrompt(
-  batchEntries: Array<IntentionBatchEntry>,
-  promptContent: string,
-  pendingSubtaskTitles: Array<{ id: string; title: string }> = [],
-): string {
-  const batchPayload = batchEntries.map((entry) => ({
-    diff: entry.diff,
-    planningChain: entry.planningChain,
-    subtask: {
-      acceptanceCriteria: entry.subtask.acceptanceCriteria,
-      description: entry.subtask.description,
-      done: entry.subtask.done,
-      filesToRead: entry.subtask.filesToRead,
-      id: entry.subtask.id,
-      taskRef: entry.subtask.taskRef,
-      title: entry.subtask.title,
-    },
-  }));
-
-  const pendingQueueSection =
-    pendingSubtaskTitles.length > 0
-      ? `\nPending subtask queue (use this to verify deferred-work claims):
-\`\`\`json
-${JSON.stringify(pendingSubtaskTitles, null, 2)}
-\`\`\`
-`
-      : "\nPending subtask queue: (empty — no pending subtasks in queue)\n";
-
-  return `Execute intention drift analysis for a single batch.
-
-You are given ${batchEntries.length} completed subtasks with pre-gathered diffs and planning chain context.
-DO NOT read additional files. All required context is provided below.
-
-Output contract:
-- Return JSON only (optionally in a \`\`\`json code fence)
-- Provide corrective subtasks, not standalone task files
-- Default insertion mode should be "prepend" so corrective work runs first
-
-JSON schema:
-\`\`\`json
-{
-  "summary": "short summary",
-  "insertionMode": "prepend",
-  "correctiveSubtasks": [
-    {
-      "title": "string",
-      "description": "string",
-      "taskRef": "string",
-      "filesToRead": ["path"],
-      "acceptanceCriteria": ["criterion"]
-    }
-  ]
-}
-\`\`\`
-${pendingQueueSection}
-Batch data:
-\`\`\`json
-${JSON.stringify(batchPayload, null, 2)}
-\`\`\`
-
-${promptContent}`;
-}
-
-function buildTechnicalBatchPrompt(
-  batchEntries: Array<TechnicalBatchEntry>,
-  promptContent: string,
-): string {
-  const batchPayload = batchEntries.map((entry) => ({
-    diff: entry.diff,
-    referencedFiles: entry.referencedFiles,
-    subtask: {
-      acceptanceCriteria: entry.subtask.acceptanceCriteria,
-      description: entry.subtask.description,
-      done: entry.subtask.done,
-      filesToRead: entry.subtask.filesToRead,
-      id: entry.subtask.id,
-      taskRef: entry.subtask.taskRef,
-      title: entry.subtask.title,
-    },
-  }));
-
-  return `Execute technical drift analysis for a single batch.
-
-You are given ${batchEntries.length} completed subtasks with pre-gathered commit diffs and all files referenced in each subtask's filesToRead list.
-DO NOT read additional files beyond what is provided.
-
-Output contract:
-- Return JSON only (optionally in a \`\`\`json code fence)
-- Provide corrective subtasks, not standalone task files
-- Default insertion mode should be "prepend" so corrective work runs first
-
-JSON schema:
-\`\`\`json
-{
-  "summary": "short summary",
-  "insertionMode": "prepend",
-  "correctiveSubtasks": [
-    {
-      "title": "string",
-      "description": "string",
-      "taskRef": "string",
-      "filesToRead": ["path"],
-      "acceptanceCriteria": ["criterion"]
-    }
-  ]
-}
-\`\`\`
-
-Batch data:
-\`\`\`json
-${JSON.stringify(batchPayload, null, 2)}
-\`\`\`
-
-${promptContent}`;
-}
-
-// eslint-disable-next-line perfectionist/sort-modules -- grouped with calibration prompt builders
-function buildSessionAnalysisPrompt(
-  target: SessionSignalAnalysisTarget,
-  signals: OffTrackReport,
-  promptContent: string,
-): string {
-  return `Execute self-improvement analysis for a single session.
-
-You are given pre-extracted session signals for one unique session.
-DO NOT read the raw session log unless targeted verification is required by the workflow prompt.
-
-Output contract:
-- Return JSON only (optionally in a \`\`\`json code fence)
-- Provide corrective subtasks, not standalone task files
-- Default insertion mode should be "prepend" so corrective work runs first
-
-JSON schema:
-\`\`\`json
-{
-  "summary": "short summary",
-  "insertionMode": "prepend",
-  "correctiveSubtasks": [
-    {
-      "title": "string",
-      "description": "string",
-      "taskRef": "string",
-      "filesToRead": ["path"],
-      "acceptanceCriteria": ["criterion"]
-    }
-  ]
-}
-\`\`\`
-
-Session context:
-\`\`\`json
-${JSON.stringify(
-  {
-    sessionId: target.sessionId,
-    sessionLogPath: target.sessionLogPath,
-    subtaskIds: target.subtaskIds,
-  },
-  null,
-  2,
-)}
-\`\`\`
-
-<session-signals>
-\`\`\`json
-${JSON.stringify(signals, null, 2)}
-\`\`\`
-</session-signals>
-
-${promptContent}`;
-}
-
 function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
   if (!isRecord(value)) {
     return null;
@@ -1024,12 +1094,15 @@ function parseQueueSubtaskDraft(value: unknown): null | QueueSubtaskDraft {
   return draft;
 }
 
-function resolveFilesToRead(filesToRead: Array<string>): Array<ResolvedFile> {
-  const projectRoot = findProjectRoot() ?? process.cwd();
+function resolveFilesToRead(
+  filesToRead: Array<string>,
+  repoRoot: string,
+  toolRoot: string,
+): Array<ResolvedFile> {
   const resolvedFiles: Array<ResolvedFile> = [];
 
   for (const filePath of filesToRead) {
-    const resolvedPath = resolveReadPath(filePath, projectRoot);
+    const resolvedPath = resolveReadPath(filePath, repoRoot, toolRoot);
     if (existsSync(resolvedPath)) {
       const content = readFileSync(resolvedPath, "utf8");
       const contentForPrompt =
@@ -1118,7 +1191,10 @@ function resolvePlanningFromTaskFile(
     (entry) =>
       entry.startsWith(taskReference) ||
       entry.includes(`-${taskReference}-`) ||
-      entry.includes(`${taskReference}.`),
+      entry.includes(`${taskReference}.`) ||
+      // Handle NNN-TASK-slug filenames when taskRef is NNN-slug
+      entry.replace(/-TASK-/, "-").startsWith(taskReference) ||
+      entry.replace(/-STORY-/, "-").startsWith(taskReference),
   );
   if (taskFileName === undefined) {
     return null;
@@ -1135,17 +1211,52 @@ function resolvePlanningFromTaskFile(
   return { storyContent, subtaskJson, taskContent };
 }
 
-function resolveReadPath(filePath: string, projectRoot: string): string {
+function resolveReadPath(
+  filePath: string,
+  repoRoot: string,
+  toolRoot: string,
+): string {
   if (path.isAbsolute(filePath)) {
     return filePath;
   }
+  // `@context/...` references all-agents docs; other relative paths are project files.
   if (filePath.startsWith("@context/")) {
-    return path.resolve(projectRoot, filePath.slice(1));
+    return path.resolve(toolRoot, filePath.slice(1));
   }
   if (filePath.startsWith("@")) {
-    return path.resolve(projectRoot, filePath.slice(1));
+    return path.resolve(repoRoot, filePath.slice(1));
   }
-  return path.resolve(projectRoot, filePath);
+  return path.resolve(repoRoot, filePath);
+}
+
+function resolveSessionLogPath(input: {
+  sessionId: string;
+  repoRoot: string;
+  providerPriority: Array<ProviderType>;
+  explicitProvider?: ProviderType;
+}): null | string {
+  const { sessionId, explicitProvider, providerPriority, repoRoot } = input;
+  const providersToTry = createProviderSearchOrder(
+    providerPriority,
+    explicitProvider,
+  );
+  for (const provider of providersToTry) {
+    const resolved = resolveSessionForProvider(provider, sessionId, repoRoot);
+    if (
+      resolved !== null &&
+      resolved.path !== null &&
+      resolved.path !== "" &&
+      existsSync(resolved.path)
+    ) {
+      return resolved.path;
+    }
+  }
+
+  const fallbackPath = getSessionJsonlPath(sessionId, repoRoot);
+  if (fallbackPath === null) {
+    return null;
+  }
+  return existsSync(fallbackPath) ? fallbackPath : null;
 }
 
 // =============================================================================
@@ -1194,11 +1305,25 @@ async function runCalibrate(
 ): Promise<boolean> {
   // Select provider (CLI flag > env var > config > auto-detect)
   const provider = await resolveProvider({ cliFlag: options.provider });
-  const { model, subtasksPath } = options;
+  const { model, repoRoot, subtasksPath, toolRoot } = options;
   console.log(
     renderEventLine({
       domain: "CALIBRATE",
       message: `Using provider: ${provider}`,
+      state: "INFO",
+    }),
+  );
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Using repoRoot for evidence: ${repoRoot}`,
+      state: "INFO",
+    }),
+  );
+  console.log(
+    renderEventLine({
+      domain: "CALIBRATE",
+      message: `Using toolRoot for prompts: ${toolRoot}`,
       state: "INFO",
     }),
   );
@@ -1261,10 +1386,10 @@ async function runCalibrate(
 
 function runCompletedCommitEvidenceValidation(
   completedSubtasks: Array<Subtask>,
-  contextRoot: string,
+  repoRoot: string,
 ): boolean {
   const evidence = validateDoneSubtaskCommitEvidence(completedSubtasks, {
-    repoRoot: contextRoot,
+    repoRoot,
   });
   if (evidence.issues.length === 0) {
     return true;
@@ -1376,11 +1501,11 @@ async function runImproveCheck(
     }
   }
 
-  const { contextRoot, subtasksPath } = options;
+  const { repoRoot, subtasksPath, toolRoot } = options;
 
   // Verify prompt exists
   const promptPath = path.join(
-    contextRoot,
+    toolRoot,
     "context/workflows/ralph/calibration/self-improvement.md",
   );
   if (!existsSync(promptPath)) {
@@ -1427,7 +1552,13 @@ async function runImproveCheck(
   }
 
   const completedWithSession = getCompletedWithSessionId(subtasksFile);
-  const preflight = buildSessionLogPreflight(completedWithSession, contextRoot);
+  const preflight = buildSessionLogPreflight({
+    completedSubtasks: completedWithSession,
+    repoRoot,
+    maxAttempts: 3,
+    preferredProvider: provider,
+    toolRoot,
+  });
   const uniqueSessions = mergeSessionAnalysisTargets(preflight.available);
   const analyzableSessionIds = uniqueSessions
     .map((entry) => entry.sessionId)
@@ -1626,11 +1757,11 @@ async function runIntentionCheck(
     }
   }
 
-  const { contextRoot, subtasksPath } = options;
+  const { repoRoot, subtasksPath, toolRoot } = options;
 
   // Verify prompt exists
   const promptPath = path.join(
-    contextRoot,
+    toolRoot,
     "context/workflows/ralph/calibration/intention-drift.md",
   );
   if (!existsSync(promptPath)) {
@@ -1656,7 +1787,7 @@ async function runIntentionCheck(
     return true;
   }
 
-  if (!runCompletedCommitEvidenceValidation(completedSubtasks, contextRoot)) {
+  if (!runCompletedCommitEvidenceValidation(completedSubtasks, repoRoot)) {
     return false;
   }
 
@@ -1710,7 +1841,11 @@ async function runIntentionCheck(
           }
 
           return {
-            diff: extractDiffSummary(subtask.commitHash ?? "", subtask.id),
+            diff: extractDiffSummary(
+              subtask.commitHash ?? "",
+              subtask.id,
+              repoRoot,
+            ),
             planningChain,
             subtask,
           };
@@ -1831,11 +1966,11 @@ async function runTechnicalCheck(
     }
   }
 
-  const { contextRoot, subtasksPath } = options;
+  const { repoRoot, subtasksPath, toolRoot } = options;
 
   // Verify prompt exists
   const promptPath = path.join(
-    contextRoot,
+    toolRoot,
     "context/workflows/ralph/calibration/technical-drift.md",
   );
   if (!existsSync(promptPath)) {
@@ -1874,7 +2009,7 @@ async function runTechnicalCheck(
     return true;
   }
 
-  if (!runCompletedCommitEvidenceValidation(completedSubtasks, contextRoot)) {
+  if (!runCompletedCommitEvidenceValidation(completedSubtasks, repoRoot)) {
     return false;
   }
 
@@ -1915,9 +2050,13 @@ async function runTechnicalCheck(
       const batchNumber = Math.floor(index / BATCH_SIZE) + 1;
       const batchEntries: Array<TechnicalBatchEntry> = batch.map((subtask) => ({
         diff: clipDiffPatchForTechnicalPrompt(
-          extractDiffSummary(subtask.commitHash ?? "", subtask.id),
+          extractDiffSummary(subtask.commitHash ?? "", subtask.id, repoRoot),
         ),
-        referencedFiles: resolveFilesToRead(subtask.filesToRead),
+        referencedFiles: resolveFilesToRead(
+          subtask.filesToRead,
+          repoRoot,
+          toolRoot,
+        ),
         subtask,
       }));
 
@@ -1951,7 +2090,6 @@ async function runTechnicalCheck(
               state: "SKIP",
             }),
           );
-          // eslint-disable-next-line no-continue -- skip oversized single-batch payloads and continue analysis
           continue;
         }
         throw error;

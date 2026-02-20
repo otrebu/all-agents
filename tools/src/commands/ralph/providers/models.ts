@@ -34,15 +34,15 @@ interface ModelValidationSuccess {
 }
 
 // =============================================================================
-// Constants
+// Provider-Specific Model Helpers
 // =============================================================================
 
+const CODEX_COMPATIBLE_MODEL_PATTERN = /(?:^|[./-])codex(?=[./-]|$)/i;
 const REFRESH_HINT =
   "Run 'aaa ralph models' to see available models. Use 'aaa ralph refresh-models' to update discovered models.";
-
-// =============================================================================
-// Registry Functions
-// =============================================================================
+const CODEX_PROVIDER_HINT =
+  "Run 'aaa ralph models --provider codex' to see known codex-compatible models. " +
+  "You can also pass newly released codex model IDs directly.";
 
 /** Merge static + dynamic models. Static takes precedence on ID conflicts. */
 function getAllModels(): Array<ModelInfo> {
@@ -50,6 +50,16 @@ function getAllModels(): Array<ModelInfo> {
   const uniqueDynamic = DISCOVERED_MODELS.filter((m) => !staticIds.has(m.id));
   return [...STATIC_MODELS, ...uniqueDynamic];
 }
+
+function getCodexCompatibleModels(models: Array<ModelInfo>): Array<ModelInfo> {
+  return models
+    .filter((model) => isCodexCompatibleModel(model))
+    .map((model) => ({ ...model, provider: "codex" }));
+}
+
+// =============================================================================
+// Registry Functions
+// =============================================================================
 
 /** Look up a model by ID or cliFormat */
 function getModelById(id: string): ModelInfo | undefined {
@@ -68,9 +78,56 @@ function getModelCompletionsForProvider(provider: ProviderType): Array<string> {
     .sort();
 }
 
+function getModelForProvider(
+  modelId: string,
+  provider: ProviderType,
+): ModelInfo | undefined {
+  const model = getModelById(modelId);
+  if (model === undefined) {
+    return undefined;
+  }
+
+  if (model.provider === provider) {
+    return model;
+  }
+
+  if (provider === "codex" && isCodexCompatibleModel(model)) {
+    return { ...model, provider: "codex" };
+  }
+
+  return model;
+}
+
 /** Filter models by provider */
 function getModelsForProvider(provider: ProviderType): Array<ModelInfo> {
+  if (provider === "codex") {
+    return getCodexCompatibleModels(getAllModels());
+  }
+
   return getAllModels().filter((m) => m.provider === provider);
+}
+
+function getProviderValidationHint(provider: ProviderType): string {
+  if (provider === "codex") {
+    return CODEX_PROVIDER_HINT;
+  }
+
+  return REFRESH_HINT;
+}
+
+function isCodexCompatibleModel(model: ModelInfo): boolean {
+  return (
+    CODEX_COMPATIBLE_MODEL_PATTERN.test(model.id) ||
+    CODEX_COMPATIBLE_MODEL_PATTERN.test(model.cliFormat)
+  );
+}
+
+function isCodexPassThroughModel(modelId: string): boolean {
+  return (
+    modelId.trim() !== "" &&
+    !/\s/u.test(modelId) &&
+    CODEX_COMPATIBLE_MODEL_PATTERN.test(modelId)
+  );
 }
 
 /**
@@ -81,15 +138,21 @@ function validateModelForProvider(
   modelId: string,
   provider: ProviderType,
 ): string {
-  const model = getModelById(modelId);
+  const model = getModelForProvider(modelId, provider);
+  const normalizedModelId = modelId.trim();
 
   if (!model) {
+    if (provider === "codex" && isCodexPassThroughModel(normalizedModelId)) {
+      return normalizedModelId;
+    }
+
     const suggestions = getModelsForProvider(provider)
       .map((m) => m.id)
       .slice(0, 5);
+    const hint = getProviderValidationHint(provider);
     throw new Error(
       `Unknown model '${modelId}' for provider '${provider}'\n` +
-        `Did you mean: ${suggestions.join(", ")}?\n${REFRESH_HINT}`,
+        `Did you mean: ${suggestions.join(", ")}?\n${hint}`,
     );
   }
 
@@ -97,10 +160,11 @@ function validateModelForProvider(
     const providerModels = getModelsForProvider(provider)
       .map((m) => m.id)
       .slice(0, 5);
+    const hint = getProviderValidationHint(provider);
     throw new Error(
       `Model '${modelId}' belongs to provider '${model.provider}', ` +
         `not '${provider}'\n` +
-        `Did you mean: ${providerModels.join(", ")}?\n${REFRESH_HINT}`,
+        `Did you mean: ${providerModels.join(", ")}?\n${hint}`,
     );
   }
 
@@ -121,15 +185,21 @@ function validateModelSelection(
   modelId: string,
   provider: ProviderType,
 ): ModelValidationResult {
-  const model = getModelById(modelId);
+  const model = getModelForProvider(modelId, provider);
+  const normalizedModelId = modelId.trim();
 
   if (!model) {
+    if (provider === "codex" && isCodexPassThroughModel(normalizedModelId)) {
+      return { cliFormat: normalizedModelId, valid: true };
+    }
+
     const suggestions = getModelsForProvider(provider)
       .map((m) => m.id)
       .sort()
       .slice(0, 5);
+    const hint = getProviderValidationHint(provider);
     return {
-      error: `Unknown model '${modelId}' for provider '${provider}'. ${REFRESH_HINT}`,
+      error: `Unknown model '${modelId}' for provider '${provider}'. ${hint}`,
       suggestions,
       valid: false,
     };
@@ -140,8 +210,9 @@ function validateModelSelection(
       .map((m) => m.id)
       .sort()
       .slice(0, 5);
+    const hint = getProviderValidationHint(provider);
     return {
-      error: `Model '${modelId}' belongs to provider '${model.provider}', not '${provider}'. ${REFRESH_HINT}`,
+      error: `Model '${modelId}' belongs to provider '${model.provider}', not '${provider}'. ${hint}`,
       suggestions,
       valid: false,
     };

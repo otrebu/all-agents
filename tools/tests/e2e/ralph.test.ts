@@ -532,6 +532,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("Require all approval prompts");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
+    expect(stdout).toContain("--with-reviews");
     expect(stdout).toContain("--dry-run");
     expect(normalizeCliHelpOutput(stdout)).toContain(DRY_RUN_HELP_TEXT);
   });
@@ -558,6 +559,50 @@ describe("ralph E2E", () => {
     expect(stderr).not.toContain("milestone not found");
   });
 
+  test("ralph plan stories --with-reviews requires --cascade", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        "nonexistent",
+        "--with-reviews",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("--with-reviews requires --cascade");
+    expect(stderr).not.toContain("milestone not found");
+  });
+
+  test("ralph plan stories --with-reviews requires build in cascade path", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "stories",
+        "--milestone",
+        "nonexistent",
+        "--cascade",
+        "tasks",
+        "--with-reviews",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("requires a cascade path that includes build");
+    expect(stderr).not.toContain("milestone not found");
+  });
+
   test("ralph plan tasks --help shows approval and resume flags", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
@@ -571,6 +616,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("Require all approval prompts");
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
+    expect(stdout).toContain("--with-reviews");
   });
 
   test("ralph plan tasks rejects --force with --review before main logic", async () => {
@@ -599,6 +645,7 @@ describe("ralph E2E", () => {
     expect(stdout).toContain("--from <level>");
     expect(stdout).toContain("Resume cascade from this level");
     expect(stdout).toContain("--validate-first");
+    expect(stdout).toContain("--with-reviews");
   });
 
   test("ralph plan subtasks --help shows --review-diary source selector", async () => {
@@ -725,6 +772,62 @@ describe("ralph E2E", () => {
     expect(exitCode).toBe(1);
     expect(stderr).toContain("Cannot use --force and --review together");
     expect(stderr).not.toContain("provider binary not found");
+  });
+
+  test("planning commands show actionable codex model guidance without stack traces", async () => {
+    const mockCodexPath = join(temporaryDirectory, "codex");
+    writeFileSync(
+      mockCodexPath,
+      `#!/usr/bin/env bash
+for arg in "$@"; do
+  if [ "$arg" = "exec" ]; then
+    cat <<'JSONL'
+{"type":"thread.started","thread_id":"thread_mock"}
+{"type":"turn.started"}
+{"type":"error","message":"{\\"detail\\":\\"The 'gpt-5.2-codex-xhigh-fast' model is not supported when using Codex with a ChatGPT account.\\"}"}
+{"type":"turn.failed","error":{"message":"{\\"detail\\":\\"The 'gpt-5.2-codex-xhigh-fast' model is not supported when using Codex with a ChatGPT account.\\"}"}}
+JSONL
+    exit 1
+  fi
+done
+echo "mock codex: unsupported invocation" >&2
+exit 1
+`,
+      { mode: 0o755 },
+    );
+
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "tasks",
+        "--text",
+        "test codex failure",
+        "--headless",
+        "--provider",
+        "codex",
+        "--model",
+        "gpt-5.2-codex-xhigh-fast",
+      ],
+      {
+        cwd: TOOLS_DIR,
+        env: {
+          ...process.env,
+          PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+        },
+        reject: false,
+      },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("headless invocation failed");
+    expect(stderr).toContain("ChatGPT account");
+    expect(stderr).toContain("aaa ralph models --provider codex");
+    expect(stderr).not.toContain("at invokeCodexHeadless");
+    expect(stderr).not.toContain("Bun v");
   });
 
   test("ralph build with missing subtasks shows error", async () => {
@@ -1797,6 +1900,56 @@ kill -s INT $$
     expect(stdout).toContain("improve");
   });
 
+  test("ralph calibrate intention --help includes --milestone option", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "calibrate", "intention", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--milestone");
+    expect(stdout).toContain("mutually exclusive");
+  });
+
+  test("ralph calibrate intention rejects --milestone with --subtasks", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "calibrate",
+        "intention",
+        "--milestone",
+        "nonexistent",
+        "--subtasks",
+        "custom.json",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).not.toBe(0);
+    expect(stderr).toContain("mutually exclusive");
+  });
+
+  test("ralph calibrate intention --milestone with nonexistent milestone errors", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "calibrate",
+        "intention",
+        "--milestone",
+        "nonexistent-milestone-xyz",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).not.toBe(0);
+    // Should mention the milestone is not found or list available milestones
+    expect(stderr.length).toBeGreaterThan(0);
+  });
+
   // Milestones command tests
   test("ralph milestones lists available milestones", async () => {
     const { exitCode, stdout } = await execa(
@@ -1844,6 +1997,26 @@ kill -s INT $$
       ["run", "dev", "ralph", "plan", "stories", "--milestone", "nonexistent"],
       { cwd: TOOLS_DIR, reject: false },
     );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("milestone not found: nonexistent");
+  });
+
+  test("ralph plan subtasks --milestone nonexistent --dry-run shows not found error", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "ralph",
+        "plan",
+        "subtasks",
+        "--milestone",
+        "nonexistent",
+        "--dry-run",
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
     expect(exitCode).toBe(1);
     expect(stderr).toContain("milestone not found: nonexistent");
   });
@@ -1978,7 +2151,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("milestone");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review roadmap --help shows options", async () => {
@@ -1988,7 +2165,11 @@ kill -s INT $$
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review gap --help shows gap subcommands", async () => {
@@ -2011,7 +2192,11 @@ kill -s INT $$
         { cwd: TOOLS_DIR },
       );
       expect(exitCode).toBe(0);
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review gap stories --help shows options", async () => {
@@ -2022,7 +2207,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("milestone");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review stories requires milestone option", async () => {
@@ -2063,7 +2252,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--subtasks");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review tasks --help shows options", async () => {
@@ -2074,7 +2267,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--story");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review tasks requires --story option", async () => {
@@ -2095,7 +2292,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--story");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review gap tasks requires --story option", async () => {
@@ -2116,7 +2317,11 @@ kill -s INT $$
       );
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--subtasks");
+      expect(stdout).toContain("--supervised");
       expect(stdout).toContain("--headless");
+      expect(stdout).toContain("--provider");
+      expect(stdout).toContain("--model");
+      expect(stdout).toContain("--dry-run");
     });
 
     test("ralph review gap subtasks requires --subtasks option", async () => {
@@ -2127,6 +2332,94 @@ kill -s INT $$
       );
       expect(exitCode).toBe(1);
       expect(stderr).toContain("required option '--subtasks <path>'");
+    });
+
+    test("ralph review tasks rejects --dry-run without --headless", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "review",
+          "tasks",
+          "--story",
+          "some-story.md",
+          "--dry-run",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("--dry-run requires --headless mode");
+    });
+
+    test("ralph review tasks rejects --supervised with --headless", async () => {
+      const { exitCode, stderr } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "review",
+          "tasks",
+          "--story",
+          "some-story.md",
+          "--supervised",
+          "--headless",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain(
+        "Cannot specify both --supervised and --headless",
+      );
+    });
+
+    test("ralph review tasks --headless shows review workflow event lines", async () => {
+      const storyPath = join(temporaryDirectory, "001-story.md");
+      writeFileSync(storyPath, "# Story\n\nReview workflow output contract\n");
+
+      const mockClaudePath = join(temporaryDirectory, "claude");
+      writeFileSync(
+        mockClaudePath,
+        `#!/bin/bash
+cat <<'JSON'
+[{"type":"result","result":"ok","duration_ms":9,"total_cost_usd":0.01,"session_id":"sess-review-flow"}]
+JSON
+`,
+        { mode: 0o755 },
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "review",
+          "tasks",
+          "--story",
+          storyPath,
+          "--headless",
+          "--provider",
+          "claude",
+        ],
+        {
+          cwd: TOOLS_DIR,
+          env: {
+            ...process.env,
+            PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+          },
+        },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain(
+        "[REVIEW] [START] Phase 1/2: starting tasks-review",
+      );
+      expect(stdout).toContain(
+        "[REVIEW] [DONE] Phase 2/2: completed tasks-review",
+      );
     });
   });
 
@@ -2406,6 +2699,123 @@ A test task for pre-check verification.
       expect(stdout).toContain("nothing to generate");
     });
 
+    test("plan subtasks --milestone auto-normalizes legacy top-level array queues", async () => {
+      const milestoneDirectory = join(
+        temporaryDirectory,
+        "docs/planning/milestones/legacy-covered",
+      );
+      const tasksDirectory = join(milestoneDirectory, "tasks");
+      mkdirSync(tasksDirectory, { recursive: true });
+
+      writeFileSync(
+        join(tasksDirectory, "TASK-001-legacy-task.md"),
+        "# TASK-001 Legacy Task\n\n## Description\nLegacy queue compatibility test.",
+      );
+
+      const legacyQueue = [
+        {
+          acceptanceCriteria: ["Legacy entry still respected"],
+          description: "Legacy format queue entry",
+          done: false,
+          filesToRead: [],
+          id: "SUB-001",
+          taskRef: "TASK-001-legacy-task",
+          title: "Legacy subtask",
+        },
+      ];
+      const subtasksPath = join(milestoneDirectory, "subtasks.json");
+      writeFileSync(subtasksPath, JSON.stringify(legacyQueue, null, 2));
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--milestone",
+          milestoneDirectory,
+          "--headless",
+        ],
+        { cwd: TOOLS_DIR, reject: false },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("already have subtasks");
+
+      const normalizedQueue = JSON.parse(readFileSync(subtasksPath, "utf8")) as
+        | { subtasks: Array<{ id: string; taskRef?: string }> }
+        | Array<unknown>;
+      expect(Array.isArray(normalizedQueue)).toBe(false);
+      expect("subtasks" in normalizedQueue).toBe(true);
+      if ("subtasks" in normalizedQueue) {
+        expect(normalizedQueue.subtasks).toHaveLength(1);
+        expect(normalizedQueue.subtasks[0]?.id).toBe("SUB-001");
+        expect(normalizedQueue.subtasks[0]?.taskRef).toBe(
+          "TASK-001-legacy-task",
+        );
+      }
+    });
+
+    test("plan subtasks --story fails early when no tasks link to the story", async () => {
+      const projectRoot = join(temporaryDirectory, "story-no-linked-tasks");
+      mkdirSync(join(projectRoot, ".git"), { recursive: true });
+
+      const milestoneDirectory = join(
+        projectRoot,
+        "docs/planning/milestones/feature-no-links",
+      );
+      const storiesDirectory = join(milestoneDirectory, "stories");
+      const tasksDirectory = join(milestoneDirectory, "tasks");
+      mkdirSync(storiesDirectory, { recursive: true });
+      mkdirSync(tasksDirectory, { recursive: true });
+
+      const storyPath = join(
+        storiesDirectory,
+        "002-STORY-configurable-structure-layers.md",
+      );
+      writeFileSync(
+        storyPath,
+        "## Story: Configurable structure layers\n\nAcceptance criteria...\n",
+      );
+      writeFileSync(
+        join(tasksDirectory, "001-TASK-other-story.md"),
+        [
+          "## Task: Unrelated task",
+          "",
+          "**Story:** [001-STORY-unrelated](../stories/001-STORY-unrelated.md)",
+          "",
+          "### Goal",
+          "Unrelated goal",
+        ].join("\n"),
+      );
+
+      const { exitCode, stderr, stdout } = await execa(
+        "bun",
+        [
+          CLI_ENTRY,
+          "ralph",
+          "plan",
+          "subtasks",
+          "--story",
+          storyPath,
+          "--headless",
+          "--provider",
+          "nope",
+        ],
+        { cwd: projectRoot, reject: false },
+      );
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain(
+        "No tasks linked to story '002-STORY-configurable-structure-layers'",
+      );
+      expect(stderr).toContain("Link tasks with a matching story reference");
+      expect(stderr).not.toContain("Unknown provider: nope");
+      expect(stdout).not.toContain("Invoking");
+    });
+
     // Note: Testing "partial coverage proceeds with filtered task list" requires Claude
     // to be available, which isn't possible in E2E tests. The pre-check logic is tested
     // thoroughly in unit tests (SUB-191). The key behaviors verified above are:
@@ -2587,12 +2997,15 @@ echo '[{"type":"result","result":"ok","duration_ms":12,"total_cost_usd":0.02,"se
       );
 
       expect(exitCode).toBe(0);
-      expect(stdout).toContain("Phase 1/4: starting generation");
+      expect(stdout).toContain("[PLAN] [START] Phase 1/4: starting generation");
       expect(stdout).toContain(
-        "Phase 2/4: provider run complete, verifying queue",
+        "[PLAN] [WAIT] Phase 2/4: provider run in progress",
       );
-      expect(stdout).toContain("Phase 3/4: queue verified");
-      expect(stdout).toContain("Phase 4/4: summary complete");
+      expect(stdout).toContain(
+        "[PLAN] [DONE] Phase 2/4: provider run complete, verifying queue",
+      );
+      expect(stdout).toContain("[PLAN] [DONE] Phase 3/4: queue verified");
+      expect(stdout).toContain("[PLAN] [DONE] Phase 4/4: summary complete");
       expect(stdout).toContain("Created");
       expect(stdout).toContain("(Total:");
       expect(stdout).toContain("Output:");
@@ -2603,6 +3016,72 @@ echo '[{"type":"result","result":"ok","duration_ms":12,"total_cost_usd":0.02,"se
       };
       expect(queueFile.subtasks.length).toBe(1);
       expect(queueFile.subtasks[0]?.id).toBe("SUB-001");
+    });
+
+    test("plan subtasks --headless auto-normalizes legacy top-level array output from provider", async () => {
+      const outputDirectory = join(temporaryDirectory, "headless-out-legacy");
+      mkdirSync(outputDirectory, { recursive: true });
+      const subtasksPath = join(outputDirectory, "subtasks.json");
+
+      const mockClaudePath = join(temporaryDirectory, "claude");
+      writeFileSync(
+        mockClaudePath,
+        `#!/bin/bash
+cat > "$OUTPUT_SUBTASKS_PATH" <<'JSON'
+[
+  {
+    "id": "SUB-001",
+    "title": "Legacy generated subtask",
+    "description": "Generated in legacy array format",
+    "taskRef": "TASK-001-test",
+    "done": false,
+    "acceptanceCriteria": ["Works"],
+    "filesToRead": []
+  }
+]
+JSON
+echo '[{"type":"result","result":"ok","duration_ms":12,"total_cost_usd":0.02,"session_id":"sess-legacy"}]'
+`,
+        { mode: 0o755 },
+      );
+
+      const { exitCode, stdout } = await execa(
+        "bun",
+        [
+          "run",
+          "dev",
+          "ralph",
+          "plan",
+          "subtasks",
+          "--text",
+          "Create queue",
+          "--headless",
+          "--output-dir",
+          outputDirectory,
+        ],
+        {
+          cwd: TOOLS_DIR,
+          env: {
+            ...process.env,
+            OUTPUT_SUBTASKS_PATH: subtasksPath,
+            PATH: `${temporaryDirectory}:${process.env.PATH ?? ""}`,
+          },
+          reject: false,
+        },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Phase 3/4: queue verified");
+
+      const normalizedQueue = JSON.parse(readFileSync(subtasksPath, "utf8")) as
+        | { subtasks: Array<{ id: string }> }
+        | Array<unknown>;
+      expect(Array.isArray(normalizedQueue)).toBe(false);
+      expect("subtasks" in normalizedQueue).toBe(true);
+      if ("subtasks" in normalizedQueue) {
+        expect(normalizedQueue.subtasks).toHaveLength(1);
+        expect(normalizedQueue.subtasks[0]?.id).toBe("SUB-001");
+      }
     });
   });
 });
@@ -4924,6 +5403,49 @@ describe("subtasks schema validation", () => {
 
       expect(isValid).toBe(true);
     }
+  });
+
+  test("subtask fragment schema validates bare array fragments", () => {
+    const queueSchemaPath = join(
+      CONTEXT_ROOT,
+      "docs/planning/schemas/subtasks.schema.json",
+    );
+    const fragmentSchemaPath = join(
+      CONTEXT_ROOT,
+      "docs/planning/schemas/subtask-fragment.schema.json",
+    );
+
+    const queueSchema = JSON.parse(readFileSync(queueSchemaPath, "utf8"));
+    const fragmentSchema = JSON.parse(readFileSync(fragmentSchemaPath, "utf8"));
+
+    const ajv = new Ajv2020({ allErrors: true, strict: false });
+    addFormats(ajv);
+    ajv.addSchema(queueSchema);
+    const validateFragment = ajv.compile(fragmentSchema);
+
+    const validFragment = [
+      {
+        acceptanceCriteria: ["Validation passes against fragment schema"],
+        description: "Example fragment entry",
+        done: false,
+        filesToRead: ["src/example.ts"],
+        id: "SUB-001",
+        taskRef: "001-example-task",
+        title: "Example fragment subtask",
+      },
+    ];
+
+    const isValidFragment = validateFragment(validFragment);
+    if (!isValidFragment) {
+      console.error(
+        "Fragment validation errors:",
+        JSON.stringify(validateFragment.errors, null, 2),
+      );
+    }
+    expect(isValidFragment).toBe(true);
+
+    const invalidWrappedFragment = { subtasks: validFragment };
+    expect(validateFragment(invalidWrappedFragment)).toBe(false);
   });
 });
 

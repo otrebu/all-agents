@@ -6,7 +6,7 @@
  * - #compdef aaa header for automatic loading
  * - _arguments with state machine for nested commands
  * - _describe for command descriptions
- * - Dynamic completions via `aaa __complete <type>`
+ * - Dynamic completions via `<invoked-command> __complete <type>`
  */
 export default function generateZshCompletion(): string {
   return `#compdef aaa
@@ -315,11 +315,7 @@ _aaa_ralph() {
                     _aaa_ralph_subtasks
                     ;;
                 calibrate)
-                    _arguments \\
-                        '--force[Skip approval]' \\
-                        '--review[Require approval]' \\
-                        '--dry-run[Preview execution plan without running]' \\
-                        '1:subcommand:(intention technical improve all)'
+                    _aaa_ralph_calibrate
                     ;;
                 archive)
                     _aaa_ralph_archive
@@ -327,6 +323,7 @@ _aaa_ralph() {
                 refresh-models)
                     _arguments \\
                         '--dry-run[Show what would be discovered without writing]' \\
+                        '--prune[Remove models not found in the refreshed provider set]' \\
                         '--provider[Discover models from specific provider only]:provider:_aaa_provider'
                     ;;
             esac
@@ -379,6 +376,7 @@ _aaa_ralph_plan() {
                         '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model' \\
+                        '--with-reviews[Run stories/tasks/subtasks review + gap checks before build]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--dry-run[Preview execution plan without running]'
                     ;;
@@ -395,6 +393,7 @@ _aaa_ralph_plan() {
                         '--from[Resume cascade from this level]:level:_aaa_cascade_target' \\
                         '--provider[AI provider]:provider:_aaa_provider' \\
                         '--model[Model to use]:model:_aaa_model' \\
+                        '--with-reviews[Run stories/tasks/subtasks review + gap checks before build]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--dry-run[Preview execution plan without running]'
                     ;;
@@ -412,6 +411,7 @@ _aaa_ralph_plan() {
                         '--size[Slice thickness]:size:(small medium large)' \\
                         '(-s --supervised)'{-s,--supervised}'[Supervised mode (default)]' \\
                         '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--with-reviews[Run stories/tasks/subtasks review + gap checks before build]' \\
                         '--cascade[Cascade to target level]:target:_aaa_cascade_target' \\
                         '--calibrate-every[Run calibration every N iterations]:number:' \\
                         '--validate-first[Run pre-build validation before cascading build]' \\
@@ -496,6 +496,69 @@ _aaa_ralph_subtasks() {
     esac
 }
 
+_aaa_ralph_calibrate() {
+    local -a subcommands
+    subcommands=(
+        'intention:Check for intention drift (code vs planning docs)'
+        'technical:Check for technical drift (code quality issues)'
+        'improve:Run self-improvement analysis on session logs'
+        'all:Run all calibration checks sequentially'
+    )
+
+    _arguments -C \\
+        '1: :->subcmd' \\
+        '*:: :->args'
+
+    case $state in
+        subcmd)
+            _describe 'subcommand' subcommands
+            ;;
+        args)
+            case $words[1] in
+                intention)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--dry-run[Preview execution plan without running]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--force[Skip approval]' \\
+                        '--review[Require approval]'
+                    ;;
+                technical)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--dry-run[Preview execution plan without running]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--force[Skip approval]' \\
+                        '--review[Require approval]'
+                    ;;
+                improve)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--force[Skip approval]' \\
+                        '--review[Require approval]'
+                    ;;
+                all)
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '--milestone[Target milestone]:milestone:_aaa_milestone_or_dir' \\
+                        '--dry-run[Preview execution plan without running]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--force[Skip approval]' \\
+                        '--review[Require approval]'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
 _aaa_ralph_archive() {
     local -a subcommands
     subcommands=(
@@ -548,10 +611,21 @@ _aaa_ralph_review() {
         args)
             case $words[1] in
                 stories)
-                    _arguments '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir'
+                    _arguments \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 roadmap)
-                    # No additional arguments
+                    _arguments \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 gap)
                     _aaa_ralph_review_gap
@@ -559,12 +633,20 @@ _aaa_ralph_review() {
                 tasks)
                     _arguments \\
                         '--story[Story path to review tasks for]:story:_aaa_story_or_file' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 subtasks)
                     _arguments \\
                         '--subtasks[Subtasks file path to review]:file:_files -g "*.json"' \\
-                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]'
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
             esac
             ;;
@@ -591,16 +673,39 @@ _aaa_ralph_review_gap() {
         args)
             case $words[1] in
                 roadmap)
-                    # Gap analysis is supervised-only (no headless)
+                    _arguments \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 stories)
-                    _arguments '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir'
+                    _arguments \\
+                        '--milestone[Milestone path]:milestone:_aaa_milestone_or_dir' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 tasks)
-                    _arguments '--story[Story path]:story:_aaa_story_or_file'
+                    _arguments \\
+                        '--story[Story path]:story:_aaa_story_or_file' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
                 subtasks)
-                    _arguments '--subtasks[Subtasks file path]:file:_files -g "*.json"'
+                    _arguments \\
+                        '--subtasks[Subtasks file path]:file:_files -g "*.json"' \\
+                        '(-s --supervised)'{-s,--supervised}'[Supervised mode: watch review]' \\
+                        '(-H --headless)'{-H,--headless}'[Headless mode: JSON output + logging]' \\
+                        '--provider[AI provider]:provider:_aaa_provider' \\
+                        '--model[Model to use]:model:_aaa_model' \\
+                        '--dry-run[Preview review invocation without running provider (requires --headless)]'
                     ;;
             esac
             ;;
@@ -633,10 +738,41 @@ _aaa_review() {
     esac
 }
 
+# Helper: resolve completion command from current invocation
+_aaa_completion_cmd() {
+    if [[ -n "\${words[1]}" ]]; then
+        print -r -- "\${words[1]}"
+    else
+        print -r -- "aaa"
+    fi
+}
+
+# Helper: invoke dynamic completion handler using active command path
+_aaa_complete() {
+    local completion_cmd="$(_aaa_completion_cmd)"
+    local output=""
+
+    output="$("$completion_cmd" __complete "$@" 2>/dev/null)"
+    if [[ -n "$output" ]]; then
+        print -r -- "$output"
+        return 0
+    fi
+
+    if [[ "$completion_cmd" != "aaa" ]]; then
+        output="$(aaa __complete "$@" 2>/dev/null)"
+        if [[ -n "$output" ]]; then
+            print -r -- "$output"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 # Helper: complete story names (dynamic) + .md files
 _aaa_story_or_file() {
     local -a stories
-    stories=(\${(f)"$(aaa __complete story 2>/dev/null)"})
+    stories=(\${(f)"$(_aaa_complete story)"})
     if (( \${#stories} )); then
         _describe 'story' stories
     fi
@@ -646,7 +782,7 @@ _aaa_story_or_file() {
 # Helper: complete milestone names (dynamic) + directories
 _aaa_milestone_or_dir() {
     local -a milestones
-    milestones=(\${(f)"$(aaa __complete milestone 2>/dev/null)"})
+    milestones=(\${(f)"$(_aaa_complete milestone)"})
     if (( \${#milestones} )); then
         _describe 'milestone' milestones
     fi
@@ -656,7 +792,7 @@ _aaa_milestone_or_dir() {
 # Helper: complete task names (dynamic) + .md files
 _aaa_task_or_file() {
     local -a tasks
-    tasks=(\${(f)"$(aaa __complete task 2>/dev/null)"})
+    tasks=(\${(f)"$(_aaa_complete task)"})
     if (( \${#tasks} )); then
         _describe 'task' tasks
     fi
@@ -666,7 +802,7 @@ _aaa_task_or_file() {
 # Helper: complete cascade targets
 _aaa_cascade_target() {
     local -a targets
-    targets=(\${(f)"$(aaa __complete cascade 2>/dev/null)"})
+    targets=(\${(f)"$(_aaa_complete cascade)"})
     if (( \${#targets} )); then
         _describe 'target' targets
     fi
@@ -675,7 +811,7 @@ _aaa_cascade_target() {
 # Helper: complete provider names
 _aaa_provider() {
     local -a providers
-    providers=(\${(f)"$(aaa __complete provider 2>/dev/null)"})
+    providers=(\${(f)"$(_aaa_complete provider)"})
     if (( \${#providers} )); then
         _describe 'provider' providers
     fi
@@ -688,18 +824,24 @@ _aaa_model() {
     # Extract --provider value from current command line
     local i=1
     while (( i < \${#words} )); do
-        if [[ "\${words[i]}" == "--provider" && i+1 -le \${#words} ]]; then
+        local provider_word="\${words[i]}"
+        if [[ "$provider_word" == "--provider" && i+1 -le \${#words} ]]; then
             provider_val="\${words[i+1]}"
             break
+        elif [[ "$provider_word" == --provider=* ]]; then
+            provider_val="\${provider_word#--provider=}"
+            if [[ -n "$provider_val" ]]; then
+                break
+            fi
         fi
         (( i++ ))
     done
 
     local raw
     if [[ -n "$provider_val" ]]; then
-        raw="$(aaa __complete model --provider "$provider_val" 2>/dev/null)"
+        raw="$(_aaa_complete model --provider "$provider_val")"
     else
-        raw="$(aaa __complete model 2>/dev/null)"
+        raw="$(_aaa_complete model)"
     fi
 
     # Parse tab-separated "id\\tcostHint" into zsh completion descriptions
@@ -722,7 +864,7 @@ _aaa_model() {
 # Helper: complete session IDs
 _aaa_session_id() {
     local -a session_ids
-    session_ids=(\${(f)"$(aaa __complete session-id 2>/dev/null)"})
+    session_ids=(\${(f)"$(_aaa_complete session-id)"})
     if (( \${#session_ids} )); then
         _describe 'session-id' session_ids
     fi

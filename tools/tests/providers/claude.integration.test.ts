@@ -39,6 +39,11 @@ function createMockProcess(): {
     pid: number;
     signalCode: null | string;
     stderr: ReadableStream<Uint8Array>;
+    stdin: {
+      end: ReturnType<typeof mock>;
+      flush: ReturnType<typeof mock>;
+      write: ReturnType<typeof mock>;
+    };
     stdout: ReadableStream<Uint8Array>;
   };
   resolveExited: (code: number) => void;
@@ -58,6 +63,7 @@ function createMockProcess(): {
     pid: 99_999,
     signalCode: null as null | string,
     stderr: stderrCtrl.stream,
+    stdin: { end: mock(() => {}), flush: mock(() => {}), write: mock(() => 0) },
     stdout: stdoutCtrl.stream,
   };
 
@@ -186,10 +192,10 @@ describe("subprocess spawning", () => {
 
     await invokeClaudeHeadlessAsync({ prompt: "test prompt" });
 
+    // Prompt is piped via stdin, not passed as a CLI argument
     expect(capturedArguments).toEqual([
       "claude",
       "-p",
-      "test prompt",
       "--dangerously-skip-permissions",
       "--output-format",
       "json",
@@ -198,7 +204,7 @@ describe("subprocess spawning", () => {
     expect(capturedOptions).toEqual(
       expect.objectContaining({
         stderr: "pipe",
-        stdin: "ignore",
+        stdin: "pipe",
         stdout: "pipe",
       }),
     );

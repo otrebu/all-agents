@@ -55,6 +55,8 @@ interface CodexConfig extends BaseProviderConfig {
 /** Cursor agent CLI configuration */
 interface CursorConfig extends BaseProviderConfig {
   model?: string;
+  /** Disable session payload persistence for one-off utility calls (e.g. summaries). */
+  persistSession?: boolean;
   provider: "cursor";
 }
 

@@ -19,4 +19,4 @@ do
 done
 
 # Keep CLI binary in sync before pushing.
-bun --cwd tools run build
+bun --cwd tools build

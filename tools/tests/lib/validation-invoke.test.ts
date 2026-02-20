@@ -1,10 +1,8 @@
 import type { ValidationContext } from "@tools/commands/ralph/validation";
 
+import * as ralphConfig from "@tools/commands/ralph/config";
 import * as summaryProvider from "@tools/commands/ralph/providers/summary";
-import {
-  validateSubtask,
-  VALIDATION_TIMEOUT_MS,
-} from "@tools/commands/ralph/validation";
+import { validateSubtask } from "@tools/commands/ralph/validation";
 import { describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -50,17 +48,19 @@ function createValidationContextFixture(): {
 }
 
 describe("validateSubtask", () => {
-  test("returns aligned with timed out warning near timeout threshold", async () => {
+  test("returns misaligned with timed out reason near timeout threshold", async () => {
     const fixture = createValidationContextFixture();
     const invokeSpy = spyOn(
       summaryProvider,
       "invokeProviderSummary",
     ).mockResolvedValue(null);
+    const timeoutSpy = spyOn(ralphConfig, "loadTimeoutConfig").mockReturnValue({
+      graceSeconds: 5,
+      hardMinutes: 0,
+      stallMinutes: 10,
+    });
     const logSpy = spyOn(console, "log").mockImplementation(() => {});
     const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-    const nowSpy = spyOn(Date, "now")
-      .mockImplementationOnce(() => 10_000)
-      .mockImplementationOnce(() => 69_500);
 
     try {
       const result = await validateSubtask(
@@ -69,9 +69,11 @@ describe("validateSubtask", () => {
         { provider: "claude" },
       );
 
-      expect(result).toEqual({ aligned: true });
+      expect(result.aligned).toBe(false);
+      expect(result.reason).toMatch(/Validation timed out after \d+m/);
       expect(invokeSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ timeoutMs: VALIDATION_TIMEOUT_MS }),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- bun:test expect.any returns any
+        expect.objectContaining({ timeoutMs: expect.any(Number) }),
       );
       expect(logSpy).toHaveBeenCalledWith(
         "[Validation] Validating SUB-403: Implement validateSubtask",
@@ -80,7 +82,7 @@ describe("validateSubtask", () => {
         expect.stringContaining("Timed out"),
       );
     } finally {
-      nowSpy.mockRestore();
+      timeoutSpy.mockRestore();
       warnSpy.mockRestore();
       logSpy.mockRestore();
       invokeSpy.mockRestore();
@@ -88,16 +90,18 @@ describe("validateSubtask", () => {
     }
   });
 
-  test("returns aligned with invocation failed warning before timeout threshold", async () => {
+  test("returns misaligned with invocation failed reason before timeout threshold", async () => {
     const fixture = createValidationContextFixture();
     const invokeSpy = spyOn(
       summaryProvider,
       "invokeProviderSummary",
     ).mockResolvedValue(null);
+    const timeoutSpy = spyOn(ralphConfig, "loadTimeoutConfig").mockReturnValue({
+      graceSeconds: 5,
+      hardMinutes: 60,
+      stallMinutes: 10,
+    });
     const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
-    const nowSpy = spyOn(Date, "now")
-      .mockImplementationOnce(() => 1000)
-      .mockImplementationOnce(() => 1500);
 
     try {
       const result = await validateSubtask(
@@ -106,12 +110,15 @@ describe("validateSubtask", () => {
         { provider: "claude" },
       );
 
-      expect(result).toEqual({ aligned: true });
+      expect(result).toEqual({
+        aligned: false,
+        reason: "Validation invocation failed",
+      });
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining("Invocation failed"),
       );
     } finally {
-      nowSpy.mockRestore();
+      timeoutSpy.mockRestore();
       warnSpy.mockRestore();
       invokeSpy.mockRestore();
       fixture.cleanup();

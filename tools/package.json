@@ -1,6 +1,6 @@
 {
   "name": "all-agents-tools",
-  "version": "1.22.1",
+  "version": "1.22.0",
   "type": "module",
   "scripts": {
     "build": "bun build --compile --outfile ../bin/aaa ./src/cli.ts",
@@ -37,8 +37,8 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.4.1",
-    "@commitlint/config-conventional": "^20.4.1",
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",

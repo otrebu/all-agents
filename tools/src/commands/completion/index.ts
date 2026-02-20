@@ -187,10 +187,44 @@ function getFilteredModelCompletions(
   if (providerArgument === undefined) {
     return getModelCompletions();
   }
+
   if (providerArgument in REGISTRY) {
-    return getModelCompletionsForProvider(providerArgument as ProviderType);
+    const providerModels = getModelCompletionsForProvider(
+      providerArgument as ProviderType,
+    );
+    if (providerModels.length > 0) {
+      return providerModels;
+    }
   }
-  return [];
+
+  // Fallback avoids empty completion sets when provider lookup fails or
+  // provider-specific registry data is currently unavailable.
+  return getModelCompletions();
+}
+
+/** Parse provider argument from completion argv (supports --provider and --provider=value) */
+function getProviderArgumentFromCompletionArgv(
+  argv: Array<string>,
+): string | undefined {
+  const providerIndex = argv.indexOf("--provider");
+  if (providerIndex !== -1) {
+    const provider = argv[providerIndex + 1];
+    if (provider !== undefined && !provider.startsWith("-")) {
+      return provider;
+    }
+  }
+
+  for (const argument of argv) {
+    if (argument.startsWith("--provider=")) {
+      const provider = argument.slice("--provider=".length);
+      if (provider !== "") {
+        return provider;
+      }
+      return undefined;
+    }
+  }
+
+  return undefined;
 }
 
 /** Get root command for full command tree introspection */
@@ -265,9 +299,9 @@ function handleCompletion(): void {
       }
       case "model": {
         // Read --provider from argv to filter models
-        const providerIndex = process.argv.indexOf("--provider");
-        const providerArgument =
-          providerIndex === -1 ? undefined : process.argv[providerIndex + 1];
+        const providerArgument = getProviderArgumentFromCompletionArgv(
+          process.argv,
+        );
 
         const modelIds = getFilteredModelCompletions(providerArgument);
 

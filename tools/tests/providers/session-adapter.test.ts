@@ -4,6 +4,10 @@ import {
   resolveSessionForProvider,
 } from "@tools/commands/ralph/providers/session-adapter";
 import {
+  cacheCodexSessionPayload,
+  clearCodexSessionPayloadsForTests,
+} from "@tools/commands/ralph/providers/session-codex";
+import {
   afterAll,
   afterEach,
   beforeEach,
@@ -37,6 +41,7 @@ function makeSpawnSyncResult(
 describe("provider session adapters", () => {
   const originalSpawnSync = Bun.spawnSync;
   const originalClaudeConfigDirectory = process.env.CLAUDE_CONFIG_DIR;
+  const originalCursorConfigDirectory = process.env.CURSOR_CONFIG_DIR;
 
   afterAll(() => {
     Bun.spawnSync = originalSpawnSync;
@@ -44,6 +49,12 @@ describe("provider session adapters", () => {
       delete process.env.CLAUDE_CONFIG_DIR;
     } else {
       process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDirectory;
+    }
+
+    if (originalCursorConfigDirectory === undefined) {
+      delete process.env.CURSOR_CONFIG_DIR;
+    } else {
+      process.env.CURSOR_CONFIG_DIR = originalCursorConfigDirectory;
     }
   });
 
@@ -226,15 +237,207 @@ describe("provider session adapters", () => {
     expect(metrics.tokenUsage).toEqual({ contextTokens: 75, outputTokens: 50 });
   });
 
+  test("cursor adapter resolves transcript payload and extracts metrics", () => {
+    const testRoot = mkdtempSync(join(tmpdir(), "aaa-session-cursor-"));
+    const repoRoot = join(testRoot, "repo");
+    const cursorConfigDirectory = join(testRoot, ".cursor-test");
+    const encodedPath = repoRoot
+      .replaceAll("/", "-")
+      .replaceAll(".", "-")
+      .replace(/^-+/u, "");
+    const transcriptDirectory = join(
+      cursorConfigDirectory,
+      "projects",
+      encodedPath,
+      "agent-transcripts",
+    );
+    const sessionId = "cursor-session-001";
+    const transcriptPath = join(transcriptDirectory, `${sessionId}.txt`);
+
+    mkdirSync(repoRoot, { recursive: true });
+    mkdirSync(transcriptDirectory, { recursive: true });
+
+    const payload = [
+      `{"type":"system","session_id":"${sessionId}","timestamp_ms":1000}`,
+      '{"type":"tool_call","subtype":"started","tool_call":{"writeToolCall":{"args":{"path":"src/new.ts"}}},"timestamp_ms":1100}',
+      `{"type":"tool_call","subtype":"started","tool_call":{"editToolCall":{"args":{"filePath":"${repoRoot}/src/existing.ts"}}},"timestamp_ms":1200}`,
+      `{"type":"result","duration_ms":3000,"session_id":"${sessionId}","usage":{"input_tokens":200,"output_tokens":30,"cache_read":50},"timestamp_ms":4000}`,
+    ].join("\n");
+    writeFileSync(transcriptPath, payload, "utf8");
+
+    process.env.CURSOR_CONFIG_DIR = cursorConfigDirectory;
+
+    try {
+      const resolved = resolveSessionForProvider("cursor", sessionId, repoRoot);
+      expect(resolved).not.toBeNull();
+
+      if (resolved === null) {
+        throw new Error("expected resolved cursor session");
+      }
+
+      const metrics = extractSessionMetricsForProvider(
+        "cursor",
+        resolved,
+        repoRoot,
+      );
+
+      expect(metrics.durationMs).toBe(3000);
+      expect(metrics.toolCalls).toBe(2);
+      expect(metrics.filesChanged).toContain("src/new.ts");
+      expect(metrics.filesChanged).toContain("src/existing.ts");
+      expect(metrics.tokenUsage).toEqual({
+        contextTokens: 250,
+        outputTokens: 30,
+      });
+
+      const discovered = discoverRecentSessionForProvider(
+        "cursor",
+        Date.now() - 60_000,
+        repoRoot,
+      );
+      expect(discovered?.sessionId).toBe(sessionId);
+    } finally {
+      if (originalCursorConfigDirectory === undefined) {
+        delete process.env.CURSOR_CONFIG_DIR;
+      } else {
+        process.env.CURSOR_CONFIG_DIR = originalCursorConfigDirectory;
+      }
+      rmSync(testRoot, { force: true, recursive: true });
+    }
+  });
+
+  test("cursor adapter handles alternate tool_call shapes and nested usage cache", () => {
+    const testRoot = mkdtempSync(join(tmpdir(), "aaa-session-cursor-alt-"));
+    const repoRoot = join(testRoot, "repo");
+    const encodedPath = repoRoot
+      .replaceAll("/", "-")
+      .replaceAll(".", "-")
+      .replace(/^-+/u, "");
+    const sessionDirectory = join(
+      tmpdir(),
+      "aaa-ralph",
+      "cursor-sessions",
+      encodedPath,
+    );
+    const sessionId = "cursor-session-alt-001";
+    const sessionPath = join(sessionDirectory, `${sessionId}.jsonl`);
+
+    mkdirSync(repoRoot, { recursive: true });
+    mkdirSync(sessionDirectory, { recursive: true });
+
+    const payload = [
+      `{"type":"system","session_id":"${sessionId}","timestamp_ms":4000}`,
+      '{"type":"tool_call","subtype":"started","tool_call":{"tool":"edit","input":{"targetPath":"src/direct.ts"}},"timestamp_ms":1000}',
+      `{"type":"tool_call","subtype":"started","tool_call":{"writeToolCall":{"args":{"filePath":"${repoRoot}/src/nested.ts"}}},"timestamp_ms":2000}`,
+      `{"type":"result","session_id":"${sessionId}","usage":{"input_tokens":20,"output_tokens":5,"cache":{"read":3,"write":2}},"timestamp_ms":3000}`,
+    ].join("\n");
+    writeFileSync(sessionPath, payload, "utf8");
+
+    try {
+      const resolved = resolveSessionForProvider("cursor", sessionId, repoRoot);
+      expect(resolved).not.toBeNull();
+
+      if (resolved === null) {
+        throw new Error("expected resolved cursor session");
+      }
+
+      const metrics = extractSessionMetricsForProvider(
+        "cursor",
+        resolved,
+        repoRoot,
+      );
+
+      expect(metrics.durationMs).toBe(3000);
+      expect(metrics.toolCalls).toBe(2);
+      expect(metrics.filesChanged).toContain("src/direct.ts");
+      expect(metrics.filesChanged).toContain("src/nested.ts");
+      expect(metrics.tokenUsage).toEqual({
+        contextTokens: 25,
+        outputTokens: 5,
+      });
+    } finally {
+      rmSync(sessionPath, { force: true });
+      rmSync(testRoot, { force: true, recursive: true });
+    }
+  });
+
   test("unsupported providers degrade to null/default metrics", () => {
     const discovered = discoverRecentSessionForProvider(
-      "codex",
+      "cursor",
       Date.now(),
       "/tmp/repo",
     );
     expect(discovered).toBeNull();
 
-    const resolved = resolveSessionForProvider("codex", "ses_123", "/tmp/repo");
+    const resolved = resolveSessionForProvider(
+      "cursor",
+      "ses_123",
+      "/tmp/repo",
+    );
     expect(resolved).toBeNull();
+  });
+
+  test("codex adapter resolves cached payload and extracts metrics", () => {
+    const repoRoot = "/tmp/codex-repo";
+    const sessionId = "thread-codex-123";
+    const payload = [
+      '{"type":"thread.started","thread_id":"thread-codex-123","timestamp":1010}',
+      '{"type":"text","output":"Done","timestamp":1200}',
+      '{"type":"turn.completed","timestamp":2010,"part":{"usage":{"input":42,"output":11,"reasoning":7,"cache_read":3,"cache_write":1}}}',
+    ].join("\n");
+
+    clearCodexSessionPayloadsForTests();
+    cacheCodexSessionPayload(sessionId, payload, repoRoot);
+
+    const discovered = discoverRecentSessionForProvider(
+      "codex",
+      Date.now(),
+      repoRoot,
+    );
+    expect(discovered).not.toBeNull();
+    expect(discovered?.sessionId).toBe(sessionId);
+
+    const resolved = resolveSessionForProvider("codex", sessionId, repoRoot);
+    expect(resolved).not.toBeNull();
+
+    if (resolved === null) {
+      throw new Error("expected resolved codex session");
+    }
+
+    const metrics = extractSessionMetricsForProvider(
+      "codex",
+      resolved,
+      repoRoot,
+    );
+    expect(metrics.durationMs).toBe(1000);
+    expect(metrics.tokenUsage).toEqual({ contextTokens: 42, outputTokens: 11 });
+  });
+
+  test("codex adapter resolves persisted payload after in-memory cache is cleared", () => {
+    const repoRoot = "/tmp/codex-repo-persist";
+    const sessionId = "thread-codex-persist";
+    const payload = [
+      '{"type":"thread.started","thread_id":"thread-codex-persist","timestamp":1010}',
+      '{"type":"turn.completed","timestamp":2010,"part":{"usage":{"input":17,"output":5,"cache_read":2,"cache_write":0}}}',
+    ].join("\n");
+
+    clearCodexSessionPayloadsForTests();
+    cacheCodexSessionPayload(sessionId, payload, repoRoot);
+    clearCodexSessionPayloadsForTests();
+
+    const resolved = resolveSessionForProvider("codex", sessionId, repoRoot);
+    expect(resolved).not.toBeNull();
+
+    if (resolved === null) {
+      throw new Error("expected resolved codex session");
+    }
+
+    const metrics = extractSessionMetricsForProvider(
+      "codex",
+      resolved,
+      repoRoot,
+    );
+    expect(metrics.durationMs).toBe(1000);
+    expect(metrics.tokenUsage).toEqual({ contextTokens: 17, outputTokens: 5 });
   });
 });

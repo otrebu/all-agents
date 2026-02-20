@@ -51,14 +51,56 @@ describe("__complete model", () => {
     expect(stdout).not.toContain("claude-opus-4-6\t");
   });
 
-  test("returns empty output for unknown provider", async () => {
+  test("returns only Cursor model IDs with --provider cursor", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
-      ["run", "dev", "__complete", "model", "--provider", "unknown-provider"],
+      ["run", "dev", "__complete", "model", "--provider", "cursor"],
       { cwd: TOOLS_DIR },
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toBe("");
+    expect(stdout).toContain("gpt-5.3-codex");
+    expect(stdout).toContain("sonnet-4.5");
+    // Should NOT contain OpenCode/Claude IDs
+    expect(stdout).not.toContain("openai/");
+    expect(stdout).not.toContain("claude-sonnet-4-5\t");
+  });
+
+  test("returns Codex-compatible model IDs with --provider codex", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "__complete", "model", "--provider", "codex"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("openai/gpt-5.2-codex");
+    expect(stdout).toContain("openai/gpt-5.3-codex");
+    expect(stdout).toContain("openai/gpt-5.3-codex-spark");
+    expect(stdout).not.toContain("claude-sonnet-4-5\t");
+  });
+
+  test("supports --provider=cursor syntax for model completion", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "__complete", "model", "--provider=cursor"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("gpt-5.3-codex");
+    expect(stdout).not.toContain("openai/");
+  });
+
+  test("falls back to all model IDs for unknown provider", async () => {
+    const [allModelsResult, unknownProviderResult] = await Promise.all([
+      execa("bun", ["run", "dev", "__complete", "model"], { cwd: TOOLS_DIR }),
+      execa(
+        "bun",
+        ["run", "dev", "__complete", "model", "--provider", "unknown-provider"],
+        { cwd: TOOLS_DIR },
+      ),
+    ]);
+
+    expect(unknownProviderResult.exitCode).toBe(0);
+    expect(unknownProviderResult.stdout).toBe(allModelsResult.stdout);
   });
 
   test("includes cost hints in tab-separated format", async () => {
@@ -130,12 +172,17 @@ describe("shell scripts include --provider and --model", () => {
     // ralph build flags should include --provider and --model
     expect(stdout).toContain("--provider");
     expect(stdout).toContain("--model");
-    expect(stdout).toContain("aaa __complete provider");
-    // bash uses variable interpolation for model: aaa __complete $model_args
-    expect(stdout).toContain("aaa __complete $model_args");
+    expect(stdout).toMatch(/local completion_cmd="\$\{COMP_WORDS\[0\]\}"/);
+    expect(stdout).toContain('"$completion_cmd" __complete "$@" 2>/dev/null');
+    expect(stdout).toContain(
+      "local models=$(_aaa_complete $model_args | cut -f1)",
+    );
     expect(stdout).toContain("vision)");
     expect(stdout).toContain(
       'COMPREPLY=($(compgen -W "--provider --model" -- "$cur"))',
+    );
+    expect(stdout).toContain(
+      "--milestone -s --supervised -H --headless --force --review --from --provider --model --with-reviews --cascade",
     );
     expect(stdout).toContain(
       "--force --review --from --cascade --provider --model",
@@ -150,8 +197,14 @@ describe("shell scripts include --provider and --model", () => {
     expect(stdout).toContain("--model");
     expect(stdout).toContain("_aaa_provider");
     expect(stdout).toContain("_aaa_model");
+    expect(stdout).toContain("_aaa_completion_cmd()");
+    expect(stdout).toContain("_aaa_complete()");
+    expect(stdout).toContain(
+      'raw="$(_aaa_complete model --provider "$provider_val")"',
+    );
     expect(stdout).toContain("vision)");
     expect(stdout).toContain("roadmap)");
+    expect(stdout).toContain("stories)");
     expect(stdout).toContain(
       "--from[Resume cascade from this level]:level:_aaa_cascade_target",
     );
@@ -166,18 +219,38 @@ describe("shell scripts include --provider and --model", () => {
     // fish uses -l for long options: "-l provider" = "--provider"
     expect(stdout).toContain("-l provider");
     expect(stdout).toContain("-l model");
-    expect(stdout).toContain("aaa __complete provider");
-    expect(stdout).toContain("aaa __complete model");
-    expect(stdout).toContain("aaa __complete model --provider");
+    expect(stdout).toContain("function __fish_aaa_completion_cmd");
+    expect(stdout).toContain("function __fish_aaa_complete");
+    expect(stdout).toContain("__fish_aaa_complete provider");
+    expect(stdout).toContain(
+      '__fish_aaa_complete model --provider "$provider"',
+    );
     expect(stdout).toContain("__fish_aaa_model_completions");
     expect(stdout).toContain("__fish_aaa_ralph_plan_vision");
     expect(stdout).toContain("__fish_aaa_ralph_plan_roadmap");
+    expect(stdout).toContain("__fish_aaa_ralph_plan_stories");
     expect(stdout).toContain(
       "__fish_aaa_ralph_plan_roadmap -l provider -d 'AI provider'",
     );
     expect(stdout).toContain(
       "__fish_aaa_using_subcommand review' -l model -d 'Model to use' -xa '(__fish_aaa_model_completions)'",
     );
+  });
+
+  test("shell scripts support --provider=<value> model filtering", async () => {
+    const [bashResult, zshResult, fishResult] = await Promise.all([
+      execa("bun", ["run", "dev", "completion", "bash"], { cwd: TOOLS_DIR }),
+      execa("bun", ["run", "dev", "completion", "zsh"], { cwd: TOOLS_DIR }),
+      execa("bun", ["run", "dev", "completion", "fish"], { cwd: TOOLS_DIR }),
+    ]);
+
+    expect(bashResult.stdout).toContain(
+      '[[ "$provider_word" == --provider=* ]]',
+    );
+    expect(zshResult.stdout).toContain(
+      '[[ "$provider_word" == --provider=* ]]',
+    );
+    expect(fishResult.stdout).toContain("string match -q -- '--provider=*'");
   });
 });
 
@@ -189,14 +262,19 @@ describe("ralph --dry-run completion entries", () => {
 
     const previewCount =
       stdout.split("Preview execution plan without running").length - 1;
-    expect(previewCount).toBe(6);
+    // build(1) + plan roadmap/stories/tasks/subtasks(4) + calibrate intention/technical/all(3) = 8
+    expect(previewCount).toBe(8);
 
     expect(stdout).toContain("build)");
-    expect(stdout).toContain("calibrate)");
     expect(stdout).toContain("roadmap)");
     expect(stdout).toContain("stories)");
     expect(stdout).toContain("tasks)");
     expect(stdout).toContain("subtasks)");
+    // calibrate subcommands have per-subcommand dry-run
+    expect(stdout).toContain("_aaa_ralph_calibrate");
+    expect(stdout).toContain("intention)");
+    expect(stdout).toContain("technical)");
+    expect(stdout).toContain("all)");
   });
 
   test("fish includes preview dry-run entries for build, plan, and calibrate", async () => {
@@ -208,14 +286,17 @@ describe("ralph --dry-run completion entries", () => {
 
     const previewCount =
       stdout.split("Preview execution plan without running").length - 1;
-    expect(previewCount).toBe(6);
+    // build(1) + plan roadmap/stories/tasks/subtasks(4) + calibrate intention/technical/all(3) = 8
+    expect(previewCount).toBe(8);
 
     expect(stdout).toContain("__fish_aaa_using_subsubcommand ralph build");
     expect(stdout).toContain("__fish_aaa_ralph_plan_roadmap");
     expect(stdout).toContain("__fish_aaa_ralph_plan_stories");
     expect(stdout).toContain("__fish_aaa_ralph_plan_tasks");
     expect(stdout).toContain("__fish_aaa_ralph_plan_subtasks");
-    expect(stdout).toContain("__fish_aaa_using_subsubcommand ralph calibrate");
+    expect(stdout).toContain("__fish_aaa_ralph_calibrate_intention");
+    expect(stdout).toContain("__fish_aaa_ralph_calibrate_technical");
+    expect(stdout).toContain("__fish_aaa_ralph_calibrate_all");
   });
 
   test("keeps existing non-ralph dry-run completion descriptions unchanged", async () => {

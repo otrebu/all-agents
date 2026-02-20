@@ -4,15 +4,32 @@
  * Verifies the --provider flag is recognized by both
  * ralph build and review commands.
  */
-
-import { getContextRoot } from "@tools/utils/paths";
 import { describe, expect, test } from "bun:test";
 import { execa } from "execa";
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const TOOLS_DIR = join(getContextRoot(), "tools");
+const TOOLS_DIR = join(fileURLToPath(new URL("../..", import.meta.url)));
+
+function createTemporaryCodexBinary(): {
+  cleanup: () => void;
+  directory: string;
+} {
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), "aaa-codex-bin-"));
+  const binaryPath = join(temporaryDirectory, "codex");
+
+  writeFileSync(binaryPath, "#!/usr/bin/env bash\nexit 0\n", "utf8");
+  chmodSync(binaryPath, 0o755);
+
+  return {
+    cleanup: () => {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    },
+    directory: temporaryDirectory,
+  };
+}
 
 function createTemporaryOpencodeBinary(): {
   cleanup: () => void;
@@ -97,6 +114,7 @@ describe("--provider CLI flag", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("--provider");
     expect(stdout).toContain("--model");
+    expect(stdout).toContain("--with-reviews");
   });
 
   test("ralph plan subtasks --help shows --provider and --model options", async () => {
@@ -108,12 +126,25 @@ describe("--provider CLI flag", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("--provider");
     expect(stdout).toContain("--model");
+    expect(stdout).toContain("--with-reviews");
   });
 
   test("ralph plan tasks --help shows --provider and --model options", async () => {
     const { exitCode, stdout } = await execa(
       "bun",
       ["run", "dev", "ralph", "plan", "tasks", "--help"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--provider");
+    expect(stdout).toContain("--model");
+    expect(stdout).toContain("--with-reviews");
+  });
+
+  test("ralph review tasks --help shows --provider and --model options", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "review", "tasks", "--help"],
       { cwd: TOOLS_DIR, reject: false },
     );
     expect(exitCode).toBe(0);
@@ -246,8 +277,9 @@ describe("--provider CLI flag", () => {
     }
   });
 
-  test("ralph build fails fast for providers not enabled in runtime", async () => {
+  test("ralph build fails with TTY guidance for codex supervised mode", async () => {
     const fixture = createTemporarySubtasksFile();
+    const fakeCodex = createTemporaryCodexBinary();
 
     try {
       const { exitCode, stderr } = await execa(
@@ -259,16 +291,36 @@ describe("--provider CLI flag", () => {
           "build",
           "--provider",
           "codex",
-          "--headless",
           "--subtasks",
           fixture.path,
         ],
-        { cwd: TOOLS_DIR, reject: false },
+        {
+          cwd: TOOLS_DIR,
+          env: {
+            ...process.env,
+            PATH: `${fakeCodex.directory}:${process.env.PATH ?? ""}`,
+          },
+          reject: false,
+        },
       );
       expect(exitCode).not.toBe(0);
-      expect(stderr).toContain("not enabled in this Ralph runtime");
+      expect(stderr).toContain("requires an interactive TTY");
+      expect(stderr).toContain("--headless");
     } finally {
       fixture.cleanup();
+      fakeCodex.cleanup();
     }
+  });
+
+  test("ralph models --provider codex includes codex model IDs", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "ralph", "models", "--provider", "codex", "--json"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('"models"');
+    expect(stdout).toContain('"openai/gpt-5.2-codex"');
+    expect(stdout).toContain('"github-copilot/gpt-5.2-codex"');
   });
 });

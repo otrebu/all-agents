@@ -23,6 +23,10 @@ Find all tasks linked to the story and generate subtasks for each.
 For subtask schema, size guidelines, ID generation, validation checklist:
 → See @context/workflows/ralph/planning/subtask-spec.md
 
+For output shape validation:
+- Fragment arrays (`.subtasks-task-*.json`): @docs/planning/schemas/subtask-fragment.schema.json
+- Canonical queue (`subtasks.json`): @docs/planning/schemas/subtasks.schema.json
+
 ## Process
 
 ### 1. Discover Tasks
@@ -81,7 +85,7 @@ For each task, use the Task tool:
 ```json
 {
   "subagent_type": "general-purpose",
-  "prompt": "Generate subtasks for task at: <task-path>\n\nStarting subtask ID: SUB-<N>\nMilestone: <milestone>\nSizing mode: <small|medium|large>\n\nRead the task file, explore the codebase to understand context, and generate subtasks following the schema in context/workflows/ralph/planning/subtask-spec.md.\n\nIMPORTANT: If the task file has a 'Related Documentation' section listing @context/ paths, include those paths in each subtask's filesToRead array so the builder agent has access to library patterns and conventions.\n\nIMPORTANT OUTPUT INSTRUCTION:\nWrite the subtasks as a bare JSON array to:\n<milestone-dir>/.subtasks-task-<task-num>.json\n\nThe file must contain ONLY a JSON array of subtask objects (no wrapper object).\nDo NOT call appendSubtasksToFile() or saveSubtasksFile(); those are TypeScript functions, not CLI tools.\n\nApply the AC Quality Gate and 4-question vertical slice test from subtask-spec.md.",
+  "prompt": "Generate subtasks for task at: <task-path>\n\nStarting subtask ID: SUB-<N>\nMilestone: <milestone>\nSizing mode: <small|medium|large>\n\nRead the task file, explore the codebase to understand context, and generate subtasks following the schema in context/workflows/ralph/planning/subtask-spec.md.\n\nIMPORTANT: If the task file has a 'Related Documentation' section listing @context/ paths, include those paths in each subtask's filesToRead array so the builder agent has access to library patterns and conventions.\n\nIMPORTANT OUTPUT INSTRUCTION:\nWrite the subtasks as a bare JSON array to:\n<milestone-dir>/.subtasks-task-<task-num>.json\n\nThe file must contain ONLY a JSON array of subtask objects (no wrapper object).\nValidate this fragment against: docs/planning/schemas/subtask-fragment.schema.json\nDo NOT wrap as { \"subtasks\": [...] } in fragment files.\nDo NOT call appendSubtasksToFile() or saveSubtasksFile(); those are TypeScript functions, not CLI tools.\n\nApply the AC Quality Gate and 4-question vertical slice test from subtask-spec.md.",
   "description": "Generate subtasks for <task-id>"
 }
 ```
@@ -103,6 +107,9 @@ Do NOT spawn agents sequentially - that defeats the purpose.
 
 The CLI automatically merges `.subtasks-task-*.json` fragment files into canonical
 `subtasks.json` after subagents finish.
+
+Canonical `subtasks.json` uses object shape `{ "subtasks": [ ... ] }`.
+Fragments stay as bare arrays and are never written directly as canonical queue files.
 
 You do **not** need to merge fragments manually in the orchestrator prompt.
 
@@ -155,6 +162,7 @@ Before spawning agents, verify:
 - [ ] Story exists and has linked tasks (for `--story`)
 - [ ] Tasks directory has .md files
 - [ ] Starting ID is calculated correctly from the target milestone queue only
+- [ ] Subagent output target is fragment array format (`subtask-fragment.schema.json`), not canonical queue wrapper
 
 ## CLI Invocation
 

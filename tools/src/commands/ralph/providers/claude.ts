@@ -122,14 +122,11 @@ const CLAUDE_FAILURE_REASON_RULES: Array<{
 /**
  * Build Claude headless arguments with optional model.
  */
-function buildClaudeHeadlessArguments(
-  prompt: string,
-  model?: string,
-): Array<string> {
+function buildClaudeHeadlessArguments(model?: string): Array<string> {
+  // Prompt is piped via stdin to avoid OS argument size limits (E2BIG).
   const args = [
     "claude",
     "-p",
-    prompt,
     "--dangerously-skip-permissions",
     "--output-format",
     "json",
@@ -566,14 +563,19 @@ async function invokeClaudeHeadlessAsync(options: {
   } = options;
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 
-  const args = buildClaudeHeadlessArguments(prompt, model);
+  const args = buildClaudeHeadlessArguments(model);
 
-  // Pipe stderr to track activity while forwarding to console
+  // Pipe stderr to track activity while forwarding to console.
+  // Prompt is written to stdin to avoid OS argument size limits (E2BIG).
   const proc = Bun.spawn(args, {
     stderr: "pipe",
-    stdin: "ignore",
+    stdin: "pipe",
     stdout: "pipe",
   });
+
+  // Write prompt to stdin and close to signal EOF
+  proc.stdin.write(prompt);
+  void proc.stdin.end();
 
   const stdoutPromise = new Response(proc.stdout).text();
 

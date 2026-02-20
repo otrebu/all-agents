@@ -1081,12 +1081,21 @@ describe("display utilities", () => {
       const result = renderInvocationHeader("headless");
 
       expect(result).toContain("Invoking Claude (headless)");
+      expect(stringWidth(result)).toBe(BOX_WIDTH);
     });
 
     test("renders invocation header with OpenCode provider", () => {
       const result = renderInvocationHeader("headless", "opencode");
 
       expect(result).toContain("Invoking OpenCode (headless)");
+      expect(stringWidth(result)).toBe(BOX_WIDTH);
+    });
+
+    test("renders invocation header at exact width for odd divider splits", () => {
+      const result = renderInvocationHeader("supervised", "pi");
+
+      expect(result).toContain("Invoking Pi (supervised)");
+      expect(stringWidth(result)).toBe(BOX_WIDTH);
     });
 
     test("renders response header with default Claude provider", () => {
@@ -1338,6 +1347,18 @@ describe("display utilities", () => {
       expect(lines.some((line) => line.includes("⚠"))).toBe(false);
       expect(lines.at(-1)).toBe("Proceed? [Y/n]:");
     });
+
+    test("renders continue next step for auto-run previews", () => {
+      const lines = renderPipelineFooter({
+        estimatedCost: "$0.05 - $0.12",
+        estimatedMinutes: 12,
+        nextStep: "continue",
+        phaseCount: 1,
+        phaseGateCount: 0,
+      });
+
+      expect(lines.at(-1)).toBe("Execution continues below...");
+    });
   });
 
   describe("renderCompactPreview", () => {
@@ -1400,6 +1421,17 @@ describe("display utilities", () => {
 
       expect(result).toContain("[PLAN] [DONE]");
       expect(result).toContain("Phase 2/4 complete");
+    });
+
+    test("renders review domain event lines", () => {
+      const result = renderEventLine({
+        domain: "REVIEW",
+        message: "Phase 1/2 started",
+        state: "START",
+      });
+
+      expect(result).toContain("[REVIEW] [START]");
+      expect(result).toContain("Phase 1/2 started");
     });
 
     test("renders phase card with event title and details", () => {

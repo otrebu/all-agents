@@ -17,7 +17,7 @@ describe("extractDiffSummary", () => {
       encoding: "utf8",
     }).trim();
 
-    const summary = extractDiffSummary(commitHash, "SUB-031");
+    const summary = extractDiffSummary(commitHash, "SUB-031", repoRoot);
     expect(summary.commitHash).toBe(commitHash);
     expect(summary.subtaskId).toBe("SUB-031");
     expect(summary.statSummary).toContain(`commit ${commitHash}`);
@@ -52,10 +52,14 @@ describe("resolvePlanningChain", () => {
 
 describe("resolveFilesToRead", () => {
   test("resolves @context prefixes and returns content with token estimates", () => {
-    const files = resolveFilesToRead([
-      "@context/workflows/ralph/calibration/intention-drift.md",
-      "@context/does-not-exist.md",
-    ]);
+    const files = resolveFilesToRead(
+      [
+        "@context/workflows/ralph/calibration/intention-drift.md",
+        "@context/does-not-exist.md",
+      ],
+      repoRoot,
+      repoRoot,
+    );
 
     expect(files).toHaveLength(1);
     expect(path.isAbsolute(files[0]?.path ?? "")).toBe(true);

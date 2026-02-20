@@ -11,11 +11,19 @@ import {
   getTokenUsageFromSession,
 } from "./session";
 
+interface BacktrackDetector extends SignalDetector {
+  matches: Array<EditBacktrackingSignal>;
+}
+
 interface EditBacktrackingSignal {
   file: string;
   firstEditLine: number;
   reversalLine: number;
   type: "exact" | "partial";
+}
+
+interface ExplorationDetector extends SignalDetector {
+  matches: Array<ExplorationSignal>;
 }
 
 interface ExplorationSignal {
@@ -25,10 +33,18 @@ interface ExplorationSignal {
   startLine: number;
 }
 
+interface FileNotFoundDetector extends SignalDetector {
+  matches: Array<FileNotFoundSignal>;
+}
+
 interface FileNotFoundSignal {
   file: string;
   line: number;
   tool: string;
+}
+
+interface FilesTooBigDetector extends SignalDetector {
+  matches: Array<FilesTooBigSignal>;
 }
 
 interface FilesTooBigSignal {
@@ -70,6 +86,10 @@ interface ProcessLineContext {
   toolNameById: Map<string, string>;
 }
 
+interface SelfCorrectionDetector extends SignalDetector {
+  matches: Array<SelfCorrectionSignal>;
+}
+
 interface SelfCorrectionSignal {
   line: number;
   matchedPhrases: Array<string>;
@@ -86,6 +106,10 @@ interface SignalDetector {
   processToolUse: (event: ToolUseEvent, context: ProcessLineContext) => void;
 }
 
+interface StuckLoopDetector extends SignalDetector {
+  matches: Array<StuckLoopSignal>;
+}
+
 interface StuckLoopSignal {
   endLine: number;
   pattern: string;
@@ -93,11 +117,19 @@ interface StuckLoopSignal {
   startLine: number;
 }
 
+interface TestFixLoopDetector extends SignalDetector {
+  matches: Array<TestFixLoopSignal>;
+}
+
 interface TestFixLoopSignal {
   cycles: number;
   endLine: number;
   errorSignature: string;
   startLine: number;
+}
+
+interface TokenAccelerationDetector extends SignalDetector {
+  match: null | TokenAccelerationSignal;
 }
 
 interface TokenAccelerationSignal {
@@ -121,21 +153,24 @@ interface ToolUseEvent {
   name: string;
 }
 
-class BacktrackDetector implements SignalDetector {
-  readonly matches: Array<EditBacktrackingSignal> = [];
+function buildTupleKey(tuple: InputTuple): string {
+  return `${tuple.toolName}:${tuple.hash}`;
+}
 
-  private readonly editsByFile = new Map<
+function createBacktrackDetector(): BacktrackDetector {
+  const matches: Array<EditBacktrackingSignal> = [];
+  const editsByFile = new Map<
     string,
     Array<{ line: number; newString: string; oldString: string }>
   >();
 
-  buildSignals(): void {}
+  function buildSignals(): void {}
 
-  processLine(): void {}
+  function processLine(): void {}
 
-  processToolResult(): void {}
+  function processToolResult(): void {}
 
-  processToolUse(event: ToolUseEvent): void {
+  function processToolUse(event: ToolUseEvent): void {
     if (event.name !== "Edit") {
       return;
     }
@@ -145,7 +180,7 @@ class BacktrackDetector implements SignalDetector {
       return;
     }
 
-    const fileEdits = this.editsByFile.get(parsed.file) ?? [];
+    const fileEdits = editsByFile.get(parsed.file) ?? [];
     const exactMatch = fileEdits.find((previousEdit) =>
       isExactReversal(previousEdit.oldString, previousEdit.newString, parsed),
     );
@@ -158,7 +193,7 @@ class BacktrackDetector implements SignalDetector {
         ),
       );
       if (partialMatch !== undefined) {
-        this.matches.push({
+        matches.push({
           file: parsed.file,
           firstEditLine: partialMatch.line,
           reversalLine: event.line,
@@ -166,7 +201,7 @@ class BacktrackDetector implements SignalDetector {
         });
       }
     } else {
-      this.matches.push({
+      matches.push({
         file: parsed.file,
         firstEditLine: exactMatch.line,
         reversalLine: event.line,
@@ -182,75 +217,93 @@ class BacktrackDetector implements SignalDetector {
     if (fileEdits.length > 100) {
       fileEdits.shift();
     }
-    this.editsByFile.set(parsed.file, fileEdits);
+    editsByFile.set(parsed.file, fileEdits);
   }
+
+  return {
+    buildSignals,
+    matches,
+    processLine,
+    processToolResult,
+    processToolUse,
+  };
 }
 
-class ExplorationDetector implements SignalDetector {
-  readonly matches: Array<ExplorationSignal> = [];
-
-  private currentWindow: {
+function createExplorationDetector(): ExplorationDetector {
+  const matches: Array<ExplorationSignal> = [];
+  let currentWindow: {
     endLine: number;
     readCount: number;
     readFiles: Set<string>;
     startLine: number;
   } | null = null;
 
-  buildSignals(): void {
-    this.recordWindowSignal();
+  function recordWindowSignal(): void {
+    if (currentWindow === null || currentWindow.readCount < 10) {
+      currentWindow = null;
+      return;
+    }
+
+    matches.push({
+      endLine: currentWindow.endLine,
+      readCount: currentWindow.readCount,
+      readFiles: [...currentWindow.readFiles],
+      startLine: currentWindow.startLine,
+    });
+    currentWindow = null;
   }
 
-  processLine(): void {}
+  function buildSignals(): void {
+    recordWindowSignal();
+  }
 
-  processToolResult(): void {}
+  function processLine(): void {}
 
-  processToolUse(event: ToolUseEvent): void {
+  function processToolResult(): void {}
+
+  function processToolUse(event: ToolUseEvent): void {
     if (isReadOnlyTool(event.name)) {
       const path = extractInputPath(event.input);
-      if (this.currentWindow === null) {
-        this.currentWindow = {
+      if (currentWindow === null) {
+        currentWindow = {
           endLine: event.line,
           readCount: 1,
           readFiles: new Set(path === null ? [] : [path]),
           startLine: event.line,
         };
       } else {
-        this.currentWindow.endLine = event.line;
-        this.currentWindow.readCount += 1;
+        currentWindow.endLine = event.line;
+        currentWindow.readCount += 1;
         if (path !== null) {
-          this.currentWindow.readFiles.add(path);
+          currentWindow.readFiles.add(path);
         }
       }
       return;
     }
 
-    this.recordWindowSignal();
+    recordWindowSignal();
   }
 
-  private recordWindowSignal(): void {
-    if (this.currentWindow === null || this.currentWindow.readCount < 10) {
-      this.currentWindow = null;
-      return;
-    }
-
-    this.matches.push({
-      endLine: this.currentWindow.endLine,
-      readCount: this.currentWindow.readCount,
-      readFiles: [...this.currentWindow.readFiles],
-      startLine: this.currentWindow.startLine,
-    });
-    this.currentWindow = null;
-  }
+  return {
+    buildSignals,
+    matches,
+    processLine,
+    processToolResult,
+    processToolUse,
+  };
 }
 
-class FileNotFoundDetector implements SignalDetector {
-  readonly matches: Array<FileNotFoundSignal> = [];
+function createFileNotFoundDetector(): FileNotFoundDetector {
+  const matches: Array<FileNotFoundSignal> = [];
 
-  buildSignals(): void {}
+  function buildSignals(): void {}
 
-  processLine(): void {}
+  function processLine(): void {}
 
-  processToolResult(event: ToolResultEvent, context: ProcessLineContext): void {
+  function processToolResult(
+    event: ToolResultEvent,
+    context: ProcessLineContext,
+  ): void {
     if (!event.isError) {
       return;
     }
@@ -265,24 +318,32 @@ class FileNotFoundDetector implements SignalDetector {
         ? "unknown"
         : (context.toolNameById.get(event.toolUseId) ?? "unknown");
 
-    this.matches.push({
+    matches.push({
       file: extractFilePath(searchable),
       line: event.line,
       tool: toolName,
     });
   }
 
-  processToolUse(): void {}
+  function processToolUse(): void {}
+
+  return {
+    buildSignals,
+    matches,
+    processLine,
+    processToolResult,
+    processToolUse,
+  };
 }
 
-class FilesTooBigDetector implements SignalDetector {
-  readonly matches: Array<FilesTooBigSignal> = [];
+function createFilesTooBigDetector(): FilesTooBigDetector {
+  const matches: Array<FilesTooBigSignal> = [];
 
-  buildSignals(): void {}
+  function buildSignals(): void {}
 
-  processLine(): void {}
+  function processLine(): void {}
 
-  processToolResult(event: ToolResultEvent): void {
+  function processToolResult(event: ToolResultEvent): void {
     const searchable = `${event.content}\n${event.raw}`;
     if (!/exceeds maximum allowed tokens/i.test(searchable)) {
       return;
@@ -300,22 +361,37 @@ class FilesTooBigDetector implements SignalDetector {
       return;
     }
 
-    this.matches.push({
+    matches.push({
       file: extractFilePath(searchable),
       line: event.line,
       tokens,
     });
   }
 
-  processToolUse(): void {}
+  function processToolUse(): void {}
+
+  return {
+    buildSignals,
+    matches,
+    processLine,
+    processToolResult,
+    processToolUse,
+  };
 }
 
-class SelfCorrectionDetector implements SignalDetector {
-  readonly matches: Array<SelfCorrectionSignal> = [];
+function createInputHash(input: unknown): string {
+  return createHash("sha1")
+    .update(stringifyStable(input))
+    .digest("hex")
+    .slice(0, 12);
+}
 
-  buildSignals(): void {}
+function createSelfCorrectionDetector(): SelfCorrectionDetector {
+  const matches: Array<SelfCorrectionSignal> = [];
 
-  processLine(parsedLine: unknown, context: ProcessLineContext): void {
+  function buildSignals(): void {}
+
+  function processLine(parsedLine: unknown, context: ProcessLineContext): void {
     const assistantText = extractAssistantText(parsedLine);
     if (assistantText === "") {
       return;
@@ -326,54 +402,70 @@ class SelfCorrectionDetector implements SignalDetector {
       return;
     }
 
-    this.matches.push({
+    matches.push({
       line: context.line,
       matchedPhrases,
       snippet: buildSnippet(assistantText),
     });
   }
 
-  processToolResult(): void {}
+  function processToolResult(): void {}
 
-  processToolUse(): void {}
+  function processToolUse(): void {}
+
+  return {
+    buildSignals,
+    matches,
+    processLine,
+    processToolResult,
+    processToolUse,
+  };
 }
 
-class StuckLoopDetector implements SignalDetector {
-  readonly matches: Array<StuckLoopSignal> = [];
-
-  private activePattern: {
+function createStuckLoopDetector(): StuckLoopDetector {
+  const matches: Array<StuckLoopSignal> = [];
+  let activePattern: {
     endLine: number;
     key: string;
     repetitions: number;
     startLine: number;
   } | null = null;
+  const tuples: Array<{ key: string; line: number; tuple: InputTuple }> = [];
 
-  private readonly tuples: Array<{
-    key: string;
-    line: number;
-    tuple: InputTuple;
-  }> = [];
+  function recordPatternState(): void {
+    if (activePattern === null || activePattern.repetitions < 2) {
+      return;
+    }
 
-  buildSignals(): void {
-    this.recordPatternState();
+    matches.push({
+      endLine: activePattern.endLine,
+      pattern: activePattern.key,
+      repetitions: activePattern.repetitions,
+      startLine: activePattern.startLine,
+    });
+    activePattern = null;
   }
 
-  processLine(): void {}
+  function buildSignals(): void {
+    recordPatternState();
+  }
 
-  processToolResult(): void {}
+  function processLine(): void {}
 
-  processToolUse(event: ToolUseEvent): void {
+  function processToolResult(): void {}
+
+  function processToolUse(event: ToolUseEvent): void {
     const tuple: InputTuple = {
       hash: createInputHash(event.input),
       toolName: event.name,
     };
-    this.tuples.push({ key: buildTupleKey(tuple), line: event.line, tuple });
+    tuples.push({ key: buildTupleKey(tuple), line: event.line, tuple });
 
-    if (this.tuples.length < 3 || this.tuples.length % 3 !== 0) {
+    if (tuples.length < 3 || tuples.length % 3 !== 0) {
       return;
     }
 
-    const currentBlock = this.tuples.slice(-3);
+    const currentBlock = tuples.slice(-3);
     const firstInBlock = currentBlock[0];
     const lastInBlock = currentBlock[2];
     if (firstInBlock === undefined || lastInBlock === undefined) {
@@ -381,14 +473,14 @@ class StuckLoopDetector implements SignalDetector {
     }
 
     const blockKey = currentBlock.map((entry) => entry.key).join(" -> ");
-    if (this.activePattern?.key === blockKey) {
-      this.activePattern.repetitions += 1;
-      this.activePattern.endLine = lastInBlock.line;
+    if (activePattern?.key === blockKey) {
+      activePattern.repetitions += 1;
+      activePattern.endLine = lastInBlock.line;
       return;
     }
 
-    this.recordPatternState();
-    this.activePattern = {
+    recordPatternState();
+    activePattern = {
       endLine: lastInBlock.line,
       key: blockKey,
       repetitions: 1,
@@ -396,97 +488,95 @@ class StuckLoopDetector implements SignalDetector {
     };
   }
 
-  private recordPatternState(): void {
-    if (this.activePattern === null || this.activePattern.repetitions < 2) {
-      return;
-    }
-
-    this.matches.push({
-      endLine: this.activePattern.endLine,
-      pattern: this.activePattern.key,
-      repetitions: this.activePattern.repetitions,
-      startLine: this.activePattern.startLine,
-    });
-    this.activePattern = null;
-  }
+  return {
+    buildSignals,
+    matches,
+    processLine,
+    processToolResult,
+    processToolUse,
+  };
 }
 
-class TestFixLoopDetector implements SignalDetector {
-  readonly matches: Array<TestFixLoopSignal> = [];
-
-  private activeLoop: {
+function createTestFixLoopDetector(): TestFixLoopDetector {
+  const matches: Array<TestFixLoopSignal> = [];
+  let activeLoop: {
     cycles: number;
     endLine: number;
     errorSignature: string;
     startLine: number;
   } | null = null;
+  let baseline: { line: number; signature: string } | null = null;
+  let hasEditSinceBaseline = false;
+  const testBashUseLines = new Map<string, number>();
 
-  private baseline: { line: number; signature: string } | null = null;
+  function recordActiveLoop(): void {
+    if (activeLoop === null) {
+      return;
+    }
+    matches.push(activeLoop);
+    activeLoop = null;
+  }
 
-  private hasEditSinceBaseline = false;
-
-  private readonly testBashUseLines = new Map<string, number>();
-
-  buildSignals(): void {
-    if (this.activeLoop !== null) {
-      this.matches.push(this.activeLoop);
-      this.activeLoop = null;
+  function buildSignals(): void {
+    if (activeLoop !== null) {
+      matches.push(activeLoop);
+      activeLoop = null;
     }
   }
 
-  processLine(): void {}
+  function processLine(): void {}
 
-  processToolResult(event: ToolResultEvent): void {
+  function processToolResult(event: ToolResultEvent): void {
     if (event.toolUseId === undefined) {
       return;
     }
-    const firstTestLine = this.testBashUseLines.get(event.toolUseId);
+    const firstTestLine = testBashUseLines.get(event.toolUseId);
     if (firstTestLine === undefined) {
       return;
     }
 
     const signature = normalizeErrorSignature(event.content);
     if (signature === "") {
-      this.baseline = { line: event.line, signature: "" };
-      this.hasEditSinceBaseline = false;
-      this.recordActiveLoop();
+      baseline = { line: event.line, signature: "" };
+      hasEditSinceBaseline = false;
+      recordActiveLoop();
       return;
     }
 
     if (
-      this.baseline !== null &&
-      this.hasEditSinceBaseline &&
-      this.baseline.signature !== "" &&
-      this.baseline.signature === signature
+      baseline !== null &&
+      hasEditSinceBaseline &&
+      baseline.signature !== "" &&
+      baseline.signature === signature
     ) {
-      if (this.activeLoop?.errorSignature === signature) {
-        this.activeLoop.cycles += 1;
-        this.activeLoop.endLine = event.line;
+      if (activeLoop?.errorSignature === signature) {
+        activeLoop.cycles += 1;
+        activeLoop.endLine = event.line;
       } else {
-        this.recordActiveLoop();
-        this.activeLoop = {
+        recordActiveLoop();
+        activeLoop = {
           cycles: 1,
           endLine: event.line,
           errorSignature: signature,
-          startLine: this.baseline.line,
+          startLine: baseline.line,
         };
       }
     } else {
-      this.recordActiveLoop();
+      recordActiveLoop();
     }
 
-    this.baseline = { line: event.line, signature };
-    this.hasEditSinceBaseline = false;
-    this.testBashUseLines.delete(event.toolUseId);
+    baseline = { line: event.line, signature };
+    hasEditSinceBaseline = false;
+    testBashUseLines.delete(event.toolUseId);
     if (firstTestLine > event.line) {
-      this.recordActiveLoop();
+      recordActiveLoop();
     }
   }
 
-  processToolUse(event: ToolUseEvent): void {
+  function processToolUse(event: ToolUseEvent): void {
     if (event.name === "Edit") {
-      if (this.baseline !== null) {
-        this.hasEditSinceBaseline = true;
+      if (baseline !== null) {
+        hasEditSinceBaseline = true;
       }
       return;
     }
@@ -496,70 +586,58 @@ class TestFixLoopDetector implements SignalDetector {
     }
 
     if (event.id !== undefined && event.id !== "") {
-      this.testBashUseLines.set(event.id, event.line);
+      testBashUseLines.set(event.id, event.line);
     }
   }
 
-  private recordActiveLoop(): void {
-    if (this.activeLoop === null) {
-      return;
-    }
-    this.matches.push(this.activeLoop);
-    this.activeLoop = null;
-  }
+  return {
+    buildSignals,
+    matches,
+    processLine,
+    processToolResult,
+    processToolUse,
+  };
 }
 
-class TokenAccelerationDetector implements SignalDetector {
-  match: null | TokenAccelerationSignal = null;
+function createTokenAccelerationDetector(): TokenAccelerationDetector {
+  let endTokens = 0;
+  let startTokens: null | number = null;
 
-  private endTokens = 0;
+  const detector: TokenAccelerationDetector = {
+    buildSignals,
+    match: null,
+    processLine,
+    processToolResult,
+    processToolUse,
+  };
 
-  private startTokens: null | number = null;
-
-  buildSignals(): void {
-    if (
-      this.startTokens === null ||
-      this.startTokens <= 0 ||
-      this.endTokens <= this.startTokens
-    ) {
+  function buildSignals(): void {
+    if (startTokens === null || startTokens <= 0 || endTokens <= startTokens) {
       return;
     }
 
-    const multiplier = this.endTokens / this.startTokens;
+    const multiplier = endTokens / startTokens;
     if (multiplier <= 3) {
       return;
     }
 
-    this.match = {
-      endTokens: this.endTokens,
-      multiplier,
-      startTokens: this.startTokens,
-    };
+    detector.match = { endTokens, multiplier, startTokens };
   }
 
-  processLine(parsedLine: unknown): void {
+  function processLine(parsedLine: unknown): void {
     const inputTokens = extractInputTokens(parsedLine);
     if (inputTokens === null) {
       return;
     }
-    this.startTokens ??= inputTokens;
-    this.endTokens = inputTokens;
+    startTokens ??= inputTokens;
+    endTokens = inputTokens;
   }
 
-  processToolResult(): void {}
+  function processToolResult(): void {}
 
-  processToolUse(): void {}
-}
+  function processToolUse(): void {}
 
-function buildTupleKey(tuple: InputTuple): string {
-  return `${tuple.toolName}:${tuple.hash}`;
-}
-
-function createInputHash(input: unknown): string {
-  return createHash("sha1")
-    .update(stringifyStable(input))
-    .digest("hex")
-    .slice(0, 12);
+  return detector;
 }
 
 function extractAssistantText(parsedLine: unknown): string {
@@ -664,14 +742,14 @@ async function extractSignals(
   const fileReads = new Set<string>();
   const filesWrites = new Set(filesWritten);
 
-  const filesTooBigDetector = new FilesTooBigDetector();
-  const fileNotFoundDetector = new FileNotFoundDetector();
-  const stuckLoopDetector = new StuckLoopDetector();
-  const backtrackDetector = new BacktrackDetector();
-  const explorationDetector = new ExplorationDetector();
-  const selfCorrectionDetector = new SelfCorrectionDetector();
-  const tokenAccelerationDetector = new TokenAccelerationDetector();
-  const testFixLoopDetector = new TestFixLoopDetector();
+  const filesTooBigDetector = createFilesTooBigDetector();
+  const fileNotFoundDetector = createFileNotFoundDetector();
+  const stuckLoopDetector = createStuckLoopDetector();
+  const backtrackDetector = createBacktrackDetector();
+  const explorationDetector = createExplorationDetector();
+  const selfCorrectionDetector = createSelfCorrectionDetector();
+  const tokenAccelerationDetector = createTokenAccelerationDetector();
+  const testFixLoopDetector = createTestFixLoopDetector();
 
   const detectors: Array<SignalDetector> = [
     filesTooBigDetector,
@@ -1155,15 +1233,15 @@ function updateFileSets(
 }
 
 export {
-  BacktrackDetector,
-  ExplorationDetector,
+  createBacktrackDetector,
+  createExplorationDetector,
+  createFileNotFoundDetector,
+  createFilesTooBigDetector,
+  createSelfCorrectionDetector,
+  createStuckLoopDetector,
+  createTestFixLoopDetector,
+  createTokenAccelerationDetector,
   extractSignals,
-  FileNotFoundDetector,
-  FilesTooBigDetector,
-  SelfCorrectionDetector,
-  StuckLoopDetector,
-  TestFixLoopDetector,
-  TokenAccelerationDetector,
 };
 export type {
   EditBacktrackingSignal,

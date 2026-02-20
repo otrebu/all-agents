@@ -11,7 +11,7 @@ import {
   unlinkSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 import { syncContext } from "../sync-context";
 import {
@@ -28,6 +28,7 @@ import {
   isCliInstalled,
   isCompletionInstalled,
   isInPath,
+  isSymlinkTargetingPath,
   LOCAL_BIN,
   resolveWorktreeRoot,
   type WorktreeSelection,
@@ -155,12 +156,17 @@ async function setupProject(): Promise<void> {
   await handleClaudeConfigDirectory();
 
   // Step 3: Setup context/
-  const contextTarget = resolve(root, "context");
+  const contextTargetAbsolute = resolve(root, "context");
   const contextLink = resolve(cwd, "context");
+  const contextTarget = relative(dirname(contextLink), contextTargetAbsolute);
 
-  // Check existing state
+  // Check existing state (handle both old absolute and new relative symlinks)
   const existingSymlinkTarget = getSymlinkTarget(contextLink);
-  const isExistingSymlink = existingSymlinkTarget === contextTarget;
+  const isExistingSymlink = isSymlinkTargetingPath(
+    contextLink,
+    contextTargetAbsolute,
+  );
+  const isCanonicalRelativeSymlink = existingSymlinkTarget === contextTarget;
   const isExistingDirectory =
     existsSync(contextLink) &&
     existingSymlinkTarget === null &&
@@ -209,7 +215,15 @@ async function setupProject(): Promise<void> {
         log.success(`Symlink: context/ -> ${contextTarget}`);
       }
     } else if (isExistingSymlink) {
-      log.info("context/ symlink already exists");
+      if (isCanonicalRelativeSymlink) {
+        log.info("context/ symlink already exists");
+      } else {
+        unlinkSync(contextLink);
+        symlinkSync(contextTarget, contextLink);
+        log.success(
+          `Updated context/ symlink to relative target: ${contextTarget}`,
+        );
+      }
     } else {
       symlinkSync(contextTarget, contextLink);
       log.success(`Symlink: context/ -> ${contextTarget}`);
@@ -235,6 +249,26 @@ async function setupProject(): Promise<void> {
       `To keep context/ updated:\n  aaa sync-context          # one-time sync\n  aaa sync-context --watch  # auto-sync while editing all-agents`,
       "Sync usage",
     );
+  }
+
+  // Mark context/ as skip-worktree if tracked by git
+  try {
+    const isTracked = execSync("git ls-files context", {
+      cwd,
+      encoding: "utf8",
+    }).trim();
+    if (isTracked) {
+      execSync("git update-index --skip-worktree context", { cwd });
+      log.success("Marked context/ as skip-worktree");
+      p.note(
+        "context/ is now managed by aaa and hidden from git status.\n" +
+          "Local changes won't be committed accidentally.\n\n" +
+          "To undo: git update-index --no-skip-worktree context",
+        "skip-worktree",
+      );
+    }
+  } catch {
+    // Not in a git repo or git not available, skip silently
   }
 
   // Step 4: Copy docs templates
@@ -342,7 +376,7 @@ async function setupUser(options: SetupOptions): Promise<void> {
 
   // Step 8: Setup ~/.agents/skills symlink (universal agent skills)
   const agentsSkillsDirectory = resolve(homedir(), ".agents/skills");
-  const skillsSource = resolve(root, ".claude/skills");
+  const skillsSource = resolve(root, ".agents/skills");
 
   if (!existsSync(resolve(homedir(), ".agents"))) {
     mkdirSync(resolve(homedir(), ".agents"), { recursive: true });

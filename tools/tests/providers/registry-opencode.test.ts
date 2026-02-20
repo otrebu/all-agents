@@ -123,9 +123,15 @@ describe("opencode provider availability", () => {
   });
 
   test("other unimplemented providers remain unavailable", () => {
-    expect(REGISTRY.codex.available).toBe(false);
-    expect(REGISTRY.cursor.available).toBe(false);
     expect(REGISTRY.gemini.available).toBe(false);
     expect(REGISTRY.pi.available).toBe(false);
+  });
+
+  test("codex is now available", () => {
+    expect(REGISTRY.codex.available).toBe(true);
+  });
+
+  test("cursor is now available", () => {
+    expect(REGISTRY.cursor.available).toBe(true);
   });
 });

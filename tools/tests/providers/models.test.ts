@@ -9,15 +9,26 @@ import {
   validateModelForProvider,
 } from "@tools/commands/ralph/providers/models";
 import { STATIC_MODELS } from "@tools/commands/ralph/providers/models-static";
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+
+const DISCOVERED_MODELS_SNAPSHOT = [...DISCOVERED_MODELS];
+
+beforeEach(() => {
+  DISCOVERED_MODELS.length = 0;
+});
+
+afterAll(() => {
+  DISCOVERED_MODELS.length = 0;
+  DISCOVERED_MODELS.push(...DISCOVERED_MODELS_SNAPSHOT);
+});
 
 // =============================================================================
 // Static Model Count & Field Presence
 // =============================================================================
 
 describe("STATIC_MODELS", () => {
-  test("contains 44 baseline models", () => {
-    expect(STATIC_MODELS).toHaveLength(44);
+  test("contains 45 baseline models", () => {
+    expect(STATIC_MODELS).toHaveLength(45);
   });
 
   test("every model has required fields: id, provider, cliFormat, costHint", () => {
@@ -34,9 +45,9 @@ describe("STATIC_MODELS", () => {
     expect(claude).toHaveLength(10);
   });
 
-  test("contains 34 OpenCode models", () => {
+  test("contains 35 OpenCode models", () => {
     const opencode = STATIC_MODELS.filter((m) => m.provider === "opencode");
-    expect(opencode).toHaveLength(34);
+    expect(opencode).toHaveLength(35);
   });
 
   test("OpenCode models use provider/model cliFormat (with slash)", () => {
@@ -62,6 +73,7 @@ describe("STATIC_MODELS", () => {
     expect(ids).toContain("claude-opus-4-6");
     expect(ids).toContain("claude-sonnet-4-5");
     expect(ids).toContain("openai/gpt-5.3-codex");
+    expect(ids).toContain("openai/gpt-5.3-codex-spark");
     expect(ids).toContain("openai/gpt-5.2-codex");
     expect(ids).toContain("github-copilot/claude-opus-4.6");
   });
@@ -82,15 +94,19 @@ describe("getModelsForProvider", () => {
 
   test("returns only OpenCode models for 'opencode'", () => {
     const models = getModelsForProvider("opencode");
-    expect(models).toHaveLength(34);
+    expect(models).toHaveLength(35);
     for (const m of models) {
       expect(m.provider).toBe("opencode");
     }
   });
 
-  test("returns empty array for provider with no models", () => {
+  test("returns Codex-compatible models for 'codex'", () => {
     const models = getModelsForProvider("codex");
-    expect(models).toHaveLength(0);
+    expect(models.length).toBeGreaterThan(0);
+    for (const m of models) {
+      expect(m.provider).toBe("codex");
+      expect(m.id).toMatch(/codex/);
+    }
   });
 });
 
@@ -148,9 +164,9 @@ describe("getModelCompletions", () => {
     expect(completions).toEqual(sorted);
   });
 
-  test("contains all 44 model IDs", () => {
+  test("contains all 45 model IDs", () => {
     const completions = getModelCompletions();
-    expect(completions).toHaveLength(44);
+    expect(completions).toHaveLength(45);
   });
 
   test("contains specific known model IDs", () => {
@@ -202,6 +218,19 @@ describe("validateModelForProvider", () => {
     expect(result).toBe("openai/gpt-5.2-codex");
   });
 
+  test("returns cliFormat for valid Codex model alias", () => {
+    const result = validateModelForProvider("openai/gpt-5.2-codex", "codex");
+    expect(result).toBe("openai/gpt-5.2-codex");
+  });
+
+  test("returns cliFormat for codex pass-through model not in registry", () => {
+    const result = validateModelForProvider(
+      "openai/gpt-5.3-codex-spark",
+      "codex",
+    );
+    expect(result).toBe("openai/gpt-5.3-codex-spark");
+  });
+
   test("throws with suggestions for unknown model", () => {
     expect(() =>
       validateModelForProvider("nonexistent-model", "opencode"),
@@ -235,13 +264,9 @@ describe("validateModelForProvider", () => {
 // =============================================================================
 
 describe("getAllModels", () => {
-  afterEach(() => {
-    DISCOVERED_MODELS.length = 0;
-  });
-
-  test("returns all 44 static models when no dynamic models exist", () => {
+  test("returns all 45 static models when no dynamic models exist", () => {
     const models = getAllModels();
-    expect(models).toHaveLength(44);
+    expect(models).toHaveLength(45);
   });
 
   test("static models take precedence over dynamic with same ID", () => {
@@ -276,9 +301,9 @@ describe("getAllModels", () => {
     };
     DISCOVERED_MODELS.push(dynamicModel);
 
-    // 44 static + 1 new dynamic
+    // 45 static + 1 new dynamic
     const models = getAllModels();
-    expect(models).toHaveLength(45);
+    expect(models).toHaveLength(46);
 
     const gemini = getModelById("google/gemini-2.5-pro");
     expect(gemini).toBeDefined();

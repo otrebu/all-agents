@@ -148,12 +148,13 @@ describe("cascade provider/model forwarding", () => {
     const [subcommand, calibrateOptions] = calibrateCall;
     expect(subcommand).toBe("all");
     expect(calibrateOptions).toMatchObject({
-      contextRoot: "/repo",
       force: true,
       model: "openai/gpt-5.3-codex",
       provider: "opencode",
+      repoRoot: "/repo",
       review: false,
       subtasksPath: "/repo/subtasks.json",
+      toolRoot: "/repo",
     });
   });
 
@@ -183,6 +184,8 @@ describe("cascade provider/model forwarding", () => {
     expect(calibrateOptions).toMatchObject({
       model: "openai/gpt-5.3-codex",
       provider: "opencode",
+      repoRoot: "/repo",
+      toolRoot: "/repo",
     });
   });
 
@@ -203,10 +206,11 @@ describe("cascade provider/model forwarding", () => {
 
     const [, calibrateOptions] = calibrateCall;
     expect(calibrateOptions).toMatchObject({
-      contextRoot: "/repo",
       model: undefined,
       provider: undefined,
+      repoRoot: "/repo",
       subtasksPath: "/repo/subtasks.json",
+      toolRoot: "/repo",
     });
   });
 });

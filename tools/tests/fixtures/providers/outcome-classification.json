@@ -47,5 +47,19 @@
     "message": "Claude invocation timed out after 120000ms",
     "status": "retryable",
     "reason": "timeout"
+  },
+  {
+    "name": "codex-timeout",
+    "provider": "codex",
+    "message": "Codex invocation timed out after 30000ms",
+    "status": "retryable",
+    "reason": "timeout"
+  },
+  {
+    "name": "codex-auth",
+    "provider": "codex",
+    "message": "Codex exited with code 1: API key invalid",
+    "status": "fatal",
+    "reason": "auth"
   }
 ]

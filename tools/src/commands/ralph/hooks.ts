@@ -18,6 +18,7 @@ import * as readline from "node:readline";
 import type { HookAction } from "./types";
 
 import { loadRalphConfig } from "./config";
+import raiseSigint from "./signal";
 
 // =============================================================================
 // Types
@@ -340,7 +341,7 @@ async function executePauseAction(hookName: string): Promise<void> {
     rl.on("SIGINT", () => {
       clearTimeout(timeout);
       rl.close();
-      process.emit("SIGINT");
+      raiseSigint();
     });
 
     rl.question("Press Enter to continue or Ctrl+C to abort: ", () => {

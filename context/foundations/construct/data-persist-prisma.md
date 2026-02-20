@@ -3,6 +3,7 @@ depends:
   - "@context/blocks/construct/postgres.md"
   - "@context/blocks/construct/prisma.md"
   - "@context/foundations/test/test-integration-db.md"
+  - "@context/blocks/construct/entity-ownership.md"
 tags: [database]
 ---
 
@@ -50,6 +51,7 @@ import { prisma } from "@/db/client";
 
 export async function resetDb() {
   // Delete in FK-safe order (children first)
+  // See @context/blocks/construct/entity-ownership.md for CASCADE vs SET NULL vs RESTRICT strategies
   await prisma.post.deleteMany();
   await prisma.user.deleteMany();
 }

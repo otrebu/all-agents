@@ -1,0 +1,27 @@
+[
+  {
+    "id": "SUB-001",
+    "taskRef": "001-TASK-aaa-led-intro-concept-note",
+    "storyRef": "001-STORY-aaa-led-intro-concept",
+    "title": "Author AAA-led intro concept note with terminal-safe ASCII block and verification",
+    "description": "Create docs/planning/milestones/008-prelude-aaa-ralph-load-screen/aaa-led-intro-concept.md as the single AAA-led concept artifact. Include the required sections (Identity Intent, Logo Direction, Mascot Direction, Monochrome Readability, AAA vs Ralph Signal), provide one ASCII sketch wrapped in AAA-ASCII markers and kept near 12-14 lines / <=72 columns, and add a Verification section with concrete shell commands for width, ASCII-only check, and terminal preview.",
+    "done": false,
+    "acceptanceCriteria": [
+      "[Behavioral] The concept note defines exactly one AAA-led logo direction and one Ralph-supporting mascot direction with explicit AAA-primary rationale",
+      "[Visual] The fenced text sketch between AAA-ASCII markers is monochrome-readable, roughly 12-14 lines, and no content line exceeds 72 columns",
+      "[Regression] The note states Ralph as secondary signal and avoids introducing runtime implementation scope beyond design guidance",
+      "[Evidence] The Verification section includes executable shell commands for width check, ASCII-only check, and plain-terminal preview of the note"
+    ],
+    "filesToRead": [
+      "docs/planning/milestones/008-prelude-aaa-ralph-load-screen/tasks/001-TASK-aaa-led-intro-concept-note.md",
+      "docs/planning/milestones/008-prelude-aaa-ralph-load-screen/stories/001-STORY-aaa-led-intro-concept.md",
+      "docs/planning/milestones/008-prelude-aaa-ralph-load-screen/MILESTONE.md",
+      "context/workflows/ralph/planning/subtask-spec.md",
+      "context/stacks/cli/cli-bun.md",
+      "context/foundations/observe/log-structured-cli.md",
+      "context/blocks/construct/chalk.md",
+      "context/blocks/construct/boxen.md",
+      "tools/src/commands/ralph/display.ts"
+    ]
+  }
+]
