@@ -60,6 +60,9 @@ tools/
 │   │   │   ├── session.ts        # Session file utilities
 │   │   │   ├── session-analysis.ts # Session signal extraction detectors
 │   │   │   ├── display.ts        # Terminal output utilities
+│   │   │   ├── plan-preview.ts   # Plan preview rendering
+│   │   │   ├── pipeline-renderer.ts # Build pipeline terminal UI
+│   │   │   ├── signal.ts         # Process signal handling
 │   │   │   ├── summary.ts        # Summary generation
 │   │   │   ├── hooks.ts          # Hook execution (log, notify, pause)
 │   │   │   ├── status.ts         # Status command implementation
@@ -71,12 +74,22 @@ tools/
 │   │   │       ├── index.ts
 │   │   │       ├── types.ts
 │   │   │       ├── claude.ts     # Claude CLI invocation
+│   │   │       ├── cursor.ts     # Cursor CLI invocation
+│   │   │       ├── codex.ts      # Codex CLI invocation
 │   │   │       ├── opencode.ts   # OpenCode CLI invocation
 │   │   │       ├── registry.ts   # Provider registry
 │   │   │       ├── models.ts     # Model resolution
 │   │   │       ├── models-static.ts
 │   │   │       ├── models-dynamic.ts
-│   │   │       └── session-adapter.ts
+│   │   │       ├── models-dynamic-path.ts # Dynamic model file path
+│   │   │       ├── models-dynamic.json    # Discovered models (gitignored)
+│   │   │       ├── session-adapter.ts
+│   │   │       ├── session-claude.ts # Claude session file resolution
+│   │   │       ├── session-opencode.ts # OpenCode session resolution
+│   │   │       ├── session-cursor.ts # Cursor session resolution
+│   │   │       ├── session-codex.ts  # Codex session resolution
+│   │   │       ├── summary.ts        # Provider summary generation
+│   │   │       └── utils.ts          # Provider utilities
 │   │   ├── review/               # Code review CLI (modes: supervised, headless)
 │   │   │   ├── index.ts          # CLI commands and mode logic
 │   │   │   └── types.ts          # Finding, DiaryEntry, triage types

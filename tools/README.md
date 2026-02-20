@@ -303,6 +303,8 @@ Note: Review commands are supervised-only (no `-H`). Rationale:
 - Feedback capture is complicated - where would headless output go?
 - Human needs to be in the loop anyway to act on suggestions
 
+Review subcommands also accept `--provider <name>` for multi-provider execution.
+
 **Planning commands:**
 
 ```bash
@@ -369,12 +371,14 @@ aaa ralph build --headless --skip-summary
 
 # Use a specific provider and model
 aaa ralph build --provider opencode --model openai/gpt-5.3-codex
+aaa ralph build --provider cursor
+aaa ralph build --provider codex --model gpt-5.3-codex
 
 # Print prompt without executing
 aaa ralph build -p
 ```
 
-**Multi-provider support:** All ralph execution commands (`build`, `plan`, `calibrate`) accept `--provider <name>` and `--model <name>` flags for multi-provider execution.
+**Multi-provider support:** All ralph execution commands (`build`, `plan`, `calibrate`) accept `--provider <name>` and `--model <name>` flags for multi-provider execution. Valid providers: `claude` (default), `codex`, `cursor`, `opencode`. Experimental providers in the registry: `gemini`, `pi` (not yet available).
 
 #### Dry-Run Preview
 
@@ -533,7 +537,7 @@ aaa ralph subtasks list --milestone 005-consolidate-simplify --pending --limit 1
 aaa ralph subtasks list --milestone 005-consolidate-simplify --json
 
 # Mark a subtask complete with commit/session metadata
-aaa ralph subtasks complete --milestone 005-consolidate-simplify --id SUB-001 --commit abc1234 --session s1
+aaa ralph subtasks complete --milestone 005-consolidate-simplify --id SUB-001 --commit abc1234 --session s1 --provider codex
 
 # Append subtasks from stdin or file (auto-allocates new SUB-NNN IDs)
 cat new-subtasks.json | aaa ralph subtasks append --subtasks docs/planning/milestones/005-consolidate-simplify/subtasks.json
@@ -556,6 +560,35 @@ aaa ralph subtasks apply --proposal ./proposal.json --subtasks docs/planning/mil
 # Show current build progress
 aaa ralph status
 aaa ralph status ./path/to/subtasks.json
+```
+
+**Model commands:**
+
+```bash
+# List all known models
+aaa ralph models
+
+# Filter models by provider
+aaa ralph models --provider opencode
+aaa ralph models --provider cursor
+aaa ralph models --provider codex
+```
+
+**refresh-models command:**
+
+```bash
+# Refresh dynamic model registry from installed provider CLIs
+aaa ralph refresh-models
+
+# Preview changes without writing
+aaa ralph refresh-models --dry-run
+
+# Remove stale discovered entries no longer returned by providers
+aaa ralph refresh-models --prune
+
+# Refresh only one provider
+aaa ralph refresh-models --provider <name>
+aaa ralph refresh-models --provider codex --dry-run
 ```
 
 **Calibration commands** (drift detection):
@@ -795,6 +828,9 @@ AAA_GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 
 # Required for parallel-search command
 AAA_PARALLEL_API_KEY=your_api_key_here
+
+# Optional: default Ralph provider
+RALPH_PROVIDER=claude
 ```
 
 ### API Keys

@@ -98,9 +98,9 @@ Build, compile, bundle, package.
 
 **Package.json Patterns:** package-json-base, package-json-app, package-json-web, package-json-cli, package-json-library, package-json-monorepo-root, package-json-react
 
-**Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start
+**Frontend:** react, vite, tailwind, shadcn, storybook, tanstack-query, tanstack-router, tanstack-start, tanstack-table, design-tokens, vite-plugin-dts
 
-**Backend:** fastify, orpc, prisma, postgres
+**Backend:** fastify, fastify-binary, http-basic-auth, orpc, prisma, postgres
 
 **Validation & State:** zod, react-hook-form, xstate, xstate-store, immer
 
@@ -119,6 +119,8 @@ Build, compile, bundle, package.
 **Permissions:** claude-code-permissions
 
 **Ralph:** ralph-patterns
+
+**Additional Files:** design-tokens.md, http-basic-auth.md, fastify-binary.md, vite-plugin-dts.md, tanstack-table.md, orpc.md
 
 ### test/
 
@@ -140,6 +142,14 @@ Lint, format, analyze.
 - eslint.md - Linting
 - prettier.md - Formatting
 - accessibility.md - WCAG 2.1 AA compliance
+- code-code-consistency.md - Code consistency checks
+- dependencies.md - Dependency consistency checks
+- data-integrity.md - Data integrity checks
+- code-prose-consistency.md - Code vs prose consistency checks
+- planning-consistency.md - Planning artifact consistency checks
+- simplicity.md - Simplicity and over-engineering checks
+- text-consistency.md - Text consistency checks
+- performance.md - Performance checks
 
 ### security/
 
@@ -152,6 +162,8 @@ Secure, scan, harden.
 - rbac.md - RBAC schema patterns
 - zanzibar.md - Google Zanzibar relationship model
 - openfga.md - OpenFGA tool reference
+- react-auth-boundary.md - React auth boundary patterns
+- secure-coding.md - Secure coding checklist
 
 ### scm/
 
@@ -161,6 +173,8 @@ Version, release, publish.
 - commitlint.md - Commit linting
 - semantic-release.md - Automated releases
 - git-worktree.md - Git worktree parallel development
+- lint-staged-setup.md - lint-staged setup
+- npm-publish.md - npm publishing workflow
 
 ### observe/
 
@@ -181,14 +195,20 @@ Document, diagram, prompting.
 - task-template.md - Task file template
 - story-template.md - Story file template
 - prompting.md - Context engineering
-- prompting-optimize.md - Prompt optimization
 - prompting-agent-templates.md - AI agent patterns
+- roadmap-template.md - Roadmap template
+- documentation-standards.md - Documentation standards
+- naming-convention.md - Naming conventions
+- vision-template.md - Vision template
+- skill-run-guide-and-fix.md - run-guide-and-fix skill guide
+- skill-write-guide.md - write-guide skill guide
 
 ### patterns/
 
 Reusable processing patterns.
 
 - triage.md - Dedupe, score, rank, group pattern
+- code-review-finding.md - Code review finding format
 
 ---
 
@@ -209,12 +229,15 @@ Build, execute, bundle, package, parse, patterns.
 - tree-cli.md - CLI project structure
 - validate-forms-react.md - React form validation
 - patterns-react.md - React hooks, context, and state management patterns
+- claude-code-patterns.md - Claude Code workflow patterns
 - error-handling-react.md - React error boundaries
 - code-splitting.md - React lazy loading patterns
 - data-persist-prisma.md - Database persistence with Prisma + PostgreSQL
 - data-hierarchy-prisma.md - Hierarchical data with Prisma + PostgreSQL
 - data-table-tanstack.md - TanStack Table + Query + Router wiring
 - parse-csv-zod.md - CSV parsing with Zod validation
+- mock-file-server.md - Mock file server patterns
+- patterns-design-tokens-tailwind.md - Design tokens with Tailwind patterns
 
 ### test/
 
@@ -228,6 +251,9 @@ Testing strategies.
 - test-visual-web-agent-browser.md - Visual UI verification with Agent Browser
 - test-integration-api.md - API integration testing
 - test-integration-db.md - Database integration testing (ORM-agnostic)
+- mock-server-local.md - Local mock server patterns
+- mock-api-msw.md - API mocking with MSW
+- test-visual-chromatic.md - Visual regression testing with Chromatic
 
 ### quality/
 
@@ -245,9 +271,9 @@ Auth and secrets management.
 - secrets-env-monorepo.md - Monorepo environment layering patterns
 - secrets-env-monorepo-node.md - Node.js-specific monorepo patterns
 - secrets-env-monorepo-bun.md - Bun-specific monorepo patterns
-- auth-better-auth.md - Better Auth React integration
-- auth-session-react.md - Session handling patterns
-- auth-protected-routes.md - Route protection patterns
+- auth-forms-better-auth.md - Better Auth React integration
+- auth-session-better-auth.md - Session handling patterns
+- auth-routes-react.md - Route protection patterns
 - auth-oidc-system-better-auth.md - BetterAuth OIDC provider system
 - auth-authz-openfga.md - Fine-grained authorization with OpenFGA
 
@@ -256,6 +282,7 @@ Auth and secrets management.
 Version control strategies.
 
 - commit-monorepo-subdir.md - Monorepo commit patterns
+- publish-npm.md - npm publish workflow
 
 ### observe/
 

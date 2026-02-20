@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import type {
@@ -32,9 +33,13 @@ const CURSOR_TRUST_PROMPT_MARKERS = [
   "workspace trust required",
   "do you trust the contents of this directory",
 ] as const;
+const CURSOR_SESSION_CACHE_ROOT = path.join(
+  tmpdir(),
+  "aaa-ralph",
+  "cursor-sessions",
+);
 const DEFAULT_CURSOR_TIMEOUT_MS = 3_600_000;
 const OPENAI_MODEL_PREFIX = "openai/";
-const RALPH_CURSOR_SESSION_DIR = ".ralph/sessions/cursor";
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 
 function buildCursorHeadlessArguments(
@@ -244,6 +249,16 @@ function formatCursorExecutionDetails(options: {
   return [stdout.trim(), stderr.trim()]
     .filter((line) => line !== "")
     .join("\n");
+}
+
+function getCursorSessionCacheDirectory(workingDirectory: string): string {
+  const normalizedWorkingDirectory = path.resolve(workingDirectory);
+  const encodedPath = normalizedWorkingDirectory
+    .replaceAll("/", "-")
+    .replaceAll(".", "-")
+    .replace(/^-+/u, "");
+
+  return path.join(CURSOR_SESSION_CACHE_ROOT, encodedPath);
 }
 
 function getNestedValue(
@@ -607,10 +622,7 @@ function saveCursorSessionPayload(
   }
 
   try {
-    const sessionDirectory = path.join(
-      workingDirectory,
-      RALPH_CURSOR_SESSION_DIR,
-    );
+    const sessionDirectory = getCursorSessionCacheDirectory(workingDirectory);
     mkdirSync(sessionDirectory, { recursive: true });
     writeFileSync(
       path.join(sessionDirectory, `${sessionId}.jsonl`),

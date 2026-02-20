@@ -30,6 +30,17 @@ aaa ralph plan subtasks --milestone docs/planning/milestones/001-mvp/
 aaa ralph build --subtasks docs/planning/milestones/001-mvp/subtasks.json
 ```
 
+## Supported Providers
+
+Ralph supports these active providers:
+
+| Provider | Default | Headless Behavior |
+|----------|---------|-------------------|
+| `claude` | Yes | Uses Claude CLI headless/supervised modes |
+| `opencode` | No | Uses OpenCode provider integration for headless/supervised runs |
+| `cursor` | No | Uses Cursor CLI provider integration for headless/supervised runs |
+| `codex` | No | Uses Codex CLI provider integration for headless/supervised runs |
+
 ## Planning Hierarchy
 
 ```
@@ -46,6 +57,22 @@ VISION (singular, evolves)
 For full definitions, see [VISION.md](../planning/VISION.md).
 
 ## CLI Commands
+
+### `--provider` Flag
+
+Use `--provider <name>` to override the default provider (`claude`).
+
+Valid values: `claude`, `opencode`, `cursor`, `codex`.
+
+Commands that support provider selection:
+
+- `ralph plan <level>`
+- `ralph build`
+- `ralph review <type>`
+- `ralph calibrate <type>`
+- `ralph subtasks complete`
+- `ralph models`
+- `ralph refresh-models`
 
 ### Planning
 
@@ -71,6 +98,8 @@ ralph build --review                 # Require explicit approval for proposals
 ralph build --from <level>           # Resume cascade from a specific level
 ralph build -S, --skip-summary       # Skip summary generation in headless mode
 ralph build --provider opencode --model openai/gpt-5.3-codex  # Multi-provider
+ralph build --provider cursor
+ralph build --provider codex --model gpt-5.3-codex
 ```
 
 ### Review
@@ -92,14 +121,19 @@ ralph review gap subtasks                # Gap analysis of subtask queue
 ralph milestones                     # List milestones from roadmap
 ralph milestones --json              # JSON output
 ralph models                         # List model names from registry
+ralph models --provider claude       # Filter by provider
 ralph models --provider opencode     # Filter by provider
+ralph models --provider cursor       # Filter by provider
+ralph models --provider codex        # Filter by provider
 ralph archive subtasks --milestone <path>  # Archive completed subtasks
 ralph archive progress --progress <path>   # Archive old PROGRESS.md sessions
 ralph refresh-models                 # Discover models from CLI providers
 ralph refresh-models --dry-run       # Preview without writing
-ralph subtasks next --milestone <name>     # Get next runnable subtask
+ralph refresh-models --prune         # Remove stale discovered models
+ralph refresh-models --provider codex # Refresh one provider
+ralph subtasks next --milestone <name>      # Get next runnable subtask
 ralph subtasks list --milestone <name>     # List queue
-ralph subtasks complete --milestone <name> --id SUB-001  # Mark complete
+ralph subtasks complete --milestone <name> --id SUB-001 --commit <sha> --session <id> [--provider <name>]  # Mark complete
 ralph subtasks append --subtasks <path>    # Append to queue
 ralph subtasks prepend --subtasks <path>   # Prepend to queue
 ralph subtasks diff --proposal <path>      # Preview proposal changes
