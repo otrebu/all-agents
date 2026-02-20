@@ -60,7 +60,7 @@ function useSessionQuery() {
   });
 }
 
-// Invalidate on auth actions
+// Cached session outlives sign-out without explicit invalidation
 function useSignOut() {
   const queryClient = useQueryClient();
 
@@ -130,7 +130,6 @@ await authClient.changePassword({
 ## Server-Side Caching
 
 ```typescript
-// Better Auth server config
 export const auth = betterAuth({
   session: {
     cookieCache: {

@@ -106,7 +106,11 @@ Build, compile, bundle, package.
 
 **CLI Tools:** commander, chalk, ora, boxen
 
-**Utilities:** date-fns, dotenv, fast-xml-parser
+**Data Patterns:** hierarchical-data, entity-ownership, data-table-ui, pagination, preview-apply
+
+**API Design:** rest-resources, rest-rpc-responses
+
+**Utilities:** date-fns, dotenv, fast-xml-parser, papaparse
 
 **External Tools:** gemini-cli, gh-search, parallel-search
 
@@ -143,6 +147,11 @@ Secure, scan, harden.
 
 - dotenv.md - Environment variables
 - better-auth.md - TypeScript auth library
+- better-auth-oauth.md - BetterAuth OAuth consumer & provider
+- authorization.md - AuthZ concepts (RBAC vs Zanzibar/ReBAC)
+- rbac.md - RBAC schema patterns
+- zanzibar.md - Google Zanzibar relationship model
+- openfga.md - OpenFGA tool reference
 
 ### scm/
 
@@ -203,6 +212,9 @@ Build, execute, bundle, package, parse, patterns.
 - error-handling-react.md - React error boundaries
 - code-splitting.md - React lazy loading patterns
 - data-persist-prisma.md - Database persistence with Prisma + PostgreSQL
+- data-hierarchy-prisma.md - Hierarchical data with Prisma + PostgreSQL
+- data-table-tanstack.md - TanStack Table + Query + Router wiring
+- parse-csv-zod.md - CSV parsing with Zod validation
 
 ### test/
 
@@ -236,6 +248,8 @@ Auth and secrets management.
 - auth-better-auth.md - Better Auth React integration
 - auth-session-react.md - Session handling patterns
 - auth-protected-routes.md - Route protection patterns
+- auth-oidc-system-better-auth.md - BetterAuth OIDC provider system
+- auth-authz-openfga.md - Fine-grained authorization with OpenFGA
 
 ### scm/
 

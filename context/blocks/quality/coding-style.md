@@ -210,6 +210,54 @@ const del = <T>(url: string) => httpRequest<T>({ method: "DELETE", url });
 
 ---
 
+## Enum & Union Type Conventions
+
+Prefer string union types over the `enum` keyword. Unions are simpler, tree-shake better, and compose naturally with discriminated unions and exhaustive switches.
+
+### Rules
+
+- Default to string unions: `type Status = 'active' | 'idle' | 'error'`
+- NEVER use `enum` for simple string sets — unions cover the same ground with less machinery
+- Use `as const` objects only when you need runtime iteration or reverse lookups (value to label mapping)
+- Store as a plain string column in the DB matching the union literal; parse with Zod on read (`z.enum(['active', 'idle', 'error'])`)
+- Exhaustive `switch` + `assertNever` works identically with unions (see Exhaustive Switch pattern above)
+
+### Example
+
+```typescript
+// ❌ Unnecessary enum
+enum Status {
+  Active = 'active',
+  Idle = 'idle',
+  Error = 'error',
+}
+
+// ✅ String union — simpler, tree-shakes, works with discriminated unions
+type Status = 'active' | 'idle' | 'error';
+
+// ✅ as const object — when you need runtime iteration or value→label mapping
+const STATUS = {
+  active: 'Active',
+  idle: 'Idle',
+  error: 'Error',
+} as const;
+
+type Status = keyof typeof STATUS;
+// STATUS keys are iterable: Object.keys(STATUS)
+// Reverse lookup: STATUS['active'] → 'Active'
+
+// ✅ DB boundary — parse string column back into union
+const StatusSchema = z.enum(['active', 'idle', 'error']);
+type Status = z.infer<typeof StatusSchema>; // 'active' | 'idle' | 'error'
+
+function parseUserRow(row: unknown) {
+  const user = UserRowSchema.parse(row); // status validated as union literal
+  return user;
+}
+```
+
+---
+
 ## Anti-Patterns to Avoid
 
 ### God Objects

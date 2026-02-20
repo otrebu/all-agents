@@ -189,6 +189,40 @@ Edits to existing docs:
 - Existing docs updated without breaking current references.
 - Each doc follows atomic documentation naming and structure conventions.
 
+**Progress checklist:**
+
+New blocks:
+- [x] `blocks/construct/hierarchical-data.md`
+- [x] `blocks/construct/sql-aggregation.md` — SKIPPED (too broad; valuable parts absorbed into `aggregate-prisma.md` and `drilldown-api.md`)
+- [x] `blocks/construct/drilldown-api.md` — SKIPPED (project-specific design, not generic pattern; content absorbed into `drilldown-orpc.md` foundation + BillingManager project docs)
+- [x] `blocks/construct/data-table-ui.md` (renamed from `report-table-ui.md`)
+- [x] `blocks/construct/entity-ownership.md`
+- [x] `blocks/construct/rest-resources.md`
+- [x] `blocks/construct/rest-rpc-responses.md` (renamed from `api-responses.md`)
+- [x] `blocks/construct/pagination.md`
+- [x] `blocks/construct/papaparse.md`
+- [x] `blocks/construct/preview-apply.md`
+- [x] `blocks/security/authorization.md`
+- [x] `blocks/security/rbac.md`
+- [x] `blocks/security/zanzibar.md`
+- [x] `blocks/security/openfga.md`
+- [x] `blocks/security/better-auth-oauth.md`
+
+New foundations:
+- [x] `foundations/construct/data-hierarchy-prisma.md`
+- [x] `foundations/construct/aggregate-prisma.md` — SKIPPED (no meaningful glue; Prisma groupBy() is well-documented, advanced SQL is just $queryRaw)
+- [x] `foundations/construct/drilldown-orpc.md` — SKIPPED (project-specific to BillingManager; belongs in project docs)
+- [x] `foundations/construct/data-table-tanstack.md` (renamed from `report-table-tanstack.md`)
+- [x] `foundations/construct/parse-csv-zod.md`
+- [x] `foundations/construct/import-pipeline.md` — SKIPPED (orchestration is project-specific; individual pieces already documented)
+- [x] `foundations/security/auth-oauth-server-better-auth.md` — SKIPPED (superseded by existing `auth-oidc-system-better-auth.md` which needs generalizing instead)
+- [x] `foundations/security/auth-authz-openfga.md`
+
+Edits to existing docs:
+- [x] `blocks/quality/coding-style.md` — Add "Enum & Union Type Conventions" section
+- [x] `blocks/quality/error-handling.md` — Add error accumulation pattern
+- [x] `foundations/construct/data-persist-prisma.md` — Cross-reference entity-ownership block
+
 **Dependencies:** none (can run in parallel with other milestones)
 
 ---

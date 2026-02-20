@@ -262,7 +262,7 @@ function isAuthErrorCode(code: string): code is AuthErrorCode {
   return code in errorMessages;
 }
 
-function getMessage(code: string): string {
+function getAuthErrorMessage(code: string): string {
   return isAuthErrorCode(code) ? errorMessages[code] : "An error occurred";
 }
 ```
@@ -272,11 +272,9 @@ function getMessage(code: string): string {
 ## TypeScript Inference
 
 ```typescript
-// Infer types from client
 export type Session = typeof authClient.$Infer.Session;
 export type User = Session["user"];
 
-// Or from server
 import type { auth } from "./auth";
-export type Session = typeof auth.$Infer.Session;
+export type ServerSession = typeof auth.$Infer.Session;
 ```
