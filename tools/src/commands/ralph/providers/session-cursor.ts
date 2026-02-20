@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 
 import type { TokenUsage } from "../types";
@@ -39,6 +39,11 @@ const CURSOR_FILE_MUTATION_TOOLS = new Set<string>([
   "write",
 ]);
 
+const CURSOR_SESSION_CACHE_ROOT = path.join(
+  tmpdir(),
+  "aaa-ralph",
+  "cursor-sessions",
+);
 const CURSOR_SUPERVISED_SESSION_LOOKBACK_MS = 120_000;
 
 function discoverRecentCursorSession(
@@ -289,7 +294,13 @@ function getCursorProjectsDirectory(): string {
 }
 
 function getCursorRalphSessionDirectory(repoRoot: string): string {
-  return path.join(path.resolve(repoRoot), ".ralph", "sessions", "cursor");
+  const normalizedRepoRoot = path.resolve(repoRoot);
+  const encodedPath = normalizedRepoRoot
+    .replaceAll("/", "-")
+    .replaceAll(".", "-")
+    .replace(/^-+/u, "");
+
+  return path.join(CURSOR_SESSION_CACHE_ROOT, encodedPath);
 }
 
 function getCursorToolCallCandidates(

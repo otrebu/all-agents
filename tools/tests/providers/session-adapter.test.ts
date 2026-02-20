@@ -309,7 +309,16 @@ describe("provider session adapters", () => {
   test("cursor adapter handles alternate tool_call shapes and nested usage cache", () => {
     const testRoot = mkdtempSync(join(tmpdir(), "aaa-session-cursor-alt-"));
     const repoRoot = join(testRoot, "repo");
-    const sessionDirectory = join(repoRoot, ".ralph", "sessions", "cursor");
+    const encodedPath = repoRoot
+      .replaceAll("/", "-")
+      .replaceAll(".", "-")
+      .replace(/^-+/u, "");
+    const sessionDirectory = join(
+      tmpdir(),
+      "aaa-ralph",
+      "cursor-sessions",
+      encodedPath,
+    );
     const sessionId = "cursor-session-alt-001";
     const sessionPath = join(sessionDirectory, `${sessionId}.jsonl`);
 
@@ -347,6 +356,7 @@ describe("provider session adapters", () => {
         outputTokens: 5,
       });
     } finally {
+      rmSync(sessionPath, { force: true });
       rmSync(testRoot, { force: true, recursive: true });
     }
   });

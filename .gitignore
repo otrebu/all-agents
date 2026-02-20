@@ -8,6 +8,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 logs/
+.ralph/
 
 bin/aaa
 
@@ -54,5 +55,4 @@ aaa-manpage.html
 .claude/current-session
 .cursor/rules/eval-test-*
 context/blocks/*/eval-test-*
-
 
