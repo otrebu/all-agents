@@ -198,6 +198,51 @@ function GuestRoute() {
 
 ---
 
+## Pitfall: OAuth Callback vs Guest-Only Redirect
+
+Guest-only guards redirect authenticated users away from public routes (e.g. `/login` to `/dashboard`). OAuth callback routes (`/auth/callback`) are also public but **must not be redirected** — they need to complete the PKCE token exchange first.
+
+### The Problem
+
+```typescript
+// BAD: lumps all public auth paths together
+const PUBLIC_AUTH_PATHS = new Set(["/auth/callback", "/login"]);
+
+function AuthenticatedApp({ pathname }) {
+  if (PUBLIC_AUTH_PATHS.has(pathname)) {
+    return <Navigate to="/dashboard" replace />;  // callback never runs
+  }
+  return <Outlet />;
+}
+```
+
+When the auth server redirects back with `?code=...&state=...`, the browser already has a session cookie. The guest-only guard sees "authenticated + public path" and redirects to `/dashboard` before the callback component mounts. The PKCE exchange never completes, the API JWT is never obtained, and the user loops back to `/login`.
+
+### The Fix
+
+Separate "public auth paths" (used by unauthenticated routing) from "redirect-when-authenticated paths" (used by authenticated routing):
+
+```typescript
+const PUBLIC_AUTH_PATHS = new Set(["/auth/callback", "/login"]);
+const REDIRECT_WHEN_AUTHENTICATED = new Set(["/login"]);
+
+// UnauthenticatedApp uses PUBLIC_AUTH_PATHS to decide which routes to render
+export function isPublicAuthPath(pathname: string): boolean {
+  return PUBLIC_AUTH_PATHS.has(pathname);
+}
+
+// AuthenticatedApp uses REDIRECT_WHEN_AUTHENTICATED to decide when to redirect
+export function shouldRedirectWhenAuthenticated(pathname: string): boolean {
+  return REDIRECT_WHEN_AUTHENTICATED.has(pathname);
+}
+```
+
+### Rule
+
+Any route that performs an async token exchange (OAuth callback, SAML ACS, magic link verification) must be **excluded** from guest-only redirect guards, even when a session cookie already exists.
+
+---
+
 ## Layout with Auth State
 
 ```typescript
