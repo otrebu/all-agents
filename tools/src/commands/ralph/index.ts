@@ -26,6 +26,7 @@ import {
 } from "./cascade";
 import {
   countSubtasksInFile,
+  deleteSubtaskFragments,
   discoverTasksFromMilestone,
   getExistingTaskReferences,
   getPlanningLogPath as getMilestonePlanningLogPath,
@@ -3200,7 +3201,34 @@ function tryMergeSubtaskFragments(options: {
       loadSubtasksFile(outputPath);
       state.shouldTerminateWatchdog = true;
     } catch {
-      // Ignore transient invalid states while writer is still flushing.
+      // Queue is invalid (transient flush or corrupt). During watchdog polling
+      // we ignore this and retry on the next tick. During post-run-fallback the
+      // provider is done so we fall through to attempt fragment-based recovery.
+      if (trigger === "watchdog") {
+        return;
+      }
+    }
+
+    // Provider wrote a valid queue directly — clean up leftover fragment files.
+    // Only safe in post-run-fallback (provider is done writing). During watchdog
+    // polling, subagents may still be writing fragments so we skip cleanup.
+    if (state.shouldTerminateWatchdog && trigger === "post-run-fallback") {
+      const cleaned = deleteSubtaskFragments(resolvedOutputDirectory);
+      if (cleaned > 0) {
+        state.fragmentMergeResult = {
+          cleaned,
+          fragments: cleaned,
+          // Already in the queue via direct provider write
+          merged: 0,
+        };
+        console.log(
+          renderEventLine({
+            domain: "PLAN",
+            message: `Cleaned up ${cleaned} orphaned fragment files (queue written by provider)`,
+            state: "DONE",
+          }),
+        );
+      }
     }
     return;
   }

@@ -5,6 +5,7 @@ import type { Mock } from "bun:test";
 
 import {
   DEFAULT_CONFIG,
+  deleteSubtaskFragments,
   getExistingTaskReferences,
   getMilestonesBasePath,
   listAvailableMilestones,
@@ -507,5 +508,72 @@ describe("mergeSubtaskFragments", () => {
 
     expect(existsSync(fragmentPath)).toBe(true);
     expect(existsSync(subtasksPath)).toBe(false);
+  });
+});
+
+describe("deleteSubtaskFragments", () => {
+  let temporaryDirectory = "";
+
+  beforeEach(() => {
+    temporaryDirectory = join(tmpdir(), `cleanup-fragments-test-${Date.now()}`);
+    mkdirSync(temporaryDirectory, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(temporaryDirectory)) {
+      rmSync(temporaryDirectory, { force: true, recursive: true });
+    }
+  });
+
+  test("deletes fragment files and returns count", () => {
+    writeFileSync(
+      join(temporaryDirectory, ".subtasks-task-001.json"),
+      JSON.stringify([{ done: false, id: "SUB-001" }]),
+    );
+    writeFileSync(
+      join(temporaryDirectory, ".subtasks-task-002.json"),
+      JSON.stringify([{ done: false, id: "SUB-002" }]),
+    );
+
+    const cleaned = deleteSubtaskFragments(temporaryDirectory);
+
+    expect(cleaned).toBe(2);
+    expect(
+      existsSync(join(temporaryDirectory, ".subtasks-task-001.json")),
+    ).toBe(false);
+    expect(
+      existsSync(join(temporaryDirectory, ".subtasks-task-002.json")),
+    ).toBe(false);
+  });
+
+  test("returns 0 when no fragment files exist", () => {
+    const cleaned = deleteSubtaskFragments(temporaryDirectory);
+    expect(cleaned).toBe(0);
+  });
+
+  test("returns 0 for non-existent directory", () => {
+    const cleaned = deleteSubtaskFragments(join(temporaryDirectory, "nope"));
+    expect(cleaned).toBe(0);
+  });
+
+  test("ignores non-fragment files", () => {
+    writeFileSync(
+      join(temporaryDirectory, ".subtasks-task-001.json"),
+      JSON.stringify([{ done: false, id: "SUB-001" }]),
+    );
+    writeFileSync(
+      join(temporaryDirectory, "subtasks.json"),
+      JSON.stringify({ subtasks: [] }),
+    );
+    writeFileSync(join(temporaryDirectory, "README.md"), "# Hello");
+
+    const cleaned = deleteSubtaskFragments(temporaryDirectory);
+
+    expect(cleaned).toBe(1);
+    expect(
+      existsSync(join(temporaryDirectory, ".subtasks-task-001.json")),
+    ).toBe(false);
+    expect(existsSync(join(temporaryDirectory, "subtasks.json"))).toBe(true);
+    expect(existsSync(join(temporaryDirectory, "README.md"))).toBe(true);
   });
 });

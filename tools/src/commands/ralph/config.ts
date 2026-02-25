@@ -601,6 +601,40 @@ function appendSubtasksToFile(
 }
 
 /**
+ * Delete leftover subtask fragment files without merging their contents.
+ *
+ * Use this when the canonical subtasks.json was written directly by the
+ * provider, making the fragment data redundant. Best-effort: individual
+ * unlink failures (e.g. race with another process) are silently ignored.
+ *
+ * @param outputDirectory - Directory containing fragment files
+ * @returns Number of fragment files deleted
+ */
+function deleteSubtaskFragments(outputDirectory: string): number {
+  if (!existsSync(outputDirectory)) {
+    return 0;
+  }
+
+  const fragmentFiles = readdirSync(outputDirectory, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isFile() && SUBTASK_FRAGMENT_FILENAME_PATTERN.test(entry.name),
+    )
+    .map((entry) => join(outputDirectory, entry.name));
+
+  let cleaned = 0;
+  for (const fragmentPath of fragmentFiles) {
+    try {
+      unlinkSync(fragmentPath);
+      cleaned += 1;
+    } catch {
+      // Best-effort cleanup; ignore races.
+    }
+  }
+  return cleaned;
+}
+
+/**
  * Get the path to the iteration log file for a subtasks file
  *
  * Derives the milestone root from the subtasks.json parent directory.
@@ -773,6 +807,7 @@ export {
   countRemaining,
   countSubtasksInFile,
   DEFAULT_CONFIG,
+  deleteSubtaskFragments,
   discoverTasksFromMilestone,
   getCompletedSubtasks,
   getExistingTaskReferences,
