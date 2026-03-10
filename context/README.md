@@ -150,6 +150,7 @@ Lint, format, analyze.
 - simplicity.md - Simplicity and over-engineering checks
 - text-consistency.md - Text consistency checks
 - performance.md - Performance checks
+- audit-log-filter-ux.md - UX pattern for grouped multi-select filtering in enterprise audit log viewers
 
 ### security/
 
