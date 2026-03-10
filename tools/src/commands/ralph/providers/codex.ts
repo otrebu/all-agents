@@ -7,7 +7,11 @@
  *
  * @see docs/planning/milestones/004-MULTI-CLI/providers/codex.md
  */
-/* eslint-disable unicorn/no-nested-ternary, no-nested-ternary, function-name/starts-with-verb, @typescript-eslint/naming-convention, @typescript-eslint/init-declarations, @typescript-eslint/no-unnecessary-condition, no-continue, no-await-in-loop, promise/avoid-new, unicorn/no-array-callback-reference */
+/* eslint-disable unicorn/no-nested-ternary, no-nested-ternary, function-name/starts-with-verb, @typescript-eslint/naming-convention, no-continue, no-await-in-loop, promise/avoid-new, unicorn/no-array-callback-reference */
+
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import path from "node:path";
 
 import type { ModelInfo } from "./models-static";
 import type {
@@ -75,15 +79,19 @@ type TerminationSignal = "SIGINT" | "SIGTERM";
 /** Default hard timeout for Codex headless execution */
 const DEFAULT_HARD_TIMEOUT_MS = 3_600_000;
 
-const CODEX_DISCOVERY_COMMANDS: Array<Array<string>> = [
-  ["models", "--json"],
-  ["models", "list", "--json"],
-  ["models"],
-  ["model", "list"],
-];
-
-const CODEX_DISCOVERY_MODEL_PATTERN =
-  /\b(?!https?:\/\/)[a-zA-Z0-9][a-zA-Z0-9._-]*\/[a-zA-Z0-9._-]+\b/gu;
+/**
+ * Path to the Codex CLI models cache file.
+ *
+ * The `codex` CLI (v0.113+) no longer exposes a `models` subcommand.
+ * Instead, it caches its available models in `~/.codex/models_cache.json`
+ * after the first interactive session or API call. We read this file
+ * directly for model discovery.
+ */
+const CODEX_MODELS_CACHE_PATH = path.join(
+  homedir(),
+  ".codex",
+  "models_cache.json",
+);
 
 /** Codex signal exit codes (128 + signal number) */
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
@@ -204,28 +212,6 @@ async function checkCodexAvailable(): Promise<boolean> {
   }
 }
 
-function coerceCodexCostHint(
-  record: Record<string, unknown>,
-): ModelInfo["costHint"] {
-  const input = readNumber(
-    readNestedCost(record, "input") ??
-      readNestedCost(record, "input_tokens") ??
-      readNestedCost(record, "input_tokens_total"),
-  );
-
-  if (input === undefined) {
-    return "standard";
-  }
-
-  if (input <= 0) {
-    return "cheap";
-  }
-  if (input >= 10) {
-    return "expensive";
-  }
-  return "standard";
-}
-
 /**
  * Read entire stream text while firing an activity callback on each chunk.
  */
@@ -257,34 +243,27 @@ async function collectStreamText(
   return chunks.join("");
 }
 
-function dedupeById(models: Array<ModelInfo>): Array<ModelInfo> {
-  const seen = new Set<string>();
-  return models.filter((model) => {
-    if (seen.has(model.id)) {
-      return false;
-    }
-    seen.add(model.id);
-    return true;
-  });
-}
-
-function discoverCodexModels(): Array<ModelInfo> {
+/**
+ * Discover available Codex models by reading the local models cache.
+ *
+ * The `codex` CLI (v0.113+) removed the `models` subcommand. Instead,
+ * it maintains a local cache at `~/.codex/models_cache.json` that is
+ * populated after the first interactive session. We read this cache
+ * directly rather than spawning subprocesses.
+ *
+ * Falls back to an empty list if:
+ * - The `codex` binary is not installed
+ * - The cache file does not exist (codex hasn't been run yet)
+ * - The cache file is malformed
+ *
+ * An optional `cachePath` parameter allows tests to inject a custom path.
+ */
+function discoverCodexModels(cachePath?: string): Array<ModelInfo> {
   if (!isCommandAvailable("codex")) {
     return [];
   }
 
-  for (const command of CODEX_DISCOVERY_COMMANDS) {
-    const output = runCodexDiscoveryCommand(command);
-    if (output === null) {
-      continue;
-    }
-    const models = parseCodexDiscoveryOutput(output);
-    if (models.length > 0) {
-      return models;
-    }
-  }
-
-  return [];
+  return readCodexModelsCache(cachePath ?? CODEX_MODELS_CACHE_PATH);
 }
 
 /**
@@ -313,20 +292,6 @@ function exitCodeToSignal(
     return "SIGTERM";
   }
   return null;
-}
-
-function extractCodexModelRecords(
-  record: Record<string, unknown>,
-): Array<unknown> {
-  const candidateKeys = ["models", "items", "result", "data", "entries"];
-  for (const key of candidateKeys) {
-    const value = record[key];
-    if (Array.isArray(value)) {
-      return value;
-    }
-  }
-
-  return [];
 }
 
 function extractFailureMessage(event: CodexEvent): string {
@@ -445,6 +410,23 @@ function getNested(record: Record<string, unknown>, key: string): unknown {
 // =============================================================================
 // Helpers
 // =============================================================================
+
+/**
+ * Infer cost hint from a Codex model slug.
+ *
+ * Uses naming conventions: "mini" models are cheap, "max"/"spark" are
+ * expensive, and everything else is standard.
+ */
+function inferCodexCostHint(slug: string): "cheap" | "expensive" | "standard" {
+  const lower = slug.toLowerCase();
+  if (lower.includes("mini")) {
+    return "cheap";
+  }
+  if (lower.includes("max") || lower.includes("spark")) {
+    return "expensive";
+  }
+  return "standard";
+}
 
 /**
  * Registry-compatible Codex invoker.
@@ -725,65 +707,6 @@ function normalizeCodexResult(
   return { costUsd, durationMs, result: resultText, sessionId, tokenUsage };
 }
 
-function parseCodexDiscoveryOutput(output: string): Array<ModelInfo> {
-  const discoveredAt = new Date().toISOString().split("T")[0] ?? "";
-  const lines = output.trim();
-  if (lines === "") {
-    return [];
-  }
-
-  const models: Array<ModelInfo> = [];
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(lines);
-  } catch {
-    parsed = null;
-  }
-
-  if (parsed === null) {
-    for (const line of output.split("\n")) {
-      models.push(...parseCodexModelLine(line, discoveredAt));
-    }
-    return dedupeById(models);
-  }
-
-  if (Array.isArray(parsed)) {
-    for (const entry of parsed) {
-      if (isRecord(entry)) {
-        const model = toModelFromCodexRecord(entry, discoveredAt);
-        if (model !== null) {
-          models.push(model);
-        }
-      }
-    }
-    return dedupeById(models);
-  }
-
-  if (isRecord(parsed)) {
-    const nestedModels = extractCodexModelRecords(parsed);
-    for (const entry of nestedModels) {
-      if (isRecord(entry)) {
-        const model = toModelFromCodexRecord(entry, discoveredAt);
-        if (model !== null) {
-          models.push(model);
-        }
-      }
-    }
-
-    if (models.length > 0) {
-      return dedupeById(models);
-    }
-
-    const model = toModelFromCodexRecord(parsed, discoveredAt);
-    if (model !== null) {
-      return [model];
-    }
-  }
-
-  return dedupeById(parseCodexModelLine(lines, discoveredAt));
-}
-
 function parseCodexEvents(jsonlOutput: string): Array<CodexEvent> {
   const lines = jsonlOutput.split("\n").filter((line) => line.trim() !== "");
   if (lines.length === 0) {
@@ -802,27 +725,6 @@ function parseCodexEvents(jsonlOutput: string): Array<CodexEvent> {
   }
 
   return events;
-}
-
-function parseCodexModelLine(
-  line: string,
-  discoveredAt: string,
-): Array<ModelInfo> {
-  const models: Array<ModelInfo> = [];
-  for (const match of line.matchAll(CODEX_DISCOVERY_MODEL_PATTERN)) {
-    const raw = match[0];
-    if (raw === undefined) {
-      continue;
-    }
-    models.push({
-      cliFormat: raw,
-      costHint: "standard",
-      discoveredAt,
-      id: raw,
-      provider: "codex",
-    });
-  }
-  return models;
 }
 
 function parseStructuredErrorMessage(rawMessage: string): string {
@@ -851,6 +753,10 @@ function parseStructuredErrorMessage(rawMessage: string): string {
   return trimmed;
 }
 
+// =============================================================================
+// Main functions
+// =============================================================================
+
 function propagateInterruptToParent(signal: TerminationSignal): never {
   try {
     process.kill(process.pid, signal);
@@ -861,92 +767,74 @@ function propagateInterruptToParent(signal: TerminationSignal): never {
   throw new Error(`Codex supervised session interrupted by ${signal}`);
 }
 
-function readNestedCost(
-  record: Record<string, unknown>,
-  key: string,
-): number | undefined {
-  const nested = getNested(record, "cost");
-  if (!isRecord(nested)) {
-    return undefined;
+/**
+ * Read and parse the Codex models cache file (`~/.codex/models_cache.json`).
+ *
+ * The cache is maintained by the `codex` CLI and contains a JSON object with
+ * a `models` array. Each entry has at minimum a `slug` field used as the
+ * model identifier, plus optional `description` and `visibility` fields.
+ *
+ * Only models with `visibility === "list"` are included; hidden models are
+ * filtered out to match what the interactive codex UI shows the user.
+ */
+function readCodexModelsCache(cachePath: string): Array<ModelInfo> {
+  if (!existsSync(cachePath)) {
+    return [];
   }
 
-  const nestedCost = getNested(nested, key);
-  const inputCost = isRecord(nestedCost)
-    ? getNested(nestedCost, "input")
-    : undefined;
-  if (readNumber(inputCost) !== undefined) {
-    return readNumber(inputCost);
+  try {
+    const raw = readFileSync(cachePath, "utf8");
+    const parsed: unknown = JSON.parse(raw);
+
+    if (!isRecord(parsed)) {
+      return [];
+    }
+
+    const modelsArray = parsed.models;
+    if (!Array.isArray(modelsArray)) {
+      return [];
+    }
+
+    const discoveredAt = new Date().toISOString().split("T")[0] ?? "";
+    const models: Array<ModelInfo> = [];
+
+    for (const entry of modelsArray) {
+      if (!isRecord(entry)) {
+        continue;
+      }
+
+      const slug = readString(entry.slug);
+      if (slug === undefined) {
+        continue;
+      }
+
+      // Skip hidden models - only include models the CLI actively shows
+      const visibility = readString(entry.visibility);
+      if (visibility === "hide") {
+        continue;
+      }
+
+      const costHint = inferCodexCostHint(slug);
+
+      models.push({
+        cliFormat: slug,
+        costHint,
+        discoveredAt,
+        id: slug,
+        provider: "codex",
+      });
+    }
+
+    return models;
+  } catch {
+    return [];
   }
-
-  return readNumber(nestedCost);
-}
-
-// =============================================================================
-// Main functions
-// =============================================================================
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : undefined;
 }
 
 function readString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== ""
     ? value.trim()
     : undefined;
-}
-
-function runCodexDiscoveryCommand(command: Array<string>): null | string {
-  try {
-    const proc = Bun.spawnSync(["codex", ...command], {
-      stderr: "pipe",
-      stdout: "pipe",
-    });
-    if (proc.exitCode !== 0) {
-      return null;
-    }
-
-    const output = new TextDecoder().decode(proc.stdout);
-    return output.trim();
-  } catch {
-    return null;
-  }
-}
-
-function toModelFromCodexRecord(
-  record: Record<string, unknown>,
-  discoveredAt: string,
-): ModelInfo | null {
-  const providerId =
-    readString(record.providerID) ??
-    readString(record.provider_id) ??
-    readString(record.provider);
-  const rawId =
-    readString(record.id) ??
-    readString(record.model) ??
-    readString(record.model_id) ??
-    readString(record.name);
-  if (rawId === undefined) {
-    return null;
-  }
-
-  const cliFormat = rawId.includes("/")
-    ? rawId
-    : providerId === undefined
-      ? rawId
-      : `${providerId}/${rawId}`;
-  if (cliFormat.includes(" ")) {
-    return null;
-  }
-
-  return {
-    cliFormat,
-    costHint: coerceCodexCostHint(record),
-    discoveredAt,
-    id: cliFormat,
-    provider: "codex",
-  };
 }
 
 function toTokenUsage(usage: unknown): TokenUsage | undefined {
@@ -1011,6 +899,7 @@ export {
   buildCodexHeadlessArguments,
   buildCodexSupervisedArguments,
   checkCodexAvailable,
+  CODEX_MODELS_CACHE_PATH,
   DEFAULT_HARD_TIMEOUT_MS,
   discoverCodexModels,
   invokeCodex,
@@ -1019,4 +908,5 @@ export {
   mapCodexInvocationError,
   normalizeCodexResult,
   parseCodexEvents,
+  readCodexModelsCache,
 };

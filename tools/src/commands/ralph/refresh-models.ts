@@ -672,13 +672,6 @@ function runRefreshModels(options: RefreshOptions): void {
 
   for (const providerToRefresh of providersToRefresh) {
     if (!REGISTRY[providerToRefresh].supportsModelDiscovery) {
-      if (providerToRefresh === "codex") {
-        throw new Error(
-          "Provider 'codex' does not support model discovery. " +
-            "Use '--model <id>' directly with codex builds/reviews.",
-        );
-      }
-
       throw new Error(
         `Provider '${providerToRefresh}' does not support model discovery.`,
       );

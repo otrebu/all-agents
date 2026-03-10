@@ -2,7 +2,7 @@
  * Unit tests for OpenAI Codex provider implementation
  *
  * Tests command argument construction, JSONL parsing, token usage extraction,
- * and result normalization behavior.
+ * result normalization behavior, and cache-based model discovery.
  */
 /* eslint-disable */
 
@@ -15,8 +15,12 @@ import {
   mapCodexInvocationError,
   normalizeCodexResult,
   parseCodexEvents,
+  readCodexModelsCache,
 } from "@tools/commands/ralph/providers/codex";
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 interface SpawnSyncResult {
   exitCode: number;
@@ -67,25 +71,44 @@ function parseSpawnSyncCommand(command: unknown): Array<string> {
   return [];
 }
 
-function mockCodexDiscovery(commandOutputs: Record<string, string>): void {
+function mockWhichCodexAvailable(): void {
   Object.assign(Bun, {
     spawnSync: mock((command: unknown) => {
       const args = parseSpawnSyncCommand(command);
       if (args[0] === "which") {
-        return commandOutputs.which === undefined
-          ? makeSpawnSyncSubprocess(0, "/usr/local/bin/codex\n")
-          : makeSpawnSyncSubprocess(0, commandOutputs.which);
-      }
-      if (args[0] === "codex") {
-        const commandText = args.slice(1).join(" ");
-        if (Object.hasOwn(commandOutputs, commandText)) {
-          return makeSpawnSyncSubprocess(0, commandOutputs[commandText]!);
-        }
-        return makeSpawnSyncSubprocess(0, "");
+        return makeSpawnSyncSubprocess(0, "/usr/local/bin/codex\n");
       }
       return makeSpawnSyncSubprocess(1, "", "unexpected command");
     }),
   });
+}
+
+function mockWhichCodexUnavailable(): void {
+  Object.assign(Bun, {
+    spawnSync: mock((command: unknown) => {
+      const args = parseSpawnSyncCommand(command);
+      if (args[0] === "which") {
+        return makeSpawnSyncSubprocess(1, "", "not found");
+      }
+      return makeSpawnSyncSubprocess(1, "", "unexpected command");
+    }),
+  });
+}
+
+/**
+ * Write a temporary models_cache.json file and return its path.
+ */
+function writeTempModelsCache(content: unknown): {
+  cachePath: string;
+  cleanup: () => void;
+} {
+  const dir = mkdtempSync(path.join(tmpdir(), "codex-test-"));
+  const cachePath = path.join(dir, "models_cache.json");
+  writeFileSync(cachePath, JSON.stringify(content, null, 2), "utf8");
+  return {
+    cachePath,
+    cleanup: () => rmSync(dir, { force: true, recursive: true }),
+  };
 }
 
 const originalSpawnSync = Bun.spawnSync;
@@ -258,67 +281,167 @@ describe("normalizeCodexResult", () => {
 });
 
 // =============================================================================
-// Discovery
+// Discovery (cache-based)
 // =============================================================================
 
-describe("discoverCodexModels", () => {
-  test("parses json array output from codex models command", () => {
-    mockCodexDiscovery({
-      "models --json": JSON.stringify([
-        { cost: { input: 12 }, id: "gpt-5.3-codex", providerID: "openai" },
-        { cost: { input: 1 }, id: "gpt-5-codex", provider_id: "openai" },
-      ]),
+describe("readCodexModelsCache", () => {
+  test("parses models from cache file with visibility filtering", () => {
+    const { cachePath, cleanup } = writeTempModelsCache({
+      fetched_at: "2026-03-10T08:57:14.073620Z",
+      models: [
+        { slug: "gpt-5.4", description: "Latest model", visibility: "list" },
+        {
+          slug: "gpt-5.3-codex",
+          description: "Codex model",
+          visibility: "list",
+        },
+        { slug: "gpt-5-codex", description: "Hidden", visibility: "hide" },
+      ],
     });
 
-    const discovered = discoverCodexModels();
-    expect(discovered).toHaveLength(2);
-    expect(discovered[0]).toEqual({
-      cliFormat: "openai/gpt-5.3-codex",
-      costHint: "expensive",
-      discoveredAt: expect.any(String),
-      id: "openai/gpt-5.3-codex",
-      provider: "codex",
-    });
-    expect(discovered[1]).toEqual({
-      cliFormat: "openai/gpt-5-codex",
-      costHint: "standard",
-      discoveredAt: expect.any(String),
-      id: "openai/gpt-5-codex",
-      provider: "codex",
-    });
+    try {
+      const models = readCodexModelsCache(cachePath);
+      expect(models).toHaveLength(2);
+      expect(models[0]?.id).toBe("gpt-5.4");
+      expect(models[0]?.cliFormat).toBe("gpt-5.4");
+      expect(models[0]?.provider).toBe("codex");
+      expect(models[0]?.costHint).toBe("standard");
+      expect(models[1]?.id).toBe("gpt-5.3-codex");
+    } finally {
+      cleanup();
+    }
   });
 
-  test("falls back to models list output when --json formats are unavailable", () => {
-    mockCodexDiscovery({
-      "model list": "",
-      models: "openai/gpt-4o-codex\nprovider-b/gpt-dev",
-      "models --json": "",
-      "models list --json": "",
+  test("infers cost hint from model slug naming conventions", () => {
+    const { cachePath, cleanup } = writeTempModelsCache({
+      models: [
+        { slug: "gpt-5.1-codex-mini", visibility: "list" },
+        { slug: "gpt-5.1-codex-max", visibility: "list" },
+        { slug: "gpt-5.3-codex-spark", visibility: "list" },
+        { slug: "gpt-5.4", visibility: "list" },
+      ],
     });
 
-    const discovered = discoverCodexModels();
-    expect(discovered).toHaveLength(2);
-    expect(discovered[0]?.id).toBe("openai/gpt-4o-codex");
-    expect(discovered[1]?.id).toBe("provider-b/gpt-dev");
+    try {
+      const models = readCodexModelsCache(cachePath);
+      expect(models).toHaveLength(4);
+      expect(models[0]?.costHint).toBe("cheap"); // mini
+      expect(models[1]?.costHint).toBe("expensive"); // max
+      expect(models[2]?.costHint).toBe("expensive"); // spark
+      expect(models[3]?.costHint).toBe("standard"); // normal
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("returns empty array when cache file does not exist", () => {
+    const models = readCodexModelsCache("/nonexistent/path/models_cache.json");
+    expect(models).toEqual([]);
+  });
+
+  test("returns empty array when cache file is malformed JSON", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "codex-test-"));
+    const cachePath = path.join(dir, "models_cache.json");
+    writeFileSync(cachePath, "not valid json {{{", "utf8");
+
+    try {
+      const models = readCodexModelsCache(cachePath);
+      expect(models).toEqual([]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test("returns empty array when cache has no models array", () => {
+    const { cachePath, cleanup } = writeTempModelsCache({
+      fetched_at: "2026-03-10T08:57:14.073620Z",
+    });
+
+    try {
+      const models = readCodexModelsCache(cachePath);
+      expect(models).toEqual([]);
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("skips entries without a slug field", () => {
+    const { cachePath, cleanup } = writeTempModelsCache({
+      models: [
+        { description: "No slug", visibility: "list" },
+        { slug: "gpt-5.4", visibility: "list" },
+      ],
+    });
+
+    try {
+      const models = readCodexModelsCache(cachePath);
+      expect(models).toHaveLength(1);
+      expect(models[0]?.id).toBe("gpt-5.4");
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("includes models with no visibility field (not hidden)", () => {
+    const { cachePath, cleanup } = writeTempModelsCache({
+      models: [
+        { slug: "gpt-5.4" },
+        { slug: "gpt-5-hidden", visibility: "hide" },
+      ],
+    });
+
+    try {
+      const models = readCodexModelsCache(cachePath);
+      expect(models).toHaveLength(1);
+      expect(models[0]?.id).toBe("gpt-5.4");
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("sets discoveredAt to ISO date format", () => {
+    const { cachePath, cleanup } = writeTempModelsCache({
+      models: [{ slug: "gpt-5.4", visibility: "list" }],
+    });
+
+    try {
+      const models = readCodexModelsCache(cachePath);
+      expect(models[0]?.discoveredAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    } finally {
+      cleanup();
+    }
+  });
+});
+
+describe("discoverCodexModels", () => {
+  test("reads models from cache when codex is available", () => {
+    mockWhichCodexAvailable();
+    const { cachePath, cleanup } = writeTempModelsCache({
+      models: [
+        { slug: "gpt-5.4", visibility: "list" },
+        { slug: "gpt-5.3-codex", visibility: "list" },
+      ],
+    });
+
+    try {
+      const discovered = discoverCodexModels(cachePath);
+      expect(discovered).toHaveLength(2);
+      expect(discovered[0]?.id).toBe("gpt-5.4");
+      expect(discovered[1]?.id).toBe("gpt-5.3-codex");
+    } finally {
+      cleanup();
+    }
   });
 
   test("returns empty list when codex is unavailable", () => {
-    mockCodexDiscovery({
-      "model list": "",
-      models: "",
-      "models --json": "",
-      "models list --json": "",
-      which: "",
-    });
-    Bun.spawnSync = mock((command: unknown) => {
-      const args = parseSpawnSyncCommand(command);
-      if (args[0] === "which") {
-        return makeSpawnSyncSubprocess(1, "", "not found");
-      }
-      return makeSpawnSyncSubprocess(1, "", "unexpected command");
-    });
-
+    mockWhichCodexUnavailable();
     expect(discoverCodexModels()).toEqual([]);
+  });
+
+  test("returns empty list when cache file does not exist", () => {
+    mockWhichCodexAvailable();
+    const discovered = discoverCodexModels("/nonexistent/models_cache.json");
+    expect(discovered).toEqual([]);
   });
 });
 
