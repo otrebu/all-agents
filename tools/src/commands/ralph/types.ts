@@ -403,6 +403,8 @@ interface PipelineHeaderData {
   model?: string;
   /** Provider label */
   provider: string;
+  /** Optional story reference shown instead of milestone when story-scoped */
+  storyRef?: string;
 }
 
 /**

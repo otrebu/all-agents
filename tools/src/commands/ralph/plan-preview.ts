@@ -28,6 +28,7 @@ interface ComputeExecutionPlanOptions {
   milestonePath?: string;
   model?: string;
   provider?: string;
+  storyPath?: string;
   subtasksPath?: string;
 }
 
@@ -120,6 +121,7 @@ interface RuntimeContext {
   provider: null | string;
   queue: { completed: number; pending: number; total: number };
   storiesCount: number;
+  storyPath: null | string;
   tasksCount: number;
 }
 
@@ -127,6 +129,7 @@ interface RuntimeContextOptions {
   milestonePath?: string;
   model?: string;
   provider?: string;
+  storyPath?: string;
   subtasksPath?: string;
 }
 
@@ -353,6 +356,7 @@ function collectRuntimeContext(options: RuntimeContextOptions): RuntimeContext {
     provider: options.provider ?? config.ralph?.provider ?? null,
     queue: queueStats,
     storiesCount,
+    storyPath: options.storyPath ?? null,
     tasksCount,
   };
 }
@@ -382,6 +386,7 @@ function computeExecutionPlan(
     milestonePath: options.milestonePath,
     model: options.model,
     provider: options.provider,
+    storyPath: options.storyPath,
     subtasksPath: options.subtasksPath,
   });
   const approvalConfig = loadAaaConfig().ralph?.approvals;

@@ -109,7 +109,9 @@ function formatDryRunCommandLine(plan: ExecutionPlan): string {
   };
 
   const parts = [commandByType[plan.command]];
-  if (plan.runtime.milestonePath !== null) {
+  if (plan.runtime.storyPath !== null) {
+    parts.push(`--story ${path.basename(plan.runtime.storyPath)}`);
+  } else if (plan.runtime.milestonePath !== null) {
     parts.push(`--milestone ${path.basename(plan.runtime.milestonePath)}`);
   }
   if (plan.cascadeTarget !== null) {
@@ -320,6 +322,10 @@ function printDryRunPlan(
       mode: displayMode,
       model: plan.runtime.model ?? undefined,
       provider: plan.runtime.provider ?? "default",
+      storyRef:
+        plan.runtime.storyPath === null
+          ? undefined
+          : path.basename(plan.runtime.storyPath, ".md"),
     }),
     "",
     ...renderPipelineTree(phaseNodes, {
@@ -2087,6 +2093,7 @@ async function handleCascadeExecution(
           const preCheckResult = checkSubtasksPreCheck({
             milestonePath,
             outputDirectory,
+            storyPath: reviewStoryPath,
           });
           const { beforeCount, shouldSkip, skippedTasks, totalTasks } =
             preCheckResult;
@@ -2106,17 +2113,23 @@ async function handleCascadeExecution(
             );
           }
 
+          const hasStoryScope =
+            reviewStoryPath !== undefined && reviewStoryPath !== "";
           const sourceFlags: SubtasksSourceFlags = {
             hasFile: false,
-            hasMilestone: true,
+            hasMilestone: !hasStoryScope,
             hasReview: false,
-            hasStory: false,
+            hasStory: hasStoryScope,
             hasTask: false,
             hasText: false,
           };
           const { contextParts, sourceInfo } = buildSubtasksSourceContext(
             sourceFlags,
-            { milestone: milestonePath, resolvedMilestonePath: milestonePath },
+            {
+              milestone: milestonePath,
+              resolvedMilestonePath: milestonePath,
+              story: hasStoryScope ? reviewStoryPath : undefined,
+            },
           );
 
           const sizeMode = "medium" as const;
@@ -2144,7 +2157,7 @@ async function handleCascadeExecution(
             sizeMode,
             skippedTasks,
             sourceInfo,
-            storyRef: undefined,
+            storyRef: hasStoryScope ? reviewStoryPath : undefined,
           });
 
           if (shouldRunReviewFlow) {
@@ -4034,6 +4047,7 @@ planCommand.addCommand(
           milestonePath: resolvedMilestonePath ?? undefined,
           model: options.model,
           provider: options.provider,
+          storyPath: options.story,
           subtasksPath: path.join(resolvedOutputDirectory, "subtasks.json"),
         });
         printDryRunPlan(plan);
@@ -4071,6 +4085,7 @@ planCommand.addCommand(
           milestonePath: resolvedMilestonePath ?? undefined,
           model: options.model,
           provider: options.provider,
+          storyPath: resolvedStoryPath ?? options.story,
           subtasksPath: path.join(resolvedOutputDirectory, "subtasks.json"),
         });
         console.log(
@@ -4266,6 +4281,7 @@ planCommand.addCommand(
           provider: options.provider as ProviderType,
           resolvedMilestonePath: resolvedMilestonePath ?? null,
           reviewFlag: options.review === true,
+          reviewStoryPath: resolvedStoryPath,
           subtasksPath,
           validateFirst: options.validateFirst === true,
         });

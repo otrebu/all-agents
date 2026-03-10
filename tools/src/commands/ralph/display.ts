@@ -1578,17 +1578,21 @@ function renderPipelineHeader(data: PipelineHeaderData): string {
       : `${data.provider} (${data.model})`;
 
   const commandRow = `${chalk.dim("  Command:   ")}${chalk.cyan(data.commandLine)}`;
-  const milestoneLeft =
-    data.milestone === undefined
-      ? ""
-      : `${chalk.dim("  Milestone: ")}${chalk.cyan(data.milestone)}`;
+  let scopeLabel = "";
+  if (data.storyRef !== undefined) {
+    const milestoneSuffix =
+      data.milestone === undefined ? "" : chalk.dim(` (${data.milestone})`);
+    scopeLabel = `${chalk.dim("  Story:     ")}${chalk.cyan(data.storyRef)}${milestoneSuffix}`;
+  } else if (data.milestone !== undefined) {
+    scopeLabel = `${chalk.dim("  Milestone: ")}${chalk.cyan(data.milestone)}`;
+  }
   const providerRight = `${chalk.dim("Provider: ")}${chalk.cyan(providerWithModel)}`;
   const modeLeft = `${chalk.dim("  Mode:      ")}${chalk.cyan(data.mode)}`;
   const approvalsRight = `${chalk.dim("Approvals: ")}${chalk.cyan(data.approvalsStatus)}`;
 
   const lines = [
     commandRow,
-    formatTwoColumnRow(milestoneLeft, providerRight, BOX_INNER_WIDTH),
+    formatTwoColumnRow(scopeLabel, providerRight, BOX_INNER_WIDTH),
     formatTwoColumnRow(modeLeft, approvalsRight, BOX_INNER_WIDTH),
   ];
 
