@@ -123,11 +123,7 @@ function isCodexCompatibleModel(model: ModelInfo): boolean {
 }
 
 function isCodexPassThroughModel(modelId: string): boolean {
-  return (
-    modelId.trim() !== "" &&
-    !/\s/u.test(modelId) &&
-    CODEX_COMPATIBLE_MODEL_PATTERN.test(modelId)
-  );
+  return modelId.trim() !== "" && !/\s/u.test(modelId);
 }
 
 /**
