@@ -53,7 +53,7 @@ describe("resolveMilestoneFromOptions", () => {
     const resolvedMilestonePath = resolveMilestoneFromOptions(
       "005-consolidate-simplify",
       undefined,
-      "docs/planning/milestones/006-cascade-mode-for-good",
+      { outputDirectory: "docs/planning/milestones/006-cascade-mode-for-good" },
     );
 
     expect(resolvedMilestonePath).toBeDefined();
@@ -66,7 +66,7 @@ describe("resolveMilestoneFromOptions", () => {
     const resolvedMilestonePath = resolveMilestoneFromOptions(
       undefined,
       "001-provider-foundation",
-      "docs/planning/milestones/006-cascade-mode-for-good",
+      { outputDirectory: "docs/planning/milestones/006-cascade-mode-for-good" },
     );
 
     expect(resolvedMilestonePath).toBeDefined();
@@ -79,13 +79,15 @@ describe("resolveMilestoneFromOptions", () => {
     const resolvedMilestonePath = resolveMilestoneFromOptions(
       undefined,
       undefined,
-      path.join(
-        "docs",
-        "planning",
-        "milestones",
-        "006-cascade-mode-for-good",
-        "feedback",
-      ),
+      {
+        outputDirectory: path.join(
+          "docs",
+          "planning",
+          "milestones",
+          "006-cascade-mode-for-good",
+          "feedback",
+        ),
+      },
     );
 
     expect(resolvedMilestonePath).toBeDefined();
@@ -98,17 +100,17 @@ describe("resolveMilestoneFromOptions", () => {
     const resolvedMilestonePath = resolveMilestoneFromOptions(
       undefined,
       undefined,
-      "docs/planning/feedback",
+      { outputDirectory: "docs/planning/feedback" },
     );
 
     expect(resolvedMilestonePath).toBeUndefined();
   });
 
   test("returns undefined when --milestone, --story, and --output-dir are all undefined", () => {
+    const noOption: string | undefined = undefined;
     const resolvedMilestonePath = resolveMilestoneFromOptions(
-      undefined,
-      undefined,
-      void 0,
+      noOption,
+      noOption,
     );
 
     expect(resolvedMilestonePath).toBeUndefined();
@@ -119,13 +121,15 @@ describe("resolveMilestoneFromOptions", () => {
     const resolvedMilestonePath = resolveMilestoneFromOptions(
       undefined,
       undefined,
-      path.join(
-        "docs",
-        "planning",
-        "milestones",
-        "006-cascade-mode-for-good",
-        "feedback",
-      ),
+      {
+        outputDirectory: path.join(
+          "docs",
+          "planning",
+          "milestones",
+          "006-cascade-mode-for-good",
+          "feedback",
+        ),
+      },
     );
 
     expect(resolvedMilestonePath).toBeDefined();

@@ -2479,8 +2479,9 @@ function renderSubtasksHeadlessStartBanner(options: {
 function resolveMilestoneFromOptions(
   milestoneOption: string | undefined,
   storyOption: string | undefined,
-  outputDirectory?: string,
+  extra?: { outputDirectory?: string; taskOption?: string },
 ): null | string | undefined {
+  const { outputDirectory, taskOption } = extra ?? {};
   if (milestoneOption !== undefined) {
     // Explicit milestone flag
     return resolveMilestonePath(milestoneOption);
@@ -2490,6 +2491,17 @@ function resolveMilestoneFromOptions(
     const resolvedStory = resolveStoryPath(storyOption);
     if (resolvedStory !== null) {
       const match = /milestones\/(?<slug>[^/]+)\//.exec(resolvedStory);
+      if (match?.groups?.slug !== undefined) {
+        return resolveMilestonePath(match.groups.slug);
+      }
+    }
+  }
+
+  // Infer milestone from resolved task path
+  if (taskOption !== undefined) {
+    const resolvedTask = resolveTaskPath(taskOption);
+    if (resolvedTask !== null) {
+      const match = /milestones\/(?<slug>[^/]+)\//.exec(resolvedTask);
       if (match?.groups?.slug !== undefined) {
         return resolveMilestonePath(match.groups.slug);
       }
@@ -4026,7 +4038,7 @@ planCommand.addCommand(
         const resolvedMilestonePath = resolveMilestoneFromOptions(
           resolvedMilestoneFromFlag ?? options.milestone,
           options.story,
-          options.outputDir,
+          { outputDirectory: options.outputDir, taskOption: options.task },
         );
         const resolvedOutputDirectory = resolveOutputDirectory(
           options.outputDir,
@@ -4062,7 +4074,7 @@ planCommand.addCommand(
       const resolvedMilestonePath = resolveMilestoneFromOptions(
         resolvedMilestoneFromFlag ?? options.milestone,
         resolvedStoryPath ?? options.story,
-        options.outputDir,
+        { outputDirectory: options.outputDir, taskOption: options.task },
       );
 
       if (options.cascade !== undefined) {
@@ -4098,6 +4110,8 @@ planCommand.addCommand(
         printDryRunPlan(plan, { nextStep: "continue" });
       }
 
+      let shouldSkipGeneration = false;
+
       // Pre-check for --task mode: skip if task already has subtasks
       if (hasTask && options.task !== undefined) {
         const taskPath = requireTask(options.task);
@@ -4115,7 +4129,7 @@ planCommand.addCommand(
         if (hasExistingSubtasks) {
           const taskReference = extractTaskReference(taskPath);
           console.log(`Task ${taskReference} already has subtasks - skipping`);
-          return;
+          shouldSkipGeneration = true;
         }
       }
 
@@ -4187,12 +4201,12 @@ planCommand.addCommand(
         expectedFragmentCount =
           preCheckResult.totalTasks - preCheckResult.skippedTasks.length;
 
-        // If all tasks already have subtasks, exit cleanly
+        // If all tasks already have subtasks, skip generation
         if (preCheckResult.shouldSkip) {
           console.log(
             `All ${preCheckResult.totalTasks} tasks already have subtasks - nothing to generate`,
           );
-          return;
+          shouldSkipGeneration = true;
         }
 
         // If some tasks have subtasks, log info about filtering
@@ -4205,57 +4219,62 @@ planCommand.addCommand(
         }
       }
 
-      // Build source context and info using helper
-      const { contextParts, sourceInfo } = buildSubtasksSourceContext(
-        sourceFlags,
-        {
-          file: options.file,
-          milestone: options.milestone,
-          resolvedMilestonePath,
-          story: resolvedStoryPath ?? options.story,
-          task: options.task,
-          text: options.text,
-        },
-      );
-
-      // Add sizing mode context
-      const sizeMode = options.size as "large" | "medium" | "small";
-      contextParts.push(`Sizing mode: ${sizeMode}`);
-      contextParts.push(
-        `Sizing guidance: ${getSubtasksSizeGuidance(sizeMode)}`,
-      );
-
-      // Add output directory to context if specified
-      if (hasOutputDirectory) {
-        const resolvedOutput = resolveOutputDirectory(options.outputDir, null);
-        contextParts.push(`Output directory: ${resolvedOutput}`);
-      }
-
-      const extraContext = contextParts.join("\n");
-
-      await (options.headless === true
-        ? runSubtasksHeadless({
-            beforeCount,
-            expectedFragmentCount: expectedFragmentCount ?? undefined,
-            extraContext,
+      if (!shouldSkipGeneration) {
+        // Build source context and info using helper
+        const { contextParts, sourceInfo } = buildSubtasksSourceContext(
+          sourceFlags,
+          {
+            file: options.file,
             milestone: options.milestone,
-            model: options.model,
-            outputDirectory: options.outputDir,
-            promptPath,
-            provider: options.provider,
             resolvedMilestonePath,
-            sizeMode,
-            skippedTasks,
-            sourceInfo,
-            storyRef: resolvedStoryPath ?? options.story,
-          })
-        : invokePlanningSupervised({
-            extraContext,
-            model: options.model,
-            promptPath,
-            provider: options.provider,
-            sessionName: "subtasks",
-          }));
+            story: resolvedStoryPath ?? options.story,
+            task: options.task,
+            text: options.text,
+          },
+        );
+
+        // Add sizing mode context
+        const sizeMode = options.size as "large" | "medium" | "small";
+        contextParts.push(`Sizing mode: ${sizeMode}`);
+        contextParts.push(
+          `Sizing guidance: ${getSubtasksSizeGuidance(sizeMode)}`,
+        );
+
+        // Add output directory to context if specified
+        if (hasOutputDirectory) {
+          const resolvedOutput = resolveOutputDirectory(
+            options.outputDir,
+            null,
+          );
+          contextParts.push(`Output directory: ${resolvedOutput}`);
+        }
+
+        const extraContext = contextParts.join("\n");
+
+        await (options.headless === true
+          ? runSubtasksHeadless({
+              beforeCount,
+              expectedFragmentCount: expectedFragmentCount ?? undefined,
+              extraContext,
+              milestone: options.milestone,
+              model: options.model,
+              outputDirectory: options.outputDir,
+              promptPath,
+              provider: options.provider,
+              resolvedMilestonePath,
+              sizeMode,
+              skippedTasks,
+              sourceInfo,
+              storyRef: resolvedStoryPath ?? options.story,
+            })
+          : invokePlanningSupervised({
+              extraContext,
+              model: options.model,
+              promptPath,
+              provider: options.provider,
+              sessionName: "subtasks",
+            }));
+      }
 
       // Handle cascade if requested
       if (options.cascade !== undefined) {
