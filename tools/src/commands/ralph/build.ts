@@ -196,6 +196,8 @@ interface SubtasksSizeGuidanceLine {
  * Used by signal handlers to generate summary on interrupt
  */
 interface SummaryContext {
+  /** Timestamp when the build started (ms since epoch) */
+  buildStartMs: number;
   /** Subtasks completed during this build run */
   completedThisRun: Array<{ attempts: number; id: string }>;
   /** Suppress terminal summary output */
@@ -404,7 +406,12 @@ function generateSummaryAndExit(exitCode: number): void {
     return;
   }
 
-  const { completedThisRun, quiet: isQuiet, subtasksPath } = summaryContext;
+  const {
+    buildStartMs,
+    completedThisRun,
+    quiet: isQuiet,
+    subtasksPath,
+  } = summaryContext;
 
   // If nothing was completed this run, just exit
   if (completedThisRun.length === 0) {
@@ -428,11 +435,13 @@ function generateSummaryAndExit(exitCode: number): void {
     const subtasksFile = loadSubtasksFile(subtasksPath);
 
     // Generate the summary
+    const wallClockMs = Date.now() - buildStartMs;
     const summary = generateBuildSummary(
       completedThisRun,
       diaryEntries,
       subtasksFile,
     );
+    summary.wallClockMs = wallClockMs;
 
     // Render summary to terminal (unless quiet mode)
     if (!isQuiet) {
@@ -1533,8 +1542,16 @@ async function runBuild(
   // Track subtasks completed during this build run
   const completedThisRun: Array<{ attempts: number; id: string }> = [];
 
+  // Track wall-clock time for the entire build
+  const buildStartMs = Date.now();
+
   // Initialize summary context for signal handlers
-  summaryContext = { completedThisRun, quiet: isQuiet, subtasksPath };
+  summaryContext = {
+    buildStartMs,
+    completedThisRun,
+    quiet: isQuiet,
+    subtasksPath,
+  };
 
   // eslint-disable-next-line perfectionist/sort-union-types -- Keep declared order for SUB-412 acceptance criteria
   let skippedSubtaskIds: Set<string> | null = null;
@@ -1624,16 +1641,18 @@ async function runBuild(
         // Generate practical summary
         const logsDirectory = getMilestoneLogsDirectory(subtasksPath);
         const diaryEntries = readIterationDiary(logsDirectory);
+        const wallClockMs = Date.now() - buildStartMs;
         const summary = generateBuildSummary(
           completedThisRun,
           diaryEntries,
           subtasksFile,
         );
+        summary.wallClockMs = wallClockMs;
 
         renderer.completePhase({
           costUsd: summary.stats.costUsd,
           filesChanged: summary.stats.filesChanged,
-          timeElapsedMs: summary.stats.durationMs,
+          timeElapsedMs: wallClockMs,
         });
 
         // Render practical summary to terminal (unless quiet mode)

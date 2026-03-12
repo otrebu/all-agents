@@ -895,6 +895,8 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
   const linesRemoved = ensureValidNumber(stats.linesRemoved);
   const remaining = ensureValidNumber(summary.remaining);
 
+  const wallClockMs = ensureValidNumber(summary.wallClockMs);
+
   const lines: Array<string> = [];
 
   // Stats line 1: Completed  3    Failed  0    Cost  $0.42    Duration  5m 32s    Files  12    Lines  +42/-3
@@ -906,8 +908,10 @@ function renderBuildPracticalSummary(summary: BuildPracticalSummary): string {
     failed > 0 ? chalk.red.bold(String(failed)) : chalk.dim("0");
   const costLabel = chalk.dim("Cost");
   const costValue = chalk.magenta(`$${costUsd.toFixed(2)}`);
+  // Prefer wall-clock time (always accurate), fall back to per-iteration sum
+  const effectiveDurationMs = wallClockMs > 0 ? wallClockMs : durationMs;
   const durationLabel = chalk.dim("Duration");
-  const durationValue = chalk.cyan(formatDuration(durationMs));
+  const durationValue = chalk.cyan(formatDuration(effectiveDurationMs));
   const filesLabel = chalk.dim("Files");
   const filesValue = chalk.blue(String(filesChanged));
   const linesLabel = chalk.dim("Lines");

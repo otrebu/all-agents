@@ -27,6 +27,8 @@ interface BuildPracticalSummary {
   stats: BuildStats;
   /** List of completed subtasks with summaries */
   subtasks: Array<CompletedSubtaskInfo>;
+  /** Wall-clock time for the entire build run (ms) */
+  wallClockMs: number;
 }
 
 /**
@@ -186,6 +188,7 @@ function generateBuildSummary(
       outputTokens: totalOutputTokens,
     },
     subtasks,
+    wallClockMs: 0,
   };
 }
 

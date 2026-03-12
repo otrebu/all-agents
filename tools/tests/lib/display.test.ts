@@ -130,6 +130,7 @@ describe("display utilities", () => {
           { attempts: 2, id: "SUB-002", summary: "Second subtask (retry)" },
           { attempts: 1, id: "SUB-003", summary: "Third subtask done" },
         ],
+        wallClockMs: 350_000,
       };
 
       const result = renderBuildPracticalSummary(summary);
@@ -176,6 +177,7 @@ describe("display utilities", () => {
           outputTokens: 3000,
         },
         subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
+        wallClockMs: 0,
       };
 
       const result = renderBuildPracticalSummary(summary);
@@ -201,6 +203,7 @@ describe("display utilities", () => {
           outputTokens: 1500,
         },
         subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
+        wallClockMs: 0,
       };
 
       const result = renderBuildPracticalSummary(summary);
@@ -228,6 +231,7 @@ describe("display utilities", () => {
           outputTokens: 7000,
         },
         subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
+        wallClockMs: 0,
       };
 
       const result = renderBuildPracticalSummary(summary);
@@ -258,12 +262,66 @@ describe("display utilities", () => {
           outputTokens: 0,
         },
         subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
+        wallClockMs: 0,
       };
 
       const result = renderBuildPracticalSummary(summary);
 
       // Should NOT display tokens line when all zero
       expect(result).not.toContain("MaxCtx:");
+    });
+
+    test("prefers wall-clock time over per-iteration duration", () => {
+      const summary: BuildPracticalSummary = {
+        commitRange: { endHash: null, startHash: null },
+        remaining: 0,
+        stats: {
+          completed: 1,
+          costUsd: 0.5,
+          // 1m from per-iteration
+          durationMs: 60_000,
+          failed: 0,
+          filesChanged: 5,
+          linesAdded: 20,
+          linesRemoved: 5,
+          maxContextTokens: 0,
+          outputTokens: 0,
+        },
+        subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
+        // 3m wall-clock
+        wallClockMs: 180_000,
+      };
+
+      const result = renderBuildPracticalSummary(summary);
+
+      // Should show wall-clock duration (3m), not per-iteration (1m)
+      expect(result).toContain("3m");
+    });
+
+    test("falls back to per-iteration duration when wall-clock is 0", () => {
+      const summary: BuildPracticalSummary = {
+        commitRange: { endHash: null, startHash: null },
+        remaining: 0,
+        stats: {
+          completed: 1,
+          costUsd: 0.5,
+          // 2m from per-iteration
+          durationMs: 120_000,
+          failed: 0,
+          filesChanged: 5,
+          linesAdded: 20,
+          linesRemoved: 5,
+          maxContextTokens: 0,
+          outputTokens: 0,
+        },
+        subtasks: [{ attempts: 1, id: "SUB-001", summary: "Done" }],
+        wallClockMs: 0,
+      };
+
+      const result = renderBuildPracticalSummary(summary);
+
+      // Should fall back to per-iteration duration (2m)
+      expect(result).toContain("2m");
     });
   });
 
