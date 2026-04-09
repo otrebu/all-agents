@@ -295,6 +295,26 @@ If documentation update is needed, add it as an implicit AC:
 
 Create a commit for the completed work.
 
+**Pre-commit formatting (required):**
+
+After staging files, run the project formatter to auto-fix formatting before committing. This prevents the pre-commit hook from rejecting unformatted code and avoids manual edit backtracking.
+
+```bash
+# 1. Stage implementation files
+git add <implementation-files> docs/planning/PROGRESS.md
+
+# 2. Auto-fix formatting on staged files
+pnpm biome check --write --staged --no-errors-on-unmatched --files-ignore-unknown=true
+
+# 3. Re-stage to pick up any formatting fixes
+git add <implementation-files>
+
+# 4. Commit
+git commit -m "feat(<subtask-id>): <brief description>"
+```
+
+**Do not skip step 2.** Without it, the pre-commit hook (`pnpm format:check:staged`) will reject unformatted code, forcing multiple manual edits per file.
+
 **Commit message format:**
 ```
 feat(<subtask-id>): <brief description>
@@ -348,6 +368,8 @@ Do **not** create a second tracking-only commit.
 Keep the PROGRESS.md update in the same implementation commit from Phase 6.
 
 ```bash
+git add <implementation-files> docs/planning/PROGRESS.md
+pnpm biome check --write --staged --no-errors-on-unmatched --files-ignore-unknown=true
 git add <implementation-files> docs/planning/PROGRESS.md
 git commit -m "feat(<subtask-id>): <brief description>"
 ```
