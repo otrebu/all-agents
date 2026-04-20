@@ -1,0 +1,64 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "23071edc9208",
+  "session_id": "d0705008-1c3a-4844-8e22-547c74255065",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-20T16:51:10.801082Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "b880fc104c55",
+  "checkpoint_transcript_start": 60,
+  "transcript_lines_at_start": 60,
+  "token_usage": {
+    "input_tokens": 38,
+    "cache_creation_tokens": 155756,
+    "cache_read_tokens": 1859685,
+    "output_tokens": 17433,
+    "api_call_count": 23
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 2385,
+      "user_lines_removed": 0,
+      "agent_lines_added": 148,
+      "agent_lines_removed": 59,
+      "user_added_per_file": {
+        ".claude/hooks/peon-ping/hook-handle-use.log": 59,
+        ".claude/plugins/data/codex-openai-codex/state/BillingManager-bf518895dd29fd6b/jobs/review-mnynha1a-1dtslz.log": 135,
+        ".claude/sessions/80672.json": 1,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/.gitignore": 1,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/.prettierrc.json": 6,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/config.full.js": 1062,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/config.simple.js": 7,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/postcss.config.cjs": 6,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/postcss.config.js": 6,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/tailwind.config.cjs": 2,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/tailwind.config.js": 2,
+        "tools/node_modules/.pnpm/tailwindcss@3.4.19/node_modules/tailwindcss/stubs/tailwind.config.ts": 3,
+        "tools/node_modules/tailwindcss/stubs/.gitignore": 1,
+        "tools/node_modules/tailwindcss/stubs/.prettierrc.json": 6,
+        "tools/node_modules/tailwindcss/stubs/config.full.js": 1062,
+        "tools/node_modules/tailwindcss/stubs/config.simple.js": 7,
+        "tools/node_modules/tailwindcss/stubs/postcss.config.cjs": 6,
+        "tools/node_modules/tailwindcss/stubs/postcss.config.js": 6,
+        "tools/node_modules/tailwindcss/stubs/tailwind.config.cjs": 2,
+        "tools/node_modules/tailwindcss/stubs/tailwind.config.js": 2,
+        "tools/node_modules/tailwindcss/stubs/tailwind.config.ts": 3
+      }
+    }
+  ]
+}
