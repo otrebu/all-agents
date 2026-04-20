@@ -78,6 +78,47 @@ The pause also applies to major phase boundaries (end of Prerequisites, end of F
 4. **Prefer semantic locators** — the guide names UI elements, so use `find role`/`find text`/`find label` before falling back to snapshot @refs
 5. **Update GUIDE.md immediately** after each step outcome — don't batch updates
 6. **Record working selectors** — after each step passes, embed the exact `agent-browser` command as `<!-- automation: ... -->` in the guide so re-runs skip discovery
+7. **Maintain the Validation Progress section** — update it after every step outcome and phase boundary (see "Validation Progress & Resume" below)
+
+## Validation Progress & Resume
+
+A `## Validation Progress` section inside `GUIDE.md` is the single source of truth for resume state. It lives immediately after the Overview so anyone opening the guide sees at a glance how far validation got.
+
+### Section shape
+
+```markdown
+## Validation Progress
+
+_Last run: 2026-04-20 14:32 (Europe/London), mode: theater_
+_Status: in progress — resume at **Step 2.3**_
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Prerequisites | ✅ done | 2026-04-20 14:10 |
+| Fresh Start Bootstrap | ✅ done | 2026-04-20 14:15 |
+| Part 1 — Create company | ✅ done (5/5) | first-pass 4, fixes 1 |
+| Part 2 — Add handsets | 🟡 in progress (2/4) | resume at 2.3 |
+| Part 3 — Invite users | ⏸ pending | — |
+| Part 4 — Reports | ⏸ pending | — |
+
+**Cumulative:** 12 steps attempted · 9 first-pass · 3 fixes · 1 blocked.
+Bugs fixed across all runs: see "Bugs Fixed During Validation" table below.
+```
+
+Status values: `✅ done`, `🟡 in progress`, `⏸ pending`, `❌ blocked` (with a one-line reason in Notes).
+One row per phase (Prerequisites, Fresh Start Bootstrap, one per Part) — **never per-step**, that would bloat long guides. The per-step resume pointer lives in prose on the `Status:` line.
+
+### When to update the section
+
+- **On entry** (Step 2.5) — read it to decide resume behavior.
+- **After each step** (§5.4) — bump counts on the current Part's row, update the `resume at Step X.Y` pointer to the next un-executed step, refresh `Last run` timestamp + mode.
+- **At each phase boundary** — flip the phase's Status to `✅ done` when the phase finishes, or `🟡 in progress` when it starts.
+- **On unrecoverable failure** — mark the step `❌ blocked` with a one-line reason so a future resume surfaces it.
+- **On final report** (Step 7) — set `Status:` to `complete` and clear the resume pointer.
+
+### Mode interaction
+
+Resume is orthogonal to mode. A guide validated partially in `--theater` mode can be resumed in Fast mode without pauses, and vice-versa. The Progress section records whichever mode the most recent session used, for reference only.
 
 ## Workflow
 
@@ -136,6 +177,38 @@ Read the full guide. Parse its structure to identify:
 - Demo Flow parts (one per story, with numbered steps)
 - Verification Checklist items
 - **Automation annotations** — Look for `<!-- automation: ... -->` HTML comments after step descriptions. If present, this is a re-run. Collect them into a step-to-command map (keyed by step number). During Step 5, use these cached commands directly instead of discovering selectors from scratch.
+- **Validation Progress section** — parse it if present, for use in Step 2.5.
+
+### Step 2.5 — Detect Prior Progress
+
+---
+
+"📋 Checking for prior validation state..."
+
+---
+
+Determine whether this is a fresh run or a resume:
+
+1. **Parse** the `## Validation Progress` section read in Step 2.
+2. **If the section is absent, or every phase is `⏸ pending`** → treat this as a fresh run. Create or reset the section (see "Validation Progress & Resume" above), then continue to Step 3.
+3. **If any phase is non-pending** → this is a resume. Do the following before proceeding:
+
+   a. **Drift guard:** if the `resume at Step X.Y` pointer references a step number that doesn't exist in the current guide's Demo Flow (e.g. the guide was edited since the last run), warn the user and recommend "start fresh." Default to fresh if the user doesn't pick otherwise.
+
+   b. **Announce the state:**
+
+   ---
+
+   "📋 Found prior validation — [N]/[total] steps done · last run [date] in [mode] mode · resume pointer at **Step [X.Y]** ([Part N title])."
+
+   ---
+
+   c. **Ask the user** via `AskUserQuestion` how to proceed, with these three options:
+      - **Resume from pointer (Recommended)** — skip everything marked `✅ done`, jump straight to `resumeAt`.
+      - **Fast re-verify then resume** — silently re-run cached `<!-- automation: -->` commands for done steps. On any failure, pause and surface the regression (it means the app or guide changed); otherwise continue to `resumeAt`.
+      - **Start fresh** — reset the Progress section to all `pending`, clear `resumeAt`, then run from Step 3.
+
+   d. Honor the choice for the remainder of the run. Record the new run's `mode` in the Progress section regardless of what mode the prior run used — resume is orthogonal to mode.
 
 ### Step 3 — Execute Prerequisites
 
@@ -313,6 +386,7 @@ After each step outcome, update the guide **right now** (don't batch):
   ```
 - **Timing issue** — Add to "Agent-Browser Automation Gotchas" section
 - **New troubleshooting discovery** — Add problem/solution pair to Troubleshooting
+- **Validation Progress section** — always update. Bump the current Part's row (`🟡 in progress (X/Y)`), advance the top-line `resume at Step X.Y` pointer to the next un-executed step, refresh `Last run` timestamp + mode, and increment cumulative counters. On unrecoverable failure, mark the step `❌ blocked` with a one-line reason in the Notes column. When the last step of a Part passes, flip that row to `✅ done (X/X)`.
 
 #### 5.5 — Track Progress
 
@@ -363,6 +437,8 @@ Then provide the detailed breakdown:
 - **Bugs Fixed:** `[file:line] — description` for each
 - **Guide Corrections:** `[section] — what changed` for each
 - **Remaining Issues:** `[step] — what's still broken and why` for each (if any)
+
+**Finalize Validation Progress:** if all Parts are `✅ done` and no `❌ blocked` rows remain, set the Progress section's `Status:` line to `complete` and clear the `resume at Step X.Y` pointer. If any `❌ blocked` rows remain, leave `Status: in progress` with the resume pointer set to the first blocked/pending step so the next session knows where to pick up.
 
 ## Sub-Agent Patterns
 

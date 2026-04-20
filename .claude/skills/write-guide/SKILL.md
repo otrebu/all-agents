@@ -62,6 +62,8 @@ Look for:
 
 **If `GUIDE.md` already exists:** Warn the user and ask before overwriting. Offer to update in-place or regenerate from scratch.
 
+**Preserve existing Validation Progress on regeneration:** if the existing `GUIDE.md` contains a `## Validation Progress` section, capture its exact content verbatim before any regeneration. Re-emit it unchanged in the new guide — it represents real validation state the user has accumulated across `/run-guide-and-fix` runs, and overwriting it would destroy work. If the regeneration adds new Parts that don't appear in the preserved section, append rows for them with `⏸ pending` status.
+
 ### Step 3 — Read All Stories
 
 ---
@@ -192,14 +194,35 @@ Follow this structure — use the reference guides as the gold standard for tone
 | # | Section | Content Source |
 |---|---------|---------------|
 | 1 | **Overview** | Stories table (number, feature, status, notes), branch name, what's implemented vs pending, unplanned additions |
-| 2 | **Prerequisites** | Setup commands from README/package.json, explanatory callouts (`> **Why X?**`), URLs/ports table |
-| 3 | **Fresh Start Bootstrap** | Numbered reset-to-running sequence. Order of operations from clean slate to working app. |
-| 4 | **Demo Flow** | One **Part** per story. Numbered sub-steps (N.1, N.2...). Each step is actionable: navigate/click/type/verify. Include exact URLs, UI labels, expected outcomes. Add `> **Gotcha**` callouts for non-obvious behavior. |
-| 5 | **Verification Checklist** | Per-story checkboxes derived from acceptance criteria. Unchecked `- [ ]` format. |
-| 6 | **Key Features Demonstrated** | Feature matrix table mapping features to where they appear in the demo. |
-| 7 | **Troubleshooting** | Problem/solution pairs from known issues, gaps doc, and common failures. |
-| 8 | **Agent-Browser Automation Gotchas** | Selectors and labels that need special handling. Timing tips (where to add waits). Session management notes. Refs that go stale. |
-| 9 | **Gap Analysis** | Stories vs implementation matrix. Columns: Story, Feature, Implemented?, Notes. |
+| 2 | **Validation Progress** | Seeded empty for fresh guides; preserved verbatim on regeneration. Tracks resume state across `/run-guide-and-fix` sessions. See "Seed Validation Progress" below for the template. |
+| 3 | **Prerequisites** | Setup commands from README/package.json, explanatory callouts (`> **Why X?**`), URLs/ports table |
+| 4 | **Fresh Start Bootstrap** | Numbered reset-to-running sequence. Order of operations from clean slate to working app. |
+| 5 | **Demo Flow** | One **Part** per story. Numbered sub-steps (N.1, N.2...). Each step is actionable: navigate/click/type/verify. Include exact URLs, UI labels, expected outcomes. Add `> **Gotcha**` callouts for non-obvious behavior. |
+| 6 | **Verification Checklist** | Per-story checkboxes derived from acceptance criteria. Unchecked `- [ ]` format. |
+| 7 | **Key Features Demonstrated** | Feature matrix table mapping features to where they appear in the demo. |
+| 8 | **Troubleshooting** | Problem/solution pairs from known issues, gaps doc, and common failures. |
+| 9 | **Agent-Browser Automation Gotchas** | Selectors and labels that need special handling. Timing tips (where to add waits). Session management notes. Refs that go stale. |
+| 10 | **Gap Analysis** | Stories vs implementation matrix. Columns: Story, Feature, Implemented?, Notes. |
+
+#### Seed Validation Progress
+
+For a fresh guide, emit this template immediately after Overview:
+
+```markdown
+## Validation Progress
+
+_Not yet validated. Run `/run-guide-and-fix` to begin._
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Prerequisites | ⏸ pending | — |
+| Fresh Start Bootstrap | ⏸ pending | — |
+| Part 1 — {story 1 title} | ⏸ pending | — |
+| Part 2 — {story 2 title} | ⏸ pending | — |
+| ...                         | ⏸ pending | — |
+```
+
+One row per Part (mirroring the Demo Flow Parts you're about to write). On regeneration, re-emit the previously captured section verbatim instead of seeding (see Step 2 — Inventory).
 
 #### Narrative Arc
 
