@@ -254,7 +254,7 @@ Each section has a narrative job — the guide should read as a journey, not a c
 
 ---
 
-"📝 Guide covers [N] stories in ~[N] lines. [N gaps flagged]. Saved to `docs/planning/milestones/{milestone-name}/GUIDE.md`. Run `/run-guide-and-fix` to battle-test it."
+"📝 Guide covers [N] stories in ~[N] lines. [N gaps flagged]. Saved to `docs/planning/milestones/{milestone-name}/GUIDE.md`. Run `/run-guide-and-fix` to battle-test it — add `--headed` to watch live, or `--theater` for dramatic narration + a pause after every step."
 
 ---
 

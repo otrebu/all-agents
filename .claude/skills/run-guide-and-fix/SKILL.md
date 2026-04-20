@@ -11,12 +11,60 @@ Walk through a milestone's GUIDE.md step-by-step using `agent-browser`, fixing b
 ## Usage
 
 ```
-/run-guide-and-fix [milestone-name]
+/run-guide-and-fix [milestone-name] [--headed] [--theater]
 ```
 
 ## Arguments
 
 - `milestone-name` — Optional. Name of the milestone directory under `docs/planning/milestones/`. If omitted, look for milestones with a GUIDE.md or step-by-step.md.
+
+## Modes
+
+Three execution modes, chosen by flags:
+
+| Mode | Flags | Browser | Narration | Pause between steps |
+|------|-------|---------|-----------|---------------------|
+| **Fast** (default) | _none_ | headless | minimal, standard templates | no |
+| **Headed** | `--headed` | visible window | standard templates | no |
+| **Theater** | `--theater` (implies `--headed`) | visible window | **dramatic narrator voice** | **yes — wait for user confirmation** |
+
+### Flag plumbing
+
+- Every `agent-browser` invocation in this skill MUST append `--headed` when either `--headed` or `--theater` was passed.
+  - Example: `agent-browser --session guide-test --headed open {url}`
+- Persist the chosen mode for the full run — do not mix modes across steps.
+- If `--theater` is passed, treat `--headed` as implied (even if not explicitly set).
+
+### Theater mode — dramatic announce + pause
+
+When `--theater` is active, two things change at every single step:
+
+**1. Dramatic announcement BEFORE the step runs.** Replace the minimal narrator templates with a dramatic, cinematic framing. Channel a movie-trailer voiceover: short, punchy, high-stakes. Examples:
+
+- Standard: `"✅ 3.2 — Create Company form submitted"`
+- Theater (pre-step): `"🎬 *Step 3.2.* Our hero approaches the Create Company form. The cursor hovers. Destiny awaits. Clicking... NOW."`
+- Theater (post-step, success): `"💥 BOOM. Form accepted. The database trembles. We ride on."`
+- Theater (post-step, failure): `"💀 DISASTER. The form rejected us. The server laughs. Investigation begins..."`
+
+Keep it short — 1-3 sentences, high drama, one emoji. Do not pad with filler.
+
+**2. PAUSE after every step.** After each step's outcome is reported (and the guide is updated per §5.4), STOP and wait for the user to say "continue" / "next" / "go" before moving to the next step. Use this exact template to pause:
+
+---
+
+"⏸ **Paused after step [N.M].** Check the browser window — does it match? Reply `continue` / `next` to proceed, `retry` to re-run this step, `skip` to mark it pending and move on, or describe any issue you saw."
+
+---
+
+Do NOT use `AskUserQuestion` for the pause — a plain message keeps the conversation flowing and lets the user type free-form feedback. On receiving `retry`, re-run the same step. On `skip`, mark it in the guide as pending and advance.
+
+The pause also applies to major phase boundaries (end of Prerequisites, end of Fresh Start Bootstrap, end of each Part, before Final Report) — pause there with a phase-appropriate message.
+
+### When to use which mode
+
+- **Fast (default):** CI-like validation, re-runs with cached `<!-- automation: -->` annotations, you trust the guide.
+- **Headed:** You want to watch the run live but don't need to intervene — good for demos or first-time new-milestone validation.
+- **Theater:** You are easily distracted, reviewing carefully, or using this as a demo to a stakeholder. The pauses give you time to visually confirm each step in the actual browser.
 
 ## Agent-Browser Reference
 
@@ -144,7 +192,9 @@ Verify each bootstrap step succeeds before moving to the next.
 
 ### Step 5 — Walk Through Demo Flow
 
-This is the main loop. For each **Part** in the Demo Flow, narrate as you go using these templates:
+This is the main loop. For each **Part** in the Demo Flow, narrate as you go.
+
+**Fast / Headed mode — standard templates:**
 
 | Beat | Narrator Template |
 |------|-------------------|
@@ -154,6 +204,8 @@ This is the main loop. For each **Part** in the Demo Flow, narrate as you go usi
 | After fix | "🔧 Fixed: [one-liner]. Re-running..." |
 | Part done | "🎬 Part [N] done — [X/Y] first-pass." |
 | Progress (every 5 steps or end of Part) | "📊 [X]/[total] steps, [Y] first-pass, [Z] fixes." |
+
+**Theater mode — replace above with dramatic voiceover + mandatory pause.** See the Theater mode section above for the full protocol. Every step gets a pre-step cinematic announcement, a post-step dramatic outcome, then STOPS and waits for the user to reply `continue` / `next` / `retry` / `skip`.
 
 #### 5.1 — Read the Part
 
