@@ -1,0 +1,3 @@
+I wanna improve the write and run skill please.
+
+I want to add an explicit mode to run in headed mode, and a headed mode and ANNOUNCE with PAUSE. TO announce what is happenign very dramatically and pause at each step so i can easily check even when getting distracted
