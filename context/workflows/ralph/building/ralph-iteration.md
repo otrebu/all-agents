@@ -75,17 +75,76 @@ Gather information needed to implement the assigned subtask.
 - Identification of files to create or modify
 - Understanding of testing requirements
 
-### Phase 4: Implement
+### Phase 4: Implement (TDD: RED → GREEN → REFACTOR)
 
-Execute the implementation based on your investigation.
+Execute implementation as a strict TDD cycle. Implementation-before-test is a regression — always start with a failing test for the observable behavior the subtask describes.
 
-**Guidelines:**
+#### Phase 4a: RED — Write the Failing Test First
+
+Write the failing automated test for the behavior described in the subtask **before** writing production code.
+
+**Recommended starting move — invoke the `/goal` skill:**
+
+Use the `/goal` skill to convert all of the subtask's acceptance criteria into failing tests in a single pass:
+- `[Behavioral]` and `[Regression]` ACs → RED automated tests (CLI E2E, API integration, web-flow E2E, unit, etc.)
+- `[Visual]` and `[Manual]` ACs → Agent Browser verification scaffolds with the expected artifact paths under `artifacts/browser/<subtask-id>/...`
+- `[Evidence]` ACs → assertion targets / expected output fixtures
+
+This guarantees every AC has a test before any production code is written and locks the GREEN target for Phase 4b. Run the generated tests immediately; they should all fail for the right reason. If `/goal` is not available in the current environment, fall back to authoring the failing tests manually per the Rules below.
+
+**Rules:**
+- For vertical slices and cross-layer behavior, start with the **outermost useful test**: CLI E2E, API integration, Playwright/web-flow E2E, or provider integration
+- For pure logic subtasks, start with the smallest meaningful unit test
+- For refactors, start with a characterization test at the unchanged interface
+- For bug fixes, start with a regression test that reproduces the reported defect
+- Run the new test and confirm it fails for the **right reason** (missing implementation, not a test bug)
+- Record the exact failing command and failure reason in the verification notes
+- If the test passes immediately, the test is not proving missing behavior — fix the test scope or re-check the subtask
+
+**Subagent guidance for outer tests:**
+
+When the outermost test is an end-to-end CLI invocation, browser-driven flow, or provider integration, **spawn a subagent** to author and run the test in isolation:
+- The main iteration context stays focused on production code
+- The subagent can run long browser sessions or CLI executions without polluting your working context
+- For multi-file E2E coverage, **launch subagents in parallel** — single message, multiple Task calls — one per test file. Sequential spawning defeats the purpose.
+
+Example tool-call shape:
+```
+Task tool:
+  subagent_type: "general-purpose"
+  description: "Author RED E2E test for <subtask AC>"
+  prompt: "Write the failing E2E test asserting <AC behavior>, run it via <command>, and return the failure output verbatim. Do NOT implement production code — only the test."
+```
+
+#### Phase 4b: GREEN — Minimum Code to Pass
+
+Write the **minimum production code** needed to pass the RED test.
+
+**Rules:**
+- No speculative features
+- No broad refactors unless the test cannot pass without them
+- Re-run the same RED test command and record the **passing** evidence
+- The test command in 4a and 4b must be identical — same path, same arguments
+- For cross-layer slices, the outer boundary test (CLI/API/web/provider) is the canonical GREEN signal; unit tests passing without the outer test going green is not GREEN
+
+#### Phase 4c: REFACTOR (Optional)
+
+Refactor only when GREEN code reveals real cleanup pressure: duplication, unclear naming, or a shallow module boundary that hurts readability.
+
+**Rules:**
+- Tests stay green throughout — re-run after each refactor step
+- **Skip this phase if there is no real cleanup pressure.** Speculative refactoring is over-engineering
+
+**Apply project conventions throughout 4a–4c:**
 - Follow the project's coding conventions from CLAUDE.md
-- Implement exactly what the subtask describes - no more, no less
+- Implement exactly what the subtask describes — no more, no less
 - Write clean, maintainable code
-- Add tests as appropriate for the changes
 
 ### Phase 5: Validate
+
+**Tracer-bullet validation:** Re-run the tests you wrote in Phase 4a (now GREEN). Then run any additional tests required by the subtask's acceptance criteria.
+
+For behavioral CLI/API/web/provider work, **the outer boundary test is mandatory** — unit-only verification does not satisfy cross-layer ACs unless the subtask is documentation/config-only.
 
 Run only the tests you created or modified for this subtask:
 
@@ -201,6 +260,39 @@ Use this mode whenever an AC references visual state, interaction flow, or UX be
 5. Pair visual verification with automated E2E for behavioral ACs; visual-only checks without browser artifacts do not pass.
 
 Agent Browser steps are verification-only and must remain idempotent from a validation perspective (re-runs should produce equivalent pass/fail outcomes).
+
+##### Subagent Delegation for Verification (Strongly Encouraged)
+
+**Spawn subagents for Agent Browser verification.** Agent Browser sessions can be long-running and produce verbose snapshot/log output. Delegate the verification to a subagent so the main iteration context stays focused on tracking AC PASS/FAIL state:
+
+- **Single visual AC:** spawn one subagent with the AC scenario, target URL, action sequence, and expected artifact paths
+- **Multiple visual ACs:** spawn subagents **in parallel** — single message, multiple Task calls — one per AC. This mirrors the parallel-reviewer pattern in @.claude/skills/code-review/SKILL.md
+- The subagent returns the artifact paths and PASS/FAIL verdict; you record those into the AC verification table
+
+Example tool-call shape:
+```
+Task tool:
+  subagent_type: "general-purpose"
+  description: "Agent Browser verify AC 3"
+  prompt: "Navigate to <URL>, perform <action sequence>, capture screenshot at artifacts/browser/<subtask-id>/ac3-after.png, snapshot at artifacts/browser/<subtask-id>/ac3-snapshot.txt, capture before/after if state changes, and report PASS/FAIL with all evidence paths."
+```
+
+**Anti-pattern:** Spawning subagents sequentially (one, wait, next, wait, ...) defeats the parallelism — single message, multiple calls, always.
+
+##### CLI / Provider Manual Smoke (Non-Web Subtasks)
+
+If the subtask has no browser surface but does change observable CLI/provider/integration behavior, perform the equivalent manual smoke at the real command boundary:
+
+1. Run the actual CLI/provider command in deterministic mode (fixed flags, isolated cwd, recorded env)
+2. Capture stdout/stderr/log artifacts under `artifacts/cli/<subtask-id>/...`
+3. Record exact artifact paths in the AC verification table
+4. **Same subagent-delegation rationale applies** — spawn a subagent for the smoke run if it's lengthy, especially for provider integrations that produce verbose output
+
+Automated E2E does **not** replace this manual pass; the two checks cover different risks (the automated test asserts contract; the manual smoke catches surprises in real output).
+
+##### Parallel E2E Runs
+
+When a subtask is verified by more than one E2E test file (e.g. CLI flag behavior + provider integration, or web flow + API endpoint), **spawn subagents in parallel** — one per test file — to keep wall-clock time low. Sequential one-at-a-time spawning is the anti-pattern (mirrors "Do NOT spawn agents sequentially - that defeats the purpose" in @context/workflows/ralph/planning/tasks-milestone.md).
 
 ##### When Tests Are REQUIRED (Not Optional)
 

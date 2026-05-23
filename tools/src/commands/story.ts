@@ -5,8 +5,8 @@ import {
   formatStoryFilename,
   nextArtifactNumber,
 } from "@tools/commands/ralph/naming";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
 
 // Custom Error
 class StoryError extends Error {
@@ -22,9 +22,60 @@ class StoryError extends Error {
 
 const STORIES_DIR = "docs/planning/stories";
 
+interface StoryConcatOptions {
+  milestone: string;
+  output?: string;
+}
+
 interface StoryCreateOptions {
   dir?: string;
   milestone?: string;
+}
+
+function concatenateMilestoneStories(milestoneNameOrPath: string): string {
+  const milestonePath = resolveMilestonePath(milestoneNameOrPath);
+  const storiesDirectory = join(milestonePath, "stories");
+
+  const entries = readStoriesDirectoryEntries(storiesDirectory);
+
+  const storyFiles = entries
+    .filter((entry) => entry.endsWith(".md"))
+    .sort((a, b) => a.localeCompare(b));
+
+  if (storyFiles.length === 0) {
+    throw new StoryError(`No story files found in ${storiesDirectory}`);
+  }
+
+  const blocks = storyFiles.map((filename) => {
+    const filepath = join(storiesDirectory, filename);
+    const storyId = basename(filename, ".md");
+    const content = readFileSync(filepath, "utf8").trimEnd();
+    return `---STORY: ${storyId}---\n${content}\n`;
+  });
+
+  return blocks.join("\n");
+}
+
+function concatStoriesCommand(options: StoryConcatOptions): void {
+  try {
+    const concatenated = concatenateMilestoneStories(options.milestone);
+
+    if (options.output !== undefined && options.output !== "") {
+      const outputPath = resolve(options.output);
+      writeFileSync(outputPath, concatenated);
+      log.plain(outputPath);
+      return;
+    }
+
+    process.stdout.write(concatenated);
+  } catch (error: unknown) {
+    if (error instanceof StoryError) {
+      log.error(error.message);
+    } else if (error instanceof Error) {
+      log.error(`Failed to concatenate stories: ${error.message}`);
+    }
+    process.exit(1);
+  }
 }
 
 function createStoryCommand(name: string, options: StoryCreateOptions): void {
@@ -72,6 +123,17 @@ function generateStoryFile(
   });
 }
 
+function readStoriesDirectoryEntries(storiesDirectory: string): Array<string> {
+  try {
+    return readdirSync(storiesDirectory);
+  } catch (error: unknown) {
+    throw new StoryError(
+      `No stories directory found at ${storiesDirectory}`,
+      error instanceof Error ? error : undefined,
+    );
+  }
+}
+
 function renderStoryTemplate(name: string): string {
   return `## Story: ${name}
 
@@ -95,6 +157,10 @@ As a [persona], I want [capability] so that [benefit].
 `;
 }
 
-export { generateStoryFile as createStory };
-export type { StoryCreateOptions };
+export {
+  concatenateMilestoneStories,
+  concatStoriesCommand,
+  generateStoryFile as createStory,
+};
+export type { StoryConcatOptions, StoryCreateOptions };
 export default createStoryCommand;

@@ -236,6 +236,8 @@ _aaa_completions() {
             story)
                 if [[ "$subcmd" == "create" ]]; then
                     COMPREPLY=($(compgen -W "-d --dir -m --milestone" -- "$cur"))
+                elif [[ "$subcmd" == "concat" ]]; then
+                    COMPREPLY=($(compgen -W "-m --milestone -o --output" -- "$cur"))
                 fi
                 return
                 ;;
@@ -403,7 +405,7 @@ _aaa_completions() {
             ;;
         story)
             if [[ -z "$subcmd" ]]; then
-                COMPREPLY=($(compgen -W "create" -- "$cur"))
+                COMPREPLY=($(compgen -W "create concat" -- "$cur"))
             fi
             ;;
         ralph)

@@ -205,6 +205,9 @@ complete -c aaa -n '__fish_aaa_using_subsubcommand task create' -s s -l story -d
 complete -c aaa -n '__fish_aaa_using_subcommand story' -a create -d 'Create empty story file'
 complete -c aaa -n '__fish_aaa_using_subsubcommand story create' -s d -l dir -d 'Custom stories directory' -ra '(__fish_complete_directories)'
 complete -c aaa -n '__fish_aaa_using_subsubcommand story create' -s m -l milestone -d 'Milestone name/path' -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n '__fish_aaa_using_subcommand story' -a concat -d 'Concatenate milestone stories into one markdown bundle'
+complete -c aaa -n '__fish_aaa_using_subsubcommand story concat' -s m -l milestone -d 'Milestone name/path' -xa '(__fish_aaa_complete milestone 2>/dev/null; __fish_complete_directories)'
+complete -c aaa -n '__fish_aaa_using_subsubcommand story concat' -s o -l output -d 'Output file path' -r
 
 # ralph subcommands
 complete -c aaa -n '__fish_aaa_using_subcommand ralph' -a build -d 'Run subtask iteration loop'

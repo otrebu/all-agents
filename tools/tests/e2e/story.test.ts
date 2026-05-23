@@ -310,4 +310,142 @@ describe("story E2E", () => {
     expect(content).toContain("### Tasks");
     expect(content).toContain("### Notes");
   });
+
+  // story concat
+  test("story concat --help shows usage", async () => {
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "story", "concat", "--help"],
+      { cwd: TOOLS_DIR },
+    );
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("--milestone");
+    expect(stdout).toContain("--output");
+    expect(stdout).toContain("Concatenate milestone stories");
+  });
+
+  test("concat requires --milestone option", async () => {
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "story", "concat"],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("--milestone");
+  });
+
+  test("concat with --milestone writes bundle to stdout with story separators", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "099-concat-test");
+    const storiesDirectory = join(milestoneDirectory, "stories");
+    mkdirSync(storiesDirectory, { recursive: true });
+    writeFileSync(
+      join(storiesDirectory, "001-STORY-alpha.md"),
+      "## Story: alpha\n\nFirst story body.\n",
+    );
+    writeFileSync(
+      join(storiesDirectory, "002-STORY-bravo.md"),
+      "## Story: bravo\n\nSecond story body.\n",
+    );
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "story", "concat", "--milestone", milestoneDirectory],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("---STORY: 001-STORY-alpha---");
+    expect(stdout).toContain("First story body.");
+    expect(stdout).toContain("---STORY: 002-STORY-bravo---");
+    expect(stdout).toContain("Second story body.");
+
+    // Ordering: alpha (001) must appear before bravo (002)
+    const alphaIndex = stdout.indexOf("---STORY: 001-STORY-alpha---");
+    const bravoIndex = stdout.indexOf("---STORY: 002-STORY-bravo---");
+    expect(alphaIndex).toBeLessThan(bravoIndex);
+  });
+
+  test("concat with --output writes bundle to file and prints output path", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "099-output-test");
+    const storiesDirectory = join(milestoneDirectory, "stories");
+    mkdirSync(storiesDirectory, { recursive: true });
+    writeFileSync(
+      join(storiesDirectory, "001-STORY-one.md"),
+      "## Story: one\n\nContent.\n",
+    );
+
+    const outputPath = join(temporaryDirectory, "bundle.md");
+    const { exitCode, stdout } = await execa(
+      "bun",
+      [
+        "run",
+        "dev",
+        "story",
+        "concat",
+        "--milestone",
+        milestoneDirectory,
+        "--output",
+        outputPath,
+      ],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout.trim()).toBe(outputPath);
+    expect(existsSync(outputPath)).toBe(true);
+
+    const bundleContent = readFileSync(outputPath, "utf8");
+    expect(bundleContent).toContain("---STORY: 001-STORY-one---");
+    expect(bundleContent).toContain("Content.");
+  });
+
+  test("concat fails when milestone has no stories directory", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "099-empty-milestone");
+    mkdirSync(milestoneDirectory, { recursive: true });
+
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "story", "concat", "--milestone", milestoneDirectory],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("No stories directory found");
+  });
+
+  test("concat fails when stories directory is empty", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "099-stories-empty");
+    const storiesDirectory = join(milestoneDirectory, "stories");
+    mkdirSync(storiesDirectory, { recursive: true });
+
+    const { exitCode, stderr } = await execa(
+      "bun",
+      ["run", "dev", "story", "concat", "--milestone", milestoneDirectory],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("No story files found");
+  });
+
+  test("concat ignores non-markdown files", async () => {
+    const milestoneDirectory = join(temporaryDirectory, "099-mixed-files");
+    const storiesDirectory = join(milestoneDirectory, "stories");
+    mkdirSync(storiesDirectory, { recursive: true });
+    writeFileSync(
+      join(storiesDirectory, "001-STORY-real.md"),
+      "## Story: real\n\nReal content.\n",
+    );
+    writeFileSync(join(storiesDirectory, "notes.txt"), "Should be ignored.");
+
+    const { exitCode, stdout } = await execa(
+      "bun",
+      ["run", "dev", "story", "concat", "--milestone", milestoneDirectory],
+      { cwd: TOOLS_DIR, reject: false },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Real content.");
+    expect(stdout).not.toContain("Should be ignored.");
+  });
 });

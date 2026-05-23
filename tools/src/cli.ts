@@ -20,7 +20,7 @@ import ralphCommand from "./commands/ralph/index";
 import reviewCommand from "./commands/review/index";
 import sessionCommand from "./commands/session/index";
 import setupCommand from "./commands/setup/index";
-import createStoryCommand from "./commands/story";
+import createStoryCommand, { concatStoriesCommand } from "./commands/story";
 import runSyncContextCli from "./commands/sync-context";
 import createTaskCommand from "./commands/task";
 import uninstallCommand from "./commands/uninstall";
@@ -193,6 +193,24 @@ storyCommand.addCommand(
       "Milestone name/path (recommended; writes to milestone stories/)",
     )
     .action(createStoryCommand),
+);
+
+storyCommand.addCommand(
+  new Command("concat")
+    .description(
+      "Concatenate milestone stories into one markdown bundle with stable separators",
+    )
+    .requiredOption(
+      "-m, --milestone <name|path>",
+      "Milestone name/path (e.g. 004-MULTI-CLI or docs/planning/milestones/004-MULTI-CLI)",
+    )
+    .option("-o, --output <path>", "Output file path (default: stdout)")
+    .action((options) => {
+      concatStoriesCommand({
+        milestone: options.milestone,
+        output: options.output,
+      });
+    }),
 );
 
 program.addCommand(storyCommand);

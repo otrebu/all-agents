@@ -39,7 +39,9 @@ aaa
 ├── extract-conversations     # Export Claude Code chat history
 ├── session                   # Manage session files (path/cat/list/current)
 ├── task create               # Create numbered task file
-├── story create              # Create numbered story file
+├── story                     # Story file utilities
+│   ├── create                # Create numbered story file
+│   └── concat                # Bundle a milestone's stories into one markdown file
 ├── setup                     # Install aaa (--user or --project)
 ├── uninstall                 # Uninstall aaa
 ├── sync-context              # Sync context/ to another project
@@ -171,6 +173,18 @@ aaa ralph plan subtasks --task path/to/task.md
 aaa ralph plan subtasks --file ./findings.md
 aaa ralph plan subtasks --text "Fix the off-by-one error in pagination"
 aaa ralph plan subtasks --review-diary                           # parse logs/reviews.jsonl
+
+# From a multi-story milestone bundle produced by `aaa story concat`
+aaa story concat --milestone 004-MULTI-CLI --output /tmp/m004-stories.md
+aaa ralph plan subtasks --file /tmp/m004-stories.md \
+  --output-dir docs/planning/milestones/004-MULTI-CLI
+# The planner recognizes `---STORY: <id>---` separators (or repeated `## Story:` headings)
+# and looks for cross-story vertical tracer-bullet slices before falling back to
+# per-story horizontal slices.
+# Cross-story subtasks must start their `description` with
+#   `Stories covered: <id-1>, <id-2>, ...`
+# and use `taskRef = "<milestone-slug>-tracer-bullets"` when no real parent task exists.
+# `storyRef` holds the primary story (the one whose user-visible outcome names the behavior).
 
 # Sizing control
 aaa ralph plan subtasks --milestone 003-my-feature --size small  # thinnest viable slices
@@ -491,6 +505,14 @@ aaa extract-conversations --skip 5 --limit 5    # skip 5 most recent
 aaa task create my-task-name --milestone 003-feature --story 1
 aaa story create my-story-name --milestone 003-feature
 
+# Bundle all stories in a milestone into one markdown file (tracer-bullet planning)
+aaa story concat --milestone 004-MULTI-CLI                          # to stdout
+aaa story concat --milestone 004-MULTI-CLI -o /tmp/m004-stories.md  # to file
+aaa story concat --milestone docs/planning/milestones/004-MULTI-CLI # path also accepted
+# Each story is prefixed with `---STORY: <basename-without-md>---`; files are filename-sorted.
+# Exits 1 if the milestone's stories/ directory is missing or empty.
+# Tab-complete: `aaa story concat <TAB>` completes the subcommand and milestone slugs.
+
 # Notifications
 aaa notify "Build complete!" --title "Ralph" --priority high
 aaa notify --event ralph:milestoneComplete "Milestone 003 done"
@@ -527,6 +549,8 @@ aaa completion fish > ~/.config/fish/completions/aaa.fish
 | Create tasks for a whole milestone | `aaa ralph plan tasks --milestone <name>` |
 | Generate subtasks for a milestone | `aaa ralph plan subtasks --milestone <name>` |
 | Generate subtasks from a text description | `aaa ralph plan subtasks --text "description"` |
+| Bundle a milestone's stories into one file | `aaa story concat --milestone <name> -o <path>` |
+| Tracer-bullet plan from a story bundle | `aaa story concat --milestone <name> -o <bundle> && aaa ralph plan subtasks --file <bundle> --output-dir docs/planning/milestones/<name>` |
 | Plan everything and build in one go | `aaa ralph plan stories --milestone <name> --cascade build -H` |
 | Just build what's in the queue | `aaa ralph build -H` |
 | Build with Claude Opus | `aaa ralph build -H --provider claude --model opus` |
@@ -539,3 +563,65 @@ aaa completion fish > ~/.config/fish/completions/aaa.fish
 | Search the web for research | `aaa parallel-search --objective "question"` |
 | Find code examples on GitHub | `aaa gh-search "query"` |
 | Archive completed work | `aaa ralph archive subtasks --milestone <name>` |
+
+## Tracer-Bullet Workflow (End-to-End Recipe)
+
+The full pipeline from a milestone's stories to a running Ralph build loop. Uses
+the multi-story bundle + cross-story slicing introduced in
+`context/workflows/ralph/planning/subtasks-from-source.md`. The implementing
+agent runs RED→GREEN→REFACTOR per `context/workflows/ralph/building/ralph-iteration.md`.
+
+### Step-by-step
+
+```bash
+SLUG=008-prelude-aaa-ralph-load-screen
+MILESTONE_DIR=docs/planning/milestones/$SLUG
+
+# 1. Bundle the milestone's stories into one markdown file with
+#    `---STORY: <id>---` separators between each story.
+aaa story concat --milestone $SLUG --output /tmp/$SLUG-stories.md
+
+# 2. Generate subtasks from the bundle. The planner sees the bundle as
+#    one milestone and looks for cross-story vertical tracer-bullet slices
+#    before falling back to per-story horizontal slices. Cross-story subtasks
+#    start their description with `Stories covered: <id-1>, <id-2>, ...`.
+aaa ralph plan subtasks \
+  --file /tmp/$SLUG-stories.md \
+  --output-dir $MILESTONE_DIR
+
+# 3. Review the queue (sanity check before build).
+aaa ralph review subtasks --subtasks $MILESTONE_DIR/subtasks.json
+
+# 4. Gap analysis (cold-read review; surfaces missing coverage and
+#    cross-layer holes).
+aaa ralph review gap subtasks --subtasks $MILESTONE_DIR/subtasks.json
+
+# 5. Single iteration to confirm the loop works end-to-end before
+#    committing to a long run.
+aaa ralph build \
+  --subtasks $MILESTONE_DIR/subtasks.json \
+  --headless \
+  --max-iterations 1
+
+# 6. Full loop — unlimited iterations until the queue drains.
+aaa ralph build --subtasks $MILESTONE_DIR/subtasks.json
+```
+
+### One-shot cascade variant
+
+After step 1 (bundle file exists), the remaining steps can be chained into a
+single plan invocation:
+
+```bash
+aaa ralph plan subtasks \
+  --file /tmp/$SLUG-stories.md \
+  --output-dir $MILESTONE_DIR \
+  --with-reviews \
+  --cascade build \
+  --validate-first
+```
+
+- `--with-reviews` runs subtasks review + gap before the cascade
+- `--cascade build` chains directly into build after planning
+- `--validate-first` lets pre-build validation reorder/split/remove pending
+  subtasks before iteration starts

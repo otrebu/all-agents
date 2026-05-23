@@ -153,6 +153,7 @@ _aaa_story() {
     local -a subcommands
     subcommands=(
         'create:Create empty story file with auto-numbered name'
+        'concat:Concatenate milestone stories into one markdown bundle'
     )
 
     _arguments -C \\
@@ -170,6 +171,11 @@ _aaa_story() {
                         '(-d --dir)'{-d,--dir}'[Custom stories directory]:directory:_files -/' \\
                         '(-m --milestone)'{-m,--milestone}'[Milestone name/path]:milestone:_aaa_milestone_or_dir' \\
                         '1:name:'
+                    ;;
+                concat)
+                    _arguments \\
+                        '(-m --milestone)'{-m,--milestone}'[Milestone name/path]:milestone:_aaa_milestone_or_dir' \\
+                        '(-o --output)'{-o,--output}'[Output file path]:file:_files'
                     ;;
             esac
             ;;
