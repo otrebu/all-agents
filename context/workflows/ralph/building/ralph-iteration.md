@@ -84,14 +84,22 @@ Execute implementation as a strict TDD cycle. Implementation-before-test is a re
 
 Write the failing automated test for the behavior described in the subtask **before** writing production code.
 
-**Recommended starting move — invoke the `/goal` skill:**
+**First action (MANDATORY) — bind the RED completion condition with the `/goal` command:**
 
-Use the `/goal` skill to convert all of the subtask's acceptance criteria into failing tests in a single pass:
-- `[Behavioral]` and `[Regression]` ACs → RED automated tests (CLI E2E, API integration, web-flow E2E, unit, etc.)
-- `[Visual]` and `[Manual]` ACs → Agent Browser verification scaffolds with the expected artifact paths under `artifacts/browser/<subtask-id>/...`
+`/goal` is a built-in Claude Code / Codex command (Claude ≥ 2.1.139), not a skill. It sets a session completion condition that a separate evaluator re-checks after every turn until the condition holds.
+
+Run, verbatim (substitute `<SUB-ID>`):
+
+```
+/goal RED state for <SUB-ID>: every [Behavioral] / [Regression] AC has a failing automated test in the transcript; every [Visual] / [Manual] AC has an Agent Browser scaffold at artifacts/browser/<SUB-ID>/... ; every [Evidence] AC has its assertion target named. Failure must be for the right reason — missing implementation, not missing data or a test bug. Constraint: no production code may be modified until this holds.
+```
+
+This maps each AC class to its RED artifact:
+- `[Behavioral]` / `[Regression]` ACs → failing automated tests (CLI E2E, API integration, web-flow E2E, unit, etc.)
+- `[Visual]` / `[Manual]` ACs → Agent Browser verification scaffolds under `artifacts/browser/<SUB-ID>/...`
 - `[Evidence]` ACs → assertion targets / expected output fixtures
 
-This guarantees every AC has a test before any production code is written and locks the GREEN target for Phase 4b. Run the generated tests immediately; they should all fail for the right reason. If `/goal` is not available in the current environment, fall back to authoring the failing tests manually per the Rules below.
+Do not proceed to Phase 4b until the evaluator confirms. Fallback applies **only** when `/goal` is structurally unavailable (`disableAllHooks` set in settings, or CLI < 2.1.139): write the same condition verbatim as your in-context objective at the top of the iteration, author the RED tests per the Rules below, and STOP after RED for operator review before GREEN — do not silently slide into implementation.
 
 **Rules:**
 - For vertical slices and cross-layer behavior, start with the **outermost useful test**: CLI E2E, API integration, Playwright/web-flow E2E, or provider integration
