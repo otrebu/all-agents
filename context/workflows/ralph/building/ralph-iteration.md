@@ -74,6 +74,7 @@ Gather information needed to implement the assigned subtask.
 - Clear understanding of what needs to change
 - Identification of files to create or modify
 - Understanding of testing requirements
+- **Test-data prerequisites identified** — what the RED test will need to *exist* before it can pass (DB rows, fixture files, recorded HTTP cassettes, auth/session state, uploaded blobs, queue messages, etc.) and where the project already keeps that kind of data (`fixtures/`, `seeds/`, factory helpers, migration seed scripts, test setup hooks). If the existing test environment doesn't produce the data the AC reads, you will need to seed it — discover the project's pattern now, don't invent one later.
 
 ### Phase 4: Implement (TDD: RED → GREEN → REFACTOR)
 
@@ -101,6 +102,19 @@ This guarantees every AC has a test before any production code is written and lo
 - Record the exact failing command and failure reason in the verification notes
 - If the test passes immediately, the test is not proving missing behavior — fix the test scope or re-check the subtask
 
+**Seed-data prerequisite (read this before declaring RED valid):**
+
+If the RED test reads from a real surface (DB, API, filesystem, queue, auth/session, cache), the test cannot fail for the *right reason* unless the data it queries actually exists. Otherwise it fails with empty result / 404 / null / "no such record" — which looks like the implementation is missing, but is really the **fixture** that is missing. You then either:
+- mock the API/DB to fake the data (defeats the outer-boundary contract — **anti-pattern**),
+- weaken the test to assert nothing meaningful (regression in coverage — **anti-pattern**), or
+- fix it properly: **add the seed data**.
+
+Before declaring RED valid:
+1. Identify the missing data — what rows/files/sessions/messages does the test require?
+2. Add the seed/fixture using the project's existing pattern discovered in Phase 3 (`fixtures/`, `seeds/`, factory helpers, migration seed scripts, test setup hooks). **Discover, don't invent.**
+3. Re-run the RED test. The failure reason must now point at missing **implementation** (e.g. "function not defined", "endpoint returns 501", "expected X but got default"), not missing **data** (e.g. "rows: 0", "404 not found", "undefined.foo").
+4. Record the seed location + what was inserted in the verification notes — reviewers need to trace what data backs the assertion.
+
 **Subagent guidance for outer tests:**
 
 When the outermost test is an end-to-end CLI invocation, browser-driven flow, or provider integration, **spawn a subagent** to author and run the test in isolation:
@@ -126,6 +140,7 @@ Write the **minimum production code** needed to pass the RED test.
 - Re-run the same RED test command and record the **passing** evidence
 - The test command in 4a and 4b must be identical — same path, same arguments
 - For cross-layer slices, the outer boundary test (CLI/API/web/provider) is the canonical GREEN signal; unit tests passing without the outer test going green is not GREEN
+- **Seed data and fixtures the test depends on are part of GREEN**, not a sidequest. If Phase 4a established that new seed data is required, the production commit must include both the implementation *and* the seed/fixture artifacts (or the helper that produces them). **Anti-pattern:** mocking the real surface to return canned data so the outer test "passes" — that hollows out the boundary contract the tracer bullet is supposed to prove.
 
 #### Phase 4c: REFACTOR (Optional)
 
@@ -189,15 +204,17 @@ For each acceptance criterion:
 ```markdown
 ## AC Verification: SUB-047
 
-| # | Criterion | Tier | Tool | Command / Check | Result | Evidence / Artifact Path |
-|---|-----------|------|------|------------------|--------|--------------------------|
-| 1 | diary.ts exists with extracted functions | static | shell | `test -f src/diary.ts` | PASS | `src/diary.ts` |
-| 2 | DIARY_PATH constant moved | content | shell | `rg "DIARY_PATH" src/diary.ts` | PASS | `src/diary.ts:12` |
-| 3 | Settings form saves and renders success toast | behavioral | e2e + agent-browser | `pnpm test tests/e2e/settings.save.spec.ts` + visual confirm | PASS | `artifacts/e2e/settings-save.xml`, `artifacts/browser/SUB-047/settings-toast.png` |
-| 4 | index.ts imports diary | content | shell | `rg "from './diary'" src/index.ts` | PASS | `src/index.ts:8` |
+| # | Criterion | Tier | Tool | Command / Check | Result | Evidence / Artifact Path | Seed / Fixture |
+|---|-----------|------|------|------------------|--------|--------------------------|----------------|
+| 1 | diary.ts exists with extracted functions | static | shell | `test -f src/diary.ts` | PASS | `src/diary.ts` | — |
+| 2 | DIARY_PATH constant moved | content | shell | `rg "DIARY_PATH" src/diary.ts` | PASS | `src/diary.ts:12` | — |
+| 3 | Settings form saves and renders success toast | behavioral | e2e + agent-browser | `pnpm test tests/e2e/settings.save.spec.ts` + visual confirm | PASS | `artifacts/e2e/settings-save.xml`, `artifacts/browser/SUB-047/settings-toast.png` | `tests/fixtures/users/settings-user.json` (logged-in user with default settings) |
+| 4 | index.ts imports diary | content | shell | `rg "from './diary'" src/index.ts` | PASS | `src/index.ts:8` | — |
 
 **Summary:** 4/4 PASS -> Proceed to commit
 ```
+
+The **Seed / Fixture** column is required for behavioral ACs that read from a real surface (DB, API, filesystem, queue, auth). Record the artifact path and a one-line description of what was seeded. Use `—` for ACs with no data prerequisite (pure static/content checks, refactors at unchanged interfaces). If a behavioral AC has `—` in this column, double-check: either the test isn't really hitting the real surface, or you're relying on undocumented ambient data that will break under a fresh environment.
 
 #### Generate Tests From AC
 

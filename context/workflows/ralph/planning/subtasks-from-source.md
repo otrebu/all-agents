@@ -132,6 +132,16 @@ Do not require BDD/Cucumber unless explicitly requested by the source input.
 
 For any CLI command, API route, web user flow, provider integration, or behavior that crosses layer boundaries, the subtask MUST require an end-to-end or integration test at the real boundary. Unit tests are allowed as supporting coverage but do NOT satisfy the tracer-bullet requirement by themselves. Name the exact boundary in the AC (e.g. "the `aaa story concat` CLI", "POST /api/v1/foo", "the claude provider's `invoke()`", "the `/settings` web flow").
 
+**Seed-data prerequisite (flag explicitly when present):**
+
+If the behavior under test reads from a real surface (DB, API, filesystem, queue, auth/session, cache) and the data it needs is not part of the baseline test environment — e.g. new entity types, new entity states, cross-account or cross-tenant interactions, freshly-introduced enum values, files at paths that don't yet exist — the subtask MUST make the seed requirement explicit so the build agent does not silently mock the surface or weaken the test. Use one of:
+
+- An `[Evidence]` AC that names the seed/fixture artifact (path + what it contains), e.g. `[Evidence] tests/fixtures/orders/multi-tenant.json contains 2 orders across distinct tenants`
+- A dedicated `[Behavioral]` setup AC such as `[Behavioral] Test harness seeds <N> <entity> records with <key attributes> before the assertion runs`
+- A short line in the description: `Requires fresh seed data: <what>` — appropriate when the seed lives in a setup hook or factory rather than a static file
+
+The build prompt (@context/workflows/ralph/building/ralph-iteration.md, Phase 4a "Seed-data prerequisite") will block the iteration if this is missed, so flagging it at planning time keeps the subtask honest and saves a build round-trip.
+
 **Manual verification requirements:**
 
 For UI/web/visual subtasks, include both:
@@ -177,6 +187,7 @@ During validation, additionally confirm:
 - UI/visual subtasks include a `[Manual]` AC for Agent Browser verification with artifact paths under `artifacts/browser/<subtask-id>/...`
 - CLI/provider subtasks include a `[Manual]` AC for real-boundary smoke runs with artifact paths under `artifacts/cli/<subtask-id>/...`
 - Verification-heavy ACs include subagent-delegation phrasing (Agent Browser runs and multi-file E2E)
+- Behavioral subtasks that read from a real surface declare their seed/fixture prerequisite — either an `[Evidence]` AC naming the fixture, a `[Behavioral]` setup AC describing the harness-seeded state, or a `Requires fresh seed data:` line in the description (see "Seed-data prerequisite" above)
 
 ### Phase 5: Append Subtasks
 
