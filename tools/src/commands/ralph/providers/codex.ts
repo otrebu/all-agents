@@ -79,6 +79,9 @@ type TerminationSignal = "SIGINT" | "SIGTERM";
 /** Default hard timeout for Codex headless execution */
 const DEFAULT_HARD_TIMEOUT_MS = 3_600_000;
 
+/** Default Codex model when the caller doesn't specify one. */
+const DEFAULT_CODEX_MODEL = "gpt-5.5";
+
 /**
  * Path to the Codex CLI models cache file.
  *
@@ -159,6 +162,8 @@ const CODEX_FAILURE_REASON_RULES: Array<{
 
 /**
  * Build command arguments for Codex headless mode.
+ *
+ * Defaults to gpt-5.5 when the caller doesn't specify a model.
  */
 function buildCodexHeadlessArguments(
   config: CodexConfig,
@@ -166,11 +171,9 @@ function buildCodexHeadlessArguments(
 ): Array<string> {
   const args = ["--yolo", "exec", "--json", "--skip-git-repo-check"];
 
-  if (config.model !== undefined && config.model !== "") {
-    const normalizedModel = normalizeCodexModel(config.model);
-    if (normalizedModel !== "") {
-      args.push("--model", normalizedModel);
-    }
+  const resolvedModel = resolveCodexModel(config.model);
+  if (resolvedModel !== "") {
+    args.push("--model", resolvedModel);
   }
 
   args.push("--", prompt);
@@ -179,6 +182,8 @@ function buildCodexHeadlessArguments(
 
 /**
  * Build command arguments for Codex supervised mode.
+ *
+ * Defaults to gpt-5.5 when the caller doesn't specify a model.
  */
 function buildCodexSupervisedArguments(
   config: CodexConfig,
@@ -186,11 +191,9 @@ function buildCodexSupervisedArguments(
 ): Array<string> {
   const args = ["exec", "--skip-git-repo-check"];
 
-  if (config.model !== undefined && config.model !== "") {
-    const normalizedModel = normalizeCodexModel(config.model);
-    if (normalizedModel !== "") {
-      args.push("--model", normalizedModel);
-    }
+  const resolvedModel = resolveCodexModel(config.model);
+  if (resolvedModel !== "") {
+    args.push("--model", resolvedModel);
   }
 
   args.push("--", prompt);
@@ -407,10 +410,6 @@ function getNested(record: Record<string, unknown>, key: string): unknown {
   return value ?? undefined;
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
-
 /**
  * Infer cost hint from a Codex model slug.
  *
@@ -427,6 +426,10 @@ function inferCodexCostHint(slug: string): "cheap" | "expensive" | "standard" {
   }
   return "standard";
 }
+
+// =============================================================================
+// Helpers
+// =============================================================================
 
 /**
  * Registry-compatible Codex invoker.
@@ -753,10 +756,6 @@ function parseStructuredErrorMessage(rawMessage: string): string {
   return trimmed;
 }
 
-// =============================================================================
-// Main functions
-// =============================================================================
-
 function propagateInterruptToParent(signal: TerminationSignal): never {
   try {
     process.kill(process.pid, signal);
@@ -766,6 +765,10 @@ function propagateInterruptToParent(signal: TerminationSignal): never {
 
   throw new Error(`Codex supervised session interrupted by ${signal}`);
 }
+
+// =============================================================================
+// Main functions
+// =============================================================================
 
 /**
  * Read and parse the Codex models cache file (`~/.codex/models_cache.json`).
@@ -835,6 +838,18 @@ function readString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== ""
     ? value.trim()
     : undefined;
+}
+
+/**
+ * Resolve the Codex model, falling back to the provider default if unset.
+ *
+ * Returns the normalized slug (stripping the `openai/` prefix) so that it can
+ * be passed directly to `codex --model`.
+ */
+function resolveCodexModel(model?: string): string {
+  const candidate =
+    model !== undefined && model.trim() !== "" ? model : DEFAULT_CODEX_MODEL;
+  return normalizeCodexModel(candidate);
 }
 
 function toTokenUsage(usage: unknown): TokenUsage | undefined {

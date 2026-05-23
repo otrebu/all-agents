@@ -147,6 +147,7 @@ Lint, format, analyze.
 - data-integrity.md - Data integrity checks
 - code-prose-consistency.md - Code vs prose consistency checks
 - planning-consistency.md - Planning artifact consistency checks
+- subtask-queue-readiness.md - Build-readiness contract for milestone subtask queues
 - simplicity.md - Simplicity and over-engineering checks
 - text-consistency.md - Text consistency checks
 - performance.md - Performance checks
@@ -236,6 +237,7 @@ Build, execute, bundle, package, parse, patterns.
 - data-persist-prisma.md - Database persistence with Prisma + PostgreSQL
 - data-hierarchy-prisma.md - Hierarchical data with Prisma + PostgreSQL
 - data-table-tanstack.md - TanStack Table + Query + Router wiring
+- review-subtask-queue-readiness.md - Readiness review and repair workflow for `subtasks.json`
 - parse-csv-zod.md - CSV parsing with Zod validation
 - mock-file-server.md - Mock file server patterns
 - patterns-design-tokens-tailwind.md - Design tokens with Tailwind patterns

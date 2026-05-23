@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import type {
   AgentResult,
+  ClaudeEffort,
   InvocationMode,
   InvokerFunction,
   ProviderCapabilities,
@@ -40,6 +41,8 @@ import { PROVIDER_BINARIES } from "./types";
 
 /** Options for headless provider invocation */
 interface HeadlessProviderOptions {
+  /** Claude reasoning effort override (ignored by other providers) */
+  effort?: ClaudeEffort;
   /** Grace period in ms before SIGKILL after SIGTERM */
   gracePeriodMs?: number;
   mode: "headless";
@@ -79,6 +82,8 @@ type RuntimeInvocationMode = "headless" | "supervised";
 interface SupervisedProviderOptions {
   /** Extra context to prepend to prompt */
   context?: string;
+  /** Claude reasoning effort override (ignored by other providers) */
+  effort?: ClaudeEffort;
   mode: "supervised";
   /** Model to use for invocation (provider-specific format) */
   model?: string;
@@ -321,6 +326,7 @@ async function invokeClaudeHeadless(
   options: HeadlessProviderOptions,
 ): Promise<AgentResult | null> {
   return invokeClaudeHeadlessAsync({
+    effort: options.effort,
     gracePeriodMs: options.gracePeriodMs,
     model: options.model,
     onStderrActivity: options.onStderrActivity,
@@ -343,6 +349,7 @@ function invokeClaudeSupervised(
   const startTime = Date.now();
 
   const chatResult = invokeClaudeChat(options.promptPath, options.sessionName, {
+    effort: options.effort,
     extraContext: options.context,
     model: options.model,
   });

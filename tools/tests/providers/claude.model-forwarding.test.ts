@@ -57,7 +57,7 @@ describe("Claude provider model forwarding", () => {
     }
   });
 
-  test("invokeClaudeChat omits --model when model is undefined", () => {
+  test("invokeClaudeChat defaults to claude-opus-4-7 at effort=max when model is undefined", () => {
     const temporaryDirectory = mkdtempSync(
       join(tmpdir(), "ralph-claude-test-"),
     );
@@ -79,7 +79,10 @@ describe("Claude provider model forwarding", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(capturedArguments).not.toContain("--model");
+      expect(capturedArguments).toContain("--model");
+      expect(capturedArguments).toContain("claude-opus-4-7");
+      expect(capturedArguments).toContain("--effort");
+      expect(capturedArguments).toContain("max");
     } finally {
       rmSync(temporaryDirectory, { force: true, recursive: true });
     }
@@ -118,5 +121,80 @@ describe("Claude provider model forwarding", () => {
     expect(capturedArguments).not.toContain("hello");
     expect(stdinMock.write).toHaveBeenCalledWith("hello");
     expect(stdinMock.end).toHaveBeenCalled();
+  });
+
+  test("invokeClaudeHeadlessAsync forwards explicit --effort over env/default", async () => {
+    let capturedArguments: Array<string> = [];
+    const stdinMock = {
+      end: mock(() => {}),
+      flush: mock(() => {}),
+      write: mock(() => 0),
+    };
+    const previousEnv = process.env.RALPH_CLAUDE_EFFORT;
+    process.env.RALPH_CLAUDE_EFFORT = "medium";
+    (Bun as { spawn: typeof Bun.spawn }).spawn = ((args) => {
+      capturedArguments = [...(args as Array<string>)];
+      return {
+        exitCode: 0,
+        exited: Promise.resolve(0),
+        signalCode: null,
+        stderr: toTextStream(""),
+        stdin: stdinMock,
+        stdout: toTextStream(
+          '[{"type":"result","result":"ok","duration_ms":1,"total_cost_usd":0,"session_id":"ses_x"}]',
+        ),
+      } as unknown as ReturnType<typeof Bun.spawn>;
+    }) as typeof Bun.spawn;
+
+    try {
+      await invokeClaudeHeadlessAsync({ effort: "low", prompt: "hi" });
+      const effortIndex = capturedArguments.indexOf("--effort");
+      expect(effortIndex).toBeGreaterThanOrEqual(0);
+      // Explicit "low" wins over env "medium"
+      expect(capturedArguments[effortIndex + 1]).toBe("low");
+    } finally {
+      // eslint-disable-next-line require-atomic-updates -- restoring captured env in finally is safe
+      process.env.RALPH_CLAUDE_EFFORT = previousEnv;
+      if (previousEnv === undefined) {
+        delete process.env.RALPH_CLAUDE_EFFORT;
+      }
+    }
+  });
+
+  test("invokeClaudeHeadlessAsync reads RALPH_CLAUDE_EFFORT when caller omits effort", async () => {
+    let capturedArguments: Array<string> = [];
+    const stdinMock = {
+      end: mock(() => {}),
+      flush: mock(() => {}),
+      write: mock(() => 0),
+    };
+    const previousEnv = process.env.RALPH_CLAUDE_EFFORT;
+    process.env.RALPH_CLAUDE_EFFORT = "high";
+    (Bun as { spawn: typeof Bun.spawn }).spawn = ((args) => {
+      capturedArguments = [...(args as Array<string>)];
+      return {
+        exitCode: 0,
+        exited: Promise.resolve(0),
+        signalCode: null,
+        stderr: toTextStream(""),
+        stdin: stdinMock,
+        stdout: toTextStream(
+          '[{"type":"result","result":"ok","duration_ms":1,"total_cost_usd":0,"session_id":"ses_y"}]',
+        ),
+      } as unknown as ReturnType<typeof Bun.spawn>;
+    }) as typeof Bun.spawn;
+
+    try {
+      await invokeClaudeHeadlessAsync({ prompt: "hi" });
+      const effortIndex = capturedArguments.indexOf("--effort");
+      expect(effortIndex).toBeGreaterThanOrEqual(0);
+      expect(capturedArguments[effortIndex + 1]).toBe("high");
+    } finally {
+      // eslint-disable-next-line require-atomic-updates -- restoring captured env in finally is safe
+      process.env.RALPH_CLAUDE_EFFORT = previousEnv;
+      if (previousEnv === undefined) {
+        delete process.env.RALPH_CLAUDE_EFFORT;
+      }
+    }
   });
 });

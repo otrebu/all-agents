@@ -47,6 +47,8 @@ export {
   approvalsConfigSchema,
   type BuildConfig,
   buildConfigSchema,
+  type ClaudeEffortLevel,
+  claudeEffortLevelSchema,
   type DryRunConfig,
   dryRunConfigSchema,
   type DryRunFormat,

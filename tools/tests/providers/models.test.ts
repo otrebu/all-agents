@@ -27,8 +27,8 @@ afterAll(() => {
 // =============================================================================
 
 describe("STATIC_MODELS", () => {
-  test("contains 45 baseline models", () => {
-    expect(STATIC_MODELS).toHaveLength(45);
+  test("contains 48 baseline models", () => {
+    expect(STATIC_MODELS).toHaveLength(48);
   });
 
   test("every model has required fields: id, provider, cliFormat, costHint", () => {
@@ -40,14 +40,14 @@ describe("STATIC_MODELS", () => {
     }
   });
 
-  test("contains 10 Claude models (including aliases)", () => {
+  test("contains 11 Claude models (including aliases)", () => {
     const claude = STATIC_MODELS.filter((m) => m.provider === "claude");
-    expect(claude).toHaveLength(10);
+    expect(claude).toHaveLength(11);
   });
 
-  test("contains 35 OpenCode models", () => {
+  test("contains 36 OpenCode models", () => {
     const opencode = STATIC_MODELS.filter((m) => m.provider === "opencode");
-    expect(opencode).toHaveLength(35);
+    expect(opencode).toHaveLength(36);
   });
 
   test("OpenCode models use provider/model cliFormat (with slash)", () => {
@@ -86,7 +86,7 @@ describe("STATIC_MODELS", () => {
 describe("getModelsForProvider", () => {
   test("returns only Claude models for 'claude'", () => {
     const models = getModelsForProvider("claude");
-    expect(models).toHaveLength(10);
+    expect(models).toHaveLength(11);
     for (const m of models) {
       expect(m.provider).toBe("claude");
     }
@@ -94,19 +94,22 @@ describe("getModelsForProvider", () => {
 
   test("returns only OpenCode models for 'opencode'", () => {
     const models = getModelsForProvider("opencode");
-    expect(models).toHaveLength(35);
+    expect(models).toHaveLength(36);
     for (const m of models) {
       expect(m.provider).toBe("opencode");
     }
   });
 
-  test("returns Codex-compatible models for 'codex'", () => {
+  test("returns Codex-compatible and native Codex models for 'codex'", () => {
     const models = getModelsForProvider("codex");
     expect(models.length).toBeGreaterThan(0);
     for (const m of models) {
       expect(m.provider).toBe("codex");
-      expect(m.id).toMatch(/codex/);
     }
+    // Includes the native codex default (no "codex" substring) ...
+    expect(models.map((m) => m.id)).toContain("gpt-5.5");
+    // ... alongside re-tagged opencode entries with "codex" in their slug.
+    expect(models.some((m) => m.id.includes("codex"))).toBe(true);
   });
 });
 
@@ -164,9 +167,9 @@ describe("getModelCompletions", () => {
     expect(completions).toEqual(sorted);
   });
 
-  test("contains all 45 model IDs", () => {
+  test("contains all 48 model IDs", () => {
     const completions = getModelCompletions();
-    expect(completions).toHaveLength(45);
+    expect(completions).toHaveLength(48);
   });
 
   test("contains specific known model IDs", () => {
@@ -184,7 +187,7 @@ describe("getModelCompletions", () => {
 describe("getModelCompletionsForProvider", () => {
   test("returns only Claude model IDs for 'claude'", () => {
     const completions = getModelCompletionsForProvider("claude");
-    expect(completions).toHaveLength(10);
+    expect(completions).toHaveLength(11);
     for (const id of completions) {
       const model = getModelById(id);
       expect(model?.provider).toBe("claude");
@@ -264,9 +267,9 @@ describe("validateModelForProvider", () => {
 // =============================================================================
 
 describe("getAllModels", () => {
-  test("returns all 45 static models when no dynamic models exist", () => {
+  test("returns all 48 static models when no dynamic models exist", () => {
     const models = getAllModels();
-    expect(models).toHaveLength(45);
+    expect(models).toHaveLength(48);
   });
 
   test("static models take precedence over dynamic with same ID", () => {
@@ -301,9 +304,9 @@ describe("getAllModels", () => {
     };
     DISCOVERED_MODELS.push(dynamicModel);
 
-    // 45 static + 1 new dynamic
+    // 48 static + 1 new dynamic
     const models = getAllModels();
-    expect(models).toHaveLength(46);
+    expect(models).toHaveLength(49);
 
     const gemini = getModelById("google/gemini-2.5-pro");
     expect(gemini).toBeDefined();

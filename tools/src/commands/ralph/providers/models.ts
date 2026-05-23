@@ -101,7 +101,13 @@ function getModelForProvider(
 /** Filter models by provider */
 function getModelsForProvider(provider: ProviderType): Array<ModelInfo> {
   if (provider === "codex") {
-    return getCodexCompatibleModels(getAllModels());
+    const all = getAllModels();
+    const native = all.filter((m) => m.provider === "codex");
+    const nativeIds = new Set(native.map((m) => m.id));
+    const compatible = getCodexCompatibleModels(all).filter(
+      (m) => !nativeIds.has(m.id),
+    );
+    return [...native, ...compatible];
   }
 
   return getAllModels().filter((m) => m.provider === provider);

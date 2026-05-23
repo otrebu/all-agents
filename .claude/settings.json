@@ -216,6 +216,10 @@
   "enabledPlugins": {
     "context7@claude-plugins-official": true
   },
+  "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
-  "effortLevel": "high"
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "voiceEnabled": true,
+  "agentPushNotifEnabled": true
 }

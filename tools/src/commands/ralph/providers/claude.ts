@@ -13,6 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import type {
   AgentResult,
+  ClaudeEffort,
   ProviderFailureOutcome,
   ProviderFailureReason,
 } from "./types";
@@ -29,10 +30,29 @@ import {
 // 128 + signal number: SIGINT=2 -> 130, SIGTERM=15 -> 143
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 
+/** Default Claude model when none is specified by the caller. */
+const DEFAULT_CLAUDE_MODEL = "claude-opus-4-7";
+
+/** Default effort level passed to `claude --effort <level>`. */
+const DEFAULT_CLAUDE_EFFORT: ClaudeEffort = "max";
+
+/** Environment variable that overrides the Claude effort default. */
+const CLAUDE_EFFORT_ENV_VAR = "RALPH_CLAUDE_EFFORT";
+
+/** Allowed effort levels accepted by the Claude Code CLI. */
+const CLAUDE_EFFORT_LEVELS: ReadonlyArray<ClaudeEffort> = [
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+];
+
 /**
  * Options for supervised chat invocation.
  */
 interface ClaudeChatOptions {
+  effort?: ClaudeEffort;
   extraContext?: string;
   model?: string;
 }
@@ -62,6 +82,33 @@ type HeadlessExitOutcome =
   | "watchdog_terminate";
 
 type TerminationSignal = keyof typeof SIGNAL_EXIT_CODE;
+
+/**
+ * Resolve the effort level to use for a Claude invocation.
+ *
+ * Priority: explicit caller value > `RALPH_CLAUDE_EFFORT` env var > "max" default.
+ * Invalid env values are ignored (with a one-time warning) and the default wins.
+ */
+function resolveClaudeEffort(explicit?: ClaudeEffort): ClaudeEffort {
+  if (explicit !== undefined) {
+    return explicit;
+  }
+
+  const fromEnv = process.env[CLAUDE_EFFORT_ENV_VAR];
+  if (fromEnv === undefined || fromEnv.trim() === "") {
+    return DEFAULT_CLAUDE_EFFORT;
+  }
+
+  const normalized = fromEnv.trim().toLowerCase() as ClaudeEffort;
+  if (CLAUDE_EFFORT_LEVELS.includes(normalized)) {
+    return normalized;
+  }
+
+  console.warn(
+    `Ignoring invalid ${CLAUDE_EFFORT_ENV_VAR}='${fromEnv}' (expected one of: ${CLAUDE_EFFORT_LEVELS.join(", ")}); using default '${DEFAULT_CLAUDE_EFFORT}'.`,
+  );
+  return DEFAULT_CLAUDE_EFFORT;
+}
 
 const CLAUDE_FAILURE_REASON_RULES: Array<{
   patterns: Array<string>;
@@ -120,21 +167,30 @@ const CLAUDE_FAILURE_REASON_RULES: Array<{
 ];
 
 /**
- * Build Claude headless arguments with optional model.
+ * Build Claude headless arguments with optional model and effort.
+ *
+ * Defaults to claude-opus-4-7 at effort=max (overridable via the
+ * `RALPH_CLAUDE_EFFORT` env var) when the caller doesn't specify.
  */
-function buildClaudeHeadlessArguments(model?: string): Array<string> {
+function buildClaudeHeadlessArguments(
+  model?: string,
+  effort?: ClaudeEffort,
+): Array<string> {
   // Prompt is piped via stdin to avoid OS argument size limits (E2BIG).
-  const args = [
+  const resolvedModel =
+    model !== undefined && model !== "" ? model : DEFAULT_CLAUDE_MODEL;
+  const resolvedEffort = resolveClaudeEffort(effort);
+  return [
     "claude",
     "-p",
     "--dangerously-skip-permissions",
     "--output-format",
     "json",
+    "--model",
+    resolvedModel,
+    "--effort",
+    resolvedEffort,
   ];
-  if (model !== undefined && model !== "") {
-    args.push("--model", model);
-  }
-  return args;
 }
 
 /**
@@ -323,6 +379,7 @@ async function handleHeadlessExitOutcome(options: {
  */
 async function invokeClaude(options: {
   context?: string;
+  effort?: ClaudeEffort;
   gracePeriodMs?: number;
   mode: "headless-async" | "supervised";
   model?: string;
@@ -339,6 +396,7 @@ async function invokeClaude(options: {
     const startTime = Date.now();
 
     const chatResult = invokeClaudeChat(promptPath, sessionName, {
+      effort: options.effort,
       extraContext: options.context,
       model: options.model,
     });
@@ -354,6 +412,7 @@ async function invokeClaude(options: {
 
   // headless-async mode
   return invokeClaudeHeadlessAsync({
+    effort: options.effort,
     gracePeriodMs: options.gracePeriodMs,
     model: options.model,
     onStderrActivity: options.onStderrActivity,
@@ -378,7 +437,7 @@ function invokeClaudeChat(
   sessionName: string,
   options: ClaudeChatOptions = {},
 ): ClaudeResult {
-  const { extraContext, model } = options;
+  const { effort, extraContext, model } = options;
 
   if (!existsSync(promptPath)) {
     console.error(`Prompt not found: ${promptPath}`);
@@ -398,16 +457,20 @@ function invokeClaudeChat(
 
   // Chat mode (no -p), stdio: inherit so user can watch AND type
   // --permission-mode bypassPermissions prevents inheriting plan mode from user settings
+  const resolvedModel =
+    model !== undefined && model !== "" ? model : DEFAULT_CLAUDE_MODEL;
+  const resolvedEffort = resolveClaudeEffort(effort);
   const args = [
     "claude",
     "--permission-mode",
     "bypassPermissions",
     "--append-system-prompt",
     fullPrompt,
+    "--model",
+    resolvedModel,
+    "--effort",
+    resolvedEffort,
   ];
-  if (model !== undefined && model !== "") {
-    args.push("--model", model);
-  }
   args.push(`Please begin the ${sessionName} session.`);
 
   const proc = Bun.spawnSync(args, {
@@ -544,6 +607,7 @@ async function invokeClaudeHaiku(options: {
  * @returns AgentResult with session info, or null if interrupted/failed/timed out
  */
 async function invokeClaudeHeadlessAsync(options: {
+  effort?: ClaudeEffort;
   gracePeriodMs?: number;
   model?: string;
   onStderrActivity?: () => void;
@@ -553,6 +617,7 @@ async function invokeClaudeHeadlessAsync(options: {
   watchdog?: ClaudeHeadlessWatchdog;
 }): Promise<AgentResult | null> {
   const {
+    effort,
     gracePeriodMs = DEFAULT_GRACE_PERIOD_MS,
     model,
     onStderrActivity,
@@ -563,7 +628,7 @@ async function invokeClaudeHeadlessAsync(options: {
   } = options;
   const isDebug = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 
-  const args = buildClaudeHeadlessArguments(model);
+  const args = buildClaudeHeadlessArguments(model, effort);
 
   // Pipe stderr to track activity while forwarding to console.
   // Prompt is written to stdin to avoid OS argument size limits (E2BIG).
@@ -747,13 +812,18 @@ function resolveClaudeFailureReason(
 
 export {
   buildPrompt,
+  CLAUDE_EFFORT_ENV_VAR,
+  CLAUDE_EFFORT_LEVELS,
   type ClaudeResult,
   createClaudeFailureOutcome,
   createClaudeNullOutcome,
+  DEFAULT_CLAUDE_EFFORT,
+  DEFAULT_CLAUDE_MODEL,
   invokeClaude,
   invokeClaudeChat,
   invokeClaudeHaiku,
   invokeClaudeHeadlessAsync,
   normalizeClaudeResult,
+  resolveClaudeEffort,
   resolveClaudeFailureReason,
 };

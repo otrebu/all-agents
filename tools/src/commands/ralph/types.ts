@@ -13,7 +13,7 @@
 
 import { createHash } from "node:crypto";
 
-import type { ProviderType } from "./providers/types";
+import type { ClaudeEffort, ProviderType } from "./providers/types";
 
 /**
  * Render metadata for an approval gate preview line.
@@ -37,6 +37,8 @@ interface ApprovalGatePreview {
  * Build options that control provider execution behavior.
  */
 interface BuildExecutionOptions {
+  /** Claude reasoning effort override (ignored by other providers) */
+  claudeEffort?: ClaudeEffort;
   /** Preview execution plan without running providers */
   dryRun?: boolean;
   /** Pause between iterations for user confirmation */
@@ -589,6 +591,8 @@ interface QueueUpdateOperation {
  * notify section of aaa.config.json, not here.
  */
 interface RalphConfig {
+  /** Default Claude reasoning effort (ignored by other providers) */
+  claudeEffort?: ClaudeEffort;
   /** Hook configuration */
   hooks?: HooksConfig;
   /** Lightweight model for summary tasks (provider-specific model string) */

@@ -39,8 +39,13 @@ interface BaseProviderConfig {
 
 /** Claude Code CLI configuration */
 interface ClaudeConfig extends BaseProviderConfig {
+  /** Reasoning effort level (default: "max"). */
+  effort?: ClaudeEffort;
   provider: "claude";
 }
+
+/** Reasoning effort level passed to `claude --effort`. */
+type ClaudeEffort = "high" | "low" | "max" | "medium" | "xhigh";
 
 /** OpenAI Codex CLI configuration */
 interface CodexConfig extends BaseProviderConfig {
@@ -209,6 +214,7 @@ export {
   type AgentResult,
   type BaseProviderConfig,
   type ClaudeConfig,
+  type ClaudeEffort,
   type CodexConfig,
   type CursorConfig,
   type GeminiConfig,

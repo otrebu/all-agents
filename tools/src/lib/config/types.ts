@@ -274,6 +274,9 @@ interface DryRunConfig {
 
 const dryRunConfigSchema = z.object({ format: dryRunFormatSchema.optional() });
 
+/** Claude reasoning effort levels accepted by `claude --effort`. */
+type ClaudeEffortLevel = "high" | "low" | "max" | "medium" | "xhigh";
+
 /**
  * Ralph section of the unified config
  */
@@ -286,11 +289,21 @@ type RalphProvider =
   | "opencode"
   | "pi";
 
+const claudeEffortLevelSchema = z.enum([
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+]);
+
 interface RalphSection {
   /** Approvals configuration */
   approvals?: ApprovalsConfig;
   /** Build configuration */
   build?: BuildConfig;
+  /** Default Claude reasoning effort (ignored by other providers) */
+  claudeEffort?: ClaudeEffortLevel;
   /** Dry-run preview behavior */
   dryRun?: DryRunConfig;
   /** Hook configuration */
@@ -319,6 +332,7 @@ const ralphProviderSchema = z.enum([
 const ralphSectionSchema = z.object({
   approvals: approvalsConfigSchema.optional(),
   build: buildConfigSchema.optional(),
+  claudeEffort: claudeEffortLevelSchema.optional(),
   dryRun: dryRunConfigSchema.optional(),
   hooks: hooksConfigSchema.optional(),
   lightweightModel: z.string().optional(),
@@ -440,6 +454,8 @@ export {
   approvalsConfigSchema,
   type BuildConfig,
   buildConfigSchema,
+  type ClaudeEffortLevel,
+  claudeEffortLevelSchema,
   type DryRunConfig,
   dryRunConfigSchema,
   type DryRunFormat,

@@ -282,6 +282,7 @@ function loadRalphConfig(configPath?: string): RalphConfig {
   // Map the unified RalphSection to the RalphConfig interface
   // The interfaces are compatible but we need to ensure proper typing
   return {
+    claudeEffort: ralph.claudeEffort,
     hooks: ralph.hooks
       ? {
           onIterationComplete: ralph.hooks.onIterationComplete,

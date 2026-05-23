@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 
-import type { ProviderType } from "./providers/types";
+import type { ClaudeEffort, ProviderType } from "./providers/types";
 import type { PipelineFooterData, Subtask } from "./types";
 
 import { runArchive } from "./archive";
@@ -138,6 +138,36 @@ function formatDryRunCommandLine(plan: ExecutionPlan): string {
 
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+const VALID_CLAUDE_EFFORT_LEVELS = [
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+] as const;
+
+/**
+ * Validate `--claude-effort <level>` and exit with a clear error on bad input.
+ * Returns `undefined` if the flag was not provided.
+ */
+function parseClaudeEffortOption(value: unknown): ClaudeEffort | undefined {
+  if (typeof value !== "string" || value === "") {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (
+    !VALID_CLAUDE_EFFORT_LEVELS.includes(
+      normalized as (typeof VALID_CLAUDE_EFFORT_LEVELS)[number],
+    )
+  ) {
+    console.error(
+      `Invalid --claude-effort '${value}'. Expected one of: ${VALID_CLAUDE_EFFORT_LEVELS.join(", ")}.`,
+    );
+    process.exit(1);
+  }
+  return normalized as ClaudeEffort;
 }
 
 const CODEX_CHATGPT_ACCOUNT_MODEL_ERROR_PATTERN =
@@ -1188,6 +1218,10 @@ ralphCommand.addCommand(
     .option("--provider <name>", "AI provider to use (default: claude)")
     .option("--model <name>", "Model to use (validated against model registry)")
     .option(
+      "--claude-effort <level>",
+      "Claude reasoning effort: low|medium|high|xhigh|max (default: max; also reads RALPH_CLAUDE_EFFORT and ralph.claudeEffort)",
+    )
+    .option(
       "--force",
       "Approval mode: auto-apply validation/calibration queue proposals (skip prompts)",
     )
@@ -1296,6 +1330,7 @@ ralphCommand.addCommand(
       await runBuild(
         {
           calibrateEvery,
+          claudeEffort: parseClaudeEffortOption(options.claudeEffort),
           force: options.force === true,
           interactive: options.interactive === true,
           maxIterations: Number.parseInt(options.maxIterations, 10),

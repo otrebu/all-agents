@@ -17,7 +17,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as readline from "node:readline";
 
-import type { ProviderType } from "./providers/types";
+import type { ClaudeEffort, ProviderType } from "./providers/types";
 
 import { checkSubtasksSize, SUBTASKS_TOKEN_SOFT_LIMIT } from "./archive";
 import {
@@ -110,6 +110,7 @@ interface CompletionCommitCandidate {
  * Context for headless iteration processing
  */
 interface HeadlessIterationContext {
+  claudeEffort?: ClaudeEffort;
   contextRoot: string;
   currentAttempts: number;
   currentSubtask: Subtask;
@@ -210,6 +211,7 @@ interface SummaryContext {
  * Context for supervised iteration processing
  */
 interface SupervisedIterationContext {
+  claudeEffort?: ClaudeEffort;
   contextRoot: string;
   currentAttempts: number;
   currentSubtask: Subtask;
@@ -803,6 +805,7 @@ async function processHeadlessIteration(
   context: HeadlessIterationContext,
 ): Promise<HeadlessIterationResult | null> {
   const {
+    claudeEffort,
     contextRoot,
     currentAttempts,
     currentSubtask,
@@ -836,6 +839,7 @@ async function processHeadlessIteration(
   const invocationOutcome = await (async () => {
     try {
       return await invokeWithProviderOutcome(provider, {
+        effort: claudeEffort,
         gracePeriodMs,
         mode: "headless",
         model,
@@ -982,6 +986,7 @@ async function processSupervisedIteration(
   context: SupervisedIterationContext,
 ): Promise<null | SupervisedIterationResult> {
   const {
+    claudeEffort,
     contextRoot,
     currentAttempts,
     currentSubtask,
@@ -1012,6 +1017,7 @@ async function processSupervisedIteration(
 
   const invocationOutcome = await invokeWithProviderOutcome(provider, {
     context: iterationContext,
+    effort: claudeEffort,
     mode: "supervised",
     model,
     promptPath: path.join(contextRoot, ITERATION_PROMPT_PATH),
@@ -1282,6 +1288,25 @@ async function resolveApprovalForValidationProposal(options: {
 }
 
 /**
+ * Resolve Claude effort override with priority:
+ * CLI flag > config file (env-var + default are resolved inside the provider).
+ */
+function resolveBuildClaudeEffort(
+  effortOverride?: ClaudeEffort,
+): ClaudeEffort | undefined {
+  if (effortOverride !== undefined) {
+    return effortOverride;
+  }
+
+  try {
+    const config = loadRalphConfig();
+    return config.claudeEffort;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Resolve model selection with priority:
  * CLI flag > config file
  */
@@ -1486,6 +1511,7 @@ async function runBuild(
 ): Promise<void> {
   const {
     calibrateEvery,
+    claudeEffort: claudeEffortOverride,
     force: shouldForceProposalApply,
     interactive: isInteractive,
     maxIterations,
@@ -1521,6 +1547,8 @@ async function runBuild(
   // Select model (CLI flag > config) and validate against provider registry.
   // Skip strict validation when queue has no runnable work.
   const model = resolveModel(modelOverride);
+  // Resolve Claude effort override (CLI flag > config; env + default applied later).
+  const claudeEffort = resolveBuildClaudeEffort(claudeEffortOverride);
 
   // Reset module-level state for cascade mode / multiple runBuild() calls
   hasSummaryBeenGenerated = false;
@@ -1746,6 +1774,7 @@ async function runBuild(
       if (mode === "headless") {
         // eslint-disable-next-line no-await-in-loop -- Must await before continuing
         const headlessResult = await processHeadlessIteration({
+          claudeEffort,
           contextRoot,
           currentAttempts,
           currentSubtask,
@@ -1775,6 +1804,7 @@ async function runBuild(
       } else {
         // eslint-disable-next-line no-await-in-loop -- Must await before continuing
         const supervisedResult = await processSupervisedIteration({
+          claudeEffort,
           contextRoot,
           currentAttempts,
           currentSubtask,

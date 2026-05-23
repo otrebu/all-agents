@@ -192,13 +192,18 @@ describe("subprocess spawning", () => {
 
     await invokeClaudeHeadlessAsync({ prompt: "test prompt" });
 
-    // Prompt is piped via stdin, not passed as a CLI argument
+    // Prompt is piped via stdin, not passed as a CLI argument.
+    // Model and effort are injected with provider defaults when caller omits them.
     expect(capturedArguments).toEqual([
       "claude",
       "-p",
       "--dangerously-skip-permissions",
       "--output-format",
       "json",
+      "--model",
+      "claude-opus-4-7",
+      "--effort",
+      "max",
     ]);
 
     expect(capturedOptions).toEqual(

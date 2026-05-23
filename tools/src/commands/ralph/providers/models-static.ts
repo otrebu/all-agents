@@ -53,6 +53,12 @@ const STATIC_MODELS: Array<ModelInfo> = [
     provider: "claude",
   },
   {
+    cliFormat: "claude-opus-4-7",
+    costHint: "expensive",
+    id: "claude-opus-4-7",
+    provider: "claude",
+  },
+  {
     cliFormat: "claude-sonnet-4-5",
     costHint: "standard",
     id: "claude-sonnet-4-5",
@@ -67,7 +73,7 @@ const STATIC_MODELS: Array<ModelInfo> = [
 
   // Claude aliases accepted by Claude Code
   {
-    cliFormat: "claude-opus-4-6",
+    cliFormat: "claude-opus-4-7",
     costHint: "expensive",
     description: "Claude Code alias",
     id: "default",
@@ -81,14 +87,14 @@ const STATIC_MODELS: Array<ModelInfo> = [
     provider: "claude",
   },
   {
-    cliFormat: "claude-opus-4-6",
+    cliFormat: "claude-opus-4-7",
     costHint: "expensive",
     description: "Claude Code alias",
     id: "opus",
     provider: "claude",
   },
   {
-    cliFormat: "claude-opus-4-6",
+    cliFormat: "claude-opus-4-7",
     costHint: "expensive",
     description: "Claude Code alias",
     id: "opusplan",
@@ -296,6 +302,12 @@ const STATIC_MODELS: Array<ModelInfo> = [
     provider: "opencode",
   },
   {
+    cliFormat: "openai/gpt-5.5",
+    costHint: "standard",
+    id: "openai/gpt-5.5",
+    provider: "opencode",
+  },
+  {
     cliFormat: "openai/gpt-5.2-codex",
     costHint: "expensive",
     id: "openai/gpt-5.2-codex",
@@ -312,6 +324,14 @@ const STATIC_MODELS: Array<ModelInfo> = [
     costHint: "expensive",
     id: "openai/gpt-5.3-codex-spark",
     provider: "opencode",
+  },
+
+  // Codex models (passed to `codex --model <slug>` after stripping openai/)
+  {
+    cliFormat: "gpt-5.5",
+    costHint: "standard",
+    id: "gpt-5.5",
+    provider: "codex",
   },
 ];
 
