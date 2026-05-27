@@ -2,8 +2,8 @@
  * OpenAI Codex provider implementation for Ralph
  *
  * Provides registry-compatible headless (`codex exec --json`) and supervised
- * (`codex exec`) execution paths with timeout handling, JSONL parsing,
- * and failure normalization.
+ * (bare `codex` interactive chat) execution paths with timeout handling,
+ * JSONL parsing, and failure normalization.
  *
  * @see docs/planning/milestones/004-MULTI-CLI/providers/codex.md
  */
@@ -183,20 +183,26 @@ function buildCodexHeadlessArguments(
 /**
  * Build command arguments for Codex supervised mode.
  *
- * Defaults to gpt-5.5 when the caller doesn't specify a model.
+ * Invokes the bare `codex` interactive TUI (chat). `exec` is reserved for
+ * headless mode — bare `codex [OPTIONS] [PROMPT]` is what actually opens
+ * the chat UI the user sees. Defaults to gpt-5.5 when the caller doesn't
+ * specify a model. An empty prompt is omitted so codex opens a blank chat.
  */
 function buildCodexSupervisedArguments(
   config: CodexConfig,
   prompt: string,
 ): Array<string> {
-  const args = ["exec", "--skip-git-repo-check"];
+  const args: Array<string> = [];
 
   const resolvedModel = resolveCodexModel(config.model);
   if (resolvedModel !== "") {
     args.push("--model", resolvedModel);
   }
 
-  args.push("--", prompt);
+  if (prompt !== "") {
+    args.push(prompt);
+  }
+
   return args;
 }
 
@@ -556,7 +562,7 @@ async function invokeCodexHeadless(
 }
 
 /**
- * Interactive Codex invocation path: `codex exec ...` (TTY required).
+ * Interactive Codex invocation path: bare `codex` chat TUI (TTY required).
  */
 async function invokeCodexSupervised(
   options: InvocationOptions,

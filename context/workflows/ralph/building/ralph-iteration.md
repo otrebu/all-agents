@@ -1,574 +1,242 @@
 # Ralph Build Iteration
 
-You are a Ralph build agent executing one iteration of the build loop. Each iteration processes a single subtask from the queue, implementing it and updating tracking files.
+You implement one subtask per iteration via TDD. By the end you ship:
 
-## Iteration Phases
+- **one git commit** — implementation + a PROGRESS.md entry, with `Subtask: <SUB-ID>` in the message
+- **an AC verification report** — every acceptance criterion ticked off with evidence it actually passes
 
-Execute these phases in order for each subtask:
+Don't skip the report. It's what catches the case where tests pass but the live app is broken.
 
-### Phase 1: Orient
+---
 
-Gather context about the current state of the project and build queue.
+## How to do one iteration
 
-**Read these files:**
+In order:
 
-1. **@CLAUDE.md** - Understand project conventions, stack, and development workflow
-2. **Git status** - Run `git status` to understand current branch and uncommitted changes
-3. **@docs/planning/PROGRESS.md** - Review recent work and context from previous iterations
-4. **Queue state** - Use milestone-scoped CLI commands to inspect pending work and assignment state.
+1. **Orient.** Read @CLAUDE.md, run `git status`, read @docs/planning/PROGRESS.md, check the queue with `aaa ralph subtasks list --milestone <name>` and `aaa ralph subtasks next --milestone <name>`. Confirm the assigned subtask is still pending.
 
-**Recommended queue commands (avoid huge context):**
-```bash
-# List pending subtasks for a milestone
-aaa ralph subtasks list --milestone <name-or-path>
+2. **Stay in scope.** Ralph assigned you one subtask. Implement that one, then stop. Don't pick up the next one in the same iteration. If the assigned subtask is already `done: true`, stop and report (stale queue).
 
-# Show the next runnable subtask assignment
-aaa ralph subtasks next --milestone <name-or-path>
+3. **Investigate.** Read the subtask's `filesToRead` and `taskRef`. Understand the ACs. Figure out what data you'll need on each of the two surfaces (see "Two data surfaces" below).
 
-# Mark assigned subtask complete after implementation
-aaa ralph subtasks complete --milestone <name-or-path> --id <assigned-id> --commit <hash> --session <id>
+4. **Bind your RED goal.** Run `/goal` (verbatim template in "Binding RED with /goal" below) and **paste the evaluator's first acknowledgement line into your notes** — that line goes in the verification report. If `/goal` doesn't acknowledge, retry once; if still nothing, take the structural-fallback path and stop after RED for operator review. Do not silently proceed with a test-only RED.
+
+5. **Write a failing test.** Outside-in for vertical slices (CLI E2E, API integration, web flow, provider). Unit-first for pure logic. Characterization test for refactors. Failing regression test for bug fixes. The test must fail because **implementation is missing** — not because **data is missing**. If you find yourself mocking the real surface to make the failure "right", stop and seed the surface instead.
+
+6. **For `[Visual]`/`[Manual]` ACs, seed the real dev DB now.** Not later, not in a side commit. The live URL has to render seeded data before you can claim GREEN — a passing unit test on mocked data does not satisfy a `[Visual]`/`[Manual]` AC. See "Two data surfaces".
+
+7. **Make it pass.** Minimum production code. Same test command as step 5. For cross-layer slices, the outer test going green is the canonical GREEN signal — unit tests passing without the outer test isn't GREEN. Seed data and fixtures the test depends on are part of GREEN, not a sidequest.
+
+8. **Refactor (optional).** Only with real cleanup pressure: duplication, unclear naming, shallow boundary. Tests stay green throughout. Skip if there's no pressure — speculative refactoring is over-engineering.
+
+9. **Verify each AC.** Re-run your subtask-scoped tests. Then fill the verification report (template below). For `[Visual]`/`[Manual]` ACs, spawn a subagent to drive Agent Browser; spawn in parallel if you have more than one. If any AC fails, fix it before committing. Verification commands must be idempotent.
+
+10. **Sync docs if needed.** New CLI command/flag → README. New reusable pattern → context/. Bug fix / refactor / config-only → usually nothing. If you updated docs, add a row for it in the verification report.
+
+11. **Commit once.** Append to PROGRESS.md, stage everything, format staged files, re-stage, commit with `Subtask: <SUB-ID>` in the message. See "Commit recipe" below. Don't make a second tracking-only commit — amend if needed.
+
+12. **Stop.** Ralph decides whether to start the next iteration.
+
+---
+
+## The AC verification report
+
+Fill this in at step 9, before committing. A blank required cell is a fail.
+
+```markdown
+## AC Verification: <SUB-ID>
+
+**How RED was bound:**
+<paste the /goal evaluator acknowledgement line verbatim,
+OR `fallback: <reason>` with `claude --version` output and
+`jq '.disableAllHooks' .claude/settings.json` output>
+
+| # | AC | Tier | Tool | Idempotent check | Result | Evidence | Seed (test / live) |
+|---|----|------|------|------------------|--------|----------|---------------------|
+| 1 | <verbatim AC text> | static\|content\|behavioral | shell\|vitest\|agent-browser | <cmd> | PASS\|FAIL | <path> | tr: <fixture> / lr: <seed cmd or —> |
+
+**Summary:** <N>/<N> PASS → proceed to commit
 ```
 
-### Pre-flight Checks (Start of Every Iteration)
+**Per-AC rules:**
 
-Before proceeding past Phase 1:
-```bash
-# 1. Confirm pending queue is visible for the milestone
-aaa ralph subtasks list --milestone <name-or-path>
+- `[Behavioral]` rows: `Idempotent check`, `Evidence`, and `Seed.tr` required. Add `Seed.lr` if the test hits the real datastore.
+- `[Visual]` / `[Manual]` rows: `Evidence` is an artifact path under `artifacts/browser/<SUB-ID>/...` or `artifacts/cli/<SUB-ID>/...`. **`Seed.lr` is required** — the real dev surface must hold renderable data. `Seed.lr: —` on a `[Visual]`/`[Manual]` row is an automatic fail.
+- `[Evidence]` rows: `Evidence` must be a concrete proof payload.
+- `[Regression]` rows: `Idempotent check` + `Evidence` showing the original failure mode now passes.
 
-# 2. Confirm assignment is still available
-aaa ralph subtasks next --milestone <name-or-path>
-```
+---
 
-**Orient checklist:**
-- [ ] Read CLAUDE.md for project context
-- [ ] Check git status for branch and changes
-- [ ] Read PROGRESS.md for recent iteration history
-- [ ] Confirm the assigned subtask is still pending with `aaa ralph subtasks next --milestone`
+## Two data surfaces
 
-### Phase 2: Confirm Assignment
+A subtask usually needs data on two distinct surfaces. Naming both prevents the slip where a test passes on mocked data while the live app renders empty.
 
-Confirm the subtask you must work on for this iteration.
+| Surface | Reads from | Used by | Lives in |
+|---|---|---|---|
+| **test-runtime** | in-process mocks, fixtures, MSW handlers, in-memory state | automated tests | `tests/fixtures/`, factory helpers, `vi.mock()`, MSW |
+| **live-runtime** | the real datastore / session / filesystem the running app talks to | `[Visual]`/`[Manual]` ACs; agent-browser or humans hitting the dev URL | `prisma/seed.ts`, `seeds/`, dev-only seed scripts, dev DB rows |
 
-**Rule:** Ralph runtime assigns a subtask (provided in the system context). Work on **that exact subtask only**.
+**AC prefix → required surfaces:**
 
-**MUST-STOP boundary:** After the assigned subtask is implemented, validated, committed, and tracked, **stop immediately**. Do not continue into discovery, planning, or execution for any other subtask in the same iteration.
+| AC prefix | test-runtime | live-runtime |
+|---|---|---|
+| `[Behavioral]` unit | required | not required |
+| `[Behavioral]` integration | required | required if it hits the real datastore |
+| `[Behavioral]` E2E against real app | not required | **required** |
+| `[Visual]` / `[Manual]` | not required | **required** |
+| `[Regression]` | matches the original test's surface | matches the original |
+| `[Evidence]` | whichever surface the named command targets | same |
 
-**Sanity checks (quick):**
-1. Verify the assigned subtask exists in the subtasks file and is `done: false`
-2. If it’s already `done: true`, stop and report (queue is stale)
-3. If assigned-subtask selection is inconsistent with queue order, stop and report (assignment issue)
-4. Do not mark any other subtask `done`, and do not start or plan the next subtask in this iteration
+**Rule:** if the subtask has any `[Visual]`/`[Manual]` AC, **both surfaces are seeded by GREEN**. Mocking the fetch boundary satisfies test-runtime only. The agent-browser opens the *live* app — it needs live-runtime data in the real datastore (`pnpm --filter @x exec prisma db seed`, or the project's equivalent).
 
-### Phase 3: Investigate
+**Anti-pattern:** marking a `[Visual]`/`[Manual]` AC PASS because the unit test passed. The mocked data never reached the live datastore. Re-check by opening the actual URL before declaring PASS.
 
-Gather information needed to implement the assigned subtask.
+---
 
-**Actions:**
-1. Read the `filesToRead` array from the subtask - these are files the subtask author identified as relevant
-2. Read additional files as needed to understand the implementation context
-3. If the subtask has a `taskRef`, read the referenced task file for broader context
-4. Understand the acceptance criteria to know what "done" looks like
+## Binding RED with /goal
 
-**Investigation outputs:**
-- Clear understanding of what needs to change
-- Identification of files to create or modify
-- Understanding of testing requirements
-- **Test-data prerequisites identified** — what the RED test will need to *exist* before it can pass (DB rows, fixture files, recorded HTTP cassettes, auth/session state, uploaded blobs, queue messages, etc.) and where the project already keeps that kind of data (`fixtures/`, `seeds/`, factory helpers, migration seed scripts, test setup hooks). If the existing test environment doesn't produce the data the AC reads, you will need to seed it — discover the project's pattern now, don't invent one later.
-
-### Phase 4: Implement (TDD: RED → GREEN → REFACTOR)
-
-Execute implementation as a strict TDD cycle. Implementation-before-test is a regression — always start with a failing test for the observable behavior the subtask describes.
-
-#### Phase 4a: RED — Write the Failing Test First
-
-Write the failing automated test for the behavior described in the subtask **before** writing production code.
-
-**First action (MANDATORY) — bind the RED completion condition with the `/goal` command:**
-
-`/goal` is a built-in Claude Code / Codex command (Claude ≥ 2.1.139), not a skill. It sets a session completion condition that a separate evaluator re-checks after every turn until the condition holds.
-
-Run, verbatim (substitute `<SUB-ID>`):
+`/goal` is a built-in command (Claude ≥ 2.1.139) that sets a session completion condition an evaluator re-checks after every turn until it holds. Run it verbatim, substituting `<SUB-ID>`:
 
 ```
-/goal RED state for <SUB-ID>: every [Behavioral] / [Regression] AC has a failing automated test in the transcript; every [Visual] / [Manual] AC has an Agent Browser scaffold at artifacts/browser/<SUB-ID>/... ; every [Evidence] AC has its assertion target named. Failure must be for the right reason — missing implementation, not missing data or a test bug. Constraint: no production code may be modified until this holds.
+/goal RED state for <SUB-ID>: every [Behavioral] / [Regression] AC has a failing automated test in the transcript; every [Visual] / [Manual] AC has an Agent Browser scaffold at artifacts/browser/<SUB-ID>/... and live-runtime seed data at the real target surface; every [Evidence] AC has its assertion target named. Failure must be for the right reason — missing implementation, not missing data or a test bug. Constraint: no production code may be modified until this holds.
 ```
 
-This maps each AC class to its RED artifact:
-- `[Behavioral]` / `[Regression]` ACs → failing automated tests (CLI E2E, API integration, web-flow E2E, unit, etc.)
-- `[Visual]` / `[Manual]` ACs → Agent Browser verification scaffolds under `artifacts/browser/<SUB-ID>/...`
-- `[Evidence]` ACs → assertion targets / expected output fixtures
+Then paste the evaluator's first acknowledgement line into your iteration notes. That line populates the verification report's "How RED was bound" field.
 
-Do not proceed to Phase 4b until the evaluator confirms. Fallback applies **only** when `/goal` is structurally unavailable (`disableAllHooks` set in settings, or CLI < 2.1.139): write the same condition verbatim as your in-context objective at the top of the iteration, author the RED tests per the Rules below, and STOP after RED for operator review before GREEN — do not silently slide into implementation.
+**Structural-fallback path** — only when `claude --version` < 2.1.139 OR `jq '.disableAllHooks' .claude/settings.json` returns `true`: write the same condition verbatim as your in-context objective at the top of the iteration, author RED tests, then **stop after RED for operator review**. Put `fallback: <reason>` plus the version/settings output in the report header as evidence.
 
-**Rules:**
-- For vertical slices and cross-layer behavior, start with the **outermost useful test**: CLI E2E, API integration, Playwright/web-flow E2E, or provider integration
-- For pure logic subtasks, start with the smallest meaningful unit test
-- For refactors, start with a characterization test at the unchanged interface
-- For bug fixes, start with a regression test that reproduces the reported defect
-- Run the new test and confirm it fails for the **right reason** (missing implementation, not a test bug)
-- Record the exact failing command and failure reason in the verification notes
-- If the test passes immediately, the test is not proving missing behavior — fix the test scope or re-check the subtask
+---
 
-**Seed-data prerequisite (read this before declaring RED valid):**
+## Subagent spawning
 
-If the RED test reads from a real surface (DB, API, filesystem, queue, auth/session, cache), the test cannot fail for the *right reason* unless the data it queries actually exists. Otherwise it fails with empty result / 404 / null / "no such record" — which looks like the implementation is missing, but is really the **fixture** that is missing. You then either:
-- mock the API/DB to fake the data (defeats the outer-boundary contract — **anti-pattern**),
-- weaken the test to assert nothing meaningful (regression in coverage — **anti-pattern**), or
-- fix it properly: **add the seed data**.
+Spawn a subagent for Agent Browser flows, long-running CLI/provider smokes, RED test design on unfamiliar outer surfaces, and deep codebase investigation across many files. Don't spawn for single-file reads, mechanical commands, or anything under a few minutes — startup tax dominates trivial work.
 
-Before declaring RED valid:
-1. Identify the missing data — what rows/files/sessions/messages does the test require?
-2. Add the seed/fixture using the project's existing pattern discovered in Phase 3 (`fixtures/`, `seeds/`, factory helpers, migration seed scripts, test setup hooks). **Discover, don't invent.**
-3. Re-run the RED test. The failure reason must now point at missing **implementation** (e.g. "function not defined", "endpoint returns 501", "expected X but got default"), not missing **data** (e.g. "rows: 0", "404 not found", "undefined.foo").
-4. Record the seed location + what was inserted in the verification notes — reviewers need to trace what data backs the assertion.
+Shape:
 
-**Subagent guidance for outer tests:**
-
-When the outermost test is an end-to-end CLI invocation, browser-driven flow, or provider integration, **spawn a subagent** to author and run the test in isolation:
-- The main iteration context stays focused on production code
-- The subagent can run long browser sessions or CLI executions without polluting your working context
-- For multi-file E2E coverage, **launch subagents in parallel** — single message, multiple Task calls — one per test file. Sequential spawning defeats the purpose.
-
-Example tool-call shape:
 ```
 Task tool:
   subagent_type: "general-purpose"
-  description: "Author RED E2E test for <subtask AC>"
-  prompt: "Write the failing E2E test asserting <AC behavior>, run it via <command>, and return the failure output verbatim. Do NOT implement production code — only the test."
+  model: <strongest available model in your environment>
+  description: "<verb + concrete artifact>"
+  prompt: "<self-contained brief>"
 ```
 
-#### Phase 4b: GREEN — Minimum Code to Pass
+**Always spawn with the highest-intelligence, highest-effort model available.** The sub-problem is being delegated because it deserves deep reasoning — if it doesn't deserve max effort, it doesn't deserve a subagent.
 
-Write the **minimum production code** needed to pass the RED test.
+**Parallel spawning is mandatory when spawning more than one** — single message, multiple Task calls. Sequential (one, wait, one, wait) defeats the purpose.
 
-**Rules:**
-- No speculative features
-- No broad refactors unless the test cannot pass without them
-- Re-run the same RED test command and record the **passing** evidence
-- The test command in 4a and 4b must be identical — same path, same arguments
-- For cross-layer slices, the outer boundary test (CLI/API/web/provider) is the canonical GREEN signal; unit tests passing without the outer test going green is not GREEN
-- **Seed data and fixtures the test depends on are part of GREEN**, not a sidequest. If Phase 4a established that new seed data is required, the production commit must include both the implementation *and* the seed/fixture artifacts (or the helper that produces them). **Anti-pattern:** mocking the real surface to return canned data so the outer test "passes" — that hollows out the boundary contract the tracer bullet is supposed to prove.
+**Brief quality matters more than count.** Always include: inputs (file paths, AC text, URLs); output shape (file diff, findings JSON, PASS/FAIL + artifact paths); success criterion; anti-scope (e.g. "do NOT modify production code"). One-line prompts produce shallow work regardless of model.
 
-#### Phase 4c: REFACTOR (Optional)
+---
 
-Refactor only when GREEN code reveals real cleanup pressure: duplication, unclear naming, or a shallow module boundary that hurts readability.
+## Picking the failing test
 
-**Rules:**
-- Tests stay green throughout — re-run after each refactor step
-- **Skip this phase if there is no real cleanup pressure.** Speculative refactoring is over-engineering
+| Subtask type | Start with |
+|---|---|
+| Vertical slice / cross-layer behavior | Outermost useful test — CLI E2E, API integration, Playwright/web-flow E2E, or provider integration |
+| Pure logic | Smallest meaningful unit test |
+| Refactor | Characterization test at unchanged interface |
+| Bug fix | Failing regression test that reproduces the defect |
 
-**Apply project conventions throughout 4a–4c:**
-- Follow the project's coding conventions from CLAUDE.md
-- Implement exactly what the subtask describes — no more, no less
-- Write clean, maintainable code
+For the full profile → test mapping (cli_command, web_user_flow, api_endpoint, module, etc.), see @context/workflows/ralph/planning/components/testing-profile-contract.md.
 
-### Phase 5: Validate
+---
 
-**Tracer-bullet validation:** Re-run the tests you wrote in Phase 4a (now GREEN). Then run any additional tests required by the subtask's acceptance criteria.
+## Running tests during validation
 
-For behavioral CLI/API/web/provider work, **the outer boundary test is mandatory** — unit-only verification does not satisfy cross-layer ACs unless the subtask is documentation/config-only.
-
-Run only the tests you created or modified for this subtask:
+Re-run the tests you wrote (now GREEN) plus any extras the AC requires. Scope to your subtask only:
 
 ```bash
-# With bun
-bun test path/to/your-new-feature.test.ts
-
-# With pnpm (vitest)
-pnpm test path/to/your-new-feature.test.ts
-
-# With pnpm (jest)
-pnpm test -- path/to/your-new-feature.test.ts
+bun test path/to/your-test.test.ts        # bun
+pnpm test path/to/your-test.test.ts       # vitest
+pnpm test -- path/to/your-test.test.ts    # jest
 ```
 
-**Do NOT run full validation here.** The pre-commit hook handles:
-- Lint
-- Format check
-- Typecheck
-- Full test suite (catches regressions)
+**Don't run full validation here.** The pre-commit hook handles lint, format, typecheck, and the full test suite — iteration-time runs stay scoped.
 
-If your tests fail:
-1. Analyze the error
-2. Fix the implementation
-3. Re-run your specific tests
-4. Proceed to commit when your tests pass
+---
 
-### Phase 5b: Verify Acceptance Criteria
+## Doc sync decision
 
-**CRITICAL:** Do not proceed to commit until every acceptance criterion passes verification.
+| Change type | README.md | docs/ | context/ |
+|---|---|---|---|
+| New CLI command / flag | yes | — | — |
+| New workflow | — | yes (project-specific) | yes (if reusable) |
+| New pattern / convention | — | — | yes (blocks/ or foundations/) |
+| Bug fix / refactor / config-only | — | — | — |
 
-#### Verification Process
+If you updated docs, verify with `grep -q '<feature>' README.md` and add a row to the verification report.
 
-For each acceptance criterion:
+---
 
-1. **State the criterion** - exact text from subtask
-2. **Classify tier** - static, content, or behavioral
-3. **Run verification command** - must be idempotent (no side effects)
-4. **Record PASS/FAIL** - with evidence
+## Commit recipe
 
-#### Verification Report Format
+One commit per iteration, includes implementation + PROGRESS.md update.
+
+**1. Append to PROGRESS.md:**
 
 ```markdown
-## AC Verification: SUB-047
+## <YYYY-MM-DD>
 
-| # | Criterion | Tier | Tool | Command / Check | Result | Evidence / Artifact Path | Seed / Fixture |
-|---|-----------|------|------|------------------|--------|--------------------------|----------------|
-| 1 | diary.ts exists with extracted functions | static | shell | `test -f src/diary.ts` | PASS | `src/diary.ts` | — |
-| 2 | DIARY_PATH constant moved | content | shell | `rg "DIARY_PATH" src/diary.ts` | PASS | `src/diary.ts:12` | — |
-| 3 | Settings form saves and renders success toast | behavioral | e2e + agent-browser | `pnpm test tests/e2e/settings.save.spec.ts` + visual confirm | PASS | `artifacts/e2e/settings-save.xml`, `artifacts/browser/SUB-047/settings-toast.png` | `tests/fixtures/users/settings-user.json` (logged-in user with default settings) |
-| 4 | index.ts imports diary | content | shell | `rg "from './diary'" src/index.ts` | PASS | `src/index.ts:8` | — |
-
-**Summary:** 4/4 PASS -> Proceed to commit
-```
-
-The **Seed / Fixture** column is required for behavioral ACs that read from a real surface (DB, API, filesystem, queue, auth). Record the artifact path and a one-line description of what was seeded. Use `—` for ACs with no data prerequisite (pure static/content checks, refactors at unchanged interfaces). If a behavioral AC has `—` in this column, double-check: either the test isn't really hitting the real surface, or you're relying on undocumented ambient data that will break under a fresh environment.
-
-#### Generate Tests From AC
-
-**MANDATORY:** Tests are not optional. Every behavioral AC MUST have a corresponding automated test. No BDD rewrite required - map behavioral AC text directly to executable tests (Gherkin is optional, not required).
-
-##### Test Profile Selection (Required)
-
-Pick the profile that best matches subtask intent, then generate tests from AC using that profile.
-
-Use profile names from:
-- @context/workflows/ralph/planning/components/testing-profile-contract.md
-
-| Profile | Typical Signals in AC | Required Automated Coverage |
-|---------|------------------------|-----------------------------|
-| `cli_command` | new command behavior, exit code, output contract | CLI E2E or integration tests executing command end-to-end |
-| `cli_flag` | new/changed flag semantics | CLI E2E or integration tests asserting flag behavior |
-| `web_ui_visual` | UI state/layout/interaction visibility | Agent Browser visual verification + automated assertion where feasible |
-| `web_user_flow` | multi-step user journey | Browser-driven automated E2E for behavior |
-| `api_endpoint` | route/procedure contract and errors | API integration tests for status/payload/error cases |
-| `module` | pure logic, utility, domain rules | Unit tests with deterministic inputs/outputs |
-| `refactor` | extraction/reorganization without intended behavior change | Regression coverage proving parity at unchanged interfaces |
-| `bug_fix` | defect reproduction and prevention | Failing regression test first (or equivalent), then passing test after fix |
-
-If a subtask spans multiple surfaces, use mixed profiles (for example `web_user_flow + api_endpoint`).
-
-##### Profile-Based AC-to-Test Mapping (Required)
-
-When AC lines are prefix-qualified, parse by prefix first:
-- `[Behavioral]` -> automated test implementation/execution
-- `[Visual]` -> Agent Browser verification with artifact path
-- `[Regression]` -> targeted regression case
-- `[Evidence]` -> proof payload in verification report
-
-| AC Pattern | Profile | Required Test Mapping |
-|------------|---------|-----------------------|
-| Command behavior/flags/errors | `cli_command` / `cli_flag` | CLI E2E test asserting exit code + stdout/stderr semantics |
-| User can complete web flow | `web_user_flow` | Automated E2E journey test asserting UI transitions and persisted outcome |
-| Visual UI quality/state | `web_ui_visual` | Agent Browser visual verification (artifact required) + automated assertion where feasible |
-| Endpoint contract/status/errors | `api_endpoint` | Integration test asserting status, payload shape, and error paths |
-| Function/module behavior | `module` | Unit test asserting deterministic result and invalid-input handling |
-| Behavior preserved after extraction | `refactor` | Regression test at unchanged interface proving parity |
-| Reported bug no longer reproduces | `bug_fix` | Regression test that fails before fix and passes after fix |
-
-##### Mixed TDD Guidance
-
-- Use outside-in TDD for flow/entrypoint profiles: `cli_command`, `cli_flag`, `web_user_flow`.
-- Use unit/component-first TDD for logic profiles: `web_ui_visual`, `module`, `api_endpoint`.
-- Use characterization-first for `refactor`.
-- Use failing regression first for `bug_fix`.
-- In mixed subtasks, start with an outer flow test, then fill logic seams with unit tests.
-
-##### Web UI Verification Mode (Agent Browser)
-
-Use this mode whenever an AC references visual state, interaction flow, or UX behavior.
-
-1. Launch the app in deterministic test mode (fixed seed/data where possible).
-2. Navigate and perform the AC scenario using Agent Browser.
-3. Capture artifacts (screenshot/video/log) under a stable path, for example `artifacts/browser/<subtask-id>/...`.
-4. Record exact artifact paths in the AC verification report.
-5. Pair visual verification with automated E2E for behavioral ACs; visual-only checks without browser artifacts do not pass.
-
-Agent Browser steps are verification-only and must remain idempotent from a validation perspective (re-runs should produce equivalent pass/fail outcomes).
-
-##### Subagent Delegation for Verification (Strongly Encouraged)
-
-**Spawn subagents for Agent Browser verification.** Agent Browser sessions can be long-running and produce verbose snapshot/log output. Delegate the verification to a subagent so the main iteration context stays focused on tracking AC PASS/FAIL state:
-
-- **Single visual AC:** spawn one subagent with the AC scenario, target URL, action sequence, and expected artifact paths
-- **Multiple visual ACs:** spawn subagents **in parallel** — single message, multiple Task calls — one per AC. This mirrors the parallel-reviewer pattern in @.claude/skills/code-review/SKILL.md
-- The subagent returns the artifact paths and PASS/FAIL verdict; you record those into the AC verification table
-
-Example tool-call shape:
-```
-Task tool:
-  subagent_type: "general-purpose"
-  description: "Agent Browser verify AC 3"
-  prompt: "Navigate to <URL>, perform <action sequence>, capture screenshot at artifacts/browser/<subtask-id>/ac3-after.png, snapshot at artifacts/browser/<subtask-id>/ac3-snapshot.txt, capture before/after if state changes, and report PASS/FAIL with all evidence paths."
-```
-
-**Anti-pattern:** Spawning subagents sequentially (one, wait, next, wait, ...) defeats the parallelism — single message, multiple calls, always.
-
-##### CLI / Provider Manual Smoke (Non-Web Subtasks)
-
-If the subtask has no browser surface but does change observable CLI/provider/integration behavior, perform the equivalent manual smoke at the real command boundary:
-
-1. Run the actual CLI/provider command in deterministic mode (fixed flags, isolated cwd, recorded env)
-2. Capture stdout/stderr/log artifacts under `artifacts/cli/<subtask-id>/...`
-3. Record exact artifact paths in the AC verification table
-4. **Same subagent-delegation rationale applies** — spawn a subagent for the smoke run if it's lengthy, especially for provider integrations that produce verbose output
-
-Automated E2E does **not** replace this manual pass; the two checks cover different risks (the automated test asserts contract; the manual smoke catches surprises in real output).
-
-##### Parallel E2E Runs
-
-When a subtask is verified by more than one E2E test file (e.g. CLI flag behavior + provider integration, or web flow + API endpoint), **spawn subagents in parallel** — one per test file — to keep wall-clock time low. Sequential one-at-a-time spawning is the anti-pattern (mirrors "Do NOT spawn agents sequentially - that defeats the purpose" in @context/workflows/ralph/planning/tasks-milestone.md).
-
-##### When Tests Are REQUIRED (Not Optional)
-
-| Subtask Creates | Test Required? | Justification |
-|-----------------|----------------|---------------|
-| CLI behavior change | **YES** | Must verify command semantics |
-| Web UI behavioral change | **YES** | Must verify user flow via automated E2E |
-| Web UI visual AC | **YES** | Must include Agent Browser artifact path |
-| API contract change | **YES** | Must verify request/response contract |
-| Module/domain logic change | **YES** | Must verify deterministic logic behavior |
-| Refactor | **YES** | Must verify no behavioral regression |
-| Bug fix | **YES** | Must prevent regression |
-| Documentation only | No | No executable behavior changed |
-| Config change only | No | No direct runtime behavior to test |
-
-**If unsure:** Write the test. Over-testing is better than under-testing.
-
-#### Regression Check
-
-Before marking complete, verify:
-```bash
-# Baseline tests still pass
-bun test 2>&1 | grep -E "PASS|FAIL"
-
-# No new TypeScript errors
-bun run typecheck 2>&1 | grep -c error  # Should be 0
-
-# No new lint errors
-bun run lint 2>&1 | grep -c error  # Should be 0
-```
-
-#### Failure Handling
-
-If ANY criterion fails:
-1. **Do NOT commit**
-2. Fix the implementation
-3. Re-run Phase 5 (quality gates) and Phase 5b (AC verification)
-4. Only proceed when ALL criteria PASS
-
-#### Idempotency Requirement
-
-All verification commands must be **idempotent** - running them twice produces the same result. Commands that modify state are NOT valid verification commands.
-
-### Phase 5c: Documentation Sync
-
-After code changes pass validation, check if documentation needs updates.
-
-**Reference:** @context/blocks/docs/atomic-documentation.md
-
-#### Quick Decision Table
-
-| Change Type | README.md | docs/ | context/ |
-|-------------|-----------|-------|----------|
-| New CLI command | ✅ Add to CLI section | - | - |
-| New CLI flag | ✅ Update command docs | - | - |
-| New workflow | - | ✅ If project-specific | ✅ If reusable |
-| New pattern/convention | - | - | ✅ blocks/ or foundations/ |
-| Bug fix | - | - | - |
-| Internal refactor | - | - | - |
-| Config change | Maybe | - | - |
-
-#### Process
-
-1. **Search** - Check if existing docs mention the changed area:
-   ```bash
-   grep -r "keyword" README.md docs/ context/
-   ```
-
-2. **Update if found** - If docs exist for this feature, update them:
-   - Add new commands/flags to README CLI section
-   - Update existing workflow docs in docs/ or context/
-   - Add gotchas to relevant blocks
-
-3. **Skip conditions** - Documentation update NOT required when:
-   - Change is internal refactor with no API change
-   - Change is bug fix with no behavior change
-   - Change is test-only
-   - No existing docs mention the changed component
-
-4. **Create if missing** - For significant new features without existing docs:
-   - CLI commands → README.md
-   - Project-specific knowledge → docs/
-   - Reusable knowledge → context/ (see atomic-documentation.md)
-
-#### Documentation AC (When Required)
-
-If documentation update is needed, add it as an implicit AC:
-- Verify the doc was updated: `grep -q 'new-feature' README.md`
-- Verify accuracy: The documented behavior matches implementation
-
-### Phase 6: Commit
-
-Create a commit for the completed work.
-
-**Pre-commit formatting (required):**
-
-After staging files, run the project formatter to auto-fix formatting before committing. This prevents the pre-commit hook from rejecting unformatted code and avoids manual edit backtracking.
-
-```bash
-# 1. Stage implementation files
-git add <implementation-files> docs/planning/PROGRESS.md
-
-# 2. Auto-fix formatting on staged files
-pnpm biome check --write --staged --no-errors-on-unmatched --files-ignore-unknown=true
-
-# 3. Re-stage to pick up any formatting fixes
-git add <implementation-files>
-
-# 4. Commit
-git commit -m "feat(<subtask-id>): <brief description>"
-```
-
-**Do not skip step 2.** Without it, the pre-commit hook (`pnpm format:check:staged`) will reject unformatted code, forcing multiple manual edits per file.
-
-**Commit message format:**
-```
-feat(<subtask-id>): <brief description>
-
-<longer description if needed>
-
-Subtask: <subtask-id>
-cc-session-id: <auto-added-by-hook>
-```
-
-The subtask ID **must** appear in the commit message for traceability. The `cc-session-id` trailer is automatically added by the `prepare-commit-msg` hook when `.claude/current-session` exists.
-
-**Example:**
-```
-feat(subtask-042-01): add JWT token generation
-
-Implement JWT token generation for user authentication.
-Tokens expire after 24 hours and include user ID and role.
-
-Subtask: subtask-042-01
-cc-session-id: 93025345-eb7a-4f43-819f-3fe206639718
-```
-
-### Phase 7: Update Tracking
-
-Update tracking files to reflect the completed work.
-
-**Note:** The build loop automatically marks the subtask as done in subtasks.json when it detects a new commit. Do NOT modify subtasks.json manually.
-
-#### 1. Append to PROGRESS.md
-
-Add an entry to PROGRESS.md documenting what was done:
-
-```markdown
-## <Date>
-
-### <subtask-id>
+### <SUB-ID>
 - **Problem:** <what the subtask addressed>
 - **Changes:** <summary of implementation>
 - **Files:** <list of files created/modified>
 ```
 
-**Format requirements:**
-- Date as section header (## YYYY-MM-DD)
-- Subtask ID as subsection header (### subtask-id)
-- Include: problem addressed, changes made, files affected
-
-#### 2. Commit tracking changes
-
-Do **not** create a second tracking-only commit.
-Keep the PROGRESS.md update in the same implementation commit from Phase 6.
+**2. Stage, format, re-stage, commit:**
 
 ```bash
 git add <implementation-files> docs/planning/PROGRESS.md
+
+# REQUIRED — pre-commit hook will reject unformatted code
 pnpm biome check --write --staged --no-errors-on-unmatched --files-ignore-unknown=true
+
 git add <implementation-files> docs/planning/PROGRESS.md
-git commit -m "feat(<subtask-id>): <brief description>"
+
+git commit -m "feat(<SUB-ID>): <brief description>
+
+<longer description if needed>
+
+Subtask: <SUB-ID>"
 ```
 
-If the implementation commit was already created without PROGRESS.md, amend it
-instead of creating a follow-up tracking commit:
+The `cc-session-id` trailer is auto-added by the `prepare-commit-msg` hook. The `Subtask:` trailer is **required** for build-loop traceability.
+
+**Don't create a second tracking-only commit.** The build loop records one commit hash per completed subtask. If you already committed without PROGRESS.md, amend:
 
 ```bash
 git add docs/planning/PROGRESS.md
 git commit --amend --no-edit
 ```
 
-Tracking-only commits reduce traceability because the build loop records a single
-commit hash per completed subtask.
+---
 
-## Error Handling
+## Troubleshooting
 
-If any phase fails:
+**Test / lint / typecheck failures:** fix the issue and retry. Pre-commit handles full validation; iteration-time runs stay scoped.
 
-1. **Build/Lint/Typecheck failures:** Fix the issues and retry
-2. **Test failures:** Analyze, fix, and rerun tests
-3. **Unclear requirements:** Note the ambiguity and make a reasonable choice, documenting it in PROGRESS.md
-4. **Blocked by dependency:** Skip to next available subtask or report the block
+**"Sibling tool call errored" (parallel tool failures):** identify the failing command, re-run failed commands sequentially instead of in parallel.
 
-### When parallel tool calls fail ("Sibling tool call errored")
+**jq type errors** (e.g. `Cannot index string with string "done"`): verify structure first.
 
-1. Identify the failing command from error output
-2. Run commands sequentially instead
-3. For jq errors, verify structure first:
-   ```bash
-   jq 'type' file.json    # Should be "object"
-   jq 'keys' file.json    # Should show ["subtasks"]
-   ```
-
-### When jq returns type errors
-
-Error: `Cannot index string with string "done"`
-
-This means you're querying with wrong structure assumptions. Fix:
 ```bash
-# Verify structure before querying
-jq '.subtasks[0] | type' subtasks.json  # Should be "object"
-
-# Then query correctly
-jq '.subtasks[] | select(.done==false)' subtasks.json
+jq 'type' subtasks.json           # Should be "object"
+jq 'keys' subtasks.json           # Should show ["subtasks"]
 ```
 
-## Common Mistakes to Avoid
+Correct query for `subtasks.json` (root is an object with a `subtasks` array):
 
-### Wrong jq syntax (DO NOT USE)
 ```bash
-# WRONG - assumes root is array
-jq '.[] | select(.done == false)' subtasks.json
-
-# CORRECT - file has object with subtasks array
 jq '.subtasks[] | select(.done == false)' subtasks.json
 ```
 
-### Wrong subtask update pattern
-```bash
-# WRONG - updates array element by index (fragile)
-jq '.[0].done = true' subtasks.json
+You shouldn't update `subtasks.json` manually — the build loop auto-marks done. Prefer `aaa ralph subtasks list / next / complete` over raw jq.
 
-# CORRECT - updates by ID (robust)
-jq '(.subtasks[] | select(.id=="SUB-001")).done = true' subtasks.json
-```
+**`/goal` evaluator didn't acknowledge:** retry once. If still nothing, run `claude --version` and `jq '.disableAllHooks' .claude/settings.json`. If either fails the precondition, use the structural-fallback path above.
 
-## Session Completion
+**Pre-commit hook rejects formatting:** run the biome command from the commit recipe, re-stage, re-commit. If still failing, the file extension may not be covered by Biome — check the project's lint config.
 
-After completing one subtask iteration:
+**Unclear requirements:** pick the interpretation that fits the AC, note the choice in the PROGRESS.md entry.
 
-1. All tracking files are updated
-2. Commit is created with subtask reference
-3. The iteration is complete
-
-**MUST STOP:** End the session for this iteration. Do not pick, plan, or execute another subtask here.
-
-Ralph runtime determines whether to continue with another iteration or stop.
-
-## Important Notes
-
-- **One subtask per iteration:** This prompt handles exactly one subtask. Ralph runtime handles repetition.
-- **Traceability:** Every commit must reference its subtask ID
-- **Self-improvement:** The sessionId is recorded so session logs can be analyzed later for inefficiencies
-- **No templating:** This prompt uses @path references for file inclusion, not {{VAR}} templating syntax
+**Blocked by missing dependency:** report the block. Don't skip to a different subtask — that violates step 2 (stay in scope).

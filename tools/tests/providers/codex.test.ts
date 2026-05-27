@@ -157,12 +157,32 @@ describe("buildCodexHeadlessArguments", () => {
 });
 
 describe("buildCodexSupervisedArguments", () => {
-  test("includes exec and skip-git-repo-check flags", () => {
+  test("invokes bare codex chat TUI (no exec subcommand or exec-only flags)", () => {
     const config: CodexConfig = { provider: "codex" };
     const args = buildCodexSupervisedArguments(config, "hello");
 
-    expect(args[0]).toBe("exec");
-    expect(args).toContain("--skip-git-repo-check");
+    expect(args).not.toContain("exec");
+    expect(args).not.toContain("--skip-git-repo-check");
+    expect(args).not.toContain("--yolo");
+    expect(args).not.toContain("--json");
+    expect(args).not.toContain("--dangerously-bypass-approvals-and-sandbox");
+    expect(args).not.toContain("--ask-for-approval");
+    expect(args).not.toContain("--sandbox");
+    expect(args).not.toContain("--");
+  });
+
+  test("passes prompt as a trailing positional argument", () => {
+    const config: CodexConfig = { provider: "codex" };
+    const args = buildCodexSupervisedArguments(config, "hello");
+
+    expect(args.at(-1)).toBe("hello");
+  });
+
+  test("omits prompt entirely when the prompt is empty", () => {
+    const config: CodexConfig = { provider: "codex" };
+    const args = buildCodexSupervisedArguments(config, "");
+
+    expect(args).not.toContain("");
   });
 
   test("passes model to --model when provided", () => {

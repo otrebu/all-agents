@@ -132,15 +132,22 @@ Do not require BDD/Cucumber unless explicitly requested by the source input.
 
 For any CLI command, API route, web user flow, provider integration, or behavior that crosses layer boundaries, the subtask MUST require an end-to-end or integration test at the real boundary. Unit tests are allowed as supporting coverage but do NOT satisfy the tracer-bullet requirement by themselves. Name the exact boundary in the AC (e.g. "the `aaa story concat` CLI", "POST /api/v1/foo", "the claude provider's `invoke()`", "the `/settings` web flow").
 
-**Seed-data prerequisite (flag explicitly when present):**
+**Seed-data prerequisite — flag both surfaces explicitly when present:**
 
-If the behavior under test reads from a real surface (DB, API, filesystem, queue, auth/session, cache) and the data it needs is not part of the baseline test environment — e.g. new entity types, new entity states, cross-account or cross-tenant interactions, freshly-introduced enum values, files at paths that don't yet exist — the subtask MUST make the seed requirement explicit so the build agent does not silently mock the surface or weaken the test. Use one of:
+A subtask usually needs data on **two distinct surfaces**:
 
-- An `[Evidence]` AC that names the seed/fixture artifact (path + what it contains), e.g. `[Evidence] tests/fixtures/orders/multi-tenant.json contains 2 orders across distinct tenants`
+- **test-runtime** — what the automated test reads (mocks, fixtures, MSW handlers)
+- **live-runtime** — what the running app reads when `[Visual]`/`[Manual]` ACs are verified at the real URL / datastore (dev DB rows, dev sessions, uploaded blobs)
+
+If the behavior under test reads from a real surface (DB, API, filesystem, queue, auth/session, cache) and the data it needs is not part of the baseline environment — new entity types, new entity states, cross-account interactions, freshly-introduced enum values, files at paths that don't yet exist — the subtask MUST make the requirement explicit so the build agent does not silently mock the surface or weaken the test. Use one of:
+
+- An `[Evidence]` AC naming the seed/fixture artifact (path + what it contains), e.g. `[Evidence] tests/fixtures/orders/multi-tenant.json contains 2 orders across distinct tenants` (test-runtime) or `[Evidence] prisma/seed.ts:seedHistoricArchive inserts 3 historic-archive rows into dev Postgres` (live-runtime)
 - A dedicated `[Behavioral]` setup AC such as `[Behavioral] Test harness seeds <N> <entity> records with <key attributes> before the assertion runs`
 - A short line in the description: `Requires fresh seed data: <what>` — appropriate when the seed lives in a setup hook or factory rather than a static file
 
-The build prompt (@context/workflows/ralph/building/ralph-iteration.md, Phase 4a "Seed-data prerequisite") will block the iteration if this is missed, so flagging it at planning time keeps the subtask honest and saves a build round-trip.
+**For subtasks with any `[Visual]`/`[Manual]` AC, the seed requirement MUST name the live-runtime artifact** (dev DB seed script, fixture loader run against the running app), not only a test-runtime fixture — otherwise the build agent can satisfy the AC with a mocked unit test while the real URL renders empty.
+
+The build prompt (@context/workflows/ralph/building/ralph-iteration.md, Gate G3) will block the iteration if this is missed, so flagging it at planning time keeps the subtask honest and saves a build round-trip.
 
 **Manual verification requirements:**
 
@@ -153,8 +160,9 @@ For non-web CLI/provider subtasks, include the equivalent manual smoke:
 
 **Subagent encouragement for verification ACs:**
 
-When an AC requires Agent Browser verification or running multiple E2E test files, phrase the AC so the implementing agent is steered toward **spawning subagents** for verification — keeping the main iteration context lean for production code. Suggested AC phrasings:
-- "Spawn a subagent to drive Agent Browser verification for AC <N>, capturing artifacts under `artifacts/browser/<subtask-id>/...`"
+When an AC requires Agent Browser verification or running multiple E2E test files, phrase the AC so the implementing agent is steered toward **spawning subagents** with the highest-intelligence, highest-effort model available — keeping the main iteration context lean for production code. Suggested AC phrasings:
+
+- "Spawn a subagent (highest-intelligence model) to drive Agent Browser verification for AC <N>, capturing artifacts under `artifacts/browser/<subtask-id>/...`"
 - "Run multiple E2E test files in parallel via subagents (single message, multiple Task calls) when more than one file covers this slice"
 - "Delegate provider/CLI smoke runs to a subagent so stdout/stderr stay isolated from the iteration context"
 
