@@ -90,7 +90,7 @@ import {
 
 /** Default prompt path relative to context root */
 const ITERATION_PROMPT_PATH =
-  "context/workflows/ralph/building/ralph-iteration.md";
+  "context/workflows/ralph/building/ralph-iteration-new.md";
 const TRACKING_METADATA_PREFIXES = ["docs/planning/", ".claude/"];
 
 // =============================================================================
