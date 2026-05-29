@@ -1,6 +1,48 @@
 {
-  "generatedAt": "2026-03-10T13:34:21.433Z",
+  "generatedAt": "2026-05-20T21:26:06.195Z",
   "models": [
+    {
+      "cliFormat": "gpt-5.2",
+      "costHint": "standard",
+      "discoveredAt": "2026-05-20",
+      "id": "gpt-5.2",
+      "provider": "codex"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex",
+      "costHint": "standard",
+      "discoveredAt": "2026-05-20",
+      "id": "gpt-5.3-codex",
+      "provider": "codex"
+    },
+    {
+      "cliFormat": "gpt-5.3-codex-spark",
+      "costHint": "expensive",
+      "discoveredAt": "2026-05-20",
+      "id": "gpt-5.3-codex-spark",
+      "provider": "codex"
+    },
+    {
+      "cliFormat": "gpt-5.4",
+      "costHint": "standard",
+      "discoveredAt": "2026-05-20",
+      "id": "gpt-5.4",
+      "provider": "codex"
+    },
+    {
+      "cliFormat": "gpt-5.4-mini",
+      "costHint": "cheap",
+      "discoveredAt": "2026-05-20",
+      "id": "gpt-5.4-mini",
+      "provider": "codex"
+    },
+    {
+      "cliFormat": "gpt-5.5",
+      "costHint": "standard",
+      "discoveredAt": "2026-05-20",
+      "id": "gpt-5.5",
+      "provider": "codex"
+    },
     {
       "cliFormat": "auto",
       "costHint": "standard",
@@ -55,13 +97,6 @@
       "costHint": "expensive",
       "discoveredAt": "2026-02-17",
       "id": "gpt-5.1-high",
-      "provider": "cursor"
-    },
-    {
-      "cliFormat": "gpt-5.2",
-      "costHint": "standard",
-      "discoveredAt": "2026-02-17",
-      "id": "gpt-5.2",
       "provider": "cursor"
     },
     {
@@ -125,13 +160,6 @@
       "costHint": "expensive",
       "discoveredAt": "2026-02-17",
       "id": "gpt-5.2-high",
-      "provider": "cursor"
-    },
-    {
-      "cliFormat": "gpt-5.3-codex",
-      "costHint": "standard",
-      "discoveredAt": "2026-02-17",
-      "id": "gpt-5.3-codex",
       "provider": "cursor"
     },
     {
