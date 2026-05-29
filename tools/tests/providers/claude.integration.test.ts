@@ -201,9 +201,9 @@ describe("subprocess spawning", () => {
       "--output-format",
       "json",
       "--model",
-      "claude-opus-4-7",
+      "claude-opus-4-8",
       "--effort",
-      "max",
+      "xhigh",
     ]);
 
     expect(capturedOptions).toEqual(

@@ -1219,7 +1219,7 @@ ralphCommand.addCommand(
     .option("--model <name>", "Model to use (validated against model registry)")
     .option(
       "--claude-effort <level>",
-      "Claude reasoning effort: low|medium|high|xhigh|max (default: max; also reads RALPH_CLAUDE_EFFORT and ralph.claudeEffort)",
+      "Claude reasoning effort: low|medium|high|xhigh|max (default: xhigh; also reads RALPH_CLAUDE_EFFORT and ralph.claudeEffort)",
     )
     .option(
       "--force",

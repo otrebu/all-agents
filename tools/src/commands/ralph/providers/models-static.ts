@@ -59,6 +59,12 @@ const STATIC_MODELS: Array<ModelInfo> = [
     provider: "claude",
   },
   {
+    cliFormat: "claude-opus-4-8",
+    costHint: "expensive",
+    id: "claude-opus-4-8",
+    provider: "claude",
+  },
+  {
     cliFormat: "claude-sonnet-4-5",
     costHint: "standard",
     id: "claude-sonnet-4-5",
@@ -73,7 +79,7 @@ const STATIC_MODELS: Array<ModelInfo> = [
 
   // Claude aliases accepted by Claude Code
   {
-    cliFormat: "claude-opus-4-7",
+    cliFormat: "claude-opus-4-8",
     costHint: "expensive",
     description: "Claude Code alias",
     id: "default",
@@ -87,14 +93,14 @@ const STATIC_MODELS: Array<ModelInfo> = [
     provider: "claude",
   },
   {
-    cliFormat: "claude-opus-4-7",
+    cliFormat: "claude-opus-4-8",
     costHint: "expensive",
     description: "Claude Code alias",
     id: "opus",
     provider: "claude",
   },
   {
-    cliFormat: "claude-opus-4-7",
+    cliFormat: "claude-opus-4-8",
     costHint: "expensive",
     description: "Claude Code alias",
     id: "opusplan",

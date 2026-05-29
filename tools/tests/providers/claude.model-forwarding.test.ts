@@ -57,7 +57,7 @@ describe("Claude provider model forwarding", () => {
     }
   });
 
-  test("invokeClaudeChat defaults to claude-opus-4-7 at effort=max when model is undefined", () => {
+  test("invokeClaudeChat defaults to claude-opus-4-8 at effort=xhigh when model is undefined", () => {
     const temporaryDirectory = mkdtempSync(
       join(tmpdir(), "ralph-claude-test-"),
     );
@@ -80,9 +80,9 @@ describe("Claude provider model forwarding", () => {
 
       expect(result.success).toBe(true);
       expect(capturedArguments).toContain("--model");
-      expect(capturedArguments).toContain("claude-opus-4-7");
+      expect(capturedArguments).toContain("claude-opus-4-8");
       expect(capturedArguments).toContain("--effort");
-      expect(capturedArguments).toContain("max");
+      expect(capturedArguments).toContain("xhigh");
     } finally {
       rmSync(temporaryDirectory, { force: true, recursive: true });
     }

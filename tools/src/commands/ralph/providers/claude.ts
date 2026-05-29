@@ -31,10 +31,10 @@ import {
 const SIGNAL_EXIT_CODE = { SIGINT: 130, SIGTERM: 143 } as const;
 
 /** Default Claude model when none is specified by the caller. */
-const DEFAULT_CLAUDE_MODEL = "claude-opus-4-7";
+const DEFAULT_CLAUDE_MODEL = "claude-opus-4-8";
 
 /** Default effort level passed to `claude --effort <level>`. */
-const DEFAULT_CLAUDE_EFFORT: ClaudeEffort = "max";
+const DEFAULT_CLAUDE_EFFORT: ClaudeEffort = "xhigh";
 
 /** Environment variable that overrides the Claude effort default. */
 const CLAUDE_EFFORT_ENV_VAR = "RALPH_CLAUDE_EFFORT";
@@ -86,7 +86,7 @@ type TerminationSignal = keyof typeof SIGNAL_EXIT_CODE;
 /**
  * Resolve the effort level to use for a Claude invocation.
  *
- * Priority: explicit caller value > `RALPH_CLAUDE_EFFORT` env var > "max" default.
+ * Priority: explicit caller value > `RALPH_CLAUDE_EFFORT` env var > "xhigh" default.
  * Invalid env values are ignored (with a one-time warning) and the default wins.
  */
 function resolveClaudeEffort(explicit?: ClaudeEffort): ClaudeEffort {
@@ -169,7 +169,7 @@ const CLAUDE_FAILURE_REASON_RULES: Array<{
 /**
  * Build Claude headless arguments with optional model and effort.
  *
- * Defaults to claude-opus-4-7 at effort=max (overridable via the
+ * Defaults to claude-opus-4-8 at effort=xhigh (overridable via the
  * `RALPH_CLAUDE_EFFORT` env var) when the caller doesn't specify.
  */
 function buildClaudeHeadlessArguments(

@@ -39,7 +39,7 @@ interface BaseProviderConfig {
 
 /** Claude Code CLI configuration */
 interface ClaudeConfig extends BaseProviderConfig {
-  /** Reasoning effort level (default: "max"). */
+  /** Reasoning effort level (default: "xhigh"). */
   effort?: ClaudeEffort;
   provider: "claude";
 }
