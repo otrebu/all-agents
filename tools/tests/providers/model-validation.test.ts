@@ -226,8 +226,18 @@ describe("REFRESH_HINT", () => {
 // =============================================================================
 
 describe("validateModelSelection - edge cases", () => {
-  test("returns suggestions for codex provider", () => {
+  test("accepts an arbitrary model ID for codex as pass-through", () => {
+    // codex forwards unknown model IDs verbatim so newly released models
+    // work without a registry refresh (see fix 1b0b899).
     const result = validateModelSelection("some-model", "codex");
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.cliFormat).toBe("some-model");
+    }
+  });
+
+  test("rejects a malformed (whitespace) codex model ID with suggestions", () => {
+    const result = validateModelSelection("bad model id", "codex");
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.suggestions.length).toBeGreaterThan(0);
